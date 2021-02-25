@@ -1,0 +1,12 @@
+[Unit]
+Description=Write dhcp events to Rstat
+After=syslog.target mariadb.service dhcpd.service
+
+[Service]
+Type=forking
+ExecStart=/usr/local/scripts/dhcp-log.pl --start
+Restart=always
+PIDFile=/var/run/dhcp-log.pid
+
+[Install]
+WantedBy=multi-user.target

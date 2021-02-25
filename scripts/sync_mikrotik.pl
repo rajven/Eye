@@ -1,0 +1,744 @@
+#!/usr/bin/perl -w
+
+#
+# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+#
+
+use FindBin '$Bin';
+use lib "$Bin/";
+use strict;
+use Time::Local;
+use FileHandle;
+use Data::Dumper;
+use Rstat::config;
+use Rstat::main;
+use Rstat::mikrotik;
+use Rstat::cmd;
+use Net::Patricia;
+use Date::Parse;
+use Rstat::net_utils;
+use Rstat::mysql;
+use DBI;
+use utf8;
+use open ":encoding(utf8)";
+
+$|=1;
+
+if (IsNotRun($SPID)) { Add_PID($SPID); }  else { die "Warning!!! $SPID already runnning!\n"; }
+
+my %fields=('device_name'=>'1', 'ip'=>'1', 'device_model'=>'1', 'wan_int'=>'1', 'lan_int'=>'1', 'dhcp'=>'1', 'internet_gateway'=>'1', 'queue_enabled'=>'1', 'connected_user_only'=>'1');
+
+my @gateways =();
+#select undeleted mikrotik routers only
+if ($ARGV[0]) {
+    my $router = get_record($dbh,'devices',\%fields,"(internet_gateway=1 or dhcp=1) and deleted=0 and vendor_id=9 and id='".$ARGV[0]."'");
+    if ($router) { push(@gateways,$router); }
+    } else {
+    @gateways = get_records($dbh,'devices',\%fields,"(internet_gateway=1 or dhcp=1) and deleted=0 and vendor_id=9");
+    }
+
+my $dhcp_networks = new Net::Patricia;
+my %dhcp_conf;
+
+my @subnets=get_custom_records($dbh,'SELECT * FROM subnets WHERE dhcp=1 and office=1 and vpn=0 ORDER BY ip_int_start');
+foreach my $subnet (@subnets) {
+next if (!$subnet->{gateway});
+my $subnet_name = $subnet->{subnet};
+$subnet_name=~s/\/\d+$//g;
+$dhcp_networks->add_string($subnet->{subnet},$subnet_name);
+$dhcp_conf{$subnet_name}->{first_pool_ip}=IpToStr($subnet->{dhcp_start});
+$dhcp_conf{$subnet_name}->{last_pool_ip}=IpToStr($subnet->{dhcp_stop});
+$dhcp_conf{$subnet_name}->{relay_ip}=IpToStr($subnet->{gateway});
+my $dhcp_info=GetDhcpRange($subnet->{subnet});
+$dhcp_conf{$subnet_name}->{first_ip} = $dhcp_info->{first_ip};
+$dhcp_conf{$subnet_name}->{last_ip} = $dhcp_info->{last_ip};
+$dhcp_conf{$subnet_name}->{first_ip_aton}=StrToIp($dhcp_info->{first_ip});
+$dhcp_conf{$subnet_name}->{last_ip_aton}=StrToIp($dhcp_info->{last_ip});
+}
+
+foreach my $gate (@gateways) {
+next if (!$gate);
+my $router_name=$gate->{device_name};
+my $router_ip=$gate->{ip};
+my $wan_dev = $gate->{wan_int};
+my $lan_dev = $gate->{lan_int};
+my $shaper_enabled = $gate->{queue_enabled};
+my $connected_users_only = $gate->{connected_user_only};
+my $connected_users = new Net::Patricia;
+
+#lan interfaces
+my @lan_int=split(/;/,$lan_dev);
+
+my @cmd_list=();
+
+my $t = Login_Mikrotik($router_ip);
+
+foreach my $int (@lan_int) { #interface dhcp loop
+next if (!$int);
+$int=trim($int);
+
+#get ip addr at interface
+my @int_addr=log_cmd4($t,'/ip address print terse without-paging where interface='.$int);
+
+my $found_subnet;
+foreach my $int_str(@int_addr) {
+$int_str=trim($int_str);
+next if (!$int_str);
+if ($int_str=~/\s+address=(\S*)\s+/i) {
+    my $gate_interface=$1;
+    if ($gate_interface) {
+        my $gate_ip=$gate_interface;
+        $gate_ip=~s/\/.*$//;
+        #search for first match
+        if (!$found_subnet) { $found_subnet=$dhcp_networks->match_string($gate_ip); }
+        #all subnets match
+        if ($connected_users_only) { $connected_users->add_string($gate_interface); }
+        }
+    }
+}
+
+if (!$found_subnet) {  db_log_verbose($dbh,"DHCP subnet for interface $int not found! Skip interface.");  next; }
+
+db_log_verbose($dbh,"Analyze interface $int. Found: ".Dumper($dhcp_conf{$found_subnet}));
+
+#dhcp config
+if ($gate->{dhcp}) {
+
+#fetch current dhcp records
+my @ret_static_leases=log_cmd4($t,'/ip dhcp-server lease print terse without-paging where server=dhcp-'.$int);
+
+my @current_static_leases=();
+foreach my $str (@ret_static_leases) {
+next if (!$str);
+$str=trim($str);
+if ($str=~/^\d/) {
+    log_debug("Found current static lease record: ".$str);
+    push(@current_static_leases,$str);
+    }
+}
+
+#select users for this interface
+
+my @auth_records=get_custom_records($dbh,"SELECT * from User_auth WHERE dhcp=1 and `ip_int`>=".$dhcp_conf{$found_subnet}->{first_ip_aton}." and `ip_int`<=".$dhcp_conf{$found_subnet}->{last_ip_aton}." and deleted=0 and user_id<>".$default_user_id." and user_id<>".$hotspot_user_id." ORDER BY ip_int");
+
+my %leases;
+foreach my $lease (@auth_records) {
+next if (!$lease);
+next if (!$lease->{mac});
+next if (!$lease->{ip});
+next if ($lease->{ip} eq $dhcp_conf{$found_subnet}->{relay_ip});
+$leases{$lease->{ip}}{ip}=$lease->{ip};
+$leases{$lease->{ip}}{comment}=$lease->{id};
+$leases{$lease->{ip}}{id}=$lease->{id};
+$leases{$lease->{ip}}{dns_name}=$lease->{dns_name};
+if ($lease->{comments}) { $leases{$lease->{ip}}{comment}=translit($lease->{comments}); }
+$leases{$lease->{ip}}{mac}=uc(mac_splitted($lease->{mac}));
+if ($lease->{dhcp_acl}) {
+    $leases{$lease->{ip}}{acl}=trim($lease->{dhcp_acl});
+    $leases{$lease->{ip}}{acl}=~s/;/,/g;
+    }
+$leases{$lease->{ip}}{acl}='' if (!$leases{$lease->{ip}}{acl});
+}
+
+
+my %active_leases;
+foreach my $lease (@current_static_leases) {
+
+my @words = split(/\s+/,$lease);
+my %tmp_lease;
+
+if ($lease=~/^(\d*)\s+/) { $tmp_lease{id}=$1; };
+next if (!defined($tmp_lease{id}));
+
+foreach my $option (@words) {
+next if (!$option);
+$option=trim($option);
+next if (!$option);
+my @tmp = split(/\=/,$option);
+my $token = trim($tmp[0]);
+my $value = trim($tmp[1]);
+next if (!$token);
+next if (!$value);
+$value=~s/\"//g;
+if ($token=~/^address$/i) { $tmp_lease{ip}=GetIP($value); }
+if ($token=~/^mac-address$/i) { $tmp_lease{mac}=uc(mac_splitted($value)); }
+if ($token=~/^host-name$/i) { $tmp_lease{dhcp_hostname}=$value; }
+if ($token=~/^address-lists$/i) { $tmp_lease{acl}=$value; }
+}
+
+next if (!$tmp_lease{ip});
+next if (!$tmp_lease{mac});
+
+if ($tmp_lease{dhcp_hostname}) {
+        my $dSQL="Update User_auth set dhcp_hostname='".$tmp_lease{dhcp_hostname}."' where deleted=0 and ip_int=".StrToIp($tmp_lease{ip})." and mac='".lc($tmp_lease{mac})."'";
+        db_log_debug($dbh,"Update dhcp hostname $tmp_lease{dhcp_hostname} for $tmp_lease{ip} [$tmp_lease{mac}] from mikrotik dhcp server");
+        do_sql($dbh,$dSQL);
+        }
+
+#skip dynamic leases. this check MUST BE After update dhcp hostname!!!
+next if ($lease=~/^(\d*)\s+D\s+/);
+
+$active_leases{$tmp_lease{ip}}{ip}=$tmp_lease{ip};
+$active_leases{$tmp_lease{ip}}{mac}=$tmp_lease{mac};
+$active_leases{$tmp_lease{ip}}{id}=$tmp_lease{id};
+
+$active_leases{$tmp_lease{ip}}{acl}='';
+if ($tmp_lease{acl}) {
+    $active_leases{$tmp_lease{ip}}{acl}=$tmp_lease{acl};
+    }
+}
+
+if ($debug) {  log_debug("Active leases: ".Dumper(\%active_leases)); }
+
+#sync state
+foreach my $ip (keys %active_leases) {
+if (!exists $leases{$ip}) {
+    db_log_verbose($dbh,"Address $ip not found in stat. Remove from router.");
+    push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
+    push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
+    next;
+    }
+if ($leases{$ip}{mac}!~/$active_leases{$ip}{mac}/i) {
+    db_log_verbose($dbh,"Mac-address mismatch for ip $ip. stat: $leases{$ip}{mac} active: $active_leases{$ip}{mac}. Remove lease from router.");
+    push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
+    push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
+    next;
+    }
+next if (!$leases{$ip}{acl} and !$active_leases{$ip}{acl});
+if ($leases{$ip}{acl}!~/$active_leases{$ip}{acl}/) {
+    db_log_error($dbh,"Acl mismatch for ip $ip. stat: $leases{$ip}{acl} active: $active_leases{$ip}{acl}. Remove lease from router.");
+    push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
+    push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
+    next;
+    }
+}
+
+foreach my $ip (keys %leases) {
+my $acl='';
+if ($leases{$ip}{acl}) { $acl = 'address-lists='.$leases{$ip}{acl}; }
+
+my $comment = $leases{$ip}{comment};
+$comment =~s/\=//g;
+
+my $dns_name='';
+if ($leases{$ip}{dns_name}) { $dns_name = $leases{$ip}{dns_name}; }
+$dns_name =~s/\=//g;
+
+if ($dns_name) { $comment = 'comment="'.$dns_name." - ".$comment.'"'; } else { $comment = 'comment="'.$comment.'"'; }
+
+if (!exists $active_leases{$ip}) {
+    db_log_verbose($dbh,"Address $ip not found in router. Create static lease record.");
+    #remove static and dynamic records for mac
+    push(@cmd_list,':foreach i in [/ip dhcp-server lease find where mac-address='.uc($leases{$ip}{mac}).' ] do={/ip dhcp-server lease remove $i};');
+    push(@cmd_list,'/ip dhcp-server lease remove [find mac-address='.uc($leases{$ip}{mac}).']');
+    #remove current ip binding
+    push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
+    push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
+    #add new bind
+    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' server=dhcp-'.$int.' '.$comment);
+    next;
+    }
+if ($leases{$ip}{mac}!~/$active_leases{$ip}{mac}/i) {
+    db_log_error($dbh,"Mac-address mismatch for ip $ip. stat: $leases{$ip}{mac} active: $active_leases{$ip}{mac}. Create static lease record.");
+    #remove static and dynamic records for mac
+    push(@cmd_list,':foreach i in [/ip dhcp-server lease find where mac-address='.uc($leases{$ip}{mac}).' ] do={/ip dhcp-server lease remove $i};');
+    push(@cmd_list,'/ip dhcp-server lease remove [find mac-address='.uc($leases{$ip}{mac}).']');
+    #remove current ip binding
+    push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
+    push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
+    #add new bind
+    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' server=dhcp-'.$int.' '.$comment);
+    next;
+    }
+next if (!$leases{$ip}{acl} and !$active_leases{$ip}{acl});
+if ($leases{$ip}{acl}!~/$active_leases{$ip}{acl}/) {
+    db_log_error($dbh,"Acl mismatch for ip $ip. stat: $leases{$ip}{acl} active: $active_leases{$ip}{acl}. Create static lease record.");
+    push(@cmd_list,':foreach i in [/ip dhcp-server lease find where mac-address='.uc($leases{$ip}{mac}).' ] do={/ip dhcp-server lease remove $i};');
+    push(@cmd_list,'/ip dhcp-server lease remove [find mac-address='.uc($leases{$ip}{mac}).']');
+    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' server=dhcp-'.$int.' '.$comment);
+    next;
+    }
+}
+
+}#end interface dhcp loop
+}#end dhcp config
+
+#access lists config
+if ($gate->{internet_gateway}) {
+
+db_log_verbose($dbh,"Sync user state at router $router_name [".$router_ip."] started.");
+
+#get userid list
+my $user_auth_sql="SELECT User_auth.ip, User_auth.filter_group_id, User_auth.queue_id
+FROM User_auth, User_list
+WHERE User_auth.user_id = User_list.id
+AND User_auth.deleted =0
+AND User_auth.enabled =1
+AND User_auth.blocked =0
+AND User_list.blocked =0
+AND User_auth.user_id <> $hotspot_user_id
+ORDER BY ip_int";
+
+my $user_auth_list = $dbh->prepare($user_auth_sql);
+if ( !defined $user_auth_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
+$user_auth_list->execute;
+# user auth list
+my $authlist_ref = $user_auth_list->fetchall_arrayref();
+$user_auth_list->finish();
+
+my %users;
+my %lists;
+my @squid_users=();
+
+foreach my $row (@$authlist_ref) {
+if ($connected_users_only) {
+    next if (!$connected_users->match_string($row->[0]));
+    }
+$users{'group_'.$row->[1]}->{$row->[0]}=1;
+$users{'group_all'}->{$row->[0]}=1;
+$lists{'group_'.$row->[1]}=1;
+if ($row->[2]) { $users{'queue_'.$row->[2]}->{$row->[0]}=1; }
+}
+
+#full list
+$lists{'group_all'}=1;
+
+#get queue list
+my $queue_list = $dbh->prepare( "SELECT id,queue_name,Download,Upload FROM Queue_list" );
+if ( !defined $queue_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
+$queue_list->execute;
+# user auth list
+my $queuelist_ref = $queue_list->fetchall_arrayref();
+$queue_list->finish();
+
+my %queues;
+foreach my $row (@$queuelist_ref) {
+$lists{'queue_'.$row->[0]}=1;
+next if ((!$row->[2]) and !($row->[3]));
+$queues{'queue_'.$row->[0]}{id}=$row->[0];
+$queues{'queue_'.$row->[0]}{down}=$row->[2];
+$queues{'queue_'.$row->[0]}{up}=$row->[3];
+}
+
+#print Dumper(\%users) if ($debug);
+
+#get filters
+my $filter_list = $dbh->prepare( "SELECT id,name,proto,dst,dstport,action FROM Filter_list where type=0" );
+if ( !defined $filter_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
+$filter_list->execute;
+# user auth list
+my $filterlist_ref = $filter_list->fetchall_arrayref();
+$filter_list->finish();
+
+my %filters;
+foreach my $row (@$filterlist_ref) {
+$filters{$row->[0]}->{id}=$row->[0];
+$filters{$row->[0]}->{proto}=$row->[2];
+$filters{$row->[0]}->{dst}=$row->[3];
+$filters{$row->[0]}->{port}=$row->[4];
+$filters{$row->[0]}->{action}=$row->[5];
+}
+
+#print Dumper(\%filters) if ($debug);
+
+#get groups
+my $group_list = $dbh->prepare( "SELECT group_id,filter_id,Group_filters.order FROM Group_filters order by Group_filters.group_id,Group_filters.order" );
+if ( !defined $group_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
+$group_list->execute;
+# user auth list
+my $grouplist_ref = $group_list->fetchall_arrayref();
+$group_list->finish();
+
+my %group_filters;
+my $index=1;
+foreach my $row (@$grouplist_ref) {
+#{group-name}->{filter_id}=order
+$group_filters{'group_'.$row->[0]}->{$index}=$row->[1];
+$index++;
+}
+
+#print Dumper(\%group_filters) if ($debug);
+
+my %cur_users;
+
+foreach my $group_name (keys %lists) {
+my @address_lists=log_cmd4($t,'/ip firewall address-list print terse without-paging where list='.$group_name);
+
+foreach my $row (@address_lists) {
+    $row=trim($row);
+    next if (!$row);
+    my @address=split(' ',$row);
+    foreach my $row (@address) {
+	if ($row=~/address\=(.*)/i) { $cur_users{$group_name}{$1}=1; }
+	}
+    }
+}
+
+#new-ips
+foreach my $group_name (keys %users) {
+    foreach my $user_ip (keys %{$users{$group_name}}) {
+    if (!exists($cur_users{$group_name}{$user_ip})) {
+	db_log_verbose($dbh,"Add user with ip: $user_ip to access-list $group_name");
+	push(@cmd_list,"/ip firewall address-list add address=".$user_ip." list=".$group_name);
+	}
+    }
+}
+
+#old-ips
+foreach my $group_name (keys %cur_users) {
+    foreach my $user_ip (keys %{$cur_users{$group_name}}) {
+    if (!exists($users{$group_name}{$user_ip})) {
+	db_log_verbose($dbh,"Remove user with ip: $user_ip from access-list $group_name");
+        push(@cmd_list,":foreach i in [/ip firewall address-list find where address=".$user_ip." and list=".$group_name."] do={/ip firewall address-list remove \$i};");
+	}
+    }
+}
+
+
+timestamp;
+
+#sync firewall rules
+
+#sync group chains
+my @chain_list=log_cmd4($t,'/ip firewall filter  print terse without-paging where chain=Users and action=jump');
+
+my %cur_chain;
+foreach my $jump_list (@chain_list) {
+next if (!$jump_list);
+$jump_list=trim($jump_list);
+if ($jump_list=~/jump-target=(\S*)\s+/i) {
+    if ($1) { $cur_chain{$1}++; }
+    }
+}
+
+#old chains
+foreach my $group_name (keys %cur_chain) {
+    if (!exists($group_filters{$group_name})) {
+	push (@cmd_list,":foreach i in [/ip firewall filter find where chain=Users and action=jump and jump-target=".$group_name."] do={/ip firewall filter remove \$i};");
+	} else {
+	if ($cur_chain{$group_name} != 2) {
+	    push (@cmd_list,":foreach i in [/ip firewall filter find where chain=Users and action=jump and jump-target=".$group_name."] do={/ip firewall filter remove \$i};");
+	    push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." src-address-list=".$group_name);
+	    push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." dst-address-list=".$group_name);
+	    }
+	}
+}
+
+#new chains
+foreach my $group_name (keys %group_filters) {
+    if (!exists($cur_chain{$group_name})) {
+	push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." src-address-list=".$group_name);
+	push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." dst-address-list=".$group_name);
+	}
+}
+
+my %chain_rules;
+foreach my $group_name (keys %group_filters) {
+next if (!$group_name);
+next if (!exists($group_filters{$group_name}));
+foreach my $filter_index (sort keys %{$group_filters{$group_name}}) {
+    my $filter_id=$group_filters{$group_name}->{$filter_index};
+    next if (!$filters{$filter_id});
+    my $src_rule='chain='.$group_name;
+    my $dst_rule='chain='.$group_name;
+    if ($filters{$filter_id}->{action}) {
+	$src_rule=$src_rule." action=accept";
+	$dst_rule=$dst_rule." action=accept";
+	} else {
+	$src_rule=$src_rule." action=reject";
+	$dst_rule=$dst_rule." action=reject";
+	}
+    if ($filters{$filter_id}->{proto} and ($filters{$filter_id}->{proto}!~/all/i)) {
+	$src_rule=$src_rule." protocol=".$filters{$filter_id}->{proto};
+	$dst_rule=$dst_rule." protocol=".$filters{$filter_id}->{proto};
+	}
+    if ($filters{$filter_id}->{dst} and $filters{$filter_id}->{dst} ne '0/0') {
+	$src_rule=$src_rule." src-address=".trim($filters{$filter_id}->{dst});
+	$dst_rule=$dst_rule." dst-address=".trim($filters{$filter_id}->{dst});
+	}
+    if ($filters{$filter_id}->{port} and $filters{$filter_id}->{port} ne '0') {
+	$src_rule=$src_rule." src-port=".trim($filters{$filter_id}->{port});
+	$dst_rule=$dst_rule." dst-port=".trim($filters{$filter_id}->{port});
+	}
+
+    if ($src_rule ne $dst_rule) {
+        push(@{$chain_rules{$group_name}},$src_rule);
+        push(@{$chain_rules{$group_name}},$dst_rule);
+        } else {
+        push(@{$chain_rules{$group_name}},$src_rule);
+        }
+    }
+}
+
+#print Dumper(\%chain_rules) if ($debug);
+
+#chain filters
+foreach my $group_name (keys %group_filters) {
+
+next if (!$group_name);
+
+my @get_filter=log_cmd4($t,'/ip firewall filter print terse without-paging where chain='.$group_name,1);
+
+my @cur_filter=();
+my $chain_ok=1;
+
+foreach (my $f_index=0; $f_index<scalar(@get_filter); $f_index++) {
+    my $filter_str=trim($get_filter[$f_index]);
+    next if (!$filter_str);
+    next if ($filter_str!~/^(\d){1,3}/);
+    $filter_str=~s/^\d{1,3}\s+//;
+    $filter_str=trim($filter_str);
+    next if (!$filter_str);
+    push(@cur_filter,$filter_str);
+}
+
+#current state rules
+foreach (my $f_index=0; $f_index<scalar(@cur_filter); $f_index++) {
+    my $filter_str=trim($cur_filter[$f_index]);
+    if (!$chain_rules{$group_name}[$f_index] or $filter_str!~/$chain_rules{$group_name}[$f_index]/i) {
+	print "Check chain $group_name error! $filter_str not found in new config. Recreate chain.\n";
+	$chain_ok=0;
+	last;
+	}
+    }
+
+#new rules
+if ($chain_ok and $chain_rules{$group_name} and scalar(@{$chain_rules{$group_name}})) {
+    foreach (my $f_index=0; $f_index<scalar(@{$chain_rules{$group_name}}); $f_index++) {
+	my $filter_str=trim($cur_filter[$f_index]);
+        if (!$filter_str) {
+		print "Check chain $group_name error! Not found: $chain_rules{$group_name}[$f_index]. Recreate chain.\n";
+		$chain_ok=0;
+		last;
+	}
+        $filter_str=~s/^\d//;
+	$filter_str=trim($filter_str);
+        if ($filter_str!~/$chain_rules{$group_name}[$f_index]/i) {
+		print "Check chain $group_name error! Expected: $chain_rules{$group_name}[$f_index] Found: $filter_str. Recreate chain.\n";
+		$chain_ok=0;
+		last;
+	}
+    }
+}
+
+if (!$chain_ok) {
+    push(@cmd_list,":foreach i in [/ip firewall filter find where chain=".$group_name." ] do={/ip firewall filter remove \$i};");
+    foreach my $filter_str (@{$chain_rules{$group_name}}) {
+	push(@cmd_list,'/ip firewall filter add '.$filter_str);
+	}
+    }
+}
+
+if ($shaper_enabled) {
+
+#shapers
+my %get_queue_type=();
+my %get_queue_tree=();
+my %get_filter_mangle=();
+
+my @tmp=log_cmd4($t,'/queue type print terse without-paging where name~"pcq_(down|up)load"');
+# 0   name=pcq_upload_3 kind=pcq pcq-rate=102401k pcq-limit=500KiB pcq-classifier=src-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s 
+#pcq-src-address-mask=32 pcq-dst-address-mask=32 pcq-src-address6-mask=64 pcq-dst-address6-mask=64
+foreach my $row (@tmp) {
+next if (!$row);
+$row = trim($row);
+next if ($row!~/^(\d){1,3}/);
+$row=~s/^\d{1,3}\s+//;
+next if (!$row);
+if ($row=~/name=pcq_(down|up)load_(\d){1,3}\s+/i) {
+    next if (!$1);
+    next if (!$2);
+    my $direct = $1;
+    my $index = $2;
+    $get_queue_type{$index}{$direct}=$row;
+    if ($row=~/pcq-rate=(\S*)\s+\S/i) {
+	    my $rate = $1;
+	    if ($rate=~/k$/i) { $rate =~s/k$//i; }
+	    $get_queue_type{$index}{$direct."-rate"}=$rate;
+	    }
+    if ($row=~/pcq-classifier=(\S*)\s+\S/i) { $get_queue_type{$index}{$direct."-classifier"}=$1; }
+    if ($row=~/pcq-src-address-mask=(\S*)\s+\S/i) { $get_queue_type{$index}{$direct."-src-address-mask"}=$1; }
+    if ($row=~/pcq-dst-address-mask=(\S*)\s+\S/i) { $get_queue_type{$index}{$direct."-dst-address-mask"}=$1; }
+    }
+}
+
+@tmp=();
+@tmp=log_cmd4($t,'/queue tree print terse without-paging where parent~"(download|upload)_root"');
+# 0 I name=queue_3_out parent=upload_root packet-mark=upload_3 limit-at=0 queue=*2A priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1
+# 5 I name=queue_3_vlan2_in parent=download_root_vlan2 packet-mark=download_3_vlan2 limit-at=0 queue=*2B priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1
+foreach my $row (@tmp) {
+next if (!$row);
+$row = trim($row);
+next if ($row!~/^(\d)/);
+$row=~s/^(\d*)\s+//;
+next if (!$row);
+if ($row=~/queue=pcq_(down|up)load_(\d){1,3}/i) {
+    if ($row=~/name=queue_(\d){1,3}_out/i) {
+	next if (!$1);
+	my $index = $1;
+        $get_queue_tree{$index}{up}=$row;
+        if ($row=~/parent=(\S*)\s+\S/i) { $get_queue_tree{$index}{'up-parent'}=$1; }
+        if ($row=~/packet-mark=(\S*)\s+\S/i) { $get_queue_tree{$index}{'up-mark'}=$1; }
+        if ($row=~/queue=(\S*)\s+\S/i) { $get_queue_tree{$index}{'up-queue'}=$1; }
+	}
+    if ($row=~/name=queue_(\d){1,3}_(\S*)_in\s+/i) {
+	next if (!$1);
+        next if (!$2);
+        my $index = $1;
+        my $int_name = $2;
+	$get_queue_tree{$index}{$int_name}{down}=$row;
+        if ($row=~/parent=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'down-parent'}=$1; }
+        if ($row=~/packet-mark=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'down-mark'}=$1; }
+        if ($row=~/queue=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'down-queue'}=$1; }
+	}
+    }
+}
+
+@tmp=();
+
+@tmp=log_cmd4($t,'/ip firewall mangle print terse without-paging where action=mark-packet and new-packet-mark~"(upload|download)_[0-9]{1,3}"');
+# 0    chain=forward action=mark-packet new-packet-mark=upload_0 passthrough=yes src-address-list=queue_0 out-interface=sfp-sfpplus1-wan log=no log-prefix=""
+# 0    chain=forward action=mark-packet new-packet-mark=download_3_vlan2 passthrough=yes dst-address-list=queue_3 out-interface=vlan2 in-interface-list=WAN log=no log-prefix=""
+
+foreach my $row (@tmp) {
+next if (!$row);
+$row = trim($row);
+next if ($row!~/^(\d){1,3}/);
+$row=~s/^\d{1,3}\s+//;
+next if (!$row);
+if ($row=~/new-packet-mark=upload_(\d){1,3}\s+/i) {
+    next if (!$1);
+    my $index = $1;
+    $get_filter_mangle{$index}{up}=$row;
+    if ($row=~/src-address-list=(\S*)\s+\S/i) { $get_filter_mangle{$index}{'up-list'}=$1; }
+    if ($row=~/out-interface=(\S*)\s+\S/i) { $get_filter_mangle{$index}{'up-dev'}=$1; }
+    if ($row=~/new-packet-mark=(\S*)\s+\S/i) { $get_filter_mangle{$index}{'up-mark'}=$1; }
+    }
+if ($row=~/new-packet-mark=download_(\d){1,3}_(\S*)\s+/i) {
+    next if (!$1);
+    next if (!$2);
+    my $index = $1;
+    my $int_name = $2;
+    $get_filter_mangle{$index}{$int_name}{down}=$row;
+    if ($row=~/dst-address-list=(\S*)\s+\S/i) { $get_filter_mangle{$index}{$int_name}{'down-list'}=$1; }
+    if ($row=~/new-packet-mark=(\S*)\s+\S/i) { $get_filter_mangle{$index}{$int_name}{'down-mark'}=$1; }
+    if ($row=~/out-interface=(\S*)\s+\S/i) { $get_filter_mangle{$index}{$int_name}{'down-dev'}=$1; }
+    }
+}
+
+#print Dumper(\%get_queue_type) if ($debug);
+#print Dumper(\%get_queue_tree) if ($debug);
+#print Dumper(\%get_filter_mangle) if ($debug);
+
+my %queue_type;
+my %queue_tree;
+my %filter_mangle;
+
+#generate new config
+foreach my $queue_name (keys %queues) {
+my $q_id=$queues{$queue_name}{id};
+my $q_up=$queues{$queue_name}{up}+1;
+my $q_down=$queues{$queue_name}{down}+1;
+
+#queue_types
+$queue_type{$q_id}{up}="name=pcq_upload_".$q_id." kind=pcq pcq-rate=".$q_up."k pcq-limit=500KiB pcq-classifier=src-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s pcq-src-address-mask=32 pcq-dst-address-mask=32 pcq-src-address6-mask=64 pcq-dst-address6-mask=64";
+$queue_type{$q_id}{down}="name=pcq_download_".$q_id." kind=pcq pcq-rate=".$q_down."k pcq-limit=500KiB pcq-classifier=dst-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s pcq-src-address-mask=32 pcq-dst-address-mask=32 pcq-src-address6-mask=64 pcq-dst-address6-mask=64";
+
+my $queue_ok=1;
+if (!$get_queue_type{$q_id}{up}) { $queue_ok=0; }
+if ($queue_ok and abs($q_up - $get_queue_type{$q_id}{'up-rate'})>10) { $queue_ok=0; }
+if ($queue_ok and $get_queue_type{$q_id}{'up-classifier'}!~/src-address/i)  { $queue_ok=0; }
+
+if (!$queue_ok) {
+    push(@cmd_list,':foreach i in [/queue type find where name~"pcq_upload_'.$q_id.'" ] do={/queue type remove $i};');
+    push(@cmd_list,'/queue type add '.$queue_type{$q_id}{up});
+    }
+
+$queue_ok=1;
+if (!$get_queue_type{$q_id}{down}) { $queue_ok=0; }
+if ($queue_ok and abs($q_up - $get_queue_type{$q_id}{'down-rate'})>10) { $queue_ok=0; }
+if ($queue_ok and $get_queue_type{$q_id}{'down-classifier'}!~/dst-address/i)  { $queue_ok=0; }
+
+if (!$queue_ok) {
+    push(@cmd_list,':foreach i in [/queue type find where name~"pcq_download_'.$q_id.'" ] do={/queue type remove $i};');
+    push(@cmd_list,'/queue type add '.$queue_type{$q_id}{down});
+    }
+
+#upload queue
+$queue_tree{$q_id}{up}="name=queue_".$q_id."_out parent=upload_root packet-mark=upload_".$q_id." limit-at=0 queue=pcq_upload_".$q_id." priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1";
+
+$queue_ok=1;
+if (!$get_queue_tree{$q_id}{up}) { $queue_ok=0; }
+if ($queue_ok and ($get_queue_tree{$q_id}{'up-parent'} ne "upload_root")) { $queue_ok=0; print "$get_queue_tree{$q_id}{'up-parent'} ==== upload_root \n"; }
+if ($queue_ok and ($get_queue_tree{$q_id}{'up-mark'} ne "upload_".$q_id)) { $queue_ok=0;  print "$get_queue_tree{$q_id}{'up-mark'} ==== upload_".$q_id."\n"; }
+if ($queue_ok and ($get_queue_tree{$q_id}{'up-queue'} ne "pcq_upload_".$q_id)) { $queue_ok=0;  print "$get_queue_tree{$q_id}{'up-queue'} ==== pcq_upload_".$q_id."\n"; }
+
+if (!$queue_ok) {
+    push(@cmd_list,':foreach i in [/queue tree find where name~"queue_'.$q_id.'_out" ] do={/queue tree remove $i};');
+    push(@cmd_list,'/queue tree add '.$queue_tree{$q_id}{up});
+    }
+
+$filter_mangle{$q_id}{up}="chain=forward action=mark-packet new-packet-mark=upload_".$q_id." passthrough=yes src-address-list=queue_".$q_id." out-interface=".$wan_dev." log=no log-prefix=\"\"";
+$queue_ok=1;
+if (!$get_filter_mangle{$q_id}{up}) { $queue_ok=0; }
+if ($queue_ok and ($get_filter_mangle{$q_id}{'up-mark'} ne "upload_".$q_id)) { $queue_ok=0; }
+if ($queue_ok and ($get_filter_mangle{$q_id}{'up-list'} ne "queue_".$q_id)) { $queue_ok=0; }
+if ($queue_ok and ($get_filter_mangle{$q_id}{'up-dev'} ne $wan_dev)) { $queue_ok=0; }
+
+if (!$queue_ok) {
+    push(@cmd_list,':foreach i in [/ip firewall mangle find where action=mark-packet and new-packet-mark~"upload_'.$q_id.'" ] do={/ip firewall mangle remove $i};');
+    push(@cmd_list,'/ip firewall mangle add '.$filter_mangle{$q_id}{up});
+    }
+
+#download
+my @lan_int=split(/;/,$lan_dev);
+foreach my $int (@lan_int) {
+next if (!$int);
+$queue_tree{$q_id}{$int}{down}="name=queue_".$q_id."_".$int."_in parent=download_root_".$int." packet-mark=download_".$q_id."_".$int." limit-at=0 queue=pcq_download_".$q_id." priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1";
+$filter_mangle{$q_id}{$int}{down}="chain=forward action=mark-packet new-packet-mark=download_".$q_id."_".$int." passthrough=yes dst-address-list=queue_".$q_id." out-interface=".$int." in-interface-list=WAN log=no log-prefix=\"\"";
+
+$queue_ok=1;
+if (!$get_queue_tree{$q_id}{$int}{down}) { $queue_ok=0; }
+if ($queue_ok and ($get_queue_tree{$q_id}{$int}{'down-parent'} ne "download_root_".$int)) { $queue_ok=0; }
+if ($queue_ok and ($get_queue_tree{$q_id}{$int}{'down-mark'} ne "download_".$q_id."_".$int)) { $queue_ok=0; }
+if ($queue_ok and ($get_queue_tree{$q_id}{$int}{'down-queue'} ne "pcq_download_".$q_id)) { $queue_ok=0; }
+
+if (!$queue_ok) {
+    push(@cmd_list,':foreach i in [/queue tree find where name~"queue_'.$q_id."_".$int."_in".'" ] do={/queue tree remove $i};');
+    push(@cmd_list,'/queue tree add '.$queue_tree{$q_id}{$int}{down});
+    }
+
+$queue_ok=1;
+if (!$get_filter_mangle{$q_id}{$int}{down}) { $queue_ok=0; }
+if ($queue_ok and ($get_filter_mangle{$q_id}{$int}{'down-mark'} ne "download_".$q_id."_".$int)) { $queue_ok=0; }
+if ($queue_ok and ($get_filter_mangle{$q_id}{$int}{'down-list'} ne "queue_".$q_id)) { $queue_ok=0; }
+if ($queue_ok and ($get_filter_mangle{$q_id}{$int}{'down-dev'} ne $int)) { $queue_ok=0; }
+
+if (!$queue_ok) {
+    push(@cmd_list,':foreach i in [/ip firewall mangle find where action=mark-packet and new-packet-mark~"download_'.$q_id."_".$int.'" ] do={/ip firewall mangle remove $i};');
+    push(@cmd_list,'/ip firewall mangle add '.$filter_mangle{$q_id}{$int}{down});
+    }
+}
+#end shaper
+}
+
+}
+
+}#end access lists config
+
+if (scalar(@cmd_list)) {
+    foreach my $cmd (@cmd_list) {
+	log_info("$cmd");
+#	print "$cmd\n" if ($debug);
+        log_cmd($t,$cmd);
+        }
+    }
+
+db_log_verbose($dbh,"Sync user state at router $router_name [".$router_ip."] stopped.");
+}
+
+$dbh->disconnect();
+
+if (IsMyPID($SPID)) { Remove_PID($SPID); };
+
+do_exit 0;

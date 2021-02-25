@@ -1,0 +1,133 @@
+#!/bin/bash
+
+#basename
+BN=`basename $0`
+
+#WORKDIR=$(cd "$(dirname "$0")"; pwd -P)
+
+WORKDIR="/usr/local/scripts"
+
+if [ ! -e "${WORKDIR}/cfg/config" ]; then
+    echo "Config file not found!"
+    exit 120
+    fi
+
+. ${WORKDIR}/cfg/config
+
+#log file of working process
+LOG1="${log_dir}/$BN.log"
+
+#lock file for working process
+LOCK1="/var/run/$BN.pid"
+
+#debug
+DEBUG=0
+DEBUG_LOG=${LOG1}
+
+function log_debug {
+[ "${DEBUG}" -eq 0 ] && return
+TS="`date +%Y%m%d-%H%M%S` [$$] DEBUG:"
+echo "$1" | while read LINE; do
+echo "${TS} ${LINE}" >>${DEBUG_LOG}
+done
+}
+
+function log_info {
+TS="`date +%Y%m%d-%H%M%S` [$$] INFO:"
+echo "$1" | while read LINE; do
+echo "${TS} ${LINE}" >>${LOG1}
+done
+}
+
+function log_error {
+TS="`date +%Y%m%d-%H%M%S` [$$] ERROR:"
+echo "$1" | while read LINE; do
+echo "${TS} ${LINE}" >>${LOG1}
+done
+}
+
+[ ! -e "${log_dir}" ] && {
+    mkdir -p ${log_dir} >/dev/null 2>&1
+    chmod 750 ${log_dir} >/dev/null 2>&1
+    }
+
+log_debug "Running $0 $*"
+log_debug "by user $USER($UID) with effective uid:$EUID"
+log_debug "Parent process id: $PPID (`ps --no-heading -o command -p $PPID`)."
+log_debug "Process id: $$"
+
+function do_exit {
+log_info "Script work $SECONDS sec. Exit code: $1"
+[ -n $1 ] && exit $1 || exit
+}
+
+function do_exec {
+FAIL="OK"
+eval "$1" || { FAIL="FAIL"; }
+log_debug "$1 - $FAIL"
+eval "FAIL=${FAIL}"
+}
+
+function exit_ifrun {
+log_debug "Check for always running - search pid-file $LOCK1"
+if [ ! -e "${LOCK1}" ]; then
+    log_debug "Lock-file not found. It's ok."
+    return 0
+    fi
+
+local PID=`cat $LOCK1`
+FF=`ps awx | awk '{ print $1}' | grep "^$PID$"`
+if [ -z "$FF" ]; then
+        log_error "Найден ничейный файл блокировки! pid=$PID. Удаляю! "
+        do_exec "rm -f $LOCK1 >/dev/null 2>&1"
+        else
+        log_error "Скрипт $BN уже запущен pid=$PID. Bye..."
+        do_exit $ERR_DUP
+        fi
+}
+
+function check_run {
+log_debug "Check for always running - search pid-file $LOCK1"
+if [ ! -e "${LOCK1}" ]; then
+    log_debug "Lock-file not found. It's ok."
+    return 0
+    fi
+
+while [ -f $LOCK1 ]; do
+local PID=`cat $LOCK1`
+FF=`ps awx | awk '{ print $1}' | grep "^$PID$"`
+if [ -z "$FF" ]; then
+        log_error "Найден ничейный файл блокировки! pid=$PID. Удаляю! "
+        do_exec "rm -f $LOCK1 >/dev/null 2>&1"
+        else
+        log_error "Скрипт $BN уже запущен pid=$PID. Жду 5 сек..."
+        sleep 5
+        fi
+done
+}
+
+function create_lock {
+log_debug "Try create lock-file - search pid $LOCK1"
+[ -f $LOCK1 ] && {
+    log_error "Lock-file file found! Aborting..."
+    exit $ERR_DUP
+    }
+log_debug "Create pid file $LOCK1"
+do_exec "echo '$$'>$LOCK1"
+}
+
+function remove_lock {
+if [ ! -e "${LOCK1}" ]; then
+    log_error "Lock-file not found. Why?!"
+    return 0
+    fi
+
+local PID=`cat $LOCK1`
+if [ $PID -ne $$ ]; then
+        log_error "Файл блокировки принадлежит другому процессу с pid=$PID, мой pid=$$. Exiting... "
+        do_exit $ERR_DUP
+        else
+        log_debug "Remove pid file."
+        do_exec "rm -f $LOCK1 >/dev/null 2>&1"
+        fi
+}

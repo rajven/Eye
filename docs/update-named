@@ -1,0 +1,58 @@
+#!/bin/bash
+
+logger -t named "Refresh named config request"
+
+/usr/local/scripts/print-dns-zones.pl
+[ $? -ne 0 ] && exit 1
+
+RELOAD=
+ZONELIST=`ls -x -1 /var/named/chroot/var/named/master/db.*.new`
+echo "${ZONELIST}" | while read NS2_DB; do
+NS1_DB=`echo "$NS2_DB" | sed 's/.new$//'`
+[ ! -e $NS1_DB ] && {
+    cat $NS2_DB > $NS1_DB
+    chown named:named ${NS1_DB} >/dev/null
+    RELOAD=1
+    continue
+    }
+TMP_R1=`mktemp /tmp/rev_old.XXXXXXXXXX`
+TMP_R2=`mktemp /tmp/rev_new.XXXXXXXXXX`
+S1=`cat $NS1_DB | grep "; serial" | awk '{ print \$1 }'`
+S2=`cat $NS2_DB | grep "; serial" | awk '{ print \$1 }'`
+cat $NS1_DB | grep -v "; serial" >$TMP_R2
+cat $NS2_DB | grep -v "; serial" >$TMP_R1
+diff -aqbBfi $TMP_R2 $TMP_R1 >/dev/null
+state=$?
+rm -f $TMP_R1 >/dev/null
+rm -f $TMP_R2 >/dev/null
+[ ${state} -eq 0 ] && continue
+echo "dns config $NS1_DB changed."
+cat $NS2_DB > $NS1_DB
+RELOAD=1
+rm -f "${NS2_DB}" >/dev/null
+chown named:named ${NS1_DB} >/dev/null
+done
+
+diff -aqbBfi /var/named/chroot/etc/named.dynamic.new /var/named/chroot/etc/named.dynamic >/dev/null
+[ $? -ne 0 ] && {
+    RELOAD=1
+    cat /var/named/chroot/etc/named.dynamic.new >/var/named/chroot/etc/named.dynamic
+    }
+
+if [ -n "${RELOAD}" ]; then
+    logger -t named "Configuration changed. Check config"
+    /usr/sbin/named-checkconf -t /var/named/chroot/ -z >/dev/null
+    if [ $? -eq 0 ]; then
+	logger -t named "Config fine! Restart named"
+        /sbin/service named restart >/dev/null
+        fi
+    else
+	logger -t named "Config not changed! Skip restart"
+    fi
+
+rm -f /var/named/chroot/etc/named.dynamic.new 2>/dev/null
+rm -f /var/named/chroot/var/named/master/db.*.new 2>/dev/null
+
+logger -t named "done"
+
+exit

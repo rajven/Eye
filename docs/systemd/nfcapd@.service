@@ -1,0 +1,12 @@
+[Unit]
+Description=Traffic collector for %I
+After=syslog.target network-online.target
+
+[Service]
+Type=forking
+EnvironmentFile=/etc/nfcapd/%i.conf
+ExecStart=/bin/nfcapd -D -P /var/run/nfcapd.%i.pid -z -w -t 600 -p ${LISTEN_PORT} -S 1 -l ${DATA_DIR} ${EXT}
+PIDFile=/var/run/nfcapd.%i.pid
+
+[Install]
+WantedBy=multi-user.target

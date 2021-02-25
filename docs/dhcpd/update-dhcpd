@@ -1,0 +1,32 @@
+#!/bin/bash
+
+logger -t dhcpd "Refresh dhcpd config request"
+
+/usr/local/scripts/print-dhcpd.pl
+ret=$?
+
+if [ ${ret} -ne 0 ]; then
+    exit
+    fi
+
+diff -aqbBfi /etc/dhcp/stat /etc/dhcp/stat.new >/dev/null
+ret=$?
+
+if [ ${ret} -ne 0 ]; then
+    logger -t dhcpd "Update dhcpd config"
+    rm -f /etc/dhcp/stat/*.conf >/dev/null 2>&1
+    cp -f /etc/dhcp/stat.new/*.conf /etc/dhcp/stat >/dev/null 2>&1
+    /sbin/dhcpd -t -cf /etc/dhcp/dhcpd.conf >/dev/null 2>&1
+    ret=$?
+    if [ ${ret} -eq 0 ]; then
+        systemctl restart dhcpd>/dev/null
+	else
+        logger -t dhcpd "Config error! Skip restart dhcp."
+	fi
+    else
+    logger -t dhcpd "Config not changed. Skip restart"
+    fi
+
+logger -t dhcpd "done"
+
+exit

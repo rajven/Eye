@@ -1,0 +1,5 @@
+#!/bin/bash
+
+/usr/bin/ssh root@192.168.2.12 /usr/local/scripts/update-named
+
+exit

@@ -1,0 +1,34 @@
+#!/bin/bash
+
+logger -t dhcpd "Refresh dnsmasq config request"
+
+/usr/local/scripts/print-dnsmasq.pl >/tmp/mac-all
+ret=$?
+
+if [ ${ret} -ne 0 ]; then
+    exit
+    fi
+
+touch /etc/dnsmasq.d/mac-all
+diff -aqbBfi /tmp/mac-all /etc/dnsmasq.d/mac-all >/dev/null
+ret=$?
+
+if [ ${ret} -ne 0 ]; then
+    logger -t dhcpd "Update dnsmasq config"
+    cat /etc/dnsmasq.d/mac-all >/tmp/mac.old
+    cat  /tmp/mac-all >/etc/dnsmasq.d/mac-all
+    /usr/sbin/dnsmasq --test >/dev/null 2>&1
+    ret=$?
+    if [ ${ret} -eq 0 ]; then
+        systemctl restart dnsmasq>/dev/null
+	else
+        logger -t dhcpd "Config error! Rollback changes."
+	cat /tmp/mac.old >/etc/dnsmasq.d/mac-all
+	fi
+    else
+    logger -t dhcpd "Config not changed. Skip restart"
+    fi
+
+logger -t dhcpd "done"
+
+exit

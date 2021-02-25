@@ -1,0 +1,13 @@
+[Unit]
+Description=Write syslog to Rstat
+After=mariadb.service syslog-ng.service
+
+[Service]
+Type=forking
+ExecStartPre=touch /var/log/remote/messages.log
+ExecStart=/usr/local/scripts/syslog-stat.pl --start
+Restart=always
+PIDFile=/var/run/syslog-stat.pid
+
+[Install]
+WantedBy=multi-user.target

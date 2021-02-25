@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;" />
+<meta charset="utf-8" />
+<title>Выход</title>
+
+<script language="javascript" type="text/javascript">
+
+try{
+var agt=navigator.userAgent.toLowerCase();
+if (agt.indexOf("msie") != -1) {
+// IE clear HTTP Authentication
+document.execCommand("ClearAuthenticationCache");
+}
+else {
+var xmlhttp = createXMLObject();
+xmlhttp.open("GET",".force_logout_offer_login_mozilla",true,"logout","");
+xmlhttp.send("");
+xmlhttp.abort();
+}
+// window.location = "/rest/";
+} catch(e) {
+// There was an error
+alert("there was an error");
+}
+
+function createXMLObject() {
+try {
+if (window.XMLHttpRequest) {
+xmlhttp = new XMLHttpRequest();
+}
+// code for IE
+else if (window.ActiveXObject) {
+xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+}
+} catch (e) {
+xmlhttp=false
+}
+return xmlhttp;
+}
+</script>
+
+</head>
+<body>
+	<table>
+		<tr>
+			<td align="center" valign="middle">
+				<p>
+					<font size="+1">Чао.</font>
+				</p>
+				<p>
+					<font size="+1"><a href="/admin/">Войти</a></font>
+				</p>
+				<p>&nbsp;</p>*
+			</td>
+		</tr>
+	</table>
+</body>
+</html>

@@ -1,0 +1,200 @@
+body {
+	font-family: tahoma;
+	font-size: 10pt;
+	color: #181818;
+	margin: 0;
+	background: #ffffff;
+}
+
+img {
+	border: 0;
+}
+
+table {
+	font-family: tahoma;
+	font-size: 10pt;
+	border-spacing: 1px;
+}
+
+table.800 {
+	table;
+	width: 800;
+}
+
+table.300 {
+	table;
+	width: 300;
+}
+
+table.data {
+	background: #cfcfcf;
+	margin-bottom: 5px;
+}
+
+table.info {
+	background: #f8f2aa;
+	margin-bottom: 5px;
+}
+
+td {
+	padding: 4px;
+}
+
+td.data {
+	background: #ffffff;
+}
+
+td.info {
+	background: #f8f2aa;
+}
+
+td.up {
+	background: #58FA82;
+}
+
+td.down {
+	background-color: #ffffff;
+	opacity: .4;
+}
+
+td.shutdown {
+	background: #FF8033;
+}
+
+td.error {
+	background: #ff6666;
+}
+
+td.nb {
+	background: #ffcc99;
+}
+
+td.warn { #
+	background: #00f2ff;
+	background: #ffcccc;
+}
+
+td.speed10M {
+	background: #ffff99;
+}
+
+td.speed100M {
+	background: #33cc33;
+	padding: 0;
+	border-spacing: 0;
+}
+
+td.speed1G {
+	background: #58FA82;
+}
+
+td.speed10G {
+	background: #ffcc00;
+}
+
+td.crc {
+	background: #ff6666;
+}
+
+input {
+	font-family: tahoma;
+	padding: 1px;
+}
+
+textarea {
+	font-family: tahoma;
+	padding: 1px;
+}
+select {
+	font-family: tahoma;
+}
+
+form {
+	margin: 0;
+	margin-top: 5px;
+}
+
+.cont {
+	font-family: tahoma;
+}
+
+a {
+	font-family: tahoma;
+	color: #000000;
+	text-decoration: underline;
+}
+
+a.first_page_link {
+    border: 1px solid green;
+    font-color: black;
+    background: #A5FF33;
+    padding: 3px;
+}
+
+a:visited {
+	color: #000000;
+	text-decoration: underline;
+}
+
+a:link {
+	color: #000000;
+	text-decoration: underline;
+}
+
+a:active {
+	color: #ed8b0d;
+	text-decoration: none;
+}
+
+a:hover {
+	color: #ed8b0d;
+	text-decoration: none;
+}
+
+#navi {
+	position: absolute;
+	font-size: 12pt;
+	top: 15px;
+	left: 190px;
+}
+
+#submenu {
+	position: absolute;
+	top: 55px;
+	left: 20px;
+}
+
+#title {
+	position: absolute;
+	top: 15px;
+	left: 15px;
+	font-size: 18pt;
+	color: #ed8b0d;
+}
+
+#subtitle {
+	position: absolute;
+	top: 43px;
+	left: 15px;
+	font-size: 8pt;
+}
+
+#cont {
+	position: absolute;
+	top: 70px;
+	left: 15px;
+	background: url('img/vr.gif');
+	background-repeat: repeat-y;
+	background-position: right;
+}
+
+#copyright {
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
+#msg {
+	font-size: 18pt;
+	font-color: black;
+	color: red;
+}

@@ -1,0 +1,12 @@
+[Unit]
+Description=Urgent sync access lists at mikrotik
+After=mariadb.service syslog-ng.service
+
+[Service]
+Type=forking
+ExecStart=/usr/local/scripts/stat-sync.pl --start
+Restart=always
+PIDFile=/var/run/stat-sync.pid
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# make traffic statistics snapshot
+
+SCRIPTPATH=$( cd "$(dirname "$0")" ; pwd -P )
+
+if [ ! -e "${SCRIPTPATH}/config" ]; then
+    echo "Config file not found!"
+    exit 120
+    fi
+
+. ${SCRIPTPATH}/config
+
+exit_ifrun
+create_lock
+
+YY=`date +%Y`
+MM=`date +%m`
+DD=`date +%d`
+
+SAVE_PATH=/mnt/md0/stat/${YY}/${MM}/${DD}/
+[ ! -e "${SAVE_PATH}" ] && mkdir -p ${SAVE_PATH}
+
+TM=`date +%Y%m%d-%H%M`
+
+###skill -HUP -c ulog-acctd
+skill -TSTP -c ulog-acctd
+mv /var/log/ulog-acctd/account.log ${SAVE_PATH}/${TM} --backup --suffix="-`date +%s`" -f
+skill -CONT -c ulog-acctd
+
+# create statistics
+cat ${SAVE_PATH}/${TM} | /usr/local/scripts/parse_ulog.pl
+
+/usr/local/scripts/sync_iptables.pl
+
+exit

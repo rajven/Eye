@@ -1,0 +1,82 @@
+#! /bin/bash
+#
+# ipset       Create ipset before start iptables
+#
+# chkconfig: 2345 07 93
+# description: Activates/Deactivates ipset lists
+#
+#
+
+# Source function library.
+. /etc/init.d/functions
+
+if [ ! -f /etc/sysconfig/network ]; then
+    exit 0
+fi
+
+# Check that networking is up.
+[ "${NETWORKING}" = "no" ] && exit 0
+
+IPSET='/sbin/ipset'
+config_dir='/etc/ipset.d'
+
+# if the ip configuration utility isn't around we can't function.
+[ -x ${IPSET} ] || exit 1
+
+[ ! -e "${config_dir}" ] && mkdir -p "${config_dir}"
+
+stop_ipset() {
+if [ -d "${config_dir}" ] ; then
+        CONFS=`ls ${config_dir}/*.save 2>/dev/null`
+        [ -z "${CONFS}" ] && exit 6
+        for i in $CONFS; do
+            ipset_name=`basename $i .save`
+            echo -n $"Destroy ipset $ipset_name: "
+	    ${IPSET} destroy $ipset_name >/dev/null 2>&1
+            echo
+            done
+        else
+        RETVAL=1
+        fi
+return 0
+}
+
+start_ipset() {
+[ ! -e "/var/run/ipstate" ] && ln -s /usr/local/ipstate /var/run/ipstate
+if [ -d "${config_dir}" ] ; then
+        CONFS=`ls ${config_dir}/*.save 2>/dev/null`
+        [ -z "${CONFS}" ] && exit 6
+        for i in $CONFS; do
+            ipset_name=`basename $i .save`
+	    ${IPSET} destroy $ipset_name >/dev/null 2>&1
+            echo -n $"Loading ipset $ipset_name: "
+	    cat "${config_dir}/${i}" | ${IPSET} restore >/dev/null 2>&1
+            echo
+            done
+        else
+        RETVAL=1
+        fi
+return 0
+}
+
+# See how we were called.
+case "$1" in
+  start)
+        start_ipset
+        RET=$?
+        ;;
+  stop)
+        stop_ipset
+        RET=$?
+        ;;
+  restart|reload)
+        stop_ipset
+        start_ipset
+        RET=$?
+        ;;
+  *)
+        echo $"Usage: $0 {start|stop|restart|reload}"
+        exit 1
+esac
+
+exit ${RET}

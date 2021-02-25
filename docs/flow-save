@@ -1,0 +1,16 @@
+#!/bin/bash -x
+
+YY=`date -d yesterday +%Y`
+MM=`date -d yesterday +%m`
+DD=`date -d yesterday +%d`
+
+SAVE_PATH=/mnt/md0/stat/${YY}/${MM}/${DD}/
+FLOW_DATA='/mnt/md0/stat/flow-data'
+
+[ ! -e "${SAVE_PATH}" ] && mkdir -p ${SAVE_PATH}
+
+find "${FLOW_DATA}" -name "nfcapd.${YY}${MM}${DD}*" -exec mv -f {} "${SAVE_PATH}" \;
+
+/sbin/service nfcapd restart >/dev/null
+
+exit 0

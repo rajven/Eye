@@ -1,0 +1,3 @@
+ErrorDocument 404 /public/blocked.php
+ErrorDocument 302 /public/blocked.php
+ErrorDocument 301 /public/blocked.php

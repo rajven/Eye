@@ -1,0 +1,78 @@
+#log files
+log_dir=/var/log/scripts
+
+#dnsmasq configs
+dhcpd_conf=/etc/dnsmasq.d
+
+#admin email
+admin_email=admin@org.local
+
+#sender address
+from_addr=admin@org.local
+
+#database
+DBSERVER=localhost
+DBUSER=rstat
+DBNAME=stat
+DBPASS=password
+TRAF_HOST=localhost
+
+#login for windows AD
+domain_auth=ORG\dhcp%password
+winexe=/usr/bin/winexe
+
+enable_ad_dns_update=0
+ad_dns=192.168.1.100
+ad_zone=org.local
+
+#fping
+fping=/sbin/fping
+
+#mysql
+MYSQL=/usr/bin/mysql
+
+#log file owners
+user=root
+group=root
+
+#switch access
+sw_login=admin
+sw_password=password
+
+############### SMS Config ################
+
+use_smsd=1
+smsaero_wait=120
+smsd_group=smstools
+smsd_user=smstools
+
+################ KANNEL ####################
+
+kannel_base_url=http://localhost:13003/cgi-bin
+kannel_dlr_url=http://127.0.0.1/dlr.php
+kannel_login=login
+kannel_password=password
+kannel_spool=/var/spool/kannel/dlr
+
+############### SMSAERO ###################
+
+smsaero_base_url=https://gate.smsaero.ru
+smsaero_login=login
+smsaero_md5pass=md5hash
+sms_spool_dir=/var/spool/smsaero
+
+#подпись
+sms_from=ORG
+
+#цифровой канал=1
+smsaero_digital=0
+
+#type=1 - оплаченная буквенная подпись для всех операторов связи
+#type=2 - бесплатная буквенная подпись для всех операторов, кроме МТС
+#type=3 - бесплатная буквенная подпись для всех операторов (+0,15 рублей к тарифу Прямого канала)
+#type=4 - инфоподпись для всех операторов
+smsaero_type=2
+
+############### SMSD #######################
+
+smsd_spool_dir=/var/spool/sms
