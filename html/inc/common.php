@@ -3,7 +3,7 @@ if (! defined("CONFIG")) { die("Not defined"); }
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/class.simple.mail.php");
 
-$config[init]=0;
+$config["init"]=0;
 
 #ValidIpAddressRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 #ValidHostnameRegex = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$";
@@ -124,6 +124,25 @@ function fbytes($traff)
     return $result;
 }
 
+function fpkts($packets)
+{
+    $units = array(
+        "",
+        "k",
+        "M",
+        "G",
+        "T"
+    );
+    $KB = 1000;
+    if ($packets) {
+        $index = min(((int) log($packets, $KB)), count($units) - 1);
+        $result = round($packets / pow($KB, $index), 3) . ' ' . $units[$index] . 'pkt/s';
+    } else {
+        $result = '0 pkt/s';
+    }
+    return $result;
+}
+
 function checkValidIp($cidr)
 {
 
@@ -141,6 +160,7 @@ function checkValidIp($cidr)
     if ($return == TRUE) {
         $parts = explode("/", $cidr);
         $ip = $parts[0];
+        if (empty($parts[1])) { $parts[1]="32"; }
         $netmask = $parts[1];
         $octets = explode(".", $ip);
         foreach ($octets as $octet) {
@@ -378,8 +398,6 @@ function cidrToRange($cidr)
     if (! isset($cidr[1])) { $cidr[1] = 32; }
     $start=(ip2long($cidr[0])) & ((- 1 << (32 - (int) $cidr[1])));
     $stop=$start + pow(2, (32 - (int) $cidr[1])) - 1;
-#    $range[0] = long2ip((ip2long($cidr[0])) & ((- 1 << (32 - (int) $cidr[1]))));
-#    $range[1] = long2ip((ip2long($range[0])) + pow(2, (32 - (int) $cidr[1])) - 1);
     $range[0] = long2ip($start);
     $range[1] = long2ip($stop);
     $range[2] = $cidr;
@@ -441,7 +459,9 @@ function print_loglevel_select($item_name, $value)
 }
 
 function print_submenu_url($display_name,$page,$current_page,$last) {
-if ($page === $current_page) { print "<b>$display_name</b>"; } else { print "<a href='".$page."'> $display_name </a>"; }
+$fpage = explode('?', $page);
+$fpage = $fpage[0];
+if ($fpage === $current_page) { print "<b>$display_name</b>"; } else { print "<a href='".$page."'> $display_name </a>"; }
 if (!isset($last) or $last==0) { print " | "; }
 }
 
@@ -477,6 +497,21 @@ print_submenu_url('Группы фильтров','/admin/filters/groups.php',$c
 print "</div>\n";
 }
 
+function print_reports_submenu ($current_page) {
+print "<div id='submenu'>\n";
+print_submenu_url('Отчёт по трафику (ip)','/admin/reports/index-full.php',$current_page,0);
+print_submenu_url('Отчёт по трафику (login)','/admin/reports/index.php',$current_page,1);
+print "</div>\n";
+}
+
+function print_trafdetail_submenu ($current_page,$params,$description) {
+print "<div id='submenu'>\n";
+print "$description\n";
+print_submenu_url('TOP 10 по трафику','/admin/reports/userdaydetail.php'."?$params",$current_page,0);
+print_submenu_url('Подробный лог','/admin/reports/userdaydetaillog.php'."?$params",$current_page,1);
+print "</div>\n";
+}
+
 function print_device_submenu ($current_page) {
 print "<div id='submenu'>\n";
 print_submenu_url('Активное сетевое оборудование','/admin/devices/index.php',$current_page,0);
@@ -500,20 +535,25 @@ print "</div>\n";
 function print_ip_submenu ($current_page) {
 print "<div id='submenu'>\n";
 print_submenu_url('Активные адреса','/admin/iplist/index.php',$current_page,0);
-print_submenu_url('Удалённые адреса','/admin/iplist/deleted.php',$current_page,1);
+print_submenu_url('Удалённые адреса','/admin/iplist/deleted.php',$current_page,0);
+print_submenu_url('Дубли','/admin/iplist/doubles.php',$current_page,1);
 print "</div>\n";
 }
 
 function get_ou($db, $ou_value)
 {
-    list ($ou_name) = mysqli_fetch_array(mysqli_query($db, "SELECT ou_name FROM OU WHERE id=$ou_value"));
-    return $ou_name;
+    if (!isset($ou_value)) { return; }
+    $ou_name = get_record_sql($db, "SELECT ou_name FROM OU WHERE id=$ou_value");
+    if (empty($ou_name)) { return; }
+    return $ou_name[ou_name];
 }
 
 function get_building($db, $building_value)
 {
-    list ($building_name) = mysqli_fetch_array(mysqli_query($db, "SELECT name FROM building WHERE id=$building_value"));
-    return $building_name;
+    if (!isset($building_value)) { return; }
+    $building_name = get_record_sql($db, "SELECT name FROM building WHERE id=$building_value");
+    if (empty($building_name)) { return; }
+    return $building_name['name'];
 }
 
 function print_group_select($db, $group_name, $group_value)
@@ -537,10 +577,54 @@ function print_building_select($db, $building_name, $building_value)
     print "</select>\n";
 }
 
+function print_devtypes_select($db, $devtype_name, $devtype_value)
+{
+    print "<select name=\"$devtype_name\">\n";
+    print_select_item('Всё',0,$devtype_value);
+    $t_devtype = mysqli_query($db, "SELECT id,name FROM device_types Order by name");
+    while (list ($f_devtype_id, $f_devtype_name) = mysqli_fetch_array($t_devtype)) {
+	print_select_item($f_devtype_name,$f_devtype_id,$devtype_value);
+    }
+    print "</select>\n";
+}
+
+function print_devtype_select($db, $devtype_name, $devtype_value)
+{
+    print "<select name=\"$devtype_name\">\n";
+    $t_devtype = mysqli_query($db, "SELECT id,name FROM device_types Order by name");
+    while (list ($f_devtype_id, $f_devtype_name) = mysqli_fetch_array($t_devtype)) {
+	print_select_item($f_devtype_name,$f_devtype_id,$devtype_value);
+    }
+    print "</select>\n";
+}
+
 function get_group($db, $group_value)
 {
     list ($group_name) = mysqli_fetch_array(mysqli_query($db, "SELECT group_name FROM Group_list WHERE id=$group_value"));
     return $group_name;
+}
+
+function get_devtype_name($db, $device_type_id)
+{
+    list ($type_name) = mysqli_fetch_array(mysqli_query($db, "SELECT name FROM device_types WHERE id=$device_type_id"));
+    return $type_name;
+}
+
+function get_l3_interfaces($db, $device_id)
+{
+    $wan='';
+    $lan='';
+    $t_l3int = mysqli_query($db, "SELECT name,interface_type FROM device_l3_interfaces WHERE device_id=$device_id ORDER BY name");
+    while (list ($f_name,$f_type) = mysqli_fetch_array($t_l3int)) {
+        if ($f_type==0) { $lan=$lan." ".$f_name; }
+        if ($f_type==1) { $wan=$wan." ".$f_name; }
+        }
+    $wan=trim($wan);
+    $lan=trim($lan);
+    $result='';
+    if (!empty($wan)) { $result.=' WAN: '.$wan.'<br>'; }
+    if (!empty($lan)) { $result.=' LAN: '.$lan; }
+    return trim($result);
 }
 
 function print_queue_select($db, $queue_name, $queue_value)
@@ -557,6 +641,14 @@ function get_queue($db, $queue_value)
 {
     list ($queue_name) = mysqli_fetch_array(mysqli_query($db, "SELECT queue_name FROM Queue_list WHERE id=$queue_value"));
     return $queue_name;
+}
+
+function print_qa_l3int_select($qa_name, $qa_value)
+{
+    print "<select name=\"$qa_name\">\n";
+    print_select_item('Внутренний',0,$qa_value);
+    print_select_item('Внешний',1,$qa_value);
+    print "</select>\n";
 }
 
 function print_qa_select($qa_name, $qa_value)
@@ -789,7 +881,7 @@ function print_syslog_device_select($db, $field_name, $syslog_filter, $device_ip
 function print_gateway_select($db, $field_name, $device_id)
 {
     print "<select name=\"$field_name\" >\n";
-    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.internet_gateway=1 order by D.device_name ASC";
+    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type=2 order by D.device_name ASC";
     $t_device = mysqli_query($db, $d_sql);
     print_select_item('Все',0,$device_id);
     while (list ($f_name, $f_device_id) = mysqli_fetch_array($t_device)) {
@@ -800,7 +892,7 @@ function print_gateway_select($db, $field_name, $device_id)
 
 function get_gateways($db)
 {
-    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.internet_gateway=1 order by D.device_name ASC";
+    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type=2 order by D.device_name ASC";
     $t_device = mysqli_query($db, $d_sql);
     unset($result);
     while (list ($f_name, $f_device_id) = mysqli_fetch_array($t_device)) {
@@ -822,13 +914,13 @@ function get_device_ips($db, $device_id)
 {
     $switch=get_record($db,'devices','id='.$device_id);
     $index=0;
-    if ($switch[user_id]) {
-        $auth_ips=get_records($db,'User_auth','deleted=0 and user_id='.$switch[user_id]);
+    if ($switch['user_id']) {
+        $auth_ips=get_records($db,'User_auth','deleted=0 and user_id='.$switch['user_id']);
         foreach ( $auth_ips as $key => $value ) {
-    	    if (isset($value[ip])) { $result[$index]=$value[ip]; $index++; }
+    	    if (isset($value['ip'])) { $result[$index]=$value['ip']; $index++; }
     	    }
 	} else {
-        if (isset($switch[ip])) { $result[$index]=$switch[ip]; $index++; }
+        if (isset($switch['ip'])) { $result[$index]=$switch['ip']; $index++; }
 	}
     return $result;
 }
@@ -873,20 +965,20 @@ function print_auth_port($db, $port_id)
 function print_auth($db, $auth_id)
 {
     $auth = get_record($db,"User_auth","id=$auth_id");
-    $name = $auth[dns_name];
-    if (empty($name)) { $name = $auth[comments]; } else { $name.=" (".$auth[comments].")"; }
-    if (empty($name)) { $name = $auth[ip]; } else { $name.=" [".$auth[ip]."]"; }
+    $name = $auth['dns_name'];
+    if (empty($name)) { $name = $auth['comments']; } else { $name.=" (".$auth['comments'].")"; }
+    if (empty($name)) { $name = $auth['ip']; } else { $name.=" [".$auth['ip']."]"; }
     print "<a href=\"/admin/users/editauth.php?id=$auth_id\">" . $name . "</a><br>";
 }
 
 function print_auth_detail($db, $auth_id)
 {
     $auth = get_record($db,"User_auth","id=$auth_id");
-    $name = $auth[dns_name];
-    if (empty($name)) { $name = $auth[comments]; } else { $name.=" (".$auth[comments].")"; }
-    if (empty($name)) { $name = $auth[ip]; } else { $name.=" [".$auth[ip]."]"; }
-    $name.=" last: [".$auth[last_found]."] ";
-    if ($auth[deleted]) { $name.=" <font color='red'>DELETED!!!</font>"; }
+    $name = $auth['dns_name'];
+    if (empty($name)) { $name = $auth['comments']; } else { $name.=" (".$auth['comments'].")"; }
+    if (empty($name)) { $name = $auth['ip']; } else { $name.=" [".$auth['ip']."]"; }
+    $name.=" last: [".$auth['last_found']."] ";
+    if ($auth['deleted']) { $name.=" <font color='red'>DELETED!!!</font>"; }
     print "<a href=\"/admin/users/editauth.php?id=$auth_id\">" . $name . "</a><br>";
 }
 
@@ -958,7 +1050,7 @@ function get_count_records($db, $table, $filter)
 function get_id_record($db, $table, $filter)
 {
     if (isset($filter)) {
-        $filter = 'where ' . $filter;
+        $filter = 'WHERE ' . $filter;
     }
     $t_record = mysqli_query($db, "SELECT id FROM $table $filter limit 1");
     list ($id) = mysqli_fetch_array($t_record);
@@ -967,8 +1059,39 @@ function get_id_record($db, $table, $filter)
 
 function set_changed($db,$id)
 {
-$auth[changed] = 1;
+$auth['changed'] = 1;
 update_record($db, "User_auth", "id=" . $id, $auth);
+}
+
+function ResolveIP($db,$ip_int) {
+$ip_name="-";
+if (empty($ip_int)) { return $ip_name; }
+$dns_cache=get_record_sql($db,"SELECT * FROM dns_cache WHERE ip=$ip_int");
+if (empty($dns_cache) or empty($dns_cache['dns'])) {
+    $ip_name = gethostbyaddr(long2ip($ip_int));
+    if (empty($ip_name) or $ip_name === long2ip($ip_int)) { $ip_name="-"; }
+    run_sql($db,"INSERT INTO dns_cache(dns,ip) VALUES('".$ip_name."',".$ip_int.")");
+    } else { $ip_name=$dns_cache['dns']; }
+return $ip_name;
+}
+
+function clean_dns_cache($db) {
+$date = time();
+$date = $date - 86400;
+$now = strftime('%Y-%m-%d %H:%M:%S',time());
+$clean_date=strftime('%Y-%m-%d %H:%M:%S',$date);
+LOG_DEBUG($db,"Clean dns cache before $clean_date at $now");
+run_sql($db,"DELETE FROM dns_cache WHERE `timestamp`<='".$clean_date."'");
+}
+
+function GetNowTimeString() {
+$now = strftime('%Y-%m-%d %H:%M:%S',time());
+return $now;
+}
+
+function GetNowDayString() {
+$now = strftime('%Y-%m-%d',time());
+return $now;
 }
 
 function get_ip_subnet($db,$ip)
@@ -978,10 +1101,10 @@ $ip_aton = ip2long($ip);
 $t_option = mysqli_query($db, "SELECT id,subnet,ip_int_start,ip_int_stop FROM `subnets` WHERE hotspot=1 or office=1");
 while (list ($f_net_id,$f_net,$f_start,$f_stop) = mysqli_fetch_array($t_option)) {
     if ($ip_aton >= $f_start and $ip_aton <= $f_stop) {
-	    $result[subnet_id]=$f_net_id;
-	    $result[subnet]=$f_net;
-	    $result[int_start]=$f_start;
-	    $result[int_stop]=$f_stop;
+	    $result['subnet_id']=$f_net_id;
+	    $result['subnet']=$f_net;
+	    $result['int_start']=$f_start;
+	    $result['int_stop']=$f_stop;
             return $result;
         }
     }
@@ -994,7 +1117,7 @@ if (empty($ip)) { return; }
 if (empty($mac)) { return; }
 $ip_subnet=get_ip_subnet($db,$ip);
 if (!isset($ip_subnet)) { return; }
-$t_auth=mysqli_query($db, "SELECT id FROM User_auth WHERE ip_int>=".$ip_subnet[int_start]." and ip_int<=".$ip_subnet[int_stop]." and mac='" . $mac . "' and deleted=0");
+$t_auth=mysqli_query($db, "SELECT id FROM User_auth WHERE ip_int>=".$ip_subnet['int_start']." and ip_int<=".$ip_subnet['int_stop']." and mac='" . $mac . "' and deleted=0");
 $auth_count=0;
 $result['count']=0;
 while (list($aid)=mysqli_fetch_array($t_auth)) {
@@ -1013,9 +1136,9 @@ if (empty($user_id)) { return; }
 $user_rec = get_record($db, 'User_list', "id=".$user_id);
 if (empty($user_rec)) { return; }
 //set filter and status by user
-$set_auth[filter_group_id]=$user_rec[filter_group_id];
-$set_auth[queue_id]= $user_rec[queue_id];
-$set_auth[enabled] = $user_rec[enabled];
+$set_auth['filter_group_id']=$user_rec['filter_group_id'];
+$set_auth['queue_id']= $user_rec['queue_id'];
+$set_auth['enabled'] = $user_rec['enabled'];
 update_record($db, "User_auth", "id=$auth_id", $set_auth);
 }
 
@@ -1045,13 +1168,12 @@ function new_auth($db, $ip, $mac, $user_id)
     list ($aid, $amac) = mysqli_fetch_array(mysqli_query($db, "Select id,mac FROM User_auth WHERE ip_int=$ip_aton and deleted=0 limit 1"));
     if ($aid > 0) {
         if (empty($amac)) {
-            $auth[user_id] = $user_id;
-            $auth[ip] = $ip;
-            $auth[ip_int] = $ip_aton;
-            $auth[ip_int_end] = $ip_aton;
-            $auth[mac] = $mac;
-            $auth[deleted] = 0;
-            $auth[save_traf] = $save_traf *1;
+            $auth['user_id'] = $user_id;
+            $auth['ip'] = $ip;
+            $auth['ip_int'] = $ip_aton;
+            $auth['mac'] = $mac;
+            $auth['deleted'] = 0;
+            $auth['save_traf'] = $save_traf *1;
             LOG_INFO($db, "for ip: $ip mac not found! Use empty record...");
             update_record($db, "User_auth", "id=" . $aid, $auth);
             apply_auth_rule($db,$aid,$user_id);
@@ -1061,32 +1183,33 @@ function new_auth($db, $ip, $mac, $user_id)
             return $aid;
         }
     }
+    $resurrection_id = NULL;
     // seek old auth with same ip and mac
     if (get_count_records($db, 'User_auth', "ip_int=" . $ip_aton . " and mac='" . $mac . "'")) {
         // found ->Resurrection old record
         $resurrection_id = get_id_record($db, 'User_auth', "ip_int=" . $ip_aton . " and mac='" . $mac . "'");
-        $msg.="Восстанавливаем доступ для auth_id: $resurrection_id with ip: $ip and mac: $mac";
-        $auth[user_id] = $user_id;
-        $auth[deleted] = 0;
-        $auth[save_traf] = $save_traf *1;
+        $msg.="Восстанавливаем доступ для auth_id: $resurrection_id with ip: $ip and mac: $mac ";
+        $auth['user_id'] = $user_id;
+        $auth['deleted'] = 0;
+        $auth['save_traf'] = $save_traf *1;
         update_record($db, "User_auth", "id=$resurrection_id", $auth);
     } else {
         // not found ->create new record
         $msg.="Создаём новый ip-адрес \r\nip: $ip\r\nmac: $mac\r\n";
-        $auth[deleted] = 0;
-        $auth[user_id] = $user_id;
-        $auth[ip] = $ip;
-        $auth[ip_int] = $ip_aton;
-        $auth[ip_int_end] = $ip_aton;
-        $auth[mac] = $mac;
-        $auth[save_traf] = $save_traf *1;
-        insert_record($db, "User_auth", $auth);
+        $auth['deleted'] = 0;
+        $auth['user_id'] = $user_id;
+        $auth['ip'] = $ip;
+        $auth['ip_int'] = $ip_aton;
+        $auth['mac'] = $mac;
+        $auth['save_traf'] = $save_traf *1;
+        $resurrection_id=insert_record($db, "User_auth", $auth);
     }
     //check rules, update filter and state for new record
-    $auth_rec = get_record($db, 'User_auth', "ip_int=" . $ip_aton . " and mac='" . $mac . "' and deleted=0");
-    apply_auth_rule($db,$auth_rec[id],$user_id);
-    if (!is_hotspot($db,$ip) and !empty($msg)) { LOG_WARNING($db, $msg); }
-    return $auth_rec[id];
+    if (!empty($resurrection_id)) {
+        apply_auth_rule($db,$resurrection_id,$user_id);
+        if (!is_hotspot($db,$ip) and !empty($msg)) { LOG_WARNING($db, $msg); }
+        }
+    return $resurrection_id;
 }
 
 function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
@@ -1097,33 +1220,32 @@ function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
     if ($lid > 0) {
         list ($lname) = mysqli_fetch_array(mysqli_query($db, "Select login FROM User_list WHERE id=$lid"));
         LOG_DEBUG($db, "external dhcp user $lname [$ip] auth_id: $aid");
-        if (isset($dhcp_hostname)) { $auth[dhcp_hostname] = $dhcp_hostname; }
-        $auth[dhcp_action] = $action;
-        $auth[dhcp_time] = date("Y-m-d H:i:s");
-        if ($action == 'add') { $auth[last_found] = date("Y-m-d H:i:s");  }
+        if (isset($dhcp_hostname) and !empty($dhcp_hostname)) { $auth['dhcp_hostname'] = $dhcp_hostname; }
+        $auth['dhcp_action'] = $action;
+        $auth['dhcp_time'] = GetNowTimeString();
+        if ($action == 'add') { $auth['last_found'] = GetNowTimeString();  }
         update_record($db, "User_auth", "id=" . $aid, $auth);
         return $aid;
     }
 
     // default id
-    $new_id = get_new_user_id($db, $ip);
+    $new_id = get_new_user_id($db, $ip, $mac);
     $save_traf = get_option($db, 23);
     $msg = '';
     // search changed mac
     list ($aid, $amac) = mysqli_fetch_array(mysqli_query($db, "Select id,mac FROM User_auth WHERE ip_int=$ip_aton and deleted=0 limit 1"));
     if ($aid > 0) {
         if (empty($amac)) {
-            $auth[user_id] = $new_id;
-            $auth[ip] = $ip;
-            $auth[ip_int] = $ip_aton;
-            $auth[ip_int_end] = $ip_aton;
-            $auth[mac] = $mac;
-            $auth[deleted] = 0;
-            $auth[save_traf] = $save_traf *1;
-            $auth[dhcp_action] = $action;
-            $auth[dhcp_time] = date("Y-m-d H:i:s");
-            if (!empty($dhcp_hostname)) { $auth[dhcp_hostname] = $dhcp_hostname; }
-            if ($action == 'add') { $auth[last_found] = date("Y-m-d H:i:s"); }
+            $auth['user_id'] = $new_id;
+            $auth['ip'] = $ip;
+            $auth['ip_int'] = $ip_aton;
+            $auth['mac'] = $mac;
+            $auth['deleted'] = 0;
+            $auth['save_traf'] = $save_traf *1;
+            $auth['dhcp_action'] = $action;
+            $auth['dhcp_time'] = GetNowTimeString();
+            if (!empty($dhcp_hostname)) { $auth['dhcp_hostname'] = $dhcp_hostname; }
+            if ($action == 'add') { $auth['last_found'] = GetNowTimeString(); }
             LOG_INFO($db, "for ip: $ip mac not found! Use empty record...");
             update_record($db, "User_auth", "id=" . $aid, $auth);
             return $aid;
@@ -1132,46 +1254,44 @@ function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
             run_sql($db, "Update User_auth set deleted=1 WHERE id=" . $aid);
         }
     }
+    $resurrection_id=NULL;
     // seek old auth with same ip and mac
     if (get_count_records($db, 'User_auth', "ip_int=" . $ip_aton . " and mac='" . $mac . "'")) {
         // found ->Resurrection old record
         $resurrection_id = get_id_record($db, 'User_auth', "ip_int=" . $ip_aton . " and mac='" . $mac . "'");
-        $msg .="Восстанавливаем доступ для auth_id: $resurrection_id with ip: $ip and mac: $mac";
-        $auth[dhcp_action] = $action;
-        $auth[user_id] = $new_id;
-        $auth[deleted] = 0;
-        $auth[dhcp_time] = date("Y-m-d H:i:s");
-        $auth[save_traf] = $save_traf *1;
-        if (isset($dhcp_hostname)) { $auth[dhcp_hostname] = $dhcp_hostname; }
-        if ($action == 'add') { $auth[last_found] = date("Y-m-d H:i:s"); }
+        $msg .="Восстанавливаем доступ для auth_id: $resurrection_id with ip: $ip and mac: $mac ";
+        $auth['dhcp_action'] = $action;
+        $auth['user_id'] = $new_id;
+        $auth['deleted'] = 0;
+        $auth['dhcp_time'] = GetNowTimeString();
+        $auth['save_traf'] = $save_traf *1;
+        if (!empty($dhcp_hostname)) { $auth['dhcp_hostname'] = $dhcp_hostname; }
+        if ($action == 'add') { $auth['last_found'] = GetNowTimeString(); }
         update_record($db, "User_auth", "id=$resurrection_id", $auth);
     } else {
         // not found ->create new record
         $msg.="Создаём новый ip-адрес \r\nip: $ip\r\nmac: $mac\r\n";
-        $auth[deleted] = 0;
-        $auth[user_id] = $new_id;
-        $auth[ip] = $ip;
-        $auth[ip_int] = $ip_aton;
-        $auth[ip_int_end] = $ip_aton;
-        $auth[mac] = $mac;
-        $auth[dhcp_action] = $action;
-        $auth[dhcp_time] = date("Y-m-d H:i:s");
-        $auth[save_traf] = $save_traf *1;
-        if (isset($dhcp_hostname)) { $auth[dhcp_hostname] = $dhcp_hostname; }
-        if ($action == 'add') { $auth[last_found] = date("Y-m-d H:i:s"); }
-        insert_record($db, "User_auth", $auth);
+        $auth['deleted'] = 0;
+        $auth['user_id'] = $new_id;
+        $auth['ip'] = $ip;
+        $auth['ip_int'] = $ip_aton;
+        $auth['mac'] = $mac;
+        $auth['dhcp_action'] = $action;
+        $auth['dhcp_time'] = GetNowTimeString();
+        $auth['save_traf'] = $save_traf *1;
+        if (!empty($dhcp_hostname)) { $auth['dhcp_hostname'] = $dhcp_hostname; }
+        if ($action == 'add') { $auth['last_found'] = GetNowTimeString(); }
+        $resurrection_id=insert_record($db, "User_auth", $auth);
     }
     //check rules, update filter and state for new record
-    $auth_rec = get_record($db, 'User_auth', "ip_int=" . $ip_aton . " and mac='" . $mac . "' and deleted=0");
-    $resurrection_id = $auth_rec[id];
-    if (isset($auth_rec[id])) {
-	    $user_rec = get_record($db, 'User_list', "id=".$auth_rec[user_id]);
+    if (!empty($resurrection_id)) {
+	    $user_rec = get_record($db, 'User_list', "id=".$new_id);
 	    //set filter and status by user
-	    $set_auth[filter_group_id]=$user_rec[filter_group_id];
-	    $set_auth[queue_id]= $user_rec[queue_id];
-	    $set_auth[enabled] = $user_rec[enabled];
+	    $set_auth['filter_group_id']=$user_rec['filter_group_id'];
+	    $set_auth['queue_id']= $user_rec['queue_id'];
+	    $set_auth['enabled'] = $user_rec['enabled'];
 	    update_record($db, "User_auth", "id=$resurrection_id", $set_auth);
-	    $msg.="filter: $user_rec[filter_group_id]\r\n queue_id: $user_rec[queue_id]\r\n enabled: $user_rec[enabled]\r\nid: $resurrection_id";
+	    $msg.="filter: ".$user_rec['filter_group_id']."\r\n queue_id: ".$user_rec['queue_id']."\r\n enabled: ".$user_rec['enabled']."\r\nid: $resurrection_id";
 	    }
     if (!is_hotspot($db,$ip) and !empty($msg)) { LOG_WARNING($db, $msg); }
     return $resurrection_id;
@@ -1207,9 +1327,9 @@ function get_auth_by_mac($db, $mac)
     $t_login = mysqli_query($db, "SELECT U.id,U.login,A.id,A.ip FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.mac='" . $mac . "' order by A.last_found DESC limit 1");
     list ($f_id, $f_login, $f_auth_id, $f_ip) = mysqli_fetch_array($t_login);
     if (isset($f_id)) {
-        $result[auth] = '<a href=/admin/users/edituser.php?id=' . $f_id . '>' . $f_login . '</a> / ip: <a href=/admin/users/editauth.php?id=' . $f_auth_id . '>' . $f_ip . '</a>';
-	} else { $result[auth]='Unknown'; }
-    $result[mac] = expand_mac($db,$mac);
+        $result['auth'] = '<a href=/admin/users/edituser.php?id=' . $f_id . '>' . $f_login . '</a> / ip: <a href=/admin/users/editauth.php?id=' . $f_auth_id . '>' . $f_ip . '</a>';
+	} else { $result['auth']='Unknown'; }
+    $result['mac'] = expand_mac($db,$mac);
     return $result;
 }
 
@@ -2328,7 +2448,7 @@ function unbind_ports($db, $device_id)
 {
     $target = mysqli_query($db, "SELECT U.target_port_id,U.id FROM device_ports U WHERE U.device_id=$device_id");
     while (list ($target_id, $id) = mysqli_fetch_array($target)) {
-        $new[target_port_id] = 0;
+        $new['target_port_id'] = 0;
         update_record($db, "device_ports", "target_port_id='$id'", $new);
         update_record($db, "device_ports", "id='$id'", $new);
     }
@@ -2339,16 +2459,16 @@ function bind_ports($db, $port_id, $target_id)
     $old_target = mysqli_query($db, "SELECT U.target_port_id FROM device_ports U WHERE U.id=$port_id");
     list ($old_target_id) = mysqli_fetch_array($old_target);
     // unbind current connection
-    $new[target_port_id] = 0;
+    $new['target_port_id'] = 0;
     update_record($db, "device_ports", "id='$port_id'", $new);
     if (isset($old_target_id)) {
         update_record($db, "device_ports", "id='$old_target_id'", $new);
     }
     // new link
     if (isset($target_id) and $target_id > 0) {
-        $new[target_port_id] = $target_id;
+        $new['target_port_id'] = $target_id;
         update_record($db, "device_ports", "id='$port_id'", $new);
-        $new[target_port_id] = $port_id;
+        $new['target_port_id'] = $port_id;
         update_record($db, "device_ports", "id='$target_id'", $new);
     }
 }
@@ -2481,10 +2601,13 @@ function get_record($db, $table, $filter)
     $old_sql = "SELECT * FROM $table WHERE $filter LIMIT 1";
     $old_record = mysqli_query($db, $old_sql);
     $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
-    foreach ($old as $key => $value) {
-        if (! isset($value) or $value==='NULL') { $value = ''; }
-        $result[$key] = $value;
-    }
+    $result = NULL;
+    if (!empty($old)) {
+        foreach ($old as $key => $value) {
+            if (!isset($value) or $value==='NULL') { $value = ''; }
+            if (!empty($key)) { $result[$key] = $value; }
+            }
+        }
     return $result;
 }
 
@@ -2502,6 +2625,7 @@ function get_records($db, $table, $filter)
     if (isset($filter)) { $s_filter = 'WHERE '.$filter; }
     $old_sql = "SELECT * FROM $table $s_filter";
     $old_record = mysqli_query($db, $old_sql);
+    $result = NULL;
     $index = 0;
     while ($old = mysqli_fetch_array($old_record, MYSQLI_ASSOC)) {
         foreach ($old as $key => $value) {
@@ -2521,10 +2645,11 @@ function get_records_sql($db, $sql)
     }
     $record = mysqli_query($db, $sql);
     $index = 0;
+    $result = NULL;
     while ($rec = mysqli_fetch_array($record, MYSQLI_ASSOC)) {
         foreach ($rec as $key => $value) {
 	    if (! isset($value) or $value==='NULL') { $value = ''; }
-    	    $result[$index][$key] = $value;
+	    if (!empty($key)) { $result[$index][$key] = $value; }
 	}
 	$index++;
     }
@@ -2587,7 +2712,6 @@ function update_record($db, $table, $filter, $newvalue)
     	    $acl_fields = [
     	    'ip' => '1',
     	    'ip_int' => '1',
-    	    'ip_int_end'=>'1',
     	    'enabled'=>'1',
     	    'dhcp'=>'1',
     	    'filter_group_id'=>'1',
@@ -2610,7 +2734,7 @@ function update_record($db, $table, $filter, $newvalue)
     $run_sql = substr_replace($run_sql, "", - 1);
 
     if ($table === 'User_auth') {
-        $changed_time = date("Y-m-d H:i:s");
+        $changed_time = GetNowTimeString();
         $run_sql = $run_sql . ", `changed_time`='".$changed_time."'";
         }
 
@@ -2648,7 +2772,7 @@ function delete_record($db, $table, $filter)
     }
     //never delete user ip record
     if ($table === 'User_auth') {
-        $changed_time = date("Y-m-d H:i:s");
+        $changed_time = GetNowTimeString();
         $new_sql = "UPDATE $table SET deleted=1, `changed_time`='".$changed_time."' WHERE $filter";
         LOG_DEBUG($db, "Run sql: $new_sql");
         mysqli_query($db, $new_sql);
@@ -2692,8 +2816,11 @@ function insert_record($db, $table, $newvalue)
     $value_list = substr_replace($value_list, "", - 1);
     $new_sql = "insert into $table(" . $field_list . ") values(" . $value_list . ")";
     LOG_DEBUG($db, "Run sql: $new_sql");
-    mysqli_query($db, $new_sql);
-    LOG_VERBOSE($db, "Create record in table $table: $changed_log");
+    if (mysqli_query($db, $new_sql)) {
+            $last_id = mysqli_insert_id($db);
+            LOG_VERBOSE($db, "Create record in table $table: $changed_log with id: $last_id");
+            return $last_id;
+            }
 }
 
 function get_diff_rec($db, $table, $filter, $newvalue, $only_changed)
@@ -2792,6 +2919,7 @@ if ($value == $current) { print "<option value=$value selected>$description</opt
 
 function print_row_at_pages ($name,$value) {
 print "<select name='".$name."'>\n";
+print_select_item('Много',pow(10,10),$value);
 print_select_item('25',25,$value);
 print_select_item('50',50,$value);
 print_select_item('100',100,$value);
@@ -2858,8 +2986,8 @@ print "</div>";
 
 function get_option($db, $option_id)
 {
-    $option = get_record($db, "config", "option_id=$option_id");
-    if (!isset($option)) {
+    $option = get_record($db, "config", "option_id=".$option_id);
+    if (empty($option) or empty($option['value'])) {
         $default = get_record($db, "config_options","id=$option_id");
 	return $default['default_value'];
 	}
@@ -2869,7 +2997,7 @@ function get_option($db, $option_id)
 function is_option($db, $option_id)
 {
     list ($option) = mysqli_fetch_array(mysqli_query($db, "SELECT value FROM `config` WHERE option_id=$option_id"));
-    if (! isset($option) or $option == '') {
+    if (! isset($option) or empty($option) or $option === '') {
         return;
     }
     return 1;
@@ -2889,13 +3017,11 @@ if ($ip>=ip2long($range[0]) and $ip <=ip2long($range[1])) { return 1; }
 return 0;
 }
 
-function get_new_user_id($db, $ip)
+function get_new_user_id($db, $ip, $mac)
 {
     global $hotspot_user_id;
     global $default_user_id;
-    if (is_hotspot($db, $ip)) {
-        return $hotspot_user_id;
-    }
+    if (is_hotspot($db, $ip)) { return $hotspot_user_id; }
     $ip_aton = ip2long($ip);
     $t_rules = mysqli_query($db, "SELECT id,default_subnet FROM User_list WHERE deleted=0 and LENGTH(default_subnet)>0");
     while (list ($f_id, $f_net) = mysqli_fetch_array($t_rules)) {
@@ -2904,14 +3030,22 @@ function get_new_user_id($db, $ip)
             return $f_id;
         }
     }
+    if (!empty($mac)) {
+        $mac_rules=get_records_sql($db,"SELECT id,mac_rule FROM User_list WHERE deleted=0 AND LENGTH(mac_rule)>0");
+        foreach ($mac_rules as $row) {
+            if (!empty($row['mac_rule']) and preg_match($row['mac_rule'], $mac)) { return $row['id']; }
+            }
+        }
     return $default_user_id;
 }
 
 function get_subnet_range($db,$subnet_id) {
-$t_option = mysqli_query($db, "SELECT ip_int_start,ip_int_stop FROM `subnets` WHERE id=$subnet_id LIMIT 1");
-list ($f_start,$f_stop) = mysqli_fetch_array($t_option);
-$subnet[start]=$f_start;
-$subnet[stop]=$f_stop;
+if (empty($subnet_id)) { return; }
+$t_option = get_record_sql($db, "SELECT ip_int_start,ip_int_stop FROM `subnets` WHERE id=$subnet_id");
+if (!isset($t_option['ip_int_start'])) { $t_option['ip_int_start']=0; }
+if (!isset($t_option['ip_int_stop'])) { $t_option['ip_int_stop']=0; }
+$subnet['start']=$t_option['ip_int_start'];
+$subnet['stop']=$t_option['ip_int_stop'];
 return $subnet;
 }
 
@@ -3001,5 +3135,6 @@ function init_option($db)
 }
 
 init_option($db_link);
+clean_dns_cache($db_link);
 
 ?>

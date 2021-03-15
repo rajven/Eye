@@ -4,11 +4,11 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 if (isset($_POST["editfilter"])) {
-    $new[name] = $_POST["f_name"];
-    $new[dst] = $_POST["f_dst"];
-    $new[proto] = $_POST["f_proto"];
-    $new[dstport] = str_replace(':', '-', $_POST["f_dstport"]);
-    $new[action] = $_POST["f_action"] * 1;
+    $new['name'] = $_POST["f_name"];
+    $new['dst'] = $_POST["f_dst"];
+    $new['proto'] = $_POST["f_proto"];
+    $new['dstport'] = str_replace(':', '-', $_POST["f_dstport"]);
+    $new['action'] = $_POST["f_action"] * 1;
     update_record($db_link, "Filter_list", "id='$id'", $new);
     unset($_POST);
     header("location: index.php");
@@ -32,7 +32,7 @@ if (isset($filter['type']) and $filter['type'] == 0) {
     print "<td ><b>Порт</b></td>";
     print "<td ><b>Действие</b></td>";
 
-    print "</tr><td align=left><input type=text name=f_name value=".$filter['Name']."></td>";
+    print "</tr><td align=left><input type=text name=f_name value=".$filter['name']."></td>";
     print "<td ><input type=text name=f_proto value=".$filter['proto']."></td>";
     print "<td ><input type=text name=f_dst value=".$filter['dst']."></td>";
     print "<td ><input type=text name=f_dstport value=".$filter['dstport']."></td>";
@@ -47,7 +47,7 @@ if (isset($filter['type']) and $filter['type'] == 0) {
     print "<td ><b>Адрес назначения</b></td>";
     print "<td ><b>Действие</b></td></tr>";
 
-    print "<td align=left><input type=text name=f_name value=".$filter['Name']."></td>";
+    print "<td align=left><input type=text name=f_name value=".$filter['name']."></td>";
     print "<td ><input type=text name=f_dst value=".$filter['dst']."></td>";
     print_action_select('f_action', $filter['action']);
     print "<tr><td colspan=2><input type=submit name=editfilter value=Сохранить></td>";

@@ -49,34 +49,25 @@ if ($ARGV[0]) {
             }
     }
 
-my $router_list = $dbh->prepare( "SELECT ip,snmp_version,community FROM devices where deleted=0 and is_router=1 and discovery=1 and snmp_version>0 ORDER by ip" );
-if ( !defined $router_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-$router_list->execute;
-my $router_ref = $router_list->fetchall_arrayref();
-$router_list->finish();
+my @router_ref = get_records_sql($dbh,"SELECT * FROM devices WHERE deleted=0 AND device_type=2 AND discovery=1 AND snmp_version>0 ORDER by ip" );
 
 #get userid list
-my $user_auth_list = $dbh->prepare( "SELECT id,ip,mac,comments FROM User_auth where deleted=0 ORDER by ip" );
-if ( !defined $user_auth_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-$user_auth_list->execute;
-my $authlist_ref = $user_auth_list->fetchall_arrayref();
-$user_auth_list->finish();
+my @authlist_ref = get_records_sql($dbh,"SELECT * FROM User_auth WHERE deleted=0 ORDER by ip_int" );
 
 my $users = new Net::Patricia;
-
 my %ip_list;
 
-foreach my $row (@$authlist_ref) {
-$users->add_string($row->[1],$row->[0]);
-$ip_list{$row->[0]}->{id}=$row->[0];
-$ip_list{$row->[0]}->{ip}=$row->[1];
-$ip_list{$row->[0]}->{mac}=mac_splitted($row->[2]) || '';
+foreach my $row (@authlist_ref) {
+$users->add_string($row->{ip},$row->{id});
+$ip_list{$row->{id}}->{id}=$row->{id};
+$ip_list{$row->{id}}->{ip}=$row->{ip};
+$ip_list{$row->{id}}->{mac}=mac_splitted($row->{mac}) || '';
 }
 
-foreach my $router (@$router_ref) {
-my $router_ip=$router->[0];
-my $snmp_version=$router->[1];
-my $community=$router->[2];
+foreach my $router (@router_ref) {
+my $router_ip=$router->{ip};
+my $snmp_version=$router->{snmp_version};
+my $community=$router->{community};
 #print "Analyze $router_ip $snmp_version $community\n";
 my $arp_table=get_arp_table($router_ip,$community,$snmp_version);
 next if (!$arp_table);
@@ -96,8 +87,7 @@ foreach my $ip (keys %$arp_table) {
     next if (!$office_networks->match_string($ip));
     db_log_debug($dbh,"Analyze ip: $ip mac: $mac") if ($debug);
     my $auth_id = $users->match_string($ip);
-    resurrection_auth($dbh,$ip,$mac,'arp');
-    my $cur_auth_id=get_id_record($dbh,'User_auth',"ip='$ip' and mac='$mac' and deleted=0 order by last_found DESC");
+    my $cur_auth_id=resurrection_auth($dbh,$ip,$mac,'arp');
     $mac_history{$simple_mac}{auth_id}=$cur_auth_id;
     if ($auth_id ne $cur_auth_id) {
 	$mac_history{$simple_mac}{changed}=1;

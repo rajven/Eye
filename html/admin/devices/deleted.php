@@ -19,7 +19,7 @@ $switches = get_records($db_link,'devices','deleted=1 ORDER BY ip');
 foreach ($switches as $row) {
     print "<tr align=center>\n";
     $cl = "data";
-    if ($fdeleted) { $cl = "shutdown"; } else {
+    if ($row['deleted']) { $cl = "shutdown"; } else {
         if (isset($fnagios)) {
     	    if ($fnagios = 'DOWN') { $cl = 'down'; }
             if ($fnagios = 'UP') { $cl = 'up'; }

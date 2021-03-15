@@ -5,10 +5,9 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 if (isset($_POST["create"])) {
     $fname = $_POST["newgroup"];
     if ($fname) {
-        $new[group_name] = $fname;
-        insert_record($db_link, "Group_list", $new);
-        list ($new_id) = mysqli_fetch_array(mysqli_query($db_link, "Select id from Group_list where group_name='$fname' order by id DESC"));
-        header("location: editgroup.php?id=$new_id[0]");
+        $new['group_name'] = $fname;
+        $new_id=insert_record($db_link, "Group_list", $new);
+        header("location: editgroup.php?id=$new_id");
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
 }

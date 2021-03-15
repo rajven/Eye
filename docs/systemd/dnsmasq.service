@@ -1,0 +1,11 @@
+[Unit]
+Description=DNS caching server
+After=network.target
+
+[Service]
+ExecStartPre=/bin/mkfifo /var/spool/dhcp-log.socket
+ExecStopPost=/bin/rm -f /var/spool/dhcp-log.socket
+ExecStart=/usr/sbin/dnsmasq -k
+
+[Install]
+WantedBy=multi-user.target

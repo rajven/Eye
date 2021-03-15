@@ -27,7 +27,7 @@ my $DNS1=$ns1.'.'.$domain_name;
 my $named_conf=$named_root.'/etc/named.dynamic';
 
 # user auth list
-my @authlist_ref = get_custom_records($dbh,"SELECT id,ip,dns_name FROM User_auth WHERE `ip_int`>0 AND `deleted`=0 ORDER BY ip_int");
+my @authlist_ref = get_records_sql($dbh,"SELECT id,ip,dns_name FROM User_auth WHERE `ip_int`>0 AND `deleted`=0 ORDER BY ip_int");
 
 my %zones;
 
@@ -52,7 +52,7 @@ if ($dns_name) {
     $zones{$domain_name}{$default_name}=$ip;
     }
 
-my @dns_names=get_custom_records($dbh,"SELECT * FROM User_auth_alias WHERE auth_id=$row->{id} ORDER BY alias");
+my @dns_names=get_records_sql($dbh,"SELECT * FROM User_auth_alias WHERE auth_id=$row->{id} ORDER BY alias");
 foreach my $alias (@dns_names) {
         my $dns = $alias->{alias};
         $dns =~s/_/-/g;

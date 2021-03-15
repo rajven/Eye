@@ -30,7 +30,7 @@ if ($f_snmp_index > 0) {
     foreach ($fdb as $a_mac => $a_port) {
         print "<tr>";
         $auth = get_auth_by_mac($db_link, dec_to_hex($a_mac));
-        print "<td class=\"data\">" .$auth[auth] . "</td><td class=\"data\">". $auth[mac]."</td>\n";
+        print "<td class=\"data\">" .$auth['auth'] . "</td><td class=\"data\">". $auth['mac']."</td>\n";
         print "</tr>";
     }
     print "</table>\n";

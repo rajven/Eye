@@ -5,72 +5,153 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/cfg/config.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sql.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/common.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/russian.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sql.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header_public.php");
 
-list ($rhour, $rday, $rmonth, $ryear) = explode(" ", date("H j n Y", time()));
+if (! isset($auth_ip)) { $auth_ip = get_user_ip(); }
+if (! isset($auth_ip)) { print "Error detecting user!!!"; }
 
-if (! isset($auth_ip)) {
-    $auth_ip = get_user_ip();
-}
-if (! isset($auth_ip)) {
-    print "Error detecting user!!!";
-}
+$start = mktime(0, 0, 0, date("m"), 1, date("Y"));
+$date1m = strftime('%Y-%m-%d', $start);
+$stop = mktime(0, 0, 0, date("m")+1, 1, date("Y"));
+$date2m = strftime('%Y-%m-%d', $stop);
 
-$ip_aton = ip2long($auth_ip);
-if (! $ip_aton) {
-    $ip_aton = 0;
-}
-$sSQL = "SELECT U.login,A.enabled,A.user_id FROM User_list U,User_auth A WHERE U.id=A.user_id and (A.ip_int='$ip_aton' or A.ip='$auth_ip' and A.deleted=0) Limit 1";
-list ($login, $enabled, $id) = mysqli_fetch_array(mysqli_query($db_link, $sSQL));
-
-if (! isset($id) or $id < 1) {
-    $msg_error = "<b>Адрес $auth_ip в списках не значится!</b><br>";
-}
-;
-if (!$enabled) { $msg_error="<b> (Доступ запрещён администратором!)</b><br>\n"; }
+$start = mktime(0, 0, 0, date("m"), date("d"), date("Y"));
+$date1 = strftime('%Y-%m-%d', $start);
+$stop = mktime(0, 0, 0, date("m"), date("d")+1, date("Y"));
+$date2 = strftime('%Y-%m-%d', $stop);
 
 ?>
+
 <div id="cont">
+
+<?php
+$ip_aton = ip2long($auth_ip);
+if (! $ip_aton) { $ip_aton = 0; }
+
+$sSQL = "SELECT * FROM User_auth WHERE ip_int='".$ip_aton."' and deleted = 0";
+$auth = get_record_sql($db_link,$sSQL);
+if (! isset($auth) or empty($auth)) { print "<font color=red><b>Адрес $auth_ip в списках не значится!</b><br></font>"; die; }
+
+$id = $auth['id'];
+$user_id = $auth['user_id'];
+
+$uSQL = "SELECT * FROM User_list WHERE id='".$user_id."'";
+$user = get_record_sql($db_link,$uSQL);
+
+if (! isset($user) or empty($user)) { print "<font color=red><b>Адрес $auth_ip принадлежит несуществующему юзеру. Вероятно запись удалена.</b><br></font>"; die; }
+
+if (empty($user['month_quota'])) { $user['month_quota']=0; }
+if (empty($user['day_quota'])) { $user['day_quota']=0; }
+if (empty($auth['month_quota'])) { $auth['month_quota']=0; }
+if (empty($auth['day_quota'])) { $auth['day_quota']=0; }
+
+$user['month_quota'] = $user['month_quota'] * $KB * $KB;
+$user['day_quota'] = $user['day_quota'] * $KB * $KB;
+$auth['month_quota'] = $auth['month_quota'] * $KB * $KB;
+$auth['day_quota'] = $auth['day_quota'] * $KB * $KB;
+
+$day =  GetNowDayString();
+$month = strftime('%m',time());
+$year = strftime('%Y',time());
+
+?>
 <table>
 <tr>
-<td>
-<table class="data">
-<td align="center">
+<td><b>Сейчас</b></td><td><?php print GetNowTimeString(); ?></td></tr>
+<tr>
+<td><b>Login</b></td> <td><?php print $user['login']; ?></td>
+</tr><tr>
+<td><b>ФИО</b></td> <td><?php print $user['fio']; ?></td>
+</tr><tr>
+<td> Интернет (логин) </td> <td><b><?php 
+if ($user['enabled'] and !$user['blocked']) { print "Включен"; }
+if (!$user['enabled']) { print "<font color=red>Запрещён</font> &nbsp"; }
+if ($user['blocked']) { print "<font colot=red>Блок по трафику</font>"; }
+?></b>
+</td></tr><tr>
+<td> Интернет (этот IP) </td> <td><b><?php 
+if ($user['enabled'] and !$user['blocked'] and !$auth['blocked'] and $auth['enabled']) { print "Включен"; }
+if (!$user['enabled'] or !$auth['enabled']) { print "<font color=red>Запрещён</font> &nbsp"; }
+if ($auth['blocked']) { print "<font color=red>Блок по трафику</font>"; }
+?></b>
+</td>
+</tr>
+<tr><td>Фильтр</td><td><?php print get_group($db_link, $auth["filter_group_id"]); ?> </td></tr>
+<tr><td>Шейпер</td><td><?php print get_queue($db_link, $auth["queue_id"]); ?></td></tr>
+<tr><td> Квота на логин, месяц <td><td><?php print fbytes($user['month_quota']); ?> </td></tr>
+<tr><td> Квота на логин, день <td><td><?php print fbytes($user['day_quota']); ?> </td></tr>
+<tr><td> Лимит на ip, месяц <td><td><?php print fbytes($auth['month_quota']); ?> </td></tr>
+<tr><td> Лимит на ip, день <td><td><?php print fbytes($auth['day_quota']); ?> </td></tr>
+
 <?php
-$sSQL = "SELECT month_quota,day_quota FROM User_list WHERE User_list.id=$id";
-list ($limit, $limit1) = mysqli_fetch_array(mysqli_query($db_link, $sSQL));
-$limit = $limit * $KB * $KB;
-$limit1 = $limit1 * $KB * $KB;
+$auth_list = get_records_sql($db_link,"SELECT id FROM User_auth WHERE user_id='".$user_id."' AND deleted=0");
 
-$sSQL = "SELECT SUM(tin),SUM(tout) FROM
-    (select auth_id,SUM(byte_in) as tin, SUM(byte_out) as tout from User_stats where ((YEAR(`timestamp`)=2017) and (MONTH(`timestamp`)=10)) GROUP by auth_id) as V,
-    User_auth, User_list WHERE (V.auth_id=User_auth.id) and (User_auth.user_id=User_list.id) and (User_list.id=$id) GROUP by Login Order by Login";
+####### day
+$sSQL = "SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM User_stats WHERE `timestamp`>='".$date1."' AND `timestamp`<'".$date2."' AND auth_id='".$id."'";
+$day_auth_itog = get_record_sql($db_link,$sSQL);
 
-$useritog = mysqli_query($db_link, $sSQL);
+$day_auth_sum_in=0;
+$day_auth_sum_in=0;
 
-list ($uin, $uout) = mysqli_fetch_array($useritog);
-if (! isset($login) or ! isset($auth_ip)) {
-    print "<tr class='data'><div id='msg'><b>$msg_error</div></b></tr><br>\n";
-}
-;
+if (!empty($day_auth_itog)) {
+    if (empty($day_auth_itog['tin'])) { $day_auth_itog['tin']=0; }
+    if (empty($day_auth_itog['tout'])) { $day_auth_itog['tout']=0; }
+    $day_auth_sum_in=$day_auth_itog['tin'];
+    $day_auth_sum_out=$day_auth_itog['tout'];
+    }
 
-print "<tr class='data'><div id='msg'><b>Пользователь: $login IP-адрес: $auth_ip</div></b></tr><br>\n";
-print "<tr class='data'><div id='msg2'>Текущий трафик</div></tr>\n";
-print "<tr class='data'><div id='msg2'>за месяц " . fbytes($uin) . " - лимит " . fbytes($limit) . "</div></tr>\n";
+$day_user_sum_in=0;
+$day_user_sum_out=0;
 
-$useritog = mysqli_query($db_link, "SELECT SUM(tin),SUM(tout) FROM (select auth_id,SUM(byte_in) as tin,
-                SUM(byte_out) as tout from User_stats
-                where ((YEAR(`timestamp`)=$ryear) and (MONTH(`timestamp`)=$rmonth) and (DAY(`timestamp`)=$rday))
-                GROUP by auth_id) as V, User_auth, User_list
-                WHERE (V.auth_id=User_auth.id) and (User_auth.user_id=User_list.id) and (User_list.id=$id)
-                GROUP by Login Order by Login");
+if (!empty($auth_list)) {
+    foreach ($auth_list as $row) {
+        $auth_itog2 = get_record_sql($db_link,"SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM User_stats WHERE `timestamp`>='".$date1."' AND `timestamp`<'".$date2."' AND auth_id='".$row['id']."'");
+        if (!empty($auth_itog2)) { 
+                if (empty($auth_itog2['tin'])) { $auth_itog2['tin']=0; }
+                if (empty($auth_itog2['tout'])) { $auth_itog2['tout']=0; }
+                $day_user_sum_in+=$auth_itog2['tin'];
+                $day_user_sum_out+=$auth_itog2['tout'];
+                }
+        }
+    }
 
-list ($uin, $uout) = mysqli_fetch_array($useritog);
-print "<tr class='data'><div id='msg2'>за день " . fbytes($uin) . " - лимит " . fbytes($limit1) . "</div></tr>\n";
-// print "<tr class='data'><a href=/public/userdaydetail.php><div id='msg2'>Подробно за сегодня</div></a></tr>\n";
-print "<tr class='data'><br></tr>\n";
-print "</td>\n";
+#### month
+$sSQL = "SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM User_stats WHERE `timestamp`>='".$date1m."' AND `timestamp`<'".$date2m."' AND auth_id='".$id."'";
+$month_auth_itog = get_record_sql($db_link,$sSQL);
+
+$month_auth_sum_in=0;
+$month_auth_sum_in=0;
+
+if (!empty($month_auth_itog)) {
+    if (empty($month_auth_itog['tin'])) { $month_auth_itog['tin']=0; }
+    if (empty($month_auth_itog['tout'])) { $month_auth_itog['tout']=0; }
+    $month_auth_sum_in=$month_auth_itog['tin'];
+    $month_auth_sum_out=$month_auth_itog['tout'];
+    }
+
+$month_user_sum_in=0;
+$month_user_sum_out=0;
+
+if (!empty($auth_list)) {
+    foreach ($auth_list as $row) {
+        $auth_itog2 = get_record_sql($db_link,"SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM User_stats WHERE `timestamp`>='".$date1m."' AND `timestamp`<'".$date2m."' AND auth_id='".$row['id']."'");
+        if (!empty($auth_itog2)) {
+                if (empty($auth_itog2['tin'])) { $auth_itog2['tin']=0; }
+                if (empty($auth_itog2['tout'])) { $auth_itog2['tout']=0; }
+                $month_user_sum_in+=$auth_itog2['tin'];
+                $month_user_sum_out+=$auth_itog2['tout'];
+                }
+        }
+    }
+
+#### print
+print "<tr class='data'><td><b>Текущий трафик на IP</b></td><td>$auth_ip</td></tr>\n";
+print "<tr class='data'><td>за день in/out </td><td>" . fbytes($day_auth_sum_in)." / ".fbytes($day_auth_sum_out). "</td></tr>\n";
+print "<tr class='data'><td>за месяц in/out </td><td>" . fbytes($month_auth_sum_in)." / ".fbytes($month_auth_sum_out). "</td></tr>\n";
+print "<tr class='data'><td><b>Текущий трафик на логин</b></td><td>".$user['login']."</td></tr>\n";
+print "<tr class='data'><td>за день in/out </td><td>" . fbytes($day_user_sum_in)." / ".fbytes($day_user_sum_out). "</td></tr>\n";
+print "<tr class='data'><td>за месяц in/out </td><td>" . fbytes($month_user_sum_in)." / ".fbytes($month_user_sum_out). "</td></tr>\n";
+print "</table>\n";
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

@@ -1,3 +1,3 @@
 <?php
-header("location: /admin/iplist/index.php");
+header("location: /admin/reports/index-full.php");
 ?>

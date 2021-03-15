@@ -1,6 +1,7 @@
 [Unit]
 Description=Write dhcp events to Rstat
-After=syslog.target mariadb.service dhcpd.service
+After=syslog.target mariadb.service dnsmasq.service dhcpd.service
+PartOf=dnsmasq.service
 
 [Service]
 Type=forking

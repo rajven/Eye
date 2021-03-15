@@ -1,7 +1,7 @@
 <?php
+$default_displayed=500;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
-$default_displayed = 500;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $default_sort='ip_int';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
@@ -21,7 +21,7 @@ if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and User_list.ou_id=$r
 
 if ($rsubnet == 0) { $subnet_filter = ''; } else {
     $subnet_range = get_subnet_range($db_link,$rsubnet);
-    $subnet_filter = " and User_auth.ip_int>=$subnet_range[start] and User_auth.ip_int<=$subnet_range[stop] ";
+    if (!empty($subnet_range)) { $subnet_filter = " and User_auth.ip_int>=".$subnet_range['start']." and User_auth.ip_int<=".$subnet_range['stop']; }
     }
 
 $enabled_filter='';

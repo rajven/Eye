@@ -13,7 +13,7 @@ if (isset($_POST["create"])) {
             LOG_INFO($db_link, $msg_error);
             unset($_POST);
         } else {
-            $new[login] = $login;
+            $new['Login'] = $login;
             insert_record($db_link, "Customers", $new);
             list ($id) = mysqli_fetch_array(mysqli_query($db_link, "Select id from Customers where Login='$login' order by id DESC"));
             LOG_INFO($db_link, "Создание нового менеджера login: $login");

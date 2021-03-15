@@ -1,7 +1,7 @@
 <?php
+$default_displayed = 500;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
-$default_displayed = 500;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $default_sort='ip_int';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
@@ -28,7 +28,7 @@ if (!empty($f_comment)) { $comment_filter=" and (User_auth.comments LIKE '$f_com
 
 if ($rsubnet == 0) { $subnet_filter = ''; } else {
     $subnet_range = get_subnet_range($db_link,$rsubnet);
-    $subnet_filter = " and User_auth.ip_int>=$subnet_range[start] and User_auth.ip_int<=$subnet_range[stop] ";
+    $subnet_filter = " and User_auth.ip_int>=".$subnet_range['start']." and User_auth.ip_int<=".$subnet_range['stop'];
     }
 
 $ip_list_filter = $subnet_filter.$comment_filter;

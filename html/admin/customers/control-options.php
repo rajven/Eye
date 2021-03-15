@@ -5,12 +5,14 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 
 if (isset($_POST["remove"])) {
     $fid = $_POST["f_id"];
-    while (list ($key, $val) = @each($fid)) {
-        if (isset($val) and $val != 1) {
-            LOG_INFO($db_link, "Remove config option id: $val");
-            delete_record($db_link, "config", "id=" . $val);
+    if (!empty($fid)) {
+        while (list ($key, $val) = @each($fid)) {
+            if (isset($val) and $val != 1) {
+                LOG_INFO($db_link, "Remove config option id: $val");
+                delete_record($db_link, "config", "id=" . $val);
+                }
+            }
         }
-    }
     header("Location: " . $_SERVER["REQUEST_URI"]);
 }
 
@@ -23,7 +25,7 @@ if (isset($_POST['save'])) {
             if (intval($_POST['id'][$j]) != $save_id) { continue; }
             $value = $_POST['f_config_value'][$j];
             if (isset($value) and $value!=='********') {
-                $new[value] = $value;
+                $new['value'] = $value;
                 update_record($db_link, "config", "id='{$save_id}'", $new);
             }
         }
@@ -34,10 +36,11 @@ if (isset($_POST['save'])) {
 if (isset($_POST["create"])) {
     $new_option = $_POST["f_new_option"];
     if (isset($new_option)) {
-        $new[option_id] = $new_option;
+        $new['option_id'] = $new_option;
+        $new['value'] = get_option($db_link,$new_option);
         LOG_INFO($db_link, "Add config option $new_option");
         insert_record($db_link, "config", $new);
-    }
+        }
     header("Location: " . $_SERVER["REQUEST_URI"]);
 }
 
@@ -61,8 +64,9 @@ print_control_submenu($page_url);
 <td width=350><b>Комментарий</b></td>
 <td width=100><input type="submit" name="remove" value="Удалить"></td>
 </tr>
+
 <?
-$t_config = mysqli_query($db_link, "select config.id,option_id,option_name,value,type,description from config,config_options where config.option_id=config_options.id order by option_name");
+$t_config = mysqli_query($db_link, "select config.id,option_id,option_name,value,type,description,min_value,max_value from config,config_options where config.option_id=config_options.id order by option_name");
 while ($row = mysqli_fetch_array($t_config)) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
@@ -77,7 +81,11 @@ while ($row = mysqli_fetch_array($t_config)) {
         set_option($db_link, $row['option_id'], $option_value);
     }
     if ($type == 'int') {
-        print "<input type=\"number\" name='f_config_value[]' value='$option_value'>";
+        $min = '';
+        $max = '';
+        if (!empty($row['min_value']) or $row['min_value']==0) { $min="min=".$row['min_value']; }
+        if (!empty($row['max_value'])) { $max="max=".$row['max_value']; }
+        print "<input type=\"number\" name='f_config_value[]' value='$option_value' $min $max>";
     }
     if ($type == 'text') {
         print "<input type=\"text\" name='f_config_value[]' value='$option_value' size=30>";

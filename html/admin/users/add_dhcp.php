@@ -1,26 +1,21 @@
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/qauth.php");
 
-if (isset($_GET["ip"]) and isset($_GET["mac"])) {
+if (!empty($_GET["ip"]) and !empty($_GET["mac"])) {
     $ip = $_GET["ip"];
     $mac = mac_dotted(trim($_GET["mac"]));
-    if (isset($_GET["host"])) {
-        $dhcp_hostname = trim($_GET["host"]);
-    }
+    $dhcp_hostname = NULL;
+    if (!empty($_GET["host"])) { $dhcp_hostname = trim($_GET["host"]); }
     $faction = $_GET["action"] * 1;
-    if ($faction === 1) {
-        $action = 'add';
-    }
-    if ($faction === 0) {
-        $action = 'del';
-    }
-    if (! isset($action)) {
-        $action = 'add';
-    }
+    $action = 'add';
+    if ($faction == 1) { $action = 'add'; }
+    if ($faction == 0) { $action = 'del'; }
+
     LOG_VERBOSE($db_link, "external dhcp request for $ip [$mac] $action");
     if (checkValidIp($ip) and is_our_network($db_link, $ip)) {
 	$log_dhcp = 1;
         $ip_aton = ip2long($ip);
+
 	//check hotspot
 	$hotspot_user = is_hotspot($db_link,$ip);
 	if ($hotspot_user) {
@@ -29,22 +24,40 @@ if (isset($_GET["ip"]) and isset($_GET["mac"])) {
 		if (!isset($log_dhcp_hotspot)) { $log_dhcp_hotspot = 0; }
 		$log_dhcp = !$log_dhcp_hotspot;
 		}
-	if ($faction ===0 and get_count_records($db_link, 'User_auth', "ip_int=" . $ip_aton . " and enabled=1")===0) {
-    	    LOG_VERBOSE($db_link, "dhcp action delete for unknown ip: $ip. Skip add record.");
-	    } else {
-            $aid = resurrection_auth($db_link, $ip, $mac, $action, $dhcp_hostname);
-		if ($log_dhcp) {
-    		    $dhcp_log[auth_id] = $aid;
-        	    $dhcp_log[ip] = $ip;
-		    $dhcp_log[ip_int] = $ip_aton;
-        	    $dhcp_log[mac] = $mac;
-		    $dhcp_log[action] = $action;
-    	        insert_record($db_link, "dhcp_log", $dhcp_log); 
-    		}
+
+	$auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE ip_int=" . $ip_aton . " AND deleted=0");
+
+	$aid = NULL;
+	if (!empty($auth)) {
+	    $aid = $auth['id'];
+	    LOG_VERBOSE($db_link,"Found auth for dhcp id: $aid with ip: $ip mac: $mac");
+	    }
+
+	if ($action ==='add' and empty($auth)) {
+	    LOG_VERBOSE($db_link,"Add user by dhcp request ip: $ip mac: $mac");
+	    $aid = resurrection_auth($db_link, $ip, $mac, $action, $dhcp_hostname);
+            }
+
+	if ($action ==='del' and !empty($auth)) {
+            $last_time = strtotime($auth['dhcp_time']);
+            LOG_VERBOSE($db_link,"Delete action found for ip $ip (id: $aid, userid: ".$auth['user_id']."). Last timestamp = ".strftime('%Y-%m-%d %H-%M-%S',$last_time)." Now = ".strftime('%Y-%m-%d %H-%M-%S',time()));
+	    if ((time() - $last_time>60) and ($auth['user_id'] == $default_user_id or $auth['user_id'] == $hotspot_user_id)) {
+                LOG_VERBOSE($db_link,"Remove dynamic user (id: $aid) by dhcp request for ip: $ip mac: $mac");
+	        delete_record($db_link,"User_auth","id=".$aid); 
+	        }
+	    }
+	
+	if ($log_dhcp) {
+    	    $dhcp_log['auth_id'] = $aid;
+            $dhcp_log['ip'] = $ip;
+	    $dhcp_log['ip_int'] = $ip_aton;
+            $dhcp_log['mac'] = $mac;
+	    $dhcp_log['action'] = $action;
+    	    insert_record($db_link, "dhcp_log", $dhcp_log); 
     	    }
-    } else {
+        } else {
         LOG_ERROR($db_link, "$ip - wrong network!");
-    }
+        }
 }
 unset($_GET);
 ?>

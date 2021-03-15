@@ -33,7 +33,7 @@ if ($address=~/inet\s+(.*)\s+brd/i) {
     }
 }
 
-my @subnets=get_custom_records($dbh,'SELECT * FROM subnets WHERE dhcp=1 and office=1 and vpn=0 and hotspot=0 ORDER BY ip_int_start');
+my @subnets=get_records_sql($dbh,'SELECT * FROM subnets WHERE dhcp=1 and office=1 and vpn=0 and hotspot=0 ORDER BY ip_int_start');
 foreach my $subnet (@subnets) {
 next if (!$subnet->{gateway});
 $dhcp_networks->add_string($subnet->{subnet});
@@ -61,7 +61,7 @@ if (! -d "$new_dir" ) { mkpath($new_dir); }
 #get userid list
 my $sSQL="SELECT id,ip,ip_int,mac,comments FROM User_auth where dhcp=1 and deleted=0 and user_id<>$hotspot_user_id and user_id<>$default_user_id ORDER by ip_int";
 
-my @users = get_custom_records($dbh,$sSQL);
+my @users = get_records_sql($dbh,$sSQL);
 
 foreach my $row (@users) {
 next if (!$row);

@@ -6,9 +6,9 @@ if (isset($_POST['save'])) {
     $len = is_array($_POST['id']) ? count($_POST['id']) : 0;
     for ($i = 0; $i < $len; $i ++) {
         $id = intval($_POST['id'][$i]);
-        $new[queue_name] = trim($_POST['f_queue_name'][$i]);
-        $new[Download] = $_POST['f_down'][$i] * 1;
-        $new[Upload] = $_POST['f_up'][$i] * 1;
+        $new['queue_name'] = trim($_POST['f_queue_name'][$i]);
+        $new['Download'] = $_POST['f_down'][$i] * 1;
+        $new['Upload'] = $_POST['f_up'][$i] * 1;
         update_record($db_link, "Queue_list", "id='{$id}'", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -17,7 +17,7 @@ if (isset($_POST['save'])) {
 if (isset($_POST["create"])) {
     $queue_name = $_POST["new_queue"];
     if (isset($queue_name)) {
-        $q[queue_name] = $queue_name;
+        $q['queue_name'] = $queue_name;
         insert_record($db_link, "Queue_list", $q);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);

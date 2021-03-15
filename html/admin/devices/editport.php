@@ -4,11 +4,11 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 if (isset($_POST["editport"])) {
-    $new[snmp_index] = $_POST["f_snmp"] * 1;
-    $new[uplink] = $_POST["f_uplink"] * 1;
-    $new[nagios] = $_POST["f_nagios"] * 1;
-    $new[skip] = $_POST["f_skip"] * 1;
-    $new[comment] = $_POST["f_comment"];
+    $new['snmp_index'] = $_POST["f_snmp"] * 1;
+    $new['uplink'] = $_POST["f_uplink"] * 1;
+    $new['nagios'] = $_POST["f_nagios"] * 1;
+    $new['skip'] = $_POST["f_skip"] * 1;
+    $new['comment'] = $_POST["f_comment"];
     update_record($db_link, "device_ports", "id='$id'", $new);
 
     $target_id = $_POST["f_target_port"];

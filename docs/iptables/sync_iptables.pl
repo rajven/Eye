@@ -26,23 +26,27 @@ use open ":encoding(utf8)";
 
 $|=1;
 
-my %fields=('device_name'=>'1', 'wan_int'=>'1', 'lan_int'=>'1', 'queue_enabled'=>'1', 'connected_user_only'=>'1');
-
-my $gate = get_record($dbh,'devices',\%fields,"deleted=0 and internet_gateway=1 and vendor_id=19 and device_name='".$HOSTNAME."'");
+my $gate = get_record_sql($dbh,"SELECT * FROM devices WHERE device_type=2 and user_acl=1 and deleted=0 and vendor_id=19 and device_name='".$HOSTNAME."'");
 
 if (!$gate) { exit 0; }
 
 my $router_name=$gate->{device_name};
-my $wan_dev = $gate->{wan_int};
-my $lan_dev = $gate->{lan_int};
+my $router_ip=$gate->{ip};
 my $shaper_enabled = $gate->{queue_enabled};
 my $connected_users_only = $gate->{connected_user_only};
+
+my @lan_int=();
+my @wan_int=();
+
+my @l3_int = get_records_sql($dbh,'SELECT * FROM device_l3_interfaces WHERE device_id='.$gate->{'id'});
+foreach my $l3 (@l3_int) {
+    if ($l3->{'interface_type'} eq '0') { push(@lan_int,$l3->{'name'}); }
+    if ($l3->{'interface_type'} eq '1') { push(@wan_int,$l3->{'name'}); }
+}
 
 my $connected_users = new Net::Patricia;
 
 if ($connected_users_only) {
-    #lan interfaces
-    my @lan_int=split(/;/,$lan_dev);
     foreach my $int (@lan_int) {
     $int=trim($int);
     next if (!$int);
@@ -74,7 +78,7 @@ ORDER BY ip_int";
 
 my %users;
 
-my @authlist_ref = get_custom_records($dbh,$user_auth_sql);
+my @authlist_ref = get_records_sql($dbh,$user_auth_sql);
 
 #print Dumper(\@authlist_ref);
 foreach my $row (@authlist_ref) {
@@ -85,7 +89,7 @@ $users{'group_'.$row->{filter_group_id}}->{ips}{$row->{ip}}=1;
 }
 
 #get filters
-my @filter_list = get_custom_records($dbh,"SELECT id,name,proto,dst,dstport,action FROM Filter_list where type=0");
+my @filter_list = get_records_sql($dbh,"SELECT id,name,proto,dst,dstport,action FROM Filter_list where type=0");
 my %filters;
 foreach my $row (@filter_list) {
 $filters{$row->{id}}->{id}=$row->{id};
@@ -96,7 +100,7 @@ $filters{$row->{id}}->{action}=$row->{action};
 }
 
 #get groups
-my @group_list = get_custom_records($dbh,"SELECT group_id,filter_id,Group_filters.order FROM Group_filters ORDER BY Group_filters.group_id,Group_filters.order" );
+my @group_list = get_records_sql($dbh,"SELECT group_id,filter_id,Group_filters.order FROM Group_filters ORDER BY Group_filters.group_id,Group_filters.order" );
 my %group_filters;
 my %lists;
 my $index=0;

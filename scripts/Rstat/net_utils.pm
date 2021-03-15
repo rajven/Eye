@@ -43,7 +43,6 @@ mac_cisco
 mac2dec
 mac_splitted
 ResolveNames
-update_ad_hostname
 );
 
 BEGIN
@@ -69,27 +68,6 @@ if ($query) {
 	}
     }
 return (@result);
-}
-
-#------------------------------------------------------------------------------------------------------------
-
-sub update_ad_hostname {
-my $fqdn = shift;
-my $ip = shift;
-my $zone = shift;
-my $server = shift;
-log_info("DNS-UPDATE: Zone $zone Server: $server A: $fqdn IP: $ip");
-my @add_dns=();
-push(@add_dns,"gsstsig");
-push(@add_dns,"server $server");
-push(@add_dns,"zone $zone");
-push(@add_dns,"update delete $fqdn A");
-push(@add_dns,"update add $fqdn 3600 A $ip");
-push(@add_dns,"send");
-my $nsupdate_file = "/tmp/".$fqdn.".nsupdate";
-write_to_file($nsupdate_file,\@add_dns);
-do_exec('kinit -k -t /usr/local/scripts/cfg/dns_updater.keytab dns_updater@'.uc($zone).' && nsupdate "'.$nsupdate_file.'"');
-if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
 }
 
 #------------------------------------------------------------------------------------------------------------

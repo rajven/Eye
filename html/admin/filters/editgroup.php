@@ -4,7 +4,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 if (isset($_POST["editgroup"])) {
-    $new[group_name] = substr($_POST["f_group_name"], 0, 30);
+    $new['group_name'] = substr($_POST["f_group_name"], 0, 30);
     update_record($db_link, "Group_list", "id='$id'", $new);
     header("location: index.php");
 }
@@ -13,9 +13,9 @@ if (isset($_POST["addfilter"])) {
     $filter_id = $_POST["newfilter"] * 1;
     list ($forder) = mysqli_fetch_array(mysqli_query($db_link, "SELECT MAX(GF.order) FROM Group_filters GF where group_id='$id'"));
     $forder ++;
-    $new[group_id] = $id;
-    $new[filter_id] = $filter_id;
-    $new[order] = $forder;
+    $new['group_id'] = $id;
+    $new['filter_id'] = $filter_id;
+    $new['order'] = $forder;
     insert_record($db_link, "Group_filters", $new);
     header("Location: " . $_SERVER["REQUEST_URI"]);
 }
@@ -36,7 +36,7 @@ if (isset($_POST["saveorder"])) {
         LOG_DEBUG($db_link, "Resort filter rules for group id: $id");
         while (list ($key, $val) = @each($ford)) {
             $gid = $fgid[$key];
-            $new[order] = $val;
+            $new['order'] = $val;
             update_record($db_link, "Group_filters", "id=" . $gid, $new);
         }
     }
@@ -70,13 +70,13 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 </tr>
 
 <?php
-$sSQL = "SELECT G.id, G.filter_id, F.Name, G.order FROM Group_filters G, Filter_list F WHERE F.id=G.filter_id and group_id=$id Order by G.order";
+$sSQL = "SELECT G.id, G.filter_id, F.name, G.order FROM Group_filters G, Filter_list F WHERE F.id=G.filter_id and group_id=$id Order by G.order";
 $flist = get_records_sql($db_link,$sSQL);
 foreach ($flist as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=fgid[] value=".$row['id']."></td>\n";
     print "<td class=\"data\" align=left><input type=text name=ford[] value=".$row['order']." size=4 ></td>\n";
-    print "<td class=\"data\" align=left><a href=editfilter.php?id=".$row['filter_id'].">" . $row['Name'] . "</a></td>\n";
+    print "<td class=\"data\" align=left><a href=editfilter.php?id=".$row['filter_id'].">" . $row['name'] . "</a></td>\n";
     print "<td class=\"data\"></td>\n";
     print "</tr>";
 }

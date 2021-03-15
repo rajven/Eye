@@ -68,6 +68,12 @@ if (isset($_POST["s_remove"])) {
     header("Location: " . $_SERVER["REQUEST_URI"]);
 }
 
+if (isset($_POST["clean_cache"])) {
+    LOG_INFO($db_link, "Clean dns cache");
+    run_sql($db_link,"DELETE FROM dns_cache");
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+}
+
 unset($_POST);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
@@ -102,6 +108,7 @@ print_control_submenu($page_url);
             print "<tr><td  align=right>Включить запись трафика у всех&nbsp<input type=submit name='save_traf_all' value='Выполнить'></td></tr>";
             print "<tr><td  align=right>Выключить запись трафика у всех&nbsp<input type=submit name='not_save_traf_all' value='Выполнить'></td></tr>";
         }
+        print "<tr><td  align=right>Сбросить кэш&nbsp<input type=submit name='clean_cache' value='Выполнить'></td></tr>";
 ?>
 <tr>
 <td align=right><a href="ipcam.php">Управление портами</a></td>

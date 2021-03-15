@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
@@ -26,21 +26,19 @@ $|=1;
 
 if (IsNotRun($SPID)) { Add_PID($SPID); }  else { die "Warning!!! $SPID already runnning!\n"; }
 
-my %fields=('device_name'=>'1', 'ip'=>'1', 'device_model'=>'1', 'wan_int'=>'1', 'lan_int'=>'1', 'dhcp'=>'1', 'internet_gateway'=>'1', 'queue_enabled'=>'1', 'connected_user_only'=>'1');
-
 my @gateways =();
 #select undeleted mikrotik routers only
 if ($ARGV[0]) {
-    my $router = get_record($dbh,'devices',\%fields,"(internet_gateway=1 or dhcp=1) and deleted=0 and vendor_id=9 and id='".$ARGV[0]."'");
+    my $router = get_record_sql($dbh,'SELECT * FROM devices WHERE device_type=2 and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9 and id='.$ARGV[0]);
     if ($router) { push(@gateways,$router); }
     } else {
-    @gateways = get_records($dbh,'devices',\%fields,"(internet_gateway=1 or dhcp=1) and deleted=0 and vendor_id=9");
+    @gateways = get_records_sql($dbh,'SELECT * FROM devices WHERE device_type=2 and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9');
     }
 
 my $dhcp_networks = new Net::Patricia;
 my %dhcp_conf;
 
-my @subnets=get_custom_records($dbh,'SELECT * FROM subnets WHERE dhcp=1 and office=1 and vpn=0 ORDER BY ip_int_start');
+my @subnets=get_records_sql($dbh,'SELECT * FROM subnets WHERE dhcp=1 and office=1 and vpn=0 ORDER BY ip_int_start');
 foreach my $subnet (@subnets) {
 next if (!$subnet->{gateway});
 my $subnet_name = $subnet->{subnet};
@@ -60,14 +58,18 @@ foreach my $gate (@gateways) {
 next if (!$gate);
 my $router_name=$gate->{device_name};
 my $router_ip=$gate->{ip};
-my $wan_dev = $gate->{wan_int};
-my $lan_dev = $gate->{lan_int};
 my $shaper_enabled = $gate->{queue_enabled};
 my $connected_users_only = $gate->{connected_user_only};
 my $connected_users = new Net::Patricia;
 
-#lan interfaces
-my @lan_int=split(/;/,$lan_dev);
+my @lan_int=();
+my @wan_int=();
+
+my @l3_int = get_records_sql($dbh,'SELECT * FROM device_l3_interfaces WHERE device_id='.$gate->{'id'});
+foreach my $l3 (@l3_int) {
+if ($l3->{'interface_type'} eq '0') { push(@lan_int,$l3->{'name'}); }
+if ($l3->{'interface_type'} eq '1') { push(@wan_int,$l3->{'name'}); }
+}
 
 my @cmd_list=();
 
@@ -119,7 +121,7 @@ if ($str=~/^\d/) {
 
 #select users for this interface
 
-my @auth_records=get_custom_records($dbh,"SELECT * from User_auth WHERE dhcp=1 and `ip_int`>=".$dhcp_conf{$found_subnet}->{first_ip_aton}." and `ip_int`<=".$dhcp_conf{$found_subnet}->{last_ip_aton}." and deleted=0 and user_id<>".$default_user_id." and user_id<>".$hotspot_user_id." ORDER BY ip_int");
+my @auth_records=get_records_sql($dbh,"SELECT * from User_auth WHERE dhcp=1 and `ip_int`>=".$dhcp_conf{$found_subnet}->{first_ip_aton}." and `ip_int`<=".$dhcp_conf{$found_subnet}->{last_ip_aton}." and deleted=0 and user_id<>".$default_user_id." and user_id<>".$hotspot_user_id." ORDER BY ip_int");
 
 my %leases;
 foreach my $lease (@auth_records) {
@@ -264,7 +266,7 @@ if ($leases{$ip}{acl}!~/$active_leases{$ip}{acl}/) {
 }#end dhcp config
 
 #access lists config
-if ($gate->{internet_gateway}) {
+if ($gate->{user_acl}) {
 
 db_log_verbose($dbh,"Sync user state at router $router_name [".$router_ip."] started.");
 
@@ -573,13 +575,15 @@ next if ($row!~/^(\d)/);
 $row=~s/^(\d*)\s+//;
 next if (!$row);
 if ($row=~/queue=pcq_(down|up)load_(\d){1,3}/i) {
-    if ($row=~/name=queue_(\d){1,3}_out/i) {
+    if ($row=~/name=queue_(\d){1,3}_(\S*)_out\s+/i) {
 	next if (!$1);
-	my $index = $1;
-        $get_queue_tree{$index}{up}=$row;
-        if ($row=~/parent=(\S*)\s+\S/i) { $get_queue_tree{$index}{'up-parent'}=$1; }
-        if ($row=~/packet-mark=(\S*)\s+\S/i) { $get_queue_tree{$index}{'up-mark'}=$1; }
-        if ($row=~/queue=(\S*)\s+\S/i) { $get_queue_tree{$index}{'up-queue'}=$1; }
+        next if (!$2);
+        my $index = $1;
+        my $int_name = $2;
+        $get_queue_tree{$index}{$int_name}{up}=$row;
+        if ($row=~/parent=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'up-parent'}=$1; }
+        if ($row=~/packet-mark=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'up-mark'}=$1; }
+        if ($row=~/queue=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'up-queue'}=$1; }
 	}
     if ($row=~/name=queue_(\d){1,3}_(\S*)_in\s+/i) {
 	next if (!$1);
@@ -606,13 +610,15 @@ $row = trim($row);
 next if ($row!~/^(\d){1,3}/);
 $row=~s/^\d{1,3}\s+//;
 next if (!$row);
-if ($row=~/new-packet-mark=upload_(\d){1,3}\s+/i) {
+if ($row=~/new-packet-mark=upload_(\d){1,3}_(\S*)\s+/i) {
     next if (!$1);
+    next if (!$2);
     my $index = $1;
-    $get_filter_mangle{$index}{up}=$row;
-    if ($row=~/src-address-list=(\S*)\s+\S/i) { $get_filter_mangle{$index}{'up-list'}=$1; }
-    if ($row=~/out-interface=(\S*)\s+\S/i) { $get_filter_mangle{$index}{'up-dev'}=$1; }
-    if ($row=~/new-packet-mark=(\S*)\s+\S/i) { $get_filter_mangle{$index}{'up-mark'}=$1; }
+    my $int_name = $2;
+    $get_filter_mangle{$index}{$int_name}{up}=$row;
+    if ($row=~/src-address-list=(\S*)\s+\S/i) { $get_filter_mangle{$index}{$int_name}{'up-list'}=$1; }
+    if ($row=~/out-interface=(\S*)\s+\S/i) { $get_filter_mangle{$index}{$int_name}{'up-dev'}=$1; }
+    if ($row=~/new-packet-mark=(\S*)\s+\S/i) { $get_filter_mangle{$index}{$int_name}{'up-mark'}=$1; }
     }
 if ($row=~/new-packet-mark=download_(\d){1,3}_(\S*)\s+/i) {
     next if (!$1);
@@ -665,33 +671,34 @@ if (!$queue_ok) {
     }
 
 #upload queue
-$queue_tree{$q_id}{up}="name=queue_".$q_id."_out parent=upload_root packet-mark=upload_".$q_id." limit-at=0 queue=pcq_upload_".$q_id." priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1";
+foreach my $int (@wan_int) {
+$queue_tree{$q_id}{$int}{up}="name=queue_".$q_id."_".$int."_out parent=upload_root_".$int." packet-mark=upload_".$q_id."_".$int." limit-at=0 queue=pcq_upload_".$q_id." priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1";
+$filter_mangle{$q_id}{$int}{up}="chain=forward action=mark-packet new-packet-mark=upload_".$q_id."_".$int." passthrough=yes src-address-list=queue_".$q_id." out-interface=".$int." log=no log-prefix=\"\"";
 
 $queue_ok=1;
-if (!$get_queue_tree{$q_id}{up}) { $queue_ok=0; }
-if ($queue_ok and ($get_queue_tree{$q_id}{'up-parent'} ne "upload_root")) { $queue_ok=0; print "$get_queue_tree{$q_id}{'up-parent'} ==== upload_root \n"; }
-if ($queue_ok and ($get_queue_tree{$q_id}{'up-mark'} ne "upload_".$q_id)) { $queue_ok=0;  print "$get_queue_tree{$q_id}{'up-mark'} ==== upload_".$q_id."\n"; }
-if ($queue_ok and ($get_queue_tree{$q_id}{'up-queue'} ne "pcq_upload_".$q_id)) { $queue_ok=0;  print "$get_queue_tree{$q_id}{'up-queue'} ==== pcq_upload_".$q_id."\n"; }
+if (!$get_queue_tree{$q_id}{$int}{up}) { $queue_ok=0; }
+if ($queue_ok and ($get_queue_tree{$q_id}{$int}{'up-parent'} ne "upload_root_".$int)) { $queue_ok=0;}
+if ($queue_ok and ($get_queue_tree{$q_id}{$int}{'up-mark'} ne "upload_".$q_id."_".$int)) { $queue_ok=0; }
+if ($queue_ok and ($get_queue_tree{$q_id}{$int}{'up-queue'} ne "pcq_upload_".$q_id)) { $queue_ok=0; }
 
 if (!$queue_ok) {
-    push(@cmd_list,':foreach i in [/queue tree find where name~"queue_'.$q_id.'_out" ] do={/queue tree remove $i};');
-    push(@cmd_list,'/queue tree add '.$queue_tree{$q_id}{up});
+    push(@cmd_list,':foreach i in [/queue tree find where name~"queue_'.$q_id."_".$int."_out".'" ] do={/queue tree remove $i};');
+    push(@cmd_list,'/queue tree add '.$queue_tree{$q_id}{$int}{up});
     }
 
-$filter_mangle{$q_id}{up}="chain=forward action=mark-packet new-packet-mark=upload_".$q_id." passthrough=yes src-address-list=queue_".$q_id." out-interface=".$wan_dev." log=no log-prefix=\"\"";
 $queue_ok=1;
-if (!$get_filter_mangle{$q_id}{up}) { $queue_ok=0; }
-if ($queue_ok and ($get_filter_mangle{$q_id}{'up-mark'} ne "upload_".$q_id)) { $queue_ok=0; }
-if ($queue_ok and ($get_filter_mangle{$q_id}{'up-list'} ne "queue_".$q_id)) { $queue_ok=0; }
-if ($queue_ok and ($get_filter_mangle{$q_id}{'up-dev'} ne $wan_dev)) { $queue_ok=0; }
+if (!$get_filter_mangle{$q_id}{$int}{up}) { $queue_ok=0; }
+if ($queue_ok and ($get_filter_mangle{$q_id}{$int}{'up-mark'} ne "upload_".$q_id."_".$int)) { $queue_ok=0; }
+if ($queue_ok and ($get_filter_mangle{$q_id}{$int}{'up-list'} ne "queue_".$q_id)) { $queue_ok=0; }
+if ($queue_ok and ($get_filter_mangle{$q_id}{$int}{'up-dev'} ne $int)) { $queue_ok=0; }
 
 if (!$queue_ok) {
-    push(@cmd_list,':foreach i in [/ip firewall mangle find where action=mark-packet and new-packet-mark~"upload_'.$q_id.'" ] do={/ip firewall mangle remove $i};');
-    push(@cmd_list,'/ip firewall mangle add '.$filter_mangle{$q_id}{up});
+    push(@cmd_list,':foreach i in [/ip firewall mangle find where action=mark-packet and new-packet-mark~"upload_'.$q_id."_".$int.'" ] do={/ip firewall mangle remove $i};');
+    push(@cmd_list,'/ip firewall mangle add '.$filter_mangle{$q_id}{$int}{up});
     }
+}
 
 #download
-my @lan_int=split(/;/,$lan_dev);
 foreach my $int (@lan_int) {
 next if (!$int);
 $queue_tree{$q_id}{$int}{down}="name=queue_".$q_id."_".$int."_in parent=download_root_".$int." packet-mark=download_".$q_id."_".$int." limit-at=0 queue=pcq_download_".$q_id." priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1";

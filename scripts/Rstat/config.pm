@@ -43,7 +43,6 @@ $W_INFO
 $W_ERROR
 $W_DEBUG
 $DBHOST
-$TRAF_HOST
 $DBNAME
 $DBUSER
 $DBPASS
@@ -100,7 +99,6 @@ $router_port
 $org_name
 $domain_name
 $connections_history
-$auth_clear
 $dbh
 $urgent_sync
 $ignore_hotspot_dhcp_log
@@ -144,7 +142,6 @@ $config_ref{log_dir}=$Config->{_}->{log_dir} || '/var/log/scripts';
 $config_ref{log_common}=$config_ref{log_dir}."/$FN[-1].log";
 $config_ref{dhcpd_conf}=$Config->{_}->{dhcpd_conf} || "/etc/dnsmasq.d";
 $config_ref{DBHOST}	= $Config->{_}->{DBSERVER} || '127.0.0.1';
-$config_ref{TRAF_HOST}	= $Config->{_}->{TRAF_HOST} || '127.0.0.1';
 $config_ref{DBNAME}	= $Config->{_}->{DBNAME} || "stat";
 $config_ref{DBUSER}	= $Config->{_}->{DBUSER} || "rstat";
 $config_ref{DBPASS}	= $Config->{_}->{DBPASS} || "rstat";
@@ -199,7 +196,6 @@ our $W_ERROR = 1;
 our $W_DEBUG = 2;
 
 our $DBHOST 		= $Config->{_}->{DBSERVER} || '127.0.0.1';
-our $TRAF_HOST 		= $Config->{_}->{TRAF_HOST} || '127.0.0.1';
 our $DBNAME 		= $Config->{_}->{DBNAME} || "stat";
 our $DBUSER 		= $Config->{_}->{DBUSER} || "rstat";
 our $DBPASS 		= $Config->{_}->{DBPASS} || "rstat";
@@ -260,7 +256,6 @@ our $router_port;
 our $org_name;
 our $domain_name;
 our $connections_history;
-our $auth_clear;
 our $dbh;
 our $urgent_sync = 0;
 

@@ -85,7 +85,7 @@ if (!$pid) {
         if ( !defined $hdb ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
         $urgent_sync=get_option($hdb,50);
         if ($urgent_sync) {
-            my @changed = get_custom_records($hdb,"SELECT * from User_auth WHERE deleted=0 and changed=1 and (user_id<>".$default_user_id." and user_id<>".$hotspot_user_id.")");
+            my @changed = get_records_sql($hdb,"SELECT * from User_auth WHERE deleted=0 and changed=1 and (user_id<>".$default_user_id." and user_id<>".$hotspot_user_id.")");
 	    if (@changed and scalar @changed>0) {
                 log_info("Found changed records: ".Dumper(\@changed));
     	        my %result=do_exec_ref($HOME_DIR."/sync_mikrotik.pl");
@@ -101,8 +101,7 @@ if (!$pid) {
     	    }
     	sleep(60);
         };
-        if ($@) { log_error("Exception found: $@"); }
-        sleep(300);
+        if ($@) { log_error("Exception found: $@"); sleep(300); }
         }
     } else {
         print "Already Running with pid $pid\n";

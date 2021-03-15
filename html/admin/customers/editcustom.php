@@ -6,11 +6,11 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 $msg_error = "";
 
 if (isset($_POST["edituser"])) {
-    $new[Login] = substr(trim($_POST["login"]), 0, 20);
+    $new['Login'] = substr(trim($_POST["login"]), 0, 20);
     if (isset($_POST["pass"]) and (strlen(trim($_POST["pass"])) > 0)) {
-        $new[Pwd] = md5($_POST["pass"]);
+        $new['Pwd'] = md5($_POST["pass"]);
     }
-    $new[readonly] = $_POST["f_ro"] * 1;
+    $new['readonly'] = $_POST["f_ro"] * 1;
     update_record($db_link, "Customers", "id='$id'", $new);
     unset($_POST["pass"]);
     header("Location: " . $_SERVER["REQUEST_URI"]);

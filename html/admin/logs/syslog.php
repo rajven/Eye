@@ -45,7 +45,7 @@ if (isset($fmessage)) {
     if (isset($log_filter)) { $log_filter = $log_filter." and message LIKE '%".$fmessage."%'"; } else { $log_filter = " message LIKE '%".$fmessage."%'"; }
     }
 
-$countSQL="SELECT Count(*) FROM `remote_syslog` WHERE date(`date`)>='$date1' AND date(`date`)<'$date2' $log_filter";
+$countSQL="SELECT Count(*) FROM `remote_syslog` WHERE `date`>='$date1' AND `date`<'$date2' $log_filter";
 $res = mysqli_query($db_link, $countSQL);
 $count_records = mysqli_fetch_array($res);
 $total=ceil($count_records[0]/$displayed);
@@ -66,16 +66,22 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <?php
 
 #speedup pageing
-$sSQL = "SELECT `date`, `ip`, `message` FROM `remote_syslog` as R JOIN (SELECT id FROM `remote_syslog` WHERE date(`date`)>='$date1' AND date(`date`)<'$date2' $log_filter
- ORDER BY `id` DESC LIMIT $start,$displayed) as I ON R.id = I.id";
+$sSQL = "SELECT 
+`date`, `ip`, `message` 
+FROM `remote_syslog` as R 
+JOIN 
+(SELECT id FROM `remote_syslog` WHERE `date`>='$date1' AND `date`<'$date2' $log_filter ORDER BY `id` DESC LIMIT $start,$displayed) as I 
+ON R.id = I.id";
 $syslog = get_records_sql($db_link, $sSQL);
-foreach ($syslog as $row) {
-    print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td class=\"data\">" . $row['date'] . "</td>\n";
-    print "<td class=\"data\">" . $row['ip'] . "</td>\n";
-    print "<td class=\"data\">" . $row['message'] . "</td>\n";
-    print "</tr>\n";
-}
+if (!empty($syslog)) {
+    foreach ($syslog as $row) {
+        print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+        print "<td class=\"data\">" . $row['date'] . "</td>\n";
+        print "<td class=\"data\">" . $row['ip'] . "</td>\n";
+        print "<td class=\"data\">" . $row['message'] . "</td>\n";
+        print "</tr>\n";
+        }
+    }
 print "</table>\n";
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");

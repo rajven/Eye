@@ -9,10 +9,9 @@ if (isset($_POST["create"])) {
         $ftype = $_POST["filter_type"] * 1;
 	}
     if (isset($fname)) {
-        $new[Name] = $fname;
-        $new[type] = $ftype;
-        insert_record($db_link, "Filter_list", $new);
-        $new_id=get_record_field($db_link,'Filter_list','id',"Name='".$fname."' and type=".$ftype." ORDER BY id DESC");
+        $new['name'] = $fname;
+        $new['type'] = $ftype;
+        $new_id=insert_record($db_link, "Filter_list", $new);
         header("Location: editfilter.php?id=$new_id");
 	}
     }
@@ -45,12 +44,12 @@ print_filters_submenu($page_url);
 		<td><b>Действие</b></td>
 	</tr>
 <?
-$filters = get_records($db_link,'Filter_list','TRUE ORDER BY Name');
+$filters = get_records($db_link,'Filter_list','TRUE ORDER BY name');
 foreach ($filters as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
     print "<td class=\"data\" ><input type=hidden name=\"id\" value=".$row['id'].">".$row['id']."</td>\n";
-    print "<td class=\"data\" align=left><a href=editfilter.php?id=".$row['id'].">" . $row['Name'] . "</a></td>\n";
+    print "<td class=\"data\" align=left><a href=editfilter.php?id=".$row['id'].">" . $row['name'] . "</a></td>\n";
     if ($row['type'] == 0) {
         print "<td class=\"data\">IP фильтр</td>\n";
         print "<td class=\"data\">".$row['proto']."</td>\n";

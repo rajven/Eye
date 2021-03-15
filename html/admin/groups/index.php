@@ -6,7 +6,7 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["f_id"];
     while (list ($key, $val) = @each($fid)) {
         if (isset($val) and $val > 0) {
-            $new[ou_id] = 0;
+            $new['ou_id'] = 0;
             update_record($db_link, "User_list", "ou_id=" . $val, $new);
             delete_record($db_link, "OU", "id=" . $val);
         }
@@ -28,7 +28,7 @@ if (isset($_POST['save'])) {
             }
             $value = $_POST['f_group_name'][$j];
             if (isset($value)) {
-                $new[ou_name] = $value;
+                $new['ou_name'] = $value;
                 update_record($db_link, "OU", "id='{$save_id}'", $new);
             }
         }
@@ -39,7 +39,7 @@ if (isset($_POST['save'])) {
 if (isset($_POST["create"])) {
     $ou_name = $_POST["new_ou"];
     if (isset($ou_name)) {
-        $new[ou_name] = $ou_name;
+        $new['ou_name'] = $ou_name;
         insert_record($db_link, "OU", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);

@@ -23,10 +23,10 @@ print_editdevice_submenu($page_url,$id);
 
 ?>
 <div id="cont">
-<form name="def" action="switchport-conn.php?id=<? echo $id; ?>" method="post">
+<form name="def" action="switchport-conn.php?id=<?php echo $id; ?>" method="post">
 <br>
 
-<?php print "<b>Список соединений на портах $switch[device_name] - $switch[ip]</b><br>\n"; ?>
+<?php print "<b>Список соединений на портах ".$switch['device_name']." - ".$switch['ip']."</b><br>\n"; ?>
 
 <table class="data">
 <tr>
@@ -42,10 +42,10 @@ $connections = get_records($db_link,"connections","device_id=$id ORDER BY port_i
 foreach ($connections as $key => $value) {
 print "<tr align=center>\n";
 print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$value['id']}'></td>\n";
-$port = get_record($db_link,"device_ports","id=$value[port_id]");
-print "<td class=\"data\">". $port[port] . "</a></td>\n";
+$port = get_record($db_link,"device_ports","id=".$value['port_id']);
+print "<td class=\"data\">". $port['port'] . "</a></td>\n";
 print "<td class=\"data\">";
-print_auth_detail($db_link, $value[auth_id]);
+print_auth_detail($db_link, $value['auth_id']);
 print "</td>\n";
 print "<td class=\"data\"></td>\n";
 print "</tr>";

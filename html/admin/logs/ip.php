@@ -28,7 +28,7 @@ if (isset($f_ip) and $f_ip != '') { $ip_where = " and ip_int=inet_aton('" . $f_i
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM User_auth WHERE date(timestamp)>='$date1' AND date(timestamp)<'$date2' $ip_where";
+$countSQL="SELECT Count(*) FROM User_auth WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $ip_where";
 $res = mysqli_query($db_link, $countSQL);
 $count_records = mysqli_fetch_array($res);
 $total=ceil($count_records[0]/$displayed);
@@ -51,7 +51,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
 <?php
 
-$sSQL = "SELECT timestamp,mac,ip,dns_name,dhcp_hostname,id,last_found FROM User_auth WHERE date(timestamp)>='$date1' AND date(timestamp)<'$date2' $ip_where ORDER BY timestamp DESC LIMIT $start,$displayed";
+$sSQL = "SELECT timestamp,mac,ip,dns_name,dhcp_hostname,id,last_found FROM User_auth WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $ip_where ORDER BY timestamp DESC LIMIT $start,$displayed";
 $iplog = get_records_sql($db_link, $sSQL);
 foreach ($iplog as $row) {
     print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";

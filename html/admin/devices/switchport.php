@@ -10,7 +10,7 @@ if (isset($_POST["regensnmp"])) {
     LOG_DEBUG($db_link, "Recalc snmp_index for device id: $id with start $snmp_index");
     while (list ($port_id, $port) = mysqli_fetch_array($flist)) {
         $snmp = $port + $snmp_index - 1;
-        $new[snmp_index] = $snmp;
+        $new['snmp_index'] = $snmp;
         update_record($db_link, "device_ports", "id='$port_id'", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -29,7 +29,7 @@ print_editdevice_submenu($page_url,$id);
 
 <?php
 print "<br>\n";
-print "<b>Список портов $switch[device_name] - $switch[ip]</b><br>\n";
+print "<b>Список портов ".$switch['device_name']." - ".$switch['ip']."</b><br>\n";
 
 print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
 print "<tr>\n";
@@ -68,7 +68,7 @@ if ($d_uplink) { $cl="info"; }
         print "<td class=\"$cl\">" . $d_vlan . "</td>\n";
 
         global $torrus_url;
-        $cacti_url = get_cacti_graph($switch[ip], $d_snmp);
+        $cacti_url = get_cacti_graph($switch['ip'], $d_snmp);
         if (! isset($torrus_url) and (! isset($cacti_url))) {
                 print "<td class=\"$cl\"></td>\n";
         	} else {
@@ -80,11 +80,11 @@ if ($d_uplink) { $cl="info"; }
 	            $normed_ifname = trim(str_replace(".", "_", $normed_ifname));
 	            $normed_ifname = trim(str_replace(" ", "_", $normed_ifname));
         	    $pattern = '/cisco/i';
-        	    preg_match($pattern, $switch[device_model], $matches);
+        	    preg_match($pattern, $switch['device_model'], $matches);
         	    if (isset($matches[0])) {
                 	$normed_ifname = trim(str_replace("Gi", "GigabitEthernet", $normed_ifname));
         		}
-                    $t_url = str_replace("HOST_IP", $switch[ip], $torrus_url);
+                    $t_url = str_replace("HOST_IP", $switch['ip'], $torrus_url);
 	            $t_url = str_replace("IF_NAME", $normed_ifname, $t_url);
 	            $snmp_url = "<a href=\"$t_url\">Статистика</a>";
         	    }

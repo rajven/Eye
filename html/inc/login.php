@@ -7,7 +7,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/common.php");
 
 function is_session_exists() {
     $sessionName = session_name();
-    if (isset($_COOKIE[$sessionName]) || isset($_REQUEST[$sessionName])) {
+    if (!empty($_COOKIE[$sessionName]) || !empty($_REQUEST[$sessionName])) {
         session_start();
         return !empty($_SESSION);
     }
@@ -34,11 +34,11 @@ function login($db)
 
 //default timeout 8h in seconds
     $inactive = 3600*8;
-    if (!isset($_SESSION['timeout'])) { $_SESSION['timeout']=time(); }
+    if (empty($_SESSION['timeout'])) { $_SESSION['timeout']=time(); }
     $session_life = time() - $_SESSION['timeout'];
     if($session_life > $inactive) { session_destroy(); header("Location: /logout.php"); }
 
-    if (! isset($_SERVER['PHP_AUTH_USER']) and ! isset($_SERVER['PHP_AUTH_PW'])) {
+    if (empty($_SERVER['PHP_AUTH_USER']) and empty($_SERVER['PHP_AUTH_PW'])) {
         auth();
     }
 
@@ -59,21 +59,21 @@ function Silentlogin($db)
 
 function IsAuthenticated($db)
 {
-    if (isset($_SESSION['user_id'])) { return 1; }
+    if (!empty($_SESSION['user_id'])) { return 1; }
 
-    if (! isset($auth_ip)) {
+    if (empty($auth_ip)) {
         $auth_ip = get_user_ip();
         $_SESSION['IP'] = $auth_ip;
     }
 
-    if (isset($_SERVER['PHP_AUTH_USER'])) {
+    if (!empty($_SERVER['PHP_AUTH_USER'])) {
         $login = trim($_SERVER['PHP_AUTH_USER']);
     }
-    if (isset($_SERVER['PHP_AUTH_PW'])) {
+    if (!empty($_SERVER['PHP_AUTH_PW'])) {
         $pass = trim($_SERVER['PHP_AUTH_PW']);
     }
 
-    if (! isset($login) or ! isset($pass)) {
+    if (empty($login) or empty($pass)) {
         LOG_DEBUG($db, "login [$login] or password [$pass] undefined from $auth_ip: fail!");
         return false;
     }
@@ -89,12 +89,12 @@ function IsAuthenticated($db)
     $query = "SELECT id FROM `Customers` WHERE Login='{$login}' AND `Pwd`='{$pass}' LIMIT 1";
     $auth_login = mysqli_query($db, $query);
     list ($auth_id) = mysqli_fetch_array($auth_login);
-    if (isset($auth_id) and $auth_id > 0) {
-        if (! isset($_SESSION['session_id'])) {
+    if (!empty($auth_id) and $auth_id > 0) {
+        if (empty($_SESSION['session_id'])) {
             session_regenerate_id();
             $_SESSION['session_id'] = session_id();
         }
-        if (! isset($_SESSION['user_id'])) {
+        if (empty($_SESSION['user_id'])) {
             LOG_DEBUG($db, "login user [$login] from " . $_SESSION['IP'] . ": success.");
         }
         $_SESSION['user_id'] = $auth_id;
@@ -106,29 +106,29 @@ function IsAuthenticated($db)
 
 function IsSilentAuthenticated($db)
 {
-    if (isset($_SESSION['user_id'])) {
+    if (!empty($_SESSION['user_id'])) {
         return 1;
     }
 
-    if (! isset($auth_ip)) {
+    if (empty($auth_ip)) {
         $auth_ip = get_user_ip();
         $_SESSION['IP'] = $auth_ip;
     }
 
-    if (isset($_GET[login])) {
-        $login = trim($_GET[login]);
+    if (!empty($_GET['login'])) {
+        $login = trim($_GET['login']);
     }
-    if (isset($_POST[login])) {
-        $login = trim($_POST[login]);
+    if (!empty($_POST['login'])) {
+        $login = trim($_POST['login']);
     }
-    if (isset($_GET[password])) {
-        $pass = trim($_GET[password]);
+    if (!empty($_GET['password'])) {
+        $pass = trim($_GET['password']);
     }
-    if (isset($_POST[password])) {
-        $pass = trim($_POST[password]);
+    if (!empty($_POST['password'])) {
+        $pass = trim($_POST['password']);
     }
 
-    if (! isset($login) or ! isset($pass)) {
+    if (empty($login) or empty($pass)) {
         LOG_DEBUG($db, "login or password undefined from $auth_ip: fail!");
         return false;
     }
@@ -146,12 +146,12 @@ function IsSilentAuthenticated($db)
 
     $auth_login = mysqli_query($db, $query);
     list ($auth_id) = mysqli_fetch_array($auth_login);
-    if (isset($auth_id) and $auth_id > 0) {
-        if (! isset($_SESSION['session_id'])) {
+    if (!empty($auth_id) and $auth_id > 0) {
+        if (empty($_SESSION['session_id'])) {
             session_regenerate_id();
             $_SESSION['session_id'] = session_id();
         }
-        if (! isset($_SESSION['user_id'])) {
+        if (empty($_SESSION['user_id'])) {
             LOG_DEBUG($db, "login user [$login] from " . $_SESSION['IP'] . ": success.");
         }
         $_SESSION['user_id'] = $auth_id;

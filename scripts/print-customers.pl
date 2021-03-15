@@ -14,7 +14,7 @@ use Rstat::main;
 use Rstat::mysql;
 use Rstat::net_utils;
 
-my @customers = get_custom_records($dbh,"SELECT * FROM Customers WHERE readonly=0");
+my @customers = get_records_sql($dbh,"SELECT * FROM Customers WHERE readonly=0");
 
 foreach my $row (@customers) {
 next if (!$row);

@@ -1,9 +1,9 @@
 <?php
+$default_displayed=100;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 $default_id=1;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
-$default_displayed=100;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 print_device_submenu($page_url);
 ?>

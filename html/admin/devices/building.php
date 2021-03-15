@@ -28,8 +28,8 @@ if (isset($_POST['save'])) {
             $value = $_POST['f_building_name'][$j];
             $value_comment = $_POST['f_building_comment'][$j];
             if (isset($value)) {
-                $new[name] = $value;
-                $new[comment] = $value_comment;
+                $new['name'] = $value;
+                $new['comment'] = $value_comment;
                 LOG_INFO($db_link,"Изменяем расположение id='{$save_id}': name=".$value." comment=".$value_comment);
                 update_record($db_link, "building", "id='{$save_id}'", $new);
             }
@@ -41,7 +41,7 @@ if (isset($_POST['save'])) {
 if (isset($_POST["create"])) {
     $building_name = $_POST["new_building"];
     if (isset($building_name)) {
-        $new[name] = $building_name;
+        $new['name'] = $building_name;
         LOG_INFO($db_link,'Добавляем расположение $building_name');
         insert_record($db_link, "building", $new);
     }

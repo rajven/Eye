@@ -29,8 +29,8 @@ if (isset($_POST['s_save'])) {
         $len_all = is_array($_POST['n_id']) ? count($_POST['n_id']) : 0;
         for ($j = 0; $j < $len_all; $j ++) {
             if (intval($_POST['n_id'][$j]) != $save_id) { continue; }
-            $new[alias] = trim($_POST['s_alias'][$j]);
-            $new[description] = trim($_POST['s_comment'][$j]);
+            $new['alias'] = trim($_POST['s_alias'][$j]);
+            $new['description'] = trim($_POST['s_comment'][$j]);
             update_record($db_link, "User_auth_alias", "id='{$save_id}'", $new);
         }
     }
@@ -40,8 +40,8 @@ if (isset($_POST['s_save'])) {
 if (isset($_POST["s_create"])) {
     $new_alias = $_POST["s_create_alias"];
     if (isset($new_alias)) {
-        $new[alias] = trim($new_alias);
-        $new[auth_id] = $id;
+        $new['alias'] = trim($new_alias);
+        $new['auth_id'] = $id;
         LOG_INFO($db_link, "Create new alias $new_alias");
         insert_record($db_link, "User_auth_alias", $new);
     }
@@ -56,7 +56,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 <div id="cont">
 <br>
 <form name="def" action="edit_alias.php" method="post">
-<b>Альясы для <?php print_url($auth_info[ip],"/admin/users/editauth.php?id=$id"); ?></b> <br>
+<b>Альясы для <?php print_url($auth_info['ip'],"/admin/users/editauth.php?id=$id"); ?></b> <br>
 <table class="data">
 <tr align="center">
 	<td></td>

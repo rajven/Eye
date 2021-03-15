@@ -1,10 +1,13 @@
 <?php
+$default_displayed = 500;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
-$default_displayed = 500;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $default_ou=3;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
+$default_sort='login';
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
+
 $msg_error = "";
 
 if (isset($_POST["create"])) {
@@ -15,11 +18,10 @@ if (isset($_POST["create"])) {
             $msg_error = "$cell_login $login $msg_exists!";
             unset($_POST);
         } else {
-            $new[Login] = $login;
-            $new[ou_id] = $rou;
-            insert_record($db_link, "User_list", $new);
+            $new['login'] = $login;
+            $new['ou_id'] = $rou;
+            $lid=insert_record($db_link, "User_list", $new);
             LOG_WARNING($db_link,"Создан новый пользователь: Login => $login");
-            list ($id) = mysqli_fetch_array(mysqli_query($db_link, "Select id from User_list where LCase(Login)=LCase('$login') order by id DESC Limit 1"));
             header("location: edituser.php?id=$id");
         }
     }
@@ -38,16 +40,16 @@ if (isset($_POST["ApplyForAll"])) {
         if ($val) {
             unset($auth);
             unset($user);
-            $user[day_quota] = $a_day;
-            $user[month_quota] = $a_month;
-            $user[enabled] = $a_enabled;
+            $user['day_quota'] = $a_day;
+            $user['month_quota'] = $a_month;
+            $user['enabled'] = $a_enabled;
             $login = get_record($db_link,"User_list","id='$val'");
-            $msg.="Всем адресам доступа пользователя id: ".$val." login: ".$login[Login]." установлено: \r\n";
+            $msg.="Всем адресам доступа пользователя id: ".$val." login: ".$login['login']." установлено: \r\n";
             $msg.= get_diff_rec($db_link,"User_list","id='$val'", $user, 1);
             update_record($db_link, "User_list", "id='" . $val . "'", $user);
-            $auth[queue_id] = $a_queue;
-            $auth[filter_group_id] = $a_group;
-            $auth[enabled] = $a_enabled;
+            $auth['queue_id'] = $a_queue;
+            $auth['filter_group_id'] = $a_group;
+            $auth['enabled'] = $a_enabled;
             update_record($db_link, "User_auth", "user_id='" . $val . "'", $auth);
         }
     }
@@ -66,10 +68,10 @@ if (isset($_POST["remove"])) {
             if ($val == 1) {
                 continue;
             }
-            $auth[user_id] = $default_user_id;
+            $auth['user_id'] = $default_user_id;
             $changes = get_diff_rec($db_link,"User_list","id='$val'", '', 1);
             $login = get_record($db_link,"User_list","id='$val'");
-            LOG_WARNING($db_link,"Удалён пользователь id: $val login: ".$login[Login]."\r\n$changes\r\nАдреса доступа перемещены к пользователю по умолчанию.");
+            LOG_WARNING($db_link,"Удалён пользователь id: $val login: ".$login['login']."\r\n$changes\r\nАдреса доступа перемещены к пользователю по умолчанию.");
             update_record($db_link, "User_auth", "user_id=$val", $auth);
             delete_record($db_link, "User_list", "id=$val");
         }
@@ -82,7 +84,8 @@ unset($_POST);
 
 ?>
 <div id="cont">
-<?
+
+<?php
 if ($msg_error) {
     print "<div id='msg'><b>$msg_error</b></div><br>\n";
 }
@@ -116,6 +119,9 @@ if ($msg_error) {
 
 <?php
 
+$sort_table = 'U';
+$sort_url = "<a href=/admin/users/index.php?";
+
 if ($rou == 0) { $filter = "U.ou_id=O.id and U.deleted=0"; } else { $filter = "U.OU_id=O.id and U.deleted=0 and U.ou_id=$rou"; }
 
 $countSQL = "SELECT Count(*) FROM User_list U, OU O WHERE $filter";
@@ -128,16 +134,16 @@ if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
-$sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month_quota, U.blocked, U.default_subnet as rule FROM User_list U, OU O WHERE $filter ORDER BY fio LIMIT $start,$displayed";
+$sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month_quota, U.blocked, U.default_subnet as rule FROM User_list U, OU O WHERE $filter ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
 
 ?>
 
 <table class="data">
 <tr align="center">
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
-<td><b>id</b></td>
-<td><b><?php print $cell_login; ?></b></td>
-<td><b><?php print $cell_fio; ?></b></td>
+<td><b><?php print $sort_url . "sort=id&order=$new_order>id</a>"; ?></b></td>
+<td><b><?php print $sort_url . "sort=login&order=$new_order>" . $cell_login . "</a>"; ?></b></td>
+<td><b><?php print $sort_url . "sort=fio&order=$new_order>" . $cell_fio . "</a>"; ?></b></td>
 <td><b><?php print $cell_rule; ?></b></td>
 <td><b><?php print $cell_ou; ?></b></td>
 <td><b><?php print $cell_enabled; ?></b></td>

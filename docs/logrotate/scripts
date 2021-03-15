@@ -1,0 +1,15 @@
+/var/log/scripts/*.log {
+        rotate 7
+        missingok
+        notifempty
+        compress
+        copytruncate
+}
+
+/var/log/remote/messages.log {
+    rotate 7
+    missingok
+    notifempty
+    compress
+    copytruncate
+}

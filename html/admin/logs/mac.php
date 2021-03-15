@@ -19,15 +19,15 @@ print_log_submenu($page_url);
 <div id="cont">
 <br>
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
-	Начало:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-  Конец:&nbsp<input type="date"	name="date_stop" value="<?php echo $date2; ?>" />
-  Mac:&nbsp<input	type="text" name="mac" value="<?php echo $f_mac; ?>" />
-  Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-  <input type="submit" value="OK">
+Начало:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
+Конец:&nbsp<input type="date"	name="date_stop" value="<?php echo $date2; ?>" />
+Mac:&nbsp<input type="text" name="mac" value="<?php echo $f_mac; ?>" />
+Отображать:<?php print_row_at_pages('rows',$displayed); ?>
+<input type="submit" value="OK">
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM mac_history WHERE date(timestamp)>='$date1' AND date(timestamp)<'$date2' $mac_where";
+$countSQL="SELECT Count(*) FROM mac_history WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $mac_where";
 $res = mysqli_query($db_link, $countSQL);
 $count_records = mysqli_fetch_array($res);
 
@@ -47,7 +47,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 	</tr>
 <?php
 
-$sSQL = "SELECT timestamp,mac,ip,device_id,port_id,auth_id FROM mac_history WHERE date(timestamp)>='$date1' AND date(timestamp)<'$date2' $mac_where ORDER BY timestamp DESC LIMIT $start,$displayed";
+$sSQL = "SELECT * FROM mac_history WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $mac_where ORDER BY `timestamp` DESC LIMIT $start,$displayed";
 $maclog = get_records_sql($db_link, $sSQL);
 
 foreach ($maclog as $row) {

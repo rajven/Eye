@@ -38,8 +38,7 @@ my $net=GetDhcpRange($ip);
 print "Auth id: $id Found network: $ip\n";
 print "NETWORK: $net->{network}\nBROADCAST: $net->{broadcast}\nMASK: $net->{mask}\n";
 my $ip_aton=StrToIp($net->{network});
-my $ip_aton_end=StrToIp($net->{broadcast});
-push(@batch_sql,"Update User_auth set ip_int=".$ip_aton.", ip_int_end=".$ip_aton_end." where id=".$id);
+push(@batch_sql,"Update User_auth set ip_int=".$ip_aton." where id=".$id);
 }
 
 

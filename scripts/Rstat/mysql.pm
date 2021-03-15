@@ -13,7 +13,10 @@ use vars qw(@EXPORT @ISA);
 use Rstat::config;
 use Rstat::main;
 use Net::Patricia;
+use Rstat::net_utils;
 use Data::Dumper;
+use DateTime;
+use POSIX;
 use DBI;
 
 our @ISA = qw(Exporter);
@@ -27,29 +30,37 @@ db_log_info
 db_log_verbose
 delete_record
 do_sql
+Get_Variable
+Set_Variable
+Del_Variable
 get_count_records
-get_custom_record
-get_custom_records
+get_record_sql
+get_records_sql
 get_device_by_ip
 get_diff_rec
 get_id_record
 get_new_user_id
+get_newuser_by_regexp
 GetNowTime
+GetUnixTimeByStr
+GetTimeStrByUnixTime
 get_option
-get_record
-get_records
 get_subnets_ref
 init_db
 init_option
-init_traf_db
 insert_record
 IpToStr
 refresh_add_rules
 resurrection_auth
+new_auth
 StrToIp
+update_dns_record
+update_ad_hostname
 update_record
 write_db_log
 set_changed
+recalc_quotes
+clean_variables
 
 $add_rules
 $L_WARNING
@@ -75,7 +86,6 @@ our $L_DEBUG = 255;
 our %acl_fields = (
 'ip' => '1',
 'ip_int' => '1',
-'ip_int_end'=>'1',
 'enabled'=>'1',
 'dhcp'=>'1',
 'filter_group_id'=>'1',
@@ -217,16 +227,6 @@ return $db;
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub init_traf_db {
-# Create new database handle. If we can't connect, die()
-my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$TRAF_HOST","$DBUSER","$DBPASS");
-if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
-$db->do('SET NAMES utf8');
-return $db;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
 sub get_count_records {
 my $dbh = shift;
 my $table = shift;
@@ -234,9 +234,9 @@ my $filter = shift;
 my $result = 0;
 return $result if (!$dbh);
 return $result if (!$table);
-my $sSQL='Select count(*) as rec_cnt from '.$table;
+my $sSQL='SELECT COUNT(*) as rec_cnt FROM '.$table;
 if ($filter) { $sSQL=$sSQL." where ".$filter; }
-my $record = get_custom_record($dbh,$sSQL);
+my $record = get_record_sql($dbh,$sSQL);
 if ($record->{rec_cnt}) { $result = $record->{rec_cnt}; }
 return $result;
 }
@@ -250,84 +250,14 @@ my $filter = shift;
 my $result = 0;
 return $result if (!$dbh);
 return $result if (!$table);
-my %fields=('id'=>'1');
-my $record = get_record($dbh,$table,\%fields,$filter);
+my $record = get_record_sql($dbh,"SELECT id FROM $table WHERE $filter");
 if ($record->{id}) { $result = $record->{id}; }
 return $result;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub get_record {
-my $dbh = shift;
-my $table = shift;
-my $field_list = shift;
-my $filter = shift;
-my $result;
-return $result if (!$dbh);
-return $result if (!$table);
-if ($filter) { $filter = 'where '.$filter; }
-my $fields='';
-foreach my $field (keys %$field_list) {
-next if (!$field);
-$fields=$fields.",`".$field."`";
-}
-$fields=~s/^,//;
-$fields=~s/,$//;
-if (!$fields) { $fields='*'; }
-my $sSQL="SELECT $fields FROM $table $filter LIMIT 1";
-my $list = $dbh->prepare( $sSQL );
-if ( !defined $list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-$list->execute;
-my $list_ref = $list->fetchrow_hashref();
-$list->finish();
-if (!$list_ref) { return $result; }
-return $list_ref;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_records {
-my $dbh = shift;
-my $table = shift;
-my $field_list = shift;
-my $filter = shift;
-my @result;
-return @result if (!$dbh);
-return @result if (!$table);
-if ($filter) { $filter = 'where '.$filter; }
-my $fields='';
-my %field_order;
-my $order_index=0;
-foreach my $field (keys %$field_list) {
-    next if (!$field);
-    $fields=$fields.",`".$field."`";
-    $field_order{$order_index}=$field;
-    $order_index++;
-    }
-$fields=~s/^,//;
-$fields=~s/,$//;
-if (!$fields) { $fields='*'; }
-my $sSQL="SELECT $fields FROM $table $filter";
-my $list = $dbh->prepare( $sSQL );
-if ( !defined $list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-$list->execute;
-my @list_ref = @{$list->fetchall_arrayref()};
-$list->finish();
-if (!@list_ref or !scalar @list_ref) { return @result; }
-foreach my $row (@list_ref) {
-    my %record;
-    foreach my $index (keys %field_order) {
-        $record{$field_order{$index}}=@{$row}[$index];
-    }
-    push(@result,\%record);
-}
-return @result;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_custom_records {
+sub get_records_sql {
 my $dbh = shift;
 my $table = shift;
 my @result;
@@ -345,13 +275,13 @@ return @result;
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub get_custom_record {
+sub get_record_sql {
 my $dbh = shift;
-my $table = shift;
+my $tsql = shift;
 my @result;
 return @result if (!$dbh);
-return @result if (!$table);
-my $list = $dbh->prepare( $table . ' LIMIT 1' );
+return @result if (!$tsql);
+my $list = $dbh->prepare( $tsql . ' LIMIT 1' );
 if ( !defined $list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
 $list->execute;
 my $row_ref = $list ->fetchrow_hashref;
@@ -369,7 +299,7 @@ my $filter = shift;
 return if (!$dbh);
 return if (!$table);
 return if (!$filter);
-my $old_value = get_custom_record($dbh,"SELECT * FROM $table WHERE $filter");
+my $old_value = get_record_sql($dbh,"SELECT * FROM $table WHERE $filter");
 my $result='';
 foreach my $field (keys %$value) {
     if (!$value->{$field}) { $value->{$field}=''; }
@@ -390,13 +320,20 @@ my $filter = shift;
 return if (!$dbh);
 return if (!$table);
 return if (!$filter);
-my $old_record = get_custom_record($dbh,"SELECT * FROM $table WHERE $filter");
+my $old_record = get_record_sql($dbh,"SELECT * FROM $table WHERE $filter");
 my $diff='';
 my $change_str='';
 my $found_changed=0;
 my $auth_id = 0;
-my $network_changed = 0;
-if ($table=~/User_auth/i) { $auth_id = $old_record->{'id'}; }
+
+if ($table eq "User_auth") {
+    $auth_id = $old_record->{'id'};
+    foreach my $field (keys %$record) {
+        next if (!exists $acl_fields{$field});
+        $record->{changed}="1";
+        }
+    }
+
 foreach my $field (keys %$record) {
     if (!defined $record->{$field}) { $record->{$field}=''; }
     if (!defined $old_record->{$field}) { $old_record->{$field}=''; }
@@ -405,14 +342,13 @@ foreach my $field (keys %$record) {
     $new_value=~s/\'//g;
     $new_value=~s/\"//g;
     if ($new_value!~/^$old_value$/) {
-	if ($table eq 'User_auth' and exists $acl_fields{$field}) { $network_changed = 1; }
 	$diff = $diff." $field => $record->{$field} (old: $old_record->{$field}),";
 	$change_str = $change_str." `$field`=".$dbh->quote($record->{$field}).",";
 	$found_changed++;
 	}
-    }
+}
+
 if ($found_changed) {
-    if ($network_changed) { $diff = $diff." `changed`='1',"; }
     $change_str=~s/\,$//;
     $diff=~s/\,$//;
     if ($table eq 'User_auth') { $change_str .= ", `changed_time`='".GetNowTime()."'"; }
@@ -420,7 +356,6 @@ if ($found_changed) {
     db_log_debug($dbh,'Change table '.$table.' for '.$filter.' set: '.$diff,$auth_id);
     do_sql($dbh,$sSQL);
     } else {
-    db_log_debug($dbh,'Request update:'.Dumper($record));
     db_log_debug($dbh,'Nothing change. Skip update.');
     }
 }
@@ -437,6 +372,14 @@ my $change_str='';
 my $fields='';
 my $values='';
 my $new_str='';
+
+if ($table eq 'User_auth') {
+    foreach my $field (keys %$record) {
+        next if (!exists $acl_fields{$field});
+        $record->{changed}="1";
+        }
+    }
+
 foreach my $field (keys %$record) {
     if (!defined $record->{$field}) { $record->{$field}=''; }
     my $new_value = $record->{$field};
@@ -465,7 +408,7 @@ my $filter = shift;
 return if (!$dbh);
 return if (!$table);
 return if (!$filter);
-my $old_record = get_custom_record($dbh,"SELECT * FROM $table WHERE $filter");
+my $old_record = get_record_sql($dbh,"SELECT * FROM $table WHERE $filter");
 my $diff='';
 foreach my $field (keys %$old_record) {
     if (!$old_record->{$field}) { $old_record->{$field}=''; }
@@ -502,7 +445,7 @@ my $dbh = shift;
 if (defined $add_rules) { undef $add_rules; }
 $add_rules = new Net::Patricia;
 #custom rules
-my @user_rules=get_custom_records($dbh,'select id,default_subnet from User_list where deleted=0 and LENGTH(default_subnet)>0');
+my @user_rules=get_records_sql($dbh,'select id,default_subnet from User_list where deleted=0 and LENGTH(default_subnet)>0');
 foreach my $subnet (@user_rules) {
     next if (!$subnet);
     next if (!$subnet->{default_subnet});
@@ -520,12 +463,32 @@ foreach my $subnet (@hotspot_network_list) {
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub get_newuser_by_regexp {
+my $dbh = shift;
+my $mac = shift;
+my $hostname = shift;
+#custom rules
+if (defined $mac and $mac) {
+    my @user_rules=get_records_sql($dbh,'SELECT id,mac_rule FROM User_list WHERE deleted=0 AND LENGTH(mac_rule)>0');
+    foreach my $user (@user_rules) { if ($mac=~/$user->{mac_rule}/i) { return $user->{id}; } }
+    }
+if (defined $hostname and $hostname) {
+    my @user_rules=get_records_sql($dbh,'SELECT id,hostname_rule FROM User_list WHERE deleted=0 AND LENGTH(hostname_rule)>0');
+    foreach my $user (@user_rules) { if ($hostname=~/$user->{hostname_rule}/i) { return $user->{id}; } }
+    }
+return $default_user_id;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub get_new_user_id {
 my $dbh = shift;
-my $ip = shift;
+my $ip  = shift;
+my $mac = shift;
+my $hostname = shift;
 if (!defined $add_rules) { refresh_add_rules($dbh); }
 my $user_id=$add_rules->match_string($ip);
-if (!$user_id) { return $default_user_id; }
+if (!$user_id) { $user_id=get_newuser_by_regexp($dbh,$mac,$hostname); }
 return $user_id;
 }
 
@@ -542,17 +505,157 @@ update_record($db,'User_auth',$update_record,"id=$id");
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub update_dns_record {
+
+my $hdb = shift;
+my $dhcp_record = shift;
+my $auth_record = shift;
+
+my $ad_zone = get_option($hdb,33);
+my $ad_dns = get_option($hdb,3);
+
+$update_hostname_from_dhcp = get_option($hdb,46) || 0;
+my $subnets_dhcp = get_subnets_ref($hdb);
+my $enable_ad_dns_update = ($ad_zone and $ad_dns and $update_hostname_from_dhcp);
+
+log_debug("Subnet: $dhcp_record->{network}");
+
+log_debug("DNS update flags - zone: $ad_zone dns: $ad_dns config: $update_hostname_from_dhcp subnet: $subnets_dhcp->{$dhcp_record->{network}}->{dhcp_update_hostname}");
+
+my $maybe_update_dns=(($dhcp_record->{type}=~/add/i or $dhcp_record->{type}=~/old/i) and $dhcp_record->{hostname_utf8} and $dhcp_record->{hostname_utf8} !~/UNDEFINED/i and $enable_ad_dns_update and $subnets_dhcp->{$dhcp_record->{network}}->{dhcp_update_hostname});
+
+if (!$maybe_update_dns) {
+    db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id}. DNS update don't needed.");
+    return 0;
+    }
+
+log_debug("DNS update enabled.");
+#update dns block
+my $fqdn_static;
+if ($auth_record->{dns_name}) {
+    $fqdn_static=lc($auth_record->{dns_name});
+    if ($fqdn_static!~/$ad_zone$/i) {
+            $fqdn_static=~s/\.$//;
+            $fqdn_static=lc($fqdn_static.'.'.$ad_zone);
+            }
+    }
+
+my $fqdn=lc(trim($dhcp_record->{hostname_utf8}));
+if ($fqdn!~/$ad_zone$/i) {
+    $fqdn=~s/\.$//;
+    $fqdn=lc($fqdn.'.'.$ad_zone);
+    }
+
+db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id} dns_name: $fqdn_static dhcp_hostname: $fqdn");
+
+#check exists static dns name
+my $static_exists = 0;
+my $dynamic_exists = 0;
+my $static_ok = 0;
+my $dynamic_ok = 0;
+my $static_ref;
+my $dynamic_ref;
+
+if ($fqdn_static ne '') {
+    my @dns_record=ResolveNames($fqdn_static);
+    $static_exists = (scalar @dns_record>0);
+    if ($static_exists) {
+            $static_ref = join(' ',@dns_record);
+            foreach my $dns_a (@dns_record) {
+                if ($dns_a=~/^$dhcp_record->{ip}$/) { $static_ok = $dns_a; }
+                }
+            }
+    } else { $static_ok = 1; }
+
+if ($fqdn ne '') {
+    my @dns_record=ResolveNames($fqdn);
+    $dynamic_exists = (scalar @dns_record>0);
+    if ($dynamic_exists) {
+            $dynamic_ref = join(' ',@dns_record);
+            foreach my $dns_a (@dns_record) {
+                if ($dns_a=~/^$dhcp_record->{ip}$/) { $dynamic_ok = $dns_a; }
+                }
+            }
+    }
+
+if ($fqdn_static ne '') {
+    if (!$static_ok) {
+        db_log_info($hdb,"Static record mismatch! Expected $fqdn_static => $dhcp_record->{ip}, recivied: $static_ref");
+        if (!$static_exists) {
+                db_log_info($hdb,"Static dns hostname defined but not found. Create it ($fqdn_static => $dhcp_record->{ip})!");
+                update_ad_hostname($fqdn_static,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
+                }
+        } else { db_log_debug($hdb,"Static record for $fqdn_static [$static_ok] correct."); }
+    }
+
+if ($fqdn ne '' and $dynamic_ok ne '') { db_log_debug($hdb,"Dynamic record for $fqdn [$dynamic_ok] correct. No changes required."); }
+if ($fqdn ne '' and !$dynamic_ok) {
+    #log only to file!!!
+    log_error($hdb,"Dynamic record mismatch! Expected: $fqdn => $dhcp_record->{ip}, recivied: $dynamic_ref. Checking the status.");
+    #check exists hostname
+    my $another_hostname_exists = 0;
+    my $hostname_filter = ' LOWER(dns_name)="'.lc($dhcp_record->{hostname_utf8}).'"';
+    if ($fqdn_static ne '' and $fqdn !~/$fqdn_static/) { $hostname_filter = $hostname_filter . ' or LOWER(dns_name)="'.lc($auth_record->{dns_name}).'"'; }
+    #check exists another records with some static hostname
+    my $name_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE id<>'.$auth_record->{id}.' and deleted=0 and ('.$hostname_filter.') ORDER BY last_found DESC');
+    if ($name_record->{id}) { $another_hostname_exists = 1; }
+    if (!$another_hostname_exists) {
+            if ($fqdn_static and $fqdn_static ne '') {
+                    if ($fqdn_static!~/$fqdn/) {
+                        db_log_info($hdb,"Hostname from dhcp request $fqdn differs from static dns hostanme $fqdn_static. Ignore dynamic binding!");
+#                        update_ad_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
+                        }
+                    } else {
+        	    db_log_info($hdb,"Static dns hostname not defined. Create dns record by dhcp request. $fqdn => $dhcp_record->{ip}");
+        	    update_ad_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
+        	    }
+	    } else {
+            db_log_error($hdb,"Found another record with some hostname id: $name_record->{id} ip: $name_record->{ip} hostname: $name_record->{dns_hostname}. Skip update.");
+            }
+    }
+#end update dns block
+}
+
+#------------------------------------------------------------------------------------------------------------
+
+sub update_ad_hostname {
+my $fqdn = shift;
+my $ip = shift;
+my $zone = shift;
+my $server = shift;
+my $dbh = shift;
+if (!$dbh) { 
+    log_info("DNS-UPDATE: Zone $zone Server: $server A: $fqdn IP: $ip"); 
+    } else {
+    db_log_info($dbh,"DNS-UPDATE: Zone $zone Server: $server A: $fqdn IP: $ip");
+    }
+my @add_dns=();
+push(@add_dns,"gsstsig");
+push(@add_dns,"server $server");
+push(@add_dns,"zone $zone");
+push(@add_dns,"update delete $fqdn A");
+push(@add_dns,"update add $fqdn 3600 A $ip");
+push(@add_dns,"send");
+my $nsupdate_file = "/tmp/".$fqdn.".nsupdate";
+write_to_file($nsupdate_file,\@add_dns);
+do_exec('kinit -k -t /usr/local/scripts/cfg/dns_updater.keytab dns_updater@'.uc($zone).' && nsupdate "'.$nsupdate_file.'"');
+if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub resurrection_auth {
 my $db = shift;
 my $ip = shift;
 my $mac = shift;
 my $action = shift;
+my $hostname = shift;
 
 my $ip_aton=StrToIp($ip);
-my %fields=( 'user_id'=>'1', 'id'=>'2' );
+
 my $timestamp=GetNowTime();
 
-my $record=get_record($db,'User_auth',\%fields,"ip_int=$ip_aton and mac='".$mac."' and deleted=0");
+my $record=get_record_sql($db,'SELECT * FROM User_auth WHERE `deleted`=0 AND `ip_int`='.$ip_aton.' AND `mac`="'.$mac.'"');
 
 my $new_record;
 $new_record->{last_found}=$timestamp;
@@ -565,20 +668,18 @@ if ($record->{user_id}) {
 	} else {
 	update_record($db,'User_auth',$new_record,"id=$record->{id}");
 	}
-    return;
+    return $record->{id};
     }
 
 #default user
-my $new_user_id=get_new_user_id($db,$ip);
+my $new_user_id=get_new_user_id($db,$ip,$mac,$hostname);
 
 #search changed mac
-%fields=( 'id'=>'1', 'mac'=>'2' );
-$record=get_record($db,'User_auth',\%fields,"ip_int=$ip_aton and deleted=0");
+$record=get_record_sql($db,'SELECT * FROM User_auth WHERE `ip_int`='.$ip_aton." and deleted=0");
 if ($record->{id}) {
     if (!$record->{mac}) {
         db_log_verbose($db,"use empty auth record...");
         $new_record->{ip_int}=$ip_aton;
-        $new_record->{ip_int_end}=$ip_aton;
         $new_record->{ip}=$ip;
         $new_record->{mac}=$mac;
         $new_record->{user_id}=$new_user_id;
@@ -589,7 +690,7 @@ if ($record->{id}) {
             } else {
 	    update_record($db,'User_auth',$new_record,"id=$record->{id}");
 	    }
-        return;
+        return $record->{id};
         }
     if ($record->{mac}) {
         db_log_warning($db,"For ip: $ip mac change detected! Old mac: [".$record->{mac}."] New mac: [".$mac."]. Disable old auth_id: $record->{id}");
@@ -601,7 +702,6 @@ if ($record->{id}) {
 #seek old auth with same ip and mac
 my $auth_exists=get_count_records($db,'User_auth',"ip_int=".$ip_aton." and mac='".$mac."'");
 $new_record->{ip_int}=$ip_aton;
-$new_record->{ip_int_end}=$ip_aton;
 $new_record->{ip}=$ip;
 $new_record->{mac}=$mac;
 $new_record->{user_id}=$new_user_id;
@@ -612,18 +712,17 @@ $new_record->{dhcp_time}=$timestamp;
 if ($auth_exists) {
     #found ->Resurrection old record
     my $resurrection_id = get_id_record($db,'User_auth',"ip_int=".$ip_aton." and mac='".$mac."'");
-    db_log_info($db,"Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac");
+    db_log_warning($db,"Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac");
     update_record($db,'User_auth',$new_record,"id=$resurrection_id");
     } else {
     #not found ->create new record
-    db_log_info($db,"New ip created! ip: $ip mac: $mac");
+    db_log_warning($db,"New ip created! ip: $ip mac: $mac");
     insert_record($db,'User_auth',$new_record);
     }
 #filter and status
 my $cur_auth_id=get_id_record($db,'User_auth',"ip='$ip' and mac='$mac' and deleted=0 ORDER BY last_found DESC");
 if ($cur_auth_id) {
-    %fields=( 'enabled'=>'1', 'filter_group_id'=>'2', 'queue_id'=>'3' );
-    $record=get_record($db,'User_list',\%fields,"id=".$new_user_id);
+    $record=get_record_sql($db,"SELECT * FROM User_list WHERE id=".$new_user_id);
     if ($record) {
 	$new_record->{filter_group_id}=$record->{filter_group_id};
 	$new_record->{queue_id}=$record->{queue_id};
@@ -636,23 +735,50 @@ return $cur_auth_id;
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub new_auth {
+my $db = shift;
+my $ip = shift;
+my $ip_aton=StrToIp($ip);
+my $record=get_record_sql($db,'SELECT id FROM User_auth WHERE `deleted`=0 AND `ip_int`='.$ip_aton);
+if ($record->{id}) { return $record->{id}; }
+#default user
+my $new_user_id=get_new_user_id($db,$ip);
+my $user_record=get_record_sql($db,"SELECT * FROM User_list WHERE id=".$new_user_id);
+my $timestamp=GetNowTime();
+my $new_record;
+$new_record->{ip_int}=$ip_aton;
+$new_record->{ip}=$ip;
+$new_record->{user_id}=$new_user_id;
+$new_record->{save_traf}="$save_detail";
+$new_record->{deleted}="0";
+$new_record->{dhcp_action}='netflow';
+$new_record->{filter_group_id}=$user_record->{filter_group_id};
+$new_record->{queue_id}=$user_record->{queue_id};
+$new_record->{enabled}="$user_record->{enabled}";
+my $cur_auth_id=insert_record($db,'User_auth',$new_record);
+db_log_warning($db,"New ip created by netflow! ip: $ip") if (!$cur_auth_id);
+return $cur_auth_id;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub get_option {
 my $dbh=shift;
 my $option_id=shift;
 return if (!$option_id);
 return if (!$dbh);
-my $default_option = get_custom_record($dbh,'SELECT * FROM config_options WHERE id='.$option_id);
-my $config_options = get_custom_record($dbh,'SELECT * FROM config WHERE option_id='.$option_id);
+my $default_option = get_record_sql($dbh,'SELECT * FROM config_options WHERE id='.$option_id);
+my $config_options = get_record_sql($dbh,'SELECT * FROM config WHERE option_id='.$option_id);
 my $result;
 if (!$config_options) {
-    if ($default_option->{type}=~/int/i or $default_option->{type}=~/bool/i) {
-	$result = $default_option->{default_value}*1;
+    if ($default_option->{'type'}=~/int/i or $default_option->{'type'}=~/bool/i) {
+	$result = $default_option->{'default_value'}*1;
 	} else {
-	$result = $default_option->{default_value};
+	$result = $default_option->{'default_value'};
 	}
     return $result;
     }
-$result = $config_options->{value};
+$result = $config_options->{'value'};
 return $result;
 }
 
@@ -685,7 +811,6 @@ $config_ref{router_port}=get_option($dbh,30);
 $config_ref{org_name}=get_option($dbh,32);
 $config_ref{domain_name}=get_option($dbh,33);
 $config_ref{connections_history}=get_option($dbh,35);
-$config_ref{auth_clear}=get_option($dbh,36);
 $config_ref{debug}=get_option($dbh,34);
 $config_ref{log_level} = get_option($dbh,53);
 if ($config_ref{debug}) { $config_ref{log_level} = 255; }
@@ -697,6 +822,10 @@ $config_ref{hotspot_user_id}=get_option($dbh,43);
 $config_ref{history_log_day}=get_option($dbh,47);
 $config_ref{history_syslog_day} = get_option($dbh,48);
 $config_ref{history_trafstat_day} = get_option($dbh,49);
+
+$config_ref{enable_quotes} = get_option($dbh,54);
+$config_ref{netflow_step} = get_option($dbh,55);
+$config_ref{traffic_ipstat_history} = get_option($dbh,56);
 
 #$save_detail = 1; id=23
 $save_detail=get_option($dbh,23);
@@ -740,8 +869,6 @@ $org_name=get_option($dbh,32);
 $domain_name=get_option($dbh,33);
 #35
 $connections_history=get_option($dbh,35);
-#36
-$auth_clear=get_option($dbh,36);
 #debug
 $debug=get_option($dbh,34);
 
@@ -767,7 +894,7 @@ $history_syslog_day = get_option($dbh,48);
 
 $history_trafstat_day = get_option($dbh,49);
 
-@subnets=get_custom_records($dbh,'SELECT * FROM subnets ORDER BY ip_int_start');
+@subnets=get_records_sql($dbh,'SELECT * FROM subnets ORDER BY ip_int_start');
 
 if (defined $office_networks) { undef $office_networks; }
 if (defined $free_networks) { undef $free_networks; }
@@ -821,7 +948,7 @@ $all_networks->add_string($net->{subnet});
 
 sub get_subnets_ref {
 my $dbh = shift;
-my @list=get_custom_records($dbh,'SELECT * FROM subnets ORDER BY ip_int_start');
+my @list=get_records_sql($dbh,'SELECT * FROM subnets ORDER BY ip_int_start');
 my $list_ref;
 foreach my $net (@list) {
 next if (!$net->{subnet});
@@ -835,11 +962,11 @@ return $list_ref;
 sub get_device_by_ip {
 my $dbh = shift;
 my $ip = shift;
-my $netdev=get_custom_record($dbh,'SELECT * FROM devices WHERE ip="'.$ip.'"');
+my $netdev=get_record_sql($dbh,'SELECT * FROM devices WHERE ip="'.$ip.'"');
 if ($netdev and $netdev->{id}>0) { return $netdev; }
-my $auth_rec=get_custom_record($dbh,'SELECT user_id FROM User_auth WHERE ip="'.$ip.'" and deleted=0');
+my $auth_rec=get_record_sql($dbh,'SELECT user_id FROM User_auth WHERE ip="'.$ip.'" and deleted=0');
 if ($auth_rec and $auth_rec->{user_id}>0) {
-    $netdev=get_custom_record($dbh,'SELECT * FROM devices WHERE user_id='.$auth_rec->{user_id});
+    $netdev=get_record_sql($dbh,'SELECT * FROM devices WHERE user_id='.$auth_rec->{user_id});
     return $netdev;
     }
 return;
@@ -847,8 +974,192 @@ return;
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub GetUnixTimeByStr {
+my $time_str = shift;
+$time_str =~s/\//-/g;
+$time_str = trim($time_str);
+my ($sec,$min,$hour,$day,$mon,$year) = (localtime())[0,1,2,3,4,5];
+$year+=1900;
+$mon++;
+if ($time_str =~/^([0-9]{2,4})\-([0-9]{1,2})-([0-9]{1,2})\s+/) {
+    $year = $1; $mon = $2; $day = $3;
+    }
+if ($time_str =~/([0-9]{1,2})\:([0-9]{1,2})\:([0-9]{1,2})$/) {
+    $hour = $1; $min = $2; $sec = $3;
+    }
+my $result = mktime($sec,$min,$hour,$day,$mon-1,$year-1900);
+return $result;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub GetTimeStrByUnixTime {
+my $time = shift || time();
+my ($sec, $min, $hour, $mday, $mon, $year) = (localtime($time))[0,1,2,3,4,5];
+my $result = strftime("%Y-%m-%d %H:%M:%S",$sec, $min, $hour, $mday, $mon, $year);
+return $result;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub Set_Variable {
+my $dbh = shift;
+my $name = shift || $MY_NAME;
+my $value = shift || $$;
+my $timeshift = shift || 60;
+
+Del_Variable($dbh,$name);
+my $clean_variables = time() + $timeshift;
+my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_variables);
+$month++;
+$year += 1900;
+my $clean_str=sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
+my $clean_variables_date=$dbh->quote($clean_str);
+do_sql($dbh,"INSERT INTO variables(name,value,clear_time) VALUES('".$name."','".$value."',".$clean_variables_date.");");
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub Get_Variable {
+my $dbh = shift;
+my $name = shift || $MY_NAME;
+my $variable=get_record_sql($dbh,'SELECT `value` FROM `variables` WHERE name="'.$name.'"');
+if (!$variable and $variable->{'value'}) { return $variable->{'value'}; }
+return;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub Del_Variable {
+my $dbh = shift;
+my $name = shift || $MY_NAME;
+do_sql($dbh,"DELETE FROM `variables` WHERE name='".$name."';");
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub recalc_quotes {
+
+my $dbh = shift;
+my $calc_id = shift || $$;
+
+return if (!get_option($dbh,54));
+
+clean_variables($dbh);
+
+return if (Get_Variable($dbh,'RECALC'));
+
+my $timeshift = get_option($dbh,55);
+if ($timeshift >5 ) { $timeshift=$timeshift-1; }
+
+Set_Variable($dbh,'RECALC',$calc_id,time()+$timeshift*60);
+
+my $now = DateTime->now(time_zone=>'local');
+my $day_start = $dbh->quote($now->ymd("-")." 00:00:00");
+my $day_dur = DateTime::Duration->new( days => 1 );
+my $tomorrow = $now+$day_dur;
+my $day_stop = $dbh->quote($tomorrow->ymd("-")." 00:00:00");
+
+$now->set(day=>1);
+my $month_start=$dbh->quote($now->ymd("-")." 00:00:00");
+my $month_dur = DateTime::Duration->new( months => 1 );
+my $next_month = $now + $month_dur;
+$next_month->set(day=>1);
+my $month_stop = $dbh->quote($next_month->ymd("-")." 00:00:00");
+
+#get user limits
+my $user_auth_list_sql="SELECT A.id as auth_id, U.id, U.day_quota, U.month_quota, A.day_quota as auth_day, A.month_quota as auth_month FROM User_auth as A,User_list as U WHERE A.deleted=0 ORDER by user_id";
+my @authlist_ref = get_records_sql($dbh,$user_auth_list_sql);
+my %user_stats;
+my %auth_info;
+foreach my $row (@authlist_ref) {
+    $auth_info{$row->{auth_id}}{user_id}=$row->{id};
+    $auth_info{$row->{auth_id}}{day_limit}=$row->{auth_day};
+    $auth_info{$row->{auth_id}}{month_limit}=$row->{auth_month};
+    $auth_info{$row->{auth_id}}{day}=0;
+    $auth_info{$row->{auth_id}}{month}=0;
+    $user_stats{$row->{id}}{day_limit}=$row->{day_quota};
+    $user_stats{$row->{id}}{month_limit}=$row->{month_quota};
+    $user_stats{$row->{id}}{day}=0;
+    $user_stats{$row->{id}}{month}=0;
+}
+
+#recalc quotes - global
+#day
+my $day_sql="SELECT User_stats.auth_id, SUM( byte_in + byte_out ) AS traf_all FROM User_stats
+WHERE User_stats.`timestamp`>= $day_start AND User_stats.`timestamp`< $day_stop GROUP BY User_stats.auth_id";
+my @day_stats = get_records_sql($dbh,$day_sql);
+foreach my $row (@day_stats) {
+    my $user_id=$auth_info{$row->{auth_id}}{user_id};
+    $auth_info{$row->{auth_id}}{day}=$row->{traf_all};
+    $user_stats{$user_id}{day}+=$row->{traf_all};
+}
+
+#month
+my $month_sql="SELECT User_stats.auth_id, SUM( byte_in + byte_out ) AS traf_all FROM User_stats
+WHERE User_stats.`timestamp`>= $month_start AND User_stats.`timestamp`< $month_stop GROUP BY User_stats.auth_id";
+my @month_stats = get_records_sql($dbh,$month_sql);
+foreach my $row (@month_stats) {
+    my $user_id=$auth_info{$row->{auth_id}}{user_id};
+    $auth_info{$row->{auth_id}}{month}=$row->{traf_all};
+    $user_stats{$user_id}{month}+=$row->{traf_all};
+}
+
+foreach my $auth_id (keys %auth_info) {
+next if (!$auth_info{$auth_id}{day_limit});
+next if (!$auth_info{$auth_id}{month_limit});
+my $day_limit=$auth_info{$auth_id}{day_limit}*$KB*$KB;
+my $month_limit=$auth_info{$auth_id}{month_limit}*$KB*$KB;
+my $blocked_d=($auth_info{$auth_id}{day}>$day_limit);
+my $blocked_m=($auth_info{$auth_id}{month}>$month_limit);
+if ($blocked_d or $blocked_m) {
+    my $history_msg;
+    if ($blocked_d) { $history_msg=printf "Day quota limit found for auth_id: $auth_id - Current: %d Max: %d",$auth_info{$auth_id}{day},$day_limit; }
+    if ($blocked_m) { $history_msg=printf "Month quota limit found for auth_id: $auth_id - Current: %d Max: %d",$auth_info{$auth_id}{month},$month_limit; }
+    do_sql($dbh,"UPDATE User_auth set blocked=1, changed=1 where id=$auth_id");
+    db_log_verbose($dbh,$history_msg);
+    }
+}
+
+foreach my $user_id (keys %user_stats) {
+next if (!$user_stats{$user_id}{day_limit});
+next if (!$user_stats{$user_id}{month_limit});
+my $day_limit=$user_stats{$user_id}{day_limit}*$KB*$KB;
+my $month_limit=$user_stats{$user_id}{month_limit}*$KB*$KB;
+my $blocked_d=($user_stats{$user_id}{day}>$day_limit);
+my $blocked_m=($user_stats{$user_id}{month}>$month_limit);
+if ($blocked_d or $blocked_m) {
+    my $history_msg;
+    if ($blocked_d) { $history_msg=printf "Day quota limit found for user_id: $user_id - Current: %d Max: %d",$user_stats{$user_id}{day},$day_limit; }
+    if ($blocked_m) { $history_msg=printf "Month quota limit found for user_id: $user_id - Current: %d Max: %d",$user_stats{$user_id}{month},$month_limit; }
+    do_sql($dbh,"UPDATE User_user set blocked=1 where id=$user_id");
+    do_sql($dbh,"UPDATE User_auth set blocked=1, changed=1 where user_id=$user_id");
+    db_log_verbose($dbh,$history_msg);
+    }
+}
+Del_Variable($dbh,'RECALC');
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub clean_variables {
+my $dbh = shift;
+#clean temporary variables
+my $clean_variables = time();
+my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_variables);
+$month++;
+$year += 1900;
+my $now_str=sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
+my $clean_variables_date=$dbh->quote($now_str);
+do_sql($dbh,"DELETE FROM `variables` WHERE clear_time<=$clean_variables_date");
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 $dbh=init_db();
 init_option($dbh);
+clean_variables($dbh);
+Set_Variable($dbh);
 
 1;
 }

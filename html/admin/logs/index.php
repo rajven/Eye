@@ -37,7 +37,7 @@ if ($log_level === $L_DEBUG) { $log_filter = ""; }
 if (isset($fcustomer)) { $log_filter = $log_filter." and customer LIKE '%".$fcustomer."%'"; }
 if (isset($fmessage)) { $log_filter = $log_filter." and message LIKE '%".$fmessage."%'"; }
 
-$countSQL="SELECT Count(*) FROM syslog WHERE date(timestamp)>='$date1' AND date(timestamp)<'$date2' $log_filter";
+$countSQL="SELECT Count(*) FROM syslog WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $log_filter";
 $res = mysqli_query($db_link, $countSQL);
 $count_records = mysqli_fetch_array($res);
 
@@ -57,7 +57,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 			</tr>
 <?php
 #speedup paging
-$sSQL = "SELECT timestamp,customer,message,level FROM syslog as S JOIN (SELECT id FROM syslog WHERE date(timestamp)>='$date1' AND date(timestamp)<'$date2' $log_filter ORDER BY id DESC LIMIT $start,$displayed) AS I ON S.id = I.id";
+$sSQL = "SELECT `timestamp`,customer,message,level FROM syslog as S JOIN (SELECT id FROM syslog WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $log_filter ORDER BY id DESC LIMIT $start,$displayed) AS I ON S.id = I.id";
 $userlog = get_records_sql($db_link, $sSQL);
 foreach ($userlog as $row) {
     print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";

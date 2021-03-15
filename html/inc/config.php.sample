@@ -8,8 +8,6 @@ setlocale(LC_ALL, 'ru_RU.UTF8');
 $style="white"; #css ctyle
 
 /* MySQL settings */
-$traf_host="localhost";
-
 $dbhost="localhost";
 $dbname="database";
 $dbuser="username";

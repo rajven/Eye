@@ -5,12 +5,14 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 
 if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
-    while (list ($key, $val) = @each($s_id)) {
-        if (isset($val)) {
-            LOG_INFO($db_link, "Remove subnet id: $val");
-            delete_record($db_link, "subnets", "id=" . $val);
+    if (!empty($s_id)) {
+        while (list ($key, $val) = @each($s_id)) {
+            if (isset($val)) {
+                LOG_INFO($db_link, "Remove subnet id: $val");
+                delete_record($db_link, "subnets", "id=" . $val);
+                }
+            }
         }
-    }
     header("Location: " . $_SERVER["REQUEST_URI"]);
 }
 
@@ -21,65 +23,65 @@ if (isset($_POST['s_save'])) {
         $len_all = is_array($_POST['n_id']) ? count($_POST['n_id']) : 0;
         for ($j = 0; $j < $len_all; $j ++) {
             if (intval($_POST['n_id'][$j]) != $save_id) { continue; }
-            $new[subnet] = trim($_POST['s_subnet'][$j]);
-            $new[office] = $_POST['s_office'][$j]*1;
-            $new[hotspot] = $_POST['s_hotspot'][$j]*1;
-            $new[vpn] = $_POST['s_vpn'][$j]*1;
-            $new[free] = $_POST['s_free'][$j]*1;
-            $new[dhcp] = $_POST['s_dhcp'][$j]*1;
-            $new[dhcp_lease_time] = $_POST['s_lease_time'][$j]*1;
+            $new['subnet'] = trim($_POST['s_subnet'][$j]);
+            $new['office'] = $_POST['s_office'][$j]*1;
+            $new['hotspot'] = $_POST['s_hotspot'][$j]*1;
+            $new['vpn'] = $_POST['s_vpn'][$j]*1;
+            $new['free'] = $_POST['s_free'][$j]*1;
+            $new['dhcp'] = $_POST['s_dhcp'][$j]*1;
+            $new['dhcp_lease_time'] = $_POST['s_lease_time'][$j]*1;
             $new['static'] = $_POST['s_static'][$j]*1;
-            $new[discovery] = $_POST['s_discovery'][$j]*1;
-            $new[dhcp_update_hostname] = $_POST['s_dhcp_update'][$j]*1;
-            $new[comment] = trim($_POST['s_comment'][$j]);
-            $range = cidrToRange($new[subnet]);
+            $new['discovery'] = $_POST['s_discovery'][$j]*1;
+            $new['dhcp_update_hostname'] = $_POST['s_dhcp_update'][$j]*1;
+            $new['comment'] = trim($_POST['s_comment'][$j]);
+            $range = cidrToRange($new['subnet']);
 	    $first_user_ip = $range[0];
 	    $last_user_ip = $range[1];
             $cidr = $range[2][1];
 	    if (isset($cidr) and $cidr <= 32) {
-	        $new[subnet] = $first_user_ip . '/' . $cidr;
+	        $new['subnet'] = $first_user_ip . '/' . $cidr;
 		} else {
-	        $new[subnet] = '';
+	        $new['subnet'] = '';
 		}
-            $new[ip_int_start] = ip2long($first_user_ip);
-	    $new[ip_int_stop] = ip2long($last_user_ip);
-            $new[dhcp_start] = ip2long(trim($_POST['s_dhcp_start'][$j]));
-            $new[dhcp_stop] = ip2long(trim($_POST['s_dhcp_stop'][$j]));
+            $new['ip_int_start'] = ip2long($first_user_ip);
+	    $new['ip_int_stop'] = ip2long($last_user_ip);
+            $new['dhcp_start'] = ip2long(trim($_POST['s_dhcp_start'][$j]));
+            $new['dhcp_stop'] = ip2long(trim($_POST['s_dhcp_stop'][$j]));
             $dhcp_fail=0;
-            if (!isset($new[dhcp_start]) or $new[dhcp_start]==0) { $dhcp_fail=1; }
-            if (!isset($new[dhcp_stop]) or $new[dhcp_stop]==0) { $dhcp_fail=1; }
-            if (!$dhcp_fail and ($new[dhcp_start]-$new[ip_int_stop] >= 0)) { $dhcp_fail=1; }
-            if (!$dhcp_fail and ($new[dhcp_start]-$new[ip_int_start] <= 0)) { $dhcp_fail=1; }
-            if (!$dhcp_fail and ($new[dhcp_stop]-$new[ip_int_stop]>=0)) { $dhcp_fail=1; }
-            if (!$dhcp_fail and ($new[dhcp_stop]-$new[ip_int_start]<=0)) { $dhcp_fail=1; }
-            if (!$dhcp_fail and ($new[dhcp_start]-$new[dhcp_stop]>=0)) { $dhcp_fail=1; }
+            if (!isset($new['dhcp_start']) or $new['dhcp_start']==0) { $dhcp_fail=1; }
+            if (!isset($new['dhcp_stop']) or $new['dhcp_stop']==0) { $dhcp_fail=1; }
+            if (!$dhcp_fail and ($new['dhcp_start']-$new['ip_int_stop'] >= 0)) { $dhcp_fail=1; }
+            if (!$dhcp_fail and ($new['dhcp_start']-$new['ip_int_start'] <= 0)) { $dhcp_fail=1; }
+            if (!$dhcp_fail and ($new['dhcp_stop']-$new['ip_int_stop']>=0)) { $dhcp_fail=1; }
+            if (!$dhcp_fail and ($new['dhcp_stop']-$new['ip_int_start']<=0)) { $dhcp_fail=1; }
+            if (!$dhcp_fail and ($new['dhcp_start']-$new['dhcp_stop']>=0)) { $dhcp_fail=1; }
             if ($dhcp_fail) {
-        	$new[dhcp_start]=ip2long($range[3]);
-        	$new[dhcp_stop]=ip2long($range[4]);
+        	$new['dhcp_start']=ip2long($range[3]);
+        	$new['dhcp_stop']=ip2long($range[4]);
         	}
 	    $gateway = ip2long(trim($_POST['s_gateway'][$j]));
 	    if (!isset($gateway)) { $gateway=$range[5]; }
-	    $new[gateway]=$gateway;
-	    if ($new[hotspot]) {
-        	$new[dhcp_update_hostname] = 0;
-        	$new[discovery] = 0;
-        	$new[vpn] = 0;
+	    $new['gateway']=$gateway;
+	    if ($new['hotspot']) {
+        	$new['dhcp_update_hostname'] = 0;
+        	$new['discovery'] = 0;
+        	$new['vpn'] = 0;
 		}
-	    if ($new[vpn]) {
-        	$new[discovery] = 0;
-        	$new[dhcp] = 0;
+	    if ($new['vpn']) {
+        	$new['discovery'] = 0;
+        	$new['dhcp'] = 0;
 		}
-	    if ($new[office]) {
-        	$new[free] = 0;
+	    if ($new['office']) {
+        	$new['free'] = 0;
         	}
-            if (!$new[office]) {
-        	$new[discovery] = 0;
-        	$new[dhcp] = 0;
+            if (!$new['office']) {
+        	$new['discovery'] = 0;
+        	$new['dhcp'] = 0;
         	$new['static'] = 0;
-        	$new[dhcp_update_hostname] = 0;
-        	$new[gateway] = 0;
-        	$new[dhcp_start] = 0;
-        	$new[dhcp_stop] = 0;
+        	$new['dhcp_update_hostname'] = 0;
+        	$new['gateway'] = 0;
+        	$new['dhcp_start'] = 0;
+        	$new['dhcp_stop'] = 0;
         	}
             update_record($db_link, "subnets", "id='{$save_id}'", $new);
         }
@@ -90,8 +92,8 @@ if (isset($_POST['s_save'])) {
 if (isset($_POST["s_create"])) {
     $new_subnet = $_POST["s_create_subnet"];
     if (isset($new_subnet)) {
-        $new[subnet] = trim($new_subnet);
-        $range = cidrToRange($new[subnet]);
+        $new['subnet'] = trim($new_subnet);
+        $range = cidrToRange($new['subnet']);
         $first_user_ip = $range[0];
         $last_user_ip = $range[1];
         $cidr = $range[2][1];
@@ -100,11 +102,11 @@ if (isset($_POST["s_create"])) {
         } else {
             $ip = $first_user_ip;
         }
-        $new[ip_int_start] = ip2long($first_user_ip);
-        $new[ip_int_stop] = ip2long($last_user_ip);
-    	$new[dhcp_start] = ip2long($range[3]);
-    	$new[dhcp_stop] = ip2long($range[4]);
-    	$new[gateway] = ip2long($range[5]);
+        $new['ip_int_start'] = ip2long($first_user_ip);
+        $new['ip_int_stop'] = ip2long($last_user_ip);
+    	$new['dhcp_start'] = ip2long($range[3]);
+    	$new['dhcp_stop'] = ip2long($range[4]);
+    	$new['gateway'] = ip2long($range[5]);
         LOG_INFO($db_link, "Create new subnet $new_subnet");
         insert_record($db_link, "subnets", $new);
     }
