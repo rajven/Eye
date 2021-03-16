@@ -1,1 +1,0 @@
-CREATE TABLE `dns_cache` ( `id` INT NOT NULL AUTO_INCREMENT , `dns` VARCHAR(250) NULL , `ip` INT NULL , `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP , PRIMARY KEY (`id`), INDEX (`dns`, `ip`), INDEX (`timestamp`)) ENGINE = InnoDB;

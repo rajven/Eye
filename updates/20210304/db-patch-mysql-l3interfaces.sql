@@ -1,1 +1,0 @@
-CREATE TABLE `device_l3_interfaces` ( `id` INT NOT NULL AUTO_INCREMENT , `device_id` INT NULL , `interface_type` INT NOT NULL DEFAULT '0' , `name` VARCHAR(100) NULL , PRIMARY KEY (`id`)) ENGINE = InnoDB;

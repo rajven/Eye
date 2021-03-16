@@ -15,5 +15,6 @@ CREATE TABLE `Traffic_detail` (
   `dst_ip` int(10) UNSIGNED NOT NULL,
   `src_port` smallint(5) UNSIGNED NOT NULL,
   `dst_port` smallint(5) UNSIGNED NOT NULL,
-  `bytes` bigint(20) NOT NULL
+  `bytes` bigint(20) NOT NULL,
+  `pkt` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

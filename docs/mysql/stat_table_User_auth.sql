@@ -10,13 +10,12 @@ CREATE TABLE `User_auth` (
   `user_id` int(11) NOT NULL DEFAULT 0,
   `ip` varchar(18) NOT NULL DEFAULT '',
   `ip_int` int(10) UNSIGNED NOT NULL DEFAULT 0,
-  `ip_int_end` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `save_traf` tinyint(1) NOT NULL DEFAULT 0,
   `enabled` tinyint(1) NOT NULL DEFAULT 0,
   `dhcp` tinyint(1) NOT NULL DEFAULT 1,
   `filter_group_id` tinyint(1) NOT NULL DEFAULT 0,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
-  `comments` varchar(50) NOT NULL DEFAULT '',
+  `comments` text DEFAULT NULL,
   `dns_name` varchar(60) NOT NULL DEFAULT '',
   `dhcp_acl` text DEFAULT NULL,
   `queue_id` int(11) NOT NULL DEFAULT 0,
@@ -38,4 +37,3 @@ CREATE TABLE `User_auth` (
   `changed` tinyint(1) NOT NULL DEFAULT 0,
   `changed_time` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-

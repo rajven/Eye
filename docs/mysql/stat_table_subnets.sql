@@ -24,13 +24,3 @@ CREATE TABLE `subnets` (
   `discovery` tinyint(1) NOT NULL DEFAULT 1,
   `comment` text CHARACTER SET utf8 DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-
---
--- Дамп данных таблицы `subnets`
---
-
-INSERT INTO `subnets` (`id`, `subnet`, `ip_int_start`, `ip_int_stop`, `dhcp_start`, `dhcp_stop`, `dhcp_lease_time`, `gateway`, `office`, `hotspot`, `vpn`, `free`, `dhcp`, `static`, `dhcp_update_hostname`, `discovery`, `comment`) VALUES
-(1, '192.168.2.0/24', 3232236032, 3232236287, 3232236132, 3232236182, 480, 3232236033, 1, 0, 0, 0, 1, 0, 0, 1, 'Офис'),
-(2, '192.168.0.0/16', 3232235520, 3232301055, 0, 0, 480, 0, 0, 0, 0, 1, 0, 0, 0, 0, 'Не считать трафик'),
-(3, '10.0.0.0/8', 167772160, 184549375, 0, 0, 480, 0, 0, 0, 0, 1, 0, 0, 0, 0, 'Не считать трафик'),
-(4, '172.16.0.0/12', 2886729728, 2887778303, 0, 0, 480, 0, 0, 0, 0, 1, 0, 0, 0, 0, 'Не считать трафик');
