@@ -17,4 +17,4 @@ CREATE TABLE `Customers` (
 --
 
 INSERT INTO `Customers` (`id`, `Login`, `Pwd`, `readonly`) VALUES
-(1, 'admin', '01a5aa14009873f841eab46082418496', 0);
+(1, 'admin', '21232f297a57a5a743894a0e4a801fc3', 0);

@@ -1,1 +1,0 @@
-stat  ALL=(ALL)       NOPASSWD: /usr/local/scripts/poe_ipcam.pl, /usr/local/scripts/sync_user_list.pl, /usr/local/scripts/update-named, /usr/local/scripts/update-dhcpd, /usr/local/scripts/fetch_new_arp.pl, /etc/nagios/restart_nagios, /usr/local/scripts/update-dnsmasq

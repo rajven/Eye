@@ -233,13 +233,13 @@ ALTER TABLE `building`
 -- AUTO_INCREMENT для таблицы `config`
 --
 ALTER TABLE `config`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=111;
 
 --
 -- AUTO_INCREMENT для таблицы `config_options`
 --
 ALTER TABLE `config_options`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
 
 --
 -- AUTO_INCREMENT для таблицы `connections`
@@ -251,7 +251,7 @@ ALTER TABLE `connections`
 -- AUTO_INCREMENT для таблицы `Customers`
 --
 ALTER TABLE `Customers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT для таблицы `devices`
@@ -401,4 +401,4 @@ ALTER TABLE `variables`
 -- AUTO_INCREMENT для таблицы `vendors`
 --
 ALTER TABLE `vendors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
