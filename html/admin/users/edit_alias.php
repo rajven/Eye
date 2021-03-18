@@ -13,7 +13,7 @@ $auth_info = get_record_sql($db_link, $sSQL);
 
 if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
-    while (list ($key, $val) = @each($s_id)) {
+    foreach ($s_id as $key => $val) {
         if (isset($val)) {
             LOG_INFO($db_link, "Remove alias id: $val");
             delete_record($db_link, "User_auth_alias", "id=" . $val);

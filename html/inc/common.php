@@ -545,7 +545,7 @@ function get_ou($db, $ou_value)
     if (!isset($ou_value)) { return; }
     $ou_name = get_record_sql($db, "SELECT ou_name FROM OU WHERE id=$ou_value");
     if (empty($ou_name)) { return; }
-    return $ou_name[ou_name];
+    return $ou_name['ou_name'];
 }
 
 function get_building($db, $building_value)
@@ -759,7 +759,7 @@ function print_filter_select($db, $filter_name, $group_id)
 
 function get_filter($db, $filter_value)
 {
-    list ($filter) = mysqli_fetch_array(mysqli_query($db, "SELECT name FROM Filter_list WHERE id=$user_id"));
+    list ($filter) = mysqli_fetch_array(mysqli_query($db, "SELECT name FROM Filter_list WHERE id=".$filter_value));
     return $filter;
 }
 
@@ -1582,24 +1582,18 @@ function get_fdb_port_table($ip, $port_index, $community, $version)
             return;
         }
         foreach ($vlan_table as $vlan_oid => $value) {
-            if (! $vlan_oid) {
-                next;
-            }
+            if (! $vlan_oid) { continue; }
             $pattern = '/\.(\d{1,4})$/';
             $result = preg_match($pattern, $vlan_oid, $matches);
             if ($result) {
                 $vlan_id = preg_replace('/^\./', '', $matches[0]);
-                if ($vlan_id > 1000 and $vlan_id < 1009) {
-                    next;
-                }
+                if ($vlan_id > 1000 and $vlan_id < 1009) { continue; }
                 $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community . '@' . $vlan_id, $version, $mac_table_oid2);
                 if (! isset($fdb_vlan_table) or ! $fdb_vlan_table or count($fdb_vlan_table) == 0) {
                     $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid);
                 }
                 foreach ($fdb_vlan_table as $mac => $port) {
-                    if (! isset($mac)) {
-                        next;
-                    }
+                    if (! isset($mac)) { continue; }
                     $fdb_port_table[$mac] = $port;
                 }
             }
@@ -1667,24 +1661,18 @@ function get_fdb_table($ip, $community, $version)
             return;
         }
         foreach ($vlan_table as $vlan_oid => $value) {
-            if (! $vlan_oid) {
-                next;
-            }
+            if (! $vlan_oid) { continue; }
             $pattern = '/\.(\d{1,4})$/';
             $result = preg_match($pattern, $vlan_oid, $matches);
             if ($result) {
                 $vlan_id = preg_replace('/^\./', '', $matches[0]);
-                if ($vlan_id > 1000 and $vlan_id < 1009) {
-                    next;
-                }
+                if ($vlan_id > 1000 and $vlan_id < 1009) { continue; }
                 $fdb_vlan_table = get_mac_table($ip, $community . '@' . $vlan_id, $version, $mac_table_oid2);
                 if (! isset($fdb_vlan_table) or ! $fdb_vlan_table or count($fdb_vlan_table) == 0) {
                     $fdb_vlan_table = get_mac_table($ip, $community, $version, $mac_table_oid);
                 }
                 foreach ($fdb_vlan_table as $mac => $port) {
-                    if (! isset($mac)) {
-                        next;
-                    }
+                    if (! isset($mac)) { continue; }
                     $fdb_port_table[$mac] = $port;
                 }
             }

@@ -6,7 +6,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
     if (!empty($s_id)) {
-        while (list ($key, $val) = @each($s_id)) {
+        foreach ($s_id as $key => $val) {
             if (isset($val)) {
                 LOG_INFO($db_link, "Remove subnet id: $val");
                 delete_record($db_link, "subnets", "id=" . $val);

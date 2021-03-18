@@ -64,7 +64,7 @@ if (isset($_POST["addauth"])) {
 
 if (isset($_POST["removeauth"])) {
     $auth_id = $_POST["f_auth_id"];
-    while (list ($key, $val) = @each($auth_id)) {
+    foreach ($auth_id as $key => $val) {
         if ($val) {
             delete_record($db_link, 'connections', "auth_id=" . $val);
             delete_record($db_link, 'User_auth_alias', "auth_id=" . $val);
@@ -85,7 +85,7 @@ if (isset($_POST["ApplyForAll"])) {
     $a_month = $_POST["a_month_q"] * 1;
     $a_queue = $_POST["a_queue_id"] * 1;
     $a_group = $_POST["a_group_id"] * 1;
-    while (list ($key, $val) = @each($auth_id)) {
+    foreach ($auth_id as $key => $val) {
         if ($val) {
             unset($new);
             if ($default_user_id == $id or $hotspot_user_id == $id) {
@@ -114,7 +114,7 @@ if (isset($_POST["moveauth"]) and isset($_POST["new_parent"])) {
     $auth_id = $_POST["f_auth_id"];
     if ($new_user_id <> $id) {
 	$user_rec = get_record($db_link, 'User_list', "id=".$new_user_id);
-        while (list ($key, $val) = @each($auth_id)) {
+    foreach ($auth_id as $key => $val) {
 	    if ($val) {
         	$new["filter_group_id"]=$user_rec["filter_group_id"];
 	        $new["queue_id"] = $user_rec["queue_id"];
@@ -132,7 +132,7 @@ if (isset($_POST["moveauth"]) and isset($_POST["new_parent"])) {
 if (isset($_POST["new_user"])) {
     $auth_id = $_POST["f_auth_id"];
     $save_traf = get_option($db_link, 23) * 1;
-    while (list ($key, $val) = @each($auth_id)) {
+    foreach ($auth_id as $key => $val) {
         if ($val) {
             $flist = mysqli_query($db_link, "SELECT ip, comments, dns_name, dhcp_hostname from User_auth WHERE id=$val");
             list ($f_auth_ip, $f_auth_comments, $f_dns_name, $f_dhcp_name) = mysqli_fetch_array($flist);

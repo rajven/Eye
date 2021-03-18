@@ -36,7 +36,7 @@ if (isset($_POST["ApplyForAll"])) {
     $a_queue = $_POST["a_queue_id"] * 1;
     $a_group = $_POST["a_group_id"] * 1;
     $msg="Массовое изменение пользователей!";
-    while (list ($key, $val) = @each($auth_id)) {
+    foreach ($auth_id as $key => $val) {
         if ($val) {
             unset($auth);
             unset($user);
@@ -63,11 +63,9 @@ if (isset($_POST["remove"])) {
     if (! isset($default_user_id)) {
         $default_user_id = 1;
     }
-    while (list ($key, $val) = @each($fid)) {
+    foreach ($fid as $key => $val) {
         if ($val) {
-            if ($val == 1) {
-                continue;
-            }
+            if ($val == 1) { continue; }
             $auth['user_id'] = $default_user_id;
             $changes = get_diff_rec($db_link,"User_list","id='$val'", '', 1);
             $login = get_record($db_link,"User_list","id='$val'");

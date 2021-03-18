@@ -4,7 +4,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 
 if (isset($_POST["remove"])) {
     $fid = $_POST["f_id"];
-    while (list ($key, $val) = @each($fid)) {
+    foreach ($fid as $key => $val) {
         if (isset($val) and $val > 0) {
             $new['ou_id'] = 0;
             update_record($db_link, "User_list", "ou_id=" . $val, $new);

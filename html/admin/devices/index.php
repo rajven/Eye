@@ -23,7 +23,7 @@ if (isset($_POST["create"])) {
 
 if (isset($_POST["remove"])) {
     $fid = $_POST["fid"];
-    while (list ($key, $val) = @each($fid)) {
+    foreach ($fid as $key => $val) {
         if ($val) {
             LOG_INFO($db_link, "Delete device id: $val");
             unbind_ports($db_link, $val);

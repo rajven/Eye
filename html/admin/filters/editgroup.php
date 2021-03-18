@@ -22,7 +22,7 @@ if (isset($_POST["addfilter"])) {
 
 if (isset($_POST["removefilter"])) {
     $fgid = $_POST["fgid"];
-    while (list ($key, $val) = @each($fgid)) {
+    foreach ($fgid as $key => $val) {
         if ($val) {
             delete_record($db_link, "Group_filters", "id=" . $val * 1);
         }
@@ -34,7 +34,7 @@ if (isset($_POST["saveorder"])) {
         $fgid = $_POST["fgid"];
         $ford = $_POST["ford"];
         LOG_DEBUG($db_link, "Resort filter rules for group id: $id");
-        while (list ($key, $val) = @each($ford)) {
+        foreach ($ford as $key => $val) {
             $gid = $fgid[$key];
             $new['order'] = $val;
             update_record($db_link, "Group_filters", "id=" . $gid, $new);

@@ -6,7 +6,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 if (isset($_POST["remove"])) {
     $fid = $_POST["f_id"];
     if (!empty($fid)) {
-        while (list ($key, $val) = @each($fid)) {
+        foreach ($fid as $key => $val) {
             if (isset($val) and $val != 1) {
                 LOG_INFO($db_link, "Remove config option id: $val");
                 delete_record($db_link, "config", "id=" . $val);

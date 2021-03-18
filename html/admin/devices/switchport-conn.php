@@ -7,7 +7,7 @@ $switch=get_record($db_link,'devices',"id=".$id);
 
 if (isset($_POST["remove"])) {
     $fid = $_POST["f_id"];
-    while (list ($key, $val) = @each($fid)) {
+    foreach ($fid as $key => $val) {
         if (isset($val) and $val != 1) {
                 LOG_INFO($db_link, "Remove connection id: $val");
                 delete_record($db_link, "connections", "id=" . $val);

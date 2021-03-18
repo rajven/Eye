@@ -65,8 +65,8 @@ if ($switch['snmp_version']>0) {
             if ($switch['snmp_version'] == 2) {
 	        $modules_oids = snmp2_real_walk($switch['ip'], $switch['community'], $cisco_modules);
 	    }
-            if ($switch[snmp_version] == 1) {
-	        $modules_oids = snmpreal_walk($switch['ip'], $switch['community'], $cisco_modules);
+            if ($switch['snmp_version'] == 1) {
+	        $modules_oids = snmprealwalk($switch['ip'], $switch['community'], $cisco_modules);
 	    }
 	}
     } else { $snmp_ok = 0; }
@@ -127,7 +127,7 @@ if ($switch['snmp_version']>0) {
         print "</td>\n";
         print "<td class=\"$cl\">" . $d_comment . "</td>\n";
         if ($snmp_ok) {
-            if ($switch[fdb_snmp_index]) {
+            if ($switch['fdb_snmp_index']) {
                 $vlan = get_port_vlan($d_snmp, $switch['ip'], $switch['community'], $switch['snmp_version'], $switch['fdb_snmp_index']);
             } else {
                 $vlan = get_port_vlan($d_port, $switch['ip'], $switch['community'], $switch['snmp_version'], $switch['fdb_snmp_index']);

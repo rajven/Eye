@@ -59,7 +59,7 @@ if (isset($_POST["not_save_traf_all"]) and get_option($db_link, 23)) {
 
 if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
-    while (list ($key, $val) = @each($s_id)) {
+    foreach ($s_id as $key => $val) {
         if (isset($val)) {
             LOG_INFO($db_link, "Remove subnet id: $val");
             delete_record($db_link, "subnets", "id=" . $val);

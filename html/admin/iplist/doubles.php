@@ -5,7 +5,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
 if (isset($_POST["removeauth"])) {
     $auth_id = $_POST["f_auth_id"];
-    while (list ($key, $val) = @each($auth_id)) {
+    foreach ($auth_id as $key => $val) {
         if ($val) {
                 delete_record($db_link, 'connections', "auth_id=" . $val);
                 delete_record($db_link, 'User_auth_alias', "auth_id=" . $val);

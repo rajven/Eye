@@ -18,7 +18,7 @@ if (isset($_POST["create"])) {
 
 if (isset($_POST["remove"])) {
     $fid = $_POST["fid"];
-    while (list ($key, $val) = @each($fid)) {
+    foreach ($fid as $key => $val) {
         if ($val) {
             delete_record($db_link, "Group_filters", "filter_id=$val");
             delete_record($db_link, "Filter_list", "id=$val");
