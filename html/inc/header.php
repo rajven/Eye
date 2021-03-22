@@ -3,7 +3,7 @@
 <head>
 <title>Панель администратора</title>
 <link rel="stylesheet" type="text/css" href=<? echo "\"/$style.css\""; ?>>
-<script src="/js/js/jquery-3.4.1.min.js"></script>
+<script src="/js/jq/jquery.min.js"></script>
 <link href="/js/select2/css/select2.min.css" rel="stylesheet"/>
 <script src="/js/select2/js/select2.min.js"></script>
 <meta http-equiv="content-type" content="application/xhtml+xml" />
