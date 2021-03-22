@@ -525,7 +525,7 @@ function print_editdevice_submenu ($current_page,$id) {
 print "<div id='submenu'>\n";
 $dev_id='';
 if (isset($id)) { $dev_id='?id='.$id; }
-print_submenu_url('Параметры','/admin/devices/editswitches.php'.$dev_id,$current_page,0);
+print_submenu_url('Параметры','/admin/devices/editdevice.php'.$dev_id,$current_page,0);
 print_submenu_url('Порты','/admin/devices/switchport.php'.$dev_id,$current_page,0);
 print_submenu_url('Состояние','/admin/devices/switchstatus.php'.$dev_id,$current_page,0);
 print_submenu_url('Соединения','/admin/devices/switchport-conn.php'.$dev_id,$current_page,1);
@@ -2466,7 +2466,7 @@ function expand_device_name($db, $name)
     $device_id = get_device_id($db, $name);
     $result = $name;
     if (isset($device_id) and $device_id > 0) {
-        $result = '<a href=/admin/devices/editswitches.php?id=' . $device_id . '>' . $name . '</a>';
+        $result = '<a href=/admin/devices/editdevice.php?id=' . $device_id . '>' . $name . '</a>';
     }
     return $result;
 }
@@ -2522,13 +2522,13 @@ function expand_log_str($db, $msg)
         $device_name = $matches[1];
         $device_id = get_device_id($db, $device_name);
         if (isset($device_id) and $device_id > 0) {
-            $device_replace = 'at device <a href=/admin/devices/editswitches.php?id=' . $device_id . '>${1}</a>';
+            $device_replace = 'at device <a href=/admin/devices/editdevice.php?id=' . $device_id . '>${1}</a>';
             $result = preg_replace($device_pattern, $device_replace, $result);
         }
     }
 
     $device_pattern = '/(device_id:|device id:|device id|device_id)\s+(\d+)\s+/i';
-    $device_replace = 'device_id: <a href=/admin/devices/editswitches.php?id=${2}>${2}</a> ';
+    $device_replace = 'device_id: <a href=/admin/devices/editdevice.php?id=${2}>${2}</a> ';
     $result = preg_replace($device_pattern, $device_replace, $result);
 
     $ip_pattern = '/\s+ip\:\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+/i';

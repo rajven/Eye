@@ -3,7 +3,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-if (isset($_POST["editswitches"]) and isset($id)) {
+if (isset($_POST["editdevice"]) and isset($id)) {
     if (isset($_POST["f_port_count"])) {
         $sw_ports = $_POST["f_port_count"] * 1;
     } else {
@@ -56,7 +56,7 @@ if (isset($_POST["editswitches"]) and isset($id)) {
     if (isset($_POST["f_fdb_snmp"])) { $new['fdb_snmp_index'] = $_POST["f_fdb_snmp"]; }
     if (isset($_POST["f_discovery"])) { $new['discovery'] = $_POST["f_discovery"]; }
     if (isset($_POST["f_dhcp"])) { $new['dhcp'] = $_POST["f_dhcp"] * 1; }
-    if (isset($_POST["f_user_acl"])) { $new['user_acl'] = $_POST["user_acl"] * 1; }
+    if (isset($_POST["f_user_acl"])) { $new['user_acl'] = $_POST["f_user_acl"] * 1; }
     if (isset($_POST["f_wan"])) { $new['wan_int'] = $_POST["f_wan"]; }
     if (isset($_POST["f_lan"])) { $new['lan_int'] = $_POST["f_lan"]; }
     if (isset($_POST["f_building_id"])) { $new['building_id'] = $_POST["f_building_id"] * 1; }
@@ -86,7 +86,7 @@ print_editdevice_submenu($page_url,$id);
 
 ?>
 <div id="cont">
-<form name="def" action="editswitches.php?id=<? echo $id; ?>" method="post">
+<form name="def" action="editdevice.php?id=<? echo $id; ?>" method="post">
 <table class="data">
 <tr>
 <td>Название</td>
@@ -175,7 +175,7 @@ print "<td><button name=\"port_walk\" onclick=\"window.open('mactable.php?id=" .
 print "<button name=\"port_walk\" onclick=\"window.open('snmpwalk.php?id=" . $id . "')\">Port Walk</button>";
 print "<td align=right>";
 if ($device['deleted']) { print "<input type=\"submit\" name=\"undelete\" value=\"Воскресить\">"; }
-print "<input type=\"submit\" name=\"editswitches\" value=\"Сохранить\"></td>\n";
+print "<input type=\"submit\" name=\"editdevice\" value=\"Сохранить\"></td>\n";
 print "</tr>\n";
 print "</table>\n";
 ?>

@@ -16,7 +16,7 @@ if (isset($_POST["editport"])) {
 
     // redirect to device
     $device_id = get_record_field($db_link,'device_ports','device_id',"id=".$id);
-    header("location: editswitches.php?id=$device_id");
+    header("location: editdevice.php?id=$device_id");
 }
 
 unset($_POST);

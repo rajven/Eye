@@ -36,7 +36,7 @@ $sSQL = "SELECT DP.id, DP.port, D.id, D.device_name FROM `device_ports` AS DP, d
 $ports_info = mysqli_query($db_link, $sSQL);
 while (list ($f_port_id,$f_port,$f_switch_id,$f_switch) = mysqli_fetch_array($ports_info)) {
     print "<tr>";
-    print "<td class=\"data\"><a href=\"/admin/devices/editswitches.php?id=$f_switch_id\">" . $f_switch . "</a></td>\n";
+    print "<td class=\"data\"><a href=\"/admin/devices/editdevice.php?id=$f_switch_id\">" . $f_switch . "</a></td>\n";
     print "<td class=\"data\"><a href=\"/admin/devices/editport.php?id=$f_port_id\">" . $f_port . "</a></td>\n";
     print "</tr>";
 }

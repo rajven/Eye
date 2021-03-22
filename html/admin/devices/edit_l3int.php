@@ -52,7 +52,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 <div id="cont">
 <br>
 <form name="def" action="edit_l3int.php" method="post">
-<b>Список L3 интерфейсов <?php print_url($device_info['device_name'],"/admin/devices/editswitches.php?id=$id"); ?></b> <br>
+<b>Список L3 интерфейсов <?php print_url($device_info['device_name'],"/admin/devices/editdevice.php?id=$id"); ?></b> <br>
 <table class="data">
 <tr align="center">
 	<td></td>

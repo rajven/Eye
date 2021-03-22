@@ -17,7 +17,7 @@ if (isset($_POST["create"])) {
         $new_id=insert_record($db_link, "devices", $new);
         LOG_INFO($db_link, "Created new device device_name=$fname");
         unset($_POST);
-        header("location: editswitches.php?id=$new_id");
+        header("location: editdevice.php?id=$new_id");
     }
 }
 
@@ -83,7 +83,7 @@ foreach ($switches as $row) {
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
     print "<td class=\"$cl\"><input type=hidden name=\"id\" value=".$row['id'].">".$row['id']."</td>\n";
     print "<td class=\"$cl\">".get_devtype_name($db_link,$row['device_type'])."</td>\n";
-    print "<td class=\"$cl\" align=left><a href=editswitches.php?id=".$row['id'].">" . $row['device_name'] . "</a></td>\n";
+    print "<td class=\"$cl\" align=left><a href=editdevice.php?id=".$row['id'].">" . $row['device_name'] . "</a></td>\n";
     if (isset($row['user_id']) and $row['user_id']>0) {
         print "<td class=\"$cl\"><a href=/admin/users/edituser.php?id=".$row['user_id'].">".$row['ip']."</a></td>\n";
         } else {
