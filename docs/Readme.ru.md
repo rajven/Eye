@@ -27,7 +27,7 @@ cp -R html/ /var/www
 
 4. Можно скачать дополнительные скрипты (красивости)
 
-download from https://jquery.com/download/ production jQuery to /var/www/html/js/
+download from https://jquery.com/download/ production jQuery to /var/www/html/js/jq
 example: wget https://code.jquery.com/jquery-3.6.0.min.js
 rename jquery-3.6.0.min.js to jquery.min.js
 
