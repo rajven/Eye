@@ -1104,7 +1104,6 @@ run_sql($db,"DELETE FROM dns_cache WHERE `timestamp`<='".$clean_date."'");
 
 function FormatDateStr($format = 'Y-m-d H:i:s', $date_str) {
 $date1 = GetDateTimeFromString($date_str);
-var_dump($date1);
 $result = $date1->format($format);
 return $result;
 }
