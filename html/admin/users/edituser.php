@@ -268,14 +268,13 @@ if ($id == $default_user_id or $id == $hotspot_user_id) { $default_sort = 'last_
 <td class="data"><?php print $sort_url . "&sort=mac&order=$new_order>" . $cell_mac . "</a>"; ?></td>
 <td class="data"><?php print $cell_comment; ?></td>
 <td class="data"><?php print $sort_url . "&sort=dns_name&order=$new_order>" . $cell_dns_name . "</a>"; ?></td>
+<td class="data"><?php print $cell_enabled; ?></td>
 <td class="data"><?php print $cell_filter; ?></td>
-<td class="data"><?php print $sort_url . "&sort=enabled&order=$new_order>" . $cell_enabled . "</a>"; ?></td>
 <td class="data"><?php print $cell_shaper; ?></td>
-<td class="data"><?php print $cell_blocked; ?></td>
-<td class="data"><?php print $cell_perday; ?></td>
-<td class="data"><?php print $cell_permonth; ?></td>
+<td class="data"><?php print $cell_perday."/<br>".$cell_permonth.", Mb"; ?></td>
 <td class="data"><?php print $cell_connection; ?></td>
-<td class="data">DHCP/ARP Event</td>
+<td class="data"><?php print $sort_url . "&sort=timestamp&order=$new_order>Created</a>"; ?></td>
+<td class="data">Last DHCP/ARP Event</td>
 <td class="data"><?php print $sort_url . "&sort=last_found&order=$new_order>Last found</a>"; ?></td>
 </tr>
 
@@ -287,7 +286,7 @@ if (!empty($flist)) {
         if ($row["dhcp_time"] == '0000-00-00 00:00:00') {
             $dhcp_str = '';
             } else {
-            $dhcp_str = $row["dhcp_time"] . " (" . $row["dhcp_action"] . ")";
+            $dhcp_str = FormatDateStr('Y.m.d H:m',$row["dhcp_time"]) . " (" . $row["dhcp_action"] . ")";
             }
         if ($row["last_found"] == '0000-00-00 00:00:00') { $row["last_found"] = ''; }
         print "<tr align=center>\n";
@@ -300,15 +299,16 @@ if (!empty($flist)) {
             print "<td class=\"data\" >".$row["comments"]."</td>\n";
             }
         print "<td class=\"data\" >".$row["dns_name"]."</td>\n";
+        $ip_status = 1;
+        if ($row["blocked"] or !$row["enabled"]) { $ip_status = 0; }
+        print "<td class=\"data\" >" . get_qa($ip_status). "</td>\n";
         print "<td class=\"data\" >" . get_group($db_link, $row["filter_group_id"]) . "</td>\n";
-        print "<td class=\"data\" >" . get_qa($row["enabled"]) . "</td>\n";
         print "<td class=\"data\" >" . get_queue($db_link, $row["queue_id"]) . "</td>\n";
-        print "<td class=\"data\" width=50>" . get_qa($row["blocked"]) . "</td>\n";
-        print "<td class=\"data\" >".$row["day_quota"]."</td>\n";
-        print "<td class=\"data\" >".$row["month_quota"]."</td>\n";
+        print "<td class=\"data\" >".$row["day_quota"]."/".$row["month_quota"]."</td>\n";
         print "<td class=\"data\" >" . get_connection($db_link, $row["id"]) . "</td>\n";
+        print "<td class=\"data\" >" . FormatDateStr('Y.m.d',$row["timestamp"]) . "</td>\n";
         print "<td class=\"data\" >" . $dhcp_str . "</td>\n";
-        print "<td class=\"data\" >" . $row["last_found"] . "</td>\n";
+        print "<td class=\"data\" >" . FormatDateStr('Y.m.d H:i',$row["last_found"]) . "</td>\n";
         print "</tr>";
         }
     }

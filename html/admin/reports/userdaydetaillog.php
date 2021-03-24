@@ -15,7 +15,6 @@ $_SESSION[$page_url]['dns']=$rdns;
 $dns_checked='';
 if ($rdns) { $dns_checked='checked="checked"'; }
 
-
 $dns_cache=NULL;
 
 $usersip = mysqli_query($db_link, "SELECT ip,user_id,comments FROM User_auth WHERE User_auth.id=$id");
@@ -81,6 +80,8 @@ while (list ($uid,$udata, $urouter, $uproto, $sip, $sport,$dip, $dport, $ubytes,
     print "<td class=\"data\">$uid</td>\n";
     print "<td class=\"data\">$udata</td>\n";
     print "<td class=\"data\">$gateway_list[$urouter]</td>\n";
+    if ($uproto==='6') { $uproto = 'tcp'; }
+    if ($uproto==='17') { $uproto = 'udp'; }
     print "<td class=\"data\">" . $uproto . "</td>\n";
     print "<td class=\"data\" align=left>" . long2ip($sip) . "</td>\n";
     $ip_name = '-';

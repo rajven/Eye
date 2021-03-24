@@ -458,15 +458,33 @@ function print_loglevel_select($item_name, $value)
     print "</select>\n";
 }
 
+function reencodeurl($url) {
+$url_arr = explode('?', $url);
+$fpage = $url_arr[0];
+$params = $url_arr[1];
+$params_arr = explode('&', $params);
+$new_params = '';
+foreach ($params_arr as $row) {
+    $param = explode ('=',$row);
+    $key = $param[0]; 
+    $value = urlencode(urldecode($param[1]));
+    $new_params.="&".$key."=".$value;
+    }
+$new_params = preg_replace('/^&/','',$new_params);
+$new_url = $fpage."?".$new_params;
+return $new_url;
+}
+
 function print_submenu_url($display_name,$page,$current_page,$last) {
-$fpage = explode('?', $page);
-$fpage = $fpage[0];
-if ($fpage === $current_page) { print "<b>$display_name</b>"; } else { print "<a href='".$page."'> $display_name </a>"; }
+$url_arr = explode('?', $page);
+$fpage = $url_arr[0];
+$new_url = reencodeurl($page);
+if ($fpage === $current_page) { print "<b>$display_name</b>"; } else { print "<a href='".$new_url."'> $display_name </a>"; }
 if (!isset($last) or $last==0) { print " | "; }
 }
 
 function print_url($display_name,$page) {
-print "<a href='".$page."'> $display_name </a>";
+print "<a href='".reencodeurl($page)."'> $display_name </a>";
 }
 
 function print_log_submenu ($current_page) {
@@ -1082,6 +1100,31 @@ $now = strftime('%Y-%m-%d %H:%M:%S',time());
 $clean_date=strftime('%Y-%m-%d %H:%M:%S',$date);
 LOG_DEBUG($db,"Clean dns cache before $clean_date at $now");
 run_sql($db,"DELETE FROM dns_cache WHERE `timestamp`<='".$clean_date."'");
+}
+
+function FormatDateStr($format = 'Y-m-d H:i:s', $date_str) {
+$date1 = GetDateTimeFromString($date_str);
+var_dump($date1);
+$result = $date1->format($format);
+return $result;
+}
+
+function GetDateTimeFromString($date_str) {
+if (!is_a($date_str,'DateTime')) {
+    $date_str = urldecode($date_str);
+//    $date_str = preg_replace('/(\'|\")/','',$date_str);
+    $date1 = DateTime::createFromFormat('Y-m-d H:i:s',$date_str);
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y.m.d H:i:s',$date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y/m/d H:i:s',$date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y-m-d H:i',$date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y.m.d H:i',$date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y/m/d H:i',$date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y-m-d|',$date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y.m.d|',$date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y/m/d|',$date_str); }
+    if (!$date1) { $date1 = new DateTime; }
+    } else { return $date_str; }
+return $date1;
 }
 
 function GetNowTimeString() {
@@ -2923,14 +2966,14 @@ if ($total<=1) { return; }
 #две назад
     print "<br><div align=left>";
     if(($page-2)>0):
-      $pagetwoleft="<a class='first_page_link' href=".$url."?page=".($page-2)."'>".($page-2)."</a>  ";
+      $pagetwoleft="<a class='first_page_link' href=".$url."?page=".($page-2).">".($page-2)."</a>  ";
     else:
       $pagetwoleft=null;
     endif;
 
 #одна назад
     if(($page-1)>0):
-      $pageoneleft="<a class='first_page_link' href=".$url."?page=".($page-1)."'>".($page-1)."</a>  ";
+      $pageoneleft="<a class='first_page_link' href=".$url."?page=".($page-1).">".($page-1)."</a>  ";
       $pagetemp=($page-1);
     else:
       $pageoneleft=null;
@@ -2939,14 +2982,14 @@ if ($total<=1) { return; }
 
 #две вперед
     if(($page+2)<=$total):
-      $pagetworight="  <a class='first_page_link' href=".$url."?page=".($page+2)."'>".($page+2)."</a>";
+      $pagetworight="  <a class='first_page_link' href=".$url."?page=".($page+2).">".($page+2)."</a>";
     else:
       $pagetworight=null;
     endif;
 
 #одна вперед
     if(($page+1)<=$total):
-      $pageoneright="  <a class='first_page_link' href=".$url."?page=".($page+1)."'>".($page+1)."</a>";
+      $pageoneright="  <a class='first_page_link' href=".$url."?page=".($page+1).">".($page+1)."</a>";
       $pagetemp2=($page+1);
     else:
       $pageoneright=null;
@@ -2955,14 +2998,14 @@ if ($total<=1) { return; }
 
 # в начало
     if($page!=1 && $pagetemp!=1 && $pagetemp!=2):
-      $pagerevp="<a href=".$url."?page=1' class='first_page_link' title='В начало'><<</a> ";
+      $pagerevp="<a href=".$url."?page=1 class='first_page_link' title='В начало'><<</a> ";
     else:
       $pagerevp=null;
     endif;
 
 #в конец (последняя)
     if($page!=$total && $pagetemp2!=($total-1) && $pagetemp2!=$total):
-      $nextp=" ...  <a href=".$url."?page=".$total."'".$total."' class='first_page_link'>$total</a>";
+      $nextp=" ...  <a href=".$url."?page=".$total." class='first_page_link'>$total</a>";
     else:
       $nextp=null;
     endif;
