@@ -7,7 +7,7 @@ $datetime_start = new DateTime(strftime('%Y-%m-%d 00:00:00',time()));
 if (empty($default_date_shift)) { $default_date_shift='h'; }
 
 if (!empty($_GET['date_start']) or !empty($_POST['date_start'])) {
-    if (!empty($_GET['date_start'])) { $datetime_start = GetDateTimeFromString(urldecode($_GET['date_start'])); }
+    if (!empty($_GET['date_start'])) { $datetime_start = GetDateTimeFromString($_GET['date_start']); }
     if (!empty($_POST['date_start'])) { $datetime_start = GetDateTimeFromString($_POST['date_start']); }
     $date1 = $datetime_start->format('Y-m-d H:i:s');
     $time_start = $datetime_start->getTimestamp();
@@ -23,7 +23,7 @@ if (!empty($_GET['date_start']) or !empty($_POST['date_start'])) {
     }
 
 if (!empty($_POST['date_stop']) or !empty($_GET['date_stop'])) {
-    if (!empty($_GET['date_stop'])) { $datetime_stop = GetDateTimeFromString(urldecode($_GET['date_stop'])); }
+    if (!empty($_GET['date_stop'])) { $datetime_stop = GetDateTimeFromString($_GET['date_stop']); }
     if (!empty($_POST['date_stop'])) { $datetime_stop = GetDateTimeFromString($_POST['date_stop']); }
     $date2 = $datetime_stop->format('Y-m-d H:i:s');
     $time_stop = $datetime_stop->getTimestamp();
@@ -34,6 +34,7 @@ if (!empty($_POST['date_stop']) or !empty($_GET['date_stop'])) {
         $time_stop = $datetime_stop->getTimestamp();
         }
     }
+
 
 
 if (!isset($datetime_stop) or empty($datetime_stop)) {

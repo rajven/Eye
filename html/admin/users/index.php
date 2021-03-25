@@ -132,7 +132,7 @@ if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
-$sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month_quota, U.blocked, U.default_subnet as rule FROM User_list U, OU O WHERE $filter ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
+$sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month_quota, U.blocked FROM User_list U, OU O WHERE $filter ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
 
 ?>
 
@@ -169,7 +169,8 @@ foreach ($users as $row) {
     print "<td class=\"$cl\" ><input type=hidden name=\"id\" value=".$row['id'].">".$row['id']."</td>\n";
     print "<td class=\"$cl\" align=left><a href=edituser.php?id=".$row['id'].">" . $row['login'] . "</a></td>\n";
     print "<td class=\"$cl\">".$row['fio']."</td>\n";
-    print "<td class=\"$cl\">".$row['rule']."</td>\n";
+    $rules_count = get_count_records($db_link,"auth_rules","user_id=".$row['id']);
+    print "<td class=\"$cl\">".$rules_count."</td>\n";
     print "<td class=\"$cl\">".$row['ou_name']."</td>\n";
     print "<td class=\"$cl\">".get_qa($row['enabled']) . "</td>\n";
     print "<td class=\"$cl\">".$row['day_quota']."</td>\n";

@@ -40,7 +40,6 @@ get_device_by_ip
 get_diff_rec
 get_id_record
 get_new_user_id
-get_newuser_by_regexp
 GetNowTime
 GetUnixTimeByStr
 GetTimeStrByUnixTime
@@ -50,7 +49,6 @@ init_db
 init_option
 insert_record
 IpToStr
-refresh_add_rules
 resurrection_auth
 new_auth
 StrToIp
@@ -440,56 +438,40 @@ return $now_str;
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub refresh_add_rules {
-my $dbh = shift;
-if (defined $add_rules) { undef $add_rules; }
-$add_rules = new Net::Patricia;
-#custom rules
-my @user_rules=get_records_sql($dbh,'select id,default_subnet from User_list where deleted=0 and LENGTH(default_subnet)>0');
-foreach my $subnet (@user_rules) {
-    next if (!$subnet);
-    next if (!$subnet->{default_subnet});
-    next if (!$subnet->{id});
-    eval {
-	$add_rules->add_string($subnet->{default_subnet},$subnet->{id});
-	};
-    }
-#hotspot nets
-foreach my $subnet (@hotspot_network_list) {
-    next if (!$subnet);
-    $add_rules->add_string($subnet,$hotspot_user_id);
-    }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_newuser_by_regexp {
-my $dbh = shift;
-my $mac = shift;
-my $hostname = shift;
-#custom rules
-if (defined $mac and $mac) {
-    my @user_rules=get_records_sql($dbh,'SELECT id,mac_rule FROM User_list WHERE deleted=0 AND LENGTH(mac_rule)>0');
-    foreach my $user (@user_rules) { if ($mac=~/$user->{mac_rule}/i) { return $user->{id}; } }
-    }
-if (defined $hostname and $hostname) {
-    my @user_rules=get_records_sql($dbh,'SELECT id,hostname_rule FROM User_list WHERE deleted=0 AND LENGTH(hostname_rule)>0');
-    foreach my $user (@user_rules) { if ($hostname=~/$user->{hostname_rule}/i) { return $user->{id}; } }
-    }
-return $default_user_id;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
 sub get_new_user_id {
 my $dbh = shift;
 my $ip  = shift;
 my $mac = shift;
 my $hostname = shift;
-if (!defined $add_rules) { refresh_add_rules($dbh); }
-my $user_id=$add_rules->match_string($ip);
-if (!$user_id) { $user_id=get_newuser_by_regexp($dbh,$mac,$hostname); }
-return $user_id;
+#check ip
+if (defined $ip and $ip) {
+    my $users = new Net::Patricia;
+    #check hotspot
+    my @ip_rules = get_records_sql($dbh,'SELECT * FROM subnets WHERE hotspot=1 AND LENGTH(subnet)>0');
+    foreach my $row (@ip_rules) { $users->add_string($row->{subnet},$config_ref{hotspot_user_id}); }
+    if ($users->match_string($ip)) { return $users->match_string($ip); }
+    #check ip rules
+    @ip_rules = get_records_sql($dbh,'SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0');
+    foreach my $row (@ip_rules) { $users->add_string($row->{rule},$row->{user_id}); }
+    if ($users->match_string($ip)) { return $users->match_string($ip); }
+    }
+
+#check mac
+if (defined $mac and $mac) {
+    my @user_rules=get_records_sql($dbh,'SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0');
+    foreach my $user (@user_rules) {
+        if ($mac=~/$user->{rule}/i) { return $user->{user_id}; }
+        }
+    }
+
+#check hostname
+if (defined $hostname and $hostname) {
+    my @user_rules=get_records_sql($dbh,'SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0');
+    foreach my $user (@user_rules) {
+        if ($hostname=~/$user->{rule}/i) { return $user->{user_id}; }
+        }
+    }
+return $default_user_id;
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -941,6 +923,11 @@ if ($net->{hotspot}) {
 push(@all_network_list,$net->{subnet});
 $all_networks->add_string($net->{subnet});
 }
+
+#remove all rules for default user id and hotspot subnet
+delete_record($dbh,"auth_rules","user_id=".$config_ref{default_user_id});
+delete_record($dbh,"auth_rules","user_id=".$config_ref{hotspot_user_id});
+foreach my $subnet (@hotspot_network_list) { delete_record($dbh,"auth_rules","rule='".$subnet."'"); }
 
 }
 

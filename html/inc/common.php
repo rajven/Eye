@@ -669,6 +669,15 @@ function print_qa_l3int_select($qa_name, $qa_value)
     print "</select>\n";
 }
 
+function print_qa_rule_select($qa_name, $qa_value)
+{
+    print "<select name=\"$qa_name\">\n";
+    print_select_item('Subnet',1,$qa_value);
+    print_select_item('Mac',2,$qa_value);
+    print_select_item('Hostname',3,$qa_value);
+    print "</select>\n";
+}
+
 function print_qa_select($qa_name, $qa_value)
 {
     print "<select name=\"$qa_name\">\n";
@@ -1111,7 +1120,7 @@ return $result;
 function GetDateTimeFromString($date_str) {
 if (!is_a($date_str,'DateTime')) {
     $date_str = urldecode($date_str);
-//    $date_str = preg_replace('/(\'|\")/','',$date_str);
+    $date_str = preg_replace('/(\'|\")/','',$date_str);
     $date1 = DateTime::createFromFormat('Y-m-d H:i:s',$date_str);
     if (!$date1) { $date1 = DateTime::createFromFormat('Y.m.d H:i:s',$date_str); }
     if (!$date1) { $date1 = DateTime::createFromFormat('Y/m/d H:i:s',$date_str); }
@@ -1337,15 +1346,6 @@ function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
 	    }
     if (!is_hotspot($db,$ip) and !empty($msg)) { LOG_WARNING($db, $msg); }
     return $resurrection_id;
-}
-
-function get_user_by_subnet_rules ($db,$ip) {
-$d_sql = "SELECT id, default_subnet FROM User_list WHERE default_subnet IS NOT NULL";
-$t_users = mysqli_query($db, $d_sql);
-while (list ($f_id, $f_rule) = mysqli_fetch_array($t_users)) {
-    if (is_subnet_aton($f_rule,ip2long($ip))) { return $f_id; }
-    }
-return 0;
 }
 
 function get_auth($db, $current_auth)
@@ -3051,21 +3051,23 @@ function get_new_user_id($db, $ip, $mac)
 {
     global $hotspot_user_id;
     global $default_user_id;
-    if (is_hotspot($db, $ip)) { return $hotspot_user_id; }
-    $ip_aton = ip2long($ip);
-    $t_rules = mysqli_query($db, "SELECT id,default_subnet FROM User_list WHERE deleted=0 and LENGTH(default_subnet)>0");
-    while (list ($f_id, $f_net) = mysqli_fetch_array($t_rules)) {
-        $range = cidrToRange($f_net);
-        if ($ip_aton >= ip2long($range[0]) and $ip_aton <= ip2long($range[1])) {
-            return $f_id;
-        }
-    }
-    if (!empty($mac)) {
-        $mac_rules=get_records_sql($db,"SELECT id,mac_rule FROM User_list WHERE deleted=0 AND LENGTH(mac_rule)>0");
-        foreach ($mac_rules as $row) {
-            if (!empty($row['mac_rule']) and preg_match($row['mac_rule'], $mac)) { return $row['id']; }
+    //ip
+    if (!empty($ip)) {
+        if (is_hotspot($db, $ip)) { return $hotspot_user_id; }
+        $ip_aton = ip2long($ip);
+        $t_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0");
+        foreach ($t_rules as $row) {
+            if (!empty($row['rule']) and is_subnet_aton($row['rule'],$ip_aton)) { return $row['user_id']; }
             }
         }
+    //mac
+    if (!empty($mac)) {
+        $mac_rules=get_records_sql($db,"SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0");
+        foreach ($mac_rules as $row) {
+            if (!empty($row['rule']) and preg_match($row['rule'], $mac)) { return $row['user_id']; }
+            }
+        }
+    //the hostname is not processed, because the dhcp-server on the microtic does not return it
     return $default_user_id;
 }
 

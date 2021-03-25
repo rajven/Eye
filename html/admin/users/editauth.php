@@ -232,11 +232,12 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 <td colspan=2><input type="submit" name="moveauth" value=<?php print $btn_move; ?>><?php print_login_select($db_link, 'new_parent', $auth_info['user_id']); ?></td>
 <td><a href=/admin/logs/authlog.php?auth_id=<?php print $id; ?>>Лог</a></td>
 <?php
+print "<td>"; print_url("Трафик за день","/admin/reports/authday.php?id=$id"); print "</td>";
 if ($auth_info['deleted']) {
-    print "<td colspan=2>Deleted: " . $auth_info['changed_time']."</td>";
+    print "<td colspan=1>Deleted: " . $auth_info['changed_time']."</td>";
     print "<td colspan=2 align=right><input type=\"submit\" name=\"recovery\" value=\"Восстановить\"></td>";
 } else {
-    print "<td colspan=2></td>";
+    print "<td colspan=1></td>";
     print "<td colspan=2 align=right><input type=\"submit\" name=\"editauth\" value=\"$btn_save\"></td>";
 }
 ?>

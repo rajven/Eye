@@ -15,13 +15,8 @@ if (isset($_POST["edituser"])) {
     unset($new);
     unset($auth);
     $new["ou_id"] = $_POST["f_ou"] * 1;
-    $new["default_subnet"] = trim($_POST["f_subnet"]);
-    $new["hostname_rule"] = trim($_POST["f_hostname_rule"]);
-    $new["mac_rule"] = trim($_POST["f_mac_rule"]);
     $new["filter_group_id"] = $_POST["f_filter"]*1;
     $new["queue_id"] = $_POST["f_queue"]*1;
-    $range = cidrToRange($new["default_subnet"]);
-    if (ip2long($range[0]) == 0 or ip2long($range[1]) == 0 or ip2long($range[0]) == ip2long($range[1])) { $new["default_subnet"] = ''; }
     if ($default_user_id == $id or $hotspot_user_id == $id) {
         $new["enabled"] = 0;
         $new["blocked"] = 0;
@@ -183,43 +178,44 @@ if ($msg_error) {
 <input type="hidden" name="id" value=<? echo $id; ?>>
 <table class="data">
 <tr>
-<td><?php print $cell_login; ?></td>
-<td><?php print $cell_fio; ?></td>
-<td><?php print $cell_ou; ?></td>
-<td><?php print $cell_enabled; ?></td>
+<td colspan=2><?php print $cell_login; ?></td>
+<td colspan=2><?php print $cell_fio; ?></td>
+<td colspan=2><?php print $cell_ou; ?></td>
 </tr>
 <tr>
-<td><input type="text" name="f_login" value="<?php print $user_info["login"]; ?>" size=25></td>
-<td><input type="text" name="f_fio" value="<?php print $user_info["fio"]; ?>" size=25></td>
-<td><?php print_ou_select($db_link, 'f_ou', $user_info["ou_id"]); ?></td>
-<td><?php print_qa_select('f_enabled', $user_info["enabled"]); ?></td>
+<td colspan=2><input type="text" name="f_login" value="<?php print $user_info["login"]; ?>" size=25></td>
+<td colspan=2><input type="text" name="f_fio" value="<?php print $user_info["fio"]; ?>" size=25></td>
+<td colspan=2><?php print_ou_select($db_link, 'f_ou', $user_info["ou_id"]); ?></td>
 </tr>
 <tr>
 <td>Фильтр</td>
 <td>Шейпер</td>
+<td><?php print $cell_enabled; ?></td>
 <td><?php print $cell_perday; ?></td>
 <td><?php print $cell_permonth; ?></td>
+<td><?php print $cell_blocked; ?></td>
 </tr>
 <tr>
 <td><?php print_group_select($db_link, 'f_filter', $user_info["filter_group_id"]); ?></td>
 <td><?php print_queue_select($db_link, 'f_queue', $user_info["queue_id"]); ?></td>
+<td><?php print_qa_select('f_enabled', $user_info["enabled"]); ?></td>
 <td><input type="text" name="f_perday" value="<? echo $user_info["day_quota"]; ?>" size=5></td>
 <td><input type="text" name="f_permonth" value="<? echo $user_info["month_quota"]; ?>" size=5></td>
-</tr>
-<tr>
-<td>IP rule</td>
-<td>Dhcp Hostname rule</td>
-<td>Mac rule</td>
-<td><?php print $cell_blocked; ?></td>
-<tr>
-<td><input type="text" name="f_subnet" value="<?php print $user_info["default_subnet"]; ?>" size=20></td>
-<td><input type="text" name="f_hostname_rule" value="<?php print $user_info["hostname_rule"]; ?>" size=20></td>
-<td><input type="text" name="f_mac_rule" value="<?php print $user_info["mac_rule"]; ?>" size=20></td>
 <td><?php print_qa_select('f_blocked', $user_info["blocked"]); ?></td>
 </tr>
 <tr>
-<td><input value="Трафик за день" type="button"	onclick="location.href='/admin/reports/userday.php?id=<? echo $id?>'"></td>
-<td colspan=2>Created: <?php print $user_info["timestamp"]; ?></td>
+<?php
+print "<td>"; print_url("Список правил","/admin/users/edit_rules.php?id=$id"); print "</td>";
+$rule_count = get_count_records($db_link,"auth_rules","user_id=".$id);
+if ($rule_count>0) { print "<td colspan=3> Count: ".$rule_count."</td>"; } else { print "<td colspan=3></td>"; }
+?>
+<td colspan=2>Created: <?php print $user_info["timestamp"]; ?></td><td></td>
+</tr>
+<tr>
+<?php
+print "<td colspan=2>"; print_url("Трафик за день","/admin/reports/userday.php?id=$id"); print "</td>";
+?>
+<td colspan=3></td>
 <td><input type="submit" name="edituser" value=<?php print $btn_save; ?>></td>
 </tr>
 </table>
