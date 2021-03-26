@@ -14,7 +14,7 @@ if (!empty($_GET['date_start']) or !empty($_POST['date_start'])) {
     } else {
     if (!empty($_SESSION[$page_url]['date_start'])) {
         $date1 = $_SESSION[$page_url]['date_start'];
-        $datetime_start = DateTime::createFromFormat('Y-m-d',$date1);
+        $datetime_start = GetDateTimeFromString($date1);
         $time_start = $datetime_start->getTimestamp();
         } else {
         $date1 = $datetime_start->format('Y-m-d');
@@ -30,7 +30,7 @@ if (!empty($_POST['date_stop']) or !empty($_GET['date_stop'])) {
     } else {
     if (!empty($_SESSION[$page_url]['date_stop'])) {
         $date2 = $_SESSION[$page_url]['date_stop'];
-        $datetime_stop = DateTime::createFromFormat('Y-m-d',$date2);
+        $datetime_stop = GetDateTimeFromString($date2);
         $time_stop = $datetime_stop->getTimestamp();
         }
     }

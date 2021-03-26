@@ -925,9 +925,9 @@ $all_networks->add_string($net->{subnet});
 }
 
 #remove all rules for default user id and hotspot subnet
-delete_record($dbh,"auth_rules","user_id=".$config_ref{default_user_id});
-delete_record($dbh,"auth_rules","user_id=".$config_ref{hotspot_user_id});
-foreach my $subnet (@hotspot_network_list) { delete_record($dbh,"auth_rules","rule='".$subnet."'"); }
+#delete_record($dbh,"auth_rules","user_id=".$config_ref{default_user_id});
+#delete_record($dbh,"auth_rules","user_id=".$config_ref{hotspot_user_id});
+#foreach my $subnet (@hotspot_network_list) { delete_record($dbh,"auth_rules","rule='".$subnet."'"); }
 
 }
 

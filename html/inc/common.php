@@ -1130,7 +1130,10 @@ if (!is_a($date_str,'DateTime')) {
     if (!$date1) { $date1 = DateTime::createFromFormat('Y-m-d|',$date_str); }
     if (!$date1) { $date1 = DateTime::createFromFormat('Y.m.d|',$date_str); }
     if (!$date1) { $date1 = DateTime::createFromFormat('Y/m/d|',$date_str); }
-    if (!$date1) { $date1 = new DateTime; }
+    if (!$date1) {
+        $date1 = new DateTime; 
+        $date1->setTime(0,0,0,1);
+        }
     } else { return $date_str; }
 return $date1;
 }
