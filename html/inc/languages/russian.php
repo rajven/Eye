@@ -37,6 +37,7 @@ $cell_ip = "IP";
 $cell_mac = "MAC";
 $cell_clientid = "Client-id";
 $cell_comment = "Комментарий";
+$cell_wikiname = "Wiki Name";
 $cell_filter = "Фильтр";
 $cell_proxy = "Proxy";
 $cell_dhcp = "Dhcp";

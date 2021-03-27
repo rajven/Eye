@@ -49,6 +49,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             $new['mac'] = mac_dotted($_POST["f_mac"]);
             $new['clientid'] = $_POST["f_clientid"];
             $new['comments'] = $_POST["f_comments"];
+            $new['WikiName'] = $_POST["f_wiki"];
             $f_dnsname=trim($_POST["f_dns_name"]);
             if (!empty($f_dnsname) and checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) { $new['dns_name'] = $f_dnsname; }
             if (empty($f_dnsname)) { $new['dns_name'] = ''; }
@@ -172,20 +173,20 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 <tr>
 <td width=200><?php print $cell_dns_name." &nbsp | &nbsp "; print_url("Альясы","/admin/users/edit_alias.php?id=$id"); ?></td>
 <td width=200><?php print $cell_comment; ?></td>
+<td width=200><?php print $cell_wikiname; ?></td>
 <td width=70><?php print $cell_enabled; ?></td>
 <td width=70><?php print $cell_blocked; ?></td>
 <td width=70><?php print $cell_perday; ?></td>
 <td width=70><?php print $cell_permonth; ?></td>
-<td width=70><?php print $cell_connection; ?></td>
 </tr>
 <tr>
 <td><input type="text" name="f_dns_name" value="<? echo $auth_info['dns_name']; ?>" pattern="^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$"></td>
 <td><input type="text" name="f_comments" value="<? echo $auth_info['comments']; ?>"></td>
+<td><input type="text" name="f_wiki" value="<? echo $auth_info['WikiName']; ?>"></td>
 <td><?php print_qa_select('f_enabled', $auth_info['enabled']); ?></td>
 <td><?php print_qa_select('f_blocked', $auth_info['blocked']); ?></td>
 <td><input type="text" name="f_day_q" value="<? echo $auth_info['day_quota']; ?>" size=5></td>
 <td><input type="text" name="f_month_q"	value="<? echo $auth_info['month_quota']; ?>" size=5></td>
-<td><?php print get_connection($db_link, $id); ?></td>
 </tr>
 <tr>
 <td><?php print $cell_ip; ?></td>
@@ -222,25 +223,29 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 <td></td>
 </tr>
 <tr>
-<td><?php print "Created: " . $auth_info['timestamp']; ?> </td>
-<td colspan=2><?php print "Dhcp status: " . $dhcp_str; ?></td>
-<td colspan=2><?php print "Dhcp hostname: " . $auth_info['dhcp_hostname']; ?></td>
-<td colspan=2><?php print "Last found: " . $auth_info['last_found']; ?></td>
-<td></td>
-</tr>
-<tr>
 <td colspan=2><input type="submit" name="moveauth" value=<?php print $btn_move; ?>><?php print_login_select($db_link, 'new_parent', $auth_info['user_id']); ?></td>
 <td><a href=/admin/logs/authlog.php?auth_id=<?php print $id; ?>>Лог</a></td>
 <?php
 print "<td>"; print_url("Трафик за день","/admin/reports/authday.php?id=$id"); print "</td>";
 if ($auth_info['deleted']) {
-    print "<td colspan=1>Deleted: " . $auth_info['changed_time']."</td>";
-    print "<td colspan=2 align=right><input type=\"submit\" name=\"recovery\" value=\"Восстановить\"></td>";
+    print "<td colspan=2>Deleted: " . $auth_info['changed_time']."</td>";
+    print "<td colspan=1 align=right><input type=\"submit\" name=\"recovery\" value=\"Восстановить\"></td>";
 } else {
-    print "<td colspan=1></td>";
-    print "<td colspan=2 align=right><input type=\"submit\" name=\"editauth\" value=\"$btn_save\"></td>";
+    print "<td colspan=2></td>";
+    print "<td colspan=1 align=right><input type=\"submit\" name=\"editauth\" value=\"$btn_save\"></td>";
 }
 ?>
+</tr>
+<tr >
+<td  class="data" colspan=7>
+<?php
+print "Created: " . $auth_info['timestamp'];
+print "&nbsp Dhcp: " . $dhcp_str;
+print "&nbsp hostname: " . $auth_info['dhcp_hostname'];
+print "&nbsp Last: " . $auth_info['last_found'];
+print "&nbsp ".get_connection($db_link, $id);
+?>
+</td>
 </tr>
 </table>
 <?
@@ -249,6 +254,7 @@ if ($msg_error) {
 }
 ?>
 </form>
+<br>
 <?
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

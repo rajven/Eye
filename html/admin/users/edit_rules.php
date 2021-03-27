@@ -52,14 +52,7 @@ if (isset($_POST["s_create"])) {
 
 unset($_POST);
 
-global $default_user_id;
-global $hotspot_user_id;
-
-//cleanup hotspot subnet rules
-delete_record($db_link,"auth_rules","user_id=".$default_user_id);
-delete_record($db_link,"auth_rules","user_id=".$hotspot_user_id);
-$t_hotspot = get_records_sql($db_link,"subnets","hotspot=1");
-foreach ($t_hotspot as $row) { delete_record($db_link,"auth_rules","rule='".$row['subnet']."'"); }
+fix_auth_rules($db_link);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 

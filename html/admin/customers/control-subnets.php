@@ -115,6 +115,8 @@ if (isset($_POST["s_create"])) {
 
 unset($_POST);
 
+fix_auth_rules($db_link);
+
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
 print_control_submenu($page_url);

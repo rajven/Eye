@@ -1196,6 +1196,16 @@ $set_auth['enabled'] = $user_rec['enabled'];
 update_record($db, "User_auth", "id=$auth_id", $set_auth);
 }
 
+function fix_auth_rules($db) {
+global $default_user_id;
+global $hotspot_user_id;
+//cleanup hotspot subnet rules
+delete_record($db,"auth_rules","user_id=".$default_user_id);
+delete_record($db,"auth_rules","user_id=".$hotspot_user_id);
+$t_hotspot = get_records_sql($db,"subnets","hotspot=1");
+foreach ($t_hotspot as $row) { delete_record($db,"auth_rules","rule='".$row['subnet']."'"); }
+}
+
 function new_auth($db, $ip, $mac, $user_id)
 {
     $ip_aton = ip2long($ip);

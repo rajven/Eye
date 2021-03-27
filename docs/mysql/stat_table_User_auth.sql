@@ -17,6 +17,7 @@ CREATE TABLE `User_auth` (
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `comments` text DEFAULT NULL,
   `dns_name` varchar(60) NOT NULL DEFAULT '',
+  `WikiName` VARCHAR(250) DEFAULT NULL;
   `dhcp_acl` text DEFAULT NULL,
   `queue_id` int(11) NOT NULL DEFAULT 0,
   `mac` varchar(20) NOT NULL DEFAULT '',
