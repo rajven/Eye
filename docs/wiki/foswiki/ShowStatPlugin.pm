@@ -108,13 +108,13 @@ my $res = $sth->fetchrow_hashref();
 if ($res) {
 
     my $cSQL = "SELECT * FROM `config` WHERE option_id=";
-    my $sth1 = $dbh->prepare($SQL."57");
+    my $sth1 = $dbh->prepare($cSQL."57");
     $sth1->execute;
     my $nagios_row = $sth1->fetchrow_hashref();
     my $nagios_url;
     if ($nagios_row) { $nagios_url = $nagios_row->{value}."/cgi-bin/status.cgi?navbarsearch=1&host=".$host; }
 
-    $sth1 = $dbh->prepare($SQL."62");
+    $sth1 = $dbh->prepare($cSQL."62");
     $sth1->execute;
     my $stat_row = $sth1->fetchrow_hashref();
     my $stat_url;
