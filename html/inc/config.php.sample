@@ -16,11 +16,6 @@ $dbpass="password";
 #$cacti_dbhost="cacti_host";
 #$cacti_dbname="cacti";
 
-#$cacti_url_path = 'cacti_utl';
-#$nagios_url_path='nagios-cgi-bin';
-
 $ipcam_group_id=5;
-
-#$torrus_url='http://torrus.server.ru/Collector?nodeid=if//HOST_IP//IF_NAME////inoutbps';
 
 ?>

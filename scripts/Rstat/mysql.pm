@@ -809,6 +809,14 @@ $config_ref{enable_quotes} = get_option($dbh,54);
 $config_ref{netflow_step} = get_option($dbh,55);
 $config_ref{traffic_ipstat_history} = get_option($dbh,56);
 
+$config_ref{nagios_url} = get_option($dbh,57);
+$config_ref{cacti_url} = get_option($dbh,58);
+$config_ref{torrus_url} = get_option($dbh,59);
+$config_ref{wiki_url} = get_option($dbh,60);
+$config_ref{stat_url} = get_option($dbh,62);
+
+$config_ref{wiki_path} = get_option($dbh,61);
+
 #$save_detail = 1; id=23
 $save_detail=get_option($dbh,23);
 #$add_unknown_user = 1; id=22

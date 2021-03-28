@@ -2905,11 +2905,11 @@ function get_cacti_graph($host_ip, $port_index)
 {
     global $cacti_dbname;
     global $cacti_dbhost;
-    global $cacti_url_path;
+    global $cacti_url;
     global $dbuser;
     global $dbpass;
 
-    if (! isset($cacti_url_path)) {
+    if (! isset($cacti_url)) {
         return;
     }
 
@@ -2945,7 +2945,7 @@ function get_cacti_graph($host_ip, $port_index)
         return;
     }
 
-    $result = $cacti_url_path . "/graph_image.php?local_graph_id=" . $graph_id;
+    $result = $cacti_url . "/graph_image.php?local_graph_id=" . $graph_id;
     return $result;
 }
 
@@ -3177,6 +3177,19 @@ function init_option($db)
     if (! isset($hotspot_user_id)) {
         $hotspot_user_id = $default_user_id;
     }
+
+    global $cacti_url;
+    $cacti_url = get_option($db, 58);
+    if (preg_match('/127.0.0.1/', $cacti_url)) { $cacti_url=NULL; }
+
+    global $nagios_url;
+    $nagios_url = get_option($db, 57).'/cgi-bin';
+    if (preg_match('/127.0.0.1/', $nagios_url)) { $nagios_url=NULL; }
+
+    global $torrus_url;
+    $torrus_url = get_option($db, 59).'/Collector?nodeid=if//HOST_IP//IF_NAME////inoutbps';
+    if (preg_match('/127.0.0.1/', $torrus_url)) { $torrus_url=NULL; }
+
 }
 
 init_option($db_link);
