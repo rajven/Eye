@@ -60,7 +60,8 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     if (isset($_POST["f_wan"])) { $new['wan_int'] = $_POST["f_wan"]; }
     if (isset($_POST["f_lan"])) { $new['lan_int'] = $_POST["f_lan"]; }
     if (isset($_POST["f_building_id"])) { $new['building_id'] = $_POST["f_building_id"] * 1; }
-    if (isset($_POST["f_user_id"])) { $new['user_id'] = $_POST["f_user_id"] * 1; }
+    $new['user_id'] = get_user_by_ip($db_link,$new['ip']);
+    if (!isset($new['user_id']) or empty($new['user_id'])) { $new['user_id']=0; }
     if (isset($_POST["f_nagios"])) { $new['nagios'] = $_POST["f_nagios"] * 1; }
     if (empty($new['nagios'])) { $new['nagios_status'] = 'UP'; }
     if (isset($_POST["f_vendor_id"])) { $new['vendor_id'] = $_POST["f_vendor_id"] * 1; }
@@ -115,11 +116,11 @@ print "<td class=\"data\" colspan=2><input type=\"text\" size=50 name='f_SN' val
 print "</tr>\n";
 
 print "<tr><td>Расположен</td><td colspan=2>Комментарий</td>";
-if (isset($device['user_id']) and $device['user_id']>0) { print "<td align=right><a href=/admin/users/edituser.php?id=".$device['user_id'].">Auth user</a><td>\n"; } else { print "<td>Auth user<td>"; }
+print "<td align=right>Auth user<td>";
 print "</tr><tr>";
 print "<td class=\"data\">"; print_building_select($db_link, 'f_building_id', $device['building_id']); print "</td>\n";
 print "<td class=\"data\" colspan=2><input type=\"text\" size=50 name='f_comment' value='".$device['comment']."'></td>\n";
-print "<td class=\"data\">"; print_login_select($db_link,'f_user_id', $device['user_id']); print "</td>\n";
+if (isset($device['user_id']) and $device['user_id']>0) { print "<td align=right><a href=/admin/users/edituser.php?id=".$device['user_id'].">".get_login($db_link,$device['user_id'])."</a><td>\n"; } else { print "<td>Unknown<td>"; }
 print "</tr>";
 
 if ($device['device_type']==2) {

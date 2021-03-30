@@ -989,6 +989,14 @@ function get_auth_by_ip($db, $ip)
     return $f_auth_id;
 }
 
+function get_user_by_ip($db, $ip)
+{
+    $d_sql = "SELECT user_id FROM User_auth WHERE ip='$ip' and deleted=0";
+    $auth_q = mysqli_query($db, $d_sql);
+    list ($f_auth_id) = mysqli_fetch_array($auth_q);
+    return $f_auth_id;
+}
+
 function print_auth_port($db, $port_id)
 {
     $d_sql = "SELECT A.ip,A.ip_int,A.mac,A.id,A.dns_name FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";

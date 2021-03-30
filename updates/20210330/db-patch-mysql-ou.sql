@@ -14,3 +14,6 @@ UPDATE `OU` SET `nagios_template` = 'ups' WHERE `OU`.`id` = 8;
 UPDATE `OU` SET `nagios_template` = 'security' WHERE `OU`.`id` = 9;
 UPDATE `OU` SET `nagios_template` = 'routers' WHERE `OU`.`id` = 10;
 UPDATE `OU` SET `nagios_template` = 'ap' WHERE `OU`.`id` = 12;
+INSERT INTO `vendors` (`id`, `name`) VALUES (33, 'QSC');
+ALTER TABLE `devices` CHANGE `device_model_id` `device_model_id` INT NULL DEFAULT '89';
+ALTER TABLE `User_auth` CHANGE `device_model_id` `device_model_id` INT(11) NULL DEFAULT '87';

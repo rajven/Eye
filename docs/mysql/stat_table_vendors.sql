@@ -45,7 +45,8 @@ INSERT INTO `vendors` (`id`, `name`) VALUES
 (29, 'Hikvision'),
 (30, 'HW-group'),
 (31, 'Netping'),
-(32, 'Trassir');
+(32, 'Trassir'),
+(33, 'QSC');
 
 --
 ALTER TABLE `vendors`
