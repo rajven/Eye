@@ -471,7 +471,7 @@ foreach ($params_arr as $row) {
     $new_params.="&".$key."=".$value;
     }
 $new_params = preg_replace('/^&/','',$new_params);
-$new_url = $fpage."?".$new_params;
+if ($new_params === '=') { $new_url = $fpage; } else { $new_url = $fpage."?".$new_params; }
 return $new_url;
 }
 
@@ -535,6 +535,7 @@ print "<div id='submenu'>\n";
 print_submenu_url('Активное сетевое оборудование','/admin/devices/index.php',$current_page,0);
 print_submenu_url('Расположение','/admin/devices/building.php',$current_page,0);
 print_submenu_url('Удалённые','/admin/devices/deleted.php',$current_page,0);
+print_submenu_url('Модели устройств','/admin/devices/devmodels.php',$current_page,0);
 print_submenu_url('Порты по вланам','/admin/devices/portsbyvlan.php',$current_page,1);
 print "</div>\n";
 }
@@ -731,7 +732,19 @@ function print_enabled_select($qa_name, $qa_value)
 
 function print_vendor_select($db, $qa_name, $qa_value)
 {
-    print "<select name=\"$qa_name\" class=\"js-select-single\">\n";
+    print "<select name=\"$qa_name\" class=\"js-select-single\" style=\"width: 100%\">\n";
+    $sSQL = "SELECT id,`name` FROM `vendors` order by `name`";
+    $vendors = mysqli_query($db, $sSQL);
+    print_select_item('Всё',0,$qa_value);
+    while (list ($v_id, $v_name) = mysqli_fetch_array($vendors)) {
+	print_select_item($v_name,$v_id,$qa_value);
+    }
+    print "</select>\n";
+}
+
+function print_vendor_set($db, $qa_name, $qa_value)
+{
+    print "<select name=\"$qa_name\" class=\"js-select-single\" style=\"width: 100%\">\n";
     $sSQL = "SELECT id,`name` FROM `vendors` order by `name`";
     $vendors = mysqli_query($db, $sSQL);
     while (list ($v_id, $v_name) = mysqli_fetch_array($vendors)) {
@@ -856,7 +869,7 @@ function print_device_port_select($db, $field_name, $device_id, $target_id)
 
 function print_device_select($db, $field_name, $device_id)
 {
-    print "<select name=\"$field_name\" class=\"js-select-single\">\n";
+    print "<select name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 order by D.device_name ASC";
     $t_device = mysqli_query($db, $d_sql);
     print_select_item('Все',0,$device_id);
@@ -882,7 +895,7 @@ function print_vlan_select($db, $field_name, $vlan)
 
 function print_device_select_ip($db, $field_name, $device_ip)
 {
-    print "<select name=\"$field_name\" class=\"js-select-single\">\n";
+    print "<select name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT D.device_name, D.ip FROM devices AS D Where D.deleted=0 order by D.device_name ASC";
     $t_device = mysqli_query($db, $d_sql);
     print_select_item('Все','',$device_ip);
@@ -894,7 +907,7 @@ function print_device_select_ip($db, $field_name, $device_ip)
 
 function print_syslog_device_select($db, $field_name, $syslog_filter, $device_ip)
 {
-    print "<select name=\"$field_name\" class=\"js-select-single\">\n";
+    print "<select name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT R.ip, D.device_name FROM (SELECT DISTINCT ip FROM remote_syslog WHERE $syslog_filter) AS R LEFT JOIN (SELECT ip, device_name FROM devices WHERE deleted=0) AS D ON R.ip=D.ip ORDER BY R.ip ASC";
     $t_device = mysqli_query($db, $d_sql);
     print_select_item('Все','',$device_ip);
@@ -1504,7 +1517,7 @@ function write_log($db, $msg, $level)
 
 function print_year_select($year_name, $year)
 {
-    print "<select name=\"$year_name\" class=\"js-select-single\">\n";
+    print "<select name=\"$year_name\" class=\"js-select-single\" >\n";
     for ($i = $year - 10; $i <= $year + 10; $i ++) {
 	print_select_item($i,$i,$year);
     }
@@ -1515,7 +1528,7 @@ function print_date_select($dd, $mm, $yy)
 {
     if ($dd >= 1) {
         print "<b>День</b>\n";
-        print "<select name=\"day\" class=\"js-select-single\">\n";
+        print "<select name=\"day\" class=\"js-select-single\" >\n";
         for ($i = 1; $i <= 31; $i ++) {
 	    print_select_item($i,$i,$dd);
         }
@@ -1524,7 +1537,7 @@ function print_date_select($dd, $mm, $yy)
 
     if ($mm >= 1) {
         print "<b>Месяц</b>\n";
-        print "<select name=\"month\" class=\"js-select-single\">\n";
+        print "<select name=\"month\" class=\"js-select-single\" >\n";
         for ($i = 1; $i <= 12; $i ++) {
             $month_name = strftime("%B", strtotime("$i/01/$yy"));
 	    print_select_item($month_name,$i,$mm);
@@ -1540,7 +1553,7 @@ function print_date_select2($dd, $mm, $yy)
 {
     if ($dd >= 1) {
         print "<b>День</b>\n";
-        print "<select name=\"day2\" class=\"js-select-single\">\n";
+        print "<select name=\"day2\" class=\"js-select-single\" >\n";
         for ($i = 1; $i <= 31; $i ++) {
 	    print_select_item($i,$i,$dd);
         }
@@ -1549,7 +1562,7 @@ function print_date_select2($dd, $mm, $yy)
 
     if ($mm >= 1) {
         print "<b>Месяц</b>\n";
-        print "<select name=\"month2\" class=\"js-select-single\">\n";
+        print "<select name=\"month2\" class=\"js-select-single\" >\n";
         for ($i = 1; $i <= 12; $i ++) {
             $month_name = strftime("%B", strtotime("$i/01/$yy"));
 	    print_select_item($month_name,$i,$mm);

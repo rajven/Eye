@@ -214,12 +214,6 @@ ALTER TABLE `variables`
   ADD KEY `clear_time` (`clear_time`,`created`);
 
 --
--- Индексы таблицы `vendors`
---
-ALTER TABLE `vendors`
-  ADD PRIMARY KEY (`id`);
-
---
 -- AUTO_INCREMENT для сохранённых таблиц
 --
 

@@ -1,6 +1,3 @@
-
--- --------------------------------------------------------
-
 --
 -- Структура таблицы `vendors`
 --
@@ -10,6 +7,11 @@ CREATE TABLE `vendors` (
   `name` varchar(40) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+-- Очистить таблицу перед добавлением данных `vendors`
+--
+
+TRUNCATE TABLE `vendors`;
 --
 -- Дамп данных таблицы `vendors`
 --
@@ -44,3 +46,9 @@ INSERT INTO `vendors` (`id`, `name`) VALUES
 (30, 'HW-group'),
 (31, 'Netping'),
 (32, 'Trassir');
+
+--
+ALTER TABLE `vendors`
+  ADD PRIMARY KEY (`id`);
+ALTER TABLE `vendors`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;

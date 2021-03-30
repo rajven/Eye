@@ -16,7 +16,7 @@ CREATE TABLE `OU` (
 --
 
 INSERT INTO `OU` (`id`, `ou_name`, `nagios_dir`) VALUES
-(0, 'Все', '/etc/nagios/any'),
+(0, '!Всё', '/etc/nagios/any'),
 (1, 'Сервера', NULL),
 (2, 'Администраторы', NULL),
 (3, 'Пользователи', NULL),
@@ -31,5 +31,5 @@ INSERT INTO `OU` (`id`, `ou_name`, `nagios_dir`) VALUES
 (12, 'WiFi AP', '/etc/nagios/ap'),
 (13, 'Техподдержка', NULL),
 (14, 'POS-терминалы', NULL),
-(23, 'WiFi', NULL),
-(24, 'VPN', NULL);
+(15, 'WiFi', NULL),
+(16, 'VPN', NULL);
