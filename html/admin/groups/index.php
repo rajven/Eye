@@ -15,17 +15,36 @@ if (isset($_POST["remove"])) {
     }
 
 if (isset($_POST['save'])) {
-    $len = is_array($_POST['id']) ? count($_POST['id']) : 0;
+    $saved = array();
+    //button save
+    $len = is_array($_POST['save']) ? count($_POST['save']) : 0;
     for ($i = 0; $i < $len; $i ++) {
         $save_id = intval($_POST['save'][$i]);
-        if ($save_id == 0) {
-            continue;
+        if ($save_id == 0) { continue;  }
+        array_push($saved,$save_id);
         }
+    //select box
+    $len = is_array($_POST['f_id']) ? count($_POST['f_id']) : 0;
+    if ($len>1) {
+        for ($i = 0; $i < $len; $i ++) {
+            $save_id = intval($_POST['f_id'][$i]);
+            if ($save_id == 0) { continue; }
+            if (!in_array($save_id, $saved)) { array_push($saved,$save_id); }
+            }
+        }
+    //save changes
+    $len = is_array($saved) ? count($saved) : 0;
+    for ($i = 0; $i < $len; $i ++) {
+        $save_id = intval($saved[$i]);
+        if ($save_id == 0) { continue;  }
         $len_all = is_array($_POST['id']) ? count($_POST['id']) : 0;
         for ($j = 0; $j < $len_all; $j ++) {
             if (intval($_POST['id'][$j]) != $save_id) { continue; }
             $new['ou_name'] = $_POST['f_group_name'][$j];
             $new['nagios_dir'] = $_POST['f_nagios'][$j];
+            $new['nagios_host_use'] = $_POST['f_nagios_host'][$j];
+            $new['nagios_ping'] = $_POST['f_nagios_ping'][$j];
+            $new['nagios_default_service'] = $_POST['f_nagios_service'][$j];
             update_record($db_link, "OU", "id='{$save_id}'", $new);
             }
         }
@@ -55,6 +74,9 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 <td><b>Id</b></td>
 <td><b>Название</b></td>
 <td><b>Nagios directory</b></td>
+<td><b>Host template</b></td>
+<td><b>Ping</b></td>
+<td><b>Host service</b></td>
 <td><input type="submit" name="remove" value="Удалить"></td>
 </tr>
 <?
@@ -65,6 +87,9 @@ foreach ($t_ou as $row) {
     print "<td class=\"data\"><input type=\"hidden\" name='id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_group_name[]' value='{$row['ou_name']}'></td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_nagios[]' value='{$row['nagios_dir']}'></td>\n";
+    print "<td class=\"data\"><input type=\"text\" name='f_nagios_host[]' value='{$row['nagios_host_use']}'></td>\n";
+    print "<td class=\"data\">"; print_qa_select("f_nagios_ping[]",$row['nagios_ping']); print "</td>\n";
+    print "<td class=\"data\"><input type=\"text\" name='f_nagios_service[]' value='{$row['nagios_default_service']}'></td>\n";
     print "<td class=\"data\"><button name='save[]' value='{$row['id']}'>Сохранить</button></td>\n";
     print "</tr>\n";
 }

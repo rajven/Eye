@@ -60,7 +60,7 @@ if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field
 <td><b><a href=index.php?sort=device_type&order=<?php print $new_order; ?>>Тип</a></b></td>
 <td><b><a href=index.php?sort=device_name&order=<?php print $new_order; ?>>Название</a></b></td>
 <td><b><a href=index.php?sort=ip&order=<?php print $new_order; ?>>IP</a></b></td>
-<td><b><a href=index.php?sort=device_model&order=<?php print $new_order; ?>>Модель</a></b></td>
+<td><b><a href=index.php?sort=device_model_id&order=<?php print $new_order; ?>>Модель</a></b></td>
 <td><b><a href=index.php?sort=building_id&order=<?php print $new_order; ?>>Расположен</a></b></td>
 <td><b>Портов</b></td>
 <td><b>Nagios</b></td>
@@ -89,7 +89,7 @@ foreach ($switches as $row) {
         } else {
         print "<td class=\"$cl\">".$row['ip']."</td>\n";
         }
-    print "<td class=\"$cl\">" . get_vendor_name($db_link, $row['vendor_id']) . " " . $row['device_model'] . "</td>\n";
+    print "<td class=\"$cl\">" . get_vendor_name($db_link, $row['vendor_id']) . " " . get_device_model($db_link,$row['device_model_id']) . "</td>\n";
     print "<td class=\"$cl\">" . get_building($db_link, $row['building_id']) . "(" . $row['comment'] . ")</td>\n";
     print "<td class=\"$cl\">".$row['port_count']."</td>\n";
     print "<td class=\"$cl\">" . get_qa($row['nagios']) . "</td>\n";

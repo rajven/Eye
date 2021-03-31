@@ -39,7 +39,7 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     }
     unset($new);
     if (isset($_POST["f_device_name"])) { $new['device_name'] = substr($_POST["f_device_name"], 0, 50); }
-    if (isset($_POST["f_device_model"])) { $new['device_model'] = substr($_POST["f_device_model"], 0, 50); }
+    if (isset($_POST["f_device_model_id"])) { $new['device_model_id'] = $_POST["f_device_model_id"]*1; }
     if (isset($_POST["f_devtype_id"])) { $new['device_type'] = $_POST["f_devtype_id"]*1; }
     if (isset($_POST["f_comment"])) { $new['comment'] = $_POST["f_comment"]; }
     if (isset($_POST["f_SN"])) { $new['SN'] = $_POST["f_SN"]; }
@@ -64,7 +64,7 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     if (!isset($new['user_id']) or empty($new['user_id'])) { $new['user_id']=0; }
     if (isset($_POST["f_nagios"])) { $new['nagios'] = $_POST["f_nagios"] * 1; }
     if (empty($new['nagios'])) { $new['nagios_status'] = 'UP'; }
-    if (isset($_POST["f_vendor_id"])) { $new['vendor_id'] = $_POST["f_vendor_id"] * 1; }
+    $new['vendor_id'] = get_device_model_vendor($db_link,$new['device_model_id']);
     if (isset($_POST["f_port_count"])) { $new['port_count'] = $sw_ports; }
     update_record($db_link, "devices", "id='$id'", $new);
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -104,14 +104,12 @@ print "<td class=\"data\"><input type=\"text\" name='f_port_count' value='".$dev
 print "</tr>\n";
 ?>
 </tr>
-<td>Вендор</td>
-<td>Модель</td>
+<td colspan=2>Модель</td>
 <td colspan=2>SN</td>
 
 <?php
 print "<tr>\n";
-print "<td class=\"data\">"; print_vendor_select($db_link, 'f_vendor_id', $device['vendor_id']); print "</td>\n";
-print "<td class=\"data\"><input type=\"text\" name='f_device_model' value='".$device['device_model']."'></td>\n";
+print "<td class=\"data\" colspan=2>"; print_device_model_select($db_link,'f_device_model_id',$device['device_model_id']); print "</td>\n";
 print "<td class=\"data\" colspan=2><input type=\"text\" size=50 name='f_SN' value='".$device['SN']."'></td>\n";
 print "</tr>\n";
 

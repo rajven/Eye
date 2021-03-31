@@ -53,7 +53,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             $f_dnsname=trim($_POST["f_dns_name"]);
             if (!empty($f_dnsname) and checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) { $new['dns_name'] = $f_dnsname; }
             if (empty($f_dnsname)) { $new['dns_name'] = ''; }
-            $new['host_model'] = $_POST["f_host_model"];
+            $new['device_model_id'] = $_POST["f_device_model_id"]*1;
             $new['save_traf'] = $_POST["f_save_traf"] * 1;
             $new['dhcp_acl'] = trim($_POST["f_acl"]);
             if ($default_user_id == $parent_id or $hotspot_user_id == $parent_id) {
@@ -214,7 +214,7 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 <td><?php print $cell_traf; ?></td>
 <td></td>
 <tr>
-<td><input type="text" name="f_host_model" value="<? echo $auth_info['host_model']; ?>"></td>
+<td><?php print_device_model_select($db_link,'f_device_model_id',$auth_info['device_model_id']); ?></td>
 <td><input type="text" name="f_handler"	value="<? echo $auth_info['nagios_handler']; ?>"></td>
 <td><input type="text" name="f_acl" value="<? echo $auth_info['dhcp_acl']; ?>"></td>
 <td><?php print_qa_select('f_nagios', $auth_info['nagios']); ?></td>

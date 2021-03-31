@@ -567,12 +567,38 @@ function get_ou($db, $ou_value)
     return $ou_name['ou_name'];
 }
 
+function get_device_model($db, $model_value)
+{
+    if (!isset($model_value)) { return; }
+    $model_name = get_record_sql($db, "SELECT model_name FROM device_models WHERE id=$model_value");
+    if (empty($model_name)) { return; }
+    return $model_name['model_name'];
+}
+
+function get_device_model_vendor($db, $model_value)
+{
+    if (!isset($model_value)) { return; }
+    $model_name = get_record_sql($db, "SELECT vendor_id FROM device_models WHERE id=$model_value");
+    if (empty($model_name)) { return; }
+    return $model_name['vendor_id'];
+}
+
 function get_building($db, $building_value)
 {
     if (!isset($building_value)) { return; }
     $building_name = get_record_sql($db, "SELECT name FROM building WHERE id=$building_value");
     if (empty($building_name)) { return; }
     return $building_name['name'];
+}
+
+function print_device_model_select($db, $device_model_name, $device_model_value)
+{
+    print "<select name=\"$device_model_name\" class=\"js-select-single\" style=\"width: 100%\">\n";
+    $t_device_model = mysqli_query($db, "SELECT M.id,M.model_name,V.name FROM device_models M,vendors V WHERE M.vendor_id = V.id ORDER BY V.name,M.model_name");
+    while (list ($f_device_model_id, $f_device_model_name,$f_vendor_name) = mysqli_fetch_array($t_device_model)) {
+	print_select_item($f_vendor_name." ".$f_device_model_name,$f_device_model_id,$device_model_value);
+    }
+    print "</select>\n";
 }
 
 function print_group_select($db, $group_name, $group_value)

@@ -103,7 +103,8 @@ INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`)
 (86, 'HWg-STE', 30, NULL),
 (87, 'Computer', 1, NULL),
 (88, 'Mobile Phone', 1, NULL),
-(89, 'Switch', 1, NULL);
+(89, 'Switch', 1, NULL),
+(90, 'Projectiondesign F22',34,NULL);
 
 --
 -- Индексы сохранённых таблиц

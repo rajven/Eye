@@ -1,7 +1,8 @@
 ALTER TABLE `devices` ADD `device_model_id` INT NULL DEFAULT NULL AFTER `device_type`;
 ALTER TABLE `User_auth` ADD `device_model_id` INT NULL DEFAULT NULL AFTER `month_quota`;
-ALTER TABLE `OU` ADD `nagios_template` VARCHAR(50) NULL DEFAULT NULL AFTER `nagios_dir`, ADD `nagios_ping` BOOLEAN NOT NULL DEFAULT TRUE AFTER `nagios_template`;
-ALTER TABLE `OU` ADD `nagios_default_service` VARCHAR(100) NOT NULL DEFAULT 'local-service' AFTER `nagios_ping`;
+ALTER TABLE `OU` ADD `nagios_host_use` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;
+ALTER TABLE `OU` ADD `nagios_ping` BOOLEAN NOT NULL DEFAULT TRUE AFTER `nagios_host_use`;
+ALTER TABLE `OU` ADD `nagios_default_service` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL AFTER `nagios_ping`;
 UPDATE `OU` SET `ou_name` = '!Всё' WHERE `OU`.`id` = 0;
 UPDATE `OU` SET `nagios_template` = 'voip' WHERE `OU`.`id` = 4;
 UPDATE `OU` SET `nagios_template` = 'generic-host' WHERE `OU`.`id` = 0;
@@ -17,3 +18,5 @@ UPDATE `OU` SET `nagios_template` = 'ap' WHERE `OU`.`id` = 12;
 INSERT INTO `vendors` (`id`, `name`) VALUES (33, 'QSC');
 ALTER TABLE `devices` CHANGE `device_model_id` `device_model_id` INT NULL DEFAULT '89';
 ALTER TABLE `User_auth` CHANGE `device_model_id` `device_model_id` INT(11) NULL DEFAULT '87';
+INSERT INTO `vendors` (`id`, `name`) VALUES ('34', 'Projectiondesign');
+INSERT INTO `vendors` (`id`, `name`) VALUES ('35', 'Lenovo');

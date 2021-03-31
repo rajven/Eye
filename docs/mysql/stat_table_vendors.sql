@@ -46,8 +46,8 @@ INSERT INTO `vendors` (`id`, `name`) VALUES
 (30, 'HW-group'),
 (31, 'Netping'),
 (32, 'Trassir'),
-(33, 'QSC');
-
+(33, 'QSC'),
+(34, 'Projectiondesign');
 --
 ALTER TABLE `vendors`
   ADD PRIMARY KEY (`id`);
