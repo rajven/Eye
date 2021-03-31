@@ -40,6 +40,7 @@ get_device_by_ip
 get_diff_rec
 get_id_record
 get_new_user_id
+is_hotspot
 GetNowTime
 GetUnixTimeByStr
 GetTimeStrByUnixTime
@@ -438,6 +439,19 @@ return $now_str;
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub is_hotspot {
+my $dbh = shift;
+my $ip  = shift;
+my $users = new Net::Patricia;
+#check hotspot
+my @ip_rules = get_records_sql($dbh,'SELECT * FROM subnets WHERE hotspot=1 AND LENGTH(subnet)>0');
+foreach my $row (@ip_rules) { $users->add_string($row->{subnet},$config_ref{hotspot_user_id}); }
+if ($users->match_string($ip)) { return 1; }
+return 0;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub get_new_user_id {
 my $dbh = shift;
 my $ip  = shift;
@@ -694,11 +708,12 @@ $new_record->{dhcp_time}=$timestamp;
 if ($auth_exists) {
     #found ->Resurrection old record
     my $resurrection_id = get_id_record($db,'User_auth',"ip_int=".$ip_aton." and mac='".$mac."'");
-    db_log_warning($db,"Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac");
+    if (!is_hotspot($db,$ip)) { db_log_warning($db,"Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac"); }
+	    else { db_log_info($db,"Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac"); }
     update_record($db,'User_auth',$new_record,"id=$resurrection_id");
     } else {
     #not found ->create new record
-    db_log_warning($db,"New ip created! ip: $ip mac: $mac");
+    if (!is_hotspot($db,$ip)) { db_log_warning($db,"New ip created! ip: $ip mac: $mac"); } else { db_log_info($db,"New ip created! ip: $ip mac: $mac"); }
     insert_record($db,'User_auth',$new_record);
     }
 #filter and status

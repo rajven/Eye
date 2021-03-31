@@ -1293,6 +1293,7 @@ function new_auth($db, $ip, $mac, $user_id)
     if (!empty($resurrection_id)) {
         apply_auth_rule($db,$resurrection_id,$user_id);
         if (!is_hotspot($db,$ip) and !empty($msg)) { LOG_WARNING($db, $msg); }
+        if (is_hotspot($db,$ip) and !empty($msg)) { LOG_INFO($db, $msg); }
         }
     return $resurrection_id;
 }
@@ -1379,6 +1380,7 @@ function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
 	    $msg.="filter: ".$user_rec['filter_group_id']."\r\n queue_id: ".$user_rec['queue_id']."\r\n enabled: ".$user_rec['enabled']."\r\nid: $resurrection_id";
 	    }
     if (!is_hotspot($db,$ip) and !empty($msg)) { LOG_WARNING($db, $msg); }
+    if (is_hotspot($db,$ip) and !empty($msg)) { LOG_INFO($db, $msg); }
     return $resurrection_id;
 }
 
