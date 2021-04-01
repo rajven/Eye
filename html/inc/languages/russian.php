@@ -36,6 +36,7 @@ $cell_name = "Название";
 $cell_ip = "IP";
 $cell_mac = "MAC";
 $cell_clientid = "Client-id";
+$cell_host_firmware = "Firmware";
 $cell_comment = "Комментарий";
 $cell_wikiname = "Wiki Name";
 $cell_filter = "Фильтр";

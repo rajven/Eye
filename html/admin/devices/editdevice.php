@@ -43,6 +43,7 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     if (isset($_POST["f_devtype_id"])) { $new['device_type'] = $_POST["f_devtype_id"]*1; }
     if (isset($_POST["f_comment"])) { $new['comment'] = $_POST["f_comment"]; }
     if (isset($_POST["f_SN"])) { $new['SN'] = $_POST["f_SN"]; }
+    if (isset($_POST["f_firmware"])) { $new['firmware'] = $_POST["f_firmware"]; }
     if (isset($_POST["f_ip"])) { $new['ip'] = substr($_POST["f_ip"], 0, 15); }
     if (isset($_POST["f_snmp_version"])) { $new['snmp_version'] = $_POST["f_snmp_version"] * 1; }
     if (isset($_POST["f_community"])) { $new['community'] = substr($_POST["f_community"], 0, 50); }
@@ -105,12 +106,14 @@ print "</tr>\n";
 ?>
 </tr>
 <td colspan=2>Модель</td>
-<td colspan=2>SN</td>
+<td> Firmware</td>
+<td>SN</td>
 
 <?php
 print "<tr>\n";
 print "<td class=\"data\" colspan=2>"; print_device_model_select($db_link,'f_device_model_id',$device['device_model_id']); print "</td>\n";
-print "<td class=\"data\" colspan=2><input type=\"text\" size=50 name='f_SN' value='".$device['SN']."'></td>\n";
+print "<td class=\"data\" ><input type=\"text\" name='f_firmware' value='".$device['firmware']."'></td>\n";
+print "<td class=\"data\" ><input type=\"text\" name='f_SN' value='".$device['SN']."'></td>\n";
 print "</tr>\n";
 
 print "<tr><td>Расположен</td><td colspan=2>Комментарий</td>";

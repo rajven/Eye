@@ -47,8 +47,9 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             $new['ip'] = $ip;
             $new['ip_int'] = $ip_aton;
             $new['mac'] = mac_dotted($_POST["f_mac"]);
-            $new['clientid'] = $_POST["f_clientid"];
+//            $new['clientid'] = $_POST["f_clientid"];
             $new['comments'] = $_POST["f_comments"];
+            $new['firmware'] = $_POST["f_firmware"];
             $new['WikiName'] = $_POST["f_wiki"];
             $f_dnsname=trim($_POST["f_dns_name"]);
             if (!empty($f_dnsname) and checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) { $new['dns_name'] = $f_dnsname; }
@@ -165,7 +166,7 @@ if ($auth_info['last_found'] == '0000-00-00 00:00:00') { $auth_info['last_found'
 ?>
 <div id="cont">
 <?
-print "<b> Адрес доступа пользователя <a href=/admin/users/edituser.php?id=".$auth_info['user_id'].">".$parent_name."</a> <b>";
+print "<b> Адрес доступа пользователя <a href=/admin/users/edituser.php?id=".$auth_info['user_id'].">".$parent_name."</a> </b>";
 ?>
 <form name="def" action="editauth.php?id=<? echo $id; ?>" method="post">
 <input type="hidden" name="id" value=<? echo $id; ?>>
@@ -191,7 +192,7 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 <tr>
 <td><?php print $cell_ip; ?></td>
 <td><?php print $cell_mac; ?></td>
-<td><?php print $cell_clientid; ?></td>
+<td><?php print $cell_acl; ?></td>
 <td><?php print $cell_dhcp; ?></td>
 <td><?php print $cell_filter; ?></td>
 <td><?php print $cell_shaper; ?></td>
@@ -199,7 +200,7 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 <tr>
 <td><input type="text" name="f_ip" value="<? echo $auth_info['ip']; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"></td>
 <td><input type="text" name="f_mac" value="<? echo $auth_info['mac']; ?>"></td>
-<td><input type="text" name="f_clientid" value="<? echo $auth_info['clientid']; ?>"></td>
+<td><input type="text" name="f_acl" value="<? echo $auth_info['dhcp_acl']; ?>"></td>
 <td><?php print_qa_select('f_dhcp', $auth_info['dhcp']); ?></td>
 <td><?php print_group_select($db_link, 'f_group_id', $auth_info['filter_group_id']); ?> </td>
 <td><?php print_queue_select($db_link, 'f_queue_id', $auth_info['queue_id']); ?> </td>
@@ -207,16 +208,16 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 </tr>
 <tr>
 <td><?php print $cell_host_model; ?></td>
+<td><?php print $cell_host_firmware; ?></td>
 <td><?php print $cell_nagios_handler; ?></td>
-<td><?php print $cell_acl; ?></td>
 <td><?php print $cell_nagios; ?></td>
 <td><?php print $cell_link; ?></td>
 <td><?php print $cell_traf; ?></td>
 <td></td>
 <tr>
 <td><?php print_device_model_select($db_link,'f_device_model_id',$auth_info['device_model_id']); ?></td>
+<td><input type="text" name="f_firmware" value="<? echo $auth_info['firmware']; ?>"></td>
 <td><input type="text" name="f_handler"	value="<? echo $auth_info['nagios_handler']; ?>"></td>
-<td><input type="text" name="f_acl" value="<? echo $auth_info['dhcp_acl']; ?>"></td>
 <td><?php print_qa_select('f_nagios', $auth_info['nagios']); ?></td>
 <td><?php print_qa_select('f_link', $auth_info['link_check']); ?></td>
 <td><?php print_qa_select('f_save_traf', $auth_info['save_traf']); ?></td>
@@ -225,8 +226,8 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 <tr>
 <td colspan=2><input type="submit" name="moveauth" value=<?php print $btn_move; ?>><?php print_login_select($db_link, 'new_parent', $auth_info['user_id']); ?></td>
 <td><a href=/admin/logs/authlog.php?auth_id=<?php print $id; ?>>Лог</a></td>
+<td></td>
 <?php
-print "<td>"; print_url("Трафик за день","/admin/reports/authday.php?id=$id"); print "</td>";
 if ($auth_info['deleted']) {
     print "<td colspan=2>Deleted: " . $auth_info['changed_time']."</td>";
     print "<td colspan=1 align=right><input type=\"submit\" name=\"recovery\" value=\"Восстановить\"></td>";
@@ -236,14 +237,24 @@ if ($auth_info['deleted']) {
 }
 ?>
 </tr>
+<tr ><td class="data" colspan=7>Status:</td></tr>
 <tr >
-<td  class="data" colspan=7>
+<td>
 <?php
-print "Created: " . $auth_info['timestamp'];
-print "&nbsp Dhcp: " . $dhcp_str;
-print "&nbsp hostname: " . $auth_info['dhcp_hostname'];
-print "&nbsp Last: " . $auth_info['last_found'];
-print "&nbsp ".get_connection($db_link, $id);
+print "Created: " . $auth_info['timestamp']."<br>";
+?>
+</td>
+<td colspan=2>
+<?php
+print "Dhcp event: " . $dhcp_str."<br>";
+print "Dhcp hostname: " . $auth_info['dhcp_hostname']."<br>";
+?>
+</td>
+<td><?php print_url("Трафик за день","/admin/reports/authday.php?id=$id"); ?></td>
+<td colspan=3>
+<?php
+print "Last found: " . $auth_info['last_found']."<br>";
+print "Connected: ".get_connection($db_link, $id)."<br>";
 ?>
 </td>
 </tr>

@@ -533,6 +533,7 @@ print "</div>\n";
 function print_device_submenu ($current_page) {
 print "<div id='submenu'>\n";
 print_submenu_url('Активное сетевое оборудование','/admin/devices/index.php',$current_page,0);
+print_submenu_url('Пассивное оборудование','/admin/devices/index-passive.php',$current_page,0);
 print_submenu_url('Расположение','/admin/devices/building.php',$current_page,0);
 print_submenu_url('Удалённые','/admin/devices/deleted.php',$current_page,0);
 print_submenu_url('Модели устройств','/admin/devices/devmodels.php',$current_page,0);
@@ -758,7 +759,7 @@ function print_enabled_select($qa_name, $qa_value)
 
 function print_vendor_select($db, $qa_name, $qa_value)
 {
-    print "<select name=\"$qa_name\" class=\"js-select-single\" style=\"width: 100%\">\n";
+    print "<select name=\"$qa_name\" class=\"js-select-single\">\n";
     $sSQL = "SELECT id,`name` FROM `vendors` order by `name`";
     $vendors = mysqli_query($db, $sSQL);
     print_select_item('Всё',0,$qa_value);

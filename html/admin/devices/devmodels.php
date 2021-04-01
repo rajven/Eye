@@ -1,4 +1,6 @@
 <?php
+
+$default_displayed=50;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/vendorfilter.php");
@@ -69,12 +71,31 @@ print_device_submenu($page_url);
 ?>
 <div id="cont">
 <form name="def" action="devmodels.php" method="post">
+
 <table class="data">
 <tr>
-<td colspan=3><b>Список моделей</b></td>
-<td colspan=2><?php print_vendor_select($db_link,'vendor_select',$f_vendor_select); ?></td>
+<td><b>Список моделей</b></td>
+<td><?php print_vendor_select($db_link,'vendor_select',$f_vendor_select); ?></td>
+<td>Отображать:<?php print_row_at_pages('rows',$displayed); ?></td>
 <td><input type="submit" name="OK" value="Показать"></td>
 </tr>
+</table>
+
+<?php
+$v_filter='';
+if (!empty($f_vendor_select)) { $v_filter = "WHERE vendor_id=".$f_vendor_select; }
+
+$countSQL="SELECT Count(*) FROM device_models $v_filter";
+$res = mysqli_query($db_link, $countSQL);
+$count_records = mysqli_fetch_array($res);
+$total=ceil($count_records[0]/$displayed);
+if ($page>$total) { $page=$total; }
+if ($page<1) { $page=1; }
+$start = ($page * $displayed) - $displayed;
+print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+
+?>
+<table class="data">
 <tr align="center">
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b>Id</b></td>
@@ -85,9 +106,7 @@ print_device_submenu($page_url);
 <td><input type="submit" name="remove" value="Удалить"></td>
 </tr>
 <?
-$v_filter='';
-if (!empty($f_vendor_select)) { $v_filter = "WHERE vendor_id=".$f_vendor_select; }
-$t_ou = get_records_sql($db_link,'SELECT * FROM device_models '.$v_filter.' ORDER BY vendor_id, model_name');
+$t_ou = get_records_sql($db_link,'SELECT * FROM device_models '.$v_filter." ORDER BY vendor_id, model_name LIMIT $start,$displayed");
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
