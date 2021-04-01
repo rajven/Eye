@@ -24,11 +24,11 @@ if ($sort_field == 'model_name') { $sort_table = 'M'; }
 $sort_url = "<a href=index-passive.php?ou=" . $rou; 
 global $default_user_id;
 
-if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and User_list.ou_id=$rou "; }
+if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and L.ou_id=$rou "; }
 
 if ($rsubnet == 0) { $subnet_filter = ''; } else {
     $subnet_range = get_subnet_range($db_link,$rsubnet);
-    if (!empty($subnet_range)) { $subnet_filter = " and User_auth.ip_int>=".$subnet_range['start']." and User_auth.ip_int<=".$subnet_range['stop']; }
+    if (!empty($subnet_range)) { $subnet_filter = " and A.ip_int>=".$subnet_range['start']." and A.ip_int<=".$subnet_range['stop']; }
     }
 
 $ip_list_filter = $ou_filter.$subnet_filter;
