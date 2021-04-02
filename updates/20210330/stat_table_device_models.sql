@@ -124,4 +124,4 @@ ALTER TABLE `device_models`
 -- AUTO_INCREMENT для таблицы `device_models`
 --
 ALTER TABLE `device_models`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=89;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10000;
