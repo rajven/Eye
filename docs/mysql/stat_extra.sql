@@ -7,9 +7,7 @@
 -- Indexes for table `auth_rules`
 --
 ALTER TABLE `auth_rules`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `rule` (`rule`),
-  ADD KEY `user_id` (`user_id`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `building`
@@ -21,8 +19,7 @@ ALTER TABLE `building`
 -- Indexes for table `config`
 --
 ALTER TABLE `config`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `option` (`option_id`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `config_options`
@@ -48,11 +45,7 @@ ALTER TABLE `Customers`
 -- Indexes for table `devices`
 --
 ALTER TABLE `devices`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `id` (`id`),
-  ADD KEY `ip` (`ip`),
-  ADD KEY `ip_2` (`ip`),
-  ADD KEY `device_type` (`device_type`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `device_l3_interfaces`
@@ -93,23 +86,19 @@ ALTER TABLE `dhcp_log`
 -- Indexes for table `dns_cache`
 --
 ALTER TABLE `dns_cache`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `dns` (`dns`,`ip`),
-  ADD KEY `timestamp` (`timestamp`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `Filter_list`
 --
 ALTER TABLE `Filter_list`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `Name` (`name`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `Group_filters`
 --
 ALTER TABLE `Group_filters`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `GroupId` (`group_id`,`filter_id`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `Group_list`
@@ -142,8 +131,7 @@ ALTER TABLE `OU`
 -- Indexes for table `Queue_list`
 --
 ALTER TABLE `Queue_list`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `id` (`id`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `remote_syslog`
@@ -158,9 +146,7 @@ ALTER TABLE `remote_syslog` ADD FULLTEXT KEY `message` (`message`);
 -- Indexes for table `subnets`
 --
 ALTER TABLE `subnets`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `ip_int_start` (`ip_int_start`,`ip_int_stop`),
-  ADD KEY `dhcp` (`dhcp`,`office`,`hotspot`,`static`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `syslog`
@@ -196,8 +182,7 @@ ALTER TABLE `User_auth`
 -- Indexes for table `User_list`
 --
 ALTER TABLE `User_list`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `users` (`id`,`ou_id`,`enabled`,`blocked`,`deleted`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `User_stats`
@@ -217,9 +202,7 @@ ALTER TABLE `User_stats_full`
 -- Indexes for table `variables`
 --
 ALTER TABLE `variables`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `name` (`name`),
-  ADD KEY `clear_time` (`clear_time`,`created`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `vendors`
@@ -230,189 +213,3 @@ ALTER TABLE `vendors`
 --
 -- AUTO_INCREMENT for dumped tables
 --
-
---
--- AUTO_INCREMENT for table `auth_rules`
---
-ALTER TABLE `auth_rules`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `building`
---
-ALTER TABLE `building`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `config`
---
-ALTER TABLE `config`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `config_options`
---
-ALTER TABLE `config_options`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
-
---
--- AUTO_INCREMENT for table `connections`
---
-ALTER TABLE `connections`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `Customers`
---
-ALTER TABLE `Customers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `devices`
---
-ALTER TABLE `devices`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `device_l3_interfaces`
---
-ALTER TABLE `device_l3_interfaces`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `device_models`
---
-ALTER TABLE `device_models`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10000;
-
---
--- AUTO_INCREMENT for table `device_ports`
---
-ALTER TABLE `device_ports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `device_types`
---
-ALTER TABLE `device_types`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
-
---
--- AUTO_INCREMENT for table `dhcp_log`
---
-ALTER TABLE `dhcp_log`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `dns_cache`
---
-ALTER TABLE `dns_cache`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `Filter_list`
---
-ALTER TABLE `Filter_list`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `Group_filters`
---
-ALTER TABLE `Group_filters`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `Group_list`
---
-ALTER TABLE `Group_list`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `mac_history`
---
-ALTER TABLE `mac_history`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `mac_vendors`
---
-ALTER TABLE `mac_vendors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `OU`
---
-ALTER TABLE `OU`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `Queue_list`
---
-ALTER TABLE `Queue_list`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `remote_syslog`
---
-ALTER TABLE `remote_syslog`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `subnets`
---
-ALTER TABLE `subnets`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `syslog`
---
-ALTER TABLE `syslog`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `Traffic_detail`
---
-ALTER TABLE `Traffic_detail`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `Unknown_mac`
---
-ALTER TABLE `Unknown_mac`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `User_auth`
---
-ALTER TABLE `User_auth`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `User_list`
---
-ALTER TABLE `User_list`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `User_stats`
---
-ALTER TABLE `User_stats`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `User_stats_full`
---
-ALTER TABLE `User_stats_full`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `variables`
---
-ALTER TABLE `variables`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `vendors`
---
-ALTER TABLE `vendors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10000;
