@@ -2,7 +2,7 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `Traffic_detail`
+-- Table structure for table `Traffic_detail`
 --
 
 CREATE TABLE `Traffic_detail` (

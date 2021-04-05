@@ -7,7 +7,7 @@
 
 CREATE TABLE `connections` (
   `id` int(11) NOT NULL,
-  `device_id` int(11) DEFAULT NULL,
-  `port_id` int(11) DEFAULT NULL,
-  `auth_id` int(11) DEFAULT NULL
+  `device_id` int(11) NOT NULL,
+  `port_id` int(11) NOT NULL,
+  `auth_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

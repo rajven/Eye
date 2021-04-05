@@ -52,5 +52,4 @@ INSERT INTO `vendors` (`id`, `name`) VALUES
 (33, 'QSC'),
 (34, 'Projectiondesign'),
 (35, 'Lenovo'),
-(36, 'SIPOWER'),
-(37, 'TP-Link');
+(36, 'SIPOWER');

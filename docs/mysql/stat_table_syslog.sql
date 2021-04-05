@@ -10,6 +10,6 @@ CREATE TABLE `syslog` (
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
   `auth_id` int(11) NOT NULL DEFAULT 0,
   `customer` varchar(50) NOT NULL DEFAULT 'system',
-  `message` text NOT NULL,
+  `message` text DEFAULT NULL,
   `level` int(11) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

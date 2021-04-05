@@ -26,6 +26,11 @@ CREATE TABLE `subnets` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
+-- Truncate table before insert `subnets`
+--
+
+TRUNCATE TABLE `subnets`;
+--
 -- Dumping data for table `subnets`
 --
 

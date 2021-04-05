@@ -21,8 +21,13 @@ CREATE TABLE `User_list` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
+-- Truncate table before insert `User_list`
+--
+
+TRUNCATE TABLE `User_list`;
+--
 -- Dumping data for table `User_list`
 --
 
 INSERT INTO `User_list` (`id`, `timestamp`, `login`, `fio`, `enabled`, `blocked`, `deleted`, `ou_id`, `filter_group_id`, `queue_id`, `day_quota`, `month_quota`) VALUES
-(1, '2017-11-02 10:54:36', 'default', '', 0, 0, 0, 32, 0, 0, 0, 0);
+(1, '2017-11-02 06:37:50', 'default', 'unknown user', 0, 0, 0, 3, 0, 0, 0, 0);

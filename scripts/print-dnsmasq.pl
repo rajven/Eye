@@ -18,6 +18,9 @@ use Rstat::mysql;
 use Rstat::net_utils;
 use File::Basename;
 use File::Path;
+use Fcntl qw(:flock);
+open(SELF,"<",$0) or die "Cannot open $0 - $!";
+flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
 setpriority(0,0,19);
 

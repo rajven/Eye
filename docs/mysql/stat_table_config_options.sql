@@ -7,10 +7,10 @@
 
 CREATE TABLE `config_options` (
   `id` int(11) NOT NULL,
-  `option_name` varchar(50) DEFAULT NULL,
+  `option_name` varchar(50) NOT NULL,
   `description` text DEFAULT NULL,
   `uniq` tinyint(1) NOT NULL DEFAULT 1,
-  `type` varchar(10) DEFAULT NULL,
+  `type` varchar(10) NOT NULL,
   `default_value` text DEFAULT NULL,
   `min_value` int(11) NOT NULL DEFAULT 0,
   `max_value` int(11) NOT NULL DEFAULT 0

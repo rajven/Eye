@@ -7,7 +7,9 @@
 -- Indexes for table `auth_rules`
 --
 ALTER TABLE `auth_rules`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `rule` (`rule`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `building`
@@ -49,6 +51,7 @@ ALTER TABLE `devices`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `id` (`id`),
   ADD KEY `ip` (`ip`),
+  ADD KEY `ip_2` (`ip`),
   ADD KEY `device_type` (`device_type`);
 
 --
@@ -84,9 +87,7 @@ ALTER TABLE `device_types`
 --
 ALTER TABLE `dhcp_log`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `timestamp` (`timestamp`),
-  ADD KEY `ip1` (`ip`),
-  ADD KEY `timestamp_2` (`timestamp`,`action`);
+  ADD KEY `timestamp` (`timestamp`,`action`) USING BTREE;
 
 --
 -- Indexes for table `dns_cache`
@@ -121,8 +122,6 @@ ALTER TABLE `Group_list`
 --
 ALTER TABLE `mac_history`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `mac` (`mac`,`timestamp`) USING BTREE,
-  ADD KEY `ip` (`ip`,`timestamp`) USING BTREE,
   ADD KEY `timestamp` (`timestamp`,`mac`),
   ADD KEY `timestamp_2` (`timestamp`,`ip`);
 
@@ -151,11 +150,9 @@ ALTER TABLE `Queue_list`
 --
 ALTER TABLE `remote_syslog`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `id` (`id`),
-  ADD KEY `device_id` (`device_id`),
+  ADD KEY `date_2` (`date`),
   ADD KEY `date` (`date`,`device_id`,`ip`);
 ALTER TABLE `remote_syslog` ADD FULLTEXT KEY `message` (`message`);
-ALTER TABLE `remote_syslog` ADD FULLTEXT KEY `message_2` (`message`);
 
 --
 -- Indexes for table `subnets`
@@ -170,12 +167,7 @@ ALTER TABLE `subnets`
 --
 ALTER TABLE `syslog`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `auth_idx` (`auth_id`),
-  ADD KEY `timestamp` (`timestamp`,`auth_id`,`customer`,`level`),
-  ADD KEY `timestamp_2` (`timestamp`,`level`,`customer`);
-ALTER TABLE `syslog` ADD FULLTEXT KEY `message` (`message`);
-ALTER TABLE `syslog` ADD FULLTEXT KEY `message_2` (`message`);
-ALTER TABLE `syslog` ADD FULLTEXT KEY `customer` (`customer`);
+  ADD KEY `timestamp` (`timestamp`,`level`,`customer`);
 
 --
 -- Indexes for table `Traffic_detail`
@@ -190,7 +182,6 @@ ALTER TABLE `Traffic_detail`
 --
 ALTER TABLE `Unknown_mac`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `mac` (`mac`,`timestamp`),
   ADD KEY `timestamp` (`timestamp`,`device_id`,`port_id`,`mac`);
 
 --
@@ -198,15 +189,8 @@ ALTER TABLE `Unknown_mac`
 --
 ALTER TABLE `User_auth`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `auth_index` (`id`,`user_id`,`ip_int`,`mac`,`ip`,`deleted`),
+  ADD KEY `auth_index` (`id`,`user_id`,`ip_int`,`mac`,`ip`,`deleted`) USING BTREE,
   ADD KEY `deleted` (`deleted`);
-
---
--- Indexes for table `User_auth_alias`
---
-ALTER TABLE `User_auth_alias`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `auth_id` (`auth_id`);
 
 --
 -- Indexes for table `User_list`
@@ -257,7 +241,7 @@ ALTER TABLE `auth_rules`
 -- AUTO_INCREMENT for table `building`
 --
 ALTER TABLE `building`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `config`
@@ -329,13 +313,13 @@ ALTER TABLE `dns_cache`
 -- AUTO_INCREMENT for table `Filter_list`
 --
 ALTER TABLE `Filter_list`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `Group_filters`
 --
 ALTER TABLE `Group_filters`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=235;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `Group_list`
@@ -353,7 +337,7 @@ ALTER TABLE `mac_history`
 -- AUTO_INCREMENT for table `mac_vendors`
 --
 ALTER TABLE `mac_vendors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38949;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `OU`
@@ -365,7 +349,7 @@ ALTER TABLE `OU`
 -- AUTO_INCREMENT for table `Queue_list`
 --
 ALTER TABLE `Queue_list`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `remote_syslog`
@@ -401,12 +385,6 @@ ALTER TABLE `Unknown_mac`
 -- AUTO_INCREMENT for table `User_auth`
 --
 ALTER TABLE `User_auth`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `User_auth_alias`
---
-ALTER TABLE `User_auth_alias`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --

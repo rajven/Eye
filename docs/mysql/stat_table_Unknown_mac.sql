@@ -2,7 +2,7 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `Unknown_mac`
+-- Table structure for table `Unknown_mac`
 --
 
 CREATE TABLE `Unknown_mac` (
