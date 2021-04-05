@@ -185,7 +185,7 @@ if ($msg_error) {
 <tr>
 <td colspan=2><input type="text" name="f_login" value="<?php print $user_info["login"]; ?>" size=25></td>
 <td colspan=2><input type="text" name="f_fio" value="<?php print $user_info["fio"]; ?>" size=25></td>
-<td colspan=2><?php print_ou_select($db_link, 'f_ou', $user_info["ou_id"]); ?></td>
+<td colspan=2><?php print_ou_set($db_link, 'f_ou', $user_info["ou_id"]); ?></td>
 </tr>
 <tr>
 <td>Фильтр</td>

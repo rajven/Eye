@@ -47,9 +47,12 @@ INSERT INTO `vendors` (`id`, `name`) VALUES
 (31, 'Netping'),
 (32, 'Trassir'),
 (33, 'QSC'),
-(34, 'Projectiondesign');
+(34, 'Projectiondesign'),
+(35, 'Lenovo'),
+(36, 'SIPOWER');
+
 --
 ALTER TABLE `vendors`
   ADD PRIMARY KEY (`id`);
 ALTER TABLE `vendors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10000;

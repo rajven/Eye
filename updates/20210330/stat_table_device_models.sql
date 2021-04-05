@@ -10,8 +10,10 @@ CREATE TABLE `device_models` (
   `nagios_template` varchar(200) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+
+TRUNCATE TABLE `device_models`;
 --
--- Дамп данных таблицы `device_models`
+-- Dumping data for table `device_models`
 --
 
 INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES
@@ -23,11 +25,9 @@ INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`)
 (6, 'AT-GS950/24', 8, NULL),
 (7, 'CCR1009-7G-1C-1S+', 9, NULL),
 (8, 'CCR1036-8G-2S+', 9, NULL),
-(9, 'CCR1036-8G-2S+', 9, NULL),
 (10, 'CRS317-1G-16S+', 9, NULL),
 (11, 'CRS326-24S+2Q+', 9, NULL),
 (12, 'CRS328-24P-4S+', 9, NULL),
-(13, 'CRS328-24P-4S+', 9, NULL),
 (14, 'CRS328-4C-20S-4S+', 9, NULL),
 (15, 'DGS-3120-48TC', 7, NULL),
 (16, 'ES-2024', 4, NULL),
@@ -104,11 +104,31 @@ INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`)
 (87, 'Computer', 1, NULL),
 (88, 'Mobile Phone', 1, NULL),
 (89, 'Switch', 1, NULL),
-(90, 'Projectiondesign F22',34,NULL);
+(90, 'Projectiondesign F22', 34, NULL),
+(91, 'MES2124P', 2, NULL),
+(92, 'MES2124P rev.C', 2, NULL),
+(93, 'MES2324B', 2, NULL),
+(94, 'MES2324P', 2, NULL),
+(95, 'MES-3528', 2, NULL),
+(96, 'ME-C6524GS-8S', 16, NULL),
+(97, 'SM3100-28TC', 17, NULL),
+(98, 'SM3200-50T', 17, NULL),
+(99, 'SM3200-52T', 17, NULL),
+(100, 'APC6000XL', 20, NULL),
+(101, 'MP RT 10K', 35, NULL),
+(102, 'LaserJet P2035n', 15, NULL),
+(103, 'MES3116F', 2, NULL),
+(104, 'MES2124M', 2, NULL),
+(105, 'RB750r2', 9, NULL),
+(106, 'DES-1210-52', 7, NULL),
+(107, 'DES-1210-52/ME', 7, NULL),
+(108, 'GS-4012F', 4, NULL),
+(109, 'MES2308', 2, NULL),
+(110, 'NanoBeam M5 16', 11, NULL),
+(111, 'MES2428B', 2, NULL),
+(112, 'CRS109-8G-1S-2HnD', 9, NULL),
+(113, 'MES2324', 2, NULL);
 
---
--- Индексы сохранённых таблиц
---
 
 --
 -- Индексы таблицы `device_models`

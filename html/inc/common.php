@@ -420,6 +420,16 @@ function print_ou_select($db, $ou_name, $ou_value)
     print "</select>\n";
 }
 
+function print_ou_set($db, $ou_name, $ou_value)
+{
+    print "<select name=\"$ou_name\" class=\"js-select-single\">\n";
+    $t_ou = mysqli_query($db, "SELECT id,ou_name FROM OU WHERE id>=1 ORDER BY ou_name");
+    while (list ($f_ou_id, $f_ou_name) = mysqli_fetch_array($t_ou)) {
+	print_select_item($f_ou_name,$f_ou_id,$ou_value);
+    }
+    print "</select>\n";
+}
+
 function print_subnet_select($db, $subnet_name, $subnet_value)
 {
     print "<select name=\"$subnet_name\" >\n";
@@ -537,6 +547,7 @@ print_submenu_url('Пассивное оборудование','/admin/devices/
 print_submenu_url('Расположение','/admin/devices/building.php',$current_page,0);
 print_submenu_url('Удалённые','/admin/devices/deleted.php',$current_page,0);
 print_submenu_url('Модели устройств','/admin/devices/devmodels.php',$current_page,0);
+print_submenu_url('Vendors','/admin/devices/devvendors.php',$current_page,0);
 print_submenu_url('Порты по вланам','/admin/devices/portsbyvlan.php',$current_page,1);
 print "</div>\n";
 }

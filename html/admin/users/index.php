@@ -167,6 +167,7 @@ foreach ($users as $row) {
     print "<tr align=center>\n";
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
     print "<td class=\"$cl\" ><input type=hidden name=\"id\" value=".$row['id'].">".$row['id']."</td>\n";
+    if (empty($row['login'])) { $row['login']=$row['id']; }
     print "<td class=\"$cl\" align=left><a href=edituser.php?id=".$row['id'].">" . $row['login'] . "</a></td>\n";
     print "<td class=\"$cl\">".$row['fio']."</td>\n";
     $rules_count = get_count_records($db_link,"auth_rules","user_id=".$row['id']);
