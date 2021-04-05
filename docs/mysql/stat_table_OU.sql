@@ -15,11 +15,6 @@ CREATE TABLE `OU` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
--- Truncate table before insert `OU`
---
-
-TRUNCATE TABLE `OU`;
---
 -- Dumping data for table `OU`
 --
 
@@ -27,13 +22,12 @@ INSERT INTO `OU` (`id`, `ou_name`, `nagios_dir`, `nagios_host_use`, `nagios_ping
 (0, '!Всё', 'any', 'generic-host', 1, NULL),
 (1, 'Сервера', NULL, NULL, 1, NULL),
 (2, 'Администраторы', NULL, NULL, 1, NULL),
-(3, 'Пользователи', NULL, NULL, 1, NULL),
 (4, 'VOIP', 'voip', 'voip', 1, NULL),
 (5, 'IPCAM', 'videocam', 'ip-cam', 0, NULL),
-(6, 'Printers', 'printers', 'printers', 1, 'printer-service'),
-(7, 'Свичи', 'switches', 'switches', 1, NULL),
+(6, 'Принтеры', 'printers', 'printers', 1, 'printer-service'),
 (8, 'UPS', 'ups', 'ups', 1, NULL),
 (9, 'Охрана', 'security', 'security', 1, NULL),
 (10, 'Роутеры', 'routers', 'routers', 1, NULL),
 (12, 'WiFi AP', 'ap', 'ap', 1, NULL),
-(14, 'POS-терминалы', NULL, NULL, 1, NULL);
+(16, 'Пользователи', NULL, NULL, 1, NULL),
+(7, 'Свичи', NULL, NULL, 1, NULL);
