@@ -27,7 +27,6 @@ if (isset($_POST['save'])) {
     for ($i = 0; $i < $len; $i ++) {
         $save_id = intval($_POST['save'][$i]);
         if ($save_id == 0) { continue;  }
-        if ($save_id <10000) { continue; }
         array_push($saved,$save_id);
         }
     //select box
@@ -36,7 +35,6 @@ if (isset($_POST['save'])) {
         for ($i = 0; $i < $len; $i ++) {
             $save_id = intval($_POST['f_id'][$i]);
             if ($save_id == 0) { continue; }
-            if ($save_id <10000) { continue; }
             if (!in_array($save_id, $saved)) { array_push($saved,$save_id); }
             }
         }
@@ -45,12 +43,13 @@ if (isset($_POST['save'])) {
     for ($i = 0; $i < $len; $i ++) {
         $save_id = intval($saved[$i]);
         if ($save_id == 0) { continue;  }
-        if ($save_id <10000) { continue; }
         $len_all = is_array($_POST['id']) ? count($_POST['id']) : 0;
         for ($j = 0; $j < $len_all; $j ++) {
             if (intval($_POST['id'][$j]) != $save_id) { continue; }
-            $new['vendor_id'] = $_POST['f_vendor'][$j];
-            $new['model_name'] = $_POST['f_name'][$j];
+            if ($save_id>=10000) {
+                $new['vendor_id'] = $_POST['f_vendor'][$j];
+	        $new['model_name'] = $_POST['f_name'][$j];
+	        }
             $new['nagios_template'] = $_POST['f_nagios'][$j];
             update_record($db_link, "device_models", "id='{$save_id}'", $new);
             }
