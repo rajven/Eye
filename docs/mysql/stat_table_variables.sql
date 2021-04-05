@@ -2,7 +2,7 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `variables`
+-- Table structure for table `variables`
 --
 
 CREATE TABLE `variables` (

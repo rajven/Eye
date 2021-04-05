@@ -2,7 +2,7 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `device_l3_interfaces`
+-- Table structure for table `device_l3_interfaces`
 --
 
 CREATE TABLE `device_l3_interfaces` (

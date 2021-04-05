@@ -1,6 +1,8 @@
 
+-- --------------------------------------------------------
+
 --
--- Структура таблицы `device_models`
+-- Table structure for table `device_models`
 --
 
 CREATE TABLE `device_models` (
@@ -10,8 +12,6 @@ CREATE TABLE `device_models` (
   `nagios_template` varchar(200) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-
-TRUNCATE TABLE `device_models`;
 --
 -- Dumping data for table `device_models`
 --
@@ -128,20 +128,3 @@ INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`)
 (111, 'MES2428B', 2, NULL),
 (112, 'CRS109-8G-1S-2HnD', 9, NULL),
 (113, 'MES2324', 2, NULL);
-
-
---
--- Индексы таблицы `device_models`
---
-ALTER TABLE `device_models`
-  ADD PRIMARY KEY (`id`);
-
---
--- AUTO_INCREMENT для сохранённых таблиц
---
-
---
--- AUTO_INCREMENT для таблицы `device_models`
---
-ALTER TABLE `device_models`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10000;

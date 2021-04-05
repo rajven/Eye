@@ -2,7 +2,7 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `dns_cache`
+-- Table structure for table `dns_cache`
 --
 
 CREATE TABLE `dns_cache` (

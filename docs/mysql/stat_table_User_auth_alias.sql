@@ -2,7 +2,7 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `User_auth_alias`
+-- Table structure for table `User_auth_alias`
 --
 
 CREATE TABLE `User_auth_alias` (

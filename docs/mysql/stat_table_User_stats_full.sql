@@ -2,7 +2,7 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `User_stats_full`
+-- Table structure for table `User_stats_full`
 --
 
 CREATE TABLE `User_stats_full` (

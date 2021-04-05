@@ -2,7 +2,7 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `remote_syslog`
+-- Table structure for table `remote_syslog`
 --
 
 CREATE TABLE `remote_syslog` (

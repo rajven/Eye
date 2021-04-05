@@ -2,7 +2,7 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `building`
+-- Table structure for table `building`
 --
 
 CREATE TABLE `building` (
@@ -12,7 +12,12 @@ CREATE TABLE `building` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
--- Дамп данных таблицы `building`
+-- Truncate table before insert `building`
+--
+
+TRUNCATE TABLE `building`;
+--
+-- Dumping data for table `building`
 --
 
 INSERT INTO `building` (`id`, `name`, `comment`) VALUES

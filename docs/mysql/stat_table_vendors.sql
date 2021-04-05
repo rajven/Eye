@@ -1,19 +1,22 @@
+
+-- --------------------------------------------------------
+
 --
--- Структура таблицы `vendors`
+-- Table structure for table `vendors`
 --
 
 CREATE TABLE `vendors` (
   `id` int(11) NOT NULL,
-  `name` varchar(40) NOT NULL
+  `name` varchar(80) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
--- Очистить таблицу перед добавлением данных `vendors`
+-- Truncate table before insert `vendors`
 --
 
 TRUNCATE TABLE `vendors`;
 --
--- Дамп данных таблицы `vendors`
+-- Dumping data for table `vendors`
 --
 
 INSERT INTO `vendors` (`id`, `name`) VALUES
@@ -49,10 +52,5 @@ INSERT INTO `vendors` (`id`, `name`) VALUES
 (33, 'QSC'),
 (34, 'Projectiondesign'),
 (35, 'Lenovo'),
-(36, 'SIPOWER');
-
---
-ALTER TABLE `vendors`
-  ADD PRIMARY KEY (`id`);
-ALTER TABLE `vendors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10000;
+(36, 'SIPOWER'),
+(37, 'TP-Link');

@@ -2,7 +2,7 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `syslog`
+-- Table structure for table `syslog`
 --
 
 CREATE TABLE `syslog` (

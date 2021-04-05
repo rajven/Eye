@@ -20,3 +20,4 @@ INSERT INTO `vendors` (`id`, `name`) VALUES ('34', 'Projectiondesign');
 INSERT INTO `vendors` (`id`, `name`) VALUES ('35', 'Lenovo');
 ALTER TABLE `User_auth` ADD `firmware` VARCHAR(100) NULL DEFAULT NULL AFTER `device_model_id`;
 ALTER TABLE `devices` ADD `firmware` VARCHAR(100) NULL DEFAULT NULL AFTER `device_model_id`;
+ALTER TABLE `vendors` CHANGE `name` `name` VARCHAR(80) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;

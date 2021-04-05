@@ -1,29 +1,35 @@
 
 --
--- Индексы сохранённых таблиц
+-- Indexes for dumped tables
 --
 
 --
--- Индексы таблицы `building`
+-- Indexes for table `auth_rules`
+--
+ALTER TABLE `auth_rules`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `building`
 --
 ALTER TABLE `building`
   ADD PRIMARY KEY (`id`);
 
 --
--- Индексы таблицы `config`
+-- Indexes for table `config`
 --
 ALTER TABLE `config`
   ADD PRIMARY KEY (`id`),
   ADD KEY `option` (`option_id`);
 
 --
--- Индексы таблицы `config_options`
+-- Indexes for table `config_options`
 --
 ALTER TABLE `config_options`
   ADD PRIMARY KEY (`id`);
 
 --
--- Индексы таблицы `connections`
+-- Indexes for table `connections`
 --
 ALTER TABLE `connections`
   ADD PRIMARY KEY (`id`),
@@ -31,50 +37,59 @@ ALTER TABLE `connections`
   ADD KEY `device_id` (`device_id`,`port_id`);
 
 --
--- Индексы таблицы `Customers`
+-- Indexes for table `Customers`
 --
 ALTER TABLE `Customers`
   ADD PRIMARY KEY (`id`);
 
 --
--- Индексы таблицы `devices`
+-- Indexes for table `devices`
 --
 ALTER TABLE `devices`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `device_model_id` (`device_model`),
+  ADD UNIQUE KEY `id` (`id`),
   ADD KEY `ip` (`ip`),
   ADD KEY `device_type` (`device_type`);
 
 --
--- Индексы таблицы `device_l3_interfaces`
+-- Indexes for table `device_l3_interfaces`
 --
 ALTER TABLE `device_l3_interfaces`
   ADD PRIMARY KEY (`id`);
 
 --
--- Индексы таблицы `device_ports`
+-- Indexes for table `device_models`
+--
+ALTER TABLE `device_models`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `device_ports`
 --
 ALTER TABLE `device_ports`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `id` (`id`),
   ADD KEY `device_id` (`device_id`),
   ADD KEY `port` (`port`),
   ADD KEY `target_port_id` (`target_port_id`);
 
 --
--- Индексы таблицы `device_types`
+-- Indexes for table `device_types`
 --
 ALTER TABLE `device_types`
   ADD PRIMARY KEY (`id`);
 
 --
--- Индексы таблицы `dhcp_log`
+-- Indexes for table `dhcp_log`
 --
 ALTER TABLE `dhcp_log`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `timestamp` (`timestamp`,`action`);
+  ADD KEY `timestamp` (`timestamp`),
+  ADD KEY `ip1` (`ip`),
+  ADD KEY `timestamp_2` (`timestamp`,`action`);
 
 --
--- Индексы таблицы `dns_cache`
+-- Indexes for table `dns_cache`
 --
 ALTER TABLE `dns_cache`
   ADD PRIMARY KEY (`id`),
@@ -82,65 +97,68 @@ ALTER TABLE `dns_cache`
   ADD KEY `timestamp` (`timestamp`);
 
 --
--- Индексы таблицы `Filter_list`
+-- Indexes for table `Filter_list`
 --
 ALTER TABLE `Filter_list`
   ADD PRIMARY KEY (`id`),
   ADD KEY `Name` (`name`);
 
 --
--- Индексы таблицы `Group_filters`
+-- Indexes for table `Group_filters`
 --
 ALTER TABLE `Group_filters`
   ADD PRIMARY KEY (`id`),
   ADD KEY `GroupId` (`group_id`,`filter_id`);
 
 --
--- Индексы таблицы `Group_list`
+-- Indexes for table `Group_list`
 --
 ALTER TABLE `Group_list`
   ADD PRIMARY KEY (`id`);
 
 --
--- Индексы таблицы `mac_history`
+-- Indexes for table `mac_history`
 --
 ALTER TABLE `mac_history`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `mac` (`mac`,`timestamp`),
-  ADD KEY `ip` (`ip`,`timestamp`),
+  ADD KEY `mac` (`mac`,`timestamp`) USING BTREE,
+  ADD KEY `ip` (`ip`,`timestamp`) USING BTREE,
   ADD KEY `timestamp` (`timestamp`,`mac`),
   ADD KEY `timestamp_2` (`timestamp`,`ip`);
 
 --
--- Индексы таблицы `mac_vendors`
+-- Indexes for table `mac_vendors`
 --
 ALTER TABLE `mac_vendors`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `oui` (`oui`);
 
 --
--- Индексы таблицы `OU`
+-- Indexes for table `OU`
 --
 ALTER TABLE `OU`
   ADD PRIMARY KEY (`id`);
 
 --
--- Индексы таблицы `Queue_list`
+-- Indexes for table `Queue_list`
 --
 ALTER TABLE `Queue_list`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `id` (`id`);
 
 --
--- Индексы таблицы `remote_syslog`
+-- Indexes for table `remote_syslog`
 --
 ALTER TABLE `remote_syslog`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `id` (`id`),
+  ADD KEY `device_id` (`device_id`),
   ADD KEY `date` (`date`,`device_id`,`ip`);
 ALTER TABLE `remote_syslog` ADD FULLTEXT KEY `message` (`message`);
+ALTER TABLE `remote_syslog` ADD FULLTEXT KEY `message_2` (`message`);
 
 --
--- Индексы таблицы `subnets`
+-- Indexes for table `subnets`
 --
 ALTER TABLE `subnets`
   ADD PRIMARY KEY (`id`),
@@ -148,14 +166,19 @@ ALTER TABLE `subnets`
   ADD KEY `dhcp` (`dhcp`,`office`,`hotspot`,`static`);
 
 --
--- Индексы таблицы `syslog`
+-- Indexes for table `syslog`
 --
 ALTER TABLE `syslog`
   ADD PRIMARY KEY (`id`),
+  ADD KEY `auth_idx` (`auth_id`),
+  ADD KEY `timestamp` (`timestamp`,`auth_id`,`customer`,`level`),
   ADD KEY `timestamp_2` (`timestamp`,`level`,`customer`);
+ALTER TABLE `syslog` ADD FULLTEXT KEY `message` (`message`);
+ALTER TABLE `syslog` ADD FULLTEXT KEY `message_2` (`message`);
+ALTER TABLE `syslog` ADD FULLTEXT KEY `customer` (`customer`);
 
 --
--- Индексы таблицы `Traffic_detail`
+-- Indexes for table `Traffic_detail`
 --
 ALTER TABLE `Traffic_detail`
   ADD PRIMARY KEY (`id`),
@@ -163,50 +186,51 @@ ALTER TABLE `Traffic_detail`
   ADD KEY `dst` (`auth_id`,`timestamp`,`router_id`,`dst_ip`);
 
 --
--- Индексы таблицы `Unknown_mac`
+-- Indexes for table `Unknown_mac`
 --
 ALTER TABLE `Unknown_mac`
   ADD PRIMARY KEY (`id`),
+  ADD KEY `mac` (`mac`,`timestamp`),
   ADD KEY `timestamp` (`timestamp`,`device_id`,`port_id`,`mac`);
 
 --
--- Индексы таблицы `User_auth`
+-- Indexes for table `User_auth`
 --
 ALTER TABLE `User_auth`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `auth_index` (`id`,`user_id`,`ip_int`,`mac`,`ip`,`deleted`) USING BTREE,
+  ADD KEY `auth_index` (`id`,`user_id`,`ip_int`,`mac`,`ip`,`deleted`),
   ADD KEY `deleted` (`deleted`);
 
 --
--- Индексы таблицы `User_auth_alias`
+-- Indexes for table `User_auth_alias`
 --
 ALTER TABLE `User_auth_alias`
   ADD PRIMARY KEY (`id`),
   ADD KEY `auth_id` (`auth_id`);
 
 --
--- Индексы таблицы `User_list`
+-- Indexes for table `User_list`
 --
 ALTER TABLE `User_list`
   ADD PRIMARY KEY (`id`),
   ADD KEY `users` (`id`,`ou_id`,`enabled`,`blocked`,`deleted`);
 
 --
--- Индексы таблицы `User_stats`
+-- Indexes for table `User_stats`
 --
 ALTER TABLE `User_stats`
   ADD PRIMARY KEY (`id`),
   ADD KEY `timestamp` (`timestamp`,`auth_id`,`router_id`);
 
 --
--- Индексы таблицы `User_stats_full`
+-- Indexes for table `User_stats_full`
 --
 ALTER TABLE `User_stats_full`
   ADD PRIMARY KEY (`id`),
   ADD KEY `timestamp` (`timestamp`,`auth_id`,`router_id`);
 
 --
--- Индексы таблицы `variables`
+-- Indexes for table `variables`
 --
 ALTER TABLE `variables`
   ADD PRIMARY KEY (`id`),
@@ -214,185 +238,203 @@ ALTER TABLE `variables`
   ADD KEY `clear_time` (`clear_time`,`created`);
 
 --
--- AUTO_INCREMENT для сохранённых таблиц
+-- Indexes for table `vendors`
+--
+ALTER TABLE `vendors`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
 --
 
 --
--- AUTO_INCREMENT для таблицы `building`
+-- AUTO_INCREMENT for table `auth_rules`
 --
-ALTER TABLE `building`
+ALTER TABLE `auth_rules`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `config`
+-- AUTO_INCREMENT for table `building`
+--
+ALTER TABLE `building`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `config`
 --
 ALTER TABLE `config`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=111;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `config_options`
+-- AUTO_INCREMENT for table `config_options`
 --
 ALTER TABLE `config_options`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
 
 --
--- AUTO_INCREMENT для таблицы `connections`
+-- AUTO_INCREMENT for table `connections`
 --
 ALTER TABLE `connections`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `Customers`
+-- AUTO_INCREMENT for table `Customers`
 --
 ALTER TABLE `Customers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `devices`
+-- AUTO_INCREMENT for table `devices`
 --
 ALTER TABLE `devices`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `device_l3_interfaces`
+-- AUTO_INCREMENT for table `device_l3_interfaces`
 --
 ALTER TABLE `device_l3_interfaces`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `device_ports`
+-- AUTO_INCREMENT for table `device_models`
+--
+ALTER TABLE `device_models`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10000;
+
+--
+-- AUTO_INCREMENT for table `device_ports`
 --
 ALTER TABLE `device_ports`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `device_types`
+-- AUTO_INCREMENT for table `device_types`
 --
 ALTER TABLE `device_types`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
--- AUTO_INCREMENT для таблицы `dhcp_log`
+-- AUTO_INCREMENT for table `dhcp_log`
 --
 ALTER TABLE `dhcp_log`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `dns_cache`
+-- AUTO_INCREMENT for table `dns_cache`
 --
 ALTER TABLE `dns_cache`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `Filter_list`
+-- AUTO_INCREMENT for table `Filter_list`
 --
 ALTER TABLE `Filter_list`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
 
 --
--- AUTO_INCREMENT для таблицы `Group_filters`
+-- AUTO_INCREMENT for table `Group_filters`
 --
 ALTER TABLE `Group_filters`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=235;
 
 --
--- AUTO_INCREMENT для таблицы `Group_list`
+-- AUTO_INCREMENT for table `Group_list`
 --
 ALTER TABLE `Group_list`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `mac_history`
+-- AUTO_INCREMENT for table `mac_history`
 --
 ALTER TABLE `mac_history`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `mac_vendors`
+-- AUTO_INCREMENT for table `mac_vendors`
 --
 ALTER TABLE `mac_vendors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38949;
 
 --
--- AUTO_INCREMENT для таблицы `OU`
+-- AUTO_INCREMENT for table `OU`
 --
 ALTER TABLE `OU`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `Queue_list`
+-- AUTO_INCREMENT for table `Queue_list`
 --
 ALTER TABLE `Queue_list`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
--- AUTO_INCREMENT для таблицы `remote_syslog`
+-- AUTO_INCREMENT for table `remote_syslog`
 --
 ALTER TABLE `remote_syslog`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `subnets`
+-- AUTO_INCREMENT for table `subnets`
 --
 ALTER TABLE `subnets`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `syslog`
+-- AUTO_INCREMENT for table `syslog`
 --
 ALTER TABLE `syslog`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `Traffic_detail`
+-- AUTO_INCREMENT for table `Traffic_detail`
 --
 ALTER TABLE `Traffic_detail`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `Unknown_mac`
+-- AUTO_INCREMENT for table `Unknown_mac`
 --
 ALTER TABLE `Unknown_mac`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `User_auth`
+-- AUTO_INCREMENT for table `User_auth`
 --
 ALTER TABLE `User_auth`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `User_auth_alias`
+-- AUTO_INCREMENT for table `User_auth_alias`
 --
 ALTER TABLE `User_auth_alias`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `User_list`
+-- AUTO_INCREMENT for table `User_list`
 --
 ALTER TABLE `User_list`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `User_stats`
+-- AUTO_INCREMENT for table `User_stats`
 --
 ALTER TABLE `User_stats`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `User_stats_full`
+-- AUTO_INCREMENT for table `User_stats_full`
 --
 ALTER TABLE `User_stats_full`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `variables`
+-- AUTO_INCREMENT for table `variables`
 --
 ALTER TABLE `variables`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `vendors`
+-- AUTO_INCREMENT for table `vendors`
 --
 ALTER TABLE `vendors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10000;

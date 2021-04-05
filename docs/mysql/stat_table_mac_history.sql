@@ -2,7 +2,7 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `mac_history`
+-- Table structure for table `mac_history`
 --
 
 CREATE TABLE `mac_history` (

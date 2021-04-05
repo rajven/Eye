@@ -2,22 +2,27 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `config_options`
+-- Table structure for table `config_options`
 --
 
 CREATE TABLE `config_options` (
   `id` int(11) NOT NULL,
-  `option_name` varchar(50) NOT NULL,
+  `option_name` varchar(50) DEFAULT NULL,
   `description` text DEFAULT NULL,
   `uniq` tinyint(1) NOT NULL DEFAULT 1,
-  `type` varchar(10) NOT NULL,
+  `type` varchar(10) DEFAULT NULL,
   `default_value` text DEFAULT NULL,
   `min_value` int(11) NOT NULL DEFAULT 0,
   `max_value` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
--- Дамп данных таблицы `config_options`
+-- Truncate table before insert `config_options`
+--
+
+TRUNCATE TABLE `config_options`;
+--
+-- Dumping data for table `config_options`
 --
 
 INSERT INTO `config_options` (`id`, `option_name`, `description`, `uniq`, `type`, `default_value`, `min_value`, `max_value`) VALUES

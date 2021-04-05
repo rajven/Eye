@@ -2,7 +2,7 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `dhcp_log`
+-- Table structure for table `dhcp_log`
 --
 
 CREATE TABLE `dhcp_log` (

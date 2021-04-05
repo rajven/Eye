@@ -2,7 +2,7 @@
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `User_list`
+-- Table structure for table `User_list`
 --
 
 CREATE TABLE `User_list` (
@@ -17,12 +17,12 @@ CREATE TABLE `User_list` (
   `filter_group_id` int(11) NOT NULL DEFAULT 0,
   `queue_id` int(11) NOT NULL DEFAULT 0,
   `day_quota` int(11) NOT NULL DEFAULT 0,
-  `month_quota` int(11) NOT NULL DEFAULT 0,
+  `month_quota` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
--- Дамп данных таблицы `User_list`
+-- Dumping data for table `User_list`
 --
 
-INSERT INTO `User_list` (`id`, `login`, `fio`, `enabled`, `blocked`, `deleted`, `ou_id`, `filter_group_id`, `queue_id`, `day_quota`, `month_quota`) VALUES
-(1, 'default', '', 0, 0, 0, 3, 2, 0, 0, 0);
+INSERT INTO `User_list` (`id`, `timestamp`, `login`, `fio`, `enabled`, `blocked`, `deleted`, `ou_id`, `filter_group_id`, `queue_id`, `day_quota`, `month_quota`) VALUES
+(1, '2017-11-02 10:54:36', 'default', '', 0, 0, 0, 32, 0, 0, 0, 0);
