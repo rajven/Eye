@@ -173,12 +173,12 @@ if ($switch['snmp_version']>0) {
             }
             print "<td class=\"$cl_error\">" . $perrors . "</td>\n";
             global $torrus_url;
-            $cacti_url = get_cacti_graph($switch['ip'], $d_snmp);
-            if (! isset($torrus_url) and (! isset($cacti_url))) {
+            $f_cacti_url = get_cacti_graph($switch['ip'], $d_snmp);
+            if (! isset($torrus_url) and (! isset($f_cacti_url))) {
                 print "<td class=\"$cl\">" . $ifname . "</td>\n";
             } else {
-                if (isset($cacti_url)) {
-                    $snmp_url = "<a href=\"$cacti_url\">" . $ifname . "</a>";
+                if (isset($f_cacti_url)) {
+                    $snmp_url = "<a href=\"$f_cacti_url\">" . $ifname . "</a>";
                 }
                 if (isset($torrus_url)) {
                     $normed_ifname = trim(str_replace("/", "_", $ifname));

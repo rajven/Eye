@@ -3235,20 +3235,18 @@ function init_option($db)
     global $hotspot_user_id;
     $hotspot_user_id = get_option($db, 43);
 
-    if (! isset($hotspot_user_id)) {
-        $hotspot_user_id = $default_user_id;
-    }
+    if (! isset($hotspot_user_id)) { $hotspot_user_id = $default_user_id; }
 
     global $cacti_url;
-    $cacti_url = get_option($db, 58);
+    $cacti_url = rtrim(get_option($db, 58),'/');
     if (preg_match('/127.0.0.1/', $cacti_url)) { $cacti_url=NULL; }
 
     global $nagios_url;
-    $nagios_url = get_option($db, 57).'/cgi-bin';
+    $nagios_url = rtrim(get_option($db, 57),'/').'/cgi-bin/';
     if (preg_match('/127.0.0.1/', $nagios_url)) { $nagios_url=NULL; }
 
     global $torrus_url;
-    $torrus_url = get_option($db, 59).'/Collector?nodeid=if//HOST_IP//IF_NAME////inoutbps';
+    $torrus_url = rtrim(get_option($db, 59),'/').'?nodeid=if//HOST_IP//IF_NAME////inoutbps';
     if (preg_match('/127.0.0.1/', $torrus_url)) { $torrus_url=NULL; }
 
 }
