@@ -15,27 +15,28 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
     if (checkValidIp($ip)) {
         $ip_aton = ip2long($ip);
 	$mac=mac_dotted($_POST["f_mac"]);
-        $old_auth = get_record_sql($db_link, "SELECT user_id FROM User_auth WHERE id=$id");
-        $parent_id = $old_auth['user_id'];
+        $parent_id = $old_auth_info['user_id'];
         //search mac
 	$mac_exists=find_mac_in_subnet($db_link,$ip,$mac);
-	if (isset($mac_exists) and $mac_exists['count']>=1 and !in_array($parent_id,$mac_exists['users_id'],true)) {
-	        $dup_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=".$mac_exists['users_id'][0]);
-		$msg_error="Mac already exists at another user in this subnet! Skip creating $ip [$mac]. Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
+	if (isset($mac_exists) and $mac_exists['count']>=1 and !in_array($parent_id,$mac_exists['users_id'])) {
+	        $dup_sql = "SELECT * FROM User_list WHERE id=".$mac_exists['users_id']['0'];
+	        $dup_info = get_record_sql($db_link, $dup_sql);
+		$msg_error="Mac already exists at another user in this subnet! Skip creating $ip [$mac].<br>Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
 		$_SESSION[$page_url]['msg'] = $msg_error;
 	        LOG_ERROR($db_link, $msg_error);
 	        header("Location: " . $_SERVER["REQUEST_URI"]);
 	        exit;
 		}
+	//disable dhcp for secondary ip
 	$f_dhcp = $_POST["f_dhcp"] * 1;
-	if (in_array($parent_id,$mac_exists['users_id'],true)) {
+	if (in_array($parent_id,$mac_exists['users_id'])) {
 	    if ($id != $mac_exists['users_id'][0]) { $f_dhcp = 0; }
 	    }
 	//search ip
         $dup_ip_record = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
         if (!empty($dup_ip_record)) {
             $dup_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=".$dup_ip_record['user_id']);
-            $msg_error = "$ip already exists. Skip creating $ip [$mac]. Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
+            $msg_error = "$ip already exists. Skip creating $ip [$mac].<br>Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
 	    $_SESSION[$page_url]['msg'] = $msg_error;
             LOG_ERROR($db_link, $msg_error);
             header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -99,27 +100,28 @@ if (isset($_POST["recovery"])) {
     if (checkValidIp($ip)) {
         $ip_aton = ip2long($ip);
 	$mac=mac_dotted($_POST["f_mac"]);
-        $old_auth = get_record_sql($db_link, "SELECT user_id FROM User_auth WHERE id=$id");
-        $parent_id = $old_auth['user_id'];
+        $parent_id = $old_auth_info['user_id'];
         //search mac
 	$mac_exists=find_mac_in_subnet($db_link,$ip,$mac);
-	if (isset($mac_exists) and $mac_exists['count']>=1 and !in_array($parent_id,$mac_exists['users_id'],true)) {
-	        $dup_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=".$mac_exists['users_id'][0]);
-		$msg_error="Mac already exists at another user in this subnet! Skip creating $ip [$mac]. Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
+	if (isset($mac_exists) and $mac_exists['count']>=1 and !in_array($parent_id,$mac_exists['users_id'])) {
+	        $dup_sql = "SELECT * FROM User_list WHERE id=".$mac_exists['users_id']['0'];
+	        $dup_info = get_record_sql($db_link, $dup_sql);
+		$msg_error="Mac already exists at another user in this subnet! Skip creating $ip [$mac].<br>Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
 		$_SESSION[$page_url]['msg'] = $msg_error;
 	        LOG_ERROR($db_link, $msg_error);
 	        header("Location: " . $_SERVER["REQUEST_URI"]);
 	        exit;
 		}
+	//disable dhcp for secondary ip
 	$f_dhcp = $_POST["f_dhcp"] * 1;
-	if (in_array($parent_id,$mac_exists['users_id'],true)) {
+	if (in_array($parent_id,$mac_exists['users_id'])) {
 	    if ($id != $mac_exists['users_id'][0]) { $f_dhcp = 0; }
 	    }
 	//search ip
         $dup_ip_record = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
         if (!empty($dup_ip_record)) {
             $dup_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=".$dup_ip_record['user_id']);
-            $msg_error = "$ip already exists. Skip creating $ip [$mac]. Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
+            $msg_error = "$ip already exists. Skip creating $ip [$mac].<br>Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
 	    $_SESSION[$page_url]['msg'] = $msg_error;
             LOG_ERROR($db_link, $msg_error);
             header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -171,8 +173,8 @@ if ($auth_info['last_found'] == '0000-00-00 00:00:00') { $auth_info['last_found'
 ?>
 <div id="cont">
 <?php
-if (!empty($msg_error)) {
-    print '<div id="msg">'.$msg_error.'</div>';
+if (!empty($_SESSION[$page_url]['msg'])) {
+    print '<div id="msg">'.$_SESSION[$page_url]['msg'].'</div>';
     unset($_SESSION[$page_url]['msg']);
     }
 print "<b> Адрес доступа пользователя <a href=/admin/users/edituser.php?id=".$auth_info['user_id'].">".$parent_name."</a> </b>";

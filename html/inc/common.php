@@ -1230,15 +1230,16 @@ if (empty($ip)) { return; }
 if (empty($mac)) { return; }
 $ip_subnet=get_ip_subnet($db,$ip);
 if (!isset($ip_subnet)) { return; }
-$t_auth=mysqli_query($db, "SELECT id,mac,user_id FROM User_auth WHERE ip_int>=".$ip_subnet['int_start']." and ip_int<=".$ip_subnet['int_stop']." and mac='" . $mac . "' and deleted=0 ORDER BY id");
+$t_auth=get_records_sql($db, "SELECT id,mac,user_id FROM User_auth WHERE ip_int>=".$ip_subnet['int_start']." and ip_int<=".$ip_subnet['int_stop']." and mac='" . $mac . "' and deleted=0 ORDER BY id");
 $auth_count=0;
 $result['count']=0;
-while (list($aid,$amac,$u_id)=mysqli_fetch_array($t_auth)) {
-    if (isset($aid) and $aid>0) {
+$result['users_id']=[];
+foreach ($t_auth as $row) {
+    if (!empty($row['id'])) {
 	$auth_count++;
 	$result['count']=$auth_count;
-	$result[$auth_count]=$aid;
-	array_push($result['users_id'],$u_id);
+	$result[$auth_count]=$row['id'];
+	array_push($result['users_id'],$row['user_id']);
 	}
     }
 return $result;
@@ -1271,9 +1272,6 @@ function new_auth($db, $ip, $mac, $user_id)
     $ip_aton = ip2long($ip);
     $msg = '';
 
-    // default id
-    $save_traf = get_option($db, 23);
-
     if (!empty($mac)) {
         list ($lid, $aid) = mysqli_fetch_array(mysqli_query($db, "Select user_id,id FROM User_auth WHERE ip_int=$ip_aton and mac='" . $mac . "' and deleted=0 limit 1"));
 	    if ($lid > 0) {
@@ -1282,42 +1280,19 @@ function new_auth($db, $ip, $mac, $user_id)
 	    }
 	}
 
-    $mac_exists=find_mac_in_subnet($db,$ip,$mac);
-    if (isset($mac_exists) and $mac_exists['count']>0) {
-        LOG_WARNING($db, "Mac $mac already exists in this subnet! Skip creating $ip [$mac] auth_id: ".$mac_exists['1']);
-        return;
-	}
-
-    // search changed mac
-    list ($aid, $amac) = mysqli_fetch_array(mysqli_query($db, "Select id,mac FROM User_auth WHERE ip_int=$ip_aton and deleted=0 limit 1"));
-    if ($aid > 0) {
-        if (empty($amac)) {
-            $auth['user_id'] = $user_id;
-            $auth['ip'] = $ip;
-            $auth['ip_int'] = $ip_aton;
-            $auth['mac'] = $mac;
-            $auth['deleted'] = 0;
-            $auth['save_traf'] = $save_traf *1;
-            LOG_INFO($db, "for ip: $ip mac not found! Use empty record...");
-            update_record($db, "User_auth", "id=" . $aid, $auth);
-            apply_auth_rule($db,$aid,$user_id);
-            return $aid;
-        } else {
-            LOG_WARNING($db, "Ip [$ip] already exists! Old mac: [$amac]. Skip creating!");
-            return $aid;
-        }
-    }
+    // default id
+    $save_traf = get_option($db, 23);
     $resurrection_id = NULL;
+
     // seek old auth with same ip and mac
-    if (get_count_records($db, 'User_auth', "ip_int=" . $ip_aton . " and mac='" . $mac . "'")) {
-        // found ->Resurrection old record
-        $resurrection_id = get_id_record($db, 'User_auth', "ip_int=" . $ip_aton . " and mac='" . $mac . "'");
+    $resurrection_id = get_id_record($db, 'User_auth', " deleted=1 AND ip_int=" . $ip_aton . " AND mac='" . $mac . "'");
+    if (!empty($resurrection_id)) {
         $msg.="Восстанавливаем доступ для auth_id: $resurrection_id with ip: $ip and mac: $mac ";
         $auth['user_id'] = $user_id;
         $auth['deleted'] = 0;
         $auth['save_traf'] = $save_traf *1;
         update_record($db, "User_auth", "id=$resurrection_id", $auth);
-    } else {
+        } else {
         // not found ->create new record
         $msg.="Создаём новый ip-адрес \r\nip: $ip\r\nmac: $mac\r\n";
         $auth['deleted'] = 0;
@@ -1327,7 +1302,8 @@ function new_auth($db, $ip, $mac, $user_id)
         $auth['mac'] = $mac;
         $auth['save_traf'] = $save_traf *1;
         $resurrection_id=insert_record($db, "User_auth", $auth);
-    }
+        }
+
     //check rules, update filter and state for new record
     if (!empty($resurrection_id)) {
         apply_auth_rule($db,$resurrection_id,$user_id);
