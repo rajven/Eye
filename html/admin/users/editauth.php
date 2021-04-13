@@ -13,51 +13,48 @@ $old_auth_info = get_record_sql($db_link, $sSQL);
 if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
     $ip = trim($_POST["f_ip"]);
     if (checkValidIp($ip)) {
+        $ip_aton = ip2long($ip);
 	$mac=mac_dotted($_POST["f_mac"]);
+        $old_auth = get_record_sql($db_link, "SELECT user_id FROM User_auth WHERE id=$id");
+        $parent_id = $old_auth['user_id'];
+        //search mac
 	$mac_exists=find_mac_in_subnet($db_link,$ip,$mac);
-	if (isset($mac_exists) and $mac_exists['count']==1 and $mac_exists['1']!=$id) {
-	        LOG_ERROR($db_link, "Mac $mac already exists in this subnet! Skip creating $ip [$mac] auth_id: ".$mac_exists['1']);
+	if (isset($mac_exists) and $mac_exists['count']>=1 and !in_array($parent_id,$mac_exists['users_id'],true)) {
+	        $dup_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=".$mac_exists['users_id'][0]);
+		$msg_error="Mac already exists at another user in this subnet! Skip creating $ip [$mac]. Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
+		$_SESSION[$page_url]['msg'] = $msg_error;
+	        LOG_ERROR($db_link, $msg_error);
 	        header("Location: " . $_SERVER["REQUEST_URI"]);
 	        exit;
 		}
-	if (isset($mac_exists) and $mac_exists['count']>1) {
-	        LOG_ERROR($db_link, "Mac $mac already exists in this subnet! Skip creating $ip [$mac] auth_id: ".$mac_exists['2']);
-	        header("Location: " . $_SERVER["REQUEST_URI"]);
-	        exit;
-		}
-        $range = cidrToRange($ip);
-        $first_user_ip = $range[0];
-        $last_user_ip = $range[1];
-        $cidr = $range[2][1];
-        if (isset($cidr) and $cidr < 32) {
-            $ip = $first_user_ip . '/' . $cidr;
-        } else {
-            $ip = $first_user_ip;
-        }
-        $ip_aton = ip2long($first_user_ip);
-        $ip_aton_end = ip2long($last_user_ip);
-        $parent_user = get_record_sql($db_link, "SELECT user_id FROM User_auth WHERE id=$id");
-        $parent_id = $parent_user['user_id'];
-        $locate_user = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
-        $lid = $locate_user['user_id'];
-        if (isset($lid) and ($lid != $parent_id)) {
-            $msg_error = "$ip $msg_exists Принадлежит пользователю ".$locate_user['login'];
-            unset($_POST);
-    	    } else {
-            $new['ip'] = $ip;
-            $new['ip_int'] = $ip_aton;
-            $new['mac'] = mac_dotted($_POST["f_mac"]);
-//            $new['clientid'] = $_POST["f_clientid"];
-            $new['comments'] = $_POST["f_comments"];
-            $new['firmware'] = $_POST["f_firmware"];
-            $new['WikiName'] = $_POST["f_wiki"];
-            $f_dnsname=trim($_POST["f_dns_name"]);
-            if (!empty($f_dnsname) and checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) { $new['dns_name'] = $f_dnsname; }
-            if (empty($f_dnsname)) { $new['dns_name'] = ''; }
-            $new['device_model_id'] = $_POST["f_device_model_id"]*1;
-            $new['save_traf'] = $_POST["f_save_traf"] * 1;
-            $new['dhcp_acl'] = trim($_POST["f_acl"]);
-            if ($default_user_id == $parent_id or $hotspot_user_id == $parent_id) {
+	$f_dhcp = $_POST["f_dhcp"] * 1;
+	if (in_array($parent_id,$mac_exists['users_id'],true)) {
+	    if ($id != $mac_exists['users_id'][0]) { $f_dhcp = 0; }
+	    }
+	//search ip
+        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
+        if (!empty($dup_ip_record)) {
+            $dup_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=".$dup_ip_record['user_id']);
+            $msg_error = "$ip already exists. Skip creating $ip [$mac]. Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
+	    $_SESSION[$page_url]['msg'] = $msg_error;
+            LOG_ERROR($db_link, $msg_error);
+            header("Location: " . $_SERVER["REQUEST_URI"]);
+            exit;
+    	    }
+        $new['ip'] = $ip;
+        $new['ip_int'] = $ip_aton;
+        $new['mac'] = mac_dotted($_POST["f_mac"]);
+//      $new['clientid'] = $_POST["f_clientid"];
+        $new['comments'] = $_POST["f_comments"];
+        $new['firmware'] = $_POST["f_firmware"];
+        $new['WikiName'] = $_POST["f_wiki"];
+        $f_dnsname=trim($_POST["f_dns_name"]);
+        if (!empty($f_dnsname) and checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) { $new['dns_name'] = $f_dnsname; }
+        if (empty($f_dnsname)) { $new['dns_name'] = ''; }
+        $new['device_model_id'] = $_POST["f_device_model_id"]*1;
+        $new['save_traf'] = $_POST["f_save_traf"] * 1;
+        $new['dhcp_acl'] = trim($_POST["f_acl"]);
+        if ($default_user_id == $parent_id or $hotspot_user_id == $parent_id) {
                 $new['nagios_handler'] = '';
                 $new['enabled'] = 0;
                 $new['link_check'] = 0;
@@ -72,22 +69,22 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
                 $new['enabled'] = $_POST["f_enabled"] * 1;
                 $new['link_check'] = $_POST["f_link"] * 1;
                 $new['nagios'] = $_POST["f_nagios"] * 1;
-                $new['dhcp'] = $_POST["f_dhcp"] * 1;
+                $new['dhcp'] = $f_dhcp;
                 $new['blocked'] = $_POST["f_blocked"] * 1;
                 $new['day_quota'] = $_POST["f_day_q"] * 1;
                 $new['month_quota'] = $_POST["f_month_q"] * 1;
                 $new['queue_id'] = $_POST["f_queue_id"] * 1;
                 $new['filter_group_id'] = $_POST["f_group_id"] * 1;
             }
-            $changes = get_diff_rec($db_link,"User_auth","id='$id'", $new, 0);
-            if (!empty($changes)) { LOG_WARNING($db_link,"Изменен адрес доступа! Список изменений: $changes"); }
-            update_record($db_link, "User_auth", "id='$id'", $new);
-        }
+        $changes = get_diff_rec($db_link,"User_auth","id='$id'", $new, 0);
+        if (!empty($changes)) { LOG_WARNING($db_link,"Изменен адрес доступа! Список изменений: $changes"); }
+        update_record($db_link, "User_auth", "id='$id'", $new);
     } else {
-        $msg_error = "$msg_ip_error xxx.xxx.xxx.xxx/xx";
-    }
+	$msg_error = "$msg_ip_error xxx.xxx.xxx.xxx";
+        $_SESSION[$page_url]['msg'] = $msg_error;
+	}
     header("Location: " . $_SERVER["REQUEST_URI"]);
-}
+    }
 
 if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
     $new['user_id'] = $_POST["new_parent"];
@@ -95,33 +92,41 @@ if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
     if (!empty($changes)) { LOG_WARNING($db_link,"Адрес доступа перемещён к другому пользователю! Применено: $changes"); }
     update_record($db_link, "User_auth", "id='$id'", $new);
     header("Location: " . $_SERVER["REQUEST_URI"]);
-}
+    }
 
 if (isset($_POST["recovery"])) {
     $ip = trim($_POST["f_ip"]);
     if (checkValidIp($ip)) {
-        $range = cidrToRange($ip);
-        $first_user_ip = $range[0];
-        $last_user_ip = $range[1];
-        $cidr = $range[2][1];
-        if (isset($cidr) and $cidr < 32) {
-            $ip = $first_user_ip . '/' . $cidr;
-        } else {
-            $ip = $first_user_ip;
-        }
-        $ip_aton = ip2long($first_user_ip);
-        $ip_aton_end = ip2long($last_user_ip);
-
-        $parent_user = get_record_sql($db_link, "SELECT user_id FROM User_auth WHERE id=$id");
-        $parent_id = $parent_user['user_id'];
-        $locate_user = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
-        $lid = $locate_user['user_id'];
-        if (isset($lid) and ($lid != $parent_id)) {
-            $msg_error = "$ip $msg_exists Принадлежит пользователю ".$locate_user['login'];
-            unset($_POST);
-            } else {
-            $new['deleted'] = 0;
-            if ($default_user_id == $parent_id or $hotspot_user_id == $parent_id) {
+        $ip_aton = ip2long($ip);
+	$mac=mac_dotted($_POST["f_mac"]);
+        $old_auth = get_record_sql($db_link, "SELECT user_id FROM User_auth WHERE id=$id");
+        $parent_id = $old_auth['user_id'];
+        //search mac
+	$mac_exists=find_mac_in_subnet($db_link,$ip,$mac);
+	if (isset($mac_exists) and $mac_exists['count']>=1 and !in_array($parent_id,$mac_exists['users_id'],true)) {
+	        $dup_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=".$mac_exists['users_id'][0]);
+		$msg_error="Mac already exists at another user in this subnet! Skip creating $ip [$mac]. Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
+		$_SESSION[$page_url]['msg'] = $msg_error;
+	        LOG_ERROR($db_link, $msg_error);
+	        header("Location: " . $_SERVER["REQUEST_URI"]);
+	        exit;
+		}
+	$f_dhcp = $_POST["f_dhcp"] * 1;
+	if (in_array($parent_id,$mac_exists['users_id'],true)) {
+	    if ($id != $mac_exists['users_id'][0]) { $f_dhcp = 0; }
+	    }
+	//search ip
+        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
+        if (!empty($dup_ip_record)) {
+            $dup_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=".$dup_ip_record['user_id']);
+            $msg_error = "$ip already exists. Skip creating $ip [$mac]. Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
+	    $_SESSION[$page_url]['msg'] = $msg_error;
+            LOG_ERROR($db_link, $msg_error);
+            header("Location: " . $_SERVER["REQUEST_URI"]);
+            exit;
+    	    }
+        $new['deleted'] = 0;
+        if ($default_user_id == $parent_id or $hotspot_user_id == $parent_id) {
                 $new['nagios_handler'] = '';
                 $new['enabled'] = 0;
                 $new['link_check'] = 0;
@@ -143,15 +148,15 @@ if (isset($_POST["recovery"])) {
                 $new['queue_id'] = $_POST["f_queue_id"] * 1;
                 $new['filter_group_id'] = $_POST["f_group_id"] * 1;
             }
-            $changes = get_diff_rec($db_link,"User_auth","id='$id'", $new, 0);
-            if (!empty($changes)) { LOG_WARNING($db_link,"Восстановлен адрес доступа! Применено: $changes"); }
-            update_record($db_link, "User_auth", "id='$id'", $new);
-        }
-    } else {
+        $changes = get_diff_rec($db_link,"User_auth","id='$id'", $new, 0);
+        if (!empty($changes)) { LOG_WARNING($db_link,"Восстановлен адрес доступа! Применено: $changes"); }
+        update_record($db_link, "User_auth", "id='$id'", $new);
+	} else {
         $msg_error = "$msg_ip_error xxx.xxx.xxx.xxx/xx";
-    }
+        $_SESSION[$page_url]['msg'] = $msg_error;
+	}
     header("Location: " . $_SERVER["REQUEST_URI"]);
-}
+    }
 
 unset($_POST);
 
@@ -165,7 +170,11 @@ if ($auth_info['dhcp_time'] == '0000-00-00 00:00:00') { $dhcp_str = ''; } else {
 if ($auth_info['last_found'] == '0000-00-00 00:00:00') { $auth_info['last_found'] = ''; }
 ?>
 <div id="cont">
-<?
+<?php
+if (!empty($msg_error)) {
+    print '<div id="msg">'.$msg_error.'</div>';
+    unset($_SESSION[$page_url]['msg']);
+    }
 print "<b> Адрес доступа пользователя <a href=/admin/users/edituser.php?id=".$auth_info['user_id'].">".$parent_name."</a> </b>";
 ?>
 <form name="def" action="editauth.php?id=<? echo $id; ?>" method="post">

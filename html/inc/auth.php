@@ -28,4 +28,7 @@ if (!isset($displayed)) { $displayed=$default_displayed; }
 $_SESSION[$page_url]['page']=$page;
 $_SESSION[$page_url]['rows']=$displayed;
 
+$msg_error='';
+if (!empty($_SESSION[$page_url]['msg'])) { $msg_error=$_SESSION[$page_url]['msg']; }
+
 ?>

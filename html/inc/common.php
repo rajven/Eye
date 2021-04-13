@@ -1230,14 +1230,15 @@ if (empty($ip)) { return; }
 if (empty($mac)) { return; }
 $ip_subnet=get_ip_subnet($db,$ip);
 if (!isset($ip_subnet)) { return; }
-$t_auth=mysqli_query($db, "SELECT id FROM User_auth WHERE ip_int>=".$ip_subnet['int_start']." and ip_int<=".$ip_subnet['int_stop']." and mac='" . $mac . "' and deleted=0");
+$t_auth=mysqli_query($db, "SELECT id,mac,user_id FROM User_auth WHERE ip_int>=".$ip_subnet['int_start']." and ip_int<=".$ip_subnet['int_stop']." and mac='" . $mac . "' and deleted=0 ORDER BY id");
 $auth_count=0;
 $result['count']=0;
-while (list($aid)=mysqli_fetch_array($t_auth)) {
-    if (isset($aid) and $aid>0) { 
-	$auth_count++; 
+while (list($aid,$amac,$u_id)=mysqli_fetch_array($t_auth)) {
+    if (isset($aid) and $aid>0) {
+	$auth_count++;
 	$result['count']=$auth_count;
 	$result[$auth_count]=$aid;
+	array_push($result['users_id'],$u_id);
 	}
     }
 return $result;

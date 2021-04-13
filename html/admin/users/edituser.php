@@ -76,6 +76,7 @@ if (isset($_POST["removeauth"])) {
 if (isset($_POST["ApplyForAll"])) {
     $auth_id = $_POST["f_auth_id"];
     $a_enabled = $_POST["a_enabled"] * 1;
+    $a_dhcp = $_POST["a_dhcp"] * 1;
     $a_day = $_POST["a_day_q"] * 1;
     $a_month = $_POST["a_month_q"] * 1;
     $a_queue = $_POST["a_queue_id"] * 1;
@@ -84,12 +85,14 @@ if (isset($_POST["ApplyForAll"])) {
         if ($val) {
             unset($new);
             if ($default_user_id == $id or $hotspot_user_id == $id) {
+                $new["dhcp"] = 0;
                 $new["enabled"] = 0;
                 $new["day_quota"] = 0;
                 $new["month_quota"] = 0;
                 $new["queue_id"] = 0;
                 $new["filter_group_id"] = 0;
             } else {
+                $new["dhcp"] = $a_dhcp;
                 $new["enabled"] = $a_enabled;
                 $new["day_quota"] = $a_day;
                 $new["month_quota"] = $a_month;
@@ -226,6 +229,7 @@ if ($msg_error) { print "<div id='msg'><b>$msg_error</b></div><br>\n"; }
 <table class="data">
 <tr>
 <td>Для выделенных установить: Включен&nbsp<?php print_qa_select('a_enabled', 0); ?></td>
+<td>DHCP&nbsp<?php print_qa_select('a_dhcp', 0); ?></td>
 <td>Фильтр&nbsp<?php print_group_select($db_link, 'a_group_id', 0); ?></td>
 <td>Шейпер&nbsp<?php print_queue_select($db_link, 'a_queue_id', 0); ?></td>
 <td>В день&nbsp<input type="text" name="a_day_q" value="0" size=5></td>
@@ -265,6 +269,7 @@ if ($id == $default_user_id or $id == $hotspot_user_id) { $default_sort = 'last_
 <td class="data"><?php print $cell_comment; ?></td>
 <td class="data"><?php print $sort_url . "&sort=dns_name&order=$new_order>" . $cell_dns_name . "</a>"; ?></td>
 <td class="data"><?php print $cell_enabled; ?></td>
+<td class="data"><?php print $cell_dhcp; ?></td>
 <td class="data"><?php print $cell_filter; ?></td>
 <td class="data"><?php print $cell_shaper; ?></td>
 <td class="data"><?php print $cell_perday."/<br>".$cell_permonth.", Mb"; ?></td>
@@ -298,6 +303,7 @@ if (!empty($flist)) {
         $ip_status = 1;
         if ($row["blocked"] or !$row["enabled"]) { $ip_status = 0; }
         print "<td class=\"data\" >" . get_qa($ip_status). "</td>\n";
+        print "<td class=\"data\" >" . get_qa($row["dhcp"]). "</td>\n";
         print "<td class=\"data\" >" . get_group($db_link, $row["filter_group_id"]) . "</td>\n";
         print "<td class=\"data\" >" . get_queue($db_link, $row["queue_id"]) . "</td>\n";
         print "<td class=\"data\" >".$row["day_quota"]."/".$row["month_quota"]."</td>\n";
