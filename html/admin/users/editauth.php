@@ -30,7 +30,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
 	//disable dhcp for secondary ip
 	$f_dhcp = $_POST["f_dhcp"] * 1;
 	if (in_array($parent_id,$mac_exists['users_id'])) {
-	    if ($id != $mac_exists['users_id'][0]) { $f_dhcp = 0; }
+	    if ($parent_id != $mac_exists['users_id'][0]) { $f_dhcp = 0; }
 	    }
 	//search ip
         $dup_ip_record = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
@@ -115,7 +115,7 @@ if (isset($_POST["recovery"])) {
 	//disable dhcp for secondary ip
 	$f_dhcp = $_POST["f_dhcp"] * 1;
 	if (in_array($parent_id,$mac_exists['users_id'])) {
-	    if ($id != $mac_exists['users_id'][0]) { $f_dhcp = 0; }
+	    if ($parent_id != $mac_exists['users_id'][0]) { $f_dhcp = 0; }
 	    }
 	//search ip
         $dup_ip_record = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
