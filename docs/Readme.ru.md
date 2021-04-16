@@ -87,7 +87,7 @@ cp docs/logrotate/scripts /etc/logrotate.d/scripts
 
 Не забудьте раскомментировать в кроне неоходимые скрипты
 
-9. Минимальная настрофка готова! Заходим: http://[ip]/admin/ user: admin password: admin, настраиваем список устройств, используемые сети и т.д.
+9. Минимальная настройка готова! Заходим: http://[ip]/admin/ user: admin password: admin, настраиваем список устройств, используемые сети и т.д.
 
 ######################################### DHCP Server at Linux ###############################################################
 
@@ -171,5 +171,8 @@ add name=download_root_[LAN_INTERFACE_NAME] parent=[LAN_INTERFACE_NAME] queue=pc
 
 запускаем /usr/local/scripts/sync_mikrotik.pl
 Скрипт создаст правила фильтрации и шейпера
+
+#dhcp script
+/tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&password=<PASSWORD_HASH>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
 
 #########################################################################################################################

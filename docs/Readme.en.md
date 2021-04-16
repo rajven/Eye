@@ -166,4 +166,7 @@ add name=download_root_[LAN_INTERFACE_NAME] parent=[LAN_INTERFACE_NAME] queue=pc
 
 run /usr/local/scripts/sync_mikrotik.pl
 
+#dhcp script
+/tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&password=<PASSWORD_HASH>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
+
 #########################################################################################################################

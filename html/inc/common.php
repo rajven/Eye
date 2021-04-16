@@ -1330,7 +1330,7 @@ function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
     }
 
     // default id
-    $new_id = get_new_user_id($db, $ip, $mac);
+    $new_id = get_new_user_id($db, $ip, $mac, $dhcp_hostname);
     $save_traf = get_option($db, 23);
     $msg = '';
     // search changed mac
@@ -3098,7 +3098,7 @@ if ($ip>=ip2long($range[0]) and $ip <=ip2long($range[1])) { return 1; }
 return 0;
 }
 
-function get_new_user_id($db, $ip, $mac)
+function get_new_user_id($db, $ip, $mac, $hostname)
 {
     global $hotspot_user_id;
     global $default_user_id;
@@ -3118,7 +3118,13 @@ function get_new_user_id($db, $ip, $mac)
             if (!empty($row['rule']) and preg_match($row['rule'], $mac)) { return $row['user_id']; }
             }
         }
-    //the hostname is not processed, because the dhcp-server on the microtic does not return it
+    //hostname
+    if (!empty($hostname)) {
+        $mac_rules=get_records_sql($db,"SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0");
+        foreach ($mac_rules as $row) {
+            if (!empty($row['rule']) and preg_match($row['rule'], $mac)) { return $row['user_id']; }
+            }
+        }
     return $default_user_id;
 }
 

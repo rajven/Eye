@@ -5,7 +5,7 @@ if (!empty($_GET["ip"]) and !empty($_GET["mac"])) {
     $ip = $_GET["ip"];
     $mac = mac_dotted(trim($_GET["mac"]));
     $dhcp_hostname = NULL;
-    if (!empty($_GET["host"])) { $dhcp_hostname = trim($_GET["host"]); }
+    if (!empty($_GET["hostname"])) { $dhcp_hostname = trim($_GET["hostname"]); }
     $faction = $_GET["action"] * 1;
     $action = 'add';
     if ($faction == 1) { $action = 'add'; }
