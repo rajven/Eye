@@ -50,6 +50,7 @@ my $dhcp_networks = new Net::Patricia;
 my $now = DateTime->now(time_zone=>'local');
 $now->set(day=>1);
 my $month_start=$dbh->quote($now->ymd("-")." 00:00:00");
+
 my $month_dur = DateTime::Duration->new( months => 1 );
 my $next_month = $now + $month_dur;
 $next_month->set(day=>1);
@@ -110,24 +111,22 @@ if ($dhcp_networks->match_string($row->{ip})) {
     }
 }
 
+$now = DateTime->now(time_zone=>'local');
+
+my $day_dur = DateTime::Duration->new( days => $history_dhcp );
+my $clean_date = $now - $day_dur;
+my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+
 #clean dhcp log
-my $clean_dhcp_log = time()- $history_dhcp*3600*24;
-my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_dhcp_log);
-$month++;
-$year += 1900;
-my $clean_dhcp_log_str="$year-$month-$day";
-my $clean_dhcp_log_date=$dbh->quote($clean_dhcp_log_str);
-do_sql($dbh,"DELETE FROM dhcp_log WHERE `timestamp` < $clean_dhcp_log_date" );
-db_log_verbose($dbh,"Clean dhcp leases for all older that ".$clean_dhcp_log_str);
+do_sql($dbh,"DELETE FROM dhcp_log WHERE `timestamp` < $clean_str" );
+db_log_verbose($dbh,"Clean dhcp leases for all older that ".$clean_str);
 
 ##### clean old connections ########
-my $clean_con_time = time()-$connections_history*60*60*24;
-my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_con_time);
-$month++;
-$year += 1900;
-my $clean_con_str="$year-$month-$day";
-my $clean_con_date=$dbh->quote($clean_con_str);
-$users_sql = "SELECT id FROM User_auth WHERE `last_found` < $clean_con_date and last_found>0";
+$day_dur = DateTime::Duration->new( days => $connections_history );
+$clean_date = $now - $day_dur;
+$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+
+$users_sql = "SELECT id FROM User_auth WHERE `last_found` < $clean_str and last_found>0";
 db_log_debug($dbh,$users_sql) if ($debug);
 @users_auth=get_records_sql($dbh,$users_sql);
 foreach my $row (@users_auth) {
@@ -162,60 +161,51 @@ do_sql($dbh,"DELETE FROM Unknown_mac WHERE mac='".mac_simplify($row->{mac})."'")
 
 ##### traffic detail ######
 
-my $clean_time = time()-$history*60*60*24;
-my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_time);
-$month++;
-$year += 1900;
-my $clean_str="$year-$month-$day";
-my $clean_date=$dbh->quote($clean_str);
+$day_dur = DateTime::Duration->new( days => $history );
+$clean_date = $now - $day_dur;
+$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+
 db_log_verbose($dbh,"Clean traffic detail older that ".$clean_str);
 #clean old traffic detail
-do_sql($dbh,"DELETE FROM Traffic_detail WHERE `timestamp` < $clean_date" );
+do_sql($dbh,"DELETE FROM Traffic_detail WHERE `timestamp` < $clean_str" );
 
 ##### log  ######
 
-$clean_time = time()-$history_log_day*60*60*24;
-my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_time);
-$month++;
-$year += 1900;
-$clean_str="$year-$month-$day";
-$clean_date=$dbh->quote($clean_str);
+$day_dur = DateTime::Duration->new( days => $history_log_day );
+$clean_date = $now - $day_dur;
+$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+
 db_log_verbose($dbh,"Clean worklog older that ".$clean_str);
-do_sql($dbh,"DELETE FROM syslog WHERE `timestamp` < $clean_date" );
+do_sql($dbh,"DELETE FROM syslog WHERE `timestamp` < $clean_str" );
 
 ##### syslog  ######
 
-$clean_time = time()-$history_syslog_day*60*60*24;
-my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_time);
-$month++;
-$year += 1900;
-$clean_str="$year-$month-$day";
-$clean_date=$dbh->quote($clean_str);
+$day_dur = DateTime::Duration->new( days => $history_syslog_day );
+$clean_date = $now - $day_dur;
+$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+
 db_log_verbose($dbh,"Clean syslog older that ".$clean_str);
-do_sql($dbh,"DELETE FROM remote_syslog WHERE `date` < $clean_date" );
+do_sql($dbh,"DELETE FROM remote_syslog WHERE `date` < $clean_str" );
 
 ##### Traffic stats  ######
 
-$clean_time = time()-$history_trafstat_day*60*60*24;
-my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_time);
-$month++;
-$year += 1900;
-$clean_str="$year-$month-$day";
-$clean_date=$dbh->quote($clean_str);
+$day_dur = DateTime::Duration->new( days => $history_trafstat_day );
+$clean_date = $now - $day_dur;
+$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+
 db_log_verbose($dbh,"Clean traffic statistics older that ".$clean_str);
-do_sql($dbh,"DELETE FROM User_stats WHERE `timestamp` < $clean_date" );
+do_sql($dbh,"DELETE FROM User_stats WHERE `timestamp` < $clean_str" );
 
 ##### Traffic stats full ######
 
 my $iptraf_history = $config_ref{traffic_ipstat_history} || 30;
-$clean_time = time()-$iptraf_history*60*60*24;
-my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_time);
-$month++;
-$year += 1900;
-$clean_str="$year-$month-$day";
-$clean_date=$dbh->quote($clean_str);
+
+$day_dur = DateTime::Duration->new( days => $iptraf_history );
+$clean_date = $now - $day_dur;
+$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+
 db_log_verbose($dbh,"Clean traffic full statistics older that ".$clean_str);
-do_sql($dbh,"DELETE FROM User_stats_full WHERE `timestamp` < $clean_date" );
+do_sql($dbh,"DELETE FROM User_stats_full WHERE `timestamp` < $clean_str" );
 
 #### clean unknown user ip
 do_sql($dbh,"DELETE FROM User_auth WHERE (mac is NULL or mac='') and deleted=1");
