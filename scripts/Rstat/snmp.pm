@@ -50,20 +50,40 @@ $timeout
 BEGIN
 {
 
-our $ifAlias      ='1.3.6.1.2.1.31.1.1.1.18';
-our $ifName       ='1.3.6.1.2.1.31.1.1.1.1';
-our $ifDescr      ='1.3.6.1.2.1.2.2.1.2';
-our $ifIndex      ='1.3.6.1.2.1.2.2.1.1';
-our $bgp_prefixes ='1.3.6.1.4.1.9.9.187.1.2.4.1.1';
-our $bgp_aslist   ='1.3.6.1.2.1.15.3.1.9';
-our $arp_oid      ='1.3.6.1.2.1.3.1.1.2';
-our $ipNetToMediaPhysAddress = '1.3.6.1.2.1.4.22.1.2';
-our $fdb_table_oid ='1.3.6.1.2.1.17.4.3.1.2';
+our $ifAlias      ='.1.3.6.1.2.1.31.1.1.1.18';
+our $ifName       ='.1.3.6.1.2.1.31.1.1.1.1';
+our $ifDescr      ='.1.3.6.1.2.1.2.2.1.2';
+our $ifIndex      ='.1.3.6.1.2.1.2.2.1.1';
+our $bgp_prefixes ='.1.3.6.1.4.1.9.9.187.1.2.4.1.1';
+our $bgp_aslist   ='.1.3.6.1.2.1.15.3.1.9';
+our $arp_oid      ='.1.3.6.1.2.1.3.1.1.2';
+our $ipNetToMediaPhysAddress = '.1.3.6.1.2.1.4.22.1.2';
+our $fdb_table_oid ='.1.3.6.1.2.1.17.4.3.1.2';
 our $fdb_table_oid2='.1.3.6.1.2.1.17.7.1.2.2.1.2';
 our $port_vlan_oid ='.1.3.6.1.2.1.17.7.1.4.5.1.1';
 our $cisco_vlan_oid='.1.3.6.1.4.1.9.9.46.1.3.1.1.2';
 our $fdb_table;
 our $timeout = 5;
+
+#---------------------------------------------------------------------------------
+
+sub snmp_get_request {
+my $ip = shift;
+my $oid = shift;
+my $community = shift || $snmp_default_community;
+my $port = shift || '161';
+my $snmp_version = shift || '2';
+my ($session, $error) = Net::SNMP->session(
+   -hostname  => $ip,
+   -community => $community,
+   -port      => $port,
+   -version   => $snmp_version
+);
+my $result = $session->get_request( -varbindlist => [$oid]);
+$session->close;
+return if (!$result->{$oid});
+return $result->{$oid};
+}
 
 #---------------------------------------------------------------------------------
 
@@ -86,26 +106,6 @@ $session->close;
 return $result->{$oid};
 }
 
-#---------------------------------------------------------------------------------
-
-sub snmp_get_request {
-my $ip = shift;
-my $oid = shift;
-my $community = shift || $snmp_default_community;
-my $port = shift || '161';
-my $snmp_version = shift || '2';
-my ($session, $error) = Net::SNMP->session(
-   -hostname  => $ip,
-   -community => $community,
-   -port      => $port,
-   -version   => $snmp_version
-);
-my $result = $session->get_request( -varbindlist => [$oid]);
-$session->close;
-return if (!$result->{$oid});
-return $result->{$oid};
-}
-
 #-------------------------------------------------------------------------------------
 
 sub get_arp_table {
@@ -118,7 +118,7 @@ sub get_arp_table {
     ### open SNMP session
     my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community , -version=>$version);
     return if (!defined($snmp_session));
-    $snmp_session->translate([-timeticks]);
+    $snmp_session->translate([-all]);
 
     my $arp;
     my $arp_table1 = $snmp_session->get_table($arp_oid);
@@ -126,10 +126,10 @@ sub get_arp_table {
 
     if ($arp_table1) {
         foreach my $row (keys(%$arp_table1)) {
-        my $mac_h = lc $arp_table1->{$row};
-        $mac_h=~s/^0x//;
+        my ($mac_h) = unpack("H*",$arp_table1->{$row});
+        next if (!$mac_h);
         my $mac;
-        if (length($mac_h)==12) { $mac=$mac_h; }
+        if (length($mac_h)==12) { $mac=lc $mac_h; }
         next if (!$mac);
         $row=trim($row);
         my $ip;
@@ -141,10 +141,10 @@ sub get_arp_table {
 
     if ($arp_table2) {
         foreach my $row (keys(%$arp_table2)) {
-        my $mac_h = lc $arp_table2->{$row};
-        $mac_h=~s/^0x//;
+        my ($mac_h) = unpack("H*",$arp_table2->{$row});
+        next if (!$mac_h);
         my $mac;
-        if (length($mac_h)==12) { $mac=$mac_h; }
+        if (length($mac_h)==12) { $mac=lc $mac_h; }
         next if (!$mac);
         $row=trim($row);
         my $ip;
