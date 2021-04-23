@@ -127,7 +127,7 @@ sub get_arp_table {
     if ($arp_table1) {
         foreach my $row (keys(%$arp_table1)) {
         my ($mac_h) = unpack("H*",$arp_table1->{$row});
-        next if (!$mac_h);
+        next if (!$mac_h or $mac_h eq '000000000000' or $mac_h eq 'ffffffffffff');
         my $mac;
         if (length($mac_h)==12) { $mac=lc $mac_h; }
         next if (!$mac);
@@ -142,7 +142,7 @@ sub get_arp_table {
     if ($arp_table2) {
         foreach my $row (keys(%$arp_table2)) {
         my ($mac_h) = unpack("H*",$arp_table2->{$row});
-        next if (!$mac_h);
+        next if (!$mac_h or $mac_h eq '000000000000' or $mac_h eq 'ffffffffffff');
         my $mac;
         if (length($mac_h)==12) { $mac=lc $mac_h; }
         next if (!$mac);
