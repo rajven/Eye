@@ -101,7 +101,10 @@ $vpn_networks
 @free_network_list
 @vpn_network_list
 %config_ref
+%switch_auth
 $last_refresh_config
+$tftp_dir
+$tftp_server
 );
 
 BEGIN
@@ -245,8 +248,26 @@ our $domain_name;
 our $connections_history;
 our $dbh;
 our $urgent_sync = 0;
+our $tftp_dir=$Config->{_}->{tftp_dir} || '/var/lib/tftpboot';
+our $tftp_server=$Config->{_}->{tftp_server} || '';
 
 our $last_refresh_config = time();
+
+our %switch_auth = (
+'8'=>{'vendor'=>'Allied Telesis','enable'=>'en','proto'=>'telnet','login'=> '(login|User Name):','password'=>'Password:','prompt'=>qr/(\010\013){0,5}(([-\w]+|[-\w(config)+])\#|[-\w]+\>)/},
+'3'=>{'vendor'=>'Huawei','proto'=>'ssh','enable'=>'system-view','login'=> 'login as:','password'=>'Password: ','prompt'=>qr/(\<.*\>|\[.*\])/},
+'16'=>{'vendor'=>'Cisco','proto'=>'telnet','enable'=>'en','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'5'=>{'vendor'=>'Raisecom','proto'=>'telnet','enable'=>'en','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'6'=>{'vendor'=>'SNR','proto'=>'telnet','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'7'=>{'vendor'=>'Dlink','proto'=>'telnet','login'=> 'login:','password'=>'Password:','prompt'=>qr/[-\w]+\#$/},
+#'15'=>{'vendor'=>'HP','proto'=>'telnet','enable'=>'system-view','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'2'=>{'vendor'=>'Eltex','proto'=>'telnet','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'17'=>{'vendor'=>'Maipu','proto'=>'telnet','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'4'=>{'vendor'=>'Zyxel','proto'=>'telnet','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'38'=>{'vendor'=>'Qtech','proto'=>'telnet','enable'=>'en','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'9'=>{'vendor'=>'Mikrotik','proto'=>'telnet','login'=> 'Login:','password'=>'Password:','prompt'=>qr/\[(.*)+\@(.*)+\]\s+> $/},
+'39'=>{'vendor'=>'Extreme','proto'=>'telnet','login'=> 'login:','password'=>'Password:','prompt'=>qr/[-\w]+\s\#\s/},
+);
 
 mkdir $LOG_DIR unless (-d $LOG_DIR);
 

@@ -12,7 +12,6 @@ use FileHandle;
 use Data::Dumper;
 use Rstat::config;
 use Rstat::main;
-use Rstat::mikrotik;
 use Rstat::cmd;
 use Net::Patricia;
 use Date::Parse;
@@ -22,6 +21,9 @@ use DBI;
 use utf8;
 use open ":encoding(utf8)";
 use Fcntl qw(:flock);
+
+#$debug = 1;
+
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
@@ -76,7 +78,24 @@ if ($l3->{'interface_type'} eq '1') { push(@wan_int,$l3->{'name'}); }
 
 my @cmd_list=();
 
-my $t = Login_Mikrotik($router_ip);
+#router
+if ($gate->{device_type} eq '2') {
+    #mikrotik
+    if ($gate->{vendor_id} eq '9') { $gate->{port}='60023'; }
+    $gate->{login}=$router_login;
+    $gate->{password}=$router_password;
+    }
+
+#switch
+if ($gate->{device_type} eq '1') {
+    #mikrotik
+    if ($gate->{vendor_id} eq '9') { $gate->{port}='60023'; }
+    $gate->{login}='admin';
+    $gate->{password}=$sw_password;
+    }
+
+my $t = netdev_login($gate);
+log_cmd($t,"/system note set show-at-login=no",1,$t->prompt);
 
 foreach my $int (@lan_int) { #interface dhcp loop
 next if (!$int);
@@ -284,81 +303,57 @@ AND User_list.blocked =0
 AND User_auth.user_id <> $hotspot_user_id
 ORDER BY ip_int";
 
-my $user_auth_list = $dbh->prepare($user_auth_sql);
-if ( !defined $user_auth_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-$user_auth_list->execute;
-# user auth list
-my $authlist_ref = $user_auth_list->fetchall_arrayref();
-$user_auth_list->finish();
+my @authlist_ref = get_records_sql($dbh,$user_auth_sql);
 
 my %users;
 my %lists;
-my @squid_users=();
 
-foreach my $row (@$authlist_ref) {
+foreach my $row (@authlist_ref) {
 if ($connected_users_only) {
-    next if (!$connected_users->match_string($row->[0]));
+    next if (!$connected_users->match_string($row->{ip}));
     }
-$users{'group_'.$row->[1]}->{$row->[0]}=1;
-$users{'group_all'}->{$row->[0]}=1;
-$lists{'group_'.$row->[1]}=1;
-if ($row->[2]) { $users{'queue_'.$row->[2]}->{$row->[0]}=1; }
+$users{'group_'.$row->{filter_group_id}}->{$row->{ip}}=1;
+$users{'group_all'}->{$row->{ip}}=1;
+$lists{'group_'.$row->{filter_group_id}}=1;
+if ($row->{queue_id}) { $users{'queue_'.$row->{queue_id}}->{$row->{ip}}=1; }
 }
 
 #full list
 $lists{'group_all'}=1;
 
 #get queue list
-my $queue_list = $dbh->prepare( "SELECT id,queue_name,Download,Upload FROM Queue_list" );
-if ( !defined $queue_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-$queue_list->execute;
-# user auth list
-my $queuelist_ref = $queue_list->fetchall_arrayref();
-$queue_list->finish();
+my @queuelist_ref = get_records_sql($dbh,"SELECT * FROM Queue_list");
 
 my %queues;
-foreach my $row (@$queuelist_ref) {
-$lists{'queue_'.$row->[0]}=1;
-next if ((!$row->[2]) and !($row->[3]));
-$queues{'queue_'.$row->[0]}{id}=$row->[0];
-$queues{'queue_'.$row->[0]}{down}=$row->[2];
-$queues{'queue_'.$row->[0]}{up}=$row->[3];
+foreach my $row (@queuelist_ref) {
+$lists{'queue_'.$row->{id}}=1;
+next if ((!$row->{Download}) and !($row->{Upload}));
+$queues{'queue_'.$row->{id}}{id}=$row->{id};
+$queues{'queue_'.$row->{id}}{down}=$row->{Download};
+$queues{'queue_'.$row->{id}}{up}=$row->{Upload};
 }
 
 #print Dumper(\%users) if ($debug);
 
-#get filters
-my $filter_list = $dbh->prepare( "SELECT id,name,proto,dst,dstport,action FROM Filter_list where type=0" );
-if ( !defined $filter_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-$filter_list->execute;
-# user auth list
-my $filterlist_ref = $filter_list->fetchall_arrayref();
-$filter_list->finish();
+my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM Filter_list where type=0");
 
 my %filters;
-foreach my $row (@$filterlist_ref) {
-$filters{$row->[0]}->{id}=$row->[0];
-$filters{$row->[0]}->{proto}=$row->[2];
-$filters{$row->[0]}->{dst}=$row->[3];
-$filters{$row->[0]}->{port}=$row->[4];
-$filters{$row->[0]}->{action}=$row->[5];
+foreach my $row (@filterlist_ref) {
+$filters{$row->{id}}->{id}=$row->{id};
+$filters{$row->{id}}->{proto}=$row->{proto};
+$filters{$row->{id}}->{dst}=$row->{dst};
+$filters{$row->{id}}->{port}=$row->{dstport};
+$filters{$row->{id}}->{action}=$row->{action};
 }
 
 #print Dumper(\%filters) if ($debug);
 
-#get groups
-my $group_list = $dbh->prepare( "SELECT group_id,filter_id,Group_filters.order FROM Group_filters order by Group_filters.group_id,Group_filters.order" );
-if ( !defined $group_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-$group_list->execute;
-# user auth list
-my $grouplist_ref = $group_list->fetchall_arrayref();
-$group_list->finish();
+my @grouplist_ref = get_records_sql($dbh,"SELECT group_id,filter_id,Group_filters.order FROM Group_filters order by Group_filters.group_id,Group_filters.order");
 
 my %group_filters;
 my $index=1;
-foreach my $row (@$grouplist_ref) {
-#{group-name}->{filter_id}=order
-$group_filters{'group_'.$row->[0]}->{$index}=$row->[1];
+foreach my $row (@grouplist_ref) {
+$group_filters{'group_'.$row->{group_id}}->{$index}=$row->{filter_id};
 $index++;
 }
 
@@ -399,7 +394,7 @@ foreach my $group_name (keys %cur_users) {
     }
 }
 
-
+die;
 timestamp;
 
 #sync firewall rules

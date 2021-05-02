@@ -15,6 +15,9 @@ use strict;
 use warnings;
 use File::Find;
 use File::Basename;
+use Fcntl qw(:flock);
+open(SELF,"<",$0) or die "Cannot open $0 - $!";
+flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
 if (!$config_ref{wiki_path}) { exit; }
 
@@ -51,7 +54,7 @@ exit;
 sub wanted {
 my $filename = $File::Find::name;
 my $dev_name = basename($filename);
-if ($filename =~/\.txt$/ and $dev_name=~/^(Device|Switch|Router|Gateway)/) {
+if ($filename =~/\.txt$/ and $dev_name=~/^(Device|Switch|Router|Gateway|Ups|Sensor)/) {
     $dev_name=~s/\.txt$//;
     $content{$dev_name}=$filename;
     }
