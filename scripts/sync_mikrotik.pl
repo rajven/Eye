@@ -394,7 +394,6 @@ foreach my $group_name (keys %cur_users) {
     }
 }
 
-die;
 timestamp;
 
 #sync firewall rules
