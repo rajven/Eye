@@ -2753,6 +2753,29 @@ function get_record_sql($db, $sql)
     return $result;
 }
 
+function is_auth_bind_changed ($db, $id, $ip,$mac) {
+$old_sql = "SELECT ip,mac FROM User_auth WHERE id=$id";
+$old_record = get_record_sql($db, $old_sql);
+if (empty($old_record["ip"]) or empty($old_record["mac"])) { return 0; }
+if ($old_record["ip"] !== $ip or $old_record["mac"] !== $mac) {
+        LOG_VERBOSE($db, "Changed ip or mac for auth record!");
+        return 1;
+        }
+return 0;
+}
+
+function copy_auth($db, $id, $new_auth) {
+$old_record = get_record_sql($db, "SELECT * FROM User_auth WHERE id=$id");
+delete_record($db,"User_auth","id=".$id);
+$new_auth["user_id"] = $old_record["user_id"];
+$new_auth["changed"] = 1;
+$changed_time = GetNowTimeString();
+$new_auth["changed_time"]=$changed_time;
+$new_id = insert_record($db,"User_auth",$new_auth);
+LOG_VERBOSE($db, "Old record with id: $id deleted. Created new auth record for new ip+mac id: $new_id!");
+return $new_id;
+}
+
 function update_record($db, $table, $filter, $newvalue)
 {
     if (isRO($db)) {
@@ -2781,6 +2804,20 @@ function update_record($db, $table, $filter, $newvalue)
     $changed_log = '';
     $run_sql = '';
     $network_changed = 0;
+
+    $acl_fields = [
+    'ip' => '1',
+    'ip_int' => '1',
+    'enabled'=>'1',
+    'dhcp'=>'1',
+    'filter_group_id'=>'1',
+    'deleted'=>'1',
+    'dhcp_acl'=>'1',
+    'queue_id'=>'1',
+    'mac'=>'1',
+    'blocked'=>'1',
+    ];
+
     foreach ($newvalue as $key => $value) {
         if (! isset($value)) {
             $value = '';
@@ -2790,18 +2827,6 @@ function update_record($db, $table, $filter, $newvalue)
             continue;
         }
         if ($table==="User_auth") {
-    	    $acl_fields = [
-    	    'ip' => '1',
-    	    'ip_int' => '1',
-    	    'enabled'=>'1',
-    	    'dhcp'=>'1',
-    	    'filter_group_id'=>'1',
-    	    'deleted'=>'1',
-    	    'dhcp_acl'=>'1',
-    	    'queue_id'=>'1',
-    	    'mac'=>'1',
-    	    'blocked'=>'1',
-    	    ];
     	    if (!empty($acl_fields["$key"])) { $network_changed = 1; }
     	    }
         $changed_log = $changed_log . " $key => $value (old: $old[$key]),";
@@ -2854,7 +2879,7 @@ function delete_record($db, $table, $filter)
     //never delete user ip record
     if ($table === 'User_auth') {
         $changed_time = GetNowTimeString();
-        $new_sql = "UPDATE $table SET deleted=1, `changed_time`='".$changed_time."' WHERE $filter";
+        $new_sql = "UPDATE $table SET deleted=1, changed=1, `changed_time`='".$changed_time."' WHERE $filter";
         LOG_DEBUG($db, "Run sql: $new_sql");
         mysqli_query($db, $new_sql);
         } else {

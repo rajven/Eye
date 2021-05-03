@@ -79,7 +79,13 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             }
         $changes = get_diff_rec($db_link,"User_auth","id='$id'", $new, 0);
         if (!empty($changes)) { LOG_WARNING($db_link,"Изменен адрес доступа! Список изменений: $changes"); }
-        update_record($db_link, "User_auth", "id='$id'", $new);
+        if (is_auth_bind_changed($db_link,$id,$ip,$mac)) {
+            $new_id = copy_auth($db_link,$id,$new);
+            header("Location: /admin/users/editauth.php?id=".$new_id,TRUE, 302);
+            exit;
+            } else {
+            update_record($db_link, "User_auth", "id='$id'", $new);
+            }
     } else {
 	$msg_error = "$msg_ip_error xxx.xxx.xxx.xxx";
         $_SESSION[$page_url]['msg'] = $msg_error;
