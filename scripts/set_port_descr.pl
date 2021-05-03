@@ -122,6 +122,8 @@ my $device = $devices{$device_name};
 #skip unknown vendor
 next if (!$switch_auth{$device->{vendor_id}});
 
+#next if ($device->{ip} ne "192.168.32.11");
+
 my $ip = $device->{ip};
 my $community = $device->{community};
 my $snmp_version = $device->{snmp_version};
@@ -131,22 +133,7 @@ print "Device: $device_name IP: $ip community: $community version: $snmp_version
 #get interface names
 my $int = get_interfaces($ip,$community,$snmp_version,0);
 
-#router
-if ($device->{device_type} eq '2') {
-    #mikrotik
-    if ($device->{vendor_id} eq '9') { $device->{port}='60023'; }
-    $device->{login}=$router_login;
-    $device->{password}=$router_password;
-    }
-
-#switch
-if ($device->{device_type} eq '1') {
-    #mikrotik
-    if ($device->{vendor_id} eq '9') { $device->{port}='60023'; }
-    $device->{login}='admin';
-    $device->{password}=$sw_password;
-    }
-
+$device = netdev_set_auth($device);
 my $session = netdev_login($device);
 
 if ($session) {

@@ -78,24 +78,9 @@ if ($l3->{'interface_type'} eq '1') { push(@wan_int,$l3->{'name'}); }
 
 my @cmd_list=();
 
-#router
-if ($gate->{device_type} eq '2') {
-    #mikrotik
-    if ($gate->{vendor_id} eq '9') { $gate->{port}='60023'; }
-    $gate->{login}=$router_login;
-    $gate->{password}=$router_password;
-    }
-
-#switch
-if ($gate->{device_type} eq '1') {
-    #mikrotik
-    if ($gate->{vendor_id} eq '9') { $gate->{port}='60023'; }
-    $gate->{login}='admin';
-    $gate->{password}=$sw_password;
-    }
+$gate = netdev_set_auth($gate);
 
 my $t = netdev_login($gate);
-log_cmd($t,"/system note set show-at-login=no",1,$t->prompt);
 
 foreach my $int (@lan_int) { #interface dhcp loop
 next if (!$int);

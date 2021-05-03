@@ -24,6 +24,7 @@ log_cmd3
 log_cmd4
 flush_telnet
 run_command
+netdev_set_auth
 netdev_login
 netdev_cmd
 netdev_backup
@@ -252,6 +253,25 @@ return 1;
 
 #---------------------------------------------------------------------------------
 
+sub netdev_set_auth {
+my $device = shift;
+#router
+if ($device->{device_type} eq '2') {
+    #mikrotik
+    if ($device->{vendor_id} eq '9') { $device->{port}=$config_ref{router_port}; }
+    $device->{login}=$config_ref{router_login};
+    $device->{password}=$config_ref{router_password};
+    }
+#switch
+if ($device->{device_type} eq '1') {
+    $device->{login}=$sw_login;
+    $device->{password}=$sw_password;
+    }
+return $device;
+}
+
+#---------------------------------------------------------------------------------
+
 sub netdev_login {
 my $device = shift;
 #skip unknown vendor
@@ -267,7 +287,7 @@ if ($switch_auth{$device->{vendor_id}}{proto} eq 'telnet') {
     #zyxel patch
     if ($device->{vendor_id} eq '4') {
         eval {
-            my $t1 = new Net::Telnet (Timeout => 30, Port => $device->{port}, Max_buffer_length=>10240000, Prompt =>"/$switch_auth{$device->{vendor_id}}{prompt}/");
+            my $t1 = new Net::Telnet (Timeout => 5, Port => $device->{port}, Max_buffer_length=>10240000, Prompt =>"/$switch_auth{$device->{vendor_id}}{prompt}/");
             $t1->open($device->{ip}) or return;
             if (exists $switch_auth{$device->{vendor_id}}{login}) { $t1->waitfor("/$switch_auth{$device->{vendor_id}}{login}/"); }
             $t1->print($device->{login});
@@ -280,8 +300,8 @@ if ($switch_auth{$device->{vendor_id}}{proto} eq 'telnet') {
         }
 
     eval {
-#        $t = new Net::Telnet (Timeout => 30, Port => $device->{port}, Max_buffer_length=>10240000, Prompt =>"/$switch_auth{$device->{vendor_id}}{prompt}/", Dump_Log=>'/tmp/1');
-        $t = new Net::Telnet (Timeout => 30, Port => $device->{port}, Max_buffer_length=>10240000, Prompt =>"/$switch_auth{$device->{vendor_id}}{prompt}/");
+#        $t = new Net::Telnet (Timeout => 10, Port => $device->{port}, Max_buffer_length=>10240000, Prompt =>"/$switch_auth{$device->{vendor_id}}{prompt}/", Dump_Log=>'/tmp/1');
+        $t = new Net::Telnet (Timeout => 10, Port => $device->{port}, Max_buffer_length=>10240000, Prompt =>"/$switch_auth{$device->{vendor_id}}{prompt}/");
         $t->open($device->{ip}) or return;
         if (exists $switch_auth{$device->{vendor_id}}{login}) { $t->waitfor("/$switch_auth{$device->{vendor_id}}{login}/"); }
         if ($device->{vendor_id} eq '9') { $t->print($device->{login}.'+ct400w'); } else { $t->print($device->{login}); }
@@ -644,6 +664,7 @@ quit";
 
 #zyxel
 if ($device->{vendor_id} eq '4') {
+    $telnet_cmd_mode = 1;
     if (!$descr) { $descr = "name "; } else { $descr = "name $descr"; }
 $cmd = "
 conf t
@@ -666,6 +687,7 @@ exit";
 
 #SNR
 if ($device->{vendor_id} eq '6') {
+$telnet_cmd_mode = 1;
     if (!$descr) { $descr = "no description"; } else { $descr = "description $descr"; }
 $cmd = "
 conf t
@@ -677,8 +699,9 @@ exit";
 
 #Dlink
 if ($device->{vendor_id} eq '7') {
+    $telnet_cmd_mode = 1;
     if (!$descr) { $descr = "clear_description"; } else { $descr = "description $descr"; }
-    $cmd = "config ports $port $descr";
+    $cmd = "config ports $port_num $descr";
     }
 
 #allied telesys x210,x610
@@ -717,9 +740,9 @@ exit";
 
 #mikrotik
 if ($device->{vendor_id} eq '9') {
-$cmd = "/interface ethernet
-set [ find default-name=$port ] comment=$descr
-";
+    $telnet_cmd_mode = 4;
+    if (!$descr) { $descr='""'; } else { $descr='"'.$descr.'"'; }
+    $cmd = "/interface ethernet set [ find default-name=$port ] comment=".$descr;
     }
 
 #cisco
@@ -791,6 +814,7 @@ if ($device->{vendor_id} eq '3') {
 
 #zyxel
 if ($device->{vendor_id} eq '4') {
+$telnet_cmd_mode = 1;
 $cmd = "
 conf t
 hostname $device->{device_name}
@@ -804,6 +828,7 @@ if ($device->{vendor_id} eq '5') {
 
 #SNR
 if ($device->{vendor_id} eq '6') {
+$telnet_cmd_mode = 1;
 $cmd = "
 conf t
 hostname $device->{device_name}
@@ -812,6 +837,7 @@ exit";
 
 #Dlink
 if ($device->{vendor_id} eq '7') {
+    $telnet_cmd_mode = 1;
     $cmd = "config hostname $device->{device_name}";
     }
 
@@ -844,9 +870,8 @@ exit";
 
 #mikrotik
 if ($device->{vendor_id} eq '9') {
-$cmd = "/system identity
-set name=$device->{device_name}
-";
+    $telnet_cmd_mode = 4;
+    $cmd = "/system identity set name=$device->{device_name}";
     }
 
 #cisco
