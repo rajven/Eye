@@ -122,9 +122,6 @@ my $device = $devices{$device_name};
 #skip unknown vendor
 next if (!$switch_auth{$device->{vendor_id}});
 
-#museum patch - at & huawei
-next if !($device->{vendor_id} eq '8' or $device->{vendor_id} eq '3');
-
 my $ip = $device->{ip};
 my $community = $device->{community};
 my $snmp_version = $device->{snmp_version};

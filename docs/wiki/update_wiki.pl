@@ -78,7 +78,7 @@ exit;
 sub wanted {
 my $filename = $File::Find::name;
 my $dev_name = basename($filename);
-if ($filename =~/\.txt$/ and $filename=~/Device/) {
+if ($filename =~/\.txt$/ and $filename=~/^(Device|Switch|Ups|Sensor)/) {
     $dev_name=~s/\.txt$//;
     $content{$dev_name}=$filename;
     }

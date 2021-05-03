@@ -182,7 +182,7 @@ return @result;
 
 #---------------------------------------------------------------------------------
 # Execute command list array without confirmation from device and press any key by device prompt
-# Args: t - telnet session, $command - array of command string, $sleep - pause after execute command (enabled by default)
+# Args: t - telnet session, $command - array of command string
 #
 sub log_cmd4 {
 my $t = shift;
@@ -243,6 +243,7 @@ foreach my $run_cmd (@tmp) {
     log_cmd($t,$run_cmd) if ($cmd_id == 1);
     log_cmd2($t,$run_cmd) if ($cmd_id == 2);
     log_cmd3($t,$run_cmd) if ($cmd_id == 3);
+    log_cmd4($t,$run_cmd) if ($cmd_id == 4);
     }
 };
 if ($@) { log_error("Abort: $@"); return 0; };
