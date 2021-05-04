@@ -48,7 +48,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 				<td class="data"><b>id</b></td>
 				<td class="data" width=150><b>Время создания</b></td>
 				<td class="data" width=150><b>Последняя работа</b></td>
-				<td class="data"><b>IP/MAC</b></td>
+				<td class="data"><b>IP</b></td>
 				<td class="data"><b>mac</b></td>
 				<td class="data"><b>dhcp hostname</b></td>
 				<td class="data"><b>dns name</b></td>
