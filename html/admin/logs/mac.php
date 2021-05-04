@@ -21,7 +21,7 @@ print_log_submenu($page_url);
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
 Начало:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
 Конец:&nbsp<input type="date"	name="date_stop" value="<?php echo $date2; ?>" />
-Mac:&nbsp<input type="text" name="mac" value="<?php echo $f_mac; ?>" />
+Mac:&nbsp<input type="text" name="mac" value="<?php echo mac_dotted($f_mac); ?>" pattern="^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12}$" />
 Отображать:<?php print_row_at_pages('rows',$displayed); ?>
 <input type="submit" value="OK">
 </form>

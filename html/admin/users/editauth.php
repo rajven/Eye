@@ -216,7 +216,7 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 <td></td>
 <tr>
 <td><input type="text" name="f_ip" value="<? echo $auth_info['ip']; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"></td>
-<td><input type="text" name="f_mac" value="<? echo $auth_info['mac']; ?>"></td>
+<td><input type="text" name="f_mac" value="<? echo $auth_info['mac']; ?>" pattern="^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12}$"></td>
 <td><input type="text" name="f_acl" value="<? echo $auth_info['dhcp_acl']; ?>"></td>
 <td><?php print_qa_select('f_dhcp', $auth_info['dhcp']); ?></td>
 <td><?php print_group_select($db_link, 'f_group_id', $auth_info['filter_group_id']); ?> </td>

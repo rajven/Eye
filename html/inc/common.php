@@ -7,6 +7,7 @@ $config["init"]=0;
 
 #ValidIpAddressRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 #ValidHostnameRegex = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$";
+#$ValidMacAddressRegex="^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12}$";
 
 $port_status_oid = '.1.3.6.1.2.1.2.2.1.8.';
 $port_admin_status_oid = '.1.3.6.1.2.1.2.2.1.7.';
@@ -173,6 +174,12 @@ function checkValidIp($cidr)
         }
     }
     return $return;
+}
+
+function checkValidMac($mac) {
+$ValidMacAddressRegex="/^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12}$/";
+if (! preg_match($ValidMacAddressRegex, $mac)) { $return = FALSE; } else { $return = TRUE; }
+return $return;
 }
 
 function checkValidHostname($dnsname)

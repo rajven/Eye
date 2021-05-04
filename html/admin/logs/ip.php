@@ -14,17 +14,22 @@ $_SESSION[$page_url]['ip']=$f_ip;
 print_log_submenu($page_url);
 
 $ip_where = '';
-if (isset($f_ip) and $f_ip != '') { $ip_where = " and ip_int=inet_aton('" . $f_ip . "') "; }
+if (!empty($f_ip)) {
+    if (checkValidIp($f_ip)) { $ip_where = " and ip_int=inet_aton('" . $f_ip . "') "; }
+    if (checkValidMac($f_ip)) { $ip_where = " and mac='" . mac_dotted($f_ip) . "'  "; }
+    }
 ?>
 
 <div id="cont">
 <br>
+Здесь находится история всех работавших когда-то маков/ip.<br>
+Если нужно найти место подключения - смотреть приключения маков!<br>
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
-	Начало:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-  Конец:&nbsp<input type="date"	name="date_stop" value="<?php echo $date2; ?>" />
-  ip:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" />
-  Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-  <input type="submit" value="OK">
+Начало:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
+Конец:&nbsp<input type="date"	name="date_stop" value="<?php echo $date2; ?>" />
+ip or mac:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])|([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12})$"/>
+Отображать:<?php print_row_at_pages('rows',$displayed); ?>
+<input type="submit" value="OK">
 </form>
 
 <?php
@@ -43,7 +48,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 				<td class="data"><b>id</b></td>
 				<td class="data" width=150><b>Время создания</b></td>
 				<td class="data" width=150><b>Последняя работа</b></td>
-				<td class="data"><b>IP</b></td>
+				<td class="data"><b>IP/MAC</b></td>
 				<td class="data"><b>mac</b></td>
 				<td class="data"><b>dhcp hostname</b></td>
 				<td class="data"><b>dns name</b></td>
@@ -51,7 +56,8 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
 <?php
 
-$sSQL = "SELECT timestamp,mac,ip,dns_name,dhcp_hostname,id,last_found FROM User_auth WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $ip_where ORDER BY timestamp DESC LIMIT $start,$displayed";
+$sSQL = "SELECT * FROM User_auth WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $ip_where ORDER BY timestamp DESC LIMIT $start,$displayed";
+
 $iplog = get_records_sql($db_link, $sSQL);
 foreach ($iplog as $row) {
     print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
