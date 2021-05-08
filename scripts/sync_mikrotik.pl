@@ -82,6 +82,8 @@ $gate = netdev_set_auth($gate);
 
 my $t = netdev_login($gate);
 
+log_cmd4($t,"/system note set show-at-login=no");
+
 foreach my $int (@lan_int) { #interface dhcp loop
 next if (!$int);
 $int=trim($int);

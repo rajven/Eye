@@ -319,7 +319,7 @@ if ($switch_auth{$device->{vendor_id}}{proto} eq 'telnet') {
             }
         if ($device->{vendor_id} eq '5') { log_cmd($t,"terminal page-break disable"); }
         if ($device->{vendor_id} eq '6') { log_cmd($t,"terminal length 0"); }
-        if ($device->{vendor_id} eq '9') { log_cmd($t,"/system note set show-at-login=no"); }
+        if ($device->{vendor_id} eq '9') { log_cmd4($t,"/system note set show-at-login=no"); }
         if ($device->{vendor_id} eq '16') { log_cmd($t,"terminal width 0"); }
         if ($device->{vendor_id} eq '17') {
             log_cmd($t,"more displine 50");

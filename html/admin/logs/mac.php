@@ -27,7 +27,7 @@ Mac:&nbsp<input type="text" name="mac" value="<?php echo mac_dotted($f_mac); ?>"
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM mac_history WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $mac_where";
+$countSQL="SELECT Count(*) FROM mac_history WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' ORDER BY id DESC $mac_where";
 $res = mysqli_query($db_link, $countSQL);
 $count_records = mysqli_fetch_array($res);
 

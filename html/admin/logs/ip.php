@@ -56,7 +56,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
 <?php
 
-$sSQL = "SELECT * FROM User_auth WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $ip_where ORDER BY timestamp DESC LIMIT $start,$displayed";
+$sSQL = "SELECT * FROM User_auth WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $ip_where ORDER BY id DESC LIMIT $start,$displayed";
 
 $iplog = get_records_sql($db_link, $sSQL);
 foreach ($iplog as $row) {
