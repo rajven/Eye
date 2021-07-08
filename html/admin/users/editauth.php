@@ -191,7 +191,19 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 <tr>
 <td width=200><?php print $cell_dns_name." &nbsp | &nbsp "; print_url("Альясы","/admin/users/edit_alias.php?id=$id"); ?></td>
 <td width=200><?php print $cell_comment; ?></td>
-<td width=200><?php print $cell_wikiname; ?></td>
+<td width=200><?php 
+if (!empty($auth_info['WikiName'])) {
+    $wiki_url = rtrim(get_option($db_link, 60),'/');
+    if (preg_match('/127.0.0.1/', $wiki_url)) { print $cell_wikiname; } else {
+        $wiki_web = rtrim(get_option($db_link, 63),'/');
+        $wiki_web = ltrim($wiki_web,'/');
+        $wiki_link = $wiki_url.'/'.$wiki_web.'/'.$auth_info['WikiName'];
+        print_url($cell_wikiname,$wiki_link);
+        }
+    } else {
+    print $cell_wikiname;
+    }
+?></td>
 <td width=70><?php print $cell_enabled; ?></td>
 <td width=70><?php print $cell_blocked; ?></td>
 <td width=70><?php print $cell_perday; ?></td>

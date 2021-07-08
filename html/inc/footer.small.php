@@ -1,4 +1,4 @@
-<div id="copyright">Copyright &copy; 2008-2021 Stat v2.3<a href="https://github.com/rajven/statV2">rnd@rajven.ru</a></div>
+<div id="copyright">Copyright &copy; 2008-2021 Stat v2.3 &nbsp<a href="https://github.com/rajven/statV2">rnd@rajven.ru</a></div>
 <?php
 $end_time = microtime();
 $end_array = explode(" ",$end_time);

@@ -94,11 +94,17 @@ my $dnsname = $params->{dnsname};
 my $comment = $params->{comment};
 my $wikiname = $params->{wikiname};
 
-return "" if (!$host);
+#my $result="Runned: $host $dnsname $comment $wikiname<br>";
+
+my $result="";
+
+return $result if (!$host);
 
 my $host_aton=StrToIp($host);
-my $SQL = "SELECT id,dns_name,WikName,comments FROM User_auth WHERE ip_int=".$host_aton." and deleted=0 LIMIT 1";
+my $SQL = "SELECT * FROM User_auth WHERE ip_int=".$host_aton." and deleted=0 LIMIT 1";
+
 my $dbh = DBI->connect("dbi:$dbstat->{driver}:database=$dbstat->{database};host=$dbstat->{hostname}","$dbstat->{username}","$dbstat->{password}");
+
 eval {
 if ( !defined $dbh ) { return "Cannot connect to mySQL server: $DBI::errstr\n"; }
 $dbh->do('SET NAMES utf8');
@@ -106,23 +112,27 @@ $dbh->{'mysql_enable_utf8'} = 1;
 my $sth = $dbh->prepare($SQL);
 $sth->execute;
 my $res = $sth->fetchrow_hashref();
+
 if ($res) {
     if ($dnsname and $res->{dns_name} ne $dnsname) {
         $sth = $dbh->prepare("UPDATE User_auth SET dns_name='".$dnsname."' WHERE id=".$res->{id});
         $sth->execute;
+#        $result .= "fixed dns_name!<br>";
         }
     if ($comment and $res->{comments} ne $comment) {
         $sth = $dbh->prepare("UPDATE User_auth SET comments='".$comment."' WHERE id=".$res->{id});
         $sth->execute;
+#        $result .= "fixed comments!<br>";
         }
     if ($wikiname and $res->{WikiName} ne $wikiname) {
         $sth = $dbh->prepare("UPDATE User_auth SET WikiName='".$wikiname."' WHERE id=".$res->{id});
         $sth->execute;
+#        $result .= "fixed wiki name!<br>";
         }
     }
 };
 if ($@) { return "DBI error: $@"; }
-return "";
+return $result;
 }
 
 1;

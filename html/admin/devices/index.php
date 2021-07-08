@@ -77,9 +77,9 @@ foreach ($switches as $row) {
     print "<tr align=center>\n";
     $cl = "data";
     if (isset($row['nagios_status'])) {
-        if ($row['nagios_status'] == 'DOWN') { $cl = 'shutdown'; }
+        $cl = 'shutdown';
         if ($row['nagios_status'] == 'UP') { $cl = 'up'; }
-    }
+        }
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
     print "<td class=\"$cl\"><input type=hidden name=\"id\" value=".$row['id'].">".$row['id']."</td>\n";
     print "<td class=\"$cl\">".get_devtype_name($db_link,$row['device_type'])."</td>\n";

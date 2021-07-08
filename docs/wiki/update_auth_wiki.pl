@@ -54,7 +54,7 @@ exit;
 sub wanted {
 my $filename = $File::Find::name;
 my $dev_name = basename($filename);
-if ($filename =~/\.txt$/ and $dev_name=~/^(Device|Switch|Router|Gateway|Ups|Sensor)/) {
+if ($filename =~/\.txt$/ and $dev_name=~/^(Device|Switch|Router|Gateway|Ups|Sensor|Server)/) {
     $dev_name=~s/\.txt$//;
     $content{$dev_name}=$filename;
     }

@@ -336,7 +336,7 @@ if ($table eq "User_auth") {
 foreach my $field (keys %$record) {
     if (!defined $record->{$field}) { $record->{$field}=''; }
     if (!defined $old_record->{$field}) { $old_record->{$field}=''; }
-    my $old_value = $old_record->{$field};
+    my $old_value = quotemeta($old_record->{$field});
     my $new_value = $record->{$field};
     $new_value=~s/\'//g;
     $new_value=~s/\"//g;
