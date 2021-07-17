@@ -1,0 +1,36 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1605521718" format="1.1" reprev="4" version="4"}%
+%META:TOPICPARENT{name="WebHome"}%
+---+ Server Hardware Form
+
+This is a topic, used for create server hardware
+
+---++ Data form definition of server hardwares topics
+
+| *Name*  | *Type* | *Size* | *Values* |
+| Device Type | text | 20 | Hardware |
+| Server OS | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Vmware*,Server*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Name | text  | 80 | %BASETOPIC% |
+| Description | text | 80 | |
+| Form Factor | select+values | 1 | 1U, 2U, 3U, 4U, 5U, Other |
+| Manufacturer | text | 80 | |
+| Product Name | text | 80 | |
+| Serial Number | text | 80 | |
+| Base Board | text | 80 | |
+| CPU | text | 80 | |
+| Cpu Count | text | 2 | |
+| Cores Per Cpu | text | 2 | |
+| Network | text | 80 | |
+| Network Count | text | 2 | |
+| Memory | text | 10 | |
+| Memory Type | select | 1 | DDR, DDR2, DDR3, DDR4 |
+| Memory Form Factor | select | 1 | DIMM, FB-DIMM, RDIMM, LRDIMM |
+| Memory ECC | checkbox | 1 | Yes |
+| Memory REG | checkbox | 1 | Yes |
+| Memory Freq | text | 10 | |
+| RAID | text | 80 | |
+| Hdd Type | select+multi+values | 4 | HDD SATA, HDD SAS, SSHD, SSD, SCSI |
+| Hdd Form Factor | select+multi+values | 2 | 2.5, 3.5 |
+| Disabled | checkbox | 1 |  Yes |
+| Deleted | checkbox | 1 |  Yes |
+
+-- Main.RomanDmitriev - 2020/10/04

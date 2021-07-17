@@ -1,0 +1,9 @@
+<form name="newDnsZone" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
+   * Добавить днс-зону:
+     <input type="text" name="topic" value="DnsZone" size="40" />
+     <input type="hidden" name="templatetopic" value="DefaultDnsZoneTemplate" />
+     <input type="hidden" name="onlywikiname" value="off" />
+     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
+     <input type="hidden" name="formtemplate" value="FormDnsZone" />
+     <input type="submit" value="Create" />
+</form>

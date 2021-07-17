@@ -1,0 +1,10 @@
+---+++ ТД в работе
+
+%SEARCH{
+"Disabled='' and (SSIDs=~'%BASETOPIC%\b' or SSIDS=~'\b%BASETOPIC%\b' or SSIDS=~'\b%BASETOPIC%$' or SSIDs='%BASETOPIC%')"
+type="query"
+topic="DeviceAP*"
+nosearch="on"
+header="|*Name*|*Model*|*IP*|*Mac*|*SN*|*Connect to*| *Description*|"
+format="| [[$topic][$formfield(Name)]] | $formfield(Vendor) $formfield(DeviceModel)| $formfield(DeviceIP) | $formfield(Mac) | $formfield(SN) | $formfield(Parent) [$formfield(ParentPort)] | $formfield(Description) |"
+}%

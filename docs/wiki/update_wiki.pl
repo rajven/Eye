@@ -41,7 +41,6 @@ if ($row=~/\%META\:FIELD\{name\=\"DeviceIP\"/) {
 
 if (!$ip) { next; }
 
-
 my $auth  = get_record_sql($dbh,"SELECT * FROM User_auth WHERE deleted=0 and ip='".$ip."'");
 
 if (!$auth) { next; }
@@ -53,26 +52,35 @@ my $device;
 my $device_name;
 my $device_port;
 
+print "Found: $auth->{ip} $auth->{mac} ";
+
+eval {
 if ($auth->{WikiName} =~/^(Switch|Router)/) {
     $device = get_record_sql($dbh,"SELECT * FROM devices WHERE IP='".$ip."'");
+    if (!$device) { die "Unknown device"; }
     if ($device->{comment}) { $auth->{comments} = $device->{comment}; }
     my $parent_connect = get_record_sql($dbh,"SELECT * FROM device_ports DP WHERE DP.uplink=1 AND DP.device_id=".$device->{id});
+    if (!$parent_connect) { die "Unknown connection"; }
     my $parent_port =  get_record_sql($dbh,"SELECT * FROM device_ports DP WHERE id=".$parent_connect->{target_port_id});
+    if (!$parent_port) { die "Unknown port connection"; }
     my $device_parent = get_record_sql($dbh,"SELECT * FROM devices WHERE id=".$parent_port->{device_id});
+    if (!$parent_port) { die "Unknown parent device"; }
     my $auth_parent = get_record_sql($dbh,"SELECT * FROM User_auth WHERE deleted=0 AND ip='".$device_parent->{ip}."'");
+    if (!$parent_port) { die "Unknown auth for device"; }
     $device_name = $auth_parent->{WikiName};
     $device_port = $parent_port->{port};
     } else {
     my $dSQL = "SELECT D.ip, D.building_id, D.user_id ,DP.port FROM devices AS D, device_ports AS DP, connections AS C WHERE D.deleted=0 and D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id=".$auth->{id};
     $device = get_record_sql($dbh,$dSQL);
-    if (!$device or !$device->{user_id}) { next; }
-#       if ($ip eq '192.168.13.104') { print Dumper($device),Dumper(\@tmp); die; }
+    if (!$device or !$device->{user_id}) { die "Unknown connection"; }
     $dSQL = "SELECT * FROM User_auth WHERE WikiName IS NOT NULL AND user_id=".$device->{user_id}." AND deleted=0 AND ip='".$device->{ip}."'";
     my $device_auth = get_record_sql($dbh,$dSQL);
-    if (!$device_auth) { next; }
+    if (!$device_auth) { die "Unknown device auth"; }
     $device_name = $device_auth->{WikiName};
     $device_port = $device->{port};
     }
+};
+if ($@) { print "Error: $@\n"; next; }
 
 #add non-existent field
 my %empty_fields;
@@ -91,11 +99,11 @@ if ($row=~/\%META\:FIELD\{name\=\"Parent\"/) {
     $empty_fields{parent}=0;
     if ($device_name) { push(@wiki_dev,'%META:FIELD{name="Parent" title="Parent" value="'.$device_name.'"}%'); next; }
     }
-if ($row=~/\%META\:FIELD\{name\=\"ParentPort\"/) { 
+if ($row=~/\%META\:FIELD\{name\=\"ParentPort\"/) {
     $empty_fields{parent_port}=0;
     if ($device_port) { push(@wiki_dev,'%META:FIELD{name="ParentPort" title="Parent Port" value="'.$device_port.'"}%'); next; }
     }
-if ($row=~/\%META\:FIELD\{name\=\"Mac\"/) { 
+if ($row=~/\%META\:FIELD\{name\=\"Mac\"/) {
     $empty_fields{mac}=0;
     if ($auth->{mac}) { push(@wiki_dev,'%META:FIELD{name="Mac" title="Mac" value="'.$auth->{mac}.'"}%'); next; }
     }
@@ -110,7 +118,10 @@ if ($field eq 'parent_port' and $device_port) { push(@wiki_dev,'%META:FIELD{name
 if ($field eq 'mac' and $auth->{mac}) { push(@wiki_dev,'%META:FIELD{name="Mac" title="Mac" value="'.$auth->{mac}.'"}%'); next; }
 }
 
-print "Found: $auth->{ip} $auth->{mac} $device_name $device_port \n";
+#print Dumper(\@wiki_dev);
+#next;
+
+print "at $device_name $device_port \n";
 
 open (LG,">$content{$fname}") || die("Error open file $content{$fname}!!! die...");
 foreach my $row (@wiki_dev) {
@@ -126,7 +137,7 @@ exit;
 sub wanted {
 my $filename = $File::Find::name;
 my $dev_name = basename($filename);
-if ($dev_name =~/\.txt$/ and $dev_name=~/^(Device|Switch|Ups|Sensor|Gateway|Router|Server)/) {
+if ($dev_name =~/\.txt$/ and $dev_name=~/^(Device|Switch|Ups|Sensor|Gateway|Router|Server|Bras)/) {
     $dev_name=~s/\.txt$//;
     $content{$dev_name}=$filename;
     }

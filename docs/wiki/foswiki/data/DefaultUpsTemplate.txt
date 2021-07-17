@@ -1,0 +1,19 @@
+---+!!  %FORMFIELD{"DeviceType" topic="%BASETOPIC%"}%  %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
+
+%INCLUDE{IncludeUpsHeader}%
+
+%INCLUDE{IncludeShowAuth}%
+
+%INCLUDE{IncludeAddAuth}%
+%INCLUDE{IncludeAddAcl}%
+
+%INCLUDE{IncludeWorkflow}%
+
+-- Main.RomanDmitriev - 01 Nov 2020
+
+%META:FORM{name="FormUps"}%
+%META:FIELD{name="DeviceType" title="Device Type" value="UPS"}%
+
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

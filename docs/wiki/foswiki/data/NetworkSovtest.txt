@@ -1,0 +1,45 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1624971564" format="1.1" reprev="2" version="4"}%
+---+!! Описание сети организации
+
+---++ Оборудование
+
+   * [[ListGatewaysSovtestLocal][Шлюзы и роутеры]]
+   * [[ListSwitchesSovtestLocal][Свичи]]
+   * [[WifiSovtestLocal][WiFi]]
+   * [[ListOfWlac][Wireless Controllers]]
+
+---++ Используемые подсети организации
+
+   * [[NetworkWanSubnets][Внешние сети]]
+   * [[NetworkOneLocal][Внутренние сети]]
+   * [[SubnetLook][Подсказка по подсетям]]
+
+---++ Контроль доступа и управление
+
+[[ListOfManStatSovtestLocal][stat]] - самописная система контроля сетевых устройств
+
+
+%INCLUDE{IncludeShowAuthAll}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddHardware}%
+%INCLUDE{IncludeAddNetDevice}%
+%INCLUDE{IncludeAddWlc}%
+%INCLUDE{IncludeAddPrinter}%
+%INCLUDE{IncludeAddIPCAM}%
+%INCLUDE{IncludeAddUps}%
+%INCLUDE{IncludeAddAP}%
+%INCLUDE{IncludeAddSubnet}%
+%INCLUDE{IncludeAddPool}%
+
+---++ Работа
+
+%COMMENT{type="workflow"}%
+
+-- Main.RomanDmitriev - 2020/10/10
+
+%META:FILEATTACHMENT{name="Жуково.dia" attachment="Жуково.dia" attr="" comment="Схема сети в Жуково по состоянию на 15.05.2020" date="1613583008" path="Жуково.dia" size="6668" user="roman" version="1"}%
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

@@ -1,0 +1,32 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1604772215" format="1.1" reprev="1" version="7"}%
+---+ Basic info for network device
+
+This is a topic, used for create network device
+
+---++ Data form definition of server os settings
+
+| *Name*  | *Type* | *Size* | *Values* |
+| Name | text  | 80 | %BASETOPIC% |
+| Place | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Room*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Rack | select | 1 | , %SEARCH{scope="topic" topic="Rack*" nototal="on" nosummary="on" nosearch="on" type="query" format="$topic" separator=", " order="formfield(Parent)"}% |
+| Unit | text | 10 | |
+| Dns Name | text  | 80 | |
+| Description | text | 80 | |
+| Vendor | select | 1 | %DATABASE_SQL{description="stat" sql="SELECT name FROM vendors ORDER BY name" format=" $name," }% |
+| Device Model | text | 80 | |
+| Firmware | text | 100 | |
+| Power Outlets | text | 10 | |
+| Network Interface | select+multi+values | 3 | Ethernet=eth, Wifi 2.4G=wifi4, Wifi 5G=wifi5 |
+| Community | text | 20 | |
+| SN | text | 80 | |
+| Uplink | text | 20 | |
+| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Server*,Router*,Switch*,Gateway*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Name)"}% |
+| Parent Port | text | 20 | |
+| Device Type | text | 10 | CPO  |
+| Device Subnet | select | 1 | , %SEARCH{"\.*"  scope="topic" topic="Subnet-*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Subnet)"}% |
+| Device IP | text | 20 | |
+| Mac | text | 16 | |
+| Disabled | checkbox | 1 |  Yes |
+| Deleted | checkbox | 1 |  Yes |
+
+-- Main.RomanDmitriev - 2020/10/12

@@ -1,0 +1,18 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1604395580" format="1.1" reprev="2" version="3"}%
+---+ Certificate Form
+
+This is a topic for used certificate info
+
+---++ Data form definition of used certifacates
+
+| *Name*  | *Type* | *Size* | *Values* |
+| CertType | select+value | 1 | Free, Paid |
+| Name | text  | 80 | %BASETOPIC% |
+| Dns Name | text | 80 | |
+| Description | text | 80 | |
+| Cert Alt names | text | 255 | |
+| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Server*,Router*,Gateway*,Site*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Cert Vendor | text | 80 | |
+| Cert Period | text | 80 | |
+| Cert Valid To | date | | |
+-- Main.RomanDmitriev - 2020/10/05

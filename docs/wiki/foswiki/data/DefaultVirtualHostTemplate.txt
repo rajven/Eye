@@ -1,0 +1,34 @@
+---+!! Виртуальная машина %FORMFIELD{"DnsName" topic="%BASETOPIC%"}% на %FORMFIELD{"Name" topic="%FORMFIELD{"ParentHost" topic="%BASETOPIC%"}%"}%
+
+ОС:
+
+---++ Дисковая подсистема
+---++ Сеть
+
+%INCLUDE{IncludeShowVirtualServer}%
+
+%INCLUDE{IncludeNetDevCommon}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddService}%
+%INCLUDE{IncludeAddServiceDns}%
+%INCLUDE{IncludeAddSite}%
+%INCLUDE{IncludeAddCert}%
+%INCLUDE{IncludeAddAuth}%
+%INCLUDE{IncludeAddAcl}%
+
+%INCLUDE{IncludeWorkflow}%
+
+-- %WIKIUSERNAME% - %DATE%
+
+%STARTSECTION{type="templateonly"}%
+This topic is needed for normal operation even if System web is restricted.
+   * Set ALLOWTOPICVIEW = *
+%ENDSECTION{type="templateonly"}%
+
+%META:FORM{name="FormVirtual"}%
+
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

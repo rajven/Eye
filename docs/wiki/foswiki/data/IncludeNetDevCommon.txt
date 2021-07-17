@@ -1,0 +1,6 @@
+%INCLUDE{IncludeShowStat}%
+
+---++ Аплинк
+|*Port*|*Parent device*|*Parent port*|
+| %FORMFIELD{"Uplink" topic="%BASETOPIC%"}% | %FORMFIELD{"Parent" topic="%BASETOPIC%"}% | %FORMFIELD{"ParentPort" topic="%BASETOPIC%"}% |
+

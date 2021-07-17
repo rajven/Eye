@@ -1,0 +1,7 @@
+#!/bin/bash
+
+exit
+
+chown apache:apache -R /var/www/foswiki/
+
+exit

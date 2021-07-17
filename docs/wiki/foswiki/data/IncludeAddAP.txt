@@ -1,0 +1,9 @@
+<form name="newAP" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
+   * Добавить ТД:
+     <input type="text" name="topic" value="DeviceAP" size="40" />
+     <input type="hidden" name="templatetopic" value="DefaultNetdeviceTemplate" />
+     <input type="hidden" name="onlywikiname" value="off" />
+     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
+     <input type="hidden" name="formtemplate" value="FormAP" />
+     <input type="submit" value="Create" />
+</form>

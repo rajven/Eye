@@ -1,0 +1,30 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1604772215" format="1.1" reprev="1" version="7"}%
+---+ Basic info for network device
+
+This is a topic, used for create network device
+
+---++ Data form definition of server os settings
+
+| *Name*  | *Type* | *Size* | *Values* |
+| Name | text  | 80 | %BASETOPIC% |
+| Place | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Building*,Room*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Videoregistrator | select | 1 | , %SEARCH{"\.*" topic="DeviceVideoReg*" scope="topic" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(DnsName)"}% |
+| Dns Name | text  | 80 | |
+| Description | text | 80 | |
+| Vendor | select | 1 | %DATABASE_SQL{description="stat" sql="SELECT name FROM vendors ORDER BY name" format=" $name," }% |
+| Device Model | text | 80 | |
+| Firmware | text | 100 | |
+| Community | text | 20 | |
+| Poe In | select | 1 | Нет, Passive, 802.3af, 802.3at, 802.3af/at, VendorFantasy |
+| SN | text | 80 | |
+| Uplink | text | 20 | |
+| Parent | select | 1 | , %SEARCH{"\.*"  topic="Switch*" scope="topic" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(DnsName)"}% |
+| Parent Port | text | 20 | |
+| Device Type | text | 10 | IPCAM |
+| Device Subnet | select | 1 | , %SEARCH{"\.*"  scope="topic" topic="Subnet-*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Subnet)"}% |
+| Device IP | text | 20 | |
+| Mac | text | 20 | |
+| Disabled | checkbox | 1 |  Yes |
+| Deleted | checkbox | 1 |  Yes |
+
+-- Main.RomanDmitriev - 2020/10/12

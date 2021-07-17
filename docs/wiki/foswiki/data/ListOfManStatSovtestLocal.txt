@@ -1,0 +1,37 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1625560344" format="1.1" reprev="3" version="3"}%
+%META:TOPICPARENT{name="WebHome"}%
+---+!! Система контроля доступа и мониторинга сети
+
+---++ Подробная информация:
+
+%SEARCH{
+topic="ManStat*"
+type="query"
+nosearch="on"
+nototal="on"
+format="* [[$topic][$pattern([\r\n\-+!]+([^\r\n]*?)[\r\n].*)]] <br>"
+}%
+
+---++ Для нужд системы на сервере [[stat]] работают демоны:
+   * syslog-ng - приём логов от устройств. Данные хранятся в /var/log/remote и передаются другому демону для сохранения в БД
+   * syslog-stat - сливает данные из syslog-ng в БД
+   * dnsmasq-log - пишет события dhcp-сервера в БД, создаёт новых пользователей, обновляет записи в dns при необходимости
+   * stat-sync - мониторит события изменения параметров ip-адресов клиента и дёргает скрипт обновления политик доступа
+
+---+++ Задачи, выполняющиеся по расписанию:
+   * сканирование сети - в 9 минут, каждый час
+   * обновление конфигурации dhcp-сервера - в 2 минуты, каждый час
+   * активное сканирование сети - в 20 минут, в час дня
+   * уборка мусора - в полночь. (удаление устаревших записей, сброс дневных/месячных блокировок и т.п.)
+   * синхронизация политик доступа на хотспоте - в 3 минуты, каждый час
+   * hoststate-monitor - обрабатывает события из нагиоса. Дёргает скрипт обработчик событий, привязанный к ip-адресу
+   * реконфигурация nagios - в 16 минут каждый час
+
+---++ Работа
+
+%COMMENT{type="workflow"}%
+
+-- Main.RomanDmitriev - 19 Oct 2020
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

@@ -1,0 +1,30 @@
+---+!!  %FORMFIELD{"DeviceType" topic="%BASETOPIC%"}%  %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
+
+%INCLUDE{IncludeATSPhoneList}%
+
+%INCLUDE{IncludeNetDevCommon}%
+
+%INCLUDE{IncludeShowAuth}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddAuth}%
+
+%INCLUDE{IncludeAddAcl}%
+
+%INCLUDE{IncludeWorkflow}%
+
+-- %WIKIUSERNAME% - %DATE%
+
+%STARTSECTION{type="templateonly"}%
+This topic is needed for normal operation even if System web is restricted.
+   * Set ALLOWTOPICVIEW = *
+%ENDSECTION{type="templateonly"}%
+
+%META:FORM{name="FormNetDevice"}%
+%META:PREFERENCE{name="DENYTOPICVIEW" title="DENYTOPICVIEW" type="Set" value="WikiGuest"}%
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup, VoipAdminsGroup"}%
+%META:PREFERENCE{name="PERMSET_VIEW" title="PERMSET_VIEW" type="Local" value="registeredusers"}%
+%META:PREFERENCE{name="PERMSET_VIEW_DETAILS" title="PERMSET_VIEW_DETAILS" type="Local" value="AdminGroup, VoipAdminsGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup, VoipAdminsGroup"}%

@@ -89,17 +89,24 @@ my($session, $params, $theTopic, $theWeb) = @_;
 
 ### parameters
 my $host = $params->{_DEFAULT} || $params->{host};
+
 return "" if (!$host);
 
 my $host_aton=StrToIp($host);
-my $SQL = "SELECT A.id, A.ip, A.mac, L.login, A.nagios, A.dhcp_hostname, A.enabled, G.group_name, Q.queue_name,
-A.last_found, A.comments FROM User_auth as A, User_list as L, Group_list as G, Queue_list As Q
-WHERE A.user_id = L.id and A.filter_group_id = G.id and Q.id = A.queue_id AND A.deleted =0 and A.ip_int=".$host_aton." LIMIT 1";
 
 #wait for statsync
 sleep(2);
 
-my $dbh = DBI->connect("dbi:$dbstat->{driver}:database=$dbstat->{database};host=$dbstat->{hostname}","$dbstat->{username}","$dbstat->{password}");
+my $connect_options = "dbi:$dbstat->{driver}:database=$dbstat->{database};host=$dbstat->{hostname}";
+my $connect_user = "$dbstat->{username}";
+my $connect_password = "$dbstat->{password}";
+
+my $dbh = DBI->connect($connect_options,$connect_user,$connect_password);
+
+my $SQL = "SELECT A.id, A.ip, A.mac, L.login, A.nagios, A.dhcp_hostname, A.enabled, G.group_name, Q.queue_name,
+A.last_found, A.comments FROM User_auth as A, User_list as L, Group_list as G, Queue_list As Q
+WHERE A.user_id = L.id and A.filter_group_id = G.id and Q.id = A.queue_id AND A.deleted =0 and A.ip_int=".$host_aton." LIMIT 1";
+
 my $status = '';
 eval {
 if ( !defined $dbh ) { return "Cannot connect to mySQL server: $DBI::errstr\n"; }

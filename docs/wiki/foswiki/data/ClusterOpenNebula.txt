@@ -1,0 +1,47 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1626260059" format="1.1" reprev="2" version="4"}%
+---+!! Кластер для офисного облака на OpenNebula
+
+---++ Список Host-серверов в кластере
+
+%SEARCH{
+"lc(DeviceType)='kvmhost'"
+topic="Server*"
+type="query"
+nosearch="on"
+header="|*Name*|*CPU*|*Memory*|*IP*|*Description*|"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(DeviceCPU) | $formfield(DeviceMemory) | $formfield(DeviceIP) | $formfield(Description) |"
+}%
+
+---++ Список виртуальных машин
+
+%SEARCH{
+"lc(DeviceType)~'virtual*' and ParentHost='%BASETOPIC%'"
+topic="Server*"
+type="query"
+nosearch="on"
+header="|*Name*|*Virtualization*|*CPU Count*|*Memory*|*OS*|*IP*|*Description*|"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(Device Type) | $formfield(Device CPU) | $formfield(Device Memory) | $formfield(Device OS) | $formfield(Device IP) | $formfield(Description) |"
+}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddVServer}%
+
+%INCLUDE{IncludeAddKvmHost}%
+
+---++ Работа
+
+%COMMENT{type="workflow"}%
+
+-- Main.RomanDmitriev - 2020/10/14
+
+%META:FORM{name="FormSimple"}%
+%META:FIELD{name="Name" title="Name" value="ClusterOpenNebula"}%
+%META:FIELD{name="Place" title="Place" value=""}%
+%META:FIELD{name="Rack" title="Rack" value=""}%
+%META:FIELD{name="Unit" title="Unit" value=""}%
+%META:FIELD{name="Description" title="Description" value="Офисное облако"}%
+%META:PREFERENCE{name="DENYTOPICVIEW" title="DENYTOPICVIEW" type="Set" value="WikiGuest"}%
+%META:PREFERENCE{name="DENYTOPICCHANGE" title="DENYTOPICCHANGE" type="Set" value="WikiGuest"}%
+%META:PREFERENCE{name="PERMSET_VIEW" title="PERMSET_VIEW" type="Local" value="registeredusers"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="registeredusers"}%

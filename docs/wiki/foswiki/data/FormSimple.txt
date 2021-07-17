@@ -1,0 +1,15 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1604238916" format="1.1" reprev="1" version="4"}%
+---+ Basic info for device
+
+This is a topic, used for create device
+
+---++ Data form definition of server os settings
+
+| *Name*  | *Type* | *Size* | *Values* |
+| Name | text  | 80 | %BASETOPIC% |
+| Place | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Room*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Rack | select | 1 | , %SEARCH{scope="topic" topic="Rack*" nototal="on" nosummary="on" nosearch="on" type="query" format="$topic" separator=", " order="formfield(Parent)"}% |
+| Unit | text | 10 | |
+| Description | text | 80 | |
+
+-- Main.RomanDmitriev - 2020/10/12

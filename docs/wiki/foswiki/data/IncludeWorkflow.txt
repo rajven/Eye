@@ -1,0 +1,3 @@
+---++ Работа
+
+%COMMENT{type="workflow" target="%BASETOPIC%"}%

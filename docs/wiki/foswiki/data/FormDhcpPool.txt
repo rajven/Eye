@@ -1,0 +1,9 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1602757095" format="1.1" reprev="3" version="3"}%
+---+ Basic info dhcp pool
+
+| *Name*  | *Type* | *Size* | *Values* |
+| Name | text | 40 | %BASETOPIC% |
+| Description | text | 80 | |
+| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Router*,Gateway*,Server*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Subnet | select | 1 | , %SEARCH{"Subnet" scope="topic" topic="Subnet-*" nototal="on" nosummary="on" nosearch="on" type="query" format="$topic" separator=", "}% |
+-- Main.RomanDmitriev - 2020/10/11

@@ -1,0 +1,13 @@
+<div id="container-sync"></div>
+<script type="text/javascript">
+$(function() {
+  $("#container-sync").load("%SCRIPTURLPATH{"rest"}%/RenderPlugin/tag",
+  { name: 'STATSYNC',
+    host: '%FORMFIELD{"DeviceIP" topic="%BASETOPIC%"}%',
+    dnsname: '%FORMFIELD{"DnsName" topic="%BASETOPIC%"}%',
+    topic: '%BASEWEB%.%BASETOPIC%',
+    web: '%BASEWEB%',
+    render: true }
+);
+});
+</script>

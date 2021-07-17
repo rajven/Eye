@@ -1,0 +1,19 @@
+%META:TOPICINFO{author="roman" date="1602403329" format="1.1" version="1"}%
+---+ Domain information Form
+
+This is a topic for registered domains
+
+---++ Data form definition of registered domains
+
+| *Name*  | *Type* | *Size* | *Values* |
+| Name | text  | 80 | %BASETOPIC% |
+| Dns Name | text  | 80 | |
+| Description | text | 80 | |
+| Domain Type | select | 1 | Internet, Intranet |
+| Domain Created | date |  | |
+| Domain Paid | date |  | |
+| Domain Free | date| | |
+| Registrator | text | 40 | |
+| Dogovor | text | 40 | |
+
+-- Main.RomanDmitriev - 2020/10/11

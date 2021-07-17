@@ -1,0 +1,13 @@
+%META:TOPICINFO{author="roman" date="1602421276" format="1.1" version="1"}%
+---+ Basic info for ip-address
+
+| *Name*  | *Type* | *Size* | *Values* |
+| Name | text | 40 | %BASETOPIC% |
+| IP | text | 18 | |
+| Mac | text | 20 | |
+| Description | text | 80 | |
+| Dns Name | text  | 80 | |
+| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Router*,Gateway*,Server*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Subnet Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Subnet*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+
+-- Main.RomanDmitriev - 2020/10/11

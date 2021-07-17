@@ -1,0 +1,12 @@
+---++ Виртуальные машины
+
+%SEARCH{
+"parent.name='%BASETOPIC%' AND lc(DeviceType)=~'virtual*'"
+topic="Server*"
+type="query"
+nosearch="on"
+nototal="on"
+header="|*Name*|*Virtualization*|*CPU Count*|*Memory*|*OS*|*IP*|"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(Device Type) | $formfield(Device CPU) | $formfield(Device Memory) | $formfield(Device OS) | $formfield(Device IP) |"
+}%
+

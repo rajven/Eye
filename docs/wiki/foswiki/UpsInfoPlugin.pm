@@ -130,6 +130,7 @@ my $OIDbatteryAdvReplace  = '1.3.6.1.4.1.318.1.1.1.2.2.4.0';
 my $apcUpsAdvBatteryStatus              ='1.3.6.1.4.1.318.1.1.1.4.1.1.0';
 my $apcUpsAdvBatteryCapacity            ='1.3.6.1.4.1.318.1.1.1.2.2.1.0';
 my $apcUpsAdvBatteryTemperature         ='1.3.6.1.4.1.318.1.1.1.2.2.2.0';
+my $apcUpsAdvExtTemperature             ='1.3.6.1.4.1.318.1.1.10.2.3.2.1.4.1';
 my $apcUpsAdvBatteryRunTimeRemaining    ='1.3.6.1.4.1.318.1.1.1.2.2.3.0';
 my $apcUpsAdvOutputVoltage              ='1.3.6.1.4.1.318.1.1.1.4.2.1.0';
 my $apcUpsAdvOutputFrequency            ='1.3.6.1.4.1.318.1.1.1.4.2.2.0';
@@ -223,7 +224,7 @@ my $TEMPWARN = 50;
     $status = "%RED%Timed Sleeping%ENDCOLOR%" if ($battery_status eq 5);
     $status = "%RED%Software Bypass%ENDCOLOR%" if ($battery_status eq 6);
     $status = "%RED%OFF%ENDCOLOR%" if ($battery_status eq 7);
-    $status = "%GREEn%REBOOTING%ENDCOLOR%" if ($battery_status eq 8);
+    $status = "%GREEN%REBOOTING%ENDCOLOR%" if ($battery_status eq 8);
     $status = "%RED%SWITCHED BYPASS%ENDCOLOR%" if ($battery_status eq 9);
     $status = "%RED%Hardware Failure Bypass%ENDCOLOR%" if ($battery_status eq 10);
     $status = "%RED%Sleeping until power return%ENDCOLOR%" if ($battery_status eq 11);
@@ -259,13 +260,12 @@ my $TEMPWARN = 50;
     if ($vendor eq 'EATON') { $batTemp=GetSNMPkeyValue($snmp_session,$EatonBatteryTemp); }
     if (!$batTemp) { $batTemp=GetSNMPkeyValue($snmp_session,$defaultbatteryTemp); }
 
+    my $extTemp;
+    if ($vendor eq 'APC' or $vendor eq 'Symmetra') { $extTemp=GetSNMPkeyValue($snmp_session,$apcUpsAdvExtTemperature); }
+
     my $outputVoltage;
     if ($vendor eq 'APC' or $vendor eq 'Symmetra') { $outputVoltage=GetSNMPkeyValue($snmp_session,$apcUpsAdvOutputVoltage); }
     if (!$outputVoltage) { $outputVoltage = GetSNMPkeyValue($snmp_session,$defaultOutputAC); }
-
-    my $outputCurrent;
-    if ($vendor eq 'APC' or $vendor eq 'Symmetra') { $outputCurrent=GetSNMPkeyValue($snmp_session,$apcUpsAdvOutputCurrent); }
-    if (!$outputCurrent) { $outputCurrent = GetSNMPkeyValue($snmp_session,$defaultOutputCurrent); }
 
     my $outputHz;
     if ($vendor eq 'APC' or $vendor eq 'Symmetra') { $outputHz=GetSNMPkeyValue($snmp_session,$apcUpsAdvOutputFrequency); }
@@ -277,7 +277,18 @@ my $TEMPWARN = 50;
     if (!$outputLoad) { $outputLoad = GetSNMPkeyValue($snmp_session,$defaultUpsLoad); }
 
     $ret .= "| Runtime Remaining | ". $runtime." min. |\n";
-    $ret .= "| Battery Temperature | ".$batTemp." C |\n";
+
+    if ($extTemp) {
+        my $TempStatus = "%GREEN%".$extTemp." C%ENDCOLOR%";
+        $TempStatus = "%RED%".$extTemp." C%ENDCOLOR%" if ($extTemp>28);
+        $ret .= "| Room Temperature | ".$TempStatus." |\n";
+        }
+
+    if ($batTemp) {
+        my $TempStatus = "%GREEN%".$batTemp." C%ENDCOLOR%";
+        $TempStatus = "%RED%".$batTemp." C%ENDCOLOR%" if ($batTemp>38);
+        $ret .= "| Battery Temperature | ".$TempStatus." |\n";
+        }
 
     if ($vendor eq 'Symmetra') {
         my $input1=GetSNMPkeyValue($snmp_session,$apcUpsAdvInputLine1Voltage);

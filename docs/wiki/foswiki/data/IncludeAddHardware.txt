@@ -1,0 +1,9 @@
+<form name="newHardware" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
+   * Добавить аппаратную часть для сервера:
+     <input type="text" name="topic" value="Hardware" size="40" />
+     <input type="hidden" name="templatetopic" value="DefaultHardwareTemplate" />
+     <input type="hidden" name="onlywikiname" value="off" />
+     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
+     <input type="hidden" name="formtemplate" value="FormHardware" />
+     <input type="submit" value="Create" />
+</form>

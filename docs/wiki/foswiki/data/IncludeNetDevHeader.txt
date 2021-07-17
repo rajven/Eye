@@ -1,0 +1,10 @@
+%INCLUDE{IncludeNetDevCommon}%
+
+%INCLUDE{IncludeShowAuth}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddAuth}%
+%INCLUDE{IncludeAddAcl}%
+
+%INCLUDE{IncludeWorkflow}%

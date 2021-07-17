@@ -1,0 +1,43 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1604772393" format="1.1" reprev="11" version="11"}%
+---+!! Шлюзы, роутеры
+
+---++ Шлюзы
+%SEARCH{
+search="lc(DeviceType)='gateway'"
+topic="Gateway*"
+type="query"
+multiple="on"
+nosearch="on"
+nototal="on"
+header="| *Name* | *Model* | *Description* | *IP* |"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Description) | $formfield(DeviceIP) |"
+}%
+
+---++ Маршрутизаторы
+
+%SEARCH{
+search="lc(DeviceType)='router'"
+topic="Router*"
+type="query"
+multiple="on"
+nosearch="on"
+nototal="on"
+header="| *Name* | *Model* | *Description* | *IP* |"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Description) | $formfield(DeviceIP) |"
+}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddGateway}%
+
+%INCLUDE{IncludeAddRouter}%
+
+---++ Работа
+
+%COMMENT{type="workflow"}%
+
+-- Main.RomanDmitriev - 2020/10/10
+
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

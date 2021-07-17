@@ -1,0 +1,9 @@
+<form name="newEsxi" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
+   * Добавить гипервизор:
+     <input type="text" name="topic" value="VmwareESXI" size="40" />
+     <input type="hidden" name="templatetopic" value="DefaultEsxiTemplate" />
+     <input type="hidden" name="onlywikiname" value="off" />
+     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
+     <input type="hidden" name="formtemplate" value="FormServerOs" />
+     <input type="submit" value="Create" />
+</form>

@@ -1,0 +1,38 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1604772215" format="1.1" reprev="1" version="7"}%
+---+ Basic info for network device
+
+This is a topic, used for create network device
+
+---++ Data form definition of server os settings
+
+| *Name*  | *Type* | *Size* | *Values* |
+| Name | text  | 80 | %BASETOPIC% |
+| Place | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Building*,Room*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Share Name | text | 40 | |
+| Dns Name | text  | 80 | |
+| Description | text | 80 | |
+| Vendor | select | 1 | %DATABASE_SQL{description="stat" sql="SELECT name FROM vendors ORDER BY name" format=" $name," }% |
+| Device Model | text | 80 | |
+| Firmware | text | 100 | |
+| Printing Type | select+values | 1 | лазерный/светодиодный=laser, струйный=inkjet, сублимационный=sublimation, термопринтер=thermal |
+| Color | checkbox | 1 | Yes |
+| MFU | checkbox | 1 | Yes |
+| PaperSize | select | 1 | A4, A3, A3+ |
+| Email Print | checkbox | 1 | Yes |
+| iPrint | checkbox | 1 | Yes |
+| Wi-Fi Direct | checkbox | 1 | Yes |
+| Network | checkbox | 1 | Yes |
+| Wifi | checkbox | 1 | Yes |
+| Community | text | 20 | |
+| SN | text | 80 | |
+| Uplink | text | 20 | |
+| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Switch*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Name)"}% |
+| Parent Port | text | 20 | |
+| Device Type | select+value | 1 | Printer |
+| Device Subnet | select | 1 | , %SEARCH{"\.*"  scope="topic" topic="Subnet-*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Subnet)"}% |
+| Device IP | text | 20 | |
+| Mac | text | 20 | |
+| Disabled | checkbox | 1 |  Yes |
+| Deleted | checkbox | 1 |  Yes |
+
+-- Main.RomanDmitriev - 2020/10/12
