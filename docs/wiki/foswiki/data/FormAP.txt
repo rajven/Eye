@@ -7,25 +7,25 @@ This is a topic, used for create network device
 
 | *Name*  | *Type* | *Size* | *Values* |
 | Name | text  | 80 | %BASETOPIC% |
-| Place | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Building*,Room*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
 | Dns Name | text  | 80 | |
 | Description | text | 80 | |
-| Vendor | select | 1 | %DATABASE_SQL{description="stat" sql="SELECT name FROM vendors ORDER BY name" format=" $name," }% |
+| Vendor | select | 1 | %INCLUDE{IncludeSelectVendor}% |
 | Device Model | text | 80 | |
 | Firmware | text | 100 | |
 | Community | text | 20 | |
-| Poe In | select | 1 | Нет, Passive, 802.3af, 802.3at, 802.3af/at, VendorFantasy |
+| Poe In | select | 1 | %INCLUDE{IncludeSelectPoeType}% |
 | SN | text | 80 | |
 | WLAC | checkbox | 1 | Yes |
-| WLAC Name | select | 1 | , %SEARCH{"\.*" scope="topic" topic="WirelessController*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Name)"}% |
+| WLAC Name | select | 1 | %INCLUDE{IncludeSelectWLAC}% |
 | Wlac Ap Id | text | 10 | |
 | Wlac Ap Group | text | 15 | |
-| SSIDs | select+multi | 7 | , %SEARCH{"\.*" scope="topic" topic="WirelessProfile*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(WirelessSSID)"}% |
+| SSIDs | select+multi | 7 | %INCLUDE{IncludeSelectSSID}% |
 | Uplink | text | 20 | |
-| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Switch*,Router*,Gateway*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Name)"}% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectNetParent}% |
 | Parent Port | text | 20 | |
 | Device Type | text | 1 | AP |
-| Device Subnet | select | 1 | , %SEARCH{"\.*"  scope="topic" topic="Subnet-*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Subnet)"}% |
+| Device Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
 | Device IP | text | 20 | |
 | Mac | text | 20 | |
 | Disabled | checkbox | 1 |  Yes |

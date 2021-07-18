@@ -8,18 +8,18 @@ This is a topic, used for create network device
 | *Name*  | *Type* | *Size* | *Values* |
 | Device Type | text | 1 | ATS |
 | Name | text  | 80 | %BASETOPIC% |
-| Place | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Building*,Room*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
 | Dns Name | text  | 80 | |
 | Description | text | 80 | |
-| Vendor | select | 1 | %DATABASE_SQL{description="stat" sql="SELECT name FROM vendors ORDER BY name" format=" $name," }% |
+| Vendor | select | 1 | %INCLUDE{IncludeSelectVendor}% |
 | Device Model | text | 80 | |
 | Firmware | text | 100 | |
 | Community | text | 20 | |
 | SN | text | 80 | |
 | Uplink | text | 20 | |
-| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Switch*,Router*,Gateway*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Name)"}% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectNetParent}% |
 | Parent Port | text | 20 | |
-| Device Subnet | select | 1 | , %SEARCH{"\.*"  scope="topic" topic="Subnet-*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Subnet)"}% |
+| Device Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
 | Device IP | text | 20 | |
 | Mac | text | 20 | |
 | Disabled | checkbox | 1 |  Yes |

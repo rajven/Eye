@@ -4,6 +4,7 @@
 | *Name*  | *Type* | *Size* | *Values* |
 | Name | text | 40 | %BASETOPIC% |
 | Description | text | 80 | |
-| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Router*,Gateway*,Server*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
-| Subnet | select | 1 | , %SEARCH{"Subnet" scope="topic" topic="Subnet-*" nototal="on" nosummary="on" nosearch="on" type="query" format="$topic" separator=", "}% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectNetParent}% |
+| Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
+
 -- Main.RomanDmitriev - 2020/10/11

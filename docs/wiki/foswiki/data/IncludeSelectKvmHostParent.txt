@@ -1,0 +1,21 @@
+, %SEARCH{
+"lc(DeviceType)='kvmhost' and VirtualCluster=''"
+type="query"
+nosearch="on"
+nototal="on"
+format="$topic"
+separator=", "
+order="formfield(Name)"
+}%
+, %SEARCH{
+"\.*"
+scope="topic"
+topic="Cluster*"
+nototal="on"
+nosummary="on"
+nosearch="on"
+regex="on"
+format="$topic"
+separator=", "
+order="formfield(Name)"
+}%

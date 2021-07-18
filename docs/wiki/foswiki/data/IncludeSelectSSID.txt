@@ -1,0 +1,1 @@
+, %SEARCH{"\.*" scope="topic" topic="WirelessProfile*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(WirelessSSID)"}%

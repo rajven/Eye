@@ -1,14 +1,14 @@
 %META:TOPICINFO{author="roman" comment="reprev" date="1602792683" format="1.1" reprev="1" version="3"}%
 
 | *Name*  | *Type* | *Size* | *Values* |
-| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Server*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectServer}% |
 | Name | text  | 80 | %BASETOPIC% |
 | Description | text | 80 | |
 | Dns Name | text  | 80 | |
 | Http proto | select | 1 | https, http |
 | Site alias | text | 80 | |
 | Site IP | text | 20 | |
-| Backend | select+value | 1 | Nginx, Apache, Nginx+Apache, Nginx+fsgi, Nginx+uWSGI, Other |
+| Backend | select | 1 | Nginx, Apache, Nginx+Apache, Nginx+fsgi, Nginx+uWSGI, Other |
 | Disabled | checkbox | 1 |  Yes |
 | Deleted | checkbox | 1 |  Yes |
 

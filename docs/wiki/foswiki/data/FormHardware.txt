@@ -8,7 +8,7 @@ This is a topic, used for create server hardware
 
 | *Name*  | *Type* | *Size* | *Values* |
 | Device Type | text | 20 | Hardware |
-| Server OS | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Vmware*,Server*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Server OS | select | 1 | %INCLUDE{IncludeSelectServer}% |
 | Name | text  | 80 | %BASETOPIC% |
 | Description | text | 80 | |
 | Form Factor | select+values | 1 | 1U, 2U, 3U, 4U, 5U, Other |

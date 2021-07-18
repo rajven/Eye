@@ -2,11 +2,11 @@
 ---++ Data form definition of vlan
 
 | *Name*  | *Type* | *Size* | *Values* |
-| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Router*,Gateway*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectDeviceParent}% |
 | Name | text  | 80 | %BASETOPIC% |
 | Vlan Name | text | 80 | |
 | Vlan tag | text  | 4 | |
 | Description | text | 80 | |
-| Subnet | select | 1 | , %SEARCH{"\.*"  scope="topic" topic="Subnet-*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
 
 -- Main.RomanDmitriev - 2020/10/12

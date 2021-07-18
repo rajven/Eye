@@ -2,7 +2,7 @@
 ---+ Basic info by closet
 
 | *Name*  | *Type* | *Size* | *Values* |
-| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Building*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectBuilding}% |
 | Name | text | 40 | %BASETOPIC% |
 | Description | text | 80 | |
 

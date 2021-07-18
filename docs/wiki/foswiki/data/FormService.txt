@@ -2,8 +2,9 @@
 ---++ Data form
 
 | *Name*  | *Type* | *Size* | *Values* |
-| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Router*,Gateway*,Server*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectDeviceParent}% |
 | Name | text  | 80 | %BASETOPIC% |
 | Description | text | 80 | |
-| Service type | select | 1 | DNS,DHCP,HTTP,TFTP,NTP,SMTP,POP3,IMAP,SSH,Openvpn,Nagios,MySQL,PostgreSQL,Radius,Ldap,Fprobe,NFS,Nfcapd,Samba,Ftp,RsyncD,SSH,Elasticsearch,Graylog,Syslog,Rsyslog,Syslog-ng,MongoDB,Coturn,Kannel,Smsd,Vlc,ffmpeg,Other |
+| Service type | select | 1 | %INCLUDE{IncludeSelectServiceType}% |
+
 -- Main.RomanDmitriev - 2020/10/12

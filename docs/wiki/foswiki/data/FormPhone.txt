@@ -6,23 +6,23 @@ This is a topic, used for create network device
 ---++ Data form definition of server os settings
 
 | *Name*  | *Type* | *Size* | *Values* |
-| Device Type | select+value | 1 | IP-телефон, Цифровой, Аналоговый  |
+| Device Type | select | 1 | IP-телефон, Цифровой, Аналоговый  |
 | Name | text  | 80 | %BASETOPIC% |
-| Place | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Building*,Room*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
-| ATS | select+multi | 2 | , %SEARCH{"\.*" scope="topic" topic="DeviceATS*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
-| Voip Gate | select | 1 | , %SEARCH{"\.*" scope="topic" topic="DeviceVoipGate*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
+| ATS | select+multi | 2 | %INCLUDE{IncludeSelectATS}% |
+| Voip Gate | select | 1 | %INCLUDE{IncludeSelectVoipGate}% |
 | Phone Number | text | 30 | |
 | Dns Name | text  | 80 | |
 | Description | text | 80 | |
-| Vendor | select | 1 | %DATABASE_SQL{description="stat" sql="SELECT name FROM vendors ORDER BY name" format=" $name," }% |
+| Vendor | select | 1 | %INCLUDE{IncludeSelectVendor}% |
 | Device Model | text | 80 | |
 | Firmware | text | 100 | |
 | Community | text | 20 | |
 | SN | text | 80 | |
 | Uplink | text | 20 | |
-| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Switch*,Router*,Gateway*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Name)"}% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectNetParent}% |
 | Parent Port | text | 20 | |
-| Device Subnet | select | 1 | , %SEARCH{"\.*"  scope="topic" topic="Subnet-*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Subnet)"}% |
+| Device Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
 | Device IP | text | 20 | |
 | Mac | text | 20 | |
 | Disabled | checkbox | 1 |  Yes |

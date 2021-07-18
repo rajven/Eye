@@ -5,6 +5,6 @@
 | Name | text | 80 | %BASETOPIC% |
 | Description | text | 80 | |
 | Dns Zone Name | text | 80 | |
-| Domain Name | select | 1 | , %SEARCH{search="\.*" scope="topic" topic="Domain*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}%  |
+| Domain Name | select | 1 | %INCLUDE{IncludeSelectDomain}% |
 
 -- Main.RomanDmitriev - 2020/10/12

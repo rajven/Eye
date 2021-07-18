@@ -6,12 +6,12 @@ This is a topic for used certificate info
 ---++ Data form definition of used certifacates
 
 | *Name*  | *Type* | *Size* | *Values* |
-| CertType | select+value | 1 | Free, Paid |
+| CertType | select | 1 | Free, Paid |
 | Name | text  | 80 | %BASETOPIC% |
 | Dns Name | text | 80 | |
 | Description | text | 80 | |
 | Cert Alt names | text | 255 | |
-| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Server*,Router*,Gateway*,Site*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectCertParent}% |
 | Cert Vendor | text | 80 | |
 | Cert Period | text | 80 | |
 | Cert Valid To | date | | |

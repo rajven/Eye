@@ -2,20 +2,20 @@
 ---++ Data form
 
 | *Name*  | *Type* | *Size* | *Values* |
-| Hardware | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Cluster*,Hardware*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Name)"}% |
+| Hardware | select | 1 | %INCLUDE{IncludeSelectClusterHardware}% |
 | Name | text  | 80 | %BASETOPIC% |
 | Dns Name | text | 80 | |
-| Place | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Building*,Room*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
-| Rack | select | 1 | , %SEARCH{scope="topic" topic="Rack*" nototal="on" nosummary="on" nosearch="on" type="query" format="$topic" separator=", " order="formfield(Parent)"}% |
+| Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
+| Rack | select | 1 | %INCLUDE{IncludeSelectRack}% |
 | Description | text | 80 | |
 | Device Type | text | 10 | Server |
-| Device OS | select+value | 1 | Windows 2003, Windows 2008, Windows 2012, Windows 2016, Windows XP, Windows Vista, Windows 7, Windows 8, Windows 10, Centos 5, Centos 6, Centos 7, Centos 8, Ubuntu 14, Ubuntu 16, Ubuntu 18, Ubuntu 20, Linux, Windows |
+| Device OS | select | 1 | %INCLUDE{IncludeSelectOsList}% |
 | Device CPU | text | 20 | |
 | Device Memory | text | 20 | |
 | Uplink | text | 40 | |
-| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Router*,Switch*,Gateway*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectNetParent}% |
 | Parent Port | text | 40 | |
-| Device Subnet | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Subnet-*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Device Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
 | Device IP | text | 20 | |
 | User List | text | 80 | |
 -- Main.RomanDmitriev - 2020/10/05

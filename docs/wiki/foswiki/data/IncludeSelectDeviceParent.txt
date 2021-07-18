@@ -1,0 +1,1 @@
+ , %SEARCH{"\.*" scope="topic" topic="Server*,Router*,Switch*,Gateway*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Name)"}% 

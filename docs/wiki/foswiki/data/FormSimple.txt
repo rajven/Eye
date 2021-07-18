@@ -7,8 +7,8 @@ This is a topic, used for create device
 
 | *Name*  | *Type* | *Size* | *Values* |
 | Name | text  | 80 | %BASETOPIC% |
-| Place | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Room*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
-| Rack | select | 1 | , %SEARCH{scope="topic" topic="Rack*" nototal="on" nosummary="on" nosearch="on" type="query" format="$topic" separator=", " order="formfield(Parent)"}% |
+| Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
+| Rack | select | 1 | %INCLUDE{IncludeSelectRack}% |
 | Unit | text | 10 | |
 | Description | text | 80 | |
 

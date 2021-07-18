@@ -2,11 +2,11 @@
 ---++ Data form
 
 | *Name*  | *Type* | *Size* | *Values* |
-| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Router*,Gateway*,Server*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectDeviceParent}% |
 | Name | text  | 80 | %BASETOPIC% |
 | Description | text | 80 | |
 | Service type | text | 10 | DNS |
-| Zone List | select+multi | 10 | , %SEARCH{"\.*" scope="topic" topic="Dns*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
+| Zone List | select+multi | 10 | %INCLUDE{IncludeSelectDnsZone}% |
 
 -- Main.RomanDmitriev - 2020/10/15
 

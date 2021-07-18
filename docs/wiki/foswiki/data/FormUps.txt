@@ -7,12 +7,12 @@ This is a topic, used for create UPS
 
 | *Name*  | *Type* | *Size* | *Values* |
 | Name | text  | 80 | %BASETOPIC% |
-| Place | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Building*,Room*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}% |
-| Rack | select | 1 | , %SEARCH{scope="topic" topic="Rack*" nototal="on" nosummary="on" nosearch="on" type="query" format="$topic" separator=", " order="formfield(Parent)"}% |
+| Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
+| Rack | select | 1 | %INCLUDE{IncludeSelectRack}% |
 | Unit | text | 10 | |
 | Dns Name | text  | 80 | |
 | Description | text | 80 | |
-| Vendor | select | 1 | %DATABASE_SQL{description="stat" sql="SELECT name FROM vendors ORDER BY name" format=" $name," }% |
+| Vendor | select | 1 | %INCLUDE{IncludeSelectVendor}% |
 | Device Model | text | 80 | |
 | Firmware | text | 100 | |
 | Last battery changed | date | | |
@@ -20,10 +20,10 @@ This is a topic, used for create UPS
 | SN | text | 80 | |
 | Community | text | 20 | |
 | Uplink | text | 20 | |
-| Parent | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Server*,Router*,Switch*,Gateway*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Name)"}% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectNetParent}% |
 | Parent Port | text | 20 | |
 | Device Type | select | 1 | UPS |
-| Device Subnet | select | 1 | , %SEARCH{"\.*" scope="topic" topic="Subnet-*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Subnet)"}% |
+| Device Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
 | Device IP | text | 20 | |
 | Mac | text | 16 | |
 | Disabled | checkbox | 1 |  Yes |
