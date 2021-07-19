@@ -8,6 +8,7 @@ This is a topic, used for create network device
 | *Name*  | *Type* | *Size* | *Values* |
 | Name | text  | 80 | %BASETOPIC% |
 | Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
+| Device Type | select | 1 | %INCLUDE{IncludeSelectDeviceType}% |
 | Share Name | text | 40 | |
 | Dns Name | text  | 80 | |
 | Description | text | 80 | |
@@ -28,7 +29,6 @@ This is a topic, used for create network device
 | Uplink | text | 20 | |
 | Parent | select | 1 | %INCLUDE{IncludeSelectNetParent}% |
 | Parent Port | text | 20 | |
-| Device Type | select | 1 | Printer |
 | Device Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
 | Device IP | text | 20 | |
 | Mac | text | 20 | |

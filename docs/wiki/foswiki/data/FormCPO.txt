@@ -7,6 +7,7 @@ This is a topic, used for create network device
 
 | *Name*  | *Type* | *Size* | *Values* |
 | Name | text  | 80 | %BASETOPIC% |
+| Device Type | select | 1 | %INCLUDE{IncludeSelectDeviceType}% |
 | Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
 | Rack | select | 1 | %INCLUDE{IncludeSelectRack}% |
 | Unit | text | 10 | |
@@ -22,7 +23,6 @@ This is a topic, used for create network device
 | Uplink | text | 20 | |
 | Parent | select | 1 | %INCLUDE{IncludeSelectNetParent}% |
 | Parent Port | text | 20 | |
-| Device Type | text | 10 | CPO  |
 | Device Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
 | Device IP | text | 20 | |
 | Mac | text | 16 | |

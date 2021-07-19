@@ -5,5 +5,6 @@
      <input type="hidden" name="onlywikiname" value="off" />
      <input type="hidden" name="topicparent" value="%BASETOPIC%" />
      <input type="hidden" name="formtemplate" value="FormPrinter" />
+     <input type="hidden" name="DeviceType" value="Printer" />
      <input type="submit" value="Create" />
 </form>

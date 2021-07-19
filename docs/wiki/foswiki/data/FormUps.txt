@@ -22,7 +22,7 @@ This is a topic, used for create UPS
 | Uplink | text | 20 | |
 | Parent | select | 1 | %INCLUDE{IncludeSelectNetParent}% |
 | Parent Port | text | 20 | |
-| Device Type | select | 1 | UPS |
+| Device Type | select | 1 | %INCLUDE{IncludeSelectDeviceType}% |
 | Device Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
 | Device IP | text | 20 | |
 | Mac | text | 16 | |

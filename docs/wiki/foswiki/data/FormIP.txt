@@ -7,7 +7,7 @@
 | Mac | text | 20 | |
 | Description | text | 80 | |
 | Dns Name | text  | 80 | |
-| Parent | select | 1 | %INCLUDE{includeSelectNetHost}% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectNetHost}% |
 | Subnet Parent | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
 
 -- Main.RomanDmitriev - 2020/10/11

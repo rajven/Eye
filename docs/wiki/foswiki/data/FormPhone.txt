@@ -6,11 +6,12 @@ This is a topic, used for create network device
 ---++ Data form definition of server os settings
 
 | *Name*  | *Type* | *Size* | *Values* |
-| Device Type | select | 1 | IP-телефон, Цифровой, Аналоговый  |
+| Device Type | select | 1 | %INCLUDE{IncludeSelectDeviceType}% |
 | Name | text  | 80 | %BASETOPIC% |
 | Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
 | ATS | select+multi | 2 | %INCLUDE{IncludeSelectATS}% |
 | Voip Gate | select | 1 | %INCLUDE{IncludeSelectVoipGate}% |
+| Phone Type | select | 1 | %INCLUDE{IncludeSelectPhoneTypes}%  |
 | Phone Number | text | 30 | |
 | Dns Name | text  | 80 | |
 | Description | text | 80 | |

@@ -7,7 +7,7 @@ This is a topic, used for create server hardware
 ---++ Data form definition of server hardwares topics
 
 | *Name*  | *Type* | *Size* | *Values* |
-| Device Type | text | 20 | Hardware |
+| Device Type | select | 1 | %INCLUDE{IncludeSelectDeviceType}% |
 | Server OS | select | 1 | %INCLUDE{IncludeSelectServer}% |
 | Name | text  | 80 | %BASETOPIC% |
 | Description | text | 80 | |

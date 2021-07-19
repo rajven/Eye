@@ -8,7 +8,7 @@
 | Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
 | Rack | select | 1 | %INCLUDE{IncludeSelectRack}% |
 | Description | text | 80 | |
-| Device Type | text | 10 | KvmHost |
+| Device Type | select | 1 | %INCLUDE{IncludeSelectDeviceType}% |
 | VirtualCluster | select | 1 | %INCLUDE{IncludeSelectCluster}% |
 | Device OS | select | 1 | %INCLUDE{IncludeSelectOsList}% |
 | Device CPU | text | 20 | |

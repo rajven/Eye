@@ -6,8 +6,8 @@ This is a topic, used for create network device
 ---++ Data form definition of server os settings
 
 | *Name*  | *Type* | *Size* | *Values* |
-| Device Type | text | 1 | ATS |
 | Name | text  | 80 | %BASETOPIC% |
+| Device Type | select | 1 | %INCLUDE{IncludeSelectDeviceType}% |
 | Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
 | Dns Name | text  | 80 | |
 | Description | text | 80 | |
