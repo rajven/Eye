@@ -23,6 +23,7 @@ format="| [[$topic][$formfield(DnsName)]] | $formfield(Vendor) $formfield(Device
 
 -- Main.RomanDmitriev - 2020/10/11
 
+%META:TOPICMOVED{by="roman" date="1602510684" from="Sovtest.SwitchesOneLocal" to="One.ListSwitchesJmtcLocal"}%
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
 %META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

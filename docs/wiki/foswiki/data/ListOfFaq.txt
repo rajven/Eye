@@ -1,16 +1,19 @@
 %META:TOPICINFO{author="roman" date="1604299958" format="1.1" version="1"}%
 %META:TOPICPARENT{name="WebHome"}%
+
 ---++ Обнаружены статьи справок:
 
 %SEARCH{
+"^---\+\!\!\s*(.*)"
+type="regex"
 topic="Faq*"
-type="query"
 nosearch="on"
-nototal="on"
-format="* [[$topic][$pattern([\r\n\-+!]+([^\r\n]*?)[\r\n].*)]] <br>"
+header="Найдено:<br>" format="* [[$web.$topic][$pattern(.*\-\-\-\+\!\! (.*?)[\r\n].*)]] <br>"
 }%
 
+---++ Добавить
 
+%INCLUDE{IncludeAddFaq}%
 
 -- Main.RomanDmitriev - 02 Nov 2020
 

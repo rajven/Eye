@@ -1,5 +1,5 @@
 %META:TOPICINFO{author="roman" comment="reprev" date="1604772393" format="1.1" reprev="11" version="11"}%
----+!! Шлюзы, роутеры
+---+!! Шлюзы, роутеры, АТС
 
 ---++ Шлюзы
 %SEARCH{
@@ -38,6 +38,7 @@ format="| [[$topic][$formfield(DnsName)]] | $formfield(Vendor) $formfield(Device
 
 -- Main.RomanDmitriev - 2020/10/10
 
+%META:TOPICMOVED{by="roman" date="1602510247" from="Sovtest.GatewaysOneLocal" to="One.ListGatewaysJmtcLocal"}%
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
 %META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

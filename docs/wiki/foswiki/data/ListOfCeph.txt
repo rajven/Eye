@@ -1,10 +1,19 @@
-%META:TOPICINFO{author="roman" comment="reprev" date="1604919106" format="1.1" reprev="3" version="3"}%
+%META:TOPICINFO{author="roman" comment="reprev" date="1627891845" format="1.1" reprev="2" version="2"}%
 %META:TOPICPARENT{name="NetworkSovtest"}%
----+!! АТС
+---+!! Ceph
 
-%INCLUDE{IncludeShowAtss}%
+---++ Сервисы Ceph
 
-%INCLUDE{IncludeShowAtssDisabled}%
+%SEARCH{
+"lc(Servicetype)=~'^ceph'"
+topic="Service*"
+type="query"
+nosearch="on"
+header="|*Type*|*Description*|*Server*|"
+format="| [[$topic][$formfield(Servicetype)]] | $formfield(Description) | $formfield(Parent) |"
+}%
+
+---++ Список OSD
 
 ---++ Работа
 
@@ -17,7 +26,6 @@
 %META:PREFERENCE{name="DENYTOPICVIEW" title="DENYTOPICVIEW" type="Set" value="WikiGuest"}%
 %META:PREFERENCE{name="DENYTOPICCHANGE" title="DENYTOPICCHANGE" type="Set" value="WikiGuest"}%
 %META:PREFERENCE{name="PERMSET_VIEW" title="PERMSET_VIEW" type="Local" value="registeredusers"}%
-%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="registeredusers"}%
-%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

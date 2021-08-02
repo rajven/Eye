@@ -20,6 +20,10 @@ format="| [[$topic][$formfield(VlanName)]] | $formfield(Vlantag) | $formfield(De
 
 ---++ Добавить
 
+%INCLUDE{IncludeAddService}%
+
+%INCLUDE{IncludeAddCert}%
+
 %INCLUDE{IncludeAddAuth}%
 
 %INCLUDE{IncludeAddAcl}%

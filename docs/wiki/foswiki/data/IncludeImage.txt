@@ -1,0 +1,3 @@
+---++ Галерея
+
+%IMAGEGALLERY{size="large" topic="%BASETOPIC%" warn="no" frontend="photoswipe" align="left" crop="$crop" caption="$title" tooltip="$tooltip"}%

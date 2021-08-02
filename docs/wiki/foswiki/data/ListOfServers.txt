@@ -1,14 +1,8 @@
 %META:TOPICINFO{author="roman" comment="reprev" date="1626260368" format="1.1" reprev="2" version="6"}%
----++ Сервера, Software
 
-%SEARCH{
-"lc(DeviceType)='server'"
-topic="Server*"
-type="query"
-nosearch="on"
-header="|*Name*|*OS*|*IP*|*Description*|"
-format="| [[$topic][$formfield(DnsName)]]| $formfield(DeviceOS) | $formfield(DeviceIP) | $formfield(Description) |" 
-}%
+---++ Сервера, весь список
+
+%INCLUDE{IncludeShowServers}%
 
 ---++ Работа
 

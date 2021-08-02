@@ -28,5 +28,6 @@ format="| [[$topic][$formfield(DnsZoneName)]] | $formfield(DomainName) | $formfi
 
 -- Main.RomanDmitriev - 2020/10/11
 
+%META:TOPICMOVED{by="roman" date="1602673051" from="Hosting.DomainList" to="Hosting.ListOfDomains"}%
 %META:PREFERENCE{name="DENYTOPICVIEW" title="DENYTOPICVIEW" type="Set" value="WikiGuest"}%
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%

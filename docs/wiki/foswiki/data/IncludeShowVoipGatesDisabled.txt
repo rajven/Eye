@@ -1,0 +1,10 @@
+---++ Не используются
+
+%SEARCH{
+"Disabled='Yes' or Deleted='Yes'"
+topic="DeviceVoipGate*"
+type="query"
+nosearch="on"
+header="|*Name*|*Model*|*Комментарий*|"
+format="| [[$topic][$formfield(Name)]] | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Description) |"
+}%

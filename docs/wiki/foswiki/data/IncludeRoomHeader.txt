@@ -12,22 +12,18 @@ format="| [[$topic][$formfield(Name)]] | $formfield(Description) |"
 
 ---++ Список оборудования в комнате вне стоек/ящиков
 
-|*Name*|*Место*|*Model*|*Description*|
+|*Name*|*Model*|*Description*|
 %SEARCH{
 "(Place=~'%BASETOPIC%' or Parent=~'%BASETOPIC%') and not Rack"
 topic="*"
-web="Sovtest,Internet"
 excludetopic="Rack*"
 type="query"
 nosearch="on"
 nototal="on"
 noheader="on"
-format="| [[$web.$topic][$formfield(DnsName)]] | $formfield(Rack) | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Description) |"
+format="| [[$web.$topic][$topic]] | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Description) |"
 order="formfield(Name)"
 }%
-
----++ Фото
-%IMAGEGALLERY{size="large" topic="%BASETOPIC%" warn="no"}%
 
 ---++ Добавить
 
@@ -38,3 +34,5 @@ order="formfield(Name)"
 %INCLUDE{IncludeAddRouter}%
 %INCLUDE{IncludeAddGateway}%
 %INCLUDE{IncludeAddUps}%
+
+%INCLUDE{IncludeImage}%

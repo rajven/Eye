@@ -2,14 +2,15 @@
 
 exit
 
-cd /var/www/foswiki/data/Sovtest
-
 ls -x -1 *.txt | while read FN; do
 
 SYS=$(echo "${FN}" | egrep "^(Web|Include|Form|Default)")
 [ -n "${SYS}" ] && continue
 
 OK=$(grep ALLOWTOPICCHANGE ./${FN})
+[ -n "${OK}" ] && continue
+
+OK=$(grep PERMSET_CHANGE ./${FN})
 [ -n "${OK}" ] && continue
 
 echo "${FN}"

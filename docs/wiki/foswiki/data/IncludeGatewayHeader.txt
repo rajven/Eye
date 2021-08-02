@@ -26,7 +26,6 @@ format="| [[$topic][$formfield(VlanName)]] | $formfield(Vlantag) | $formfield(De
 
 %INCLUDE{IncludeAddVlan}%
 
-%INCLUDE{IncludeWorkflow}%
+%INCLUDE{IncludeImage}%
 
----++ Фото
-%IMAGEGALLERY{size="large" topic="%BASETOPIC%" warn="no"}%
+%INCLUDE{IncludeWorkflow}%

@@ -7,22 +7,13 @@ This is a topic, used for create network device
 
 | *Name*  | *Type* | *Size* | *Values* |
 | Name | text  | 80 | %BASETOPIC% |
-| Device Type | select | 1 | %INCLUDE{IncludeSelectDeviceType}% |
 | Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
 | Rack | select | 1 | %INCLUDE{IncludeSelectRack}% |
-| Dns Name | text  | 80 | |
+| Device Type | select | 1 | %INCLUDE{IncludeSelectDeviceType}% |
 | Description | text | 80 | |
 | Vendor | select | 1 | %INCLUDE{IncludeSelectVendor}% |
 | Device Model | text | 80 | |
 | Firmware | text | 100 | |
-| Community | text | 20 | |
-| SN | text | 80 | |
-| Uplink | text | 20 | |
-| Parent | select | 1 | %INCLUDE{IncludeSelectNetParent}% |
-| Parent Port | text | 20 | |
-| Device Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
-| Device IP | text | 20 | |
-| Mac | text | 20 | |
 | Disabled | checkbox | 1 |  Yes |
 | Deleted | checkbox | 1 |  Yes |
 

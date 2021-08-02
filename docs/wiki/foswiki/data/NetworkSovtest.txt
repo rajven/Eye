@@ -18,7 +18,6 @@
 
 [[ListOfManStatSovtestLocal][stat]] - самописная система контроля сетевых устройств
 
-
 %INCLUDE{IncludeShowAuthAll}%
 
 ---++ Добавить

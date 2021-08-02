@@ -3,6 +3,8 @@
 
 | *Name*  | *Type* | *Size* | *Values* |
 | ParentHost | select | 1 | %INCLUDE{IncludeSelectKvmHostParent}% |
+| Vm ID | text | 10 | |
+| VirtualCluster | select | 1 | %INCLUDE{IncludeSelectCluster}% |
 | Name | text  | 80 | %BASETOPIC% |
 | Dns Name | text | 80 | |
 | Description | text | 80 | |

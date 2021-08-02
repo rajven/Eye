@@ -3,7 +3,6 @@
 |*Name*|*Тип*|*Description*|
 %SEARCH{
 "Rack=~'%BASETOPIC%' or Parent=~'%BASETOPIC%' or Place=~'%BASETOPIC%'"
-web="Sovtest,Internet"
 topic="*"
 excludetopic="Rack*"
 type="query"

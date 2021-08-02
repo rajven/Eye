@@ -1,14 +1,37 @@
 %META:TOPICINFO{author="roman" comment="reprev" date="1604919106" format="1.1" reprev="3" version="3"}%
 %META:TOPICPARENT{name="NetworkSovtest"}%
----+!! АТС
+---+!! Видеонаблюдение
 
-%INCLUDE{IncludeShowAtss}%
+---++ Список камер
 
-%INCLUDE{IncludeShowAtssDisabled}%
+%SEARCH{
+"lc(DeviceType)='ipcam' and Disabled=''"
+topic="DeviceIPCAM*"
+type="query"
+nosearch="on"
+header="|*Name*|*Model*|*IP*|*Расположение*|*Включен от*|*Комментарий*|"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(Vendor) $formfield(DeviceModel) | $formfield(DeviceIP) | $formfield(Place) | $formfield(Parent) [$formfield(ParentPort)] | $formfield(Description) |"
+}%
+
+---++ Не используются
+
+%SEARCH{
+"lc(DeviceType)='ipcam' and Disabled='Yes'"
+topic="DeviceIPCAM*"
+type="query"
+nosearch="on"
+header="|*Name*|*Model*|*Комментарий*|"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Description) |"
+}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddIPCAM}%
 
 ---++ Работа
 
 %COMMENT{type="workflow"}%
+
 
 
 -- Main.RomanDmitriev - 09 Nov 2020

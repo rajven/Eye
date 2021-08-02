@@ -1,0 +1,54 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1624971564" format="1.1" reprev="2" version="2"}%
+%META:TOPICPARENT{name="WebHome"}%
+%INCLUDE{"%IF{"context can_login" then="%SYSTEMWEB%.WebLeftBarLogin" else="<nop>"}%" warn="off"}%
+   * [[ListOfArticles][Статьи]]
+   * [[ListOfFaq][FAQ]]
+   * [[CompanyBuildings][Планировка]]
+   * [[NetworkSovtest][Network]]
+      * [[ListGatewaysSovtestLocal][&mdash; Шлюзы и роутеры]]
+      * [[ListSwitchesSovtestLocal][&mdash; Свичи]]
+      * [[WifiSovtestLocal][&mdash; WiFi]]
+      * [[NetworkWanSubnets][&mdash; Внешние сети]]
+      * [[NetworkOneLocal][&mdash; Внутренние сети]]
+      * [[ListOfVlans][&mdash; Vlans]]
+   * [[ListOfDomains][Домены]]
+   * [[ListOfCert][Сертификаты]]
+   * [[ListOfServers][Servers]]
+      * [[ListOfHardware][&mdash; Оборудование]]
+      * [[ListOfServersOneLocal][&mdash; Сервера]]
+      * [[ListOfVirtualServers][&mdash; Виртуальные машины]]
+      * [[ClusterOpenNebula][&mdash; Облако]]
+      * [[ListOfCeph][&mdash; Ceph]]
+   * Сетевые сервисы
+      * [[ListOfSites][&mdash; Сайты]]
+      * [[ListOfDhcpServers][&mdash; DHCP]]
+      * [[ListOfDnsServers][&mdash; DNS]]
+   * [[ListOfSecurity][Охранка]]
+      * [[ListOfIpCam][&mdash; Камеры]]
+      * [[ListOfVideoRegistrators][&mdash; Регистраторы]]
+      * [[Bolid][&mdash; Болид]]
+   * [[ListOfPrinters][Принтеры]]
+   * [[Phones][Телефония]]
+      * [[ListOfPhones][&mdash; Телефоны]]
+      * [[ListOfVoipGates][&mdash; Шлюзы]]
+      * [[ListOfAts][&mdash; АТС]]
+      * [[ListOfNumbers][&mdash; Справочник]]
+   * [[ListUpsSovtestLocal][UPS]]
+   * [[ListOfAirConditioning][Кондиционеры]]
+   * [[ListOfManStatSovtestLocal][Система контроля]]
+   * [[ListOfBackupSovtestLocal][Бэкапы]]
+   
+
+---
+%INCLUDE{ "%SYSTEMWEB%.WebLeftBarWebsList" }%
+
+---
+   * *%MAKETEXT{"Toolbox"}%*
+   * [[%SCRIPTURLPATH{"view"}%/%BASEWEB%/WebCreateNewTopic?topicparent=%BASETOPIC%][ %ICON{"newtopic"}% %MAKETEXT{"Create New Topic"}%]]
+   * [[WebTopicList][ %ICON{"index"}% %MAKETEXT{"Index"}%]]
+   * [[%BASEWEB%.WebSearch][ %ICON{"searchtopic"}% %MAKETEXT{"Search"}%]]
+   * [[WebChanges][ %ICON{"changes"}% %MAKETEXT{"Changes"}%]]
+   * [[WebNotify][ %ICON{"notify"}% %MAKETEXT{"Notifications"}%]]
+   * [[WebRss][ %ICON{"feed"}% %MAKETEXT{"RSS Feed"}%]]
+   * %IF{"istopic '%STATISTICSTOPIC%'" else=" $percntICON{\"statistics\"}$percnt $percntMAKETEXT{\"Statistics\"}$percnt" then="[[$percntSTATISTICSTOPIC$percnt][ $percntICON{\"statistics\"}$percnt $percntMAKETEXT{\"Statistics\"}$percnt]]"}%
+   * [[WebPreferences][ %ICON{"wrench"}% %MAKETEXT{"Preferences"}%]]

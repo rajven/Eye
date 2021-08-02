@@ -8,7 +8,7 @@ type="query"
 nosearch="on"
 nototal="on"
 header="Найдено:<br>"
-format="* [[$topic][$pattern(.*[\-\+\!]+\s*(.*?)[\r\n].*)]] <br>"
+format="* [[$web.$topic][$pattern(.*\-\-\-\+\!\!\s*(.*?)[\r\n].*)]] <br>"
 }%
 
 ---++ Списки доступа
@@ -21,5 +21,5 @@ type="query"
 nosearch="on"
 nototal="on"
 header="Найдено:<br>"
-format="* [[$topic][$pattern(.*[\-\+\!]+\s*(.*?)[\r\n].*)]] <br>"
+format="* [[$web.$topic][$pattern(.*\-\-\-\+\!\!\s*(.*?)[\r\n].*)]] <br>"
 }%

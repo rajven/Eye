@@ -24,8 +24,7 @@ format="| [[$topic][$formfield(DnsName)]] | $formfield(Rack) | $formfield(Vendor
 order="formfield(Name)"
 }%
 
----++ Фото
-%IMAGEGALLERY{size="large" topic="%BASETOPIC%" warn="no"}%
+%INCLUDE{IncludeImage}%
 
 ---++ Добавить
 

@@ -3,7 +3,6 @@
 %SEARCH{
 "DeviceSubnet='%BASETOPIC%'"
 type="query"
-web="Sovtest,Internet"
 nosearch="on"
 nototal="on"
 pager="on"

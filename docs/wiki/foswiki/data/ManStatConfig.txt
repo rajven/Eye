@@ -4,9 +4,9 @@
 
 Управление осуществляется через вэб-интерфейс. Есть три главных пункта управления:
 
-   1 [[http://stat.example.org/admin/customers/control.php][Управление]]
-   2 [[http://stat.example.org/admin/customers/control-subnets.php][Сети]]
-   3 [[http://stat.example.org/admin/customers/control-options.php][Параметры]]
+   1 [[http://stat.one.local/admin/customers/control.php][Управление]]
+   2 [[http://stat.one.local/admin/customers/control-subnets.php][Сети]]
+   3 [[http://stat.one.local/admin/customers/control-options.php][Параметры]]
 
 ---++ Управление
 

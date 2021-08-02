@@ -10,6 +10,7 @@
 -- %WIKIUSERNAME% - %DATE%
 
 %META:FORM{name="FormSite"}%
+%META:TOPICMOVED{by="roman" date="1602526634" from="Sovtest.SiteTemplate" to="Sovtest.DefaultSiteTemplate"}%
 
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%

@@ -8,7 +8,7 @@
 | Http proto | select | 1 | https, http |
 | Site alias | text | 80 | |
 | Site IP | text | 20 | |
-| Backend | select | 1 | Nginx, Apache, Nginx+Apache, Nginx+fsgi, Nginx+uWSGI, Other |
+| Backend | select | 1 | %INCLUDE{IncludeSelectWebServer}% |
 | Disabled | checkbox | 1 |  Yes |
 | Deleted | checkbox | 1 |  Yes |
 

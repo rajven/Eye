@@ -1,0 +1,82 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1606988365" format="1.1" reprev="1" version="1"}%
+%META:TOPICPARENT{name="ListOfFaq"}%
+
+---+!! Нюансы настройки BigBlueButton
+
+%TOC%
+
+---++ Указание сервера stun
+
+/usr/share/bbb-web/WEB-INF/classes/spring/turn-stun-servers.xml - здесь поменять параметры. Сервер stun в отличии от turn не принимает ключ авторизации! Для работы с приватным сервером его лучше не указывать. Или использовать анонимный stun
+
+---++ Greenlight
+
+Это моднявая панель управления пользователями. Работает в докер-контайнере. Контейнер пихает в домашний каталог юзера, от которого ставится! Т.е. при запуске инсталляции от рута или через sudo поставлено оно будет в первоначального юзера. У нас используется bbb.
+
+~/greenlight/.env - основной файл настроек
+
+---+++ Параметры 
+
+SAFE_HOSTS=bbb.example.com - имя хоста, на котором работает конференция
+
+---++++ SECRET_KEY_BASE в конфигурации получаем так
+
+<verbatim>
+docker run --rm bigbluebutton/greenlight:v2 bundle exec rake secret
+</verbatim>
+
+---++++ BigBlueButton Credentials
+
+<verbatim>
+sudo bbb-conf --secret
+</verbatim>
+
+В .env файле указываем полученные параметры BIGBLUEBUTTON_ENDPOINT & BIGBLUEBUTTON_SECRET
+
+---+++ Проверка конфигурации
+
+<verbatim>
+docker run --rm --env-file .env bigbluebutton/greenlight:v2 bundle exec rake conf:check
+</verbatim>
+
+---+++ Запуск/остановка/обновление
+
+---++++ Первоначальная настройка
+<verbatim>
+cd ~/greenlight
+docker-compose -v
+docker run --rm bigbluebutton/greenlight:v2 cat ./docker-compose.yml > docker-compose.yml
+export pass=$(openssl rand -hex 8); sed -i 's/POSTGRES_PASSWORD=password/POSTGRES_PASSWORD='$pass'/g' docker-compose.yml;sed -i 's/DB_PASSWORD=password/DB_PASSWORD='$pass'/g' .env
+docker-compose up -d
+</verbatim>
+
+---++++ Старт/стоп
+
+<verbatim>
+docker-compose down
+docker-compose up -d
+</verbatim>
+
+---++++ Обновление
+
+<verbatim>
+cd ~/greenlight
+docker pull bigbluebutton/greenlight:v2
+docker-compose down
+docker-compose up -d
+</verbatim>
+
+---++ Поддерживаемые браузеры
+
+https://bbb.one.ru/html5client/useragent - здесь смотрим, что наш браузер о себе думает
+
+/usr/share/meteor/bundle/programs/server/assets/app/config/settings.yml - здесь дописать нужное и скрестить пальцы
+
+
+-- Main.RomanDmitriev - 03 Dec 2020
+
+
+%META:PREFERENCE{name="DENYTOPICVIEW" title="DENYTOPICVIEW" type="Set" value="WikiGuest"}%
+%META:PREFERENCE{name="DENYTOPICCHANGE" title="DENYTOPICCHANGE" type="Set" value="WikiGuest"}%
+%META:PREFERENCE{name="PERMSET_VIEW" title="PERMSET_VIEW" type="Local" value="registeredusers"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="registeredusers"}%

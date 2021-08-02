@@ -1,1 +1,1 @@
-, %SEARCH{"\.*" scope="topic" topic="Building*,Room*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}%
+, %SEARCH{"\.*" scope="topic" topic="Building*,Room*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Parent)"}%

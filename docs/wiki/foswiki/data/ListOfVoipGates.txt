@@ -1,29 +1,10 @@
-%META:TOPICINFO{author="roman" comment="reprev" date="1604919106" format="1.1" reprev="3" version="3"}%
+%META:TOPICINFO{author="roman" comment="reprev" date="1626770252" format="1.1" reprev="3" version="2"}%
 %META:TOPICPARENT{name="NetworkSovtest"}%
-
 ---+!! Войп-шлюзы
 
----++ Список шлюзов в работе
+%INCLUDE{IncludeShowVoipGates}%
 
-%SEARCH{
-"Disabled=''"
-topic="DeviceVoipGate*"
-type="query"
-nosearch="on"
-header="|*Name*|*Model*|*IP*|*Расположение*|*Включен от*|*Комментарий*|"
-format="| [[$topic][$formfield(Name)]] | $formfield(Vendor) $formfield(DeviceModel) | $formfield(DeviceIP) | $formfield(Place) | $formfield(Parent) [$formfield(ParentPort)] | $formfield(Description) |"
-}%
-
----++ Не используются
-
-%SEARCH{
-"Disabled='Yes'"
-topic="DeviceVoipGate*"
-type="query"
-nosearch="on"
-header="|*Name*|*Model*|*Комментарий*|"
-format="| [[$topic][$formfield(Name)]] | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Description) |"
-}%
+%INCLUDE{IncludeShowVoipGatesDisabled}%
 
 ---++ Работа
 

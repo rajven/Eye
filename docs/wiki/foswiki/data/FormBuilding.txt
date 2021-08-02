@@ -1,6 +1,7 @@
 %META:TOPICINFO{author="roman" comment="reprev" date="1602792683" format="1.1" reprev="1" version="3"}%
 
 | *Name*  | *Type* | *Size* | *Values* |
+| Parent | text  | 80 | %BASETOPIC% |
 | Name | text  | 80 | %BASETOPIC% |
 | Description | text | 80 | |
 | Address | text  | 255 | |
