@@ -1,0 +1,23 @@
+%INCLUDE{IncludeFindSubnets}%
+
+%INCLUDE{IncludeFindServices}%
+
+%INCLUDE{IncludeFindVlans}%
+
+%INCLUDE{IncludeHeaderSnmpPort}%
+
+%INCLUDE{IncludeFindAuth}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddService}%
+
+%INCLUDE{IncludeAddCert}%
+
+%INCLUDE{IncludeAddAuth}%
+
+%INCLUDE{IncludeAddAcl}%
+
+%INCLUDE{IncludeAddVlan}%
+
+%INCLUDE{IncludeWorkflow}%

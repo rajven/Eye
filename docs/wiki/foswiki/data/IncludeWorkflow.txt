@@ -1,3 +1,5 @@
 ---++ Работа
 
 %COMMENT{type="workflow" target="%BASETOPIC%"}%
+
+%INCLUDE{IncludeImage}%

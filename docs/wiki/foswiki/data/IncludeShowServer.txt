@@ -1,7 +1,7 @@
-%INCLUDE{IncludeShowServices}%
+%INCLUDE{IncludeFindServices}%
 
-%INCLUDE{IncludeShowSites}%
+%INCLUDE{IncludeFindSites}%
 
-%INCLUDE{IncludeShowCerts}%
+%INCLUDE{IncludeFindCerts}%
 
-%INCLUDE{IncludeShowAuth}%
+%INCLUDE{IncludeFindAuth}%

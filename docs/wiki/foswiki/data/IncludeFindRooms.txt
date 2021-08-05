@@ -9,8 +9,3 @@ nototal="on"
 header="|*Клозет*|*Description*|"
 format="| [[$topic][$formfield(Name)]] | $formfield(Description) |"
 }%
-
----++ Добавить
-
-%INCLUDE{IncludeAddRoom}%
-

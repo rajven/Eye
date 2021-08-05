@@ -3,6 +3,7 @@
 %SEARCH{
 "DeviceSubnet='%BASETOPIC%'"
 type="query"
+web="Sovtest,Internet"
 nosearch="on"
 nototal="on"
 pager="on"
@@ -21,7 +22,7 @@ $(function() {
 $("#container0").load("%SCRIPTURLPATH{"rest"}%/RenderPlugin/tag",
 {
 name: 'DATABASE_SQL',
-description: "stat",
+description: "rstat",
 sql: "SELECT subnet, CONCAT('Первый адрес: ',INET_NTOA(ip_int_start+1)) as start, CONCAT('Последний адрес: ',INET_NTOA(ip_int_stop-1)) as stop, CONCAT('Начало dhcp пула: ',INET_NTOA(dhcp_start)) as start_ip, CONCAT('Конец dhcp пула: ',INET_NTOA(dhcp_stop)) as stop_ip, CONCAT('Шлюз: ',INET_NTOA(gateway)) as gate FROM subnets WHERE subnet='%FORMFIELD{"Subnet" topic="%BASETOPIC%"}%' LIMIT 1",
 format: "  * $start<br>  * $stop<br>  * $gate<br>  * $start_ip<br>  * $stop_ip<br>",
 topic: '%BASEWEB%.%BASETOPIC%',
@@ -40,7 +41,7 @@ $(function() {
 $("#container1").load("%SCRIPTURLPATH{"rest"}%/RenderPlugin/tag",
 {
 name: 'DATABASE_SQL',
-description: 'stat',
+description: 'rstat',
 sql: "SELECT User_auth.ip, User_auth.mac, User_list.login, User_auth.comments, User_auth.dns_name, User_auth.dhcp_hostname, User_auth.last_found FROM User_auth, User_list WHERE (User_auth.ip_int BETWEEN (SELECT ip_int_start FROM subnets WHERE subnet='%FORMFIELD{"Subnet" topic="%BASETOPIC%"}%') AND (SELECT ip_int_stop FROM subnets WHERE subnet='%FORMFIELD{"Subnet" topic="%BASETOPIC%"}%')) and User_auth.user_id = User_list.id AND User_auth.deleted =0 ORDER BY ip_int",
 header: '|*Юзер*|*IP*|*MAC*|*DNS Name*|*DHCP hostname*| *Последняя активность   * | *Комментарий*|',
 format: '|$login | $ip | $mac | $dns_name | $dhcp_hostname | $last_found | $comments |',

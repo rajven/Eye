@@ -7,9 +7,11 @@ type="query"
 nosearch="on"
 nototal="on"
 header="|*Port*|*Name*|*Model*|*Description*|"
-format="| [[$topic][$formfield(ParentPort)]] | $formfield(Name)  | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Description) |"
+format="| [[$topic][$formfield(ParentPort)]] | [[$topic][$formfield(Name)]]  | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Description) |"
 order="formfield(ParentPort)"
 }%
+
+%INCLUDE{IncludeNetDevCommon}%
 
 ---++ Состояние портов
 
@@ -30,4 +32,3 @@ $(function() {
 });
 </script>
 
-%INCLUDE{IncludeNetDevCommon}%

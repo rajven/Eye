@@ -1,1 +1,1 @@
-, %SEARCH{"\.*" scope="topic" topic="Cluster*,Hardware*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="formfield(Name)"}%
+, %SEARCH{"\.*" scope="topic" topic="Sovtest.Cluster*,Hardware*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$web.$topic" separator=", " order="formfield(Name)"}%

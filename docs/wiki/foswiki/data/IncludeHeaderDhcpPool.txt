@@ -7,7 +7,7 @@ $(function() {
 $("#container0").load("%SCRIPTURLPATH{"rest"}%/RenderPlugin/tag",
 {
 name: 'DATABASE_SQL',
-description: "stat",
+description: "rstat",
 sql: "SELECT subnet, CONCAT('Начало пула: ',INET_NTOA(dhcp_start)) as start_ip, CONCAT('Конец пула: ',INET_NTOA(dhcp_stop)) as stop_ip, CONCAT('Шлюз: ',INET_NTOA(gateway)) as gate, CONCAT('Аренда, минут: ',dhcp_lease_time) as lease_time FROM subnets WHERE subnet='%FORMFIELD{"Subnet" topic="%FORMFIELD{"Subnet" topic="%BASETOPIC%"}%"}%' LIMIT 1",
 format: "  * $start_ip<br>  * $stop_ip<br>  * $gate<br>  * $lease_time<br>",
 topic: '%BASEWEB%.%BASETOPIC%',

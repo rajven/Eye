@@ -1,6 +1,6 @@
 %INCLUDE{IncludeNetDevCommon}%
 
-%INCLUDE{IncludeShowAuth}%
+%INCLUDE{IncludeFindAuth}%
 
 ---++ Добавить
 

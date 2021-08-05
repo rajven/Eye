@@ -11,8 +11,6 @@ format="| [[$topic][$formfield(ParentPort)]] | $formfield(Name)  | $formfield(Ve
 order="formfield(ParentPort)"
 }%
 
-%INCLUDE{IncludeNetDevCommon}%
-
 ---++ Состояние портов
 
 <div id="container1"></div>
@@ -31,4 +29,3 @@ $(function() {
   );
 });
 </script>
-
