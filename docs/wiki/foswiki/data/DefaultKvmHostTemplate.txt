@@ -6,9 +6,7 @@
 
 ---++ Сеть
 
-%INCLUDE{IncludeShowVms}%
-
-%INCLUDE{IncludeServerHeader}%
+%INCLUDE{IncludeHeaderKvmServer}%
 
 -- %WIKIUSERNAME% - %DATE%
 
