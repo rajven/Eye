@@ -11,11 +11,14 @@ This is a topic, used for create network device
 | Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
 | Rack | select | 1 | %INCLUDE{IncludeSelectRack}% |
 | Unit | text | 10 | |
-| Hardware | select | 1 | %INCLUDE{IncludeSelectHarware}% |
+| Hardware | select | 1 | %INCLUDE{IncludeSelectHardware}% |
 | Dns Name | text  | 80 | |
 | Description | text | 80 | |
 | Vendor | select | 1 | %INCLUDE{IncludeSelectVendor}% |
 | Device Model | text | 80 | |
+| Device OS | select | 1 | %INCLUDE{IncludeSelectOsList}% |
+| Device CPU | text | 20 | |
+| Device Memory | text | 20 | |
 | Routing Type | select+multi+values | 4 | BGP, RIP, OSPF, Static |
 | Firmware | text | 100 | |
 | Community | text | 20 | |
@@ -28,8 +31,11 @@ This is a topic, used for create network device
 | Parent Port | text | 20 | |
 | Device Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
 | Device IP | text | 20 | |
+| Managment IP | text | 20 | |
 | Mac | text | 20 | |
 | Disabled | checkbox | 1 |  Yes |
 | Deleted | checkbox | 1 |  Yes |
+
+
 
 -- Main.RomanDmitriev - 2020/10/12
