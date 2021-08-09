@@ -1,3 +1,5 @@
+%TOC%
+
 ---+!! Сервер %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
 
 ОС:
@@ -6,7 +8,7 @@
 
 ---++ Сеть
 
-%INCLUDE{IncludeServerHeader}%
+%INCLUDE{IncludeHeaderServer}%
 
 -- %WIKIUSERNAME% - %DATE%
 

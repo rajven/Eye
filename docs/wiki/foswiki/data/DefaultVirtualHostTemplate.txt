@@ -1,5 +1,9 @@
 ---+!! Виртуальная машина %FORMFIELD{"DnsName" topic="%BASETOPIC%"}% на %FORMFIELD{"Name" topic="%FORMFIELD{"ParentHost" topic="%BASETOPIC%"}%"}%
 
+%TOC%
+
+---++ Описание
+
 ОС:
 
 ---++ Дисковая подсистема

@@ -1,6 +1,6 @@
 ---+!! Сайт %FORMFIELD{"Httpproto" topic="%BASETOPIC%"}%://%FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
 
-%INCLUDE{IncludeShowAuth}%
+%INCLUDE{IncludeFindAuth}%
 
 %INCLUDE{IncludeAddAuth}%
 %INCLUDE{IncludeAddAcl}%

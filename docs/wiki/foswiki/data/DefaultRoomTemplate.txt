@@ -2,7 +2,7 @@
 
 ---+!! Комната %FORMFIELD{"Name" topic="%BASETOPIC%"}% (%FORMFIELD{"Description" topic="%BASETOPIC%"}%)
 
-%INCLUDE{IncludeRoomHeader}%
+%INCLUDE{IncludeHeaderRoom}%
 
 %INCLUDE{IncludeWorkflow}%
 

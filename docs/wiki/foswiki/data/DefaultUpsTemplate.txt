@@ -1,8 +1,8 @@
 ---+!!  %FORMFIELD{"DeviceType" topic="%BASETOPIC%"}%  %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
 
-%INCLUDE{IncludeUpsHeader}%
+%INCLUDE{IncludeHeaderUps}%
 
-%INCLUDE{IncludeShowAuth}%
+%INCLUDE{IncludeFindAuth}%
 
 %INCLUDE{IncludeAddAuth}%
 %INCLUDE{IncludeAddAcl}%

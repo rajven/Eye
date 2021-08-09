@@ -4,7 +4,7 @@
      <input type="hidden" name="templatetopic" value="DefaultNetdeviceTemplate" />
      <input type="hidden" name="onlywikiname" value="off" />
      <input type="hidden" name="topicparent" value="%BASETOPIC%" />
-     <input type="hidden" name="formtemplate" value="FormNetDevice" />
-     <input type="hidden" name="DeviceType" value="4Gmodem" />
+     <input type="hidden" name="formtemplate" value="FormAP" />
+     <input type="hidden" name="DeviceType" value="AP" />
      <input type="submit" value="Create" />
 </form>

@@ -1,10 +1,12 @@
 ---+!!  %FORMFIELD{"DeviceType" topic="%BASETOPIC%"}%  %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
 
-%INCLUDE{IncludeCamList}%
+%TOC%
+
+%INCLUDE{IncludeFindCamList}%
 
 %INCLUDE{IncludeNetDevCommon}%
 
-%INCLUDE{IncludeShowAuth}%
+%INCLUDE{IncludeFindAuth}%
 
 ---++ Добавить
 

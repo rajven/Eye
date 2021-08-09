@@ -1,6 +1,6 @@
 ---++ Dhcp пул для сети %FORMFIELD{"Name" topic="%FORMFIELD{"Subnet" topic="%BASETOPIC%"}%"}%
 
-%INCLUDE{IncludeDhcpPoolHeader}%
+%INCLUDE{IncludeHeaderDhcpPool}%
 
 %INCLUDE{IncludeWorkflow}%
 

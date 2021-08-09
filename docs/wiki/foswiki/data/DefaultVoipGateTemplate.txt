@@ -1,10 +1,10 @@
 ---+!!  %FORMFIELD{"DeviceType" topic="%BASETOPIC%"}%  %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
 
-%INCLUDE{IncludePhoneList}%
+%INCLUDE{IncludeFindPhoneList}%
 
 %INCLUDE{IncludeNetDevCommon}%
 
-%INCLUDE{IncludeShowAuth}%
+%INCLUDE{IncludeFindAuth}%
 
 ---++ Добавить
 

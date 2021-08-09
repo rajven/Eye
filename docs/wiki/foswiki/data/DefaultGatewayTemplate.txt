@@ -14,7 +14,7 @@
 
 ---++ Политика безопасности
 
-%INCLUDE{IncludeGatewayHeader}%
+%INCLUDE{IncludeHeaderGateway}%
 
 -- %WIKIUSERNAME% - %DATE%
 

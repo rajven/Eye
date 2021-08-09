@@ -1,6 +1,6 @@
 ---+!! Стойка %FORMFIELD{"Name" topic="%BASETOPIC%"}%
 
-%INCLUDE{IncludeRackHeader}%
+%INCLUDE{IncludeHeaderRack}%
 
 %INCLUDE{IncludeWorkflow}%
 

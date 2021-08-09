@@ -1,6 +1,6 @@
 ---+!! Сервис %FORMFIELD{"Description" topic="%BASETOPIC%"}%
 
-%INCLUDE{IncludeShowAuth}%
+%INCLUDE{IncludeFindAuth}%
 
 %INCLUDE{IncludeAddAuth}%
 %INCLUDE{IncludeAddAcl}%

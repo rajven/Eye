@@ -38,7 +38,6 @@
 
 -- Main.RomanDmitriev - 2020/10/10
 
-%META:FILEATTACHMENT{name="Жуково.dia" attachment="Жуково.dia" attr="" comment="Схема сети в Жуково по состоянию на 15.05.2020" date="1613583008" path="Жуково.dia" size="6668" user="roman" version="1"}%
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
 %META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

@@ -10,7 +10,7 @@
 
 ---++ Политика безопасности
 
-%INCLUDE{IncludeRouterHeader}%
+%INCLUDE{IncludeHeaderRouter}%
 
 -- %WIKIUSERNAME% - %DATE%
 

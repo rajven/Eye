@@ -1,1 +1,1 @@
-, %SEARCH{"\.*" web="Sovtest" scope="topic" topic="Building*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$web.$topic" separator=", " order="$web.$topic"}%
+, %SEARCH{"\.*" scope="topic" topic="Building*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}%

@@ -1,6 +1,6 @@
 ---+!! Здание %FORMFIELD{"Description" topic="%BASETOPIC%"}%
 
-%INCLUDE{IncludeBuildingHeader}%
+%INCLUDE{IncludeHeaderBuilding}%
 
 %INCLUDE{IncludeWorkflow}%
 

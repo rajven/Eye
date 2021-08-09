@@ -2,21 +2,13 @@
 
 %TOC%
 
-%INCLUDE{IncludeNetDevCommon}%
+---++ Сервер доступа
 
-%INCLUDE{IncludeFindCerts}%
+---++ Маршрутизация
 
-%INCLUDE{IncludeFindAuth}%
+---++ Политика безопасности
 
----++ Добавить
-
-%INCLUDE{IncludeAddCert}%
-
-%INCLUDE{IncludeAddAuth}%
-
-%INCLUDE{IncludeAddAcl}%
-
-%INCLUDE{IncludeWorkflow}%
+%INCLUDE{IncludeHeaderBras}%
 
 -- %WIKIUSERNAME% - %DATE%
 
@@ -24,8 +16,6 @@
 This topic is needed for normal operation even if System web is restricted.
    * Set ALLOWTOPICVIEW = *
 %ENDSECTION{type="templateonly"}%
-
-%META:FORM{name="FormNetDevice"}%
 
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%

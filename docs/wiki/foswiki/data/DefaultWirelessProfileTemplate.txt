@@ -1,6 +1,6 @@
 ---+ Wireless SSID: %FORMFIELD{"WirelessSSID" topic="%BASETOPIC%"}%
 
-%INCLUDE{IncludeWPapList}%
+%INCLUDE{IncludeFindWPapList}%
 
 ---++ Добавить
 

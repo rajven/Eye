@@ -1,8 +1,10 @@
 ---+!!  %FORMFIELD{"DeviceType" topic="%BASETOPIC%"}%  %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%  (%FORMFIELD{"Description" topic="%BASETOPIC%"}%)
 
-%INCLUDE{IncludeSwitchHeader}%
+%TOC%
 
-%INCLUDE{IncludeShowAuth}%
+%INCLUDE{IncludeHeaderSwitch}%
+
+%INCLUDE{IncludeFindAuth}%
 
 %INCLUDE{IncludeAddAuth}%
 %INCLUDE{IncludeAddAcl}%

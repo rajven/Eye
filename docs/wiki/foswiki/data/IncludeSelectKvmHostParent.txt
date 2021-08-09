@@ -3,20 +3,19 @@
 type="query"
 nosearch="on"
 nototal="on"
-format="$web.$topic"
+format="$topic"
 separator=", "
 order="formfield(Name)"
 }%
 , %SEARCH{
 "\.*"
 scope="topic"
-web="Sovtest"
 topic="Cluster*"
 nototal="on"
 nosummary="on"
 nosearch="on"
 regex="on"
-format="$web.$topic"
+format="$topic"
 separator=", "
 order="formfield(Name)"
 }%

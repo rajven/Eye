@@ -1,6 +1,6 @@
 ---+ Network: %FORMFIELD{"Name" topic="%BASETOPIC%"}%
 
-%INCLUDE{IncludeSubnetHeader}%
+%INCLUDE{IncludeHeaderSubnet}%
 
 %INCLUDE{IncludeWorkflow}%
 

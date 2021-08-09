@@ -1,5 +1,7 @@
 ---+!! Сервер %FORMFIELD{"Name" topic="%BASETOPIC%"}%
 
+%TOC%
+
 %INCLUDE{IncludeShowStat}%
 
 ОС:

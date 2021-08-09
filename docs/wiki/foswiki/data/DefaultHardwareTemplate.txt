@@ -1,6 +1,8 @@
 %META:TOPICINFO{author="roman" comment="reprev" date="1602524519" format="1.1" reprev="2" version="2"}%
 ---++ Сервер %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
 
+%TOC%
+
 ---+++ Память
 
 | *Type* | *MHz* | *Model* | *Vendor* | *SN* | *Size* |
@@ -17,7 +19,7 @@
 
 | *Name* | *Id* | *mount point* | *Description* |
 
-%INCLUDE{IncludeShowAuth}%
+%INCLUDE{IncludeFindAuth}%
 
 ---++ Добавить
 

@@ -2,10 +2,10 @@
 
 %SEARCH{
 "Parent='%BASETOPIC%'"
-topic="Room*"
+topic="Room*,Clav*"
 type="query"
 nosearch="on"
 nototal="on"
-header="|*Кабинет*|*Description*|"
+header="|*Клозет*|*Description*|"
 format="| [[$topic][$formfield(Name)]] | $formfield(Description) |"
 }%

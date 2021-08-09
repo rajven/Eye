@@ -36,7 +36,7 @@ $(function() {
 });
 </script>
 
-%INCLUDE{IncludeNetDevHeader}%
+%INCLUDE{IncludeHeaderNetDev}%
 
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%

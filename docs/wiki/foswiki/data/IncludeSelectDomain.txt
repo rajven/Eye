@@ -1,1 +1,1 @@
- , %SEARCH{search="\.*" scope="topic" topic="Domain*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", " order="topic"}%
+ , %SEARCH{search="\.*" scope="topic" topic="Domain*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}%
