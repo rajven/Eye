@@ -572,9 +572,10 @@ print "</div>\n";
 
 function print_ip_submenu ($current_page) {
 print "<div id='submenu'>\n";
-print_submenu_url('Активные адреса','/admin/iplist/index.php',$current_page,0);
-print_submenu_url('Удалённые адреса','/admin/iplist/deleted.php',$current_page,0);
-print_submenu_url('Дубли','/admin/iplist/doubles.php',$current_page,1);
+print_submenu_url('Список адресов','/admin/iplist/index.php',$current_page,0);
+print_submenu_url('Информация для nagios','/admin/iplist/nagios.php',$current_page,0);
+print_submenu_url('Дубли','/admin/iplist/doubles.php',$current_page,0);
+print_submenu_url('Удалённые адреса','/admin/iplist/deleted.php',$current_page,1);
 print "</div>\n";
 }
 
@@ -594,11 +595,19 @@ function get_device_model($db, $model_value)
     return $model_name['model_name'];
 }
 
+function get_device_model_name($db, $model_value)
+{
+    if (!isset($model_value)) { return ''; }
+    $model_name = get_record_sql($db,"SELECT M.id,M.model_name,V.name FROM device_models M,vendors V WHERE M.vendor_id = V.id AND M.id=$model_value");
+    if (empty($model_name)) { return ''; }
+    return $model_name['name'].' '.$model_name['model_name'];
+}
+
 function get_device_model_vendor($db, $model_value)
 {
-    if (!isset($model_value)) { return; }
+    if (!isset($model_value)) { return ''; }
     $model_name = get_record_sql($db, "SELECT vendor_id FROM device_models WHERE id=$model_value");
-    if (empty($model_name)) { return; }
+    if (empty($model_name)) { return ''; }
     return $model_name['vendor_id'];
 }
 
