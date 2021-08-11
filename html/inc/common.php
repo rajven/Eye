@@ -579,6 +579,21 @@ print_submenu_url('Удалённые адреса','/admin/iplist/deleted.php',
 print "</div>\n";
 }
 
+function get_nagios_name ($auth)
+{
+if (!empty($auth['dns_name'])) { return $auth['dns_name']; }
+if (!empty($auth['dhcp_hostname'])) { return $auth['dhcp_hostname']; }
+if (!empty($auth['comments'])) {
+    $result = transliterate($auth['comments']);
+    $result = preg_replace('/\(/', '-', $result);
+    $result = preg_replace('/\)/', '-', $result);
+    $result = preg_replace('/--/', '-', $result);
+    return $result;
+    }
+if (empty($auth['login'])) { $auth['login']='host'; }
+return $auth['login']."_".$auth['id'];
+}
+
 function get_ou($db, $ou_value)
 {
     if (!isset($ou_value)) { return; }

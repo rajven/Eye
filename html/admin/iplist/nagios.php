@@ -95,6 +95,8 @@ foreach ($users as $user) {
     $cl = "data";
     if ($user['nagios_status'] == "UP") { $cl = "up"; }
     if ($user['nagios_status'] == "DOWN") { $cl = "down"; }
+    if (!$user['nagios']) { $cl = "data"; }
+
     print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user['login'] . "</a></td>\n";
     print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
@@ -116,8 +118,17 @@ foreach ($users as $user) {
         } else {
         print "<td class=\"$cl\" ></td>\n";
         }
-    
-    print "<td class=\"$cl\" >" . get_qa($user['nagios']) . "</td>\n";
+
+    if (!empty($user['nagios']) and $user['nagios']) {
+        $nagios_url = rtrim(get_option($db_link, 57),'/');
+        if (preg_match('/127.0.0.1/', $nagios_url)) { print "<td class=\"$cl\" >". get_qa($user['nagios']) ."</td>\n"; } else {
+            $nagios_link = $nagios_url.'/cgi-bin/status.cgi?host='.get_nagios_name($user);
+            print "<td class=\"$cl\" >"; print_url(get_qa($user['nagios']),$nagios_link); print "</td>\n";
+            }
+        } else {
+        print "<td class=\"$cl\" >" . get_qa($user['nagios']) . "</td>\n";
+        }
+
     print "<td class=\"$cl\" >" . get_qa($user['link_check']) . "</td>\n";
     print "<td class=\"$cl\" >".$user['nagios_handler']."</td>\n";
     print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
@@ -131,8 +142,9 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <table class="data">
 <tr><td>Цветовая маркировка</td></tr>
 <tr>
-<td class="warn">Пользователь выключен</td>
-<td class="error">Блокировка по трафику</td>
+<td class="up">Хост включен</td>
+<td class="down">Хост недоступен</td>
+<td class="data">Неизвестно</td>
 </table>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
