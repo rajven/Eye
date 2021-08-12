@@ -4,6 +4,8 @@
      <input type="hidden" name="templatetopic" value="DefaultVirtualHostTemplate" />
      <input type="hidden" name="onlywikiname" value="off" />
      <input type="hidden" name="topicparent" value="%BASETOPIC%" />
+     <input type="hidden" name="VirtualCluster" value="%BASETOPIC%" />
+     <input type="hidden" name="ParentHost" value="%BASETOPIC%" />
      <input type="hidden" name="formtemplate" value="FormVirtual" />
      <input type="submit" value="Create" />
 </form>
