@@ -1,23 +1,10 @@
 ---+!!  %FORMFIELD{"DeviceType" topic="%BASETOPIC%"}%  %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
 
-%INCLUDE{IncludeNetDevCommon}%
+%INCLUDE{IncludeHeaderPhone}%
 
-%INCLUDE{IncludeFindAuth}%
-
----++ Добавить
-
-%INCLUDE{IncludeAddAuth}%
-
-%INCLUDE{IncludeAddAcl}%
-
-%INCLUDE{IncludeWorkflow}%
+%INCLUDE{IncludeBottomPhone}%
 
 -- %WIKIUSERNAME% - %DATE%
-
-%STARTSECTION{type="templateonly"}%
-This topic is needed for normal operation even if System web is restricted.
-   * Set ALLOWTOPICVIEW = *
-%ENDSECTION{type="templateonly"}%
 
 %META:FORM{name="FormNetDevice"}%
 

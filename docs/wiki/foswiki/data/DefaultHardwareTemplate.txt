@@ -7,38 +7,16 @@
 
 | *Type* | *MHz* | *Model* | *Vendor* | *SN* | *Size* |
 
----+++ Диски
-
-| *Id* | *FormFactor* | *Family* | *Type* | *Model* | *Size* | *SN* | *Date* |
-
----++++ Диски на рэйд-контроллере:
-
-| *SLOT* | *Type* | *Model* | *SN* | *WWN* | *Logical Drv* | *Size* | *Date* |
+%INCLUDE{IncludeHeaderHardware}%
 
 ---+++ Логические тома
 
 | *Name* | *Id* | *mount point* | *Description* |
 
-%INCLUDE{IncludeFindAuth}%
 
----++ Добавить
-
-%INCLUDE{IncludeAddServer}%
-
-%INCLUDE{IncludeAddKvmHost}%
-
-%INCLUDE{IncludeAddAuth}%
-
-%INCLUDE{IncludeWorkflow}%
+%INCLUDE{IncludeBottomHardware}%
 
 -- %WIKIUSERNAME% - %DATE%
-
-%STARTSECTION{type="templateonly"}%
-This topic is needed for normal operation even if System web is restricted.
-   * Set ALLOWTOPICVIEW = *
-%ENDSECTION{type="templateonly"}%
-
-%META:FORM{name="FormHardware"}%
 
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%

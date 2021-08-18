@@ -1,4 +1,4 @@
-%INCLUDE{IncludeNetDevCommon}%
+%INCLUDE{IncludeShowStat}%
 
 ---++ Hardware
 
@@ -17,3 +17,4 @@ $(function() {
 });
 </script>
 
+%INCLUDE{IncludeNetDevCommon}%

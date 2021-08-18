@@ -191,7 +191,8 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 <tr>
 <td width=200><?php print $cell_dns_name." &nbsp | &nbsp "; print_url("Альясы","/admin/users/edit_alias.php?id=$id"); ?></td>
 <td width=200><?php print $cell_comment; ?></td>
-<td width=200><?php 
+<td width=200>
+<?php 
 if (!empty($auth_info['WikiName'])) {
     $wiki_url = rtrim(get_option($db_link, 60),'/');
     if (preg_match('/127.0.0.1/', $wiki_url)) { print $cell_wikiname; } else {
@@ -203,7 +204,13 @@ if (!empty($auth_info['WikiName'])) {
     } else {
     print $cell_wikiname;
     }
-?></td>
+$dev_id = get_device_by_auth($db_link,$auth_info['user_id']);
+if (isset($dev_id)) {
+    print "&nbsp|&nbsp";
+    print_url('Device','/admin/devices/editdevice.php?id='.$dev_id);
+    }
+?>
+</td>
 <td width=70><?php print $cell_enabled; ?></td>
 <td width=70><?php print $cell_blocked; ?></td>
 <td width=70><?php print $cell_perday; ?></td>

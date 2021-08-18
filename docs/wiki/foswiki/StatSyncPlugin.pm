@@ -9,7 +9,7 @@ use Data::Dumper;
 
 # $VERSION is referred to by Foswiki, and is the only global variable that
 # *must* exist in this package
-use vars qw( $VERSION $RELEASE $debug $dbstat $wiki_user $pluginName );
+use vars qw( $VERSION $RELEASE $debug $dbstat $dbrstat $wiki_user $pluginName );
 
 use Foswiki::Func    ();    # The plugins API
 use Foswiki::Plugins ();    # For the API version
@@ -72,10 +72,11 @@ sub initPlugin {
 #            $dbstat = $info;
 #            last;
             if ($info->{description} eq "stat") { $dbstat = $info; next; }
+            if ($info->{description} eq "rstat") { $dbrstat = $info; next; }
             }
       }
 
-    return 0 if (!$dbstat);
+    return 0 if (!$dbstat or !$dbrstat);
 
     # register the _EXAMPLETAG function to handle %EXAMPLETAG{...}%
     Foswiki::Func::registerTagHandler( 'STATSYNC', \&_STATSYNC );
@@ -208,6 +209,12 @@ my $SQL = "SELECT * FROM User_auth WHERE ip_int=".$host_aton." and deleted=0 LIM
 my $connect_options = "dbi:$dbstat->{driver}:database=$dbstat->{database};host=$dbstat->{hostname}";
 my $connect_user = "$dbstat->{username}";
 my $connect_password = "$dbstat->{password}";
+
+if ($theWeb=~/Internet/) {
+    $connect_options = "dbi:$dbrstat->{driver}:database=$dbrstat->{database};host=$dbrstat->{hostname}";
+    $connect_user = "$dbrstat->{username}";
+    $connect_password = "$dbrstat->{password}";
+    }
 
 my $dbh = DBI->connect($connect_options,$connect_user,$connect_password);
 

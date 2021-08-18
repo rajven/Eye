@@ -1,0 +1,11 @@
+<form name="newHdd" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
+   * Добавить диск:
+     <input type="text" name="topic" value="EquipmentHdd" size="40" />
+     <input type="hidden" name="templatetopic" value="DefaultEquipmentHddTemplate" />
+     <input type="hidden" name="onlywikiname" value="off" />
+     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
+     <input type="hidden" name="formtemplate" value="FormEquipmentHdd" />
+     <input type="hidden" name="EquipmentType" value="HDD" />
+     <input type="hidden" name="Parent" value="%BASETOPIC%" />
+     <input type="submit" value="Create" />
+</form>

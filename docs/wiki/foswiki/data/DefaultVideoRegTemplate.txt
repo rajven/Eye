@@ -2,18 +2,9 @@
 
 %TOC%
 
-%INCLUDE{IncludeFindCamList}%
+%INCLUDE{IncludeHeaderVideoReg}%
 
-%INCLUDE{IncludeNetDevCommon}%
-
-%INCLUDE{IncludeFindAuth}%
-
----++ Добавить
-
-%INCLUDE{IncludeAddAuth}%
-%INCLUDE{IncludeAddAcl}%
-
-%INCLUDE{IncludeWorkflow}%
+%INCLUDE{IncludeBottomVideoReg}%
 
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%

@@ -2,7 +2,7 @@
 
 ---++ Сервера, весь список
 
-%INCLUDE{IncludeShowServers}%
+%INCLUDE{IncludeFindServers}%
 
 ---++ Работа
 

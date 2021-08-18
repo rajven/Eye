@@ -1,6 +1,6 @@
 ---+ Wireless Controller %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
 
-%INCLUDE{IncludeShowStat}%
+%INCLUDE{IncludeHeaderNetDev}%
 
 ---++ Список клиентов (Huawei)
 
@@ -36,7 +36,7 @@ $(function() {
 });
 </script>
 
-%INCLUDE{IncludeHeaderNetDev}%
+%INCLUDE{IncludeBottomNetDev}%
 
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%

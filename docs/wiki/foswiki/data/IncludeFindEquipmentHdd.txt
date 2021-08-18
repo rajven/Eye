@@ -1,0 +1,12 @@
+---++ Список жёстких дисков
+
+%SEARCH{
+"Parent='%BASETOPIC%' and EquipmentType='HDD' and Disabled='' and Deleted=''"
+topic="Equipment*"
+type="query"
+nosearch="on"
+expandvariables="on"
+header="|*Name*|*Sys/LogVol*|*DevType*|*Interface*|*FormFactor*|*Vendor*|*Model*|*Size*|*SN*|*Date*|*Description*|"
+format="| [[$topic][$formfield(Name)]] | $formfield(SystemName) $formfield(LogicalVolume) | $formfield(DeviceType) | $formfield(InterfaceType) | $formfield(FormFactor) | $formfield(Vendor) | $formfield(DeviceModel) | $formfield(Size) | $formfield(SN) | $formfield(DateCommissioning) | $formfield(Description) |"
+order="formfield(Name)"
+}%

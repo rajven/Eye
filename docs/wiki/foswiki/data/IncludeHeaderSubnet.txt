@@ -51,8 +51,3 @@ render: true }
 );
 });
 </script>
-
----++ Добавить
-
-%INCLUDE{IncludeAddPool}%
-

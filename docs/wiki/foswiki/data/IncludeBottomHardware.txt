@@ -1,0 +1,11 @@
+---++ Добавить
+
+%INCLUDE{IncludeAddEquipmentHdd}%
+
+%INCLUDE{IncludeAddServer}%
+
+%INCLUDE{IncludeAddKvmHost}%
+
+%INCLUDE{IncludeAddAuth}%
+
+%INCLUDE{IncludeWorkflow}%

@@ -2,9 +2,17 @@
 %META:TOPICPARENT{name="NetworkSovtest"}%
 ---+!! Телефоны
 
-%INCLUDE{IncludeShowPhones}%
+%TOC%
 
-%INCLUDE{IncludeShowPhonesDisabled}%
+%INCLUDE{IncludeFindPhones}%
+
+%INCLUDE{IncludeListStatPhones}%
+
+%INCLUDE{IncludeFindPhonesDisabled}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddPhone}%
 
 ---++ Работа
 

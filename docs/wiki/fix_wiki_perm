@@ -1,7 +1,20 @@
 #!/bin/bash
 
-exit
+function fix_perm() {
+fix_dir=$1
+user=$2
+[ -z "${user}" ] && user=apache
+[ -z "${fix_dir}" ] && return
+[ "x${fix_dir}" == "x/" ] && return
+[ ! -e "${fix_dir}" ] && return
 
-chown apache:apache -R /var/www/foswiki/
+echo "Fix permissions for ${fix_dir}"
+chown ${user}:${user} -R "${fix_dir}"
+find "${fix_dir}" -type d -exec chmod 770 {} \;
+find "${fix_dir}" -type f -exec chmod 660 {} \;
+echo "Done"
+}
+
+fix_perm "/var/www/foswiki/data" apache
 
 exit

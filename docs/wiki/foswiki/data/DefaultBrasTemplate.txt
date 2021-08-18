@@ -4,18 +4,15 @@
 
 ---++ Сервер доступа
 
+%INCLUDE{IncludeHeaderBras}%
+
 ---++ Маршрутизация
 
 ---++ Политика безопасности
 
-%INCLUDE{IncludeHeaderBras}%
+%INCLUDE{IncludeBottomBras}%
 
 -- %WIKIUSERNAME% - %DATE%
-
-%STARTSECTION{type="templateonly"}%
-This topic is needed for normal operation even if System web is restricted.
-   * Set ALLOWTOPICVIEW = *
-%ENDSECTION{type="templateonly"}%
 
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%

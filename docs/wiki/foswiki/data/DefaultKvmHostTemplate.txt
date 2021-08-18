@@ -1,19 +1,20 @@
 ---+!! Сервер %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
 
+%TOC%
+
+---++ Система
+
 ОС:
+
+%INCLUDE{IncludeHeaderKvmServer}%
 
 ---++ Дисковая подсистема
 
 ---++ Сеть
 
-%INCLUDE{IncludeHeaderKvmServer}%
+%INCLUDE{IncludeBottomKvmServer}%
 
 -- %WIKIUSERNAME% - %DATE%
-
-%STARTSECTION{type="templateonly"}%
-This topic is needed for normal operation even if System web is restricted.
-   * Set ALLOWTOPICVIEW = *
-%ENDSECTION{type="templateonly"}%
 
 %META:FORM{name="FormServerOs"}%
 

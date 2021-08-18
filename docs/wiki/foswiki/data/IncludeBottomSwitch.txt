@@ -1,0 +1,11 @@
+%INCLUDE{IncludeSnmpPort}%
+
+%INCLUDE{IncludeFindAuth}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddAuth}%
+
+%INCLUDE{IncludeAddAcl}%
+
+%INCLUDE{IncludeWorkflow}%

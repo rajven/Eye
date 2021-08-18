@@ -121,6 +121,9 @@ if ($field eq 'mac' and $auth->{mac}) { push(@wiki_dev,'%META:FIELD{name="Mac" t
 #print Dumper(\@wiki_dev);
 #next;
 
+if (!$device_name) { $device_name='None'; };
+if (!$device_port) { $device_port='None'; };
+
 print "at $device_name $device_port \n";
 
 open (LG,">$content{$fname}") || die("Error open file $content{$fname}!!! die...");

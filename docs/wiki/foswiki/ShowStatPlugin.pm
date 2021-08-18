@@ -9,7 +9,7 @@ use Data::Dumper;
 
 # $VERSION is referred to by Foswiki, and is the only global variable that
 # *must* exist in this package
-use vars qw( $VERSION $RELEASE $debug $dbstat $dbcacti $pluginName );
+use vars qw( $VERSION $RELEASE $debug $dbstat $dbrstat $dbcacti $pluginName );
 
 use Foswiki::Func    ();    # The plugins API
 use Foswiki::Plugins ();    # For the API version
@@ -67,11 +67,12 @@ sub initPlugin {
     if ( $Foswiki::cfg{Plugins}{DatabasePlugin}{ConfigSource} eq 'Local' ) {
         foreach  my $info ( @{ $Foswiki::cfg{Plugins}{DatabasePlugin}{Databases} } ) {
             if ($info->{description} eq "stat") { $dbstat = $info; next; }
+            if ($info->{description} eq "rstat") { $dbrstat = $info; next; }
             if ($info->{description} eq "cacti") { $dbcacti = $info; next; }
             }
       }
 
-    return 0 if (!$dbstat);
+    return 0 if (!$dbstat or !$dbrstat);
 
     # register the _EXAMPLETAG function to handle %EXAMPLETAG{...}%
     Foswiki::Func::registerTagHandler( 'SHOWSTAT', \&_ShowStat );
@@ -100,6 +101,12 @@ sleep(2);
 my $connect_options = "dbi:$dbstat->{driver}:database=$dbstat->{database};host=$dbstat->{hostname}";
 my $connect_user = "$dbstat->{username}";
 my $connect_password = "$dbstat->{password}";
+
+if ($theWeb=~/Internet/) {
+    $connect_options = "dbi:$dbrstat->{driver}:database=$dbrstat->{database};host=$dbrstat->{hostname}";
+    $connect_user = "$dbrstat->{username}";
+    $connect_password = "$dbrstat->{password}";
+    }
 
 my $dbh = DBI->connect($connect_options,$connect_user,$connect_password);
 
@@ -130,17 +137,18 @@ if ($res) {
     my $stat_url;
     if ($stat_row) { $stat_url = $stat_row->{value}."/admin/users/editauth.php?id=".$res->{id}; }
 
-    $status.='<div style="margin: 0 auto;">';
-    $status.='<div style="float: left;">';
-    $status.='Ссылки на внешние ресурсы<br>';
-    $status.='<a href="'.$nagios_url.'">Nagios</a><br>' if ($nagios_url and $res->{nagios});
-    $status.='<a href="'.$stat_url.'">Stat</a><br>' if ($stat_url);
-
-    $status.='</div>';
-    $status.='<div style="float: right; width: 200px;">';
-    $status.='Login: '.$res->{login}.'<br>';
+    $status ='<div style="float: right; width: 200px;">';
+    $status.='%BLUE%STAT:%ENDCOLOR%<br>';
+    $status.='id: '.$res->{id}.'<br>';
+    if ($stat_url) {
+        $status.='Login: <a href="'.$stat_url.'">'.$res->{login}.'</a><br>';
+        } else { $status.='Login: '.$res->{login}.'<br>'; }
     if ($res->{enabled}) { $status.='Включен: Да<br>'; } else { $status.='Включен: Нет<br>'; }
-    if ($res->{nagios}) { $status.='Nagios: Да<br>'; } else { $status.='Nagios: Нет<br>'; }
+    if ($res->{nagios}) {
+        if ($nagios_url) {
+            $status.='Nagios: <a href="'.$nagios_url.'">Да</a><br>';
+            } else { $status.='Nagios: Да<br>'; }
+        } else { $status.='Nagios: Нет<br>'; }
     $status.='Dhcp hostname: '.$res->{dhcp_hostname}.'<br>' if ($res->{dhcp_hostname});
     $status.='Фильтр: '.$res->{group_name}.'<br>';
     $status.='Шейпер: '.$res->{queue_name}.'<br>';

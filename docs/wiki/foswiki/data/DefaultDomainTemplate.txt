@@ -1,14 +1,8 @@
 ---+!! Домен %FORMFIELD{"Name" topic="%BASETOPIC%"}%
 
-%SEARCH{
-"parent.name='%BASETOPIC%'"
-type="query"
-nosearch="on"
-nototal="on"
-topic="DnsZone*"
-header="| *Название* | *Домен* |  *Комментарий* |"
-format="| [[$topic][$formfield(DnsZoneName)]] | $formfield(DomainName) | $formfield(Description) |"
-}%
+%INCLUDE{IncludeFindDomain}%
+
+---++ Добавить 
 
 %INCLUDE{IncludeAddDnsZone}%
 

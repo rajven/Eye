@@ -2,9 +2,9 @@
 %META:TOPICPARENT{name="NetworkSovtest"}%
 ---+!! АТС
 
-%INCLUDE{IncludeShowAtss}%
+%INCLUDE{IncludeFindAtss}%
 
-%INCLUDE{IncludeShowAtssDisabled}%
+%INCLUDE{IncludeFindAtssDisabled}%
 
 ---++ Работа
 

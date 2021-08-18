@@ -1,11 +1,8 @@
 ---+!! Сервис %FORMFIELD{"Description" topic="%BASETOPIC%"}%
 
-%INCLUDE{IncludeFindAuth}%
+%INCLUDE{IncludeHeaderService}%
 
-%INCLUDE{IncludeAddAuth}%
-%INCLUDE{IncludeAddAcl}%
-
-%INCLUDE{IncludeWorkflow}%
+%INCLUDE{IncludeBottomService}%
 
 -- %WIKIUSERNAME% - %DATE%
 

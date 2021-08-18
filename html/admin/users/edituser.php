@@ -248,8 +248,12 @@ if ($rule_count>0) { print "<td colspan=3> Count: ".$rule_count."</td>"; } else 
 <tr>
 <?php
 print "<td colspan=2>"; print_url("Трафик за день","/admin/reports/userday.php?id=$id"); print "</td>";
+$dev_id = get_device_by_auth($db_link,$id);
+print "<td>";
+if (isset($dev_id)) { print_url('Device link','/admin/devices/editdevice.php?id='.$dev_id); }
+print "</td>";
 ?>
-<td colspan=3></td>
+<td colspan=2></td>
 <td><input type="submit" name="edituser" value=<?php print $btn_save; ?>></td>
 </tr>
 </table>

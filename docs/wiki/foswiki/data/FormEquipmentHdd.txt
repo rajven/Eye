@@ -1,0 +1,33 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1604772215" format="1.1" reprev="1" version="7"}%
+---+ Basic info for HDD
+
+This is a topic, used for HDD
+
+---++ Data form definition
+
+| *Name*  | *Type* | *Size* | *Values* |
+| Name | text  | 80 | %BASETOPIC% |
+| Parent | select | 1 | %INCLUDE{IncludeSelectHardware}% |
+| Description | text | 80 | |
+| System Name | text | 10 | |
+| Logical Volume | text | 10 | |
+| Mount | text | 40 | |
+| Slot | text | 10 | |
+| Equipment Type | text | 10 | %INCLUDE{IncludeSelectEquipmentType}% |
+| Device Type | select | 1 | %INCLUDE{IncludeSelectHddType}% |
+| Interface Type | select | 1 | SATA, SATA2, SATA3, SAS, SCSI, NVME, ATA, USB |
+| Form Factor | select | 1 | , 2.5, 3.5 |
+| Family | text | 80 | |
+| Vendor | select | 1 | %INCLUDE{IncludeSelectVendor}% |
+| Device Model | text | 80 | |
+| Size | text | 10 | |
+| Firmware | text | 100 | |
+| SN | text | 80 | |
+| WWN | text | 80 | |
+| Date Commissioning | date | | |
+| Last Check | date | | |
+| Last Age | text | 10 | |
+| Disabled | checkbox | 1 |  Yes |
+| Deleted | checkbox | 1 |  Yes |
+
+-- Main.RomanDmitriev - 2020/10/12

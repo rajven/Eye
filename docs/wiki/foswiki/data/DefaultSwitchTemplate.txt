@@ -4,22 +4,11 @@
 
 %INCLUDE{IncludeHeaderSwitch}%
 
-%INCLUDE{IncludeFindAuth}%
-
-%INCLUDE{IncludeAddAuth}%
-%INCLUDE{IncludeAddAcl}%
-
-%INCLUDE{IncludeWorkflow}%
+%INCLUDE{IncludeBottomSwitch}%
 
 -- %WIKIUSERNAME% - %DATE%
 
-%STARTSECTION{type="templateonly"}%
-This topic is needed for normal operation even if System web is restricted.
-   * Set ALLOWTOPICVIEW = *
-%ENDSECTION{type="templateonly"}%
-
 %META:FORM{name="FormNetDevice"}%
-%META:FIELD{name="DeviceType" title="Device Type" value="Switch"}%
 
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%

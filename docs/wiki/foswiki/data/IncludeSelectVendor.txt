@@ -1,1 +1,1 @@
-%DATABASE_SQL{description="stat" sql="SELECT name FROM vendors ORDER BY name" format=" $name," }%
+, %DATABASE_SQL{description="stat" sql="SELECT name FROM vendors ORDER BY name" format=" $name," }%

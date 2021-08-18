@@ -28,7 +28,7 @@ This is a topic, used for create server hardware
 | Memory REG | checkbox | 1 | Yes |
 | Memory Freq | text | 10 | |
 | RAID | text | 80 | |
-| Hdd Type | select+multi+values | 4 | HDD SATA, HDD SAS, SSHD, SSD, SCSI |
+| Hdd Type | select+multi+values | 4 | %INCLUDE{IncludeSelectHddType}% |
 | Hdd Form Factor | select+multi+values | 2 | 2.5, 3.5 |
 | Disabled | checkbox | 1 |  Yes |
 | Deleted | checkbox | 1 |  Yes |

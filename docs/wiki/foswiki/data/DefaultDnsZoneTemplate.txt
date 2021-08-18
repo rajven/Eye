@@ -1,15 +1,6 @@
 ---+!! Зона %FORMFIELD{"DnsZoneName" topic="%BASETOPIC%"}%
 
-Поднята на серверах:
-
-%SEARCH{
-"%FORMFIELD{"Name" topic="%BASETOPIC%"}%"
-topic="ServiceDns*"
-type="regexp"
-nonoise="on"
-format="* [[$topic][$formfield(Name)]] - $formfield(Description)"
-separator="<br>"
-}%
+%INCLUDE{IncludeFindDnsZone}%
 
 %INCLUDE{IncludeWorkflow}%
 

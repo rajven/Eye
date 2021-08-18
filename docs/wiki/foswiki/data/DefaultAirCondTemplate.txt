@@ -1,6 +1,6 @@
 ---+!! Кондиционер
 
-%INCLUDE{IncludeImage}%
+%INCLUDE{IncludeWorkflow}%
 
 -- %WIKIUSERNAME% - %DATE%
 

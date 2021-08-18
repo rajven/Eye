@@ -15,6 +15,87 @@ format="| [[$topic][$formfield(Servicetype)]] | $formfield(Description) | $formf
 
 ---++ Список OSD
 
+   * [[ServerDrop00Cloud][host drop-00]] (6 SSD) 
+<verbatim>
+  8    ssd   0.87329              osd.8         up   1.00000  1.00000
+ 10    ssd   0.87329              osd.10        up   1.00000  1.00000
+ 22    ssd   0.87329              osd.22        up   1.00000  1.00000
+ 23    ssd   0.87329              osd.23        up   1.00000  1.00000
+ 25    ssd   0.87299              osd.25        up   1.00000  1.00000
+ 27    ssd   0.87329              osd.27        up   1.00000  1.00000
+</verbatim>
+   * [[ServerDrop02Cloud][host drop-02]] (2 HDD, 4 SSD)
+<verbatim>
+ 47    hdd   0.81839              osd.47        up   1.00000  1.00000
+ 49    hdd   0.81839              osd.49        up   0.75006  1.00000
+  0    ssd   0.87329              osd.0         up   1.00000  1.00000
+  2    ssd   0.87329              osd.2         up   1.00000  1.00000
+ 12    ssd   0.87329              osd.12        up   1.00000  1.00000
+ 24    ssd   0.87329              osd.24        up   1.00000  1.00000
+</verbatim>
+   * [[ServerDrop03Cloud][host drop-03]] (4 HDD)
+<verbatim>
+  6    hdd   3.63869              osd.6         up   1.00000  1.00000
+  7    hdd   3.63869              osd.7         up   1.00000  1.00000
+ 28    hdd   3.63869              osd.28        up   0.90002  1.00000
+ 44    hdd   3.63869              osd.44        up   1.00000  1.00000
+</verbatim>
+   * [[ServerDrop05Cloud][host drop-05]] (4 SSD)
+<verbatim>
+  3    ssd   0.87329              osd.3         up   0.90733  1.00000
+ 15    ssd   0.43660              osd.15        up   1.00000  1.00000
+ 17    ssd   0.43660              osd.17        up   1.00000  1.00000
+ 18    ssd   0.43700              osd.18        up   1.00000  1.00000
+</verbatim>
+   * [[ServerDrop06Cloud][host drop-06]] (1 HDD, 3 SSD)
+<verbatim>
+ 41    hdd   3.63869              osd.41        up   0.95001  1.00000
+ 13    ssd   0.43700              osd.13        up   1.00000  1.00000
+ 16    ssd   0.43700              osd.16        up   1.00000  1.00000
+ 19    ssd   0.43700              osd.19        up   1.00000  1.00000
+</verbatim>
+   * [[ServerDrop07Cloud][host drop-07]] (7 HDD)
+<verbatim>
+ 14    hdd   3.63869              osd.14        up   1.00000  1.00000
+ 26    hdd   3.63869              osd.26        up   1.00000  1.00000
+ 31    hdd   3.63869              osd.31        up   1.00000  1.00000
+ 37    hdd   3.63869              osd.37        up   1.00000  1.00000
+ 38    hdd   1.81929              osd.38        up   0.97945  1.00000
+ 39    hdd   1.81929              osd.39        up   1.00000  1.00000
+ 40    hdd   1.81929              osd.40        up   1.00000  1.00000
+</verbatim>
+   * [[ServerDrop11Cloud][host drop-11]] (7 HDD)
+<verbatim>
+  4    hdd   3.63869              osd.4         up   1.00000  1.00000
+ 11    hdd   3.63869              osd.11        up   1.00000  1.00000
+ 29    hdd   3.63869              osd.29        up   1.00000  1.00000
+ 30    hdd   3.63869              osd.30        up   1.00000  1.00000
+ 32    hdd   3.63869              osd.32        up   1.00000  1.00000
+ 33    hdd   3.63869              osd.33        up   1.00000  1.00000
+ 36    hdd   0.90919              osd.36        up   1.00000  1.00000
+</verbatim>
+   * [[ServerDrop12Cloud][host drop-12]] (5 SSD)
+<verbatim>
+  5    ssd   0.87279              osd.5         up   1.00000  1.00000
+ 35    ssd   0.87279              osd.35        up   1.00000  1.00000
+ 42    ssd   0.87279              osd.42        up   1.00000  1.00000
+ 45    ssd   0.87209              osd.45        up   1.00000  1.00000
+ 46    ssd   0.87209              osd.46        up   1.00000  1.00000
+</verbatim>
+   * [[ServerDrop13Cloud][host drop-13]] (7 HDD, 3 SSD)
+<verbatim>
+ 21    hdd   0.81760              osd.21        up   0.70007  1.00000
+ 34    hdd   0.81760              osd.34        up   0.85619  1.00000
+ 50    hdd   0.81760              osd.50        up   0.80005  1.00000
+ 51    hdd   0.81760              osd.51        up   0.75006  1.00000
+ 52    hdd   0.81760              osd.52        up   1.00000  1.00000
+ 53    hdd   0.81760              osd.53        up   1.00000  1.00000
+ 54    hdd   0.81760              osd.54        up   0.80005  1.00000
+  1    ssd   0.87219              osd.1         up   1.00000  1.00000
+  9    ssd   0.87219              osd.9         up   1.00000  1.00000
+ 20    ssd   0.43559              osd.20        up   1.00000  1.00000
+</verbatim>
+
 ---++ Работа
 
 %COMMENT{type="workflow"}%

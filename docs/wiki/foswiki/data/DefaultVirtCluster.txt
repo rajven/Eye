@@ -29,6 +29,4 @@ format="| $formfield(VmID) | [[$web.$topic][$formfield(DnsName)]] | $formfield(D
 
 %INCLUDE{IncludeAddVServerCluster}%
 
----++ Работа
-
-%COMMENT{type="workflow"}%
+%INCLUDE{IncludeWorkflow}%

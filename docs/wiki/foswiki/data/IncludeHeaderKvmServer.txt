@@ -1,18 +1,1 @@
-%INCLUDE{IncludeFindVms}%
-
-%INCLUDE{IncludeShowServer}%
-
-%INCLUDE{IncludeNetDevCommon}%
-
----++ Добавить
-
-%INCLUDE{IncludeAddVServer}%
-%INCLUDE{IncludeAddService}%
-%INCLUDE{IncludeAddServiceDns}%
-%INCLUDE{IncludeAddSite}%
-%INCLUDE{IncludeAddCert}%
-%INCLUDE{IncludeAddAuth}%
-%INCLUDE{IncludeAddAcl}%
-
-%INCLUDE{IncludeWorkflow}%
-
+%INCLUDE{IncludeShowStat}%

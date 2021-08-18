@@ -2,9 +2,17 @@
 %META:TOPICPARENT{name="NetworkSovtest"}%
 ---+!! Войп-шлюзы
 
-%INCLUDE{IncludeShowVoipGates}%
+%TOC%
 
-%INCLUDE{IncludeShowVoipGatesDisabled}%
+%INCLUDE{IncludeFindVoipGates}%
+
+%INCLUDE{IncludeListStatGates}%
+
+%INCLUDE{IncludeFindVoipGatesDisabled}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddVoipGate}%
 
 ---++ Работа
 

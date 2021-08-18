@@ -1,14 +1,1 @@
-%INCLUDE{IncludeShowServer}%
-
-%INCLUDE{IncludeNetDevCommon}%
-
----++ Добавить
-
-%INCLUDE{IncludeAddService}%
-%INCLUDE{IncludeAddServiceDns}%
-%INCLUDE{IncludeAddSite}%
-%INCLUDE{IncludeAddCert}%
-%INCLUDE{IncludeAddAuth}%
-%INCLUDE{IncludeAddAcl}%
-
-%INCLUDE{IncludeWorkflow}%
+%INCLUDE{IncludeShowStat}%

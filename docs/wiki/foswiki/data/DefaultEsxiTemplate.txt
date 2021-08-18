@@ -4,15 +4,19 @@
 
 %INCLUDE{IncludeShowStat}%
 
+---++ Система
+
 ОС:
 
 ---++ Дисковая подсистема
 
 ---++ Сеть
 
----++ Работа
+%INCLUDE{IncludeNetDevCommon}%
 
-%COMMENT{type="workflow"}%
+%INCLUDE{IncludeShowServer}%
+
+%INCLUDE{IncludeWorkflow}%
 
 -- Main.RomanDmitriev - 2020/10/14
 

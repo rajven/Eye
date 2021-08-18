@@ -2,28 +2,11 @@
 
 %TOC%
 
-%INCLUDE{IncludeNetDevCommon}%
+%INCLUDE{IncludeHeaderNetDev}%
 
-%INCLUDE{IncludeFindCerts}%
-
-%INCLUDE{IncludeFindAuth}%
-
----++ Добавить
-
-%INCLUDE{IncludeAddCert}%
-
-%INCLUDE{IncludeAddAuth}%
-
-%INCLUDE{IncludeAddAcl}%
-
-%INCLUDE{IncludeWorkflow}%
+%INCLUDE{IncludeBottomNetDev}%
 
 -- %WIKIUSERNAME% - %DATE%
-
-%STARTSECTION{type="templateonly"}%
-This topic is needed for normal operation even if System web is restricted.
-   * Set ALLOWTOPICVIEW = *
-%ENDSECTION{type="templateonly"}%
 
 %META:FORM{name="FormNetDevice"}%
 

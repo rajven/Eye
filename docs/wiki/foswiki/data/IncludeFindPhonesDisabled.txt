@@ -5,6 +5,6 @@
 topic="DevicePhone*"
 type="query"
 nosearch="on"
-header="|*Name*|*Model*|*Комментарий*|"
-format="| [[$topic][$formfield(Name)]] | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Description) |"
+header="|*Name*|*Model*|*IP*|*Комментарий*|"
+format="| [[$topic][$formfield(Name)]] | $formfield(Vendor) $formfield(DeviceModel) | $formfield(DeviceIP) | $formfield(Description) |"
 }%

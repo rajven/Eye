@@ -4,6 +4,9 @@
 
 %TOC%
 
+
+%INCLUDE{IncludeHeaderGateway}%
+
 ---++ WAN
 
    * wan-port: dhcp
@@ -14,14 +17,9 @@
 
 ---++ Политика безопасности
 
-%INCLUDE{IncludeHeaderGateway}%
+%INCLUDE{IncludeBottomGateway}%
 
 -- %WIKIUSERNAME% - %DATE%
-
-%STARTSECTION{type="templateonly"}%
-This topic is needed for normal operation even if System web is restricted.
-   * Set ALLOWTOPICVIEW = *
-%ENDSECTION{type="templateonly"}%
 
 %META:FORM{name="FormNetDevice"}%
 

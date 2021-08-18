@@ -1,10 +1,7 @@
+%INCLUDE{IncludeShowStat}%
+
 %INCLUDE{IncludeNetDevCommon}%
 
+%INCLUDE{IncludeFindCerts}%
+
 %INCLUDE{IncludeFindAuth}%
-
----++ Добавить
-
-%INCLUDE{IncludeAddAuth}%
-%INCLUDE{IncludeAddAcl}%
-
-%INCLUDE{IncludeWorkflow}%

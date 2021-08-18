@@ -134,6 +134,8 @@ foreach my $port (sort {$a <=> $b} keys %$device) {
 return $ret;
 };
 
+##########################################################
+
 sub table_callback {
 my ($session, $OID_ifTable, $table) = @_;
 
@@ -156,6 +158,8 @@ my $result = $session->get_bulk_request( -varbindlist => [ $next ], -maxrepetiti
 if (!defined $result) { printf "ERROR: %s.\n", $session->error(); }
 return;
 }
+
+###########################################################
 
 sub _SWITCHINFO {
 my($session, $params, $theTopic, $theWeb) = @_;
@@ -331,6 +335,8 @@ for (my $index=0; $index<scalar(@keys); $index++)  {
 	next if ($value=~/^MEth/);
 	next if ($value=~/^bridge/i);
 	next if ($value=~/^ppp/i);
+	next if ($value=~/^rtif\(/i);
+	
         $switch_status{$num}->{num}=$value;
 	}
     $switch_status{$num}->{$key}=$value;

@@ -17,6 +17,30 @@ if ($sort_field == 'fio') { $sort_table = 'User_list'; }
 $sort_url = "<a href=index.php?ou=" . $rou; 
 global $default_user_id;
 
+
+if (isset($_POST["ApplyForAll"])) {
+    $auth_id = $_POST["fid"];
+    $a_enabled = $_POST["a_enabled"] * 1;
+    $a_dhcp = $_POST["a_dhcp"] * 1;
+    $a_dhcp_acl = $_POST["a_dhcp_acl"];
+    $a_queue = $_POST["a_queue_id"] * 1;
+    $a_group = $_POST["a_group_id"] * 1;
+    $msg="Массовое изменение пользователей!";
+    foreach ($auth_id as $key => $val) {
+        if ($val) {
+            unset($auth);
+            $auth['enabled'] = $a_enabled;
+            $auth['filter_group_id'] = $a_group;
+            $auth['queue_id'] = $a_queue;
+            $auth['dhcp'] = $a_dhcp;
+            $auth['dhcp_acl'] = $a_dhcp_acl;
+            update_record($db_link, "User_auth", "id='" . $val . "'", $auth);
+            }
+        }
+    LOG_WARNING($db_link,$msg);
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    }
+
 if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and User_list.ou_id=$rou "; }
 
 if ($rsubnet == 0) { $subnet_filter = ''; } else {
@@ -75,7 +99,19 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <br>
 
 <table class="data">
+<tr>
+<td>Для выделенных установить: Включен&nbsp<?php print_qa_select('a_enabled', 1); ?></td>
+<td>Фильтр&nbsp<?php print_group_select($db_link, 'a_group_id', 0); ?></td>
+<td>Шейпер&nbsp<?php print_queue_select($db_link, 'a_queue_id', 0); ?></td>
+<td>Dhcp&nbsp<?php print_qa_select('a_dhcp', 1); ?></td>
+<td>Dhcp-acl&nbsp<?php print_dhcp_acl_select('a_dhcp_acl',''); ?></td>
+<td>&nbsp<input type="submit" name="ApplyForAll" value="Apply"></td>
+</tr>
+</table>
+
+<table class="data">
 	<tr>
+        	<td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
 		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . $cell_login . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . $cell_ip . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . $cell_mac . "</a>"; ?></td>
@@ -109,6 +145,7 @@ foreach ($users as $user) {
     $cl = "data";
     if (!$user['enabled']) { $cl = "warn"; }
     if ($user['blocked']) { $cl = "error"; }
+    print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$user['id']."></td>\n";
     print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user['login'] . "</a></td>\n";
     print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";

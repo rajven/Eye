@@ -1,15 +1,3 @@
 %INCLUDE{IncludeFindRacks}%
 
 %INCLUDE{IncludeFindRoomDevices}%
-
----++ Добавить
-
-%INCLUDE{IncludeAddRack}%
-
-%INCLUDE{IncludeAddHardware}%
-%INCLUDE{IncludeAddSwitch}%
-%INCLUDE{IncludeAddRouter}%
-%INCLUDE{IncludeAddGateway}%
-%INCLUDE{IncludeAddUps}%
-
-%INCLUDE{IncludeImage}%

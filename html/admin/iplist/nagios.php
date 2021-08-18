@@ -12,6 +12,25 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 $enabled=2;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/enabledfilter.php");
 
+if (isset($_POST["ApplyForAll"])) {
+    $auth_id = $_POST["fid"];
+    $n_enabled = $_POST["n_enabled"] * 1;
+    $n_link = $_POST["n_enabled"] * 1;
+    $n_handler = $_POST["n_handler"];
+    $msg="Массовое изменение пользователей!";
+    foreach ($auth_id as $key => $val) {
+        if ($val) {
+            unset($auth);
+            $auth['nagios'] = $n_enabled;
+            $auth['link_check'] = $n_link;
+            $auth['nagios_handler'] = $n_handler;
+            update_record($db_link, "User_auth", "id='" . $val . "'", $auth);
+            }
+        }
+    LOG_WARNING($db_link,$msg);
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    }
+
 $sort_table = 'User_auth';
 if ($sort_field == 'login') { $sort_table = 'User_list'; }
 if ($sort_field == 'fio') { $sort_table = 'User_list'; }
@@ -64,7 +83,17 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <br>
 
 <table class="data">
+<tr>
+<td>Для выделенных установить: Nagios&nbsp<?php print_qa_select('n_enabled', 1); ?></td>
+<td>Lnk&nbsp<?php print_qa_select('n_link', 0); ?></td>
+<td>Event-handler&nbsp<?php print_nagios_handler_select('n_handler', ''); ?></td>
+<td>&nbsp<input type="submit" name="ApplyForAll" value="Apply"></td>
+</tr>
+</table>
+
+<table class="data">
 	<tr>
+        	<td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
 		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . $cell_login . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . $cell_ip . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . $cell_mac . "</a>"; ?></td>
@@ -97,6 +126,7 @@ foreach ($users as $user) {
     if ($user['nagios_status'] == "DOWN") { $cl = "down"; }
     if (!$user['nagios']) { $cl = "data"; }
 
+    print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$user['id']."></td>\n";
     print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user['login'] . "</a></td>\n";
     print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";

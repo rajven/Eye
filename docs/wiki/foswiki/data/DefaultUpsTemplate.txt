@@ -2,12 +2,7 @@
 
 %INCLUDE{IncludeHeaderUps}%
 
-%INCLUDE{IncludeFindAuth}%
-
-%INCLUDE{IncludeAddAuth}%
-%INCLUDE{IncludeAddAcl}%
-
-%INCLUDE{IncludeWorkflow}%
+%INCLUDE{IncludeBottomUps}%
 
 -- Main.RomanDmitriev - 01 Nov 2020
 

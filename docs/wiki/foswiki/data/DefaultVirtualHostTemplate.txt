@@ -2,34 +2,19 @@
 
 %TOC%
 
----++ Описание
+---++ Система
 
 ОС:
 
+%INCLUDE{IncludeHeaderVirtualHost}%
+
 ---++ Дисковая подсистема
+
 ---++ Сеть
 
-%INCLUDE{IncludeShowVirtualServer}%
-
-%INCLUDE{IncludeNetDevCommon}%
-
----++ Добавить
-
-%INCLUDE{IncludeAddService}%
-%INCLUDE{IncludeAddServiceDns}%
-%INCLUDE{IncludeAddSite}%
-%INCLUDE{IncludeAddCert}%
-%INCLUDE{IncludeAddAuth}%
-%INCLUDE{IncludeAddAcl}%
-
-%INCLUDE{IncludeWorkflow}%
+%INCLUDE{IncludeBottomVirtualHost}%
 
 -- %WIKIUSERNAME% - %DATE%
-
-%STARTSECTION{type="templateonly"}%
-This topic is needed for normal operation even if System web is restricted.
-   * Set ALLOWTOPICVIEW = *
-%ENDSECTION{type="templateonly"}%
 
 %META:FORM{name="FormVirtual"}%
 

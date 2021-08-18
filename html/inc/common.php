@@ -789,6 +789,22 @@ function print_dhcp_select($qa_name, $qa_value)
     print "</select>\n";
 }
 
+function print_nagios_handler_select($qa_name)
+{
+    print "<select name=\"$qa_name\">\n";
+    print_select_simple('Нет','');
+    print_select_simple('restart-port','restart-port');
+    print "</select>\n";
+}
+
+function print_dhcp_acl_select($qa_name)
+{
+    print "<select name=\"$qa_name\">\n";
+    print_select_simple('Нет','');
+    print_select_simple('hotspot-free','hotspot-free');
+    print "</select>\n";
+}
+
 function print_enabled_select($qa_name, $qa_value)
 {
     print "<select name=\"$qa_name\">\n";
@@ -1064,6 +1080,13 @@ function get_user_by_ip($db, $ip)
     $auth_q = mysqli_query($db, $d_sql);
     list ($f_auth_id) = mysqli_fetch_array($auth_q);
     return $f_auth_id;
+}
+
+function get_device_by_auth($db, $id)
+{
+    $d_sql = "SELECT id FROM devices WHERE user_id=$id and deleted=0";
+    $f_dev = get_record_sql($db,$d_sql);
+    return $f_dev[id];
 }
 
 function print_auth_port($db, $port_id)
@@ -3045,6 +3068,10 @@ function get_cacti_graph($host_ip, $port_index)
 
 function print_select_item ($description,$value,$current) {
 if ($value == $current) { print "<option value=$value selected>$description</option>"; } else { print "<option value=$value>$description</option>"; }
+}
+
+function print_select_simple ($description,$value) {
+print "<option value=$value>$description</option>";
 }
 
 function print_select_item_ext ($description,$value,$current,$disabled) {

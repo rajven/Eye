@@ -1,40 +1,14 @@
 %META:TOPICINFO{author="roman" comment="reprev" date="1602879900" format="1.1" reprev="2" version="2"}%
+
 %TOC%
 
----++ Используемые АТС
+%INCLUDE{IncludeFindAtss}%
 
-%SEARCH{
-topic="DeviceATS*"
-type="query"
-nosearch="on"
-nototal="on"
-header="|*Name*|*IP*|*Description*|"
-format="| [[$topic][$formfield(Name)]] | $formfield(Device IP) | $formfield(Description) |"
-}%
+%INCLUDE{IncludeFindPhones}%
 
----++ Используемые шлюзы
+%INCLUDE{IncludeFindVoipGates}%
 
-%SEARCH{
-topic="DeviceVoipGate*"
-type="query"
-nosearch="on"
-nototal="on"
-header="|*Name*|*IP*|*Description*|"
-format="| [[$topic][$formfield(Name)]] | $formfield(Device IP) | $formfield(Description) |"
-}%
-
----++ Используемые телефоны
-
-%SEARCH{
-topic="DevicePhone*"
-type="query"
-nosearch="on"
-nototal="on"
-header="|*Name*|*IP*|*Description*|"
-format="| [[$topic][$formfield(Name)]] | $formfield(Device IP) | $formfield(Description) |"
-}%
-
-%INCLUDE{IncludeShowAuth}%
+%INCLUDE{IncludeFindAuth}%
 
 ---++ Добавить
 

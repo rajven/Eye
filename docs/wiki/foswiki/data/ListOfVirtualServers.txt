@@ -1,5 +1,8 @@
 %META:TOPICINFO{author="roman" comment="reprev" date="1626722075" format="1.1" reprev="2" version="3"}%
----+!! Список Host-машин
+
+---+!! Виртуальная среда без централизованного управления
+
+---++ Список Host-машин
 
 %SEARCH{
 "lc(DeviceType)='kvmhost' and VirtualCluster=''"
@@ -10,7 +13,7 @@ header="|*Name*|*Description*|*CPU Count*|*Memory*|*OS*|*IP*|"
 format="| [[$topic][$formfield(DnsName)]] | $formfield(Description) | $formfield(Device CPU) | $formfield(Device Memory) | $formfield(Device OS) | $formfield(Device IP) |"
 }%
 
----+!! Список виртуальных машин
+---++ Список виртуальных машин
 
 %SEARCH{
 "lc(DeviceType)~'virtual*' and VirtualCluster=''"
