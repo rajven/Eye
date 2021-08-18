@@ -3,14 +3,13 @@
 %SEARCH{
 "DeviceSubnet='%BASETOPIC%'"
 type="query"
-web="Sovtest,Internet"
 nosearch="on"
 nototal="on"
 pager="on"
 pagesize="25"
 order="formfield(DnsName)"
 header="|*IP   * | *Host* | *Description* |"
-format="| $formfield(DeviceIP) | [[$web.$topic][$formfield(DnsName)]] | $formfield(Description) |"
+format="| $formfield(DeviceIP) | [[$topic][$formfield(DnsName)]] | $formfield(Description) |"
 }%
 
 ---++ Параметры сети %FORMFIELD{"Subnet" topic="%BASETOPIC%"}%

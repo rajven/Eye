@@ -22,7 +22,7 @@ topic="Server*"
 type="query"
 nosearch="on"
 header="|*ID*|*Name*|*Virtualization*|*CPU Count*|*Memory*|*OS*|*IP*|*Description*|"
-format="| $formfield(VmID) | [[$web.$topic][$formfield(DnsName)]] | $formfield(Device Type) | $formfield(Device CPU) | $formfield(Device Memory) | $formfield(Device OS) | $formfield(Device IP) | $formfield(Description) |"
+format="| $formfield(VmID) | [[$topic][$formfield(DnsName)]] | $formfield(Device Type) | $formfield(Device CPU) | $formfield(Device Memory) | $formfield(Device OS) | $formfield(Device IP) | $formfield(Description) |"
 }%
 
 ---++ Добавить

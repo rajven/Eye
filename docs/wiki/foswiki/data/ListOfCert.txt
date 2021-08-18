@@ -7,7 +7,7 @@ type="query"
 nosearch="on"
 nototal="on"
 header="|*Cert Name*|*Alt Names*|*Valid*|*Type*|*Vendor*|*Parent*|"
-format="| [[$web.$topic][$formfield(DnsName)]] | $formfield(Cert Alt names) | $formfield(Cert Valid To) | $formfield(CertType) | $formfield(Cert Vendor) | $parent |"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(Cert Alt names) | $formfield(Cert Valid To) | $formfield(CertType) | $formfield(Cert Vendor) | $parent |"
 }%
 
 ---++ Работа

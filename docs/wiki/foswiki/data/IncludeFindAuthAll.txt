@@ -2,10 +2,9 @@
 
 %SEARCH{
 "^---++\s*.*\n"
-web="%WEB%"
 type="regex"
 topic="Auth*"
 nonoise="on"
 multi="off"
-header="Найдено:<br>" format="* [[$web.$topic][$pattern(.*\-\-\-\+\!\!\s*(.*?)[\r\n].*)]] <br>"
+header="Найдено:<br>" format="* [[$topic][$pattern(.*\-\-\-\+\!\!\s*(.*?)[\r\n].*)]] <br>"
 }%

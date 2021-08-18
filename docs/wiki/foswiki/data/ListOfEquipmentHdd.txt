@@ -12,7 +12,6 @@
 
 -- Main.RomanDmitriev - 2020/10/11
 
-%META:TOPICMOVED{by="roman" date="1624971526" from="Sovtest.ListServersInternet" to="Sovtest.ListOfServersInternet"}%
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
 %META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

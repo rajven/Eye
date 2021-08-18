@@ -8,7 +8,7 @@
 type="regex"
 topic="Faq*"
 nosearch="on"
-header="Найдено:<br>" format="* [[$web.$topic][$pattern(.*\-\-\-\+\!\! (.*?)[\r\n].*)]] <br>"
+header="Найдено:<br>" format="* [[$topic][$pattern(.*\-\-\-\+\!\! (.*?)[\r\n].*)]] <br>"
 }%
 
 ---++ Добавить

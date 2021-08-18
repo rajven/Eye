@@ -2,7 +2,6 @@
 
 %SEARCH{
 "parent.name='%BASETOPIC%' OR parent.name='%WEB%.%BASETOPIC%'"
-web="%WEB%"
 type="query"
 topic="Cert*"
 nosearch="on"

@@ -23,7 +23,6 @@ format="* [[$topic][$pattern([\r\n\-+!]+([^\r\n]*?)[\r\n].*)]] <br>"
 
 -- Main.RomanDmitriev - 19 Oct 2020
 
-%META:TOPICMOVED{by="roman" date="1603098749" from="Sovtest.BackupCommonOneLocal" to="One.ListOfBackupJmtcLocal"}%
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
 %META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

@@ -16,7 +16,6 @@
 
 -- Main.RomanDmitriev - 16 Oct 2020
 
-%META:TOPICMOVED{by="roman" date="1603099414" from="Sovtest.ManStatOneLocal" to="One.ManStatCommonJmtcLocal"}%
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
 %META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
 %META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

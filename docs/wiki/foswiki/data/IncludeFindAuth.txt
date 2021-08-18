@@ -2,24 +2,22 @@
 
 %SEARCH{
 "parent.name='%BASETOPIC%' OR parent.name='%WEB%.%BASETOPIC%'"
-web="%WEB%"
 topic="Auth*"
 type="query"
 nosearch="on"
 nototal="on"
 header="Найдено:<br>"
-format="* [[$web.$topic][$pattern(.*\-\-\-\+\!\!\s*(.*?)[\r\n].*)]] <br>"
+format="* [[$topic][$pattern(.*\-\-\-\+\!\!\s*(.*?)[\r\n].*)]] <br>"
 }%
 
 ---++ Списки доступа
 
 %SEARCH{
 "parent.name='%BASETOPIC%' OR parent.name='%WEB%.%BASETOPIC%'"
-web="%WEB%"
 topic="Acl*"
 type="query"
 nosearch="on"
 nototal="on"
 header="Найдено:<br>"
-format="* [[$web.$topic][$pattern(.*\-\-\-\+\!\!\s*(.*?)[\r\n].*)]] <br>"
+format="* [[$topic][$pattern(.*\-\-\-\+\!\!\s*(.*?)[\r\n].*)]] <br>"
 }%

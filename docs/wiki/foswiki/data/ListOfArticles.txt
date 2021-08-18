@@ -7,7 +7,7 @@
 type="regex"
 topic="Article*"
 nosearch="on"
-header="Найдено:<br>" format="* [[$web.$topic][$pattern(.*\-\-\-\+\!\! (.*?)[\r\n].*)]] <br>"
+header="Найдено:<br>" format="* [[$topic][$pattern(.*\-\-\-\+\!\! (.*?)[\r\n].*)]] <br>"
 }%
 
 ---++ Добавить
@@ -17,7 +17,6 @@ header="Найдено:<br>" format="* [[$web.$topic][$pattern(.*\-\-\-\+\!\! (.
 -- Main.RomanDmitriev - 07 Nov 2020
 
 
-%META:TOPICMOVED{by="roman" date="1604778241" from="Sovtest.DeviceAPInternet" to="One.ListOfAPJmtcLocal"}%
 %META:PREFERENCE{name="DENYTOPICVIEW" title="DENYTOPICVIEW" type="Set" value="WikiGuest"}%
 %META:PREFERENCE{name="DENYTOPICCHANGE" title="DENYTOPICCHANGE" type="Set" value="WikiGuest"}%
 %META:PREFERENCE{name="PERMSET_VIEW" title="PERMSET_VIEW" type="Local" value="registeredusers"}%
