@@ -54,7 +54,6 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     if (isset($_POST["f_snmp3_user_ro"])) { $new['snmp3_user_ro'] = substr($_POST["f_snmp3_user_ro"], 0, 20); }
     if (isset($_POST["f_snmp3_user_rw_password"])) { $new['snmp3_user_rw_password'] = substr($_POST["f_snmp3_user_rw_password"], 0, 20); }
     if (isset($_POST["f_snmp3_user_ro_password"])) { $new['snmp3_user_ro_password'] = substr($_POST["f_snmp3_user_ro_password"], 0, 20); }
-    if (isset($_POST["f_fdb_snmp"])) { $new['fdb_snmp_index'] = $_POST["f_fdb_snmp"]; }
     if (isset($_POST["f_discovery"])) { $new['discovery'] = $_POST["f_discovery"]; }
     if (isset($_POST["f_dhcp"])) { $new['dhcp'] = $_POST["f_dhcp"] * 1; }
     if (isset($_POST["f_user_acl"])) { $new['user_acl'] = $_POST["f_user_acl"] * 1; }
@@ -140,7 +139,7 @@ if ($device['device_type']==2) {
 ?>
 </tr>
 <td>Snmp Version</td>
-<td>fdb by snmp</td>
+<td></td>
 <td>Discovery</td>
 <td>Nagios</td>
 <td>
@@ -148,7 +147,7 @@ if ($device['device_type']==2) {
 <?php
 print "<tr>\n";
 print "<td class=\"data\">"; print_snmp_select('f_snmp_version', $device['snmp_version']); print "</td>\n";
-print "<td class=\"data\">"; print_qa_select('f_fdb_snmp', $device['fdb_snmp_index']); print "</td>\n";
+print "<td class=\"data\"></td>\n";
 print "<td class=\"data\">"; print_qa_select('f_discovery', $device['discovery']); print "</td>\n";
 print "<td class=\"data\">"; print_qa_select('f_nagios', $device['nagios']); print "</td>\n";
 print "</tr>\n";

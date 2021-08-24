@@ -1728,6 +1728,7 @@ function get_fdb_port_table($ip, $port_index, $community, $version)
         if (! $vlan_table) {
             return;
         }
+        //fucking cisco!!!
         foreach ($vlan_table as $vlan_oid => $value) {
             if (! $vlan_oid) { continue; }
             $pattern = '/\.(\d{1,4})$/';

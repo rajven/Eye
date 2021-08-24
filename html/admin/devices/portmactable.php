@@ -14,18 +14,15 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 <div id="cont">
 <?php
 $port_id = $id;
-$sSQL = "SELECT DP.port, DP.snmp_index, D.device_name, D.ip, D.snmp_version, D.community, D.fdb_snmp_index FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=$port_id";
+$sSQL = "SELECT DP.port, DP.snmp_index, D.device_name, D.ip, D.snmp_version, D.community  FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=$port_id";
 $port_info = mysqli_query($db_link, $sSQL);
-list ($f_port, $f_snmp_index, $f_switch, $f_ip, $f_version, $f_community, $f_snmp) = mysqli_fetch_array($port_info);
+list ($f_port, $f_snmp_index, $f_switch, $f_ip, $f_version, $f_community) = mysqli_fetch_array($port_info);
 $display_name = " $f_port свича $f_switch";
 print "<b>$f_switch [$f_port] </b><br>\n";
 
 if ($f_snmp_index > 0) {
     print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
     print "<tr><td><b>Список маков активных на порту</b></td></tr>\n";
-    if (! $f_snmp) {
-        $f_snmp_index = $f_port;
-    }
     $fdb = get_fdb_port_table($f_ip, $f_snmp_index, $f_community, $f_version);
     foreach ($fdb as $a_mac => $a_port) {
         print "<tr>";
