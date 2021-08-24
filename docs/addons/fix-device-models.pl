@@ -4,6 +4,9 @@
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
 
+#Скрипт нужен для переноса юзеровских девайсов в системные. НЕ ЗАПУСКАТЬ В ПОЛЬЗОВАТЕЛЬСКОЙ ИНСТАЛЛЯЦИИ!!! 
+#Запуск в пользовательской инсталляции приведёт к ошибкам при следующем обновлении версии БД
+
 use FindBin '$Bin';
 use lib "$Bin/";
 use Data::Dumper;
@@ -21,7 +24,7 @@ my @dev_models = get_records_sql($dbh,"SELECT * FROM device_models WHERE id>=100
 foreach my $row (@dev_models) {
 print "Dev: $row->{id} $row->{model_name}  =>";
 #search hardcoded models with some name
-my $model = get_record_sql($dbh,"SELECT * FROM device_models WHERE id <>".$row->{id}." AND model_name='".trim($row->{model_name})."'");
+my $model = get_record_sql($dbh,"SELECT * FROM device_models WHERE id <>".$row->{id}." AND LOWER(model_name)='".lc(trim($row->{model_name}))."'");
 if ($model) { 
     print "... found id: $model->{id}. Migrated.";
     do_sql($dbh,"DELETE FROM device_models WHERE id=".$row->{id});
@@ -47,7 +50,7 @@ my @dev_vendors = get_records_sql($dbh,"SELECT * FROM vendors WHERE id>=10000");
 foreach my $row (@dev_vendors) {
 print "Dev: $row->{id} $row->{name}  =>";
 #search hardcoded vendors with some name
-my $vendor = get_record_sql($dbh,"SELECT * FROM vendors WHERE id <>".$row->{id}." AND name='".trim($row->{name})."'");
+my $vendor = get_record_sql($dbh,"SELECT * FROM vendors WHERE id <>".$row->{id}." AND LOWER(name)='".lc(trim($row->{name}))."'");
 if ($vendor) {
     print "... found id: $vendor->{id}. Migrated.";
     do_sql($dbh,"DELETE FROM vendors WHERE id=".$row->{id});

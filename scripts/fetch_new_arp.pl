@@ -20,6 +20,7 @@ use Rstat::snmp;
 use Rstat::mysql;
 use NetAddr::IP;
 use Fcntl qw(:flock);
+use Parallel::ForkManager;
 
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
@@ -31,6 +32,10 @@ my %mac_history;
 my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime(time());
 $month += 1;
 $year += 1900;
+
+my $fork_count = $cpu_count*5;
+#disable fork for debug
+#if ($debug) { $fork_count = 0; }
 
 my $now_str=sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
 my $now_day=sprintf "%04d-%02d-%02d",$year,$month,$day;
@@ -44,16 +49,49 @@ db_log_verbose($dbh,'Arp discovery started.');
 if ($ARGV[0]) {
     db_log_verbose($dbh,'Active check started!');
     my $subnets=get_subnets_ref($dbh);
+    my @fping_cmd=();
     foreach my $net (keys %$subnets) {
             next if (!$net);
             next if (!$subnets->{$net}{discovery});
             my $run_cmd="$fping -g $subnets->{$net}{subnet} -B1.0 -c 1 >/dev/null 2>&1";
             db_log_debug($dbh,"Checked network $subnets->{$net}{subnet}") if ($debug);
-            do_exec($run_cmd);
+            push(@fping_cmd,$run_cmd);
             }
+    $parallel_process_count = $cpu_count*2;
+    run_in_parallel(@fping_cmd);
     }
 
 my @router_ref = get_records_sql($dbh,"SELECT * FROM devices WHERE deleted=0 AND device_type=2 AND discovery=1 AND snmp_version>0 ORDER by ip" );
+
+my @arp_array=();
+
+my $pm_arp = Parallel::ForkManager->new($fork_count);
+
+# data structure retrieval and handling
+$pm_arp -> run_on_finish (
+sub {
+    my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_structure_reference) = @_;
+    if (defined($data_structure_reference)) {  # children are not forced to send anything
+        my $result = ${$data_structure_reference};  # child passed a string reference
+        push(@arp_array,$result);
+        }
+    }
+);
+
+DATA_LOOP:
+foreach my $router (@router_ref) {
+my $router_ip=$router->{ip};
+my $snmp_version=$router->{snmp_version};
+my $community=$router->{community};
+$pm_arp->start() and next DATA_LOOP;
+my $arp_table=get_arp_table($router_ip,$community,$snmp_version);
+$pm_arp->finish(0, \$arp_table);
+}
+$pm_arp->wait_all_children;
+
+########################### end fork's #########################
+
+$dbh=init_db();
 
 #get userid list
 my @authlist_ref = get_records_sql($dbh,"SELECT * FROM User_auth WHERE deleted=0 ORDER by ip_int" );
@@ -68,36 +106,29 @@ $ip_list{$row->{id}}->{ip}=$row->{ip};
 $ip_list{$row->{id}}->{mac}=mac_splitted($row->{mac}) || '';
 }
 
-foreach my $router (@router_ref) {
-my $router_ip=$router->{ip};
-my $snmp_version=$router->{snmp_version};
-my $community=$router->{community};
-#print "Analyze $router_ip $snmp_version $community\n";
-my $arp_table=get_arp_table($router_ip,$community,$snmp_version);
-next if (!$arp_table);
-foreach my $ip (keys %$arp_table) {
-    next if (!$arp_table->{$ip});
-    my $mac=trim($arp_table->{$ip});
-    $mac=mac_splitted($mac);
-    next if (!$mac);
-    next if ($mac=~/ff:ff:ff:ff:ff:ff/i);
-    next if ($mac!~/(\S{2}):(\S{2}):(\S{2}):(\S{2}):(\S{2}):(\S{2})/);
-    my $simple_mac=mac_simplify($mac);
-    $ip=trim($ip);
-    my $ip_aton=StrToIp($ip);
-    $mac_history{$simple_mac}{changed}=0;
-    $mac_history{$simple_mac}{ip}=$ip;
-    $mac_history{$simple_mac}{auth_id}=0;
-    next if (!$office_networks->match_string($ip));
-    db_log_debug($dbh,"Analyze ip: $ip mac: $mac") if ($debug);
-    my $auth_id = $users->match_string($ip);
-    my $cur_auth_id=resurrection_auth($dbh,$ip,$mac,'arp');
-    $mac_history{$simple_mac}{auth_id}=$cur_auth_id;
-    if ($auth_id ne $cur_auth_id) {
-	$mac_history{$simple_mac}{changed}=1;
-	}
+foreach my $arp_table (@arp_array) {
+    foreach my $ip (keys %$arp_table) {
+        next if (!$arp_table->{$ip});
+        my $mac=trim($arp_table->{$ip});
+        $mac=mac_splitted($mac);
+        next if (!$mac);
+        next if ($mac=~/ff:ff:ff:ff:ff:ff/i);
+        next if ($mac!~/(\S{2}):(\S{2}):(\S{2}):(\S{2}):(\S{2}):(\S{2})/);
+        my $simple_mac=mac_simplify($mac);
+        $ip=trim($ip);
+        my $ip_aton=StrToIp($ip);
+        $mac_history{$simple_mac}{changed}=0;
+        $mac_history{$simple_mac}{ip}=$ip;
+        $mac_history{$simple_mac}{auth_id}=0;
+        next if (!$office_networks->match_string($ip));
+        db_log_debug($dbh,"Analyze ip: $ip mac: $mac") if ($debug);
+        my $auth_id = $users->match_string($ip);
+        my $cur_auth_id=resurrection_auth($dbh,$ip,$mac,'arp');
+        $mac_history{$simple_mac}{auth_id}=$cur_auth_id;
+        if ($auth_id ne $cur_auth_id) { $mac_history{$simple_mac}{changed}=1; }
     }
 }
+
 db_log_verbose($dbh,'Arp discovery stopped.');
 }
 
@@ -110,110 +141,133 @@ sleep(1);
 db_log_verbose($dbh,'Mac discovery started.');
 
 my %connections=();
-my $connections_list=do_sql($dbh,"Select id,auth_id,port_id from connections order by auth_id");
-foreach my $connection (@$connections_list) {
+my @connections_list=get_records_sql($dbh,"SELECT * FROM connections ORDER BY auth_id");
+foreach my $connection (@connections_list) {
     next if (!$connection);
-    my ($conn_id,$conn_auth_id,$conn_port_id)=@$connection;
-    $connections{$conn_auth_id}{port}=$conn_port_id;
-    $connections{$conn_auth_id}{id}=$conn_id;
+    $connections{$connection->{auth_id}}{port}=$connection->{port_id};
+    $connections{$connection->{auth_id}}{id}=$connection->{id};
     }
 
 my $auth_filter='';
-if ($arp_discovery) { $auth_filter=" and last_found >='".$now_day."' "; }
-my $auth_sql="Select id,mac from User_auth where mac is not null and deleted=0 $auth_filter order by id asc";
+if ($arp_discovery) { $auth_filter=" AND last_found >='".$now_day."' "; }
+my $auth_sql="SELECT id,mac FROM User_auth WHERE mac IS NOT NULL AND deleted=0 $auth_filter ORDER BY id ASC";
 
-my $auth_list=do_sql($dbh,$auth_sql);
+my @auth_list=get_records_sql($dbh,$auth_sql);
 
 my %auth_table;
-foreach my $auth (@$auth_list) {
+foreach my $auth (@auth_list) {
     next if (!$auth);
-    my ($auth_id,$auth_mac)=@$auth;
-    $auth_mac=mac_simplify($auth_mac);
-    $auth_table{oper_table}{$auth_mac}=$auth_id;
+    my $auth_mac=mac_simplify($auth->{mac});
+    $auth_table{oper_table}{$auth_mac}=$auth->{id};
     }
 
-
-$auth_sql="Select id,mac from User_auth where mac is not null and deleted=0 order by id asc";
-my $auth_full_list=do_sql($dbh,$auth_sql);
-
-foreach my $auth (@$auth_full_list) {
+$auth_sql="SELECT id,mac FROM User_auth WHERE mac IS NOT NULL AND deleted=0 ORDER BY id ASC";
+my @auth_full_list=get_records_sql($dbh,$auth_sql);
+foreach my $auth (@auth_full_list) {
     next if (!$auth);
-    my ($auth_id,$auth_mac)=@$auth;
-    $auth_mac=mac_simplify($auth_mac);
-    $auth_table{full_table}{$auth_mac}=$auth_id;
+    my $auth_mac=mac_simplify($auth->{mac});
+    $auth_table{full_table}{$auth_mac}=$auth->{id};
     }
 
-
-my $unknown_list=do_sql($dbh,"Select id,mac,port_id,device_id from Unknown_mac where mac !='' order by mac");
+my @unknown_list=get_records_sql($dbh,"SELECT id,mac,port_id,device_id FROM Unknown_mac WHERE mac !='' ORDER BY mac");
 my %unknown_table;
-foreach my $unknown (@$unknown_list) {
+foreach my $unknown (@unknown_list) {
     next if (!$unknown);
-    my ($unknown_id,$unknown_mac,$unknown_port_id,$unknown_device_id)=@$unknown;
-    $unknown_mac=mac_simplify($unknown_mac);
-    $unknown_table{$unknown_mac}{unknown_id}=$unknown_id;
-    $unknown_table{$unknown_mac}{port_id}=$unknown_port_id;
-    $unknown_table{$unknown_mac}{device_id}=$unknown_device_id;
+    my $unknown_mac=mac_simplify($unknown->{mac});
+    $unknown_table{$unknown_mac}{unknown_id}=$unknown->{id};
+    $unknown_table{$unknown_mac}{port_id}=$unknown->{port_id};
+    $unknown_table{$unknown_mac}{device_id}=$unknown->{device_id};
     }
 
-my $device_ref = do_sql($dbh,"SELECT ip,snmp_version,community,fdb_snmp_index,device_name,id from devices WHERE deleted=0 and discovery=1 and snmp_version>0" );
-foreach my $device (@$device_ref) {
+my @device_list = get_records_sql($dbh,"SELECT * FROM devices WHERE deleted=0 AND discovery=1 AND snmp_version>0" );
 
+my @fdb_array=();
+
+my $pm_fdb = Parallel::ForkManager->new($fork_count);
+
+# data structure retrieval and handling
+$pm_fdb -> run_on_finish (
+sub {
+    my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_structure_reference) = @_;
+    if (defined($data_structure_reference)) {  # children are not forced to send anything
+        my $result = ${$data_structure_reference};  # child passed a string reference
+        push(@fdb_array,$result);
+        }
+    }
+);
+
+
+FDB_LOOP:
+foreach my $device (@device_list) {
+$pm_fdb->start() and next FDB_LOOP;
+my $fdb=get_fdb_table($device->{ip},$device->{community},$device->{snmp_version});
+my $vlans = get_switch_vlans($device->{ip},$device->{community},$device->{snmp_version});
+my $result;
+$result->{id}=$device->{id};
+$result->{fdb} = $fdb;
+$result->{vlans} = $vlans;
+$pm_fdb->finish(0, \$result);
+}
+$pm_fdb->wait_all_children;
+
+my %fdb_ref;
+foreach my $fdb_table (@fdb_array){
+next if (!$fdb_table);
+$fdb_ref{$fdb_table->{id}}{fdb}=$fdb_table->{fdb};
+$fdb_ref{$fdb_table->{id}}{vlans}=$fdb_table->{vlans};
+}
+
+################################ end fork's ##############################
+
+$dbh=init_db();
+
+foreach my $device (@device_list) {
 my %port_snmp_index=();
 my %port_index=();
 my %mac_port_count=();
 my %mac_address_table=();
 my %port_links=();
 
-my ($dev_ip,$dev_snmp_ver,$dev_community,$dev_fdb_index,$dev_name,$dev_id)=@$device;
-
-next if (!$dev_id);
-
-#print "$dev_ip,$dev_snmp_ver,$dev_community,$dev_fdb_index,$dev_name,$dev_id\n" if ($debug);
-
-my $fdb=get_fdb_table($dev_ip,$dev_community,$dev_snmp_ver);
+my $dev_id = $device->{id};
+my $dev_name = $device->{device_name};
+my $fdb=$fdb_ref{$dev_id}{fdb};
+my $vlans=$fdb_ref{$dev_id}{vlans};
 
 next if (!$fdb);
 
+my @device_ports = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id=$dev_id");
 
-my $device_ports = do_sql($dbh,"Select port,snmp_index,target_port_id,id,skip,vlan from device_ports where device_id=$dev_id");
-
-foreach my $port (@$device_ports) {
-    my ($port,$snmp_index,$target_port_id,$port_id,$skip_port,$vlan)=@$port;
-
-    my $port_index=$port;
+foreach my $port_data (@device_ports) {
+    my $vlan = $port_data->{vlan};
     if (!$vlan) { $vlan=1; }
 
-    if ($dev_fdb_index) {
-        if (!$snmp_index) { next; }
-        $port_index=$snmp_index;
-        }
+    if (!$port_data->{snmp_index}) { $port_data->{snmp_index} = $port_data->{port}; }
+    my $port_index=$port_data->{snmp_index};
 
-    my $current_vlan =  get_vlan_at_port($dev_ip,$dev_community,$dev_snmp_ver,$port_index);
-
-    if (!$current_vlan or $current_vlan=~/noSuchInstance/i or !is_integer($current_vlan)) { $current_vlan=1; }
-
+    my $current_vlan = $vlans->{$port_data->{snmp_index}};
+    if (!$current_vlan) { $current_vlan=1; }
     if ($current_vlan != $vlan) {
 	my $dev_ports;
 	$dev_ports->{vlan}=$current_vlan;
-	update_record($dbh,'device_ports',$dev_ports,"device_id=$dev_id and port=$port");
-        db_log_verbose($dbh,"Vlan changed at device $dev_name [$port] old: $vlan current: $current_vlan");
+	update_record($dbh,'device_ports',$dev_ports,"device_id=$dev_id and port=$port_data->{port}");
+        db_log_verbose($dbh,"Vlan changed at device $dev_name [$port_data->{port}] old: $vlan current: $current_vlan");
         }
 
-    next if ($skip_port);
-    $port_snmp_index{$snmp_index}=$port;
-    $port_index{$port}=$port_id;
-    $port_links{$port}=$target_port_id;
-    $mac_port_count{$port}=0;
+    next if ($port_data->{skip});
+
+    $port_snmp_index{$port_data->{snmp_index}}=$port_data->{port};
+    $port_index{$port_data->{port}}=$port_data->{id};
+    $port_links{$port_data->{port}}=$port_data->{target_port_id};
+    $mac_port_count{$port_data->{port}}=0;
     }
 
 foreach my $mac (keys %$fdb) {
+    #port from fdb table
     my $port = $fdb->{$mac};
     next if (!$port);
-    if ($dev_fdb_index) {
-        if (!exists $port_snmp_index{$port}) { next; }
-        $port=$port_snmp_index{$port};
-        }
-    if (!exists $port_index{$port}) { next; }
+    if (!exists $port_snmp_index{$port}) { next; }
+    #real port number
+    $port=$port_snmp_index{$port};
     $mac_port_count{$port}++;
     $mac_address_table{$mac}=$port;
     }

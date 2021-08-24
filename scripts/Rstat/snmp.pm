@@ -23,6 +23,7 @@ get_arp_table
 get_fdb_table
 get_mac_table
 get_vlan_at_port
+get_switch_vlans
 get_interfaces
 get_router_state
 get_bgp
@@ -240,6 +241,25 @@ sub get_vlan_at_port {
     return "1" if ($vlan=~/noSuchObject/i);
     return "1" if ($vlan=~/noSuchInstance/i);
     return $vlan;
+}
+
+#-------------------------------------------------------------------------------------
+
+sub get_switch_vlans {
+    my ($host,$community,$version) = @_;
+    my $port = 161;
+    my $timeout = 5;
+    if (!$version) { $version='2'; }
+    my $result;
+    #need for callback
+    my $vlan_table = snmp_get_oid($host,$community,$port_vlan_oid,$version);
+    if (!$vlan_table) { $vlan_table=snmp_walk_oid($host,$community,$port_vlan_oid,$version); }
+    if ($vlan_table) {
+        foreach my $vlan_oid (keys %$vlan_table) {
+            if ($vlan_oid=~/\.([0-9]*)$/) { $result->{$1} = $vlan_table->{$vlan_oid}; }
+            }
+        }
+    return $result;
 }
 
 #-------------------------------------------------------------------------------------

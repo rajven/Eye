@@ -105,6 +105,7 @@ $vpn_networks
 $last_refresh_config
 $tftp_dir
 $tftp_server
+$cpu_count
 );
 
 BEGIN
@@ -213,6 +214,8 @@ our $sw_password=$Config->{_}->{sw_password} || 'admin';
 our $def_timeout = 90;
 our $parallel_process_count = 10;
 
+our $cpu_count = 1;
+
 ################## DB options ##################################
 
 our $save_detail;
@@ -270,6 +273,9 @@ our %switch_auth = (
 );
 
 mkdir $LOG_DIR unless (-d $LOG_DIR);
+
+my @cpu_list = `grep ^processor /proc/cpuinfo`;
+$cpu_count = scalar @cpu_list;
 
 1;
 }
