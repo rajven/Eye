@@ -23,15 +23,20 @@ $sort_url = "<a href=deleted.php?";
 
 global $default_user_id;
 
-$comment_filter='';
-if (!empty($f_comment)) { $comment_filter=" and (User_auth.comments LIKE '$f_comment' OR User_auth.dhcp_hostname LIKE '$f_comment')"; }
-
 if ($rsubnet == 0) { $subnet_filter = ''; } else {
     $subnet_range = get_subnet_range($db_link,$rsubnet);
     $subnet_filter = " and User_auth.ip_int>=".$subnet_range['start']." and User_auth.ip_int<=".$subnet_range['stop'];
     }
 
-$ip_list_filter = $subnet_filter.$comment_filter;
+$ip_list_filter = $subnet_filter;
+
+$ip_where = '';
+if (!empty($f_comment)) {
+    if (checkValidIp($f_comment)) { $ip_where = " and ip_int=inet_aton('" . $f_comment . "') "; }
+    if (checkValidMac($f_comment)) { $ip_where = " and mac='" . mac_dotted($f_comment) . "'  "; }
+    if (empty($ip_where)) { $ip_where=" and (User_auth.comments LIKE '$f_comment' OR User_auth.dhcp_hostname LIKE '$f_comment')"; }
+    $ip_list_filter = $ip_where;
+    } 
 
 print_ip_submenu($page_url);
 
@@ -42,7 +47,7 @@ print_ip_submenu($page_url);
 	<tr>
         <td>
         <b><?php print $list_subnet; ?> - </b><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?>
-        Поиск по комментарию: &nbsp <input type=text name=searchComment value="<?php print $f_comment; ?>">
+        Поиск по комментарию/ip/mac/dhcp hostname: &nbsp <input type=text name=searchComment value="<?php print $f_comment; ?>">
         Отображать:<?php print_row_at_pages('rows',$displayed); ?>
         <input type="submit" value="Показать">
         </td>
