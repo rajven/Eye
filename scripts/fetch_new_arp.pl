@@ -247,11 +247,7 @@ foreach my $port_data (@device_ports) {
     my $fdb_port_index=$port_data->{port};
 
     if (!$port_data->{snmp_index}) { $port_data->{snmp_index} = $port_data->{port}; }
-
-    if ($device->{fdb_snmp_index}) {
-        if (!$snmp_index) { next; }
-        $fdb_port_index=$snmp_index;
-        }
+    if ($device->{fdb_snmp_index}) { $fdb_port_index=$port_data->{snmp_index}; }
 
     my $current_vlan = $vlans->{$fdb_port_index};
     if (!$current_vlan) { $current_vlan=1; }
@@ -275,12 +271,12 @@ foreach my $mac (keys %$fdb) {
     #port from fdb table
     my $port = $fdb->{$mac};
     next if (!$port);
+    #real port number
     if ($device->{fdb_snmp_index}) {
         if (!exists $port_snmp_index{$port}) { next; }
         $port=$port_snmp_index{$port};
         }
     if (!exists $port_index{$port}) { next; }
-    #real port number
     $mac_port_count{$port}++;
     $mac_address_table{$mac}=$port;
     }
