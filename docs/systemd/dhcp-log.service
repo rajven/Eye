@@ -6,8 +6,9 @@ PartOf=dnsmasq.service
 [Service]
 Type=forking
 ExecStart=/usr/local/scripts/dhcp-log.pl --start
-Restart=always
 PIDFile=/var/run/dhcp-log.pid
+RestartSec=30
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

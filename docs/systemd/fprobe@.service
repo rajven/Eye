@@ -7,6 +7,8 @@ Type=forking
 EnvironmentFile=/etc/fprobe/%i.conf
 ExecStart=/bin/bash -axc ". /etc/fprobe/%i.conf; /sbin/fprobe ${OPTIONS}"
 CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW
+RestartSec=30
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

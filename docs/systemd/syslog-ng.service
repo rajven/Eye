@@ -4,12 +4,10 @@ Documentation=man:syslog-ng(8)
 
 [Service]
 Type=notify
-ExecStart=/usr/sbin/syslog-ng -F $SYSLOGNG_OPTS -p /var/run/syslogd-ng.pid
+ExecStart=/usr/sbin/syslog-ng -F -p /var/run/syslogd-ng.pid
 ExecReload=/bin/kill -HUP $MAINPID
-EnvironmentFile=-/etc/default/syslog-ng
-EnvironmentFile=-/etc/sysconfig/syslog-ng
-StandardOutput=journal
-StandardError=journal
+StandardOutput=null
+RestartSec=30
 Restart=on-failure
 
 [Install]
