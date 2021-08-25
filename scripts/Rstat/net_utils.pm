@@ -293,8 +293,10 @@ $ret ? return 1: return 0;
 
 sub HostIsLive {
 my $host=shift;
-my $p = Net::Ping->new("tcp",1,1);
-my $ok= $p->ping($host);
+my $proto=shift || "tcp";
+if ($< eq 0) { $proto="icmp"; }
+my $p = Net::Ping->new($proto);
+my $ok= $p->ping($host,5);
 $p->close();
 return $ok;
 }

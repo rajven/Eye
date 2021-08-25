@@ -44,7 +44,7 @@ $fdb_table_oid2
 $cisco_vlan_oid
 $port_vlan_oid
 $fdb_table;
-$timeout
+$snmp_timeout
 );
 
 
@@ -64,7 +64,7 @@ our $fdb_table_oid2='.1.3.6.1.2.1.17.7.1.2.2.1.2';
 our $port_vlan_oid ='.1.3.6.1.2.1.17.7.1.4.5.1.1';
 our $cisco_vlan_oid='.1.3.6.1.4.1.9.9.46.1.3.1.1.2';
 our $fdb_table;
-our $timeout = 5;
+our $snmp_timeout = 15;
 
 #---------------------------------------------------------------------------------
 
@@ -78,7 +78,8 @@ my ($session, $error) = Net::SNMP->session(
    -hostname  => $ip,
    -community => $community,
    -port      => $port,
-   -version   => $snmp_version
+   -version   => $snmp_version,
+   -timeout   => $snmp_timeout
 );
 my $result = $session->get_request( -varbindlist => [$oid]);
 $session->close;
@@ -100,7 +101,8 @@ my ($session, $error) = Net::SNMP->session(
    -hostname  => $ip,
    -community => $community,
    -port      => $port,
-   -version   => $snmp_version
+   -version   => $snmp_version,
+   -timeout   => $snmp_timeout
 );
 my $result = $session->set_request( -varbindlist => [$oid,INTEGER,$value]);
 $session->close;
@@ -117,7 +119,7 @@ sub get_arp_table {
     if (!$version) { $version='2'; }
 
     ### open SNMP session
-    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community , -version=>$version);
+    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community , -version=>$version, -timeout   => $snmp_timeout);
     return if (!defined($snmp_session));
     $snmp_session->translate([-all]);
 
@@ -268,9 +270,8 @@ sub get_interfaces {
     my ($host,$community,$snmp,$skip_empty) = @_;
 #    return if (!HostIsLive($host));
     my $port = 161;
-    my $timeout = 5;
     ### open SNMP session
-    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community );
+    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community, -version => $snmp, -timeout => $snmp_timeout );
     return if (!defined($snmp_session));
     $snmp_session->translate([-timeticks]);
     my $if_name = $snmp_session->get_table($ifName);
@@ -307,9 +308,8 @@ sub get_router_state {
     my ($host,$community,$snmp,$skip_empty) = @_;
 #    return if (!HostIsLive($host));
     my $port = 161;
-    my $timeout = 5;
     ### open SNMP session
-    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community );
+    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community, -version => $snmp, -timeout => $snmp_timeout );
     return if (!defined($snmp_session));
     $snmp_session->translate([-timeticks]);
     my $router_status = $snmp_session->get_table("1.3.6.1.4.1.10.1");
@@ -322,9 +322,8 @@ sub get_bgp {
     my ($host,$community,$snmp) = @_;
     return if (!HostIsLive($host));
     my $port = 161;
-    my $timeout = 5;
     ### open SNMP session
-    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community );
+    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community, -version => $snmp, -timeout => $snmp_timeout );
     return if (!defined($snmp_session));
     $snmp_session->translate([-timeticks]);
     #bgp annonce counter exists?
@@ -349,7 +348,7 @@ my ($host,$community,$oid,$version) = @_;
 #return if (!HostIsLive($host));
 if (!$version) { $version='2'; }
 ### open SNMP session
-my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community , -version=>$version , -timeout     => $timeout, );
+my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community , -version=>$version, -timeout => $snmp_timeout );
 return if (!defined($snmp_session));
 $snmp_session->translate([-timeticks]);
 my $result = $snmp_session->get_request(-varbindlist => [$oid]) or return;
@@ -364,7 +363,7 @@ my ($host,$community,$oid,$version) = @_;
 #return if (!HostIsLive($host));
 if (!$version) { $version='2'; }
 ### open SNMP session
-my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community , -version=>$version , -timeout     => $timeout, );
+my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community , -version=>$version , -timeout     => $snmp_timeout, );
 return if (!defined($snmp_session));
 $snmp_session->translate([-timeticks]);
 my $table = $snmp_session->get_table($oid);
@@ -389,7 +388,7 @@ my ($session, $error) = Net::SNMP->session(
       -nonblocking => 1,
       -translate   => [-octetstring => 0],
       -version     => $version,
-      -timeout     => $timeout,
+      -timeout     => $snmp_timeout,
    );
 
 if (!defined $session) {

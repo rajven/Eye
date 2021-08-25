@@ -71,8 +71,9 @@ my $pm_arp = Parallel::ForkManager->new($fork_count);
 $pm_arp -> run_on_finish (
 sub {
     my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_structure_reference) = @_;
-    if (defined($data_structure_reference)) {  # children are not forced to send anything
-        my $result = ${$data_structure_reference};  # child passed a string reference
+    if (defined($data_structure_reference)) {
+        # children are not forced to send anything
+        my $result = ${$data_structure_reference};
         push(@arp_array,$result);
         }
     }
@@ -83,6 +84,7 @@ foreach my $router (@router_ref) {
 my $router_ip=$router->{ip};
 my $snmp_version=$router->{snmp_version};
 my $community=$router->{community};
+if (!HostIsLive($router_ip)) { log_info("Host id: $router->{id} name: $router->{device_name} ip: $router_ip is down! Skip."); next; }
 $pm_arp->start() and next DATA_LOOP;
 my $arp_table=get_arp_table($router_ip,$community,$snmp_version);
 $pm_arp->finish(0, \$arp_table);
@@ -199,6 +201,7 @@ sub {
 
 FDB_LOOP:
 foreach my $device (@device_list) {
+if (!HostIsLive($device->{ip})) { log_info("Host id: $device->{id} name: $device->{device_name} ip: $device->{ip} is down! Skip."); next; }
 $pm_fdb->start() and next FDB_LOOP;
 my $fdb=get_fdb_table($device->{ip},$device->{community},$device->{snmp_version});
 my $vlans = get_switch_vlans($device->{ip},$device->{community},$device->{snmp_version});
