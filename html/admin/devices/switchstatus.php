@@ -98,7 +98,7 @@ if ($switch['snmp_version']>0) {
         print "<tr align=center>\n";
         $cl = "up";
         if (isset($switch['ip']) and ($switch['ip'] != '') and $snmp_ok) {
-            $port_state_detail = get_port_state_detail($d_snmp, $switch['ip'], $switch['community'], $switch['snmp_version']);
+            $port_state_detail = get_port_state_detail($d_snmp, $switch['ip'], $switch['community'], $switch['snmp_version'], $switch['fdb_snmp_index']);
             list ($poper, $padmin, $pspeed, $perrors) = explode(';', $port_state_detail);
             if (preg_match('/up/i', $poper)) {
                 $cl = "up";
@@ -127,7 +127,11 @@ if ($switch['snmp_version']>0) {
         print "</td>\n";
         print "<td class=\"$cl\">" . $d_comment . "</td>\n";
         if ($snmp_ok) {
-            $vlan = get_port_vlan($d_snmp, $switch['ip'], $switch['community'], $switch['snmp_version']);
+            if ($switch['fdb_snmp_index']) {
+                $vlan = get_port_vlan($d_snmp, $switch['ip'], $switch['community'], $switch['snmp_version'], $switch['fdb_snmp_index']);
+            } else {
+                $vlan = get_port_vlan($d_port, $switch['ip'], $switch['community'], $switch['snmp_version'], $switch['fdb_snmp_index']);
+            }
             $ifname = get_snmp_ifname($switch['ip'], $switch['community'], $switch['snmp_version'], $d_snmp);
             $sfp_status = get_sfp_status($switch['vendor_id'], $d_snmp, $switch['ip'], $switch['community'], $switch['snmp_version'], $modules_oids);
             $poe_status = get_port_poe_state($switch['vendor_id'], $d_snmp, $switch['ip'], $switch['community'], $switch['snmp_version']);
