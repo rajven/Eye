@@ -224,8 +224,6 @@ $fdb_ref{$fdb_table->{id}}{vlans}=$fdb_table->{vlans};
 
 $dbh=init_db();
 
-die;
-
 foreach my $device (@device_list) {
 my %port_snmp_index=();
 my %port_index=();
