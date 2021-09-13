@@ -67,13 +67,13 @@ foreach my $row (@ret) {
     if ($row) {
         my @tmp=split("\n",$row);
         foreach  my $line (@tmp) {
-		next if (!$line);
-		$line=trim($line);
-		next if (!$line);
-		push(@a,$line);
-		log_session('Get:'.$line);
-		}
-	}
+                next if (!$line);
+                $line=trim($line);
+                next if (!$line);
+                push(@a,$line);
+                log_session('Get:'.$line);
+                }
+        }
 }
 
 select(undef, undef, undef, 0.15) if ($sleep);
@@ -115,17 +115,17 @@ foreach my $out (split("\n",$command)){
         #sleep 250 ms
         select(undef, undef, undef, 0.25) if ($sleep);
         foreach my $str ($t->waitfor($t->prompt)) {
-	    $str=trim($str);
-	    if ($str) {
-	            my @tmp=split("\n",$str);
-		    foreach  my $line (@tmp) {
-			next if (!$line);
-			$line=trim($line);
-			next if (!$line);
-			push(@a,$line);
-			log_session('Get:'.$line);
-			}
-		    }
+            $str=trim($str);
+            if ($str) {
+                    my @tmp=split("\n",$str);
+                    foreach  my $line (@tmp) {
+                        next if (!$line);
+                        $line=trim($line);
+                        next if (!$line);
+                        push(@a,$line);
+                        log_session('Get:'.$line);
+                        }
+                    }
             }
     }
 chomp(@a);
@@ -204,7 +204,7 @@ log_session('Get:'.Dumper(\@result));
 return @result;
 }
 
-#--------------------------------------------------------------------------------- 
+#---------------------------------------------------------------------------------
 
 sub flush_telnet {
 my $t = shift;
@@ -263,7 +263,9 @@ if ($device->{device_type} eq '2') {
     $device->{password}=$config_ref{router_password};
     }
 #switch
-if ($device->{device_type} eq '1') {
+if ($device->{device_type} eq '1' or $device->{vendor_id} eq '3') {
+    #mikrotik
+    if ($device->{vendor_id} eq '9') { $device->{port}=$config_ref{router_port}; }
     $device->{login}=$sw_login;
     $device->{password}=$sw_password;
     }
@@ -379,20 +381,20 @@ if ($switch_auth{$device->{vendor_id}}{proto} eq 'ssh') {
             $t->send("no logging console");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
             }
-        if ($device->{vendor_id} eq '5') { 
-            $t->send("terminal page-break disable"); 
+        if ($device->{vendor_id} eq '5') {
+            $t->send("terminal page-break disable");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
             }
-        if ($device->{vendor_id} eq '6') { 
-            $t->send("terminal length 0"); 
+        if ($device->{vendor_id} eq '6') {
+            $t->send("terminal length 0");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
             }
-        if ($device->{vendor_id} eq '9') { 
-            $t->send("/system note set show-at-login=no"); 
+        if ($device->{vendor_id} eq '9') {
+            $t->send("/system note set show-at-login=no");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
             }
-        if ($device->{vendor_id} eq '16') { 
-            $t->send("terminal width 0"); 
+        if ($device->{vendor_id} eq '16') {
+            $t->send("terminal width 0");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
             }
         if ($device->{vendor_id} eq '17') {
@@ -493,7 +495,9 @@ if ($device->{vendor_id} eq '2') {
 if ($device->{vendor_id} eq '3') {
     eval {
         my $session = netdev_login($device);
-        my $cmd = "tftp $tftp_ip put vrpcfg.zip $device->{device_name}.zip";
+        my $cmd = "quit";
+        netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,3);
+        $cmd = "tftp $tftp_ip put vrpcfg.zip $device->{device_name}.zip";
         netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,3);
         };
     }
