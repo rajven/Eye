@@ -140,7 +140,7 @@ if ($device['device_type']==2) {
 ?>
 </tr>
 <td>Snmp Version</td>
-<td>Mac by snmp</td>
+<td><p title="Некоторые устройства отдают mac-таблицу по индексу порта в snmp, другие - по номеру.">Mac by snmp</p></td>
 <td>Discovery</td>
 <td>Nagios</td>
 <td>

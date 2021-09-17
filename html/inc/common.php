@@ -2140,7 +2140,7 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
     return;
 }
 
-function get_port_vlan($port, $ip, $community, $version)
+function get_port_vlan($port, $port_index, $ip, $community, $version, $fdb_by_snmp)
 {
     if (! isset($port)) {
         return;
@@ -2156,11 +2156,13 @@ function get_port_vlan($port, $ip, $community, $version)
     }
     // if (!is_up($ip)) { return; }
 
+    if ($fdb_by_snmp) { $port = $port_index; }
+
     global $port_vlan_oid;
     $port_oid = $port_vlan_oid . $port;
     $port_vlan = get_snmp($ip, $community, $version, $port_oid);
-    $port_vlan = intval(trim(str_replace('Gauge32:', '', $port_vlan)));
-
+    $port_vlan = preg_replace('/.*\:/','',$port_vlan);
+    $port_vlan = intval(trim($port_vlan));
     return $port_vlan;
 }
 

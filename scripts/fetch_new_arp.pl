@@ -131,6 +131,7 @@ foreach my $arp_table (@arp_array) {
     }
 }
 
+
 db_log_verbose($dbh,'Arp discovery stopped.');
 }
 
@@ -201,7 +202,8 @@ sub {
 
 FDB_LOOP:
 foreach my $device (@device_list) {
-if (!HostIsLive($device->{ip})) { log_info("Host id: $device->{id} name: $device->{device_name} ip: $device->{ip} is down! Skip."); next; }
+my $int_list = get_snmp_ifindex($device->{ip},$device->{community},$device->{snmp_version});
+if (!$int_list) { log_info("Host id: $device->{id} name: $device->{device_name} ip: $device->{ip} is down! Skip."); next; }
 $pm_fdb->start() and next FDB_LOOP;
 my $fdb=get_fdb_table($device->{ip},$device->{community},$device->{snmp_version});
 my $vlans = get_switch_vlans($device->{ip},$device->{community},$device->{snmp_version});
@@ -240,32 +242,39 @@ next if (!$fdb);
 
 my @device_ports = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id=$dev_id");
 
+
 foreach my $port_data (@device_ports) {
     my $vlan = $port_data->{vlan};
     if (!$vlan) { $vlan=1; }
-
     my $fdb_port_index=$port_data->{port};
-
+    my $port_id = $port_data->{id};
     if (!$port_data->{snmp_index}) { $port_data->{snmp_index} = $port_data->{port}; }
     if ($device->{fdb_snmp_index}) { $fdb_port_index=$port_data->{snmp_index}; }
-
     my $current_vlan = $vlans->{$fdb_port_index};
     if (!$current_vlan) { $current_vlan=1; }
-
     if ($current_vlan != $vlan) {
 	my $dev_ports;
 	$dev_ports->{vlan}=$current_vlan;
-	update_record($dbh,'device_ports',$dev_ports,"device_id=$dev_id and port=$port_data->{port}");
-        db_log_verbose($dbh,"Vlan changed at device $dev_name [$port_data->{port}] old: $vlan current: $current_vlan");
+	update_record($dbh,'device_ports',$dev_ports,"id=$port_id");
+        db_log_verbose($dbh,"Vlan changed at device $dev_name [$port_data->{port}] id: $port_id old: $vlan current: $current_vlan");
         }
-
     next if ($port_data->{skip});
-
+    #snmp-индекс порта = номеру порта
     $port_snmp_index{$port_data->{snmp_index}}=$port_data->{port};
+    # номер порта = id записи порта в таблице
     $port_index{$port_data->{port}}=$port_data->{id};
+    # номер порта = id записи порта аплинка/даунлинка свича
     $port_links{$port_data->{port}}=$port_data->{target_port_id};
     $mac_port_count{$port_data->{port}}=0;
     }
+
+my $sw_mac;
+if ($device->{vendor_id} eq '9') {
+        #get device mac
+        my $sw_auth = get_record_sql($dbh,"SELECT mac FROM User_auth WHERE deleted=0 and ip='".$device->{ip}."'");
+        $sw_mac = mac_simplify($sw_auth->{mac});
+        $sw_mac =~s/.{2}$//s;
+        }
 
 foreach my $mac (keys %$fdb) {
     #port from fdb table
@@ -273,14 +282,19 @@ foreach my $mac (keys %$fdb) {
     next if (!$port);
     #real port number
     if ($device->{fdb_snmp_index}) {
+        #если mac-таблица привязана к snmp-индексам портов, номер порта ставим в snmp-индекс порта
         if (!exists $port_snmp_index{$port}) { next; }
         $port=$port_snmp_index{$port};
         }
     if (!exists $port_index{$port}) { next; }
+    #mikrotik patch - skip mikrotik device mac
+    if ($sw_mac and $mac=~/^$sw_mac/i) { next; }
     $mac_port_count{$port}++;
+    #мак = номер порта
     $mac_address_table{$mac}=$port;
     }
 
+# обновляем число маков на порту
 foreach my $port (keys %mac_port_count) {
 if (!$port) { next; }
 if (!exists $port_index{$port}) { next; }
@@ -299,24 +313,26 @@ foreach my $mac (keys %mac_address_table) {
     if ($port_links{$port}>0) { next; }
 
     my $simple_mac=mac_simplify($mac);
+    my $mac_splitted=mac_splitted($mac);
+
     $mac_history{$simple_mac}{port_id}=$port_index{$port};
     $mac_history{$simple_mac}{dev_id}=$dev_id;
     if (!$mac_history{$simple_mac}{changed}) { $mac_history{$simple_mac}{changed}=0; }
 
     my $port_id=$port_index{$port};
 
-    if (exists $auth_table{full_table}{$mac} or exists $auth_table{oper_table}{$mac}) {
+    if (exists $auth_table{full_table}{$simple_mac} or exists $auth_table{oper_table}{$simple_mac}) {
                 my $auth_id;
-                if (exists $auth_table{oper_table}{$mac}) { $auth_id=$auth_table{oper_table}{$mac}; } else {
-                    $auth_id=$auth_table{full_table}{$mac};
+                if (exists $auth_table{oper_table}{$simple_mac}) { $auth_id=$auth_table{oper_table}{$simple_mac}; } else {
+                    $auth_id=$auth_table{full_table}{$simple_mac};
                     if ($debug) {
-                        db_log_debug($dbh,"Mac not found in oper ARP-table. Use old values auth_id: $auth_id [$mac] at device $dev_name [$port]");
+                        db_log_debug($dbh,"Mac not found in oper ARP-table. Use old values auth_id: $auth_id [$simple_mac] at device $dev_name [$port]");
                         }
                     }
 
                 if (exists $connections{$auth_id}) {
                     if ($port_id == $connections{$auth_id}{port}) {
-                        if (exists $auth_table{oper_table}{$mac}) {
+                        if (exists $auth_table{oper_table}{$simple_mac}) {
                     	    my $auth_rec;
                     	    $auth_rec->{last_found}=$now_str;
 	                    update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
@@ -327,7 +343,7 @@ foreach my $mac (keys %mac_address_table) {
                     $connections{$auth_id}{port}=$port_id;
                     $mac_history{$simple_mac}{changed}=1;
                     $mac_history{$simple_mac}{auth_id}=$auth_id;
-                    db_log_info($dbh,"Found auth_id: $auth_id [$mac] at device $dev_name [$port]. Update connection");
+                    db_log_info($dbh,"Found auth_id: $auth_id [$mac_splitted] at device $dev_name [$port]. Update connection");
                     my $auth_rec;
                     $auth_rec->{last_found}=$now_str;
                     update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
@@ -339,7 +355,7 @@ foreach my $mac (keys %mac_address_table) {
                     $mac_history{$simple_mac}{changed}=1;
                     $mac_history{$simple_mac}{auth_id}=$auth_id;
                     $connections{$auth_id}{port}=$port_id;
-                    db_log_info($dbh,"Found auth_id: $auth_id [$mac] at device $dev_name [$port]. Create connection.");
+                    db_log_info($dbh,"Found auth_id: $auth_id [$mac_splitted] at device $dev_name [$port]. Create connection.");
                     my $auth_rec;
                     $auth_rec->{last_found}=$now_str;
                     update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
@@ -354,17 +370,15 @@ foreach my $mac (keys %mac_address_table) {
                         next if ($unknown_table{$simple_mac}{port_id} == $port_id and $unknown_table{$simple_mac}{device_id} == $dev_id);
                         $mac_history{$simple_mac}{changed}=1;
                         $mac_history{$simple_mac}{auth_id}=0;
-                        $mac=mac_splitted($mac);
-                        db_log_debug($dbh,"Unknown mac $mac moved to $dev_name [$port]") if ($debug);
+                        db_log_debug($dbh,"Unknown mac $mac_splitted moved to $dev_name [$port]") if ($debug);
                         my $unknown_rec;
                         $unknown_rec->{port_id}=$port_id;
                         $unknown_rec->{device_id}=$dev_id;
                         update_record($dbh,'Unknown_mac',$unknown_rec,"id=$unknown_table{$simple_mac}{unknown_id}");
                         } else {
-                        $mac=mac_splitted($mac);
                         $mac_history{$simple_mac}{changed}=1;
                         $mac_history{$simple_mac}{auth_id}=0;
-                        db_log_debug($dbh,"Unknown mac $mac found at $dev_name [$port]") if ($debug);
+                        db_log_debug($dbh,"Unknown mac $mac_splitted found at $dev_name [$port]") if ($debug);
                         my $unknown_rec;
                         $unknown_rec->{port_id}=$port_id;
                         $unknown_rec->{device_id}=$dev_id;

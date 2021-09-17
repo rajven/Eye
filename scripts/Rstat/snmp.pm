@@ -24,6 +24,7 @@ get_fdb_table
 get_mac_table
 get_vlan_at_port
 get_switch_vlans
+get_snmp_ifindex
 get_interfaces
 get_router_state
 get_bgp
@@ -261,6 +262,23 @@ sub get_switch_vlans {
             if ($vlan_oid=~/\.([0-9]*)$/) { $result->{$1} = $vlan_table->{$vlan_oid}; }
             }
         }
+    return $result;
+}
+
+#-------------------------------------------------------------------------------------
+
+sub get_snmp_ifindex {
+    my ($host,$community,$snmp) = @_;
+    ### open SNMP session
+    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community, -version => $snmp, -timeout => 5);
+    return if (!defined($snmp_session));
+    my $if_index = $snmp_session->get_table($ifIndex);
+    my $result;
+    foreach my $row (keys(%$if_index)) {
+        my $value = $if_index->{$row};
+        $row=~s/^$ifIndex\.//;
+        $result->{$row}=$value;
+        };
     return $result;
 }
 
