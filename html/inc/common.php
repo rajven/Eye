@@ -943,11 +943,12 @@ function print_device_port_select($db, $field_name, $device_id, $target_id)
     if (! isset($device_id)) {
         $device_id = 0;
     }
-    $d_sql = "SELECT D.device_name, DP.port, DP.device_id, DP.id FROM devices AS D, device_ports AS DP WHERE D.deleted=0 and D.id = DP.device_id AND (DP.device_id<>$device_id or DP.id=$target_id) and (DP.id not in (select target_port_id FROM device_ports WHERE target_port_id>0 and target_port_id<>$target_id)) order by D.device_name,DP.port";
+    $d_sql = "SELECT D.device_name, DP.port, DP.device_id, DP.id, DP.ifName FROM devices AS D, device_ports AS DP WHERE D.deleted=0 and D.id = DP.device_id AND (DP.device_id<>$device_id or DP.id=$target_id) and (DP.id not in (select target_port_id FROM device_ports WHERE target_port_id>0 and target_port_id<>$target_id)) order by D.device_name,DP.port";
     $t_device = mysqli_query($db, $d_sql);
     print_select_item('Empty',0,$target_id);
-    while (list ($f_name, $f_port, $f_device_id, $f_target_id) = mysqli_fetch_array($t_device)) {
-	print_select_item($f_name."[" . $f_port . "]",$f_target_id,$target_id);
+    while (list ($f_name, $f_port, $f_device_id, $f_target_id, $f_ifname) = mysqli_fetch_array($t_device)) {
+        if (empty($f_ifname)) { $f_ifname=$f_port; }
+	print_select_item($f_name."[" . $f_ifname . "]",$f_target_id,$target_id);
     }
     print "</select>\n";
 }
