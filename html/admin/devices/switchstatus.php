@@ -89,7 +89,6 @@ if ($switch['snmp_version']>0) {
     print "<td>id</td>\n";
     print "<td>N</td>\n";
     print "<td>Порт</td>\n";
-    print "<td>Mac count</td>\n";
     print "<td>snmp</td>\n";
     print "<td>Юзер|Device</td>\n";
     print "<td>Комментарий</td>\n";
@@ -100,6 +99,7 @@ if ($switch['snmp_version']>0) {
     print "<td>IfName</td>\n";
     print "<td>Speed</td>\n";
     print "<td>Errors</td>\n";
+    print "<td>Mac count</td>\n";
     print "<td>Additional</td>\n";
     print "<td>POE Control</td>\n";
     print "<td>Port Control</td>\n";
@@ -131,7 +131,6 @@ if ($switch['snmp_version']>0) {
 	print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=d_port_index[] value=".$row['snmp_index']." ></td>\n";
         print "<td class=\"$cl\"><a href=\"editport.php?id=".$row['id']."\">" . $row['port'] . "</a></td>\n";
         print "<td class=\"$cl\" >" . $row['port_name'] . "</td>\n";
-        print "<td class=\"$cl\" ><button name=\"write\" class=\"j-submit-report\" onclick=\"window.open('portmactable.php?id=" . $row['id'] . "')\">" . $row['last_mac_count'] . "</button></td>\n";
         print "<td class=\"$cl\" >" . $row['snmp_index'] . "</td>\n";
         print "<td class=\"$cl\">";
         if (isset($row['target_port_id']) and $row['target_port_id'] > 0) {
@@ -207,6 +206,7 @@ if ($switch['snmp_version']>0) {
         $cl_error = $cl;
         if ($perrors > 0) { $cl_error = "crc"; }
         print "<td class=\"$cl_error\">" . $perrors . "</td>\n";
+        print "<td class=\"$cl\" ><button name=\"write\" class=\"j-submit-report\" onclick=\"window.open('portmactable.php?id=" . $row['id'] . "')\">" . $row['last_mac_count'] . "</button></td>\n";
         print "<td class=\"$cl\">" . $sfp_status. " ". $poe_info."</td>\n";
         if (isset($poe_status) and ! $row['skip'] and ! $switch['is_router']) {
                 print "<td class=\"data\">";
@@ -241,8 +241,7 @@ if ($switch['snmp_version']>0) {
         print "</tr>";
     }
     print "<tr>\n";
-    print "<td colspan=6>snmp start</td>\n";
-    print "<td class=\"data\"><input type=\"text\" name='f_snmp_start' value=1></td>\n";
+    print "<td colspan=10>snmp start &nbsp<input type=\"text\" name='f_snmp_start' value=1></td>\n";
     print "<td><input type=\"submit\" name=\"regensnmp\" value=\"Обновить snmp\"></td>\n";
     print "</tr>\n";
     print "</table>\n";

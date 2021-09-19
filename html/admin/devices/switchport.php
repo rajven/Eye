@@ -71,8 +71,7 @@ print_editdevice_submenu($page_url,$id);
 <td>id</td>
 <td>N</td>
 <td>Порт</td>
-<td>Mac count</td>
-<td>snmp</td>
+<td>snmp index</td>
 <td>Юзер|Device</td>
 <td>Комментарий</td>
 <td>Uplink</td>
@@ -80,6 +79,7 @@ print_editdevice_submenu($page_url,$id);
 <td>Skip</td>
 <td>Vlan</td>
 <td>ifName</td>
+<td>Mac count</td>
 </tr>
 <?php
 $sSQL = "SELECT * FROM device_ports WHERE device_ports.device_id=$id ORDER BY port";
@@ -89,9 +89,8 @@ foreach ($ports as $row) {
         $cl = "data";
         print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
         print "<td class=\"data\"><input type=\"hidden\" name='p_id[]' value='{$row['id']}'><a href=\"editport.php?id=".$row['id']."\">{$row['id']}</a></td>\n";
-        print "<td class=\"$cl\">".$row['port']."</td>\n";
+        print "<td class=\"$cl\" >".$row['port']."</td>\n";
         print "<td class=\"$cl\" ><input type=\"text\" name='f_name[]' value='{$row['port_name']}' size=5></td>\n";
-        print "<td class=\"$cl\" ><button name=\"write\" class=\"j-submit-report\" onclick=\"window.open('portmactable.php?id=" . $row['id'] . "')\">" . $row['last_mac_count'] . "</button></td>\n";
         print "<td class=\"$cl\" ><input type=\"text\" name='f_snmp_index[]' value='{$row['snmp_index']}' size=10></td>\n";
         print "<td class=\"$cl\">";
         if (isset($row['target_port_id']) and $row['target_port_id'] > 0) {
@@ -125,6 +124,7 @@ foreach ($ports as $row) {
                 }
         print "<td class=\"$cl\">" . $vlan . "</td>\n";
         print "<td class=\"$cl\">" . $snmp_url . "</td>\n";
+        print "<td class=\"$cl\" ><button name=\"write\" class=\"j-submit-report\" onclick=\"window.open('portmactable.php?id=" . $row['id'] . "')\">" . $row['last_mac_count'] . "</button></td>\n";
 print "</tr>";
 }
 print "<tr>\n";
