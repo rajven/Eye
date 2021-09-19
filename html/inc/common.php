@@ -934,6 +934,14 @@ function print_auth_select_mac($db, $login_name, $current_auth)
     print "</select>\n";
 }
 
+function compact_port_name($port)
+{
+$result = preg_replace('/^GigabitEthernet/','Gi',$port);
+$result = preg_replace('/^XGigabitEthernet/','X',$port);
+$result = preg_replace('/^TenGigabitEthernet/','Te',$port);
+return $result;
+}
+
 function print_device_port_select($db, $field_name, $device_id, $target_id)
 {
     print "<select name=\"$field_name\" class=\"js-select-single\">\n";
@@ -948,7 +956,7 @@ function print_device_port_select($db, $field_name, $device_id, $target_id)
     print_select_item('Empty',0,$target_id);
     while (list ($f_name, $f_port, $f_device_id, $f_target_id, $f_ifname) = mysqli_fetch_array($t_device)) {
         if (empty($f_ifname)) { $f_ifname=$f_port; }
-	print_select_item($f_name."[" . $f_ifname . "]",$f_target_id,$target_id);
+	print_select_item($f_name."[" . compact_port_name($f_ifname) . "]",$f_target_id,$target_id);
     }
     print "</select>\n";
 }
