@@ -937,8 +937,8 @@ function print_auth_select_mac($db, $login_name, $current_auth)
 function compact_port_name($port)
 {
 $result = preg_replace('/^GigabitEthernet/','Gi',$port);
-$result = preg_replace('/^XGigabitEthernet/','X',$port);
-$result = preg_replace('/^TenGigabitEthernet/','Te',$port);
+$result = preg_replace('/^XGigabitEthernet/','X',$result);
+$result = preg_replace('/^TenGigabitEthernet/','Te',$result);
 return $result;
 }
 
