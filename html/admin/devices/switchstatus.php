@@ -171,19 +171,16 @@ if ($switch['snmp_version']>0) {
                 update_record($db_link, "device_ports", "id=".$row['id'], $new_port_info); 
                 }
             }
-
+        $ifname=compact_port_name($ifname);
         global $torrus_url;
         $f_cacti_url = get_cacti_graph($switch['ip'], $row['snmp_index']);
         if (! isset($torrus_url) and (! isset($f_cacti_url))) {  $snmp_url=$ifname; } 
                 else {
                 if (isset($f_cacti_url)) { $snmp_url = "<a href=\"$f_cacti_url\">" . $ifname . "</a>"; }
                 if (isset($torrus_url)) {
-                    $normed_ifname = trim(str_replace("/", "_", $ifname));
-                    $normed_ifname = trim(str_replace(".", "_", $normed_ifname));
+                    $normed_ifname = str_replace("/", "_", $ifname);
+                    $normed_ifname = str_replace(".", "_", $normed_ifname);
                     $normed_ifname = trim(str_replace(" ", "_", $normed_ifname));
-                    $pattern = '/cisco/i';
-                    preg_match($pattern, $switch['device_model'], $matches);
-                    if (isset($matches[0])) { $normed_ifname = trim(str_replace("Gi", "GigabitEthernet", $normed_ifname)); }
                     $t_url = str_replace("HOST_IP", $switch['ip'], $torrus_url);
                     $t_url = str_replace("IF_NAME", $normed_ifname, $t_url);
                     $snmp_url = "<a href=\"$t_url\">" . $ifname . "</a>";
