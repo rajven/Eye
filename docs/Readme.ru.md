@@ -13,7 +13,7 @@ dnf install httpd php php-common perl mariadb-server git fping net-snmp-utils \
 php-mysqlnd php-bcmath php-intl php-mbstring php-pear-Date php-pear-Mail php-snmp perl-Net-Patricia \
 perl-NetAddr-IP perl-Config-Tiny perl-Net-DNS perl-DateTime perl-Proc-Daemon perl-Net-Netmask \
 perl-Text-Iconv perl-DateTime-Format-DateParse perl-Net-SNMP perl-Net-Telnet perl-Net-IPv4Addr \
-perl-DBI -y
+perl-DBI perl-Parallel-ForkManager -y
 
 3. Качаем исходники и раскидываем по каталогам:
 
@@ -32,7 +32,7 @@ example: wget https://code.jquery.com/jquery-3.6.0.min.js
 rename jquery-3.6.0.min.js to jquery.min.js
 
 download from https://github.com/select2/select2 release
-example: https://github.com/select2/select2/archive/4.0.12.tar.gz
+example: wget https://github.com/select2/select2/archive/4.0.12.tar.gz
 extract contents from directory dist archive to /var/www/html/js/select2/
 
 5. Настраиваем mysql 

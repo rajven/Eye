@@ -1,10 +1,12 @@
 [Unit]
 Description=Write dhcp events to Rstat
-After=syslog.target mariadb.service dnsmasq.service dhcpd.service
-PartOf=dnsmasq.service
+After=network.target mariadb.service
+Before=dnsmasq.service dhcpd.service
 
 [Service]
 Type=forking
+ExecStartPre=/bin/mkfifo /var/spool/dhcp-log.socket
+ExecStopPost=/bin/rm -f /var/spool/dhcp-log.socket
 ExecStart=/usr/local/scripts/dhcp-log.pl --start
 PIDFile=/var/run/dhcp-log.pid
 RestartSec=30

@@ -1,6 +1,7 @@
 [Unit]
 Description=Write syslog to Rstat
-After=mariadb.service syslog-ng.service
+After=network.target mariadb.service syslog-ng.service
+PartOf=syslog-ng.service
 
 [Service]
 Type=forking

@@ -1,6 +1,6 @@
 [Unit]
 Description=Urgent sync access lists at mikrotik
-After=mariadb.service syslog-ng.service
+After=network.target mariadb.service
 
 [Service]
 Type=forking
