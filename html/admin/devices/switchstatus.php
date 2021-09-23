@@ -109,11 +109,9 @@ if ($switch['snmp_version']>0) {
     foreach ($ports as $row) {
         print "<tr align=center>\n";
         $cl = "down";
-        if (!isset($row['port_name']) or empty($row['port_name'])) { 
-            $new_port_info['port_name']=$row['port'];
-            $row['port_name']=$row['port'];
-            update_record($db_link, "device_ports", "id=".$row['id'], $new_port_info);
-            }
+        $new_info = NULL;
+        //fix empty port names
+        if (!isset($row['port_name'])) { $row['port_name']=$row['port']; $new_info['port_name']=$row['port']; }
         if (isset($switch['ip']) and ($switch['ip'] != '') and $snmp_ok) {
             $port_state_detail = get_port_state_detail($row['snmp_index'], $switch['ip'], $switch['community'], $switch['snmp_version'], $switch['fdb_snmp_index']);
             list ($poper, $padmin, $pspeed, $perrors) = explode(';', $port_state_detail);
@@ -155,16 +153,14 @@ if ($switch['snmp_version']>0) {
                 if ($poe_status == 2) { $poe_info="POE:Off"; }
                 }
             if (!isset($vlan)) { $vlan = $row['vlan']; } else {
-                if ($row['vlan']!==$vlan) {
-                    $new_port_info['vlan']=$vlan;
-                    update_record($db_link, "device_ports", "id=".$row['id'], $new_port_info);
-                    }
+                if ($row['vlan']!==$vlan) { $new_info['vlan']=$vlan; }
                 }
-            if (empty($row['ifName']) or $row['ifName']!==$ifname) {
-                $new_port_info['ifName']=$ifname; 
-                update_record($db_link, "device_ports", "id=".$row['id'], $new_port_info); 
-                }
+            if (!isset($row['ifName']) or $row['ifName'] !== $ifname) { $new_info['ifName']=$ifname; }
             }
+
+        //fix port information
+        if (!empty($new_info)) { update_record($db_link, "device_ports", "id=".$row['id'], $new_info); }
+
         $ifname=compact_port_name($ifname);
         global $torrus_url;
         $f_cacti_url = get_cacti_graph($switch['ip'], $row['snmp_index']);
