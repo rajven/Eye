@@ -1481,7 +1481,7 @@ function get_auth_by_mac($db, $mac)
 {
     if (! isset($mac)) { return; }
     $mac = mac_dotted($mac);
-    $t_login = mysqli_query($db, "SELECT U.id,U.login,A.id,A.ip FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.mac='" . $mac . "' order by A.last_found DESC limit 1");
+    $t_login = mysqli_query($db, "SELECT U.id,U.login,A.id,A.ip FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.mac='" . $mac . "' and A.deleted=0 ORDER BY A.last_found DESC limit 1");
     list ($f_id, $f_login, $f_auth_id, $f_ip) = mysqli_fetch_array($t_login);
     if (isset($f_id)) {
         $result['auth'] = '<a href=/admin/users/edituser.php?id=' . $f_id . '>' . $f_login . '</a> / ip: <a href=/admin/users/editauth.php?id=' . $f_auth_id . '>' . $f_ip . '</a>';
