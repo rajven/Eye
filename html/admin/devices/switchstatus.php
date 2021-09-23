@@ -108,7 +108,7 @@ if ($switch['snmp_version']>0) {
     $ports=get_records_sql($db_link,$sSQL);
     foreach ($ports as $row) {
         print "<tr align=center>\n";
-        $cl = "up";
+        $cl = "down";
         if (!isset($row['port_name']) or empty($row['port_name'])) { 
             $new_port_info['port_name']=$row['port'];
             $row['port_name']=$row['port'];
@@ -117,17 +117,11 @@ if ($switch['snmp_version']>0) {
         if (isset($switch['ip']) and ($switch['ip'] != '') and $snmp_ok) {
             $port_state_detail = get_port_state_detail($row['snmp_index'], $switch['ip'], $switch['community'], $switch['snmp_version'], $switch['fdb_snmp_index']);
             list ($poper, $padmin, $pspeed, $perrors) = explode(';', $port_state_detail);
-            if (preg_match('/up/i', $poper)) {
-                $cl = "up";
-            }
+            if (preg_match('/up/i', $poper)) { $cl = "up";  }
             if (preg_match('/down/i', $poper)) {
-                if (preg_match('/down/i', $padmin)) {
-                    $cl = "shutdown";
-                } else {
-                    $cl = "down";
+                if (preg_match('/down/i', $padmin)) { $cl = "shutdown"; } else { $cl = "down"; }
                 }
             }
-        }
 	print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=d_port_index[] value=".$row['snmp_index']." ></td>\n";
         print "<td class=\"$cl\"><a href=\"editport.php?id=".$row['id']."\">" . $row['port'] . "</a></td>\n";
         print "<td class=\"$cl\" >" . $row['port_name'] . "</td>\n";
