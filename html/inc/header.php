@@ -6,8 +6,6 @@
 <script src="/js/jq/jquery.min.js"></script>
 <link href="/js/select2/css/select2.min.css" rel="stylesheet"/>
 <script src="/js/select2/js/select2.min.js"></script>
-<link rel="stylesheet" href="/js/jstree/themes/default/style.min.css" />
-<script src="/js/jstree/jstree.min.js"></script>
 <meta http-equiv="content-type" content="application/xhtml+xml" />
 <meta charset="UTF-8" />
 
