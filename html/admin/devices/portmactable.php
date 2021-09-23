@@ -14,27 +14,35 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 <div id="cont">
 <?php
 $port_id = $id;
-$sSQL = "SELECT DP.port, DP.snmp_index, D.device_name, D.ip, D.snmp_version, D.community, D.fdb_snmp_index FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=$port_id";
-$port_info = mysqli_query($db_link, $sSQL);
-list ($f_port, $f_snmp_index, $f_switch, $f_ip, $f_version, $f_community, $f_snmp) = mysqli_fetch_array($port_info);
-$display_name = " $f_port свича $f_switch";
-print "<b>$f_switch [$f_port] </b><br>\n";
+$sSQL = "SELECT DP.port, DP.snmp_index, D.device_name, D.ip, D.snmp_version, D.community, D.fdb_snmp_index, D.vendor_id FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=$port_id";
+$port_info = get_record_sql($db_link, $sSQL);
 
-if ($f_snmp_index > 0) {
+$display_name = " ".$port_info['port']." свича ".$port_info['device_name'];
+print "<b>".$port_info['device_name']." [".$port_info['port']."] </b><br>\n";
+
+$sw_auth=NULL;
+$sw_mac=NULL;
+if ($port_info['vendor_id'] == 9) {
+    $sw_auth = get_record_sql($db_link,"SELECT mac FROM User_auth WHERE deleted=0 and ip='".$port_info['ip']."'");
+    $sw_mac = mac_simplify($sw_auth['mac']);
+    $sw_mac = preg_replace("/.{2}$/","",$sw_mac);
+    }
+
+if ($port_info['snmp_index'] > 0) {
     print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
     print "<tr><td><b>Список маков активных на порту</b></td></tr>\n";
-    if (! $f_snmp) {
-        $f_snmp_index = $f_port;
-    }
-    $fdb = get_fdb_port_table($f_ip, $f_snmp_index, $f_community, $f_version);
+    if (! $port_info['fdb_snmp_index']) { $port_info['snmp_index'] = $port_info['port']; }
+    $fdb = get_fdb_port_table($port_info['ip'], $port_info['snmp_index'], $port_info['community'], $port_info['snmp_version']);
     foreach ($fdb as $a_mac => $a_port) {
+        $a_mac = dec_to_hex($a_mac);
+        if (!empty($sw_mac) and preg_match('/^'.$sw_mac.'/',mac_simplify($a_mac))) { continue; }
         print "<tr>";
-        $auth = get_auth_by_mac($db_link, dec_to_hex($a_mac));
+        $auth = get_auth_by_mac($db_link, $a_mac);
         print "<td class=\"data\">" .$auth['auth'] . "</td><td class=\"data\">". $auth['mac']."</td>\n";
         print "</tr>";
-    }
+        }
     print "</table>\n";
-}
+    }
 ?>
 <table class="data">
 <tr>
