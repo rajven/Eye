@@ -23,9 +23,11 @@ foreach ($hash as $device) {
     if (!isset($device['parent_id'])) { continue; }
     if ($device['parent_id'] !== $device_id) { continue; }
     $dev_icon = '/img/server.png';
+    if ($device['type'] == 0) { $dev_icon = '/img/gateway.png'; }
     if ($device['type'] == 1) { $dev_icon = '/img/switch16.png'; }
     if ($device['type'] == 2) { $dev_icon = '/img/router.png'; }
-    if ($device['type'] == 3) { $dev_icon = '/img/gateway.png'; }
+    if ($device['type'] == 3) { $dev_icon = '/img/server.png'; }
+    if ($device['type'] == 4) { $dev_icon = '/img/ap.png'; }
     print '{ "text" : "'; print $device['parent_port'].'->'.$device['uplink'].'&nbsp'.$device['name']; print '", "icon" : "'.$dev_icon.'", "id" : "'.$device['id'].'","state" : { "opened" : true },';
     print '"a_attr" : { "href": "'.reencodeurl('/admin/devices/editdevice.php?id='.$device['id']).'"},';
     print '"children" : ['; print_child($device['id'],$hash); print ']';print "},\n";
@@ -41,7 +43,7 @@ $dev_hash[$dev_id]['id']=$dev_id;
 $dev_hash[$dev_id]['name']=$row['device_name'];
 $dev_hash[$dev_id]['type']=$row['device_type'];
 //gateway
-if ($row['user_acl'] and $row['device_type'] == 2) { $dev_hash[$dev_id]['type']=3; }
+if ($row['user_acl'] and $row['device_type'] == 2) { $dev_hash[$dev_id]['type']=0; }
 $pSQL = 'SELECT * FROM device_ports WHERE uplink = 1 and device_id='.$dev_id;
 $uplink = get_record_sql($db_link,$pSQL);
 if (empty($uplink)) { continue; }
@@ -65,9 +67,11 @@ print "\n";
 foreach ($dev_hash as $device) {
 if (isset($device['parent_id'])) { continue; }
 $dev_icon = '/img/server.png';
+if ($device['type'] == 0) { $dev_icon = '/img/gateway.png'; }
 if ($device['type'] == 1) { $dev_icon = '/img/switch16.png'; }
 if ($device['type'] == 2) { $dev_icon = '/img/router.png'; }
-if ($device['type'] == 3) { $dev_icon = '/img/gateway.png'; }
+if ($device['type'] == 3) { $dev_icon = '/img/server.png'; }
+if ($device['type'] == 4) { $dev_icon = '/img/ap.png'; }
 print '{ "text" : "'; print_url($device['name'],'/admin/devices/editdevice.php?id='.$device['id']); print '","icon" : "'.$dev_icon.'", "id" : "'.$device['id'].'" ,"state" : { "opened" : true },';
 print '"a_attr" : { "href": "'.reencodeurl('/admin/devices/editdevice.php?id='.$device['id']).'"},';
 print '"children" : ['; print_child($device['id'],$dev_hash); print "]";
