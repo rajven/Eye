@@ -111,7 +111,7 @@ if ($switch['snmp_version']>0) {
         $cl = "down";
         $new_info = NULL;
         //fix empty port names
-        if (!isset($row['port_name'])) { $row['port_name']=$row['port']; $new_info['port_name']=$row['port']; }
+        if (empty($row['port_name'])) { $row['port_name']=$row['port']; $new_info['port_name']=$row['port']; }
         if (isset($switch['ip']) and ($switch['ip'] != '') and $snmp_ok) {
             $port_state_detail = get_port_state_detail($row['snmp_index'], $switch['ip'], $switch['community'], $switch['snmp_version'], $switch['fdb_snmp_index']);
             list ($poper, $padmin, $pspeed, $perrors) = explode(';', $port_state_detail);
