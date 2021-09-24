@@ -35,6 +35,10 @@ download from https://github.com/select2/select2 release
 example: wget https://github.com/select2/select2/archive/4.0.12.tar.gz
 extract contents from directory dist archive to /var/www/html/js/select2/
 
+download jstree from  https://github.com/vakata/jstree/
+wget https://github.com/vakata/jstree/zipball/3.3.12 -O js.zip
+extract contents from directory dist archive to /var/www/html/js/jstree
+
 5. Configure mysql
 
 systemctl enable mariadb
