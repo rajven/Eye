@@ -61,7 +61,7 @@ print '<div id="frmt" class="tree"></div>';
 print "\n";
 print '<script>';
 print "$('#frmt').jstree({";
-print '"themes" : { "theme" : "default", "dots" : false, "icons" : false }, "plugins" : [ "themes", "html_data", "ui", "sort", "state" ],';
+print '"themes" : { "theme" : "default", "dots" : false, "icons" : false }, "plugins" : [ "themes", "html_data", "ui", "sort" ],';
 print "'core' : { 'data' : [";
 print "\n";
 foreach ($dev_hash as $device) {
