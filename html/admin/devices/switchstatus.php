@@ -142,7 +142,8 @@ if ($switch['snmp_version']>0) {
 
         if ($snmp_ok) {
             $vlan = get_port_vlan($row['port'], $row['snmp_index'], $switch['ip'], $switch['community'], $switch['snmp_version'], $switch['fdb_snmp_index']);
-            $ifname = get_snmp_ifname($switch['ip'], $switch['community'], $switch['snmp_version'], $row['snmp_index']);
+            $ifname = get_snmp_ifname1($switch['ip'], $switch['community'], $switch['snmp_version'], $row['snmp_index']);
+            if (empty($ifname)) { $ifname = get_snmp_ifname2($switch['ip'], $switch['community'], $switch['snmp_version'], $row['snmp_index']); }
             $sfp_status = get_sfp_status($switch['vendor_id'], $row['snmp_index'], $switch['ip'], $switch['community'], $switch['snmp_version'], $modules_oids);
             $poe_status = get_port_poe_state($switch['vendor_id'], $row['snmp_index'], $switch['ip'], $switch['community'], $switch['snmp_version']);
             if (isset($poe_status)) {

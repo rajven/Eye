@@ -17,6 +17,21 @@ if ($sort_field == 'fio') { $sort_table = 'User_list'; }
 $sort_url = "<a href=index.php?ou=" . $rou; 
 global $default_user_id;
 
+if (isset($_POST["removeauth"])) {
+    $auth_id = $_POST["fid"];
+    foreach ($auth_id as $key => $val) {
+        if ($val) {
+                delete_record($db_link, 'connections', "auth_id=" . $val);
+                delete_record($db_link, 'User_auth_alias', "auth_id=" . $val);
+                $auth["deleted"] = 1;
+                $changes = get_diff_rec($db_link,"User_auth","id='$val'", '', 0);
+                if (!empty($changes)) { LOG_WARNING($db_link,"Удалён адрес доступа: \r\n $changes"); }
+                update_record($db_link, "User_auth", "id=" . $val, $auth);
+                delete_record($db_link, "connections", "auth_id=" . $val);
+                }
+            }
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    }
 
 if (isset($_POST["ApplyForAll"])) {
     $auth_id = $_POST["fid"];
@@ -106,6 +121,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td>Dhcp&nbsp<?php print_qa_select('a_dhcp', 1); ?></td>
 <td>Dhcp-acl&nbsp<?php print_dhcp_acl_select('a_dhcp_acl',''); ?></td>
 <td>&nbsp<input type="submit" name="ApplyForAll" value="Apply"></td>
+<td align=right><input type="submit" name="removeauth" value="Удалить выделенных"></td>
 </tr>
 </table>
 

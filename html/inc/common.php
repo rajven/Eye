@@ -30,7 +30,9 @@ $cisco_sfp_sensors = '.1.3.6.1.4.1.9.9.91.1.1.1.1.4';
 $cisco_sfp_precision = '.1.3.6.1.4.1.9.9.91.1.1.1.1.3';
 $cisco_vlan_oid = 'SNMPv2-SMI::enterprises.9.9.46.1.3.1.1.2';
 
-$ifmib_ifindex = '.1.3.6.1.2.1.31.1.1.1.1';
+$ifmib_ifindex  = '.1.3.6.1.2.1.2.2.1.1';
+$ifmib_ifdescr  = '.1.3.6.1.2.1.2.2.1.2';
+$ifmib_ifname   = '.1.3.6.1.2.1.31.1.1.1.1';
 
 $huawei_sfp_vendor = '.1.3.6.1.4.1.2011.5.25.31.1.1.2.1.11';
 $huawei_sfp_speed = '.1.3.6.1.4.1.2011.5.25.31.1.1.2.1.2';
@@ -1902,18 +1904,28 @@ function get_cisco_sensors($ip, $community, $version, $mkey)
     return $result;
 }
 
-function get_snmp_ifname($ip, $community, $version, $port)
+function get_snmp_ifname1($ip, $community, $version, $port)
 {
-    global $ifmib_ifindex;
+    global $ifmib_ifname;
     $port_name = '';
     list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifindex . "." . $port));
     return $port_name;
 }
 
+function get_snmp_ifname2($ip, $community, $version, $port)
+{
+    global $ifmib_ifdescr;
+    $port_name = '';
+    list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifdescr . "." . $port));
+    return $port_name;
+}
+
 function get_snmp_interfaces($ip, $community, $version)
 {
-    global $ifmib_ifindex;
-    $result = walk_snmp($ip, $community, $version, $ifmib_ifindex);
+    global $ifmib_ifname;
+    global $ifmib_ifdescr;
+    $result = walk_snmp($ip, $community, $version, $ifmib_ifname);
+    if (empty($result)) { $result = walk_snmp($ip, $community, $version, $ifmib_ifdescr); }
     return $result;
 }
 
@@ -1961,7 +1973,8 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
     }
     // if (!is_up($ip)) { return; }
 
-    global $ifmib_ifindex;
+    global $ifmib_ifname;
+    global $ifmib_ifdescr;
 
     $status = '';
     // eltex
@@ -2015,7 +2028,10 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
         global $cisco_descr;
         global $cisco_modules;
         // get interface names
-        list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifindex . "." . $port));
+        list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifname . "." . $port));
+        if (empty($port_name)) {
+            list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifdescr . "." . $port));
+            }
         // search module indexes
         $port_name = preg_quote(trim($port_name), '/');
         foreach ($modules_oids as $key => $value) {
@@ -2086,7 +2102,10 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
         global $huawei_sfp_biascurrent;
         
         // get interface names
-        list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifindex . "." . $port));
+        list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifname . "." . $port));
+        if (empty($port_name)) {
+            list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifdescr . "." . $port));
+    	    }
         // search module indexes
         $port_name = preg_quote(trim($port_name), '/');
         foreach ($modules_oids as $key => $value) {
