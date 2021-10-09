@@ -23,9 +23,7 @@ if (isset($_POST["addfilter"])) {
 if (isset($_POST["removefilter"])) {
     $fgid = $_POST["fgid"];
     foreach ($fgid as $key => $val) {
-        if ($val) {
-            delete_record($db_link, "Group_filters", "id=" . $val * 1);
-        }
+        if (!empty($val)) { delete_record($db_link, "Group_filters", "id=" . $val * 1); }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
 }
@@ -66,7 +64,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td>Order</td>
 <td>Название фильтра</td>
-<td align="right"><input type="submit" name="removefilter" value="Удалить Фильтр"></td>
+<td align="right"><input type="submit" onclick="return confirm('Удалиьт фильтр?')" name="removefilter" value="Удалить"></td>
 </tr>
 
 <?php

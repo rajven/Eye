@@ -264,19 +264,19 @@ if ($msg_error) { print "<div id='msg'><b>$msg_error</b></div><br>\n"; }
 <table class="data">
 <tr>
 <td>Для выделенных установить: Включен&nbsp<?php print_qa_select('a_enabled', 0); ?></td>
-<td>DHCP&nbsp<?php print_qa_select('a_dhcp', 0); ?></td>
+<td>DHCP&nbsp<?php print_qa_select('a_dhcp', 1); ?></td>
 <td>Фильтр&nbsp<?php print_group_select($db_link, 'a_group_id', 0); ?></td>
 <td>Шейпер&nbsp<?php print_queue_select($db_link, 'a_queue_id', 0); ?></td>
 <td>В день&nbsp<input type="text" name="a_day_q" value="0" size=5></td>
 <td>В месяц&nbsp<input type="text" name="a_month_q" value="0" size=5></td>
-<td>&nbsp<input type="submit" name="ApplyForAll" value="Apply"></td>
+<td>&nbsp<input type="submit" onclick="return confirm('Применить для выделенных?')" name="ApplyForAll" value="Apply"></td>
 </tr>
 <tr>
 <?php
 print "<td colspan=6>Переместить выделенных к пользователю "; print_login_select($db_link, 'new_parent', $id); print "<input type=\"submit\" name=\"moveauth\" value=".$btn_move.">"; print "</td>";
 print "</tr><tr>";
 print "<td colspan=4>Создать пользователей по выделению в группе ";  print_ou_select($db_link, 'f_new_ou', $user_info["ou_id"]); print "<button name='new_user'>Создать</button>\n"; print "</td>";
-print "<td colspan=2 align=\"right\">Удалить выделенных <input type=\"submit\" name=\"removeauth\" value=".$btn_remove.">";
+print "<td colspan=2 align=\"right\">Удалить выделенных <input type=\"submit\" onclick=\"return confirm('Удалить выделенных?')\" name=\"removeauth\" value=".$btn_remove.">";
 ?>
 </tr>
 </table>

@@ -52,7 +52,7 @@ if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field
 <td class="info" colspan=2 > <?php  print_devtypes_select($db_link, "devtypes", $f_devtype_id); ?>
 <td class="info" >Показать оборудование из</td>
 <td class="info" > <?php  print_building_select($db_link, "building_id", $f_building_id); ?></td>
-<td class="info" colspan=3> <input type="submit" name="apply" value="Apply"></td>
+<td class="info" colspan=3> <input type="submit" onclick="return confirm('Применить?')" name="apply" value="Apply"></td>
 </tr>
 <tr align="center">
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
@@ -101,7 +101,7 @@ foreach ($switches as $row) {
 <tr align=left>
 <td>Название <input type=text name=newswitches value="Unknown"></td>
 <td><input type="submit" name="create" value="Добавить"></td>
-<td align="right"><input type="submit" name="remove" value="Удалить"></td>
+<td align="right"><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
 </tr>
 </table>
 </form>

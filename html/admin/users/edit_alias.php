@@ -63,7 +63,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 	<td width=30><b>id</b></td>
 	<td><b>Название</b></td>
 	<td><b>Комментарий</b></td>
-	<td><input type="submit" name="s_remove" value="Удалить"></td>
+	<td><input type="submit" onclick="return confirm('Удалить?')" name="s_remove" value="Удалить"></td>
 </tr>
 <?
 $t_User_auth_alias = get_records($db_link,'User_auth_alias',"auth_id=$id ORDER BY alias");

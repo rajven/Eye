@@ -77,7 +77,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 <td><b>Host template</b></td>
 <td><b>Ping</b></td>
 <td><b>Host service</b></td>
-<td><input type="submit" name="remove" value="Удалить"></td>
+<td><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
 </tr>
 <?
 $t_ou = get_records($db_link,'OU','TRUE ORDER BY ou_name');

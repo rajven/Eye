@@ -75,7 +75,7 @@ foreach ($filters as $row) {
 	</select>
 	</td>
 	<td><input type="submit" name="create" value="Добавить"></td>
-	<td align="right"><input type="submit" name="remove" value="Удалить"></td>
+	<td align="right"><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
 	</tr>
 	</table>
 </form>

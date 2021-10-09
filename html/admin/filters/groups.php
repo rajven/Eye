@@ -12,6 +12,14 @@ if (isset($_POST["create"])) {
     header("Location: " . $_SERVER["REQUEST_URI"]);
 }
 
+if (isset($_POST["remove"])) {
+    $fgid = $_POST["fid"];
+    foreach ($fgid as $key => $val) {
+        if (!empty($val)) { delete_record($db_link, "Group_list", "id=" . $val * 1); }
+        }
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    }
+
 unset($_POST);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
@@ -40,7 +48,7 @@ while (list ($id, $grpname) = mysqli_fetch_array($users)) {
 	<tr align=left>
 		<td>Название <input type=text name=newgroup value="Unknown"></td>
 		<td><input type="submit" name="create" value="Добавить"></td>
-		<td align="right"><input type="submit" name="remove" value="Удалить"></td>
+		<td align="right"><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
 		</tr>
 	</table>
 </form>

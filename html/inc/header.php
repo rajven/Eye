@@ -13,6 +13,7 @@
 
 <script language="javascript">
 function checkAll(check) {
+
 var boxes = document.def.elements.length;
 if(check) {
 	for(i=0; i<boxes; i++) {
@@ -24,9 +25,7 @@ if(check) {
 	}
 }
 }
-</script>
 
-<script>
 $(document).ready(function() {
 $('.js-select-single').select2();
 });

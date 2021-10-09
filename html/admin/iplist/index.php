@@ -120,8 +120,8 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td>Шейпер&nbsp<?php print_queue_select($db_link, 'a_queue_id', 0); ?></td>
 <td>Dhcp&nbsp<?php print_qa_select('a_dhcp', 1); ?></td>
 <td>Dhcp-acl&nbsp<?php print_dhcp_acl_select('a_dhcp_acl',''); ?></td>
-<td>&nbsp<input type="submit" name="ApplyForAll" value="Apply"></td>
-<td align=right><input type="submit" name="removeauth" value="Удалить выделенных"></td>
+<td>&nbsp<input type="submit" onclick="return confirm('Применить для выделенных?')" name="ApplyForAll" value="Применить"></td>
+<td align=right><input type="submit" onclick="return confirm('Удалить выделенных?')" name="removeauth" value="Удалить"></td>
 </tr>
 </table>
 

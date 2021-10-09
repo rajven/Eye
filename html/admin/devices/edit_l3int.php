@@ -59,7 +59,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 	<td width=30><b>id</b></td>
 	<td><b>Название</b></td>
 	<td><b>Тип</b></td>
-	<td><input type="submit" name="s_remove" value="Удалить"></td>
+	<td><input type="submit" onclick="return confirm('Удалить?')" name="s_remove" value="Удалить"></td>
 </tr>
 <?
 $t_l3_interface = get_records($db_link,'device_l3_interfaces',"device_id=$id ORDER BY name");

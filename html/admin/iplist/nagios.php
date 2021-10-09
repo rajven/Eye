@@ -87,7 +87,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td>Для выделенных установить: Nagios&nbsp<?php print_qa_select('n_enabled', 1); ?></td>
 <td>Lnk&nbsp<?php print_qa_select('n_link', 0); ?></td>
 <td>Event-handler&nbsp<?php print_nagios_handler_select('n_handler', ''); ?></td>
-<td>&nbsp<input type="submit" name="ApplyForAll" value="Apply"></td>
+<td>&nbsp<input type="submit" onclick="return confirm('Применить для выделенных?')" name="ApplyForAll" value="Применить"></td>
 </tr>
 </table>
 

@@ -33,7 +33,7 @@ print_editdevice_submenu($page_url,$id);
 <td width=20><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td width=40><b>Порт</b></td>
 <td ><b>Юзер</b></td>
-<td width=100><input type="submit" name="remove" value="Удалить"></td>
+<td width=100><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
 </tr>
 
 <?php

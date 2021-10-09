@@ -105,12 +105,12 @@ if ($msg_error) {
 <td>Шейпер&nbsp<?php print_queue_select($db_link, 'a_queue_id', 0); ?></td>
 <td>В день&nbsp<input type="text" name="a_day_q" value="0" size=5></td>
 <td>В месяц&nbsp<input type="text" name="a_month_q" value="0" size=5></td>
-<td>&nbsp<input type="submit" name="ApplyForAll" value="Apply"></td>
+<td>&nbsp<input type="submit" onclick="return confirm('Применить для выделенных?')" name="ApplyForAll" value="Применить"></td>
 </tr>
 <tr>
 <td><input type="submit" name="create" value="Добавить пользователя"></td>
 <td><input type=text name=newlogin value="Unknown"></td>
-<td align="right" colspan=3><input type="submit" name="remove" value="Удалить пользователей"></td>
+<td align="right" colspan=3><input type="submit" onclick="return confirm('Удалить выделенных?')" name="remove" value="Удалить"></td>
 <td align="right" colspan=2></td>
 </tr>
 </table>

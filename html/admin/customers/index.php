@@ -62,7 +62,7 @@ foreach ($users as $row) {
 	<tr>
 		<td><input type=text name=newlogin value="Unknown"></td>
 		<td><input type="submit" name="create" value="Добавить логин"></td>
-		<td align="right"><input type="submit" name="remove" value="Удалить"></td>
+		<td align="right"><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
 		</tr>
 	</table>
 </form>

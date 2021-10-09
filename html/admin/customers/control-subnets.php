@@ -144,7 +144,7 @@ print_control_submenu($page_url);
 	<td><b>Обновлять dns</b></td>
 	<td><b>Discovery</b></td>
 	<td><b>Комментарий</b></td>
-	<td><input type="submit" name="s_remove" value="Удалить"></td>
+	<td><input type="submit" onclick="return confirm('Удалить?')" name="s_remove" value="Удалить"></td>
 </tr>
 <?
 $t_subnets = get_records($db_link,'subnets','True ORDER BY ip_int_start');

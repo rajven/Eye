@@ -92,6 +92,8 @@ if (!$pid) {
 
         my %leases;
 
+        if (! -e "$socket_path") { mkfifo($socket_path,0622); }
+
         open(DHCP_SOCKET,$socket_path) || die("Error open fifo socket $socket_path: $!");
 
         # Create new database handle. If we can't connect, die()

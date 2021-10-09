@@ -36,7 +36,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 	<td><b>Название</b></td>
 	<td><b>Download</b></td>
 	<td><b>Upload</b></td>
-	<td><input type="submit" name="remove" value="Удалить"></td>
+	<td><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
 </tr>
 <?
 $t_queue=get_records($db_link, "Queue_list",'TRUE ORDER BY id');

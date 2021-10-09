@@ -64,7 +64,7 @@ print_control_submenu($page_url);
 <td width=150><b>Параметр</b></td>
 <td width=150><b>Значение</b></td>
 <td width=350><b>Комментарий</b></td>
-<td width=100><input type="submit" name="remove" value="Удалить"></td>
+<td width=100><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
 </tr>
 
 <?

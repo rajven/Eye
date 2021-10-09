@@ -70,7 +70,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 	<td width=30><b>id</b></td>
 	<td><b>Тип</b></td>
 	<td><b>Правило</b></td>
-	<td><input type="submit" name="s_remove" value="Удалить"></td>
+	<td><input type="submit" onclick="return confirm('Удалить?')" name="s_remove" value="Удалить"></td>
 </tr>
 <?
 $t_auth_rules = get_records($db_link,'auth_rules',"user_id=$id ORDER BY id");

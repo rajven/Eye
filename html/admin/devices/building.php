@@ -60,7 +60,7 @@ print_device_submenu($page_url);
 <td><b>id</b></td>
 <td><b>Название</b></td>
 <td><b>Комментарий</b></td>
-<td><input type="submit" name="remove" value="Удалить"></td>
+<td><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
 </tr>
 <?
 $t_building = get_records($db_link,'building','TRUE ORDER BY id');

@@ -34,7 +34,7 @@ print_ip_submenu($page_url);
     <td align=Center><?php print $cell_dns_name; ?></td>
     <td align=Center>Создан</td>
     <td align=Center>Работал</td>
-    <td align=right><input type="submit" name="removeauth" value="Удалить выделенных"></td>
+    <td align=right><input type="submit" onclick="return confirm('Удалить выделенных?')" name="removeauth" value="Удалить выделенных"></td>
 </tr>
 <?php
 $sSQL = "SELECT U.id, U.ip, U.mac, S.subnet as net FROM User_auth U, subnets S WHERE (U.mac IS NOT NULL AND U.mac<>'') AND (U.ip_int BETWEEN S.ip_int_start AND S.ip_int_stop) AND S.office=1 AND deleted=0 ORDER BY net,mac,ip";
