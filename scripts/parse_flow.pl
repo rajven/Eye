@@ -85,7 +85,7 @@ sub {
 my ($pid, $exit, $ident, $signal, $core, $data) = @_; 
 if ($data) {
     my $dataref = ${$data};
-    foreach my $user_ip (keys $dataref->{stats}) {
+    foreach my $user_ip (keys %{$dataref->{stats}}) {
         $user_stats{$user_ip}{in} += $dataref->{stats}{$user_ip}{in};
         $user_stats{$user_ip}{pkt_in} +=$dataref->{stats}{$user_ip}{pkt_in};
         $user_stats{$user_ip}{out} += $dataref->{stats}{$user_ip}{out};
