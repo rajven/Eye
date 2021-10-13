@@ -21,6 +21,7 @@ use DBI;
 use utf8;
 use open ":encoding(utf8)";
 use Fcntl qw(:flock);
+use Parallel::ForkManager;
 
 #$debug = 1;
 
@@ -30,6 +31,8 @@ flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 $|=1;
 
 if (IsNotRun($SPID)) { Add_PID($SPID); }  else { die "Warning!!! $SPID already runnning!\n"; }
+
+my $fork_count = $cpu_count*10;
 
 my @gateways =();
 #select undeleted mikrotik routers only
@@ -59,8 +62,14 @@ $dhcp_conf{$subnet_name}->{first_ip_aton}=StrToIp($dhcp_info->{first_ip});
 $dhcp_conf{$subnet_name}->{last_ip_aton}=StrToIp($dhcp_info->{last_ip});
 }
 
+my $pm = Parallel::ForkManager->new($fork_count);
+
 foreach my $gate (@gateways) {
 next if (!$gate);
+
+$pm->start and next;
+$dbh = init_db();
+
 my $router_name=$gate->{device_name};
 my $router_ip=$gate->{ip};
 my $shaper_enabled = $gate->{queue_enabled};
@@ -726,9 +735,11 @@ if (scalar(@cmd_list)) {
     }
 
 db_log_verbose($dbh,"Sync user state at router $router_name [".$router_ip."] stopped.");
+$dbh->disconnect();
+$pm->finish;
 }
 
-$dbh->disconnect();
+$pm->wait_all_children;
 
 if (IsMyPID($SPID)) { Remove_PID($SPID); };
 
