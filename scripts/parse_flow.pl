@@ -129,7 +129,7 @@ if (!$first_step) {
     }
 $line_count++;
 push(@input_buf,$line);
-if ($line_count < 5000) { next; }
+if ($line_count < 50000) { next; }
 $line_count = 0;
 my @tmp = @input_buf;
 undef @input_buf;

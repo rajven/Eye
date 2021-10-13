@@ -40,6 +40,7 @@ if (isset($_POST["ApplyForAll"])) {
     $a_dhcp_acl = $_POST["a_dhcp_acl"];
     $a_queue = $_POST["a_queue_id"] * 1;
     $a_group = $_POST["a_group_id"] * 1;
+    $a_traf = $_POST["a_traf"] * 1;
     $msg="Массовое изменение пользователей!";
     foreach ($auth_id as $key => $val) {
         if ($val) {
@@ -49,6 +50,7 @@ if (isset($_POST["ApplyForAll"])) {
             $auth['queue_id'] = $a_queue;
             $auth['dhcp'] = $a_dhcp;
             $auth['dhcp_acl'] = $a_dhcp_acl;
+            $auth['save_traf'] = $a_traf;
             update_record($db_link, "User_auth", "id='" . $val . "'", $auth);
             }
         }
@@ -120,6 +122,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td>Шейпер&nbsp<?php print_queue_select($db_link, 'a_queue_id', 0); ?></td>
 <td>Dhcp&nbsp<?php print_qa_select('a_dhcp', 1); ?></td>
 <td>Dhcp-acl&nbsp<?php print_dhcp_acl_select('a_dhcp_acl',''); ?></td>
+<td>Save traffic&nbsp<?php print_qa_select('a_traf',1); ?></td>
 <td>&nbsp<input type="submit" onclick="return confirm('Применить для выделенных?')" name="ApplyForAll" value="Применить"></td>
 <td align=right><input type="submit" onclick="return confirm('Удалить выделенных?')" name="removeauth" value="Удалить"></td>
 </tr>
