@@ -35,7 +35,6 @@ if (!empty($_POST['date_stop']) or !empty($_GET['date_stop'])) {
         }
     }
 
-
 if (!isset($datetime_stop) or empty($datetime_stop)) {
     if ($default_date_shift==='h') {
         $datetime_start->modify('+1 hour');

@@ -1245,21 +1245,19 @@ return $result;
 
 function GetDateTimeFromString($date_str) {
 if (!is_a($date_str,'DateTime')) {
-    $date_str = urldecode($date_str);
-    $date_str = preg_replace('/(\'|\")/','',$date_str);
-    $date1 = DateTime::createFromFormat('Y-m-d H:i:s',$date_str);
-    if (!$date1) { $date1 = DateTime::createFromFormat('Y.m.d H:i:s',$date_str); }
-    if (!$date1) { $date1 = DateTime::createFromFormat('Y/m/d H:i:s',$date_str); }
-    if (!$date1) { $date1 = DateTime::createFromFormat('Y-m-d H:i',$date_str); }
-    if (!$date1) { $date1 = DateTime::createFromFormat('Y.m.d H:i',$date_str); }
-    if (!$date1) { $date1 = DateTime::createFromFormat('Y/m/d H:i',$date_str); }
-    if (!$date1) { $date1 = DateTime::createFromFormat('Y-m-d|',$date_str); }
-    if (!$date1) { $date1 = DateTime::createFromFormat('Y.m.d|',$date_str); }
-    if (!$date1) { $date1 = DateTime::createFromFormat('Y/m/d|',$date_str); }
-    if (!$date1) {
-        $date1 = new DateTime; 
-        $date1->setTime(0,0,0,1);
-        }
+    $t_date_str = urldecode($date_str);
+    $t_date_str = preg_replace('/(\'|\")/','',$t_date_str);
+    $t_date_str = preg_replace('/T/',' ',$t_date_str);
+    $date1 = DateTime::createFromFormat('Y-m-d H:i:s',$t_date_str);
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y.m.d H:i:s',$t_date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y/m/d H:i:s',$t_date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y-m-d H:i',$t_date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y.m.d H:i',$t_date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y/m/d H:i',$t_date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y-m-d|',$t_date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y.m.d|',$t_date_str); }
+    if (!$date1) { $date1 = DateTime::createFromFormat('Y/m/d|',$t_date_str); }
+    if (!$date1) { $date1 = new DateTime; $date1->setTime(0,0,0,1); }
     } else { return $date_str; }
 return $date1;
 }
