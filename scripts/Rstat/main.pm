@@ -4,6 +4,7 @@ package Rstat::main;
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
 
+use utf8;
 use strict;
 use English;
 use FindBin '$Bin';
@@ -512,7 +513,6 @@ while ($start<=$count-1) {
         die "cannot fork" if($childid == -1);
         # redirect child Input|Output
         unless($childid) {
-            # потомок
             open STDIN, "<&", $hparent;
             open STDOUT, ">&", $hparent;
             open STDERR, ">&", $hparent;

@@ -4,6 +4,9 @@
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
 
+use utf8;
+use English;
+use base;
 use FindBin '$Bin';
 use lib "$Bin/";
 use strict;

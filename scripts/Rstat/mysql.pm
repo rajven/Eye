@@ -4,6 +4,7 @@ package Rstat::mysql;
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
 
+use utf8;
 use strict;
 use English;
 use FindBin '$Bin';
@@ -146,23 +147,17 @@ sub batch_db_sql_cached {
 my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 0 });
 if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
 $db->{mysql_auto_reconnect} = 1;
-
 my $table= shift;
 my $batch_sql=shift;
-
 return if (!$db);
 if (ref($batch_sql) eq 'ARRAY') {
     my $sth = $db->prepare_cached($table) or die "Unable to prepare:" . $db->errstr;
-    db_log_debug($db,"Start prepare data");
     foreach my $sSQL (@$batch_sql) {
         next if (!$sSQL);
         $sth->execute(@$sSQL) or die "Unable to execute:" . $db->errstr;
         }
-    db_log_debug($db,"End prepare data");
     }
-db_log_debug($db,"Start commit");
 $db->commit();
-db_log_debug($db,"End commit");
 $db->disconnect();
 }
 
@@ -258,7 +253,6 @@ sub init_db {
 # Create new database handle. If we can't connect, die()
 my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 1 });
 if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
-$db->do('SET NAMES utf8mb4');
 $db->{mysql_auto_reconnect} = 1;
 return $db;
 }
@@ -316,9 +310,10 @@ my $tsql = shift;
 my @result;
 return @result if (!$db);
 return @result if (!$tsql);
-my $list = $db->prepare( $tsql . ' LIMIT 1' ) or die "Unable to prepare $tsql: " . $db->errstr;
+$tsql.=' LIMIT 1';
+my $list = $db->prepare($tsql) or die "Unable to prepare $tsql: " . $db->errstr;
 $list->execute() or die "Unable to execute $tsql: " . $db->errstr;
-my $row_ref = $list ->fetchrow_hashref();
+my $row_ref = $list->fetchrow_hashref();
 $list->finish();
 return $row_ref;
 }

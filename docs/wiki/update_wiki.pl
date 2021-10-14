@@ -4,6 +4,9 @@
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
 
+use utf8;
+use English;
+use base;
 use FindBin '$Bin';
 use lib "$Bin/";
 use Data::Dumper;
@@ -91,10 +94,6 @@ $empty_fields{mac}=1;
 
 #apply patch
 foreach my $row (@tmp) {
-if ($row=~/\%META\:FIELD\{name\=\"Description\"/) {
-    $empty_fields{descr}=0;
-    if ($auth->{comments}) { push(@wiki_dev,'%META:FIELD{name="Description" title="Description" value="'.$auth->{comments}.'"}%'); next; }
-    }
 if ($row=~/\%META\:FIELD\{name\=\"Parent\"/) {
     $empty_fields{parent}=0;
     if ($device_name) { push(@wiki_dev,'%META:FIELD{name="Parent" title="Parent" value="'.$device_name.'"}%'); next; }
@@ -112,7 +111,6 @@ push(@wiki_dev,$row);
 
 foreach my $field (keys %empty_fields) {
 next if (!$empty_fields{$field});
-if ($field eq 'descr' and $auth->{comments}) { push(@wiki_dev,'%META:FIELD{name="Description" title="Description" value="'.$auth->{comments}.'"}%'); next; }
 if ($field eq 'parent' and $device_name) { push(@wiki_dev,'%META:FIELD{name="Parent" title="Parent" value="'.$device_name.'"}%'); next; }
 if ($field eq 'parent_port' and $device_port) { push(@wiki_dev,'%META:FIELD{name="ParentPort" title="Parent Port" value="'.$device_port.'"}%'); next; }
 if ($field eq 'mac' and $auth->{mac}) { push(@wiki_dev,'%META:FIELD{name="Mac" title="Mac" value="'.$auth->{mac}.'"}%'); next; }
