@@ -69,7 +69,7 @@ $user_stats{$row->{ip}}{pkt_in}=0;
 $user_stats{$row->{ip}}{pkt_out}=0;
 }
 
-my $start_time = localtime();
+my $last_time = localtime();
 
 my $hour_date;
 my $minute_date;
@@ -99,6 +99,7 @@ if ($data) {
     $stats{line}{user}+=$dataref->{line}{user};
     $stats{line}{free}+=$dataref->{line}{free};
     $stats{line}{unknown}+=$dataref->{line}{unknown};
+    $last_time = $dataref->{last_time};
     if (scalar(@{$dataref->{sql}})) { batch_db_sql($f_dbh,\@{$dataref->{sql}}); }
     $f_dbh->disconnect;
     }
@@ -109,18 +110,12 @@ $dbh->disconnect;
 
 my @input_buf=();
 my $line_count = 0;
-my $first_step = 0;
 
 my $child_count = 0;
 
 while (my $line = <STDIN>) {
 chomp($line);
 $line=~s/\s+//g;
-if (!$first_step) {
-    my ($l_time,$l_proto,$l_src_ip,$l_dst_ip,$l_src_port,$l_dst_port,$l_packets,$l_bytes,$l_in_dev,$l_out_dev) = split(/;/,$line);
-    $start_time = $l_time;
-    $first_step = 1;
-    }
 $line_count++;
 push(@input_buf,$line);
 if ($line_count < 50000) { next; }
@@ -167,6 +162,7 @@ my ($l_time,$l_proto,$l_src_ip,$l_dst_ip,$l_src_port,$l_dst_port,$l_packets,$l_b
 
 $lines_stats->{pkt}{all}+=$l_packets;
 $lines_stats->{line}{all}++;
+$lines_stats->{last_time} = $l_time;
 
 if (!$l_time) { $lines_stats->{line}{illegal}++; $lines_stats->{pkt}{illegal}+=$l_packets; next; }
 if ($l_src_ip eq '0.0.0.0') { $lines_stats->{line}{illegal}++; $lines_stats->{pkt}{illegal}+=$l_packets; next; }
@@ -261,14 +257,16 @@ my $m_dbh=init_db();
 
 ####################################################################################################
 
+if (!$last_time) { $last_time = localtime(); }
+
 #start hour
-my ($min,$hour,$day,$month,$year) = (localtime($start_time))[1,2,3,4,5];
+my ($min,$hour,$day,$month,$year) = (localtime($last_time))[1,2,3,4,5];
 #flow time
 my $flow_date = $m_dbh->quote(sprintf "%04d-%02d-%02d %02d:%02d:00",$year+1900,$month+1,$day,$hour,$min);
 #start stat time
 my $hour_date1 = $m_dbh->quote(sprintf "%04d-%02d-%02d %02d:00:00",$year+1900,$month+1,$day,$hour);
 #end hour
-($hour,$day,$month,$year) = (localtime($start_time+3600))[2,3,4,5];
+($hour,$day,$month,$year) = (localtime($last_time+3600))[2,3,4,5];
 my $hour_date2 = $m_dbh->quote(sprintf "%04d-%02d-%02d %02d:00:00",$year+1900,$month+1,$day,$hour);
 
 # update database
