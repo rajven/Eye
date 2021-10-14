@@ -21,10 +21,9 @@ use Rstat::net_utils;
 use Rstat::mysql;
 use Parallel::ForkManager;
 
-my $router_id;
-if (scalar @ARGV>1) { $router_id=shift(@ARGV); } else { $router_id=$ARGV[0]; }
+if (!$ARGV[0]) { exit 110; }
 
-if (!$router_id) { exit 110; }
+my $router_id=$ARGV[0];
 
 my $fork_count = $cpu_count*10;
 

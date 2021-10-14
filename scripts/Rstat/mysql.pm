@@ -122,20 +122,20 @@ my $sth;
 if (ref($batch_sql) eq 'ARRAY') {
     foreach my $sSQL (@$batch_sql) {
         next if (!$sSQL);
-        $sth = $db->prepare($sSQL);
-        $sth->execute;
+        $sth = $db->prepare($sSQL) or die "Unable to prepare $sSQL" . $db->errstr;
+        $sth->execute() or die "Unable to prepare $sSQL" . $db->errstr;
         $apply = 1;
         }
     } else {
     my @msg = split("\n",$batch_sql);
     foreach my $sSQL (@msg) {
         next if (!$sSQL);
-        $sth = $db->prepare($sSQL);
-        $sth->execute;
+        $sth = $db->prepare($sSQL) or die "Unable to prepare $sSQL" . $db->errstr;
+        $sth->execute() or die "Unable to prepare $sSQL" . $db->errstr;
         $apply = 1;
         }
     }
-if ($apply) { $sth->finish; }
+if ($apply) { $sth->finish(); }
 $db->{AutoCommit} = 1;
 }
 
@@ -143,9 +143,8 @@ $db->{AutoCommit} = 1;
 
 sub batch_db_sql_cached {
 
-my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 1, AutoCommit => 0 });
+my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 0 });
 if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
-$db->do('SET NAMES utf8');
 $db->{mysql_auto_reconnect} = 1;
 
 my $table= shift;
@@ -153,11 +152,11 @@ my $batch_sql=shift;
 
 return if (!$db);
 if (ref($batch_sql) eq 'ARRAY') {
-    my $sth = $dbh->prepare_cached($table);
+    my $sth = $db->prepare_cached($table) or die "Unable to prepare:" . $db->errstr;
     db_log_debug($db,"Start prepare data");
     foreach my $sSQL (@$batch_sql) {
         next if (!$sSQL);
-        $sth->execute(@$sSQL);
+        $sth->execute(@$sSQL) or die "Unable to execute:" . $db->errstr;
         }
     db_log_debug($db,"End prepare data");
     }
@@ -175,12 +174,11 @@ my $sql=shift;
 return if (!$db);
 return if (!$sql);
 if ($sql!~/^select /i) { db_log_debug($db,$sql); }
-my $sql_prep = $db->prepare($sql);
+my $sql_prep = $db->prepare($sql) or die "Unable to prepare $sql: " . $db->errstr;
 my $sql_ref;
-if ( !defined $sql_prep ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-$sql_prep->execute;
+$sql_prep->execute() or die "Unable to execute $sql: " . $db->errstr;
 if ($sql=~/^insert/i) { $sql_ref = $sql_prep->{mysql_insertid}; }
-if ($sql=~/^select /i) { $sql_ref = $sql_prep->fetchall_arrayref(); };
+if ($sql=~/^select /i) { $sql_ref = $sql_prep->fetchall_arrayref() or die "Unable to select $sql: " . $db->errstr; };
 $sql_prep->finish();
 return $sql_ref;
 }
@@ -202,8 +200,8 @@ if ($level eq $L_WARNING and $log_level >= $L_WARNING) { log_warning($msg); $db_
 if ($level eq $L_INFO and $log_level >= $L_INFO) { log_info($msg); $db_log = 1; }
 if ($level eq $L_DEBUG and $log_level >= $L_DEBUG) { log_debug($msg); $db_log = 1; }
 if ($db_log) {
-    my $history_rf=$db->prepare($history_sql);
-    $history_rf->execute;
+    my $history_rf=$db->prepare($history_sql) or die "Unable to prepare $history_sql:" . $db->errstr;
+    $history_rf->execute() or die "Unable to execute $history_sql: " . $db->errstr;
     }
 }
 
@@ -258,7 +256,7 @@ if ($log_level >= $L_WARNING) {
 
 sub init_db {
 # Create new database handle. If we can't connect, die()
-my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS");
+my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 1 });
 if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
 $db->do('SET NAMES utf8mb4');
 $db->{mysql_auto_reconnect} = 1;
@@ -303,12 +301,9 @@ my $table = shift;
 my @result;
 return @result if (!$db);
 return @result if (!$table);
-my $list = $db->prepare( $table );
-if ( !defined $list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-$list->execute;
-while(my $row_ref = $list ->fetchrow_hashref) {
-push(@result,$row_ref);
-}
+my $list = $db->prepare( $table ) or die "Unable to prepare $table:" . $db->errstr;
+$list->execute() or die "Unable to execute $table: " . $db->errstr;
+while(my $row_ref = $list->fetchrow_hashref()) { push(@result,$row_ref); }
 $list->finish();
 return @result;
 }
@@ -321,10 +316,9 @@ my $tsql = shift;
 my @result;
 return @result if (!$db);
 return @result if (!$tsql);
-my $list = $db->prepare( $tsql . ' LIMIT 1' );
-if ( !defined $list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-$list->execute;
-my $row_ref = $list ->fetchrow_hashref;
+my $list = $db->prepare( $tsql . ' LIMIT 1' ) or die "Unable to prepare $tsql: " . $db->errstr;
+$list->execute() or die "Unable to execute $tsql: " . $db->errstr;
+my $row_ref = $list ->fetchrow_hashref();
 $list->finish();
 return $row_ref;
 }
