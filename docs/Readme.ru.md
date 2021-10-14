@@ -13,7 +13,7 @@ dnf install httpd php php-common perl mariadb-server git fping net-snmp-utils \
 php-mysqlnd php-bcmath php-intl php-mbstring php-pear-Date php-pear-Mail php-snmp perl-Net-Patricia \
 perl-NetAddr-IP perl-Config-Tiny perl-Net-DNS perl-DateTime perl-Proc-Daemon perl-Net-Netmask \
 perl-Text-Iconv perl-DateTime-Format-DateParse perl-Net-SNMP perl-Net-Telnet perl-Net-IPv4Addr \
-perl-DBI perl-Parallel-ForkManager -y
+perl-DBI perl-DBD-MySQL perl-Parallel-ForkManager -y
 
 3. Качаем исходники и раскидываем по каталогам:
 
