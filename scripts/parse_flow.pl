@@ -24,10 +24,7 @@ use Parallel::ForkManager;
 my $router_id;
 if (scalar @ARGV>1) { $router_id=shift(@ARGV); } else { $router_id=$ARGV[0]; }
 
-if (!$router_id) {
-    db_log_error($dbh,"Router id not defined! Bye...");
-    exit 110;
-    }
+if (!$router_id) { exit 110; }
 
 my $fork_count = $cpu_count*10;
 
@@ -163,6 +160,7 @@ $lines_stats->{line}{user}=0;
 $lines_stats->{line}{free}=0;
 $lines_stats->{line}{unknown}=0;
 
+my @detail_traffic=();
 foreach my $line (@$lines) {
 my ($l_time,$l_proto,$l_src_ip,$l_dst_ip,$l_src_port,$l_dst_port,$l_packets,$l_bytes,$l_in_dev,$l_out_dev) = split(/;/,$line);
 
@@ -225,8 +223,8 @@ if ($user_ip) { $auth_id = $users->match_string($user_ip); } else { $auth_id = 0
 #save full packet
 if ($config_ref{save_detail})  {
     my @detail_array = ($auth_id,$router_id,$full_time,$l_proto,$l_src_ip_aton,$l_dst_ip_aton,$l_src_port,$l_dst_port,$l_bytes,$l_packets);
-    if ($auth_id and $user_stats{$user_ip}{save_traf}) { push(@{$lines_stats->{sql}},\@detail_array); }
-    if (!$auth_id and $config_ref{add_unknown_user}) { push(@{$lines_stats->{sql}},\@detail_array); }
+    if ($auth_id and $user_stats{$user_ip}{save_traf}) { push(@detail_traffic,\@detail_array); }
+    if (!$auth_id and $config_ref{add_unknown_user}) { push(@detail_traffic,\@detail_array); }
     }
 
 if ($auth_id) { next; }
@@ -256,9 +254,9 @@ if ($user_ip eq $l_src_ip) {
 
 db_log_debug($f_dbh,"Stopped child $child_count analyze data") if ($debug);
 
-if (scalar(@{$lines_stats->{sql}})) { 
-        db_log_debug($f_dbh,"Start write traffic detail to DB. ".scalar @{$lines_stats->{sql}}." lines count") if ($debug);
-	batch_db_sql_cached("INSERT INTO Traffic_detail (auth_id,router_id,timestamp,proto,src_ip,dst_ip,src_port,dst_port,bytes,pkt) VALUES(?,?,?,?,?,?,?,?,?,?)",\@{$lines_stats->{sql}});
+if (scalar(@detail_traffic)) {
+        db_log_debug($f_dbh,"Start write traffic detail to DB. ".scalar @detail_traffic." lines count") if ($debug);
+	batch_db_sql_cached("INSERT INTO Traffic_detail (auth_id,router_id,timestamp,proto,src_ip,dst_ip,src_port,dst_port,bytes,pkt) VALUES(?,?,?,?,?,?,?,?,?,?)",\@detail_traffic);
         db_log_debug($f_dbh,"Write traffic detail to DB stopped") if ($debug);
 	}
 

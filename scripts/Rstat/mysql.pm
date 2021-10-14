@@ -260,7 +260,7 @@ sub init_db {
 # Create new database handle. If we can't connect, die()
 my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS");
 if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
-$db->do('SET NAMES utf8');
+$db->do('SET NAMES utf8mb4');
 $db->{mysql_auto_reconnect} = 1;
 return $db;
 }
