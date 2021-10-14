@@ -221,6 +221,7 @@ sub init_db {
 my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS");
 if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
 $db->do('SET NAMES utf8');
+$db->{mysql_auto_reconnect} = 1;
 return $db;
 }
 
