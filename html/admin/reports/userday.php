@@ -26,11 +26,11 @@ $user=get_record_sql($db_link,'SELECT * FROM User_list WHERE id='.$id);
 <br>
 <table class="data" width='100%'>
 <tr align="center">
-<td class="data"><b><?php echo userinfo2;  ?></b></td>
+<td class="data"><b><?php print $title_ip; ?></b></td>
 <td class="data"><b> Gateway </b></td>
-<td class="data"><b><?php echo userinfo10; ?></b></td>
-<td class="data"><b><?php echo userinfo7; ?></b></td>
-<td class="data"><b><?php echo userinfo8; ?></b></td>
+<td class="data"><b><?php print $title_date; ?></b></td>
+<td class="data"><b><?php print $title_input; ?></b></td>
+<td class="data"><b><?php print $title_output; ?></b></td>
 </tr>
 
 <?php
@@ -102,7 +102,7 @@ while ($row = mysqli_fetch_array($usersip)) {
             $sum_out += $uout;
         }
         print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-        print "<td class=\"data\"><b>" . userinfo9 . "</b></td>\n";
+        print "<td class=\"data\"><b>" . $title_sum . "</b></td>\n";
         print "<td class=\"data\"><b> </b></td>\n";
         print "<td class=\"data\"><b> </b></td>\n";
         print "<td class=\"data\"><b>" . fbytes($sum_in) . "</b></td>\n";
@@ -115,6 +115,7 @@ while ($row = mysqli_fetch_array($usersip)) {
 if ($ipcount > 1) {
     print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\"><b> Итого </b></td>\n";
+    print "<td class=\"data\"><b> </b></td>\n";
     print "<td class=\"data\"><b> </b></td>\n";
     print "<td class=\"data\"><b>" . fbytes($itog_in) . "</b></td>\n";
     print "<td class=\"data\"><b>" . fbytes($itog_out) . "</b></td>\n";

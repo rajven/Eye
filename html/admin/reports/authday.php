@@ -30,11 +30,11 @@ print " для адреса <a href=../users/editauth.php?id=$id>".$auth['ip']."
 <table class="data" width=700>
 <tr align="center">
 <td class="data"><b> Gateway </b></td>
-<td class="data"><b><?php echo userinfo10; ?></b></td>
-<td class="data"><b><?php echo userinfo7; ?></b></td>
-<td class="data"><b><?php echo userinfo8; ?></b></td>
-<td class="data"><b><?php print 'Max IN, pkt/s'; ?></b></td>
-<td class="data"><b><?php print 'Max OUT, pkt/s'; ?></b></td>
+<td class="data"><b><?php print $title_date; ?></b></td>
+<td class="data"><b><?php print $title_input; ?></b></td>
+<td class="data"><b><?php print $title_output; ?></b></td>
+<td class="data"><b><?php print $title_maxpktin; ?></b></td>
+<td class="data"><b><?php print $title_maxpktout; ?></b></td>
 </tr>
 <?php
 

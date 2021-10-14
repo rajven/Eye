@@ -23,6 +23,17 @@ $title_filters = "Фильтры";
 $title_shapers = "Шейперы";
 $title_devices = "Инфраструктура";
 
+/* traffic headers */
+$title_ip = "Адрес";
+$title_date = "Дата";
+$title_input = "Входящий";
+$title_output = "Исходящий";
+$title_pktin = "IN, pkt/s";
+$title_pktout = "OUT, pkt/s";
+$title_maxpktin = "Max IN, pkt/s";
+$title_maxpktout = "Max OUT, pkt/s";
+$title_sum = "Суммарно";
+
 /* table cell names */
 $cell_login = "Логин";
 $cell_fio = "ФИО";
