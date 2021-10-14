@@ -23,6 +23,7 @@ our @ISA = qw(Exporter);
 
 our @EXPORT = qw(
 batch_db_sql
+batch_db_sql_cached
 db_log_warning
 db_log_debug
 db_log_error
@@ -121,7 +122,6 @@ my $sth;
 if (ref($batch_sql) eq 'ARRAY') {
     foreach my $sSQL (@$batch_sql) {
         next if (!$sSQL);
-        print "$sSQL\n";
         $sth = $db->prepare($sSQL);
         $sth->execute;
         $apply = 1;
@@ -137,6 +137,34 @@ if (ref($batch_sql) eq 'ARRAY') {
     }
 if ($apply) { $sth->finish; }
 $db->{AutoCommit} = 1;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub batch_db_sql_cached {
+
+my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 1, AutoCommit => 0 });
+if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
+$db->do('SET NAMES utf8');
+$db->{mysql_auto_reconnect} = 1;
+
+my $table= shift;
+my $batch_sql=shift;
+
+return if (!$db);
+if (ref($batch_sql) eq 'ARRAY') {
+    my $sth = $dbh->prepare_cached($table);
+    db_log_debug($db,"Start prepare data");
+    foreach my $sSQL (@$batch_sql) {
+        next if (!$sSQL);
+        $sth->execute(@$sSQL);
+        }
+    db_log_debug($db,"End prepare data");
+    }
+db_log_debug($db,"Start commit");
+$db->commit();
+db_log_debug($db,"End commit");
+$db->disconnect();
 }
 
 #---------------------------------------------------------------------------------------------------------------
