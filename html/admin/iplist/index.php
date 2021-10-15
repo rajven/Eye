@@ -74,6 +74,7 @@ if ($enabled>0) {
 
 if (isset($_POST['ip'])) { $f_ip = $_POST['ip']; }
 if (!isset($f_ip) and isset($_SESSION[$page_url]['ip'])) { $f_ip=$_SESSION[$page_url]['ip']; }
+if (!isset($f_ip)) { $f_ip=''; }
 $_SESSION[$page_url]['ip']=$f_ip;
 
 $ip_where = '';

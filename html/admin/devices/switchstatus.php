@@ -77,12 +77,12 @@ if ($switch['snmp_version']>0) {
 	    global $cisco_modules;
             if ($switch['snmp_version'] == 2) {
 	        $modules_oids = snmp2_real_walk($switch['ip'], $switch['community'], $cisco_modules);
-	    }
+	        }
             if ($switch['snmp_version'] == 1) {
 	        $modules_oids = snmprealwalk($switch['ip'], $switch['community'], $cisco_modules);
+	        }
 	    }
-	}
-    } else { $snmp_ok = 0; }
+        } else { $snmp_ok = 0; }
 
     print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
     print "<tr>\n";

@@ -480,16 +480,18 @@ function print_loglevel_select($item_name, $value)
 function reencodeurl($url) {
 $url_arr = explode('?', $url);
 $fpage = $url_arr[0];
-$params = $url_arr[1];
-$params_arr = explode('&', $params);
-$new_params = '';
-foreach ($params_arr as $row) {
-    $param = explode ('=',$row);
-    $key = $param[0]; 
-    $value = urlencode(urldecode($param[1]));
-    $new_params.="&".$key."=".$value;
-    }
-$new_params = preg_replace('/^&/','',$new_params);
+if (isset($url_arr[1])) {
+    $params = $url_arr[1];
+    $params_arr = explode('&', $params);
+    $new_params = '';
+    foreach ($params_arr as $row) {
+        $param = explode ('=',$row);
+        $key = $param[0]; 
+        $value = urlencode(urldecode($param[1]));
+        $new_params.="&".$key."=".$value;
+        }
+    $new_params = preg_replace('/^&/','',$new_params);
+    } else { $new_params='='; }
 if ($new_params === '=') { $new_url = $fpage; } else { $new_url = $fpage."?".$new_params; }
 return $new_url;
 }
@@ -1099,7 +1101,7 @@ function get_device_by_auth($db, $id)
 {
     $d_sql = "SELECT id FROM devices WHERE user_id=$id and deleted=0";
     $f_dev = get_record_sql($db,$d_sql);
-    return $f_dev[id];
+    return $f_dev['id'];
 }
 
 function print_auth_port($db, $port_id)
@@ -2242,7 +2244,7 @@ function get_port_poe_state($vendor_id, $port, $ip, $community, $version)
 
     $result = '';
     $c_state = get_snmp($ip, $community, $version, $poe_status);
-    if (isset($c_state)) {
+    if (!empty($c_state)) {
         list ($pattern, $p_state) = explode(':', $c_state);
         if ($vendor_id == 9) {
             if ($p_state == 1) {
@@ -2829,6 +2831,7 @@ function get_record_sql($db, $sql)
         return;
     }
     $record = mysqli_query($db, $sql." LIMIT 1");
+    $result = NULL;
     if ($rec = mysqli_fetch_array($record, MYSQLI_ASSOC)) {
         foreach ($rec as $key => $value) {
 	    if (! isset($value) or $value==='NULL') { $value = ''; }
@@ -3071,7 +3074,7 @@ function get_cacti_graph($host_ip, $port_index)
 
     $host_sql = 'SELECT id FROM host Where hostname="' . $host_ip . '"';
     $tmpArray = mysqli_fetch_array(mysqli_query($cacti_db_link, $host_sql), MYSQLI_ASSOC);
-    if (sizeof($tmpArray)) {
+    if (isset($tmpArray) and sizeof($tmpArray)) {
         foreach ($tmpArray as $key => $value) {
             if ($key == 'id') {
                 $host_id = $value;
@@ -3083,7 +3086,7 @@ function get_cacti_graph($host_ip, $port_index)
 
     $graph_sql = 'SELECT id FROM graph_local Where graph_template_id=2 and host_id="' . $host_id . '" and snmp_index="' . $port_index . '"';
     $tmpArray = mysqli_fetch_array(mysqli_query($cacti_db_link, $graph_sql), MYSQLI_ASSOC);
-    if (sizeof($tmpArray)) {
+    if (isset($tmpArray) and sizeof($tmpArray)) {
         foreach ($tmpArray as $key => $value) {
             if ($key == 'id') {
                 $graph_id = $value;

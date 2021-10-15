@@ -33,6 +33,7 @@ $title_pktout = "OUT, pkt/s";
 $title_maxpktin = "Max IN, pkt/s";
 $title_maxpktout = "Max OUT, pkt/s";
 $title_sum = "Суммарно";
+$title_itog = "Итого";
 
 /* table cell names */
 $cell_login = "Логин";

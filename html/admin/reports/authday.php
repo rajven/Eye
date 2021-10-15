@@ -79,7 +79,7 @@ while (list ($u_router_id, $udata, $uin, $uout, $pin, $pout) = mysqli_fetch_arra
     $sum_out += $uout;
 }
 print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-print "<td class=\"data\"><b>" . userinfo9 . "</b></td>\n";
+print "<td class=\"data\"><b>" . $title_itog . "</b></td>\n";
 print "<td class=\"data\"><b> </b></td>\n";
 print "<td class=\"data\"><b>" . fbytes($sum_in) . "</b></td>\n";
 print "<td class=\"data\"><b>" . fbytes($sum_out) . "</b></td>\n";
