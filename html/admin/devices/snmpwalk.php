@@ -15,9 +15,17 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 <?php
 $dev_info = get_record($db_link,'devices','id='.$id);
 $interfaces = get_snmp_interfaces($dev_info['ip'], $dev_info['community'], $dev_info['snmp_version']);
-print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
+global $sysinfo_mib;
+$dev_info = walk_snmp($dev_info['ip'], $dev_info['community'], $dev_info['snmp_version'],$sysinfo_mib);
+foreach ($dev_info as $key => $value) {
+list ($v_type,$v_data)=explode(':',$value);
+$v_clean = preg_replace('/\s/', '', $v_data);
+if (empty($v_clean)) { continue; }
+print "$v_data<br>";
+}
+print "<table  class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
 print "<tr><td><b>Snmp interfaces</b></td></tr>\n";
-foreach ($interfaces as $key => $int) { print "<tr><td>$key => $int</td></tr>"; }
+foreach ($interfaces as $key => $int) { print "<tr><td class=\"data\">$key => $int</td></tr>"; }
 print "</table>\n";
 ?>
 </div>

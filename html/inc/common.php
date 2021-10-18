@@ -61,6 +61,8 @@ $mikrotik_poe_current = '.1.3.6.1.4.1.14988.1.1.15.1.1.5';
 // power usage in dW (deviwatt)
 $mikrotik_poe_usage = '.1.3.6.1.4.1.14988.1.1.15.1.1.6';
 
+$sysinfo_mib = '.1.3.6.1.2.1.1';
+
 $L_ERROR = 0;
 $L_WARNING = 1;
 $L_INFO = 2;
