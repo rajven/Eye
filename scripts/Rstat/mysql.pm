@@ -146,6 +146,8 @@ sub batch_db_sql_cached {
 
 my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 0 });
 if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
+$db->do('SET NAMES utf8mb4');
+$db->{'mysql_enable_utf8'} = 1;
 $db->{mysql_auto_reconnect} = 1;
 my $table= shift;
 my $batch_sql=shift;
@@ -253,6 +255,8 @@ sub init_db {
 # Create new database handle. If we can't connect, die()
 my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 1 });
 if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
+$db->do('SET NAMES utf8mb4');
+$db->{'mysql_enable_utf8'} = 1;
 $db->{mysql_auto_reconnect} = 1;
 return $db;
 }

@@ -117,7 +117,7 @@ WHERE A.user_id = L.id and A.filter_group_id = G.id and Q.id = A.queue_id AND A.
 my $status = '';
 eval {
 if ( !defined $dbh ) { return "Cannot connect to mySQL server: $DBI::errstr\n"; }
-$dbh->do('SET NAMES utf8');
+$dbh->do('SET NAMES utf8mb4');
 $dbh->{'mysql_enable_utf8'} = 1;
 my $sth = $dbh->prepare($SQL);
 $sth->execute;
