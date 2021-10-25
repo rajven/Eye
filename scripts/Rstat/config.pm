@@ -258,19 +258,19 @@ our $tftp_server=$Config->{_}->{tftp_server} || '';
 our $last_refresh_config = time();
 
 our %switch_auth = (
-'8'=>{'vendor'=>'Allied Telesis','enable'=>'en','proto'=>'telnet','login'=> '(login|User Name):','password'=>'Password:','prompt'=>qr/(\010\013){0,5}(([-\w]+|[-\w(config)+])\#|[-\w]+\>)/},
-'3'=>{'vendor'=>'Huawei','proto'=>'ssh','enable'=>'system-view','login'=> 'login as:','password'=>'Password: ','prompt'=>qr/(\<.*\>|\[.*\])/},
-'16'=>{'vendor'=>'Cisco','proto'=>'telnet','enable'=>'en','login'=> 'Username:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
-'5'=>{'vendor'=>'Raisecom','proto'=>'telnet','enable'=>'en','login'=> 'Login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
-'6'=>{'vendor'=>'SNR','proto'=>'telnet','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
-'7'=>{'vendor'=>'Dlink','proto'=>'telnet','login'=> 'UserName:','password'=>'PassWord:','prompt'=>qr/[-\w]+\#$/},
-#'15'=>{'vendor'=>'HP','proto'=>'telnet','enable'=>'system-view','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
-'2'=>{'vendor'=>'Eltex','proto'=>'telnet','login'=> 'User Name:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
-'17'=>{'vendor'=>'Maipu','proto'=>'telnet','login'=> 'login:','password'=>'password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
-'4'=>{'vendor'=>'Zyxel','proto'=>'telnet','login'=> 'User name:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+]|[-\w(config-interface)+])\#/},
-'38'=>{'vendor'=>'Qtech','proto'=>'telnet','enable'=>'en','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
-'9'=>{'vendor'=>'Mikrotik','proto'=>'telnet','login'=> 'Login:','password'=>'Password:','prompt'=>qr/\[[-\w]+\@[-\w]+\]\s+\>/},
-'39'=>{'vendor'=>'Extreme','proto'=>'telnet','login'=> 'login:','password'=>'password:','prompt'=>qr/[-\w]+\s\#\s/},
+'8'=>{'vendor'=>'Allied Telesis','enable'=>'en','proto'=>'telnet','port'=>'23','login'=> '(login|User Name):','password'=>'Password:','prompt'=>qr/(\010\013){0,5}(([-\w]+|[-\w(config)+])\#|[-\w]+\>)/},
+'3'=>{'vendor'=>'Huawei','proto'=>'ssh','port'=>'22','enable'=>'system-view','login'=> 'login as:','password'=>'Password: ','prompt'=>qr/(\<.*\>|\[.*\])/},
+'16'=>{'vendor'=>'Cisco','proto'=>'telnet','port'=>'23','enable'=>'en','login'=> 'Username:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'5'=>{'vendor'=>'Raisecom','proto'=>'telnet','port'=>'23','enable'=>'en','login'=> 'Login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'6'=>{'vendor'=>'SNR','proto'=>'telnet','port'=>'23','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'7'=>{'vendor'=>'Dlink','proto'=>'telnet','port'=>'23','login'=> 'UserName:','password'=>'PassWord:','prompt'=>qr/[-\w]+\#$/},
+#'15'=>{'vendor'=>'HP','proto'=>'telnet','port'=>'23','enable'=>'system-view','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'2'=>{'vendor'=>'Eltex','proto'=>'telnet','port'=>'23','login'=> 'User Name:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'17'=>{'vendor'=>'Maipu','proto'=>'telnet','port'=>'23','login'=> 'login:','password'=>'password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'4'=>{'vendor'=>'Zyxel','proto'=>'telnet','port'=>'23','login'=> 'User name:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+]|[-\w(config-interface)+])\#/},
+'38'=>{'vendor'=>'Qtech','proto'=>'telnet','port'=>'23','enable'=>'en','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'9'=>{'vendor'=>'Mikrotik','proto'=>'ssh','port'=>'60022','login'=> 'login as:','password'=>'password:','prompt'=>qr/\[[-\w]+\@[-\w]+\]\s+\>/},
+'39'=>{'vendor'=>'Extreme','proto'=>'telnet','port'=>'23','login'=> 'login:','password'=>'password:','prompt'=>qr/[-\w]+\s\#\s/},
 );
 
 mkdir $LOG_DIR unless (-d $LOG_DIR);

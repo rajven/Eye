@@ -259,7 +259,7 @@ my $device = shift;
 #router
 if ($device->{device_type} eq '2') {
     #mikrotik
-    if ($device->{vendor_id} eq '9') { $device->{port}=$config_ref{router_port}; }
+#    if ($device->{vendor_id} eq '9') { $device->{port}=$config_ref{router_port}; }
     $device->{login}=$config_ref{router_login};
     $device->{password}=$config_ref{router_password};
     }
@@ -280,12 +280,13 @@ my $device = shift;
 #skip unknown vendor
 if (!$switch_auth{$device->{vendor_id}}) { return; }
 if (!$switch_auth{$device->{vendor_id}}{proto}) { $switch_auth{$device->{vendor_id}}{proto} = 'telnet'; }
+if (!$device->{port} and $switch_auth{$device->{vendor_id}}{port}) { $device->{port} = $switch_auth{$device->{vendor_id}}{port}; }
 
 my $t;
 
 if ($switch_auth{$device->{vendor_id}}{proto} eq 'telnet') {
     if (!$device->{port}) { $device->{port} = '23'; }
-    log_info("Try login to $device->{device_name} ip: $device->{ip} by telnet...");
+    log_info("Try login to $device->{device_name} $device->{ip}:$device->{port} by telnet...");
 
     #zyxel patch
     if ($device->{vendor_id} eq '4') {
@@ -338,7 +339,7 @@ if ($switch_auth{$device->{vendor_id}}{proto} eq 'telnet') {
 
 if ($switch_auth{$device->{vendor_id}}{proto} eq 'ssh') {
     if (!$device->{port}) { $device->{port} = '22'; }
-    log_info("Try login to $device->{device_name} ip: $device->{ip} by ssh...");
+    log_info("Try login to $device->{device_name} $device->{ip}:$device->{port} by ssh...");
     eval {
         $t  = Net::SSH::Expect->new (
             host=>$device->{ip},
@@ -371,43 +372,43 @@ if ($switch_auth{$device->{vendor_id}}{proto} eq 'ssh') {
         if ($rc !~ /$switch_auth{$device->{vendor_id}}{prompt}/) { return; }
 
         if (exists $switch_auth{$device->{vendor_id}}{enable}) {
-            $t->send($switch_auth{$device->{vendor_id}}{enable}."\n");
+            $t->send($switch_auth{$device->{vendor_id}}{enable}."\n\r");
 #            $t->print($device->{enable_password});
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
             }
 
         if ($device->{vendor_id} eq '2') {
-            $t->send("terminal datadump");
+            $t->send("terminal datadump\n\r");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
-            $t->send("no logging console");
+            $t->send("no logging console\n\r");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
             }
         if ($device->{vendor_id} eq '5') {
-            $t->send("terminal page-break disable");
+            $t->send("terminal page-break disable\n\r");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
             }
         if ($device->{vendor_id} eq '6') {
-            $t->send("terminal length 0");
+            $t->send("terminal length 0\n\r");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
             }
         if ($device->{vendor_id} eq '9') {
-            $t->send("/system note set show-at-login=no");
+            $t->send("/system note set show-at-login=no\n\r");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
             }
         if ($device->{vendor_id} eq '16') {
-            $t->send("terminal width 0");
+            $t->send("terminal width 0\n\r");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
             }
         if ($device->{vendor_id} eq '17') {
-            $t->send("more displine 50");
+            $t->send("more displine 50\n\r");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
-            $t->send("more off");
+            $t->send("more off\n\r");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
             }
         if ($device->{vendor_id} eq '38') {
-            $t->send("disable cli prompting");
+            $t->send("disable cli prompting\n\r");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
-            $t->send("disable clipaging");
+            $t->send("disable clipaging\n\r");
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
             }
         };
@@ -445,14 +446,21 @@ if ($proto eq 'ssh') {
             if ($run_cmd =~ /SLEEP\s+(\d+)/i) { log_session('WAIT:'." $1 sec."); sleep($1); } else { log_session('WAIT:'." 10 sec."); sleep(10); };
             next;
             }
-        log_session('Send:'.$cmd);
-        $session->send($cmd."\n");
-        my $line;
-        while ( defined ($line = $session->read_line()) ) { push(@result,$line); }
+        log_session('Send:'.$run_cmd);
+        $session->send($run_cmd."\n\r");
+        my $chunk;
+        while ($chunk = $session->peek(1)) {
+            my $ret =$session->eat($chunk);
+            if (ref($ret) eq 'ARRAY') {
+                push(@result,@{$ret});
+                } else {
+                my @norm_text = split(/\n/,$ret);
+                foreach my $row (@norm_text) { push(@result,trim($row)); }
+                }
+            }
         select(undef, undef, undef, 0.25);
-        $session->waitfor($switch_auth{$device->{vendor_id}}{prompt}, 1);
         }
-    log_session('Get:'.Dumper(\@result));
+#    log_session('Get:'.Dumper(\@result));
     };
     if ($@) { log_error("Abort: $@"); return 0; };
     }

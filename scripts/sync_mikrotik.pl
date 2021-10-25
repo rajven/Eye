@@ -21,8 +21,6 @@ use Date::Parse;
 use Rstat::net_utils;
 use Rstat::mysql;
 use DBI;
-use utf8;
-use open ":encoding(utf8)";
 use Fcntl qw(:flock);
 use Parallel::ForkManager;
 
@@ -91,17 +89,17 @@ if ($l3->{'interface_type'} eq '1') { push(@wan_int,$l3->{'name'}); }
 my @cmd_list=();
 
 $gate = netdev_set_auth($gate);
-
+$gate->{login}.='+ct400w';
 my $t = netdev_login($gate);
-
-log_cmd4($t,"/system note set show-at-login=no");
 
 foreach my $int (@lan_int) { #interface dhcp loop
 next if (!$int);
 $int=trim($int);
 
 #get ip addr at interface
-my @int_addr=log_cmd4($t,'/ip address print terse without-paging where interface='.$int);
+my @int_addr=netdev_cmd($gate,$t,'ssh','/ip address print terse without-paging where interface='.$int,1);
+
+#print Dumper(\@int_addr);
 
 my $found_subnet;
 foreach my $int_str(@int_addr) {
@@ -128,7 +126,9 @@ db_log_verbose($dbh,"Analyze interface $int. Found: ".Dumper($dhcp_conf{$found_s
 if ($gate->{dhcp}) {
 
 #fetch current dhcp records
-my @ret_static_leases=log_cmd4($t,'/ip dhcp-server lease print terse without-paging where server=dhcp-'.$int);
+my @ret_static_leases=netdev_cmd($gate,$t,'ssh','/ip dhcp-server lease print terse without-paging where server=dhcp-'.$int,1);
+
+#print Dumper(\@ret_static_leases);
 
 my @current_static_leases=();
 foreach my $str (@ret_static_leases) {
@@ -361,7 +361,9 @@ $index++;
 my %cur_users;
 
 foreach my $group_name (keys %lists) {
-my @address_lists=log_cmd4($t,'/ip firewall address-list print terse without-paging where list='.$group_name);
+my @address_lists=netdev_cmd($gate,$t,'ssh','/ip firewall address-list print terse without-paging where list='.$group_name,1);
+
+#print Dumper(\@address_lists);
 
 foreach my $row (@address_lists) {
     $row=trim($row);
@@ -398,7 +400,9 @@ timestamp;
 #sync firewall rules
 
 #sync group chains
-my @chain_list=log_cmd4($t,'/ip firewall filter  print terse without-paging where chain=Users and action=jump');
+my @chain_list=netdev_cmd($gate,$t,'ssh','/ip firewall filter  print terse without-paging where chain=Users and action=jump',1);
+
+#print Dumper(\@chain_list);
 
 my %cur_chain;
 foreach my $jump_list (@chain_list) {
@@ -475,7 +479,9 @@ foreach my $group_name (keys %group_filters) {
 
 next if (!$group_name);
 
-my @get_filter=log_cmd4($t,'/ip firewall filter print terse without-paging where chain='.$group_name,1);
+my @get_filter=netdev_cmd($gate,$t,'ssh','/ip firewall filter print terse without-paging where chain='.$group_name,1);
+
+#print Dumper(\@get_filter);
 
 my @cur_filter=();
 my $chain_ok=1;
@@ -534,7 +540,10 @@ my %get_queue_type=();
 my %get_queue_tree=();
 my %get_filter_mangle=();
 
-my @tmp=log_cmd4($t,'/queue type print terse without-paging where name~"pcq_(down|up)load"');
+my @tmp=netdev_cmd($gate,$t,'ssh','/queue type print terse without-paging where name~"pcq_(down|up)load"',1);
+
+#print Dumper(\@tmp);
+
 # 0   name=pcq_upload_3 kind=pcq pcq-rate=102401k pcq-limit=500KiB pcq-classifier=src-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s 
 #pcq-src-address-mask=32 pcq-dst-address-mask=32 pcq-src-address6-mask=64 pcq-dst-address6-mask=64
 foreach my $row (@tmp) {
@@ -561,7 +570,9 @@ if ($row=~/name=pcq_(down|up)load_(\d){1,3}\s+/i) {
 }
 
 @tmp=();
-@tmp=log_cmd4($t,'/queue tree print terse without-paging where parent~"(download|upload)_root"');
+@tmp=netdev_cmd($gate,$t,'ssh','/queue tree print terse without-paging where parent~"(download|upload)_root"',1);
+
+#print Dumper(\@tmp);
 # 0 I name=queue_3_out parent=upload_root packet-mark=upload_3 limit-at=0 queue=*2A priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1
 # 5 I name=queue_3_vlan2_in parent=download_root_vlan2 packet-mark=download_3_vlan2 limit-at=0 queue=*2B priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1
 foreach my $row (@tmp) {
@@ -596,7 +607,9 @@ if ($row=~/queue=pcq_(down|up)load_(\d){1,3}/i) {
 
 @tmp=();
 
-@tmp=log_cmd4($t,'/ip firewall mangle print terse without-paging where action=mark-packet and new-packet-mark~"(upload|download)_[0-9]{1,3}"');
+@tmp=netdev_cmd($gate,$t,'ssh','/ip firewall mangle print terse without-paging where action=mark-packet and new-packet-mark~"(upload|download)_[0-9]{1,3}"',1);
+
+#print Dumper(\@tmp);
 # 0    chain=forward action=mark-packet new-packet-mark=upload_0 passthrough=yes src-address-list=queue_0 out-interface=sfp-sfpplus1-wan log=no log-prefix=""
 # 0    chain=forward action=mark-packet new-packet-mark=download_3_vlan2 passthrough=yes dst-address-list=queue_3 out-interface=vlan2 in-interface-list=WAN log=no log-prefix=""
 
@@ -730,11 +743,9 @@ if (!$queue_ok) {
 }#end access lists config
 
 if (scalar(@cmd_list)) {
-    foreach my $cmd (@cmd_list) {
-	log_info("$cmd");
-#	print "$cmd\n" if ($debug);
-        log_cmd($t,$cmd);
-        }
+    print "Apply:\n" if ($debug);
+    foreach my $cmd (@cmd_list) { print "$cmd\n" if ($debug); }
+    netdev_cmd($gate,$t,'ssh',\@cmd_list,1);
     }
 
 db_log_verbose($dbh,"Sync user state at router $router_name [".$router_ip."] stopped.");
