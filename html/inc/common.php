@@ -517,6 +517,7 @@ print_submenu_url('Журнал работы ','/admin/logs/index.php',$current_
 print_submenu_url('Приключения маков','/admin/logs/mac.php',$current_page,0);
 print_submenu_url('История ip-адресов','/admin/logs/ip.php',$current_page,0);
 print_submenu_url('Неизвестные','/admin/logs/unknown.php',$current_page,0);
+print_submenu_url('Трафик','/admin/logs/detaillog.php',$current_page,0);
 print_submenu_url('syslog','/admin/logs/syslog.php',$current_page,1);
 print "</div>\n";
 }
@@ -1117,6 +1118,15 @@ function print_auth_port($db, $port_id)
         }
         print "<a href=\"/admin/users/editauth.php?id=$f_auth_id\">" . $name . " [" . $f_ip . "]</a><br>";
     }
+}
+
+function print_auth_simple($db, $auth_id)
+{
+    $auth = get_record($db,"User_auth","id=$auth_id");
+    $name = $auth['dns_name'];
+    if (empty($name)) { $name = $auth['comments']; } 
+    if (empty($name)) { $name = $auth['ip']; } 
+    print "<a href=\"/admin/users/editauth.php?id=$auth_id\">" . $name . "</a><br>";
 }
 
 function print_auth($db, $auth_id)

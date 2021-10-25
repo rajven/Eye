@@ -24,8 +24,11 @@ if (empty($v_clean)) { continue; }
 print "$v_data<br>";
 }
 print "<table  class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
-print "<tr><td><b>Snmp interfaces</b></td></tr>\n";
-foreach ($interfaces as $key => $int) { print "<tr><td class=\"data\">$key => $int</td></tr>"; }
+print "<tr><td><b>Interface index</b></td><td><b>Interface name</b></td></tr>\n";
+foreach ($interfaces as $key => $int) { 
+list ($v_type,$v_data)=explode(':',$int);
+print "<tr><td class=\"data\">$key</td><td class=\"data\"> $v_data</td></tr>"; 
+}
 print "</table>\n";
 ?>
 </div>
