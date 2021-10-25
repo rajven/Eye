@@ -25,6 +25,8 @@ use Fcntl qw(:flock);
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
+binmode(STDOUT,':utf8');
+
 setpriority(0,0,19);
 
 my %dhcp_conf;
