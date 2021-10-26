@@ -269,7 +269,7 @@ our %switch_auth = (
 '17'=>{'vendor'=>'Maipu','proto'=>'telnet','port'=>'23','login'=> 'login:','password'=>'password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
 '4'=>{'vendor'=>'Zyxel','proto'=>'telnet','port'=>'23','login'=> 'User name:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+]|[-\w(config-interface)+])\#/},
 '38'=>{'vendor'=>'Qtech','proto'=>'telnet','port'=>'23','enable'=>'en','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
-'9'=>{'vendor'=>'Mikrotik','proto'=>'ssh','port'=>'60022','login'=> 'login as:','password'=>'password:','prompt'=>qr/\[[-\w]+\@[-\w]+\]\s+\>/},
+'9'=>{'vendor'=>'Mikrotik','proto'=>'ssh','port'=>'22','login'=> 'login as:','password'=>'password:','prompt'=>qr/\[[-\w]+\@[-\w]+\]\s+\>/},
 '39'=>{'vendor'=>'Extreme','proto'=>'telnet','port'=>'23','login'=> 'login:','password'=>'password:','prompt'=>qr/[-\w]+\s\#\s/},
 );
 

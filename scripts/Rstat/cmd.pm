@@ -259,14 +259,14 @@ my $device = shift;
 #router
 if ($device->{device_type} eq '2') {
     #mikrotik
-#    if ($device->{vendor_id} eq '9') { $device->{port}=$config_ref{router_port}; }
+    if ($device->{vendor_id} eq '9') { $device->{port}=$config_ref{router_port}; }
     $device->{login}=$config_ref{router_login};
     $device->{password}=$config_ref{router_password};
     }
 #switch
 if ($device->{device_type} eq '1' or $device->{vendor_id} eq '3') {
     #mikrotik
-    if ($device->{vendor_id} eq '9') { $device->{port}=$config_ref{router_port}; }
+#    if ($device->{vendor_id} eq '9') { $device->{port}=$config_ref{router_port}; }
     $device->{login}=$sw_login;
     $device->{password}=$sw_password;
     }
