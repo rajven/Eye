@@ -99,7 +99,7 @@ $int=trim($int);
 #get ip addr at interface
 my @int_addr=netdev_cmd($gate,$t,'ssh','/ip address print terse without-paging where interface='.$int,1);
 
-#print Dumper(\@int_addr);
+log_debug("Get interfaces: ".Dumper(\@int_addr));
 
 my $found_subnet;
 foreach my $int_str(@int_addr) {
@@ -128,7 +128,7 @@ if ($gate->{dhcp}) {
 #fetch current dhcp records
 my @ret_static_leases=netdev_cmd($gate,$t,'ssh','/ip dhcp-server lease print terse without-paging where server=dhcp-'.$int,1);
 
-#print Dumper(\@ret_static_leases);
+log_debug("Get dhcp leases:".Dumper(\@ret_static_leases));
 
 my @current_static_leases=();
 foreach my $str (@ret_static_leases) {
@@ -211,7 +211,7 @@ if ($tmp_lease{acl}) {
     }
 }
 
-if ($debug) {  log_debug("Active leases: ".Dumper(\%active_leases)); }
+log_debug("Active leases: ".Dumper(\%active_leases));
 
 #sync state
 foreach my $ip (keys %active_leases) {
@@ -317,6 +317,8 @@ $lists{'group_'.$row->{filter_group_id}}=1;
 if ($row->{queue_id}) { $users{'queue_'.$row->{queue_id}}->{$row->{ip}}=1; }
 }
 
+log_debug("Users status:".Dumper(\%users));
+
 #full list
 $lists{'group_all'}=1;
 
@@ -332,7 +334,7 @@ $queues{'queue_'.$row->{id}}{down}=$row->{Download};
 $queues{'queue_'.$row->{id}}{up}=$row->{Upload};
 }
 
-#print Dumper(\%users) if ($debug);
+log_debug("Queues status:".Dumper(\%queues));
 
 my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM Filter_list where type=0");
 
@@ -345,7 +347,7 @@ $filters{$row->{id}}->{port}=$row->{dstport};
 $filters{$row->{id}}->{action}=$row->{action};
 }
 
-#print Dumper(\%filters) if ($debug);
+log_debug("Filters status:". Dumper(\%filters));
 
 my @grouplist_ref = get_records_sql($dbh,"SELECT group_id,filter_id,Group_filters.order FROM Group_filters order by Group_filters.group_id,Group_filters.order");
 
@@ -356,14 +358,14 @@ $group_filters{'group_'.$row->{group_id}}->{$index}=$row->{filter_id};
 $index++;
 }
 
-#print Dumper(\%group_filters) if ($debug);
+log_debug("Group filters: ".Dumper(\%group_filters));
 
 my %cur_users;
 
 foreach my $group_name (keys %lists) {
 my @address_lists=netdev_cmd($gate,$t,'ssh','/ip firewall address-list print terse without-paging where list='.$group_name,1);
 
-#print Dumper(\@address_lists);
+log_debug("Get address lists:".Dumper(\@address_lists));
 
 foreach my $row (@address_lists) {
     $row=trim($row);
@@ -402,7 +404,7 @@ timestamp;
 #sync group chains
 my @chain_list=netdev_cmd($gate,$t,'ssh','/ip firewall filter  print terse without-paging where chain=Users and action=jump',1);
 
-#print Dumper(\@chain_list);
+log_debug("Get firewall chains:".Dumper(\@chain_list));
 
 my %cur_chain;
 foreach my $jump_list (@chain_list) {
@@ -472,7 +474,7 @@ foreach my $filter_index (sort keys %{$group_filters{$group_name}}) {
     }
 }
 
-#print Dumper(\%chain_rules) if ($debug);
+log_debug("New chain rules:".Dumper(\%chain_rules));
 
 #chain filters
 foreach my $group_name (keys %group_filters) {
@@ -481,7 +483,7 @@ next if (!$group_name);
 
 my @get_filter=netdev_cmd($gate,$t,'ssh','/ip firewall filter print terse without-paging where chain='.$group_name,1);
 
-#print Dumper(\@get_filter);
+log_debug("Get chain $group_name:".Dumper(\@get_filter));
 
 my @cur_filter=();
 my $chain_ok=1;
@@ -542,7 +544,7 @@ my %get_filter_mangle=();
 
 my @tmp=netdev_cmd($gate,$t,'ssh','/queue type print terse without-paging where name~"pcq_(down|up)load"',1);
 
-#print Dumper(\@tmp);
+log_debug("Get queues: ".Dumper(\@tmp));
 
 # 0   name=pcq_upload_3 kind=pcq pcq-rate=102401k pcq-limit=500KiB pcq-classifier=src-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s 
 #pcq-src-address-mask=32 pcq-dst-address-mask=32 pcq-src-address6-mask=64 pcq-dst-address6-mask=64
@@ -571,6 +573,7 @@ if ($row=~/name=pcq_(down|up)load_(\d){1,3}\s+/i) {
 
 @tmp=();
 @tmp=netdev_cmd($gate,$t,'ssh','/queue tree print terse without-paging where parent~"(download|upload)_root"',1);
+log_debug("Get root queues: ".Dumper(\@tmp));
 
 #print Dumper(\@tmp);
 # 0 I name=queue_3_out parent=upload_root packet-mark=upload_3 limit-at=0 queue=*2A priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1
@@ -608,8 +611,8 @@ if ($row=~/queue=pcq_(down|up)load_(\d){1,3}/i) {
 @tmp=();
 
 @tmp=netdev_cmd($gate,$t,'ssh','/ip firewall mangle print terse without-paging where action=mark-packet and new-packet-mark~"(upload|download)_[0-9]{1,3}"',1);
+log_debug("Get firewall mangle rules for queues:".Dumper(\@tmp));
 
-#print Dumper(\@tmp);
 # 0    chain=forward action=mark-packet new-packet-mark=upload_0 passthrough=yes src-address-list=queue_0 out-interface=sfp-sfpplus1-wan log=no log-prefix=""
 # 0    chain=forward action=mark-packet new-packet-mark=download_3_vlan2 passthrough=yes dst-address-list=queue_3 out-interface=vlan2 in-interface-list=WAN log=no log-prefix=""
 
@@ -641,9 +644,9 @@ if ($row=~/new-packet-mark=download_(\d){1,3}_(\S*)\s+/i) {
     }
 }
 
-#print Dumper(\%get_queue_type) if ($debug);
-#print Dumper(\%get_queue_tree) if ($debug);
-#print Dumper(\%get_filter_mangle) if ($debug);
+log_debug("Queues type status:".Dumper(\%get_queue_type));
+log_debug("Queues tree status:".Dumper(\%get_queue_tree));
+log_debug("Firewall mangle status:".Dumper(\%get_filter_mangle));
 
 my %queue_type;
 my %queue_tree;
@@ -743,8 +746,8 @@ if (!$queue_ok) {
 }#end access lists config
 
 if (scalar(@cmd_list)) {
-    print "Apply:\n" if ($debug);
-    foreach my $cmd (@cmd_list) { print "$cmd\n" if ($debug); }
+    log_debug("Apply:");
+    if ($debug) { foreach my $cmd (@cmd_list) { log_debug("$cmd"); } }
     netdev_cmd($gate,$t,'ssh',\@cmd_list,1);
     }
 
