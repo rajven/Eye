@@ -3326,5 +3326,7 @@ function init_option($db)
 
 init_option($db_link);
 clean_dns_cache($db_link);
+snmp_set_valueretrieval(SNMP_VALUE_LIBRARY);
+snmp_set_enum_print(1);
 
 ?>
