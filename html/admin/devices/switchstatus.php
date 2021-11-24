@@ -72,8 +72,9 @@ print "<br>\n";
 print "<b>Состояние портов ".$switch['device_name']." - ".$switch['ip']."</b><br>\n";
 
 if ($switch['snmp_version']>0) {
-        $snmp_ok = check_snmp_access($switch['ip'], $switch['community'], $switch['snmp_version']);
-	if ($snmp_ok) {
+    $snmp_ok = check_snmp_access($switch['ip'], $switch['community'], $switch['snmp_version']);
+    $modules_oids = NULL;
+    if ($snmp_ok) {
 	    global $cisco_modules;
             if ($switch['snmp_version'] == 2) {
 	        $modules_oids = snmp2_real_walk($switch['ip'], $switch['community'], $cisco_modules);
@@ -82,7 +83,7 @@ if ($switch['snmp_version']>0) {
 	        $modules_oids = snmprealwalk($switch['ip'], $switch['community'], $cisco_modules);
 	        }
 	    }
-        } else { $snmp_ok = 0; }
+    } else { $snmp_ok = 0; }
 
     print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
     print "<tr>\n";
@@ -115,9 +116,9 @@ if ($switch['snmp_version']>0) {
         if (isset($switch['ip']) and ($switch['ip'] != '') and $snmp_ok) {
             $port_state_detail = get_port_state_detail($row['snmp_index'], $switch['ip'], $switch['community'], $switch['snmp_version'], $switch['fdb_snmp_index']);
             list ($poper, $padmin, $pspeed, $perrors) = explode(';', $port_state_detail);
-            if (preg_match('/up/i', $poper)) { $cl = "up";  }
-            if (preg_match('/down/i', $poper)) {
-                if (preg_match('/down/i', $padmin)) { $cl = "shutdown"; } else { $cl = "down"; }
+            if ($poper == 1 ) { $cl = "up";  }
+            if ($poper >= 2 ) {
+                if ($padmin >=2) { $cl = "shutdown"; } else { $cl = "down"; }
                 }
             }
 	print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=d_port_index[] value=".$row['snmp_index']." ></td>\n";
@@ -215,10 +216,10 @@ if ($switch['snmp_version']>0) {
         if (isset($padmin) and ! $row['uplink'] and ! $row['skip'] and ! $switch['is_router']) {
                 print "<td class=\"data\">";
                 if ($switch['vendor_id'] != 9) {
-                    if (preg_match('/down/i', $padmin)) {
+                    if ($padmin >=2) {
                         print "<button name='port_on[]' value='{$row['snmp_index']}'>Enable port</button>";
                 	}
-                    if (preg_match('/up/i', $padmin)) {
+                    if ($padmin ==1) {
                         print "<button name='port_off[]' value='{$row['snmp_index']}'>Shutdown port</button>";
                 	}
             	    } else {

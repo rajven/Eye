@@ -1,6 +1,8 @@
-Утсановка для CentOS 8:
+Установка
 
 1. Включаем дополнительные репозитории:
+
+для CentOS 8:
 
 yum install dnf-plugins-core
 yum config-manager --set-enabled powertools
@@ -9,11 +11,21 @@ dnf install epel-release elrepo-release
 
 2. Ставим пакеты:
 
+Centos:
+
 dnf install httpd php php-common perl mariadb-server git fping net-snmp-utils \
 php-mysqlnd php-bcmath php-intl php-mbstring php-pear-Date php-pear-Mail php-snmp perl-Net-Patricia \
 perl-NetAddr-IP perl-Config-Tiny perl-Net-DNS perl-DateTime perl-Proc-Daemon perl-Net-Netmask \
 perl-Text-Iconv perl-DateTime-Format-DateParse perl-Net-SNMP perl-Net-Telnet perl-Net-IPv4Addr \
-perl-DBI perl-DBD-MySQL perl-Parallel-ForkManager -y
+perl-DBI perl-DBD-MySQL perl-Net-OpenSSH perl-Parallel-ForkManager -y
+
+Ubuntu:
+apt install apache2 git fping perl mariadb-server php php-mysql php-bcmath php-intl \
+php-mbstring php-date php-mail php-snmp \
+libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
+libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl libdbi-perl \
+libdbd-mysql-perl libparallel-forkmanager-perl libproc-daemon-perl libdatetime-format-dateparse-perl \
+libnetwork-ipv4addr-perl libnet-openssh-perl
 
 3. Качаем исходники и раскидываем по каталогам:
 
@@ -69,17 +81,23 @@ edit: /var/www/html/cfg/config.php & /usr/local/scripts/cfg/config
 
 7. Настраиваем апач и php:
 
+Centos:
 sed -i 's/short_open_tag = Off/short_open_tag = On/' /etc/php.ini
-
 #set timezone
 sed -i 's/;date.timezone =/date.timezone = Europe\/Moscow/' /etc/php.ini
-
 #enable php
 sed -i 's/#LoadModule mpm_prefork_module/LoadModule mpm_prefork_module/' /etc/httpd/conf.modules.d/00-mpm.conf
 sed -i 's/LoadModule mpm_event_module/#LoadModule mpm_event_module/' /etc/httpd/conf.modules.d/00-mpm.conf
 
 systemctl enable httpd
 systemctl start httpd
+
+Ubuntu:
+sed -i 's/short_open_tag = Off/short_open_tag = On/' /etc/php/7.4/apache2/php.ini
+sed -i 's/;date.timezone =/date.timezone = Europe\/Moscow/' /etc/php/7.4/apache2/php.ini
+
+systemctl enable apache2
+systemctl start apache2
 
 cp docs/addons/sudoers.d/apache /etc/sudoers.d/apache
 
@@ -95,7 +113,7 @@ cp docs/logrotate/scripts /etc/logrotate.d/scripts
 
 ######################################### DHCP Server at Linux ###############################################################
 
-Можно исопльзовать dhcp-сервер как на миркотике, так и на сервере с Linux. Имхо, dnsmasq - предпочтительнее. 
+Можно использовать dhcp-сервер как на миркотике, так и на сервере с Linux. Имхо, dnsmasq - предпочтительнее.
 
 dnf install dnsmasq -y
 

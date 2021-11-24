@@ -15,7 +15,7 @@ use Data::Dumper;
 use Rstat::config;
 use Rstat::main;
 use Net::Telnet;
-use Net::SSH::Expect;
+use Net::OpenSSH;
 
 @ISA = qw(Exporter);
 @EXPORT = qw(
@@ -341,78 +341,50 @@ if ($switch_auth{$device->{vendor_id}}{proto} eq 'ssh') {
     if (!$device->{port}) { $device->{port} = '22'; }
     log_info("Try login to $device->{device_name} $device->{ip}:$device->{port} by ssh...");
     eval {
-        $t  = Net::SSH::Expect->new (
-            host=>$device->{ip},
-            port=>$device->{port},
-            user=>$device->{login},
-            password=>$device->{password},
-            timeout=>1,
-            raw_pty=>1,
-            ssh_option=>'-o PubkeyAcceptedKeyTypes=+ssh-dss \
-            -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 \
-            -o HostKeyAlgorithms=+ssh-dss \
-            -o LogLevel=quiet \
-            -o UserKnownHostsFile=/dev/null \
-            -o StrictHostKeyChecking=no'
-            );
-
-        $t->run_ssh() or die "SSH process couldn't start: $!";
-
-        my $retry_count = 0;
-        my $max_retry_count = 30;
-        my $rc;
-        while(1){
-            $rc = eval{$t->login($switch_auth{$device->{vendor_id}}{login},$switch_auth{$device->{vendor_id}}{password},0);};
-            last if defined $rc;
-            return if $retry_count >= $max_retry_count;
-            $retry_count++;
-            sleep 1;
-            }
-
-        if ($rc !~ /$switch_auth{$device->{vendor_id}}{prompt}/) { return; }
+	$t = Net::OpenSSH->new($device->{ip},
+	    user=>$device->{login},
+	    password=>$device->{password},
+	    port=>$device->{port},
+	    timeout=>10,
+	    master_opts => [ 
+	    -o => "StrictHostKeyChecking=no", 
+	    -o => "PubkeyAcceptedKeyTypes=+ssh-dss", 
+	    -o => "KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1",
+	    -o => "HostKeyAlgorithms=+ssh-dss",
+	    -o => "LogLevel=quiet",
+	    -o => "UserKnownHostsFile=/dev/null"
+	    ]
+	    );
 
         if (exists $switch_auth{$device->{vendor_id}}{enable}) {
-            $t->send($switch_auth{$device->{vendor_id}}{enable}."\n\r");
-#            $t->print($device->{enable_password});
-            $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
+            $t->system($switch_auth{$device->{vendor_id}}{enable}."\n\r");
             }
-
         if ($device->{vendor_id} eq '2') {
-            $t->send("terminal datadump\n\r");
-            $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
-            $t->send("no logging console\n\r");
-            $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
+            $t->system("terminal datadump");
+            $t->system("no logging console");
             }
         if ($device->{vendor_id} eq '5') {
-            $t->send("terminal page-break disable\n\r");
-            $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
+            $t->system("terminal page-break disable");
             }
         if ($device->{vendor_id} eq '6') {
-            $t->send("terminal length 0\n\r");
-            $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
+            $t->system("terminal length 0");
             }
         if ($device->{vendor_id} eq '9') {
-            $t->send("/system note set show-at-login=no\n\r");
-            $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
+            $t->system("/system note set show-at-login=no");
             }
         if ($device->{vendor_id} eq '16') {
-            $t->send("terminal width 0\n\r");
-            $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
+            $t->system("terminal width 0");
             }
         if ($device->{vendor_id} eq '17') {
-            $t->send("more displine 50\n\r");
-            $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
-            $t->send("more off\n\r");
-            $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
+            $t->system("more displine 50");
+            $t->system("more off");
             }
         if ($device->{vendor_id} eq '38') {
-            $t->send("disable cli prompting\n\r");
-            $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
-            $t->send("disable clipaging\n\r");
-            $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/",1);
+            $t->system("disable cli prompting");
+            $t->system("disable clipaging");
             }
         };
-    if ($@) { log_error("Login to $device->{device_name} ip: $device->{ip} by telnet aborted: $@"); } else { log_info("Login to $device->{device_name} ip: $device->{ip} by ssh success!"); }
+    if ($@) { log_error("Login to $device->{device_name} ip: $device->{ip} by ssh aborted: $@"); return; } else { log_info("Login to $device->{device_name} ip: $device->{ip} by ssh success!"); }
     }
 
 return $t;
@@ -447,20 +419,12 @@ if ($proto eq 'ssh') {
             next;
             }
         log_session('Send:'.$run_cmd);
-        $session->send($run_cmd."\n\r");
-        my $chunk;
-        while ($chunk = $session->peek(1)) {
-            my $ret =$session->eat($chunk);
-            if (ref($ret) eq 'ARRAY') {
-                push(@result,@{$ret});
-                } else {
-                my @norm_text = split(/\n/,$ret);
-                foreach my $row (@norm_text) { push(@result,trim($row)); }
-                }
-            }
+        my @row = $session->capture($run_cmd);
+	chomp(@row);
+        push(@result,@row);
         select(undef, undef, undef, 0.25);
         }
-#    log_session('Get:'.Dumper(\@result));
+    log_session('Get:'.Dumper(\@result));
     };
     if ($@) { log_error("Abort: $@"); return 0; };
     }

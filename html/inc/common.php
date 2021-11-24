@@ -28,7 +28,7 @@ $cisco_descr = '.1.3.6.1.2.1.1.1.0';
 $cisco_modules = '.1.3.6.1.2.1.47.1.1.1.1.7';
 $cisco_sfp_sensors = '.1.3.6.1.4.1.9.9.91.1.1.1.1.4';
 $cisco_sfp_precision = '.1.3.6.1.4.1.9.9.91.1.1.1.1.3';
-$cisco_vlan_oid = 'SNMPv2-SMI::enterprises.9.9.46.1.3.1.1.2';
+$cisco_vlan_oid = '.1.3.6.1.4.1.9.9.9.46.1.3.1.1.2';
 
 $ifmib_ifindex  = '.1.3.6.1.2.1.2.2.1.1';
 $ifmib_ifdescr  = '.1.3.6.1.2.1.2.2.1.2';
@@ -92,8 +92,10 @@ $admin_email = "admin";
 $sender_email = "root";
 $send_email = 0;
 
-$mac_table_str_oid = 'SNMPv2-SMI::mib-2.17.7.1.2.2.1.2';
-$mac_table_str_oid2 = 'SNMPv2-SMI::mib-2.17.4.3.1.2';
+
+
+$mac_table_str_oid = '.1.3.6.1.2.1.17.4.3.1.2';
+$mac_table_str_oid2 = '1.3.6.1.2.1.17.7.1.2.2.1.2';
 
 function get_user_ip()
 {
@@ -1866,9 +1868,7 @@ function check_snmp_access($ip, $community, $version)
         $version = '2';
     }
     $result = get_snmp($ip, $community, $version, '.1.3.6.1.2.1.1.1.0');
-    if (! $result) {
-        return;
-    }
+    if (!isset($result)) { return; }
     return 1;
 }
 
@@ -1907,11 +1907,9 @@ function get_cisco_sensors($ip, $community, $version, $mkey)
     $index = get_last_digit($mkey);
     global $cisco_sfp_sensors;
     global $cisco_sfp_precision;
-    list ($pattern, $result) = explode(':', get_snmp($ip, $community, $version, $cisco_sfp_sensors . "." . $index));
-    list ($pattern, $prec) = explode(':', get_snmp($ip, $community, $version, $cisco_sfp_precision . "." . $index));
-    if (! isset($prec)) {
-        $prec = 1;
-    }
+    $result = parse_snmp_value(get_snmp($ip, $community, $version, $cisco_sfp_sensors . "." . $index));
+    $prec = parse_snmp_value(get_snmp($ip, $community, $version, $cisco_sfp_precision . "." . $index));
+    if (! isset($prec)) { $prec = 1; }
     $result = round(trim($result) / (10 * $prec), 2);
     return $result;
 }
@@ -1919,16 +1917,14 @@ function get_cisco_sensors($ip, $community, $version, $mkey)
 function get_snmp_ifname1($ip, $community, $version, $port)
 {
     global $ifmib_ifname;
-    $port_name = '';
-    list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifindex . "." . $port));
+    $port_name = parse_snmp_value(get_snmp($ip, $community, $version, $ifmib_ifname . "." . $port));
     return $port_name;
 }
 
 function get_snmp_ifname2($ip, $community, $version, $port)
 {
     global $ifmib_ifdescr;
-    $port_name = '';
-    list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifdescr . "." . $port));
+    $port_name = parse_snmp_value(get_snmp($ip, $community, $version, $ifmib_ifdescr . "." . $port));
     return $port_name;
 }
 
@@ -1996,40 +1992,28 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
         global $eltex_sfp_sn;
         global $eltex_sfp_freq;
         global $eltex_sfp_length;
-        list ($pattern, $sfp_vendor) = explode(':', get_snmp($ip, $community, $version, $eltex_sfp_vendor . "." . $port));
+        $sfp_vendor = parse_snmp_value(get_snmp($ip, $community, $version, $eltex_sfp_vendor . "." . $port));
         if (isset($sfp_vendor)) {
             $sfp_status_temp = $eltex_sfp_status . "." . $port . ".5";
             $sfp_status_volt = $eltex_sfp_status . "." . $port . ".6";
             $sfp_status_circut = $eltex_sfp_status . "." . $port . ".7";
             $sfp_status_tx = $eltex_sfp_status . "." . $port . ".8";
             $sfp_status_rx = $eltex_sfp_status . "." . $port . ".9";
-            list ($pattern, $temp) = explode(':', get_snmp($ip, $community, $version, $sfp_status_temp));
-            list ($pattern, $volt) = explode(':', get_snmp($ip, $community, $version, $sfp_status_volt));
-            list ($pattern, $circut) = explode(':', get_snmp($ip, $community, $version, $sfp_status_circut));
-            list ($pattern, $tx) = explode(':', get_snmp($ip, $community, $version, $sfp_status_tx));
-            list ($pattern, $rx) = explode(':', get_snmp($ip, $community, $version, $sfp_status_rx));
-            list ($pattern, $sfp_sn) = explode(':', get_snmp($ip, $community, $version, $eltex_sfp_sn . "." . $port));
-            list ($pattern, $sfp_freq) = explode(':', get_snmp($ip, $community, $version, $eltex_sfp_freq . "." . $port));
-            if (! isset($sfp_freq) or $sfp_freq == 65535) {
-                $sfp_freq = 'unspecified';
-            }
-            list ($pattern, $sfp_length) = explode(':', get_snmp($ip, $community, $version, $eltex_sfp_length . "." . $port));
+            $temp = parse_snmp_value(get_snmp($ip, $community, $version, $sfp_status_temp));
+            $volt = parse_snmp_value(get_snmp($ip, $community, $version, $sfp_status_volt));
+            $circut = parse_snmp_value(get_snmp($ip, $community, $version, $sfp_status_circut));
+            $tx = parse_snmp_value(get_snmp($ip, $community, $version, $sfp_status_tx));
+            $rx = parse_snmp_value(get_snmp($ip, $community, $version, $sfp_status_rx));
+            $sfp_sn = parse_snmp_value(get_snmp($ip, $community, $version, $eltex_sfp_sn . "." . $port));
+            $sfp_freq = parse_snmp_value(get_snmp($ip, $community, $version, $eltex_sfp_freq . "." . $port));
+            if (! isset($sfp_freq) or $sfp_freq == 65535) {  $sfp_freq = 'unspecified';  }
+            $sfp_length = parse_snmp_value(get_snmp($ip, $community, $version, $eltex_sfp_length . "." . $port));
             $status = 'Vendor: ' . $sfp_vendor . ' Serial: ' . $sfp_sn . ' Laser: ' . $sfp_freq . ' Distance: ' . $sfp_length . '<br>';
-            if (isset($sfp_status_temp) and $temp > 0.1) {
-                $status .= 'Temp: ' . $temp . " C";
-            }
-            if (isset($sfp_status_volt) and $volt > 0.1) {
-                $status .= ' Volt: ' . round($volt / 1000000, 2) . ' V';
-            }
-            if (isset($sfp_status_circut) and $circut > 0.1) {
-                $status .= ' Circut: ' . round($circut / 1000, 2) . ' mA';
-            }
-            if (isset($sfp_status_tx) and $tx > 0.1) {
-                $status .= ' Tx: ' . round($tx / 1000, 2) . ' dBm';
-            }
-            if (isset($sfp_status_rx) and $rx > 0.1) {
-                $status .= ' Rx: ' . round($rx / 1000, 2) . ' dBm';
-            }
+            if (isset($sfp_status_temp) and $temp > 0.1) { $status .= 'Temp: ' . $temp . " C"; }
+            if (isset($sfp_status_volt) and $volt > 0.1) { $status .= ' Volt: ' . round($volt / 1000000, 2) . ' V'; }
+            if (isset($sfp_status_circut) and $circut > 0.1) { $status .= ' Circut: ' . round($circut / 1000, 2) . ' mA'; }
+            if (isset($sfp_status_tx) and $tx > 0.1) { $status .= ' Tx: ' . round($tx / 1000, 2) . ' dBm'; }
+            if (isset($sfp_status_rx) and $rx > 0.1) { $status .= ' Rx: ' . round($rx / 1000, 2) . ' dBm'; }
             $status .= '<br>';
             return $status;
         }
@@ -2040,9 +2024,9 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
         global $cisco_descr;
         global $cisco_modules;
         // get interface names
-        list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifname . "." . $port));
+        $port_name = parse_snmp_value(get_snmp($ip, $community, $version, $ifmib_ifname . "." . $port));
         if (empty($port_name)) {
-            list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifdescr . "." . $port));
+            $port_name = parse_snmp_value(get_snmp($ip, $community, $version, $ifmib_ifdescr . "." . $port));
             }
         // search module indexes
         $port_name = preg_quote(trim($port_name), '/');
@@ -2114,9 +2098,9 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
         global $huawei_sfp_biascurrent;
         
         // get interface names
-        list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifname . "." . $port));
+        $port_name = parse_snmp_value(get_snmp($ip, $community, $version, $ifmib_ifname . "." . $port));
         if (empty($port_name)) {
-            list ($pattern, $port_name) = explode(':', get_snmp($ip, $community, $version, $ifmib_ifdescr . "." . $port));
+            $port_name = parse_snmp_value(get_snmp($ip, $community, $version, $ifmib_ifdescr . "." . $port));
     	    }
         // search module indexes
         $port_name = preg_quote(trim($port_name), '/');
@@ -2126,32 +2110,22 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
             if (isset($matches[0])) {
                 $module_id = get_last_digit($key);
                 unset($result);
-                list ($pattern, $result) = explode(':', get_snmp($ip, $community, $version, $huawei_sfp_vendor . "." . $module_id));
-                if (isset($result)) {
-                    $sfp_vendor = $result;
-                }
+                $result = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_vendor . "." . $module_id));
+                if (isset($result)) { $sfp_vendor = $result; }
                 unset($result);
-                list ($pattern, $result) = explode(':', get_snmp($ip, $community, $version, $huawei_sfp_speed . "." . $module_id));
+                $result = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_speed . "." . $module_id));
                 if (isset($result)) {
                     list ($sfp_speed, $spf_lenght, $sfp_type) = explode('-', $result);
-                    if ($sfp_type == 0) {
-                        $sfp_type = 'MultiMode';
-                    }
-                    if ($sfp_type == 1) {
-                        $sfp_type = 'SingleMode';
-                    }
+                    if ($sfp_type == 0) { $sfp_type = 'MultiMode'; }
+                    if ($sfp_type == 1) { $sfp_type = 'SingleMode'; }
                 }
 
-                list ($pattern, $volt) = explode(':', get_snmp($ip, $community, $version, $huawei_sfp_volt . "." . $module_id));
-                list ($pattern, $circut) = explode(':', get_snmp($ip, $community, $version, $huawei_sfp_biascurrent . "." . $module_id));
-                list ($pattern, $tx) = explode(':', get_snmp($ip, $community, $version, $huawei_sfp_opttx . "." . $module_id));
-                list ($pattern, $rx) = explode(':', get_snmp($ip, $community, $version, $huawei_sfp_optrx . "." . $module_id));
-		if (!isset($tx)) {
-            	    list ($pattern, $tx) = explode(':', get_snmp($ip, $community, $version, $huawei_sfp_tx . "." . $module_id));
-            	    }
-            	if (!isset($rx)) {
-                    list ($pattern, $rx) = explode(':', get_snmp($ip, $community, $version, $huawei_sfp_rx . "." . $module_id));
-		    }
+                $volt = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_volt . "." . $module_id));
+                $circut = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_biascurrent . "." . $module_id));
+                $tx = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_opttx . "." . $module_id));
+                $rx = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_optrx . "." . $module_id));
+		if (!isset($tx)) { $tx = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_tx . "." . $module_id)); }
+            	if (!isset($rx)) { $rx = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_rx . "." . $module_id)); }
                 if (isset($sfp_vendor)) {  $status .= ' Name:' . $sfp_vendor.'<br>';  }
 //                if (isset($sfp_speed)) { $status .= ' ' . $sfp_speed; }
 //                if (isset($spf_lenght)) { $status .= ' ' . $spf_lenght; }
@@ -2257,14 +2231,10 @@ function get_port_poe_state($vendor_id, $port, $ip, $community, $version)
     $result = '';
     $c_state = get_snmp($ip, $community, $version, $poe_status);
     if (!empty($c_state)) {
-        list ($pattern, $p_state) = explode(':', $c_state);
+        $p_state = parse_snmp_value($c_state);
         if ($vendor_id == 9) {
-            if ($p_state == 1) {
-                return 2;
-            }
-            if ($p_state > 1) {
-                return 1;
-            }
+            if ($p_state == 1) { return 2; }
+            if ($p_state > 1) { return 1; }
         }
         return $p_state;
     }
@@ -2386,7 +2356,7 @@ function get_port_poe_detail($vendor_id, $port, $ip, $community, $version)
     if (isset($poe_power)) {
         $c_power = get_snmp($ip, $community, $version, $poe_power);
         if (isset($c_power)) {
-            $p_power = snmp_value($c_power);
+            $p_power = parse_snmp_value($c_power);
             if ($vendor_id == 9) {
                 $p_power = round($p_power / 10, 2);
             } else {
@@ -2400,7 +2370,7 @@ function get_port_poe_detail($vendor_id, $port, $ip, $community, $version)
     if (isset($poe_current)) {
         $c_current = get_snmp($ip, $community, $version, $poe_current);
         if (isset($c_current)) {
-            $p_current = snmp_value($c_current);
+            $p_current = parse_snmp_value($c_current);
             if ($p_current > 0) {
                 $result .= ' C: ' . $p_current . ' mA';
             }
@@ -2409,7 +2379,7 @@ function get_port_poe_detail($vendor_id, $port, $ip, $community, $version)
     if (isset($poe_volt)) {
         $c_volt = get_snmp($ip, $community, $version, $poe_volt);
         if (isset($c_volt)) {
-            $p_volt = snmp_value($c_volt);
+            $p_volt = parse_snmp_value($c_volt);
             if ($vendor_id == 2 or $vendor_id == 8) {
                 $p_volt = round($p_volt / 1000, 2);
             }
@@ -2428,7 +2398,7 @@ function get_port_poe_detail($vendor_id, $port, $ip, $community, $version)
     if (isset($poe_class)) {
         $c_class = get_snmp($ip, $community, $version, $poe_class);
         if (isset($c_class)) {
-            $p_class = snmp_value($c_class);
+            $p_class = parse_snmp_value($c_class);
             if ($p_class > 0 and $p_power > 0) {
                 $result .= ' Class: ' . ($p_class - 1);
             }
@@ -2458,17 +2428,6 @@ function set_snmp($ip, $community, $version, $oid, $field, $value)
         $result = snmpset($ip, $community, $oid, $field, $value);
     }
     return $result;
-}
-
-function snmp_value($value)
-{
-    if (preg_match('/:/', $value)) {
-        list ($pattern, $result) = explode(':', $value);
-        $result = str_replace('"', '', $result);
-    } else {
-        $result = $value;
-    }
-    return trim($result);
 }
 
 function set_port_state($vendor_id, $port, $ip, $community, $version, $state)
@@ -2566,25 +2525,27 @@ function get_port_state_detail($port, $ip, $community, $version)
     $admin = $port_admin_status_oid . $port;
     $speed = $port_speed_oid . $port;
     $errors = $port_errors_oid . $port;
-
     $result = '';
-
     $c_state = get_snmp($ip, $community, $version, $oper);
-    list ($pattern, $p_state) = explode(':', $c_state);
+    $p_state = parse_snmp_value($c_state);
     $c_admin = get_snmp($ip, $community, $version, $admin);
-    list ($pattern, $p_admin) = explode(':', $c_admin);
-    if (preg_match('/up/i', $p_state)) {
-        $c_speed = get_snmp($ip, $community, $version, $speed);
-    } else {
-        $c_speed = 'INT:0';
-    }
-    list ($pattern, $p_speed) = explode(':', $c_speed);
+    $p_admin = parse_snmp_value ($c_admin);
+    if ($p_state == 1) { $c_speed = get_snmp($ip, $community, $version, $speed); } else { $c_speed = 'INT:0'; }
+    $p_speed = parse_snmp_value($c_speed);
     $c_errors = get_snmp($ip, $community, $version, $errors);
-    list ($pattern, $p_errors) = explode(':', $c_errors);
-
-    $result = $p_state . ";" . $p_admin . ";" . trim($p_speed) . ";" . trim($p_errors);
-
+    $p_errors = parse_snmp_value($c_errors);
+    $result = $p_state . ";" . $p_admin . ";" . $p_speed . ";" . $p_errors;
     return $result;
+}
+
+function parse_snmp_value($value) {
+if (empty($value)) { return NULL; }
+list ($p_type, $p_value) = explode(':', $value);
+$p_value = trim($p_value);
+$p_value= preg_replace('/^\"/','',$p_value);
+$p_value= preg_replace('/\"$/','',$p_value);
+$p_value = trim($p_value);
+return $p_value;
 }
 
 function dec_to_hex($mac)
