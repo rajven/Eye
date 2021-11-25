@@ -309,7 +309,7 @@ if ($switch_auth{$device->{vendor_id}}{proto} eq 'telnet') {
 
     eval {
 #        $t = new Net::Telnet (Timeout => 10, Port => $device->{port}, Max_buffer_length=>10240000, Prompt =>"/$switch_auth{$device->{vendor_id}}{prompt}/", Dump_Log=>'/tmp/1');
-        $t = new Net::Telnet (Timeout => 10, Port => $device->{port}, Max_buffer_length=>10240000, Prompt =>"/$switch_auth{$device->{vendor_id}}{prompt}/");
+        $t = new Net::Telnet (Timeout => 30, Port => $device->{port}, Max_buffer_length=>10240000, Prompt =>"/$switch_auth{$device->{vendor_id}}{prompt}/");
         $t->open($device->{ip}) or return;
         if (exists $switch_auth{$device->{vendor_id}}{login}) { $t->waitfor("/$switch_auth{$device->{vendor_id}}{login}/"); }
         if ($device->{vendor_id} eq '9') { $t->print($device->{login}.'+ct400w'); } else { $t->print($device->{login}); }
@@ -348,7 +348,7 @@ if ($switch_auth{$device->{vendor_id}}{proto} eq 'ssh') {
 	    user=>$device->{login},
 	    password=>$device->{password},
 	    port=>$device->{port},
-	    timeout=>10,
+	    timeout=>30,
 	    master_opts => [ 
 	    -o => "StrictHostKeyChecking=no", 
 	    -o => "PubkeyAcceptedKeyTypes=+ssh-dss", 
@@ -434,7 +434,7 @@ if ($proto eq 'tssh') {
 	    user=>$device->{login},
 	    password=>$device->{password},
 	    port=>$device->{port},
-	    timeout=>10,
+	    timeout=>30,
 	    master_opts => [ 
 	    -o => "StrictHostKeyChecking=no", 
 	    -o => "PubkeyAcceptedKeyTypes=+ssh-dss", 
