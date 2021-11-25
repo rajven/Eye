@@ -259,7 +259,7 @@ our $last_refresh_config = time();
 
 our %switch_auth = (
 '8'=>{'vendor'=>'Allied Telesis','enable'=>'en','proto'=>'telnet','port'=>'23','login'=> '(login|User Name):','password'=>'Password:','prompt'=>qr/(\010\013){0,5}(([-\w]+|[-\w(config)+])\#|[-\w]+\>)/},
-'3'=>{'vendor'=>'Huawei','proto'=>'ssh','port'=>'22','enable'=>'system-view','login'=> 'login as:','password'=>'Password: ','prompt'=>qr/(\<.*\>|\[.*\])/},
+'3'=>{'vendor'=>'Huawei','proto'=>'tssh','port'=>'22','enable'=>'system-view','login'=> 'login as:','password'=>'Password: ','prompt'=>qr/(\<.*\>|\[.*\])/},
 '16'=>{'vendor'=>'Cisco','proto'=>'telnet','port'=>'23','enable'=>'en','login'=> 'Username:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
 '5'=>{'vendor'=>'Raisecom','proto'=>'telnet','port'=>'23','enable'=>'en','login'=> 'Login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
 '6'=>{'vendor'=>'SNR','proto'=>'telnet','port'=>'23','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},

@@ -284,6 +284,10 @@ if (!$device->{port} and $switch_auth{$device->{vendor_id}}{port}) { $device->{p
 
 my $t;
 
+#open my $out, '>', "/tmp/debug-$device->{ip}.txt" or warn $!;
+#$Net::OpenSSH::debug_fh = $out;
+#$Net::OpenSSH::debug = -1;
+
 if ($switch_auth{$device->{vendor_id}}{proto} eq 'telnet') {
     if (!$device->{port}) { $device->{port} = '23'; }
     log_info("Try login to $device->{device_name} $device->{ip}:$device->{port} by telnet...");
@@ -340,7 +344,6 @@ if ($switch_auth{$device->{vendor_id}}{proto} eq 'telnet') {
 if ($switch_auth{$device->{vendor_id}}{proto} eq 'ssh') {
     if (!$device->{port}) { $device->{port} = '22'; }
     log_info("Try login to $device->{device_name} $device->{ip}:$device->{port} by ssh...");
-    eval {
 	$t = Net::OpenSSH->new($device->{ip},
 	    user=>$device->{login},
 	    password=>$device->{password},
@@ -356,35 +359,35 @@ if ($switch_auth{$device->{vendor_id}}{proto} eq 'ssh') {
 	    ]
 	    );
 
-        if (exists $switch_auth{$device->{vendor_id}}{enable}) {
-            $t->system($switch_auth{$device->{vendor_id}}{enable}."\n\r");
-            }
+        if ($t->error) {  log_error("Login to $device->{device_name} ip: $device->{ip} by ssh aborted: ".$t->error); }
+
+        netdev_set_enable($t,$device);
+
         if ($device->{vendor_id} eq '2') {
-            $t->system("terminal datadump");
-            $t->system("no logging console");
+            $t->capture("terminal datadump");
+            $t->capture("no logging console");
             }
         if ($device->{vendor_id} eq '5') {
-            $t->system("terminal page-break disable");
+            $t->capture("terminal page-break disable");
             }
         if ($device->{vendor_id} eq '6') {
-            $t->system("terminal length 0");
+            $t->capture("terminal length 0");
             }
         if ($device->{vendor_id} eq '9') {
-            $t->system("/system note set show-at-login=no");
+            $t->capture("/system note set show-at-login=no");
             }
         if ($device->{vendor_id} eq '16') {
-            $t->system("terminal width 0");
+            $t->capture("terminal width 0");
             }
         if ($device->{vendor_id} eq '17') {
-            $t->system("more displine 50");
-            $t->system("more off");
+            $t->capture("more displine 50");
+            $t->capture("more off");
             }
         if ($device->{vendor_id} eq '38') {
-            $t->system("disable cli prompting");
-            $t->system("disable clipaging");
+            $t->capture("disable cli prompting");
+            $t->capture("disable clipaging");
             }
-        };
-    if ($@) { log_error("Login to $device->{device_name} ip: $device->{ip} by ssh aborted: $@"); return; } else { log_info("Login to $device->{device_name} ip: $device->{ip} by ssh success!"); }
+    log_info("Login to $device->{device_name} ip: $device->{ip} by ssh success!");
     }
 
 return $t;
@@ -396,11 +399,9 @@ sub netdev_set_enable {
 my $session = shift;
 my $device = shift;
 return if (!exists $switch_auth{$device->{vendor_id}}{enable});
-my $cmd = "$switch_auth{$device->{vendor_id}}{enable}
-SLEEP 5
-$device->{enable_password}
-";
+my $cmd = $switch_auth{$device->{vendor_id}}{enable};
 netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,3);
+if ($device->{enable_password}) { netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$device->{enable_password},3); }
 }
 
 #---------------------------------------------------------------------------------
@@ -408,9 +409,9 @@ netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,3);
 sub netdev_cmd {
 my ($device,$session,$proto,$cmd,$telnet_version)=@_;
 my @result=();
+my @tmp=();
+if (ref($cmd) eq 'ARRAY') { @tmp = @{$cmd}; } else { @tmp = split(/\n/,$cmd); }
 if ($proto eq 'ssh') {
-    my @tmp=();
-    if (ref($cmd) eq 'ARRAY') { @tmp = @{$cmd}; } else { push(@tmp,$cmd); }
     eval {
     foreach my $run_cmd (@tmp) {
         next if (!$run_cmd);
@@ -428,10 +429,49 @@ if ($proto eq 'ssh') {
     };
     if ($@) { log_error("Abort: $@"); return 0; };
     }
-if ($proto eq 'telnet') {
-    my @tmp=();
+if ($proto eq 'tssh') {
+    my $t = Net::OpenSSH->new($device->{ip},
+	    user=>$device->{login},
+	    password=>$device->{password},
+	    port=>$device->{port},
+	    timeout=>10,
+	    master_opts => [ 
+	    -o => "StrictHostKeyChecking=no", 
+	    -o => "PubkeyAcceptedKeyTypes=+ssh-dss", 
+	    -o => "KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1",
+	    -o => "HostKeyAlgorithms=+ssh-dss",
+	    -o => "LogLevel=quiet",
+	    -o => "UserKnownHostsFile=/dev/null"
+	    ]
+	    );
+    if ($t->error) {  log_error("Login to $device->{device_name} ip: $device->{ip} by ssh aborted: ".$t->error); }
+    my ($pty, $pid) = $t->open2pty({stderr_to_stdout => 1}) or die "unable to start remote shell: " . $t->error;
+    my $telnet = Net::Telnet->new(-fhopen => $pty, -prompt => "/$switch_auth{$device->{vendor_id}}{prompt}/", -telnetmode => 0,-cmd_remove_mode => 1,-output_record_separator => "\r");
+    $telnet->waitfor(-match => $telnet->prompt, -errmode => "return") or die "login failed: " . $telnet->lastline;
+    if (exists $switch_auth{$device->{vendor_id}}{enable}) {
+            $telnet->print($switch_auth{$device->{vendor_id}}{enable});
+            $telnet->print($device->{enable_password});
+            $telnet->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/");
+            }
     if (!$telnet_version) { $telnet_version = 1; }
-    if (ref($cmd) eq 'ARRAY') { @tmp = @{$cmd}; } else { push(@tmp,$cmd); }
+    eval {
+    foreach my $run_cmd (@tmp) {
+        next if (!$run_cmd);
+        my @ret=();
+        @ret=log_cmd($telnet,$run_cmd) if ($telnet_version == 1);
+        @ret=log_cmd2($telnet,$run_cmd) if ($telnet_version == 2);
+        @ret=log_cmd3($telnet,$run_cmd) if ($telnet_version == 3);
+        @ret=log_cmd4($telnet,$run_cmd) if ($telnet_version == 4);
+        if (scalar @ret) { push(@result,@ret); }
+        select(undef, undef, undef, 0.25);
+        }
+    };
+    $telnet->close;
+    waitpid($pid, 0);
+    if ($@) { log_error("Abort: $@"); return 0; };
+    }
+if ($proto eq 'telnet') {
+    if (!$telnet_version) { $telnet_version = 1; }
     eval {
     foreach my $run_cmd (@tmp) {
         next if (!$run_cmd);
@@ -467,11 +507,8 @@ if ($device->{vendor_id} eq '2') {
 #huawei
 if ($device->{vendor_id} eq '3') {
     eval {
-        my $session = netdev_login($device);
-        my $cmd = "quit";
-        netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,3);
-        $cmd = "tftp $tftp_ip put vrpcfg.zip $device->{device_name}.zip";
-        netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,3);
+        my $cmd = "quit\ntftp $tftp_ip put vrpcfg.zip $device->{device_name}.zip\nSLEEP 5\n";
+        netdev_cmd($device,undef,$switch_auth{$device->{vendor_id}}{proto},$cmd,3);
         };
     }
 
@@ -604,7 +641,6 @@ if ($device->{vendor_id} eq '39') {
         netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,1);
         };
     }
-
 }
 
 #---------------------------------------------------------------------------------
