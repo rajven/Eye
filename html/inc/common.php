@@ -3033,9 +3033,7 @@ function get_cacti_graph($host_ip, $port_index)
     global $dbuser;
     global $dbpass;
 
-    if (! isset($cacti_url)) {
-        return;
-    }
+    if (! isset($cacti_url)) { return; }
 
     $cacti_db_link = mysqli_connect($cacti_dbhost, $dbuser, $dbpass, $cacti_dbname);
     if (! $cacti_db_link) {
@@ -3045,30 +3043,16 @@ function get_cacti_graph($host_ip, $port_index)
         return FALSE;
     }
 
-    $host_sql = 'SELECT id FROM host Where hostname="' . $host_ip . '"';
-    $tmpArray = mysqli_fetch_array(mysqli_query($cacti_db_link, $host_sql), MYSQLI_ASSOC);
-    if (isset($tmpArray) and sizeof($tmpArray)) {
-        foreach ($tmpArray as $key => $value) {
-            if ($key == 'id') {
-                $host_id = $value;
-            }
-        }
-    } else {
-        return;
-    }
+    $host_sql = 'SELECT * FROM host WHERE hostname="' . $host_ip . '"';
+    $cacti_host = get_record_sql($cacti_db_link,$host_sql);
+    $host_id = $cacti_host["id"];
+    if (empty($host_id)) { return; }
 
-    $graph_sql = 'SELECT id FROM graph_local Where graph_template_id=2 and host_id="' . $host_id . '" and snmp_index="' . $port_index . '"';
-    $tmpArray = mysqli_fetch_array(mysqli_query($cacti_db_link, $graph_sql), MYSQLI_ASSOC);
-    if (isset($tmpArray) and sizeof($tmpArray)) {
-        foreach ($tmpArray as $key => $value) {
-            if ($key == 'id') {
-                $graph_id = $value;
-            }
-        }
-    } else {
-        return;
-    }
+    $graph_sql = 'SELECT * FROM graph_local WHERE host_id="' . $host_id . '" and snmp_index="' . $port_index . '" and graph_template_id IN (SELECT id FROM graph_templates WHERE name LIKE "Interface - Traffic%") ORDER BY id ASC';
+    $cacti_graph = get_record_sql($cacti_db_link,$graph_sql);
+    $graph_id = $cacti_graph["id"];
 
+    if (empty($graph_id)) { return; }
     $result = $cacti_url . "/graph_image.php?local_graph_id=" . $graph_id;
     return $result;
 }
@@ -3326,6 +3310,7 @@ function init_option($db)
 
 init_option($db_link);
 clean_dns_cache($db_link);
+
 snmp_set_valueretrieval(SNMP_VALUE_LIBRARY);
 snmp_set_enum_print(1);
 
