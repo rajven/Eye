@@ -35,6 +35,7 @@ if (IsNotRun($SPID)) { Add_PID($SPID); }  else { die "Warning!!! $SPID already r
 
 my $fork_count = $cpu_count*10;
 
+
 my @gateways =();
 #select undeleted mikrotik routers only
 if ($ARGV[0]) {
@@ -76,6 +77,8 @@ my $router_ip=$gate->{ip};
 my $shaper_enabled = $gate->{queue_enabled};
 my $connected_users_only = $gate->{connected_user_only};
 my $connected_users = new Net::Patricia;
+
+my @changed_ref=();
 
 my @lan_int=();
 my @wan_int=();
@@ -292,7 +295,7 @@ if ($gate->{user_acl}) {
 db_log_verbose($dbh,"Sync user state at router $router_name [".$router_ip."] started.");
 
 #get userid list
-my $user_auth_sql="SELECT User_auth.ip, User_auth.filter_group_id, User_auth.queue_id
+my $user_auth_sql="SELECT User_auth.ip, User_auth.filter_group_id, User_auth.queue_id, User_auth.id
 FROM User_auth, User_list
 WHERE User_auth.user_id = User_list.id
 AND User_auth.deleted =0
@@ -303,18 +306,27 @@ AND User_auth.user_id <> $hotspot_user_id
 ORDER BY ip_int";
 
 my @authlist_ref = get_records_sql($dbh,$user_auth_sql);
-
 my %users;
 my %lists;
+my %found_users;
 
 foreach my $row (@authlist_ref) {
-if ($connected_users_only) {
-    next if (!$connected_users->match_string($row->{ip}));
-    }
+if ($connected_users_only) { next if (!$connected_users->match_string($row->{ip})); }
+$found_users{$row->{'id'}}=$row->{ip};
 $users{'group_'.$row->{filter_group_id}}->{$row->{ip}}=1;
 $users{'group_all'}->{$row->{ip}}=1;
 $lists{'group_'.$row->{filter_group_id}}=1;
 if ($row->{queue_id}) { $users{'queue_'.$row->{queue_id}}->{$row->{ip}}=1; }
+}
+
+my @tmp = get_records_sql($dbh,'SELECT id FROM User_auth WHERE deleted=0 and changed=1');
+foreach my $row (@tmp) {
+next if (!$row);
+next if (!exists $found_users{$row->{'id'}});
+push(@changed_ref,$row);
+my $changed_auth;
+$changed_auth->{changed}=0;
+update_record($dbh,"User_auth",$changed_auth,"id=".$row->{id});
 }
 
 log_debug("Users status:".Dumper(\%users));
@@ -748,7 +760,18 @@ if (!$queue_ok) {
 if (scalar(@cmd_list)) {
     log_debug("Apply:");
     if ($debug) { foreach my $cmd (@cmd_list) { log_debug("$cmd"); } }
-    netdev_cmd($gate,$t,'ssh',\@cmd_list,1);
+    eval {
+        netdev_cmd($gate,$t,'ssh',\@cmd_list,1);
+    };
+    if ($@) {
+	log_debug("Error programming gateway! Err: ".$@);
+	foreach my $row (@changed_ref) {
+	    next if (!$row);
+	    my $changed_auth;
+	    $changed_auth->{changed}=1;
+	    update_record($dbh,"User_auth",$changed_auth,"id=".$row->{id});
+	    }
+	}
     }
 
 db_log_verbose($dbh,"Sync user state at router $router_name [".$router_ip."] stopped.");

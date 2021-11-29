@@ -92,14 +92,7 @@ if (!$pid) {
 	    if (@changed and scalar @changed>0) {
                 log_info("Found changed records: ".Dumper(\@changed));
     	        my %result=do_exec_ref($HOME_DIR."/sync_mikrotik.pl");
-    	        if ($result{status} eq 0) {
-        		foreach my $auth (@changed) {
-			    next if (!$auth);
-			    my $update_record;
-    		            $update_record->{changed}=0;
-    			    update_record($hdb,'User_auth',$update_record,"id=$auth->{id}");
-    	    		}
-    	    	    }
+    	        if ($result{status} ne 0) { log_error("Error sync status at gateway for: ".Dumper(\@changed)); }
     	    	}
     	    }
     	sleep(60);
