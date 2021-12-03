@@ -14,6 +14,7 @@ if (isset($_POST["s_remove"])) {
             }
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST['s_save'])) {
@@ -87,6 +88,7 @@ if (isset($_POST['s_save'])) {
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["s_create"])) {
@@ -111,6 +113,7 @@ if (isset($_POST["s_create"])) {
         insert_record($db_link, "subnets", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 unset($_POST);
@@ -146,7 +149,7 @@ print_control_submenu($page_url);
 	<td><b>Комментарий</b></td>
 	<td><input type="submit" onclick="return confirm('Удалить?')" name="s_remove" value="Удалить"></td>
 </tr>
-<?
+<?php
 $t_subnets = get_records($db_link,'subnets','True ORDER BY ip_int_start');
 foreach ( $t_subnets as $row ) {
     print "<tr align=center>\n";
@@ -209,6 +212,4 @@ foreach ( $t_subnets as $row ) {
 </tr>
 </table>
 </form>
-<?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
-?>
+<?php require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php"); ?>

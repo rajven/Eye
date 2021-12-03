@@ -145,7 +145,7 @@ if ($str=~/^\d/) {
 
 #select users for this interface
 
-my @auth_records=get_records_sql($dbh,"SELECT * from User_auth WHERE dhcp=1 and `ip_int`>=".$dhcp_conf{$found_subnet}->{first_ip_aton}." and `ip_int`<=".$dhcp_conf{$found_subnet}->{last_ip_aton}." and deleted=0 and user_id<>".$default_user_id." and user_id<>".$hotspot_user_id." ORDER BY ip_int");
+my @auth_records=get_records_sql($dbh,"SELECT * from User_auth WHERE dhcp=1 and `ip_int`>=".$dhcp_conf{$found_subnet}->{first_ip_aton}." and `ip_int`<=".$dhcp_conf{$found_subnet}->{last_ip_aton}." and deleted=0 and ou_id !=".$default_user_ou_id." and ou_id !=".$default_hotspot_ou_id." ORDER BY ip_int");
 
 my %leases;
 foreach my $lease (@auth_records) {
@@ -319,10 +319,10 @@ $lists{'group_'.$row->{filter_group_id}}=1;
 if ($row->{queue_id}) { $users{'queue_'.$row->{queue_id}}->{$row->{ip}}=1; }
 }
 
-my @tmp = get_records_sql($dbh,'SELECT id FROM User_auth WHERE deleted=0 and changed=1');
+my @tmp = get_records_sql($dbh,'SELECT id,deleted FROM User_auth WHERE changed=1');
 foreach my $row (@tmp) {
 next if (!$row);
-next if (!exists $found_users{$row->{'id'}});
+next if (!exists $found_users{$row->{'id'}} and !$row->{deleted});
 push(@changed_ref,$row);
 my $changed_auth;
 $changed_auth->{changed}=0;

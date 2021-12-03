@@ -6,7 +6,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 <html>
 <head>
 <title>Панель администратора</title>
-<link rel="stylesheet" type="text/css" href=<? echo "\"/$style.css\""; ?>>
+<link rel="stylesheet" type="text/css" href=<?php echo "\"/$style.css\""; ?>>
 <meta http-equiv="content-type" content="application/xhtml+xml">
 <meta charset="UTF-8">
 </head>

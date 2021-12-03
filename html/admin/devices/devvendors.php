@@ -38,6 +38,7 @@ if (isset($_POST['save'])) {
             }
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
     }
 
 if (isset($_POST["create"])) {
@@ -50,6 +51,7 @@ if (isset($_POST["create"])) {
         insert_record($db_link, "vendors", $new);
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
     }
 
 unset($_POST);
@@ -86,7 +88,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td><b>Производитель</b></td>
 <td><input type="submit" name='save' value="Сохранить"></td>
 </tr>
-<?
+<?php
 $t_ou = get_records_sql($db_link,"SELECT * FROM vendors ORDER BY name LIMIT $start,$displayed");
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";

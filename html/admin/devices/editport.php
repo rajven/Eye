@@ -18,6 +18,7 @@ if (isset($_POST["editport"])) {
     // redirect to device
     $device_id = get_record_field($db_link,'device_ports','device_id',"id=".$id);
     header("location: switchport.php?id=$device_id");
+    exit;
 }
 
 unset($_POST);
@@ -30,7 +31,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 ?>
 <div id="cont">
 
-<form name="def" action="editport.php?id=<? echo $id; ?>" method="post">
+<form name="def" action="editport.php?id=<?php echo $id; ?>" method="post">
 <table class="data">
 <tr align="center">
 <td width=20>id</td>
@@ -61,6 +62,6 @@ print "<td class=\"data\">"; print_qa_select('f_skip', $port['skip']); print "</
 <tr><td colspan=2><input type="submit" name="editport" value="Сохранить"></td></tr>
 </table>
 </form>
-<?
+<?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

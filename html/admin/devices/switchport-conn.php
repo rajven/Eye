@@ -14,12 +14,13 @@ if (isset($_POST["remove"])) {
             }
         }
         header("Location: " . $_SERVER["REQUEST_URI"]);
+        exit;
     }
 
 unset($_POST);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
-print_editdevice_submenu($page_url,$id);
+print_editdevice_submenu($page_url,$id,$device['device_type']);
 
 ?>
 <div id="cont">
@@ -54,6 +55,6 @@ print "</table>\n";
 ?>
 </form>
 
-<?
+<?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.small.php");
 ?>

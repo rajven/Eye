@@ -14,6 +14,7 @@ if (isset($_POST["remove"])) {
             }
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST['save'])) {
@@ -31,6 +32,7 @@ if (isset($_POST['save'])) {
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["create"])) {
@@ -42,6 +44,7 @@ if (isset($_POST["create"])) {
         insert_record($db_link, "config", $new);
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 unset($_POST);
@@ -67,7 +70,7 @@ print_control_submenu($page_url);
 <td width=100><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
 </tr>
 
-<?
+<?php
 $t_config = mysqli_query($db_link, "select config.id,option_id,option_name,value,type,description,min_value,max_value from config,config_options where config.option_id=config_options.id order by option_name");
 while ($row = mysqli_fetch_array($t_config)) {
     print "<tr align=center>\n";
@@ -107,6 +110,4 @@ while ($row = mysqli_fetch_array($t_config)) {
 </tr>
 </table>
 </form>
-<?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
-?>
+<?php require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php"); ?>

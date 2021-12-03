@@ -108,9 +108,9 @@ print "<td class=\"data\"><b></b></td>\n";
 print "<td class=\"data\"><b></b></td>\n";
 print "</tr>\n";
 ?>
-  </table>
-<?
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+</table>
 
+<?php
+print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

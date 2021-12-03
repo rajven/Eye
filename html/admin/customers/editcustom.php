@@ -14,6 +14,7 @@ if (isset($_POST["edituser"])) {
     update_record($db_link, "Customers", "id='$id'", $new);
     unset($_POST["pass"]);
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 unset($_POST);
@@ -23,8 +24,8 @@ $customer=get_record($db_link,'Customers',"id=".$id);
 ?>
 <div id="cont">
 
-	<form name="def" action="editcustom.php?id=<? echo $id; ?>" method="post">
-		<input type="hidden" name="id" value=<? echo $id; ?>>
+	<form name="def" action="editcustom.php?id=<?php echo $id; ?>" method="post">
+		<input type="hidden" name="id" value=<?php echo $id; ?>>
 		<table class="data">
 			<tr>
 				<td>Login</td>
@@ -39,6 +40,4 @@ $customer=get_record($db_link,'Customers',"id=".$id);
 			<td colspan=2><input type="submit" name="edituser" value="Save"></td>
 		</table>
 	</form>
-<?
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
-?>
+<?php require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php"); ?>

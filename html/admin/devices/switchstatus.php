@@ -16,6 +16,7 @@ if (isset($_POST["regensnmp"])) {
         update_record($db_link, "device_ports", "id='$port_id'", $new);
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
     }
 
 if (isset($_POST['poe_on']) and $switch['snmp_version']>0) {
@@ -26,6 +27,7 @@ if (isset($_POST['poe_on']) and $switch['snmp_version']>0) {
         set_port_poe_state($switch['vendor_id'], $port_index, $switch['ip'], $switch['rw_community'], $switch['snmp_version'], 1);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST['poe_off']) and $switch['snmp_version']>0) {
@@ -36,6 +38,7 @@ if (isset($_POST['poe_off']) and $switch['snmp_version']>0) {
         set_port_poe_state($switch['vendor_id'], $port_index, $switch['ip'], $switch['rw_community'], $switch['snmp_version'], 0);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST['port_on']) and $switch['snmp_version']>0) {
@@ -46,6 +49,7 @@ if (isset($_POST['port_on']) and $switch['snmp_version']>0) {
         set_port_state($switch['vendor_id'], $port_index, $switch['ip'], $switch['rw_community'], $switch['snmp_version'], 1);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST['port_off']) and $switch['snmp_version']>0) {
@@ -56,16 +60,17 @@ if (isset($_POST['port_off']) and $switch['snmp_version']>0) {
         set_port_state($switch['vendor_id'], $port_index, $switch['ip'], $switch['rw_community'], $switch['snmp_version'], 0);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 unset($_POST);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
-print_editdevice_submenu($page_url,$id);
+print_editdevice_submenu($page_url,$id,$device['device_type']);
 
 ?>
 <div id="cont">
-<form name="def" action="switchstatus.php?id=<? echo $id; ?>" method="post">
+<form name="def" action="switchstatus.php?id=<?php echo $id; ?>" method="post">
 
 <?php
 print "<br>\n";

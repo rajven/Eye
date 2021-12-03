@@ -8,8 +8,10 @@ if (isset($_POST["create"])) {
         $new['group_name'] = $fname;
         $new_id=insert_record($db_link, "Group_list", $new);
         header("location: editgroup.php?id=$new_id");
+        exit;
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["remove"])) {
@@ -18,6 +20,7 @@ if (isset($_POST["remove"])) {
         if (!empty($val)) { delete_record($db_link, "Group_list", "id=" . $val * 1); }
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
     }
 
 unset($_POST);
@@ -34,7 +37,7 @@ print_filters_submenu($page_url);
 	<td><b>Id</b></td>
 	<td width=200><b>Название</b></td>
 </tr>
-<?
+<?php
 $users = mysqli_query($db_link, "select * from Group_list order by id");
 while (list ($id, $grpname) = mysqli_fetch_array($users)) {
     print "<tr align=center>\n";
@@ -52,6 +55,6 @@ while (list ($id, $grpname) = mysqli_fetch_array($users)) {
 		</tr>
 	</table>
 </form>
-<?
+<?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

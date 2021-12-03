@@ -39,7 +39,7 @@ print_log_submenu($page_url);
 <div id="cont">
 
 <form action="<?php print $page_url; ?>" method="post">
-<input type="hidden" name="id" value=<? echo $id; ?>>
+<input type="hidden" name="id" value=<?php echo $id; ?>>
 ip:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
 Начало:&nbsp<input type="datetime-local" name="date_start" value="<?php echo $date1; ?>" />
 Конец:&nbsp<input type="datetime-local" name="date_stop" value="<?php echo $date2; ?>" />

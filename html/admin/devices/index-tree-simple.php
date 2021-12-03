@@ -21,7 +21,7 @@ foreach ($hash as $device) {
     }
 }
 
-$dSQL = 'SELECT * FROM devices WHERE deleted=0';
+$dSQL = 'SELECT * FROM devices WHERE deleted=0 and device_type<=2';
 $switches = get_records_sql($db_link,$dSQL);
 $dev_hash = NULL;
 foreach ($switches as $row) {

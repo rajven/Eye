@@ -123,6 +123,6 @@ if ($ipcount > 1) {
 }
 ?>
 </table>
-<?
+<?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

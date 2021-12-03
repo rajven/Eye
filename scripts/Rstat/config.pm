@@ -77,8 +77,6 @@ $all_networks
 $dhcp_pool
 $mac_discovery
 $arp_discovery
-$default_user_id
-$hotspot_user_id
 $history
 $history_dhcp
 $router_login
@@ -89,6 +87,8 @@ $domain_name
 $connections_history
 $dbh
 $urgent_sync
+$default_user_ou_id
+$default_hotspot_ou_id
 $ignore_hotspot_dhcp_log
 $ignore_update_dhcp_event
 $update_hostname_from_dhcp
@@ -240,8 +240,8 @@ our @vpn_network_list;
 our $dhcp_pool;
 our $mac_discovery;
 our $arp_discovery;
-our $default_user_id;
-our $hotspot_user_id;
+our $default_user_ou_id;
+our $default_hotspot_ou_id;
 our $history;
 our $history_dhcp;
 our $router_login;

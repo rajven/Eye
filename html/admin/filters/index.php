@@ -13,6 +13,7 @@ if (isset($_POST["create"])) {
         $new['type'] = $ftype;
         $new_id=insert_record($db_link, "Filter_list", $new);
         header("Location: editfilter.php?id=$new_id");
+        exit;
 	}
     }
 
@@ -20,11 +21,12 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["fid"];
     foreach ($fid as $key => $val) {
         if ($val) {
-            delete_record($db_link, "Group_filters", "filter_id=$val");
+            run_sql($db_link, "DELETE FROM Group_filters WHERE filter_id=".$val);
             delete_record($db_link, "Filter_list", "id=$val");
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 unset($_POST);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
@@ -43,7 +45,7 @@ print_filters_submenu($page_url);
 		<td><b>Порт</b></td>
 		<td><b>Действие</b></td>
 	</tr>
-<?
+<?php
 $filters = get_records($db_link,'Filter_list','TRUE ORDER BY name');
 foreach ($filters as $row) {
     print "<tr align=center>\n";
@@ -79,7 +81,6 @@ foreach ($filters as $row) {
 	</tr>
 	</table>
 </form>
-<?
-
+<?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

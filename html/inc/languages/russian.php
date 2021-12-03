@@ -38,7 +38,7 @@ $title_itog = "Итого";
 /* table cell names */
 $cell_login = "Логин";
 $cell_fio = "ФИО";
-$cell_ou = "Подразделение";
+$cell_ou = "Группа";
 $cell_enabled = "Включен";
 $cell_blocked = "Блокировка";
 $cell_perday = "В день";
@@ -80,6 +80,9 @@ $btn_add = "Добавить";
 $btn_save = "Сохранить";
 $btn_move = "Переместить";
 $btn_apply = "Применить конфигурацию";
+$btn_device = "+Устройство";
+$btn_mac_add = "Привязать";
+$btn_mac_del = "Отвязать";
 
 /* error messages */
 $msg_exists = "уже существует!";

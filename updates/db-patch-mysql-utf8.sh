@@ -8,8 +8,8 @@ read db_pass
 C_TABLES=$(mysql -u root -p ${db_name} --password=${db_pass} -B -N -e "SHOW TABLES")
 
 echo "Stage 1. CHange charset for tables"
-echo "${C_TABLES}" | awk '{print "SET foreign_key_checks = 0; ALTER TABLE", $1, "CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci; SET foreign_key_checks = 1; "}' >migration_utf8
-echo "ALTER DATABASE ${db_name} CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;">>migration_utf8
+echo "${C_TABLES}" | awk '{print "SET foreign_key_checks = 0; ALTER TABLE", $1, "CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; SET foreign_key_checks = 1; "}' >migration_utf8
+echo "ALTER DATABASE ${db_name} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;">>migration_utf8
 mysql -u root -p ${db_name} --password=${db_pass} < migration_utf8
 echo "Stage 1 - Done"
 >migration_utf8

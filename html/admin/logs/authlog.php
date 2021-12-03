@@ -6,7 +6,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/loglevelfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/logfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/authidfilter.php");
-if (!isset($auth_id)) { header('Location: /admin/logs/index.php', true, 301); }
+if (!isset($auth_id)) { header('Location: /admin/logs/index.php', true, 301); exit; }
 ?>
 <div id="cont">
 <br>

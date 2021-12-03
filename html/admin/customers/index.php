@@ -18,9 +18,11 @@ if (isset($_POST["create"])) {
             list ($id) = mysqli_fetch_array(mysqli_query($db_link, "Select id from Customers where Login='$login' order by id DESC"));
             LOG_INFO($db_link, "Создание нового менеджера login: $login");
             header("location: editcustom.php?id=$id");
+            exit;
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["remove"])) {
@@ -32,6 +34,7 @@ if (isset($_POST["remove"])) {
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 unset($_POST);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
@@ -48,7 +51,7 @@ print_control_submenu($page_url);
 <td width="30"><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b>Login</b></td>
 </tr>
-<?
+<?php
 $users = get_records($db_link,'Customers','True ORDER BY Login');
 foreach ($users as $row) {
     $cl = "data";

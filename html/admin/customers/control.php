@@ -8,6 +8,7 @@ if (isset($_POST["recheck_ip"]) and is_option($db_link, 37)) {
     shell_exec("sudo $run_cmd >/dev/null 2>/dev/null &");
     LOG_INFO($db_link, "Run command: $run_cmd");
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["refresh_dhcp"]) and is_option($db_link, 38)) {
@@ -15,6 +16,7 @@ if (isset($_POST["refresh_dhcp"]) and is_option($db_link, 38)) {
     shell_exec("sudo $run_cmd >/dev/null 2>/dev/null &");
     LOG_INFO($db_link, "Run command: $run_cmd");
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["refresh_nagios"]) and is_option($db_link, 40)) {
@@ -22,6 +24,14 @@ if (isset($_POST["refresh_nagios"]) and is_option($db_link, 40)) {
     shell_exec("sudo $run_cmd >/dev/null 2>/dev/null &");
     LOG_INFO($db_link, "Run command: $run_cmd");
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
+if (isset($_POST["up_nagios"])) {
+    run_sql($db_link,"UPDATE User_auth SET nagios_status='UP'");
+    run_sql($db_link,"UPDATE devices SET nagios_status='UP'");
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["refresh_dns"]) and is_option($db_link, 39)) {
@@ -29,6 +39,7 @@ if (isset($_POST["refresh_dns"]) and is_option($db_link, 39)) {
     shell_exec("sudo $run_cmd >/dev/null 2>/dev/null &");
     LOG_INFO($db_link, "Run command: $run_cmd");
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["discovery"]) and is_option($db_link, 41)) {
@@ -36,6 +47,7 @@ if (isset($_POST["discovery"]) and is_option($db_link, 41)) {
     shell_exec("sudo $run_cmd >/dev/null 2>/dev/null &");
     LOG_DEBUG($db_link, "Run command: $run_cmd");
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["discovery2"]) and is_option($db_link, 41)) {
@@ -43,18 +55,21 @@ if (isset($_POST["discovery2"]) and is_option($db_link, 41)) {
     shell_exec("sudo $run_cmd 1 >/dev/null 2>/dev/null &");
     LOG_INFO($db_link, "Run command: $run_cmd 1");
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["save_traf_all"]) and get_option($db_link, 23)) {
     run_sql($db_link, 'Update User_auth set save_traf=1 where deleted=0');
     LOG_INFO($db_link, "Enable save traffic for all!");
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["not_save_traf_all"]) and get_option($db_link, 23)) {
     run_sql($db_link, 'Update User_auth set save_traf=0 where deleted=0');
     LOG_INFO($db_link, "Disable save traffic for all!");
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["s_remove"])) {
@@ -66,12 +81,14 @@ if (isset($_POST["s_remove"])) {
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["clean_cache"])) {
     LOG_INFO($db_link, "Clean dns cache");
     run_sql($db_link,"DELETE FROM dns_cache");
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 unset($_POST);
@@ -97,6 +114,7 @@ print_control_submenu($page_url);
         }
         if (is_option($db_link, 40)) {
             print "<tr><td align=right>Reconfigure Nagios &nbsp<input type=submit name='refresh_nagios' value='Обновить'></td></tr>";
+            print "<tr><td align=right>Nagios - сбросить аварию &nbsp<input type=submit name='up_nagios' value='Сбросить'></td></tr>";
         }
         if (is_option($db_link, 41)) {
             print "<tr><td align=right>Сканирование сети &nbsp<input type=submit name='discovery' value='Выполнить'></td></tr>";

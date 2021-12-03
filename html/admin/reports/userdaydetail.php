@@ -22,7 +22,7 @@ print_trafdetail_submenu($page_url,"id=$id&date_start='$date1'&date_stop='$date2
 <div id="cont">
 
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
-<input type="hidden" name="id" value=<? echo $id; ?>>
+<input type="hidden" name="id" value=<?php echo $id; ?>>
   Начало:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
   Конец:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
   Шлюз:&nbsp <?php print_gateway_select($db_link, 'gateway', $rgateway); ?>

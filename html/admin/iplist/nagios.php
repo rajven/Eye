@@ -29,6 +29,7 @@ if (isset($_POST["ApplyForAll"])) {
         }
     LOG_WARNING($db_link,$msg);
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
     }
 
 $sort_table = 'User_auth';
@@ -36,7 +37,6 @@ if ($sort_field == 'login') { $sort_table = 'User_list'; }
 if ($sort_field == 'fio') { $sort_table = 'User_list'; }
 
 $sort_url = "<a href=index.php?ou=" . $rou; 
-global $default_user_id;
 
 if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and User_list.ou_id=$rou "; }
 
@@ -98,7 +98,6 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . $cell_ip . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . $cell_mac . "</a>"; ?></td>
 		<td align=Center><?php print $cell_comment; ?></td>
-		<td align=Center><?php print $cell_host_model; ?></td>
 		<td align=Center><?php print $cell_wikiname; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=nagios&order=$new_order>" . $cell_nagios; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=link_check&order=$new_order>" . $cell_link; ?></td>
@@ -135,8 +134,6 @@ foreach ($users as $user) {
     } else {
         print "<td class=\"$cl\" width=200>".$user['comments']."</td>\n";
     }
-    print "<td class=\"$cl\" >" . get_device_model_name($db_link,$user['device_model_id']) . "</td>\n";
-
     if (!empty($user['WikiName'])) {
         $wiki_url = rtrim(get_option($db_link, 60),'/');
         if (preg_match('/127.0.0.1/', $wiki_url)) { print "<td class=\"$cl\" ></td>\n"; } else {

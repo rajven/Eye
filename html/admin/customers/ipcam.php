@@ -13,6 +13,7 @@ if (isset($_POST['port_on'])) {
         set_port_for_group($db_link, $f_ou_id, $building_id, 1);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST['port_off'])) {
@@ -22,6 +23,7 @@ if (isset($_POST['port_off'])) {
         set_port_for_group($db_link, $f_ou_id, $building_id, 0);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 unset($_POST);
@@ -31,7 +33,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 ?>
 <div id="cont">
 	<form name="def" action="ipcam.php" method="post">
-<?
+<?php
 print "<table cellspacing=\"0\" cellpadding=\"0\" width=\"500\">";
 print "<tr >\n";
 print "<td align=center colspan=2>Для группы</td><td>";

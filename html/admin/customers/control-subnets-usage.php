@@ -27,7 +27,7 @@ print "<td><b>Зомби, всего <br>(> $zombi_days дней)</b></td>";
 print "<td><b>Зомби dhcp<br>(> $zombi_days дней)</b></td>";
 ?>
 </tr>
-<?
+<?php
 $t_subnets = get_records($db_link,'subnets','office=1 ORDER BY ip_int_start');
 if (!empty($t_subnets)) {
 foreach ( $t_subnets as $row ) {
@@ -60,6 +60,4 @@ foreach ( $t_subnets as $row ) {
 ?>
 </table>
 </form>
-<?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
-?>
+<?php require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php"); ?>

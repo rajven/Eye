@@ -7,6 +7,7 @@ if (isset($_POST["editgroup"])) {
     $new['group_name'] = substr($_POST["f_group_name"], 0, 30);
     update_record($db_link, "Group_list", "id='$id'", $new);
     header("location: index.php");
+    exit;
 }
 
 if (isset($_POST["addfilter"])) {
@@ -18,6 +19,7 @@ if (isset($_POST["addfilter"])) {
     $new['order'] = $forder;
     insert_record($db_link, "Group_filters", $new);
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["removefilter"])) {
@@ -26,6 +28,7 @@ if (isset($_POST["removefilter"])) {
         if (!empty($val)) { delete_record($db_link, "Group_filters", "id=" . $val * 1); }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 if (isset($_POST["saveorder"])) {
     if ((isset($_POST["fgid"])) and (isset($_POST["ford"]))) {
@@ -39,6 +42,7 @@ if (isset($_POST["saveorder"])) {
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 unset($_POST);
@@ -47,12 +51,12 @@ $group_name = get_group($db_link, $id);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 ?>
 <div id="cont">
-<form name="def" action="editgroup.php?id=<? echo $id; ?>" method="post">
-<input type="hidden" name="id" value=<? echo $id; ?>>
+<form name="def" action="editgroup.php?id=<?php echo $id; ?>" method="post">
+<input type="hidden" name="id" value=<?php echo $id; ?>>
 <table class="data">
 <tr>
 <td>Название</td>
-<td><input type="text" name="f_group_name" value="<? echo $group_name; ?>" size=25></td>
+<td><input type="text" name="f_group_name" value="<?php echo $group_name; ?>" size=25></td>
 </tr>
 <tr>
 <td colspan=2><input type="submit" name="editgroup"	value="Сохранить"></td>
@@ -87,6 +91,6 @@ foreach ($flist as $row) {
 </tr>
 </table>
 </form>
-<?
+<?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

@@ -120,21 +120,13 @@ return if (!$db);
 $db->{AutoCommit} = 0;
 my $apply = 0;
 my $sth;
-if (ref($batch_sql) eq 'ARRAY') {
-    foreach my $sSQL (@$batch_sql) {
-        next if (!$sSQL);
-        $sth = $db->prepare($sSQL) or die "Unable to prepare $sSQL" . $db->errstr;
-        $sth->execute() or die "Unable to prepare $sSQL" . $db->errstr;
-        $apply = 1;
-        }
-    } else {
-    my @msg = split("\n",$batch_sql);
-    foreach my $sSQL (@msg) {
-        next if (!$sSQL);
-        $sth = $db->prepare($sSQL) or die "Unable to prepare $sSQL" . $db->errstr;
-        $sth->execute() or die "Unable to prepare $sSQL" . $db->errstr;
-        $apply = 1;
-        }
+my @msg = ();
+if (ref($batch_sql) eq 'ARRAY') { @msg = @$batch_sql; } else { @msg = split("\n",$batch_sql); }
+foreach my $sSQL (@msg) {
+    next if (!$sSQL);
+    $sth = $db->prepare($sSQL) or die "Unable to prepare $sSQL" . $db->errstr;
+    $sth->execute() or die "Unable to prepare $sSQL" . $db->errstr;
+    $apply = 1;
     }
 if ($apply) { $sth->finish(); }
 $db->{AutoCommit} = 1;
@@ -143,21 +135,20 @@ $db->{AutoCommit} = 1;
 #---------------------------------------------------------------------------------------------------------------
 
 sub batch_db_sql_cached {
-
 my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 0 });
 if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
 $db->do('SET NAMES utf8mb4');
 $db->{'mysql_enable_utf8'} = 1;
-$db->{mysql_auto_reconnect} = 1;
+$db->{'mysql_auto_reconnect'} = 1;
 my $table= shift;
 my $batch_sql=shift;
 return if (!$db);
-if (ref($batch_sql) eq 'ARRAY') {
-    my $sth = $db->prepare_cached($table) or die "Unable to prepare:" . $db->errstr;
-    foreach my $sSQL (@$batch_sql) {
-        next if (!$sSQL);
-        $sth->execute(@$sSQL) or die "Unable to execute:" . $db->errstr;
-        }
+my @msg = ();
+if (ref($batch_sql) eq 'ARRAY') { @msg = @$batch_sql; } else { @msg = split("\n",$batch_sql); }
+my $sth = $db->prepare_cached($table) or die "Unable to prepare:" . $db->errstr;
+foreach my $sSQL (@msg) {
+    next if (!$sSQL);
+    $sth->execute(@$sSQL) or die "Unable to execute:" . $db->errstr;
     }
 $db->commit();
 $db->disconnect();
@@ -257,7 +248,7 @@ my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPA
 if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
 $db->do('SET NAMES utf8mb4');
 $db->{'mysql_enable_utf8'} = 1;
-$db->{mysql_auto_reconnect} = 1;
+$db->{'mysql_auto_reconnect'} = 1;
 return $db;
 }
 
@@ -271,7 +262,7 @@ my $result = 0;
 return $result if (!$db);
 return $result if (!$table);
 my $sSQL='SELECT COUNT(*) as rec_cnt FROM '.$table;
-if ($filter) { $sSQL=$sSQL." where ".$filter; }
+if ($filter) { $sSQL=$sSQL." WHERE ".$filter; }
 my $record = get_record_sql($db,$sSQL);
 if ($record->{rec_cnt}) { $result = $record->{rec_cnt}; }
 return $result;
@@ -448,12 +439,10 @@ foreach my $field (keys %$old_record) {
     $diff = $diff." $field => $old_record->{$field},";
     }
 $diff=~s/,$//;
-
 db_log_debug($db,'Delete record from table  '.$table.' value: '.$diff);
-
 #never delete user ip record!
 if ($table eq 'User_auth') {
-    my $sSQL = "UPDATE User_auth SET deleted=1, changed_time='".GetNowTime()."' WHERE ".$filter;
+    my $sSQL = "UPDATE User_auth SET changed=1, deleted=1, changed_time='".GetNowTime()."' WHERE ".$filter;
     do_sql($db,$sSQL);
     } else {
     my $sSQL = "DELETE FROM ".$table." WHERE ".$filter;
@@ -491,35 +480,80 @@ my $db = shift;
 my $ip  = shift;
 my $mac = shift;
 my $hostname = shift;
+
+my $result;
+#check user rules
+$mac = mac_simplify($mac);
+
+$result->{ip} = $ip;
+$result->{mac} = mac_splitted($mac);
+$result->{dhcp_hostname} = $hostname;
+$result->{ou_id}=undef;
+$result->{user_id}=undef;
+
+#check ip
+if (defined $ip and $ip) {
+    my $users = new Net::Patricia;
+    #check ip rules
+    my @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND user_id IS NOT NULL');
+    foreach my $row (@ip_rules) { $users->add_string($row->{rule},$row->{user_id}); }
+    if ($users->match_string($ip)) { $result->{user_id}=$users->match_string($ip); }
+    }
+
+#check mac
+if (defined $mac and $mac) {
+    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0 AND user_id IS NOT NULL');
+    foreach my $user (@user_rules) {
+	my $rule = mac_simplify($user->{rule});
+        if ($mac=~/$rule/i) { $result->{user_id}=$user->{user_id}; }
+        }
+    }
+#check hostname
+if (defined $hostname and $hostname) {
+    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0 AND user_id IS NOT NULL');
+    foreach my $user (@user_rules) {
+        if ($hostname=~/$user->{rule}/i) { $result->{user_id}=$user->{user_id}; }
+        }
+    }
+
+#
+if ($result->{user_id}) { return $result; }
+
+#check ou rules
+
 #check ip
 if (defined $ip and $ip) {
     my $users = new Net::Patricia;
     #check hotspot
     my @ip_rules = get_records_sql($db,'SELECT * FROM subnets WHERE hotspot=1 AND LENGTH(subnet)>0');
-    foreach my $row (@ip_rules) { $users->add_string($row->{subnet},$config_ref{hotspot_user_id}); }
-    if ($users->match_string($ip)) { return $users->match_string($ip); }
+    foreach my $row (@ip_rules) { $users->add_string($row->{subnet},$default_hotspot_ou_id); }
+    if ($users->match_string($ip)) { $result->{ou_id}=$users->match_string($ip); }
     #check ip rules
-    @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0');
-    foreach my $row (@ip_rules) { $users->add_string($row->{rule},$row->{user_id}); }
-    if ($users->match_string($ip)) { return $users->match_string($ip); }
+    @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND ou_id IS NOT NULL');
+    foreach my $row (@ip_rules) { $users->add_string($row->{rule},$row->{ou_id}); }
+    if ($users->match_string($ip)) { $result->{ou_id}=$users->match_string($ip); }
     }
 
 #check mac
 if (defined $mac and $mac) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0');
+    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0 AND ou_id IS NOT NULL');
     foreach my $user (@user_rules) {
-        if ($mac=~/$user->{rule}/i) { return $user->{user_id}; }
+	my $rule = mac_simplify($user->{rule});
+        if ($mac=~/$rule/i) { $result->{ou_id}=$user->{ou_id}; }
         }
     }
 
 #check hostname
 if (defined $hostname and $hostname) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0');
+    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0 AND ou_id IS NOT NULL');
     foreach my $user (@user_rules) {
-        if ($hostname=~/$user->{rule}/i) { return $user->{user_id}; }
+        if ($hostname=~/$user->{rule}/i) { $result->{ou_id}=$user->{ou_id}; }
         }
     }
-return $default_user_id;
+
+if (!$result->{ou_id}) { $result->{ou_id}=$default_user_ou_id; }
+
+return $result;
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -674,6 +708,34 @@ if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub new_user {
+my $db = shift;
+my $user_info = shift;
+my $user;
+if ($user_info->{mac}) { 
+    $user->{login}=mac_splitted($user_info->{mac});
+    } else {
+    $user->{login}=$user_info->{ip};
+    }
+if ($user_info->{dhcp_hostname}) {
+    $user->{fio}=$user_info->{ip}. '['.$user_info->{dhcp_hostname} .']';
+    } else {
+    $user->{fio}=$user_info->{ip};
+    }
+$user->{ou_id} = $user_info->{ou_id};
+my $result = insert_record($db,"User_list",$user);
+if ($result and $config_ref{auto_mac_rule} and $user_info->{mac}) {
+    my $auth_rule;
+    $auth_rule->{user_id} = $result;
+    $auth_rule->{type} = 2;
+    $auth_rule->{rule} = mac_splitted($user_info->{mac});
+    insert_record($db,"auth_rules",$auth_rule);
+    }
+return $result;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub resurrection_auth {
 my $db = shift;
 my $ip = shift;
@@ -690,10 +752,13 @@ my $record=get_record_sql($db,'SELECT * FROM User_auth WHERE `deleted`=0 AND `ip
 my $new_record;
 $new_record->{last_found}=$timestamp;
 
+#auth found?
 if ($record->{user_id}) {
+    #update timestamp and return
     if ($action!~/arp/i) {
 	$new_record->{dhcp_action}=$action;
 	$new_record->{dhcp_time}=$timestamp;
+	if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
 	update_record($db,'User_auth',$new_record,"id=$record->{id}");
 	} else {
 	update_record($db,'User_auth',$new_record,"id=$record->{id}");
@@ -701,21 +766,17 @@ if ($record->{user_id}) {
     return $record->{id};
     }
 
-#default user
-my $new_user_id=get_new_user_id($db,$ip,$mac,$hostname);
-
 #search changed mac
 $record=get_record_sql($db,'SELECT * FROM User_auth WHERE `ip_int`='.$ip_aton." and deleted=0");
 if ($record->{id}) {
+    #if found record with same ip but another mac
     if (!$record->{mac}) {
         db_log_verbose($db,"use empty auth record...");
-        $new_record->{ip_int}=$ip_aton;
-        $new_record->{ip}=$ip;
         $new_record->{mac}=$mac;
-        $new_record->{user_id}=$new_user_id;
 	if ($action!~/arp/i) {
 	    $new_record->{dhcp_action}=$action;
 	    $new_record->{dhcp_time}=$timestamp;
+	    if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
 	    update_record($db,'User_auth',$new_record,"id=$record->{id}");
             } else {
 	    update_record($db,'User_auth',$new_record,"id=$record->{id}");
@@ -729,6 +790,13 @@ if ($record->{id}) {
         update_record($db,'User_auth',$disable_record,"id=".$record->{id});
         }
     }
+
+#default user
+my $new_user_info=get_new_user_id($db,$ip,$mac,$hostname);
+my $new_user_id;
+if ($new_user_info->{user_id}) { $new_user_id = $new_user_info->{user_id}; }
+if (!$new_user_id) { $new_user_id = new_user($db,$new_user_info); }
+
 #seek old auth with same ip and mac
 my $auth_exists=get_count_records($db,'User_auth',"ip_int=".$ip_aton." and mac='".$mac."'");
 $new_record->{ip_int}=$ip_aton;
@@ -755,6 +823,7 @@ my $cur_auth_id=get_id_record($db,'User_auth',"ip='$ip' and mac='$mac' and delet
 if ($cur_auth_id) {
     $record=get_record_sql($db,"SELECT * FROM User_list WHERE id=".$new_user_id);
     if ($record) {
+	$new_record->{ou_id}=$record->{ou_id};
 	$new_record->{filter_group_id}=$record->{filter_group_id};
 	$new_record->{queue_id}=$record->{queue_id};
 	$new_record->{enabled}="$record->{enabled}";
@@ -773,7 +842,10 @@ my $ip_aton=StrToIp($ip);
 my $record=get_record_sql($db,'SELECT id FROM User_auth WHERE `deleted`=0 AND `ip_int`='.$ip_aton);
 if ($record->{id}) { return $record->{id}; }
 #default user
-my $new_user_id=get_new_user_id($db,$ip);
+my $new_user_info=get_new_user_id($db,$ip,undef,undef);
+my $new_user_id;
+if ($new_user_info->{user_id}) { $new_user_id = $new_user_info->{user_id}; }
+if ($new_user_info->{ou_id}) { $new_user_id = new_user($db,$new_user_info); }
 my $user_record=get_record_sql($db,"SELECT * FROM User_list WHERE id=".$new_user_id);
 my $timestamp=GetNowTime();
 my $new_record;
@@ -783,11 +855,12 @@ $new_record->{user_id}=$new_user_id;
 $new_record->{save_traf}="$save_detail";
 $new_record->{deleted}="0";
 $new_record->{dhcp_action}='netflow';
+$new_record->{ou_id}=$user_record->{ou_id};
 $new_record->{filter_group_id}=$user_record->{filter_group_id};
 $new_record->{queue_id}=$user_record->{queue_id};
 $new_record->{enabled}="$user_record->{enabled}";
 my $cur_auth_id=insert_record($db,'User_auth',$new_record);
-db_log_warning($db,"New ip created by netflow! ip: $ip") if (!$cur_auth_id);
+db_log_warning($db,"New ip created by netflow! ip: $ip") if ($cur_auth_id);
 return $cur_auth_id;
 }
 
@@ -830,7 +903,6 @@ $config_ref{snmp_default_community}=get_option($db,11);
 $config_ref{KB}=get_option($db,1);
 $config_ref{mac_discovery}=get_option($db,17);
 $config_ref{arp_discovery}=get_option($db,19);
-$config_ref{default_user_id}=get_option($db,20);
 $config_ref{admin_email}=get_option($db,21);
 $config_ref{sender_email}=get_option($db,52);
 $config_ref{send_email}=get_option($db,51);
@@ -849,7 +921,6 @@ $config_ref{urgent_sync}=get_option($db,50);
 $config_ref{ignore_hotspot_dhcp_log} = get_option($db,44);
 $config_ref{ignore_update_dhcp_event} = get_option($db,45);
 $config_ref{update_hostname_from_dhcp} = get_option($db,46);
-$config_ref{hotspot_user_id}=get_option($db,43);
 $config_ref{history_log_day}=get_option($db,47);
 $config_ref{history_syslog_day} = get_option($db,48);
 $config_ref{history_trafstat_day} = get_option($db,49);
@@ -865,6 +936,8 @@ $config_ref{wiki_url} = get_option($db,60);
 $config_ref{stat_url} = get_option($db,62);
 
 $config_ref{wiki_path} = get_option($db,61);
+
+$config_ref{auto_mac_rule} = get_option($db,64);
 
 #$save_detail = 1; id=23
 $save_detail=get_option($db,23);
@@ -884,8 +957,6 @@ $KB=get_option($db,1);
 $mac_discovery=get_option($db,17);
 #$arp_discovery; id=19
 $arp_discovery=get_option($db,19);
-#$default_user_id; id=20
-$default_user_id=get_option($db,20);
 #$admin_email; id=21
 $admin_email=get_option($db,21);
 #sender email
@@ -924,14 +995,17 @@ $ignore_update_dhcp_event = get_option($db,45);
 
 $update_hostname_from_dhcp = get_option($db,46);
 
-#$hotspot_user_id; id=43
-$hotspot_user_id=get_option($db,43);
-
 $history_log_day=get_option($db,47);
 
 $history_syslog_day = get_option($db,48);
 
 $history_trafstat_day = get_option($db,49);
+
+my $ou = get_record_sql($db,"SELECT id FROM OU WHERE default_users = 1");
+if (!$ou) { $default_user_ou_id = 0; } else { $default_user_ou_id = $ou->{'id'}; }
+
+$ou = get_record_sql($db,"SELECT id FROM OU WHERE default_hotspot = 1");
+if (!$ou) { $default_hotspot_ou_id = $default_user_ou_id; } else { $default_hotspot_ou_id = $ou->{'id'}; }
 
 @subnets=get_records_sql($db,'SELECT * FROM subnets ORDER BY ip_int_start');
 
@@ -980,11 +1054,6 @@ if ($net->{hotspot}) {
 push(@all_network_list,$net->{subnet});
 $all_networks->add_string($net->{subnet});
 }
-
-#remove all rules for default user id and hotspot subnet
-#delete_record($db,"auth_rules","user_id=".$config_ref{default_user_id});
-#delete_record($db,"auth_rules","user_id=".$config_ref{hotspot_user_id});
-#foreach my $subnet (@hotspot_network_list) { delete_record($db,"auth_rules","rule='".$subnet."'"); }
 
 }
 

@@ -16,6 +16,7 @@ if (isset($_POST["s_remove"])) {
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST['s_save'])) {
@@ -31,6 +32,7 @@ if (isset($_POST['s_save'])) {
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["s_create"])) {
@@ -42,6 +44,7 @@ if (isset($_POST["s_create"])) {
         insert_record($db_link, "device_l3_interfaces", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 unset($_POST);
@@ -61,7 +64,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 	<td><b>Тип</b></td>
 	<td><input type="submit" onclick="return confirm('Удалить?')" name="s_remove" value="Удалить"></td>
 </tr>
-<?
+<?php
 $t_l3_interface = get_records($db_link,'device_l3_interfaces',"device_id=$id ORDER BY name");
 foreach ( $t_l3_interface as $row ) {
     print "<tr align=center>\n";

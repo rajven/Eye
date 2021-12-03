@@ -1,0 +1,10 @@
+ALTER TABLE `auth_rules` ADD `ou_id` INT NULL DEFAULT NULL AFTER `user_id`;
+ALTER TABLE `OU` ADD `default_users` BOOLEAN NOT NULL DEFAULT FALSE AFTER `ou_name`;
+ALTER TABLE `OU` ADD `default_hotspot` BOOLEAN NOT NULL DEFAULT FALSE AFTER `default_users`;
+ALTER TABLE `User_list` ADD `device_id` INT NULL DEFAULT NULL AFTER `ou_id`;
+ALTER TABLE `User_auth` ADD `ou_id` INT NULL DEFAULT NULL AFTER `user_id`, ADD INDEX `ou_id` (`ou_id`); 
+UPDATE `User_auth` as A, User_list as L set A.ou_id = L.ou_id WHERE A.user_id=L.id;
+UPDATE `config_options` SET `min_value` = '22' WHERE `config_options`.`id` = 30;
+UPDATE `config_options` SET `default_value` = '22' WHERE `config_options`.`id` = 30;
+UPDATE `config_options` SET `description` = 'Порт ssh маршрутизатора' WHERE `config_options`.`id` = 30;
+INSERT INTO `config_options` (`id`, `option_name`, `description`, `uniq`, `type`, `default_value`, `min_value`, `max_value`) VALUES ('64', 'auto_mac_rule', 'Создавать автоматическую привязку мак-адреса к юзеру. Т.е. все ip-адреса для найденного мака будут привязываться к одном и тому же юзеру.', '1', 'bool', '0', '0', '1');

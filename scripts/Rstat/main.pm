@@ -42,8 +42,6 @@ Add_Lock
 Remove_Lock
 DefHash
 read_file
-AddToConfig
-RemoveFromConfig
 uniq
 strim
 trim
@@ -375,70 +373,6 @@ my @tmp=<FF>;
 close(FF);
 chomp(@tmp);
 return @tmp;
-}
-
-#---------------------------------------------------------------------------------------------------------
-
-sub AddToConfig {
-my $conf_str = $_[0];
-my $conf_file = $_[1];
-my $res;
-eval {
-    $SIG{ALRM} = sub { die "time-alarm\n" };
-    alarm $WAIT_TIME;
-    while (!Add_Lock($conf_file)) {
-    my $wait = int(rand($MAX_SLEEP));
-    if ($wait lt $MIN_SLEEP) { $wait = $MIN_SLEEP; }
-    sleep $wait;
-    }
-    my @conf_array=();
-    @conf_array=read_conf($conf_file);
-    my %list = map { $_, 1 } @conf_array;
-    if (exists $list{$conf_str}) { Remove_Lock($conf_file); return 1; }
-    open(FR,">$conf_file") or log_die "Unable to open config file $conf_file!" ;
-    flock(FR,2);
-    push(@conf_array,$conf_str);
-    print FR "$WARN_MSG";
-    foreach my $row (@conf_array) { print FR "$row\n"; };
-    close(FR);
-    Remove_Lock($conf_file);
-    $SIG{ALRM} = 'DEFAULT';
-};
-if ( $@ eq "time-alarm\n" ) {
-    log_die "Script aborted after timeout $WAIT_TIME sec. Unable to add $conf_str to config file $conf_file...\n";
-    }
-return 1;
-}
-
-#---------------------------------------------------------------------------------------------------------
-
-sub RemoveFromConfig {
-my $conf_str = $_[0];
-my $conf_file = $_[1];
-my $res;
-eval {
-    $SIG{ALRM} = sub { die "time-alarm\n" };
-    alarm $WAIT_TIME;
-    while (!Add_Lock($conf_file)) {
-    my $wait = int(rand($MAX_SLEEP));
-    if ($wait lt $MIN_SLEEP) { $wait = $MIN_SLEEP; }
-    sleep $wait;
-    }
-    my @conf_array=();
-    @conf_array=read_conf($conf_file);
-    my %list = map { $_, 1 } @conf_array;
-    if (!exists $list{$conf_str}) { Remove_Lock($conf_file); return 1; }
-    my @tmp = grep {/!^$conf_str$/} @conf_array;
-    open(FF,">$conf_file");
-    flock(FF,2);
-    print FF "$WARN_MSG";
-    foreach my $row (@tmp) { print FF $conf_str ."\n"; };
-    close(FF);
-    Remove_Lock($conf_file);
-    $SIG{ALRM} = 'DEFAULT';
-};
-if ( $@ eq "time-alarm\n" ) { log_die "Script aborted after timeout $WAIT_TIME sec. Unable to del $conf_str from config file $conf_file...\n"; }
-return 1;
 }
 
 #---------------------------------------------------------------------------------------------------------

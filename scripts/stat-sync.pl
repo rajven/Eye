@@ -88,11 +88,11 @@ if (!$pid) {
         if ( !defined $hdb ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
         $urgent_sync=get_option($hdb,50);
         if ($urgent_sync) {
-            my @changed = get_records_sql($hdb,"SELECT * from User_auth WHERE changed=1 and (user_id<>".$default_user_id." and user_id<>".$hotspot_user_id.")");
-	    if (@changed and scalar @changed>0) {
-                log_info("Found changed records: ".Dumper(\@changed));
+            my $changed = get_record_sql($hdb,"SELECT COUNT(*) as c_count from User_auth WHERE changed=1");
+	    if ($changed->{"c_count"}>0) {
+                log_info("Found changed records: $changed->{'c_count}");
     	        my %result=do_exec_ref($HOME_DIR."/sync_mikrotik.pl");
-    	        if ($result{status} ne 0) { log_error("Error sync status at gateway for: ".Dumper(\@changed)); }
+    	        if ($result{status} ne 0) { log_error("Error sync status at gateways"); }
     	    	}
     	    }
     	sleep(60);

@@ -87,6 +87,6 @@ print "<td class=\"data\"><b>" . fbytes($total_out) . "</b></td>\n";
 print "</tr>\n";
 ?>
   </table>
-<?
+<?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

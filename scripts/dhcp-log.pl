@@ -165,6 +165,7 @@ if (!$pid) {
 
             my $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
             my $auth_id = $auth_record->{id};
+	    my $auth_ou_id = $auth_record->{ou_id};
 
             update_dns_record($hdb,$dhcp_record,$auth_record);
 
@@ -191,7 +192,7 @@ if (!$pid) {
             if ($type=~/del/i and $auth_id) {
                 if ($auth_record->{dhcp_time} =~ /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})/) {
                     my $d_time = mktime($6,$5,$4,$3,$2-1,$1-1900);
-                    if (time()-$d_time>60 and ($auth_id == $config_ref{default_user_id} or $auth_id == $config_ref{hotspot_user_id})) {
+                    if (time()-$d_time>60 and ($auth_ou_id == $default_user_ou_id or $auth_ou_id==$default_hotspot_ou_id)) {
                         log_info("Remove user ip record by dhcp release event for dynamic clients id:$auth_id ip: $dhcp_record->{ip}");
                         my $auth_rec;
                         $auth_rec->{deleted}="1";

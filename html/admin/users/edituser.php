@@ -3,8 +3,8 @@ require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/auth.php");
 require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/languages/" . $language . ".php");
 require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/idfilter.php");
 
-global $default_user_id;
-global $hotspot_user_id;
+global $default_user_ou_id;
+global $default_hotspot_ou_id;
 
 $default_sort='ip_int';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
@@ -13,11 +13,12 @@ $msg_error = "";
 
 if (isset($_POST["edituser"])) {
     unset($new);
-    unset($auth);
     $new["ou_id"] = $_POST["f_ou"] * 1;
     $new["filter_group_id"] = $_POST["f_filter"]*1;
     $new["queue_id"] = $_POST["f_queue"]*1;
-    if ($default_user_id == $id or $hotspot_user_id == $id) {
+    $new["login"] = trim($_POST["f_login"]);
+    $new["fio"] = trim($_POST["f_fio"]);
+    if ($default_user_ou_id == $new["ou_id"] or $default_hotspot_ou_id == $new["ou_id"]) {
         $new["enabled"] = 0;
         $new["blocked"] = 0;
         $new["day_quota"] = 0;
@@ -25,20 +26,68 @@ if (isset($_POST["edituser"])) {
         $auth["enabled"] = 0;
         $auth["blocked"] = 0;
     } else {
-        $new["login"] = trim($_POST["f_login"]);
-	$new["fio"] = trim($_POST["f_fio"]);
         $new["enabled"] = $_POST["f_enabled"] * 1;
         $new["blocked"] = $_POST["f_blocked"] * 1;
         $new["day_quota"] = trim($_POST["f_perday"]) * 1;
         $new["month_quota"] = trim($_POST["f_permonth"]) * 1;
-        $auth["enabled"] = $new["enabled"];
-        $auth["blocked"] = $new["blocked"];
     }
     $changes = get_diff_rec($db_link,"User_list","id='$id'", $new, 0);
     if (!empty($changes)) { LOG_WARNING($db_link,"Изменён пользователь id: $id. \r\nПрименено: $changes"); }
     update_record($db_link, "User_list", "id='$id'", $new);
-    update_record($db_link, "User_auth", "user_id='" . $id . "'", $auth);
+    run_sql($db_link, "UPDATE User_auth SET ou_id=".$new["ou_id"]." WHERE user_id=".$id);
+    run_sql($db_link, "UPDATE devices SET device_name=".$new["login"]." WHERE user_id=".$id);
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
+if (isset($_POST["addMacRule"])) {
+    unset($new);
+    $first_auth = get_record_sql($db_link,"SELECT mac FROM User_auth WHERE user_id=".$id." AND deleted=0 ORDER BY id");
+    if (!empty($first_auth)) {
+        $new['user_id']=$id;
+        $new['type']=2;
+        $new['rule']=$first_auth['mac'];
+	insert_record($db_link,"auth_rules",$new);
+	LOG_INFO($db_link,"Создано правило атоназначения юзеру id: ".$id." для мака ".$first_auth['mac']);
+	}
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
+if (isset($_POST["delMacRule"])) {
+    run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$id." AND type=2");
+    LOG_INFO($db_link,"Удалены все правила атоназначения юзеру id: $id по маку");
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
+if (isset($_POST["showDevice"])) {
+    $device = get_record_sql($db_link,"SELECT * FROM devices WHERE user_id=".$id);
+    $auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE user_id=".$id);
+    if (empty($device) and !empty($auth)) {
+	$sSQL = "SELECT * FROM User_list WHERE id=$id";
+	$user_info = get_record_sql($db_link, $sSQL);
+        global $snmp_default_version;
+        global $snmp_default_community;
+	$new['user_id']=$id;
+        $new['device_name'] = $user_info['login'];
+        $new['device_type'] = 5;
+        $new['ip']=$auth['ip'];
+        $new['community'] = $snmp_default_community;
+        $new['snmp_version'] = $snmp_default_version;
+        $new_id=insert_record($db_link, "devices", $new);
+        unset($_POST);
+        if (!empty($new_id)) {
+            LOG_INFO($db_link, "Created device with id: $new_id for auth_id: $id");
+	    header("Location: /admin/devices/editdevice.php?id={$new_id}");
+	    exit;
+	    } else {
+	    header("Location: ".$_SERVER["REQUEST_URI"]);
+	    exit;
+	    }
+	}
+    header("Location: /admin/devices/editdevice.php?id=".$device['id']);
+    exit;
 }
 
 if (isset($_POST["addauth"])) {
@@ -77,30 +126,33 @@ if (isset($_POST["addauth"])) {
                 update_record($db_link,"User_auth","id=".$fid,$new);
                 LOG_WARNING($db_link,"Создан новый адрес доступа: ip => $fip, mac => $fmac");
                 header("Location: /admin/users/editauth.php?id=".$fid);
+                exit;
                 }
 	    header("Location: " . $_SERVER["REQUEST_URI"]);
+	    exit;
     	    } else {
                 $msg_error = "$msg_ip_error xxx.xxx.xxx.xxx";
                 $_SESSION[$page_url]['msg'] = $msg_error;
     	    }
 	}
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
     }
 
 if (isset($_POST["removeauth"])) {
     $auth_id = $_POST["f_auth_id"];
     foreach ($auth_id as $key => $val) {
         if ($val) {
-            delete_record($db_link, 'connections', "auth_id=" . $val);
-            delete_record($db_link, 'User_auth_alias', "auth_id=" . $val);
+            run_sql($db_link, 'DELETE FROM connections WHERE auth_id='.$val);
+            run_sql($db_link, 'DELETE FROM User_auth_alias WHERE auth_id='.$val);
             $auth["deleted"] = 1;
             $changes = get_diff_rec($db_link,"User_auth","id='$val'", '', 0);
             if (!empty($changes)) { LOG_WARNING($db_link,"Удалён адрес доступа: \r\n $changes"); }
             update_record($db_link, "User_auth", "id=" . $val, $auth);
-            delete_record($db_link, "connections", "auth_id=" . $val);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["ApplyForAll"])) {
@@ -135,6 +187,7 @@ if (isset($_POST["ApplyForAll"])) {
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["moveauth"]) and isset($_POST["new_parent"])) {
@@ -155,6 +208,7 @@ if (isset($_POST["moveauth"]) and isset($_POST["new_parent"])) {
 	    }
 	}
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["new_user"])) {
@@ -192,6 +246,7 @@ if (isset($_POST["new_user"])) {
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 unset($_POST);
@@ -209,7 +264,7 @@ if (!empty($_SESSION[$page_url]['msg'])) {
     }
 ?>
 <form name="def" action="edituser.php?id=<?php echo $id; ?>" method="post">
-<input type="hidden" name="id" value=<? echo $id; ?>>
+<input type="hidden" name="id" value=<?php echo $id; ?>>
 <table class="data">
 <tr>
 <td colspan=2><?php print $cell_login; ?></td>
@@ -222,8 +277,8 @@ if (!empty($_SESSION[$page_url]['msg'])) {
 <td colspan=2><?php print_ou_set($db_link, 'f_ou', $user_info["ou_id"]); ?></td>
 </tr>
 <tr>
-<td>Фильтр</td>
-<td>Шейпер</td>
+<td><?php print $cell_filter; ?></td>
+<td><?php print $cell_shaper; ?></td>
 <td><?php print $cell_enabled; ?></td>
 <td><?php print $cell_perday; ?></td>
 <td><?php print $cell_permonth; ?></td>
@@ -233,27 +288,32 @@ if (!empty($_SESSION[$page_url]['msg'])) {
 <td><?php print_group_select($db_link, 'f_filter', $user_info["filter_group_id"]); ?></td>
 <td><?php print_queue_select($db_link, 'f_queue', $user_info["queue_id"]); ?></td>
 <td><?php print_qa_select('f_enabled', $user_info["enabled"]); ?></td>
-<td><input type="text" name="f_perday" value="<? echo $user_info["day_quota"]; ?>" size=5></td>
-<td><input type="text" name="f_permonth" value="<? echo $user_info["month_quota"]; ?>" size=5></td>
+<td><input type="text" name="f_perday" value="<?php echo $user_info["day_quota"]; ?>" size=5></td>
+<td><input type="text" name="f_permonth" value="<?php echo $user_info["month_quota"]; ?>" size=5></td>
 <td><?php print_qa_select('f_blocked', $user_info["blocked"]); ?></td>
 </tr>
 <tr>
 <?php
 print "<td>"; print_url("Список правил","/admin/users/edit_rules.php?id=$id"); print "</td>";
 $rule_count = get_count_records($db_link,"auth_rules","user_id=".$id);
-if ($rule_count>0) { print "<td colspan=3> Count: ".$rule_count."</td>"; } else { print "<td colspan=3></td>"; }
+if ($rule_count>0) { print "<td > Count: ".$rule_count."</td>"; } else { print "<td></td>"; }
+$first_auth = get_record_sql($db_link,"SELECT id FROM User_auth WHERE user_id=".$id." AND deleted=0 ORDER BY id");
+if (!empty($first_auth)) {
+    $mac_rule_count = get_count_records($db_link,"auth_rules","user_id=".$id." AND type=2");
+    if (!empty($mac_rule_count)) { 
+	print "<td><input type=\"submit\" name=\"delMacRule\" value=".$btn_mac_del." ></td><td></td>";
+	} else {
+	print "<td><input type=\"submit\" name=\"addMacRule\" value=".$btn_mac_add." ></td><td></td>";
+	}
+    } else { print "<td colspan=2></td>"; }
 ?>
 <td colspan=2>Created: <?php print $user_info["timestamp"]; ?></td><td></td>
 </tr>
 <tr>
-<?php
-print "<td colspan=2>"; print_url("Трафик за день","/admin/reports/userday.php?id=$id"); print "</td>";
-$dev_id = get_device_by_auth($db_link,$id);
-print "<td>";
-if (isset($dev_id)) { print_url('Device link','/admin/devices/editdevice.php?id='.$dev_id); }
-print "</td>";
-?>
-<td colspan=2></td>
+<?php print "<td colspan=2>"; print_url("Трафик за день","/admin/reports/userday.php?id=$id"); ?></td>
+<td></td>
+<td><input type="submit" name="showDevice" value=<?php print $btn_device; ?>></td>
+<td></td>
 <td><input type="submit" name="edituser" value=<?php print $btn_save; ?>></td>
 </tr>
 </table>
@@ -352,6 +412,6 @@ if (!empty($flist)) {
 ?>
 </table>
 </form>
-<?
+<?php
 require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/footer.php");
 ?>

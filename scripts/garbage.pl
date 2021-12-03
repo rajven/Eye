@@ -98,7 +98,7 @@ $dhcp_networks->add_string($subnet->{subnet},$subnet->{dhcp_lease_time});
 }
 
 #clean temporary dhcp leases & connections only for dhcp pool ip
-my $users_sql = "SELECT * FROM User_auth WHERE deleted=0 AND (`user_id`=".$default_user_id." OR `user_id`=".$hotspot_user_id.")";
+my $users_sql = "SELECT * FROM User_auth WHERE deleted=0 AND (`ou_id`=".$default_user_ou_id." OR `ou_id`=".$default_hotspot_ou_id.")";
 my @users_auth = get_records_sql($dbh,$users_sql);
 foreach my $row (@users_auth) {
 next if (!is_dhcp_pool(\%dhcp_conf,$row->{ip_int}));

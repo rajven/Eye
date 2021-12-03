@@ -12,6 +12,7 @@ if (isset($_POST["editfilter"])) {
     update_record($db_link, "Filter_list", "id='$id'", $new);
     unset($_POST);
     header("location: index.php");
+    exit;
 }
 
 unset($_POST);

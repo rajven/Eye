@@ -7,16 +7,16 @@ if (isset($_POST["removeauth"])) {
     $auth_id = $_POST["f_auth_id"];
     foreach ($auth_id as $key => $val) {
         if ($val) {
-                delete_record($db_link, 'connections', "auth_id=" . $val);
-                delete_record($db_link, 'User_auth_alias', "auth_id=" . $val);
+                run_sql($db_link, 'DELETE FROM connections WHERE auth_id='.$val);
+                run_sql($db_link, 'DELETE FROM User_auth_alias WHERE auth_id='.$val);
                 $auth["deleted"] = 1;
                 $changes = get_diff_rec($db_link,"User_auth","id='$val'", '', 0);
                 if (!empty($changes)) { LOG_WARNING($db_link,"Удалён адрес доступа: \r\n $changes"); }
                 update_record($db_link, "User_auth", "id=" . $val, $auth);
-                delete_record($db_link, "connections", "auth_id=" . $val);
                 }
             }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
     }
 
 print_ip_submenu($page_url);

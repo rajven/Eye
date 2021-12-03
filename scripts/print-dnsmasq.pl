@@ -64,7 +64,7 @@ print "dhcp-option=net:net-$subnet_name,option:router,$dhcp_conf{$subnet_name}->
 }
 
 #get userid list
-my $sSQL="SELECT id,ip,ip_int,mac,comments,dns_name FROM User_auth where dhcp=1 and deleted=0 and user_id<>$hotspot_user_id and user_id<>$default_user_id ORDER by ip_int";
+my $sSQL="SELECT id,ip,ip_int,mac,comments,dns_name FROM User_auth where dhcp=1 and deleted=0 and ou_id !=".$default_user_ou_id." and ou_id !=".$default_hotspot_ou_id." ORDER by ip_int";
 my @users = get_records_sql($dbh,$sSQL);
 foreach my $row (@users) {
 next if (!$row);

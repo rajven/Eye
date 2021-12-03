@@ -5,21 +5,6 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/vendorfilter.php");
 
-/*
-if (isset($_POST["remove"])) {
-    $fid = $_POST["f_id"];
-    foreach ($fid as $key => $val) {
-        if (isset($val) and $val > 0 and $val < 10000) {
-            $new['device_model_id'] = 0;
-            update_record($db_link, "User_auth", "device_model_id=" . $val, $new);
-            update_record($db_link, "devices", "device_model_id=" . $val, $new);
-            delete_record($db_link, "device_models", "id=" . $val);
-            }
-        }
-    header("Location: " . $_SERVER["REQUEST_URI"]);
-    }
-*/
-
 if (isset($_POST['save'])) {
     $saved = array();
     //button save
@@ -55,6 +40,7 @@ if (isset($_POST['save'])) {
             }
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
     }
 
 if (isset($_POST["create"])) {
@@ -69,6 +55,7 @@ if (isset($_POST["create"])) {
         insert_record($db_link, "device_models", $new);
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
     }
 
 unset($_POST);
@@ -111,7 +98,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td><b>Шаблон Nagios</b></td>
 <td><input type="submit" name='save' value="Сохранить"></td>
 </tr>
-<?
+<?php
 $t_ou = get_records_sql($db_link,'SELECT * FROM device_models '.$v_filter." ORDER BY vendor_id, model_name LIMIT $start,$displayed");
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";

@@ -21,8 +21,6 @@ $sort_table = 'User_auth';
 
 $sort_url = "<a href=deleted.php?";
 
-global $default_user_id;
-
 if ($rsubnet == 0) { $subnet_filter = ''; } else {
     $subnet_range = get_subnet_range($db_link,$rsubnet);
     $subnet_filter = " and User_auth.ip_int>=".$subnet_range['start']." and User_auth.ip_int<=".$subnet_range['stop'];

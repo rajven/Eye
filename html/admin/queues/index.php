@@ -12,6 +12,7 @@ if (isset($_POST['save'])) {
         update_record($db_link, "Queue_list", "id='{$id}'", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["create"])) {
@@ -21,6 +22,7 @@ if (isset($_POST["create"])) {
         insert_record($db_link, "Queue_list", $q);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 unset($_POST);
@@ -38,7 +40,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 	<td><b>Upload</b></td>
 	<td><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
 </tr>
-<?
+<?php
 $t_queue=get_records($db_link, "Queue_list",'TRUE ORDER BY id');
 foreach ($t_queue as $row) {
     print "<tr align=center>\n";

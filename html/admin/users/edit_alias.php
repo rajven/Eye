@@ -4,8 +4,6 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-global $default_user_id;
-global $hotspot_user_id;
 $msg_error = "";
 
 $sSQL = "SELECT * FROM User_auth WHERE id=$id";
@@ -35,6 +33,7 @@ if (isset($_POST['s_save'])) {
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["s_create"])) {
@@ -46,6 +45,7 @@ if (isset($_POST["s_create"])) {
         insert_record($db_link, "User_auth_alias", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 unset($_POST);
@@ -65,7 +65,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 	<td><b>Комментарий</b></td>
 	<td><input type="submit" onclick="return confirm('Удалить?')" name="s_remove" value="Удалить"></td>
 </tr>
-<?
+<?php
 $t_User_auth_alias = get_records($db_link,'User_auth_alias',"auth_id=$id ORDER BY alias");
 foreach ( $t_User_auth_alias as $row ) {
     print "<tr align=center>\n";

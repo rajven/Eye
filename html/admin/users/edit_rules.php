@@ -4,9 +4,6 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-global $default_user_id;
-global $hotspot_user_id;
-
 $msg_error = "";
 
 $sSQL = "SELECT * FROM User_list WHERE id=$id";
@@ -21,6 +18,7 @@ if (isset($_POST["s_remove"])) {
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST['s_save'])) {
@@ -36,6 +34,7 @@ if (isset($_POST['s_save'])) {
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["s_create"])) {
@@ -48,6 +47,7 @@ if (isset($_POST["s_create"])) {
         insert_record($db_link, "auth_rules", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 unset($_POST);
@@ -72,7 +72,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 	<td><b>Правило</b></td>
 	<td><input type="submit" onclick="return confirm('Удалить?')" name="s_remove" value="Удалить"></td>
 </tr>
-<?
+<?php
 $t_auth_rules = get_records($db_link,'auth_rules',"user_id=$id ORDER BY id");
 foreach ( $t_auth_rules as $row ) {
     print "<tr align=center>\n";

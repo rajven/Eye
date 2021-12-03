@@ -14,6 +14,7 @@ if (isset($_POST["regensnmp"])) {
         update_record($db_link, "device_ports", "id='$port_id'", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST['save'])) {
@@ -48,6 +49,7 @@ if (isset($_POST['save'])) {
             }
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
     }
 
 
@@ -56,11 +58,10 @@ $switch=get_record($db_link,'devices',"id=".$id);
 unset($_POST);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
-print_editdevice_submenu($page_url,$id);
-
+print_editdevice_submenu($page_url,$id,$device['device_type']);
 ?>
 <div id="cont">
-<form name="def" action="switchport.php?id=<? echo $id; ?>" method="post">
+<form name="def" action="switchport.php?id=<?php echo $id; ?>" method="post">
 <br>
 
 <?php print "<b>Список портов ".$switch['device_name']." - ".$switch['ip']."</b><br>\n"; ?>
@@ -134,6 +135,6 @@ print "</table>\n";
 ?>
 </form>
 
-<?
+<?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.small.php");
 ?>

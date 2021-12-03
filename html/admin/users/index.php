@@ -11,9 +11,9 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 $msg_error = "";
 
 if (isset($_POST["create"])) {
-    $login = $_POST["newlogin"];
-    if ($login) {
-        list ($lcount) = mysqli_fetch_array(mysqli_query($db_link, "Select count(id) from User_list where LCase(Login)=LCase('$login')"));
+    $login = trim($_POST["newlogin"]);
+    if (!empty($login)) {
+        $lcount = get_count_records($db_link,"User_list","LCase(login)=LCase('$login')");
         if ($lcount > 0) {
             $msg_error = "$cell_login $login $msg_exists!";
             unset($_POST);
@@ -22,10 +22,12 @@ if (isset($_POST["create"])) {
             $new['ou_id'] = $rou;
             $lid=insert_record($db_link, "User_list", $new);
             LOG_WARNING($db_link,"Создан новый пользователь: Login => $login");
-            header("location: edituser.php?id=$id");
+            header("Location: edituser.php?id=$id");
+            exit;
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["ApplyForAll"])) {
@@ -47,34 +49,34 @@ if (isset($_POST["ApplyForAll"])) {
             $msg.="Всем адресам доступа пользователя id: ".$val." login: ".$login['login']." установлено: \r\n";
             $msg.= get_diff_rec($db_link,"User_list","id='$val'", $user, 1);
             update_record($db_link, "User_list", "id='" . $val . "'", $user);
-            $auth['queue_id'] = $a_queue;
-            $auth['filter_group_id'] = $a_group;
-            $auth['enabled'] = $a_enabled;
-            update_record($db_link, "User_auth", "user_id='" . $val . "'", $auth);
+            run_sql($db_link, "UPDATE User_auth SET queue_id=$a_queue, filter_group_id=$a_group, enabled=$a_enabled WHERE user_id=".$val);
         }
     }
     LOG_WARNING($db_link,$msg);
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 if (isset($_POST["remove"])) {
     $fid = $_POST["fid"];
-    $default_user_id = get_option($db_link, 20);
-    if (! isset($default_user_id)) {
-        $default_user_id = 1;
-    }
     foreach ($fid as $key => $val) {
         if ($val) {
             if ($val == 1) { continue; }
-            $auth['user_id'] = $default_user_id;
-            $changes = get_diff_rec($db_link,"User_list","id='$val'", '', 1);
             $login = get_record($db_link,"User_list","id='$val'");
-            LOG_WARNING($db_link,"Удалён пользователь id: $val login: ".$login['login']."\r\n$changes\r\nАдреса доступа перемещены к пользователю по умолчанию.");
-            update_record($db_link, "User_auth", "user_id=$val", $auth);
+            LOG_INFO($db_link, "Delete device for user id: $val");
+            $device= get_record($db_link,"devices","user_id='$val'");
+            unbind_ports($db_link, $device['id']);
+            run_sql($db_link, "DELETE FROM connections WHERE device_id=".$device['id']);
+            run_sql($db_link, 'DELETE FROM device_l3_interfaces WHERE device_id='.$device['id']);
+            run_sql($db_link, "DELETE FROM device_ports WHERE device_id=".$device['id']);
+            delete_recrod($db_link, "devices", "id=".$device['id']);
+            LOG_WARNING($db_link,"Удалён пользователь id: $val login: ".$login['login']."\r\n");
+            run_sql($db_link,"UPDATE User_auth SET deleted=1 WHERE user_id=$val");
             delete_record($db_link, "User_list", "id=$val");
-        }
-    }
+    	    }
+	}
     header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
 }
 
 unset($_POST);
@@ -149,7 +151,7 @@ $sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month
 <td><b><?php print $cell_permonth; ?></b></td>
 <td><b><?php print $cell_report; ?></b></td>
 </tr>
-<?
+<?php
 
 $users = get_records_sql($db_link, $sSQL);
 
@@ -195,6 +197,6 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td class="warn">Пользователь выключен</td>
 <td class="error">Блокировка по трафику</td>
 </table>
-<?
+<?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>
