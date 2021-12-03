@@ -105,7 +105,8 @@ if ($default_user_id != $hotspot_user_id) {
 do_sql($dbh,"DELETE FROM `config_options` WHERE `config_options`.`id` = 20");
 do_sql($dbh,"DELETE FROM `config_options` WHERE `config_options`.`id` = 43");
 do_sql($dbh,"DELETE FROM `config` WHERE `config`.`option_id` = 20");
-do_sql($dbh,"DDELETE FROM `config` WHERE `config`.`option_id` = 43");
+do_sql($dbh,"DELETE FROM `config` WHERE `config`.`option_id` = 43");
+do_sql($dbh,"DELETE FROM devices WHERE deleted=1");
 
 print "Done!\n";
 
