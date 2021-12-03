@@ -302,7 +302,7 @@ AND User_auth.deleted =0
 AND User_auth.enabled =1
 AND User_auth.blocked =0
 AND User_list.blocked =0
-AND User_auth.user_id <> $hotspot_user_id
+AND User_auth.ou_id <> $default_hotspot_ou_id
 ORDER BY ip_int";
 
 my @authlist_ref = get_records_sql($dbh,$user_auth_sql);
