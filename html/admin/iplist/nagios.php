@@ -36,7 +36,7 @@ $sort_table = 'User_auth';
 if ($sort_field == 'login') { $sort_table = 'User_list'; }
 if ($sort_field == 'fio') { $sort_table = 'User_list'; }
 
-$sort_url = "<a href=index.php?ou=" . $rou; 
+$sort_url = "<a href=nagios.php?ou=" . $rou; 
 
 if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and User_list.ou_id=$rou "; }
 
