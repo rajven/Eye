@@ -63,7 +63,6 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["fid"];
     foreach ($fid as $key => $val) {
         if ($val) {
-            if ($val == 1) { continue; }
             $login = get_record($db_link,"User_list","id='$val'");
             LOG_INFO($db_link, "Delete device for user id: $val");
             $device= get_record($db_link,"devices","user_id='$val'");
