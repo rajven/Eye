@@ -65,11 +65,13 @@ if (isset($_POST["remove"])) {
             $login = get_record($db_link,"User_list","id='$val'");
             LOG_INFO($db_link, "Delete device for user id: $val");
             $device= get_record($db_link,"devices","user_id='$val'");
-            unbind_ports($db_link, $device['id']);
-            run_sql($db_link, "DELETE FROM connections WHERE device_id=".$device['id']);
-            run_sql($db_link, 'DELETE FROM device_l3_interfaces WHERE device_id='.$device['id']);
-            run_sql($db_link, "DELETE FROM device_ports WHERE device_id=".$device['id']);
-            delete_recrod($db_link, "devices", "id=".$device['id']);
+	    if (!empty($device)) {
+                unbind_ports($db_link, $device['id']);
+	        run_sql($db_link, "DELETE FROM connections WHERE device_id=".$device['id']);
+    	        run_sql($db_link, "DELETE FROM device_l3_interfaces WHERE device_id=".$device['id']);
+    		run_sql($db_link, "DELETE FROM device_ports WHERE device_id=".$device['id']);
+                delete_recrod($db_link, "devices", "id=".$device['id']);
+		}
             LOG_WARNING($db_link,"Удалён пользователь id: $val login: ".$login['login']."\r\n");
             run_sql($db_link,"UPDATE User_auth SET deleted=1 WHERE user_id=$val");
             delete_record($db_link, "User_list", "id=$val");
