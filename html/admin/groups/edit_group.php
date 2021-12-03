@@ -13,6 +13,9 @@ if (isset($_POST['save'])) {
         $new['nagios_host_use'] = $_POST['f_nagios_host'];
         $new['nagios_ping'] = $_POST['f_nagios_ping'];
         $new['nagios_default_service'] = $_POST['f_nagios_service'];
+        $new['queue_id']= $_POST['f_queue_id']*1;
+        $new['filter_group_id']= $_POST['f_filter_group_id']*1;
+        $new['enabled']= $_POST['f_enabled']*1;
         if ($new['default_users'] == TRUE) { run_sql($db_link,"UPDATE OU set default_users=0 WHERE id!='{$id}'"); }
         if ($new['default_hotspot'] == TRUE) { run_sql($db_link,"UPDATE OU set default_hotspot=0 WHERE id!='{$id}'"); }
         update_record($db_link, "OU", "id='{$id}'", $new);
@@ -71,29 +74,39 @@ fix_auth_rules($db_link);
 <form name="def" action="edit_group.php" method="post">
 <table class="data">
 <tr align="center">
-<td><b>Название</b></td>
+<td colspan=2><b>Название</b></td>
 <td><b>Default</b></td>
 <td><b>Hotspot</b></td>
+</tr>
+<?php
+$ou_info = get_record_sql($db_link,'SELECT * FROM OU WHERE id='.$id);
+print "<tr align=center>\n";
+print "<td colspan=2 class=\"data\"><input type=\"text\" name='f_group_name' value='{$ou_info['ou_name']}' style=\"width:95%;\"></td>\n";
+if ($ou_info['default_users']) { $cl = "up"; } else { $cl="data"; }
+print "<td class=\"$cl\">";  print_qa_select("f_default",$ou_info['default_users']); print "</td>\n";
+if ($ou_info['default_hotspot']) { $cl = "up"; } else { $cl="data"; }
+print "<td class=\"$cl\">";  print_qa_select("f_default_hotspot",$ou_info['default_hotspot']); print "</td>\n";
+?>
+<tr>
 <td><b>Nagios directory</b></td>
 <td><b>Host template</b></td>
 <td><b>Ping</b></td>
 <td><b>Host service</b></td>
 </tr>
 <?php
-$ou_info = get_record_sql($db_link,'SELECT * FROM OU WHERE id='.$id);
-print "<tr align=center>\n";
-print "<td class=\"data\"><input type=\"text\" name='f_group_name' value='{$ou_info['ou_name']}'></td>\n";
-if ($ou_info['default_users']) { $cl = "up"; } else { $cl="data"; }
-print "<td class=\"$cl\">";  print_qa_select("f_default",$ou_info['default_users']); print "</td>\n";
-if ($ou_info['default_hotspot']) { $cl = "up"; } else { $cl="data"; }
-print "<td class=\"$cl\">";  print_qa_select("f_default_hotspot",$ou_info['default_hotspot']); print "</td>\n";
 print "<td class=\"data\"><input type=\"text\" name='f_nagios' value='{$ou_info['nagios_dir']}'></td>\n";
 print "<td class=\"data\"><input type=\"text\" name='f_nagios_host' value='{$ou_info['nagios_host_use']}'></td>\n";
 print "<td class=\"data\">"; print_qa_select("f_nagios_ping",$ou_info['nagios_ping']); print "</td>\n";
 print "<td class=\"data\"><input type=\"text\" name='f_nagios_service' value='{$ou_info['nagios_default_service']}'></td>\n";
-print "<td class=\"data\"><button name='save' value='{$ou_info['id']}'>Сохранить</button></td>\n";
-print "</tr>\n";
 ?>
+</tr>
+<tr><td colspan=4>Правила для автоназначенных клиентов</td></tr>
+<tr>
+<td class="data">Фильтр&nbsp<?php print_group_select($db_link, 'f_filter_group_id', $ou_info['filter_group_id']); ?></td>
+<td class="data">Шейпер&nbsp<?php print_queue_select($db_link, 'f_queue_id', $ou_info['queue_id']); ?></td>
+<td class="data">Включен&nbsp<?php print_qa_select('f_enabled', $ou_info['enabled']); ?></td>
+<?php print "<td align=right class=\"data\"><button name='save' value='{$ou_info['id']}'>Сохранить</button></td>\n"; ?>
+</tr>
 </table>
 <br>
 <b>Правила автоназначения адресов в <?php print_url($auth_info['login'],"/admin/users/edituser.php?id=$id"); ?></b>

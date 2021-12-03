@@ -1351,6 +1351,7 @@ $set_auth['filter_group_id']=$user_rec['filter_group_id'];
 $set_auth['queue_id']= $user_rec['queue_id'];
 $set_auth['enabled'] = $user_rec['enabled'];
 update_record($db, "User_auth", "id=$auth_id", $set_auth);
+return $set_auth;
 }
 
 function fix_auth_rules($db) {
@@ -1380,6 +1381,12 @@ if ($user_info['dhcp_hostname']) {
     $user['fio']=$user_info['ip'];
     }
 $user['ou_id'] = $user_info['ou_id'];
+$ou_info = get_record_sql($db,"SELECT * FROM OU WHERE id=".$user_info['ou_id']);
+if (!empty($ou_info)) {
+    $user['enabled'] = $ou_info['enabled'];
+    $user['queue_id'] = $ou_info['queue_id'];
+    $user['filter_group_id'] = $ou_info['filter_group_id'];
+    }
 $result = insert_record($db,"User_list",$user);
 if (!empty($result) and $auto_mac_rule and $user_info['mac']) {
     $auth_rule['user_id'] = $result;
@@ -1509,7 +1516,7 @@ function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
     }
     //check rules, update filter and state for new record
     if (!empty($resurrection_id)) {
-            apply_auth_rule($db,$resurrection_id,$new_user_id);
+            $user_rec=apply_auth_rule($db,$resurrection_id,$new_user_id);
 	    $msg.="filter: ".$user_rec['filter_group_id']."\r\n queue_id: ".$user_rec['queue_id']."\r\n enabled: ".$user_rec['enabled']."\r\nid: $resurrection_id";
 	    if (!is_hotspot($db,$ip) and !empty($msg)) { LOG_WARNING($db, $msg); }
 	    if (is_hotspot($db,$ip) and !empty($msg)) { LOG_INFO($db, $msg); }

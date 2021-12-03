@@ -8,3 +8,4 @@ UPDATE `config_options` SET `min_value` = '22' WHERE `config_options`.`id` = 30;
 UPDATE `config_options` SET `default_value` = '22' WHERE `config_options`.`id` = 30;
 UPDATE `config_options` SET `description` = 'Порт ssh маршрутизатора' WHERE `config_options`.`id` = 30;
 INSERT INTO `config_options` (`id`, `option_name`, `description`, `uniq`, `type`, `default_value`, `min_value`, `max_value`) VALUES ('64', 'auto_mac_rule', 'Создавать автоматическую привязку мак-адреса к юзеру. Т.е. все ip-адреса для найденного мака будут привязываться к одном и тому же юзеру.', '1', 'bool', '0', '0', '1');
+ALTER TABLE `OU` ADD `enabled` INT NOT NULL DEFAULT '0' AFTER `nagios_default_service`, ADD `filter_group_id` INT NOT NULL DEFAULT '0' AFTER `enabled`, ADD `queue_id` INT NOT NULL DEFAULT '0' AFTER `filter_group_id`; 

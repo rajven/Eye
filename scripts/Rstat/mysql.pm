@@ -723,6 +723,12 @@ if ($user_info->{dhcp_hostname}) {
     $user->{fio}=$user_info->{ip};
     }
 $user->{ou_id} = $user_info->{ou_id};
+my $ou_info = get_record_sql($db,"SELECT * FROM OU WHERE id=".$user_info->{'ou_id'});
+if ($ou_info) {
+    $user->{'enabled'} = $ou_info->{'enabled'};
+    $user->{'queue_id'} = $ou_info->{'queue_id'};
+    $user->{'filter_group_id'} = $ou_info->{'filter_group_id'};
+    }
 my $result = insert_record($db,"User_list",$user);
 if ($result and $config_ref{auto_mac_rule} and $user_info->{mac}) {
     my $auth_rule;
