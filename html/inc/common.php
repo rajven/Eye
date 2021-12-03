@@ -1350,6 +1350,7 @@ $set_auth['ou_id']=$user_rec['ou_id'];
 $set_auth['filter_group_id']=$user_rec['filter_group_id'];
 $set_auth['queue_id']= $user_rec['queue_id'];
 $set_auth['enabled'] = $user_rec['enabled'];
+$set_auth['changed'] = 1;
 update_record($db, "User_auth", "id=$auth_id", $set_auth);
 return $set_auth;
 }
