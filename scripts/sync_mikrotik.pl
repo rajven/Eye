@@ -289,6 +289,16 @@ if ($leases{$ip}{acl}!~/$active_leases{$ip}{acl}/) {
 }#end interface dhcp loop
 }#end dhcp config
 
+#clean changed for unmanaged users
+if (!$gate->{user_acl}) {
+    #get userid list
+    my @changed_unmanagment = get_records_sql($dbh,"SELECT * FROM User_auth WHERE changed=1");
+    foreach my $row (@changed_unmanagment) {
+        next if ($connected_users->match_string($row->{ip}));
+        do_sql($dbh,"UPDATE User_auth SET changed=0 WHERE id=".$row->{id});
+	}
+    }
+
 #access lists config
 if ($gate->{user_acl}) {
 
