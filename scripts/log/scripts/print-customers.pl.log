@@ -1,3 +1,0 @@
-20211201-135935 DEBUG: [133325] DELETE FROM `variables` WHERE clear_time<=2021-12-01 13:59:35
-20211201-135935 DEBUG: [133325] DELETE FROM `variables` WHERE name=print-customers.pl;
-20211201-135935 DEBUG: [133325] INSERT INTO variables(name,value,clear_time) VALUES(print-customers.pl,133325,2021-12-01 14:00:35);
