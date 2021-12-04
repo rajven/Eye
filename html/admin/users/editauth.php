@@ -97,9 +97,9 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
     exit;
     }
 
-if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
-    $new_parent_id = $_POST["new_parent"]*1;
-    $new_parent = get_record_sql($db_link,"User_list","id=".$new_parent_id);
+if (isset($_POST["moveauth"])) {
+    $new_parent_id = $_POST["f_new_parent"]*1;
+    $new_parent = get_record($db_link,"User_list","id=".$new_parent_id);
     if (!empty($new_parent)) {
         $new['user_id'] = $new_parent_id;
 	$new['ou_id'] = $new_parent['ou_id'];
@@ -287,7 +287,7 @@ if (isset($dev_id)) {
 <td></td>
 </tr>
 <tr>
-<td colspan=2><input type="submit" name="moveauth" value=<?php print $btn_move; ?>><?php print_login_select($db_link, 'new_parent', $auth_info['user_id']); ?></td>
+<td colspan=2><input type="submit" name="moveauth" value=<?php print $btn_move; ?>><?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?></td>
 <td><a href=/admin/logs/authlog.php?auth_id=<?php print $id; ?>>Лог</a></td>
 <?php
 if ($auth_info['deleted']) {
