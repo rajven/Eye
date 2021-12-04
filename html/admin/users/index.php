@@ -30,7 +30,7 @@ if (isset($_POST["create"])) {
 	        }
             $lid=insert_record($db_link, "User_list", $new);
             LOG_WARNING($db_link,"Создан новый пользователь: Login => $login");
-            header("Location: edituser.php?id=$id");
+            header("Location: edituser.php?id=$lid");
             exit;
         }
     }
