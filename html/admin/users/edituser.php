@@ -155,100 +155,6 @@ if (isset($_POST["removeauth"])) {
     exit;
 }
 
-if (isset($_POST["ApplyForAll"])) {
-    $auth_id = $_POST["f_auth_id"];
-    $a_enabled = $_POST["a_enabled"] * 1;
-    $a_dhcp = $_POST["a_dhcp"] * 1;
-    $a_day = $_POST["a_day_q"] * 1;
-    $a_month = $_POST["a_month_q"] * 1;
-    $a_queue = $_POST["a_queue_id"] * 1;
-    $a_group = $_POST["a_group_id"] * 1;
-    foreach ($auth_id as $key => $val) {
-        if ($val) {
-            unset($new);
-            if ($default_user_id == $id or $hotspot_user_id == $id) {
-                $new["dhcp"] = 0;
-                $new["enabled"] = 0;
-                $new["day_quota"] = 0;
-                $new["month_quota"] = 0;
-                $new["queue_id"] = 0;
-                $new["filter_group_id"] = 0;
-            } else {
-                $new["dhcp"] = $a_dhcp;
-                $new["enabled"] = $a_enabled;
-                $new["day_quota"] = $a_day;
-                $new["month_quota"] = $a_month;
-                $new["queue_id"] = $a_queue;
-                $new["filter_group_id"] = $a_group;
-            }
-            $changes = get_diff_rec($db_link,"User_auth","id='$val'", $new, 0);
-            if (!empty($changes)) { LOG_WARNING($db_link,"Изменён адрес доступа id: $val. Применено: $changes"); }
-            update_record($db_link, "User_auth", "id='" . $val . "'", $new);
-        }
-    }
-    header("Location: " . $_SERVER["REQUEST_URI"]);
-    exit;
-}
-
-if (isset($_POST["moveauth"]) and isset($_POST["new_parent"])) {
-    $new_user_id = $_POST["new_parent"]*1;
-    $auth_id = $_POST["f_auth_id"];
-    if ($new_user_id <> $id) {
-	$user_rec = get_record($db_link, 'User_list', "id=".$new_user_id);
-    foreach ($auth_id as $key => $val) {
-	    if ($val) {
-        	$new["filter_group_id"]=$user_rec["filter_group_id"];
-	        $new["queue_id"] = $user_rec["queue_id"];
-                $new["enabled"] = $user_rec["enabled"];
-                $new["user_id"] = $new_user_id;
-                $changes = get_diff_rec($db_link,"User_auth","id='$val'", $new, 0);
-                if (!empty($changes)) { LOG_WARNING($db_link,"Адрес доступа перемещён к другому пользователю id: $val (".$user_rec["login"]."). Применено: $changes"); }
-	        update_record($db_link, "User_auth", "id='" . $val . "'", $new);
-    		}
-	    }
-	}
-    header("Location: " . $_SERVER["REQUEST_URI"]);
-    exit;
-}
-
-if (isset($_POST["new_user"])) {
-    $auth_id = $_POST["f_auth_id"];
-    $save_traf = get_option($db_link, 23) * 1;
-    foreach ($auth_id as $key => $val) {
-        if ($val) {
-            $flist = mysqli_query($db_link, "SELECT ip, comments, dns_name, dhcp_hostname from User_auth WHERE id=$val");
-            list ($f_auth_ip, $f_auth_comments, $f_dns_name, $f_dhcp_name) = mysqli_fetch_array($flist);
-            $ou_id = $_POST["f_new_ou"] * 1;
-            if (!isset($ou_id)) { $ou_id = 0; }
-            $login = $f_auth_ip;
-            if (isset($f_auth_comments) and strlen($f_auth_comments) > 0) { $login = $f_auth_comments; }
-            if (isset($f_dhcp_name) and strlen($f_dhcp_name) > 0) { $login = $f_dhcp_name;  }
-            if (isset($f_dns_name) and strlen($f_dns_name) > 0) { $login = $f_dns_name; }
-            list ($l_id) = mysqli_fetch_array(mysqli_query($db_link, "Select id from User_list where LCase(login)=LCase('$login') and deleted=0"));
-            if (isset($l_id) and $l_id > 0) {
-                // move auth
-                $auth["user_id"] = $l_id;
-                $auth["save_traf"] = $save_traf;
-                update_record($db_link, "User_auth", "id='" . $val . "'", $auth);
-                apply_auth_rule($db_link,$val,$l_id);
-                $changes = get_diff_rec($db_link,"User_auth","id='$val'", $new, 0);
-                if (!empty($changes)) { LOG_WARNING($db_link,"Изменён адрес доступа id: $val. Применено: $changes"); }
-            } else {
-                $new["login"] = $login;
-                $new["ou_id"] = $ou_id;
-                $l_id=insert_record($db_link, "User_list", $new);
-                $auth["user_id"] = $l_id;
-                $auth["save_traf"] = $save_traf;
-                update_record($db_link, "User_auth", "id='" . $val . "'", $auth);
-                $changes = get_diff_rec($db_link,"User_auth","id='$val'", '', 0);
-                LOG_WARNING($db_link,"Создан новый пользователь из адреса доступа: login => $login. Адрес доступа перемещён к созданному пользователю: $changes");
-            }
-        }
-    }
-    header("Location: " . $_SERVER["REQUEST_URI"]);
-    exit;
-}
-
 unset($_POST);
 
 $sSQL = "SELECT * FROM User_list WHERE id=$id";
@@ -277,20 +183,25 @@ if (!empty($_SESSION[$page_url]['msg'])) {
 <td colspan=2><?php print_ou_set($db_link, 'f_ou', $user_info["ou_id"]); ?></td>
 </tr>
 <tr>
-<td><?php print $cell_filter; ?></td>
-<td><?php print $cell_shaper; ?></td>
-<td><?php print $cell_enabled; ?></td>
-<td><?php print $cell_perday; ?></td>
-<td><?php print $cell_permonth; ?></td>
-<td><?php print $cell_blocked; ?></td>
+<td colspan=2><?php print $cell_perday; ?></td>
+<td colspan=2><?php print $cell_permonth; ?></td>
+<td colspan=2><?php print $cell_blocked; ?></td>
 </tr>
 <tr>
-<td><?php print_group_select($db_link, 'f_filter', $user_info["filter_group_id"]); ?></td>
-<td><?php print_queue_select($db_link, 'f_queue', $user_info["queue_id"]); ?></td>
-<td><?php print_qa_select('f_enabled', $user_info["enabled"]); ?></td>
-<td><input type="text" name="f_perday" value="<?php echo $user_info["day_quota"]; ?>" size=5></td>
-<td><input type="text" name="f_permonth" value="<?php echo $user_info["month_quota"]; ?>" size=5></td>
-<td><?php print_qa_select('f_blocked', $user_info["blocked"]); ?></td>
+<td colspan=2><input type="text" name="f_perday" value="<?php echo $user_info["day_quota"]; ?>" size=5></td>
+<td colspan=2><input type="text" name="f_permonth" value="<?php echo $user_info["month_quota"]; ?>" size=5></td>
+<td colspan=2><?php print_qa_select('f_blocked', $user_info["blocked"]); ?></td>
+</tr>
+<tr><td class=data colspan=6>Параметры для автоназначенных адресов:</td></tr>
+<tr>
+<td colspan=2><?php print $cell_filter; ?></td>
+<td colspan=2><?php print $cell_shaper; ?></td>
+<td colspan=2><?php print $cell_enabled; ?></td>
+</tr>
+<tr>
+<td colspan=2><?php print_group_select($db_link, 'f_filter', $user_info["filter_group_id"]); ?></td>
+<td colspan=2><?php print_queue_select($db_link, 'f_queue', $user_info["queue_id"]); ?></td>
+<td colspan=2><?php print_qa_select('f_enabled', $user_info["enabled"]); ?></td>
 </tr>
 <tr>
 <?php
@@ -301,53 +212,31 @@ $first_auth = get_record_sql($db_link,"SELECT id FROM User_auth WHERE user_id=".
 if (!empty($first_auth)) {
     $mac_rule_count = get_count_records($db_link,"auth_rules","user_id=".$id." AND type=2");
     if (!empty($mac_rule_count)) { 
-	print "<td><input type=\"submit\" name=\"delMacRule\" value=".$btn_mac_del." ></td><td></td>";
+	print "<td><input type=\"submit\" name=\"delMacRule\" value=".$btn_mac_del." ></td>";
 	} else {
-	print "<td><input type=\"submit\" name=\"addMacRule\" value=".$btn_mac_add." ></td><td></td>";
+	print "<td><input type=\"submit\" name=\"addMacRule\" value=".$btn_mac_add." ></td>";
 	}
-    } else { print "<td colspan=2></td>"; }
+    } else { print "<td></td>"; }
 ?>
-<td colspan=2>Created: <?php print $user_info["timestamp"]; ?></td><td></td>
+<td colspan=3 align=right>Created: <?php print $user_info["timestamp"]; ?></td>
 </tr>
 <tr>
 <?php print "<td colspan=2>"; print_url("Трафик за день","/admin/reports/userday.php?id=$id"); ?></td>
 <td></td>
 <td><input type="submit" name="showDevice" value=<?php print $btn_device; ?>></td>
 <td></td>
-<td><input type="submit" name="edituser" value=<?php print $btn_save; ?>></td>
+<td align=right><input type="submit" name="edituser" value=<?php print $btn_save; ?>></td>
 </tr>
 </table>
-<br>
 <?php
 if ($msg_error) { print "<div id='msg'><b>$msg_error</b></div><br>\n"; }
-?>
-<table class="data">
-<tr>
-<td>Для выделенных установить: Включен&nbsp<?php print_qa_select('a_enabled', 0); ?></td>
-<td>DHCP&nbsp<?php print_qa_select('a_dhcp', 1); ?></td>
-<td>Фильтр&nbsp<?php print_group_select($db_link, 'a_group_id', 0); ?></td>
-<td>Шейпер&nbsp<?php print_queue_select($db_link, 'a_queue_id', 0); ?></td>
-<td>В день&nbsp<input type="text" name="a_day_q" value="0" size=5></td>
-<td>В месяц&nbsp<input type="text" name="a_month_q" value="0" size=5></td>
-<td>&nbsp<input type="submit" onclick="return confirm('Применить для выделенных?')" name="ApplyForAll" value="Apply"></td>
-</tr>
-<tr>
-<?php
-print "<td colspan=6>Переместить выделенных к пользователю "; print_login_select($db_link, 'new_parent', $id); print "<input type=\"submit\" name=\"moveauth\" value=".$btn_move.">"; print "</td>";
-print "</tr><tr>";
-print "<td colspan=4>Создать пользователей по выделению в группе ";  print_ou_select($db_link, 'f_new_ou', $user_info["ou_id"]); print "<button name='new_user'>Создать</button>\n"; print "</td>";
-print "<td colspan=2 align=\"right\">Удалить выделенных <input type=\"submit\" onclick=\"return confirm('Удалить выделенных?')\" name=\"removeauth\" value=".$btn_remove.">";
-?>
-</tr>
-</table>
 
-<?php
 $sort_table = 'User_auth';
 $sort_url = "<a href=edituser.php?id=" . $id;
 if ($id == $default_user_id or $id == $hotspot_user_id) { $default_sort = 'last_found DESC'; }
 ?>
 
-<br> <b>Список адресов доступа</b><br>
+<br><b>Список адресов доступа</b><br>
 <table class="data">
 <tr>
 <td class="data">Новый адрес доступа IP:&nbsp<input type=text name=newip value=""></td>

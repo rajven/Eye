@@ -22,6 +22,12 @@ if (isset($_POST["create"])) {
         } else {
             $new['login'] = $login;
             $new['ou_id'] = $rou;
+            $ou_info = get_record_sql($db,"SELECT * FROM OU WHERE id=".$rou);
+	    if (!empty($ou_info)) {
+	        $new['enabled'] = $ou_info['enabled'];
+	        $new['queue_id'] = $ou_info['queue_id'];
+	        $new['filter_group_id'] = $ou_info['filter_group_id'];
+	        }
             $lid=insert_record($db_link, "User_list", $new);
             LOG_WARNING($db_link,"Создан новый пользователь: Login => $login");
             header("Location: edituser.php?id=$id");
@@ -39,6 +45,7 @@ if (isset($_POST["ApplyForAll"])) {
     $a_month = $_POST["a_month_q"] * 1;
     $a_queue = $_POST["a_queue_id"] * 1;
     $a_group = $_POST["a_group_id"] * 1;
+    $a_ou_id = $_POST["a_new_ou"] * 1;
     $msg="Массовое изменение пользователей!";
     foreach ($auth_id as $key => $val) {
         if ($val) {
@@ -47,11 +54,12 @@ if (isset($_POST["ApplyForAll"])) {
             $user['day_quota'] = $a_day;
             $user['month_quota'] = $a_month;
             $user['enabled'] = $a_enabled;
+            $user['ou_id'] = $a_ou_id;
             $login = get_record($db_link,"User_list","id='$val'");
             $msg.="Всем адресам доступа пользователя id: ".$val." login: ".$login['login']." установлено: \r\n";
             $msg.= get_diff_rec($db_link,"User_list","id='$val'", $user, 1);
             update_record($db_link, "User_list", "id='" . $val . "'", $user);
-            run_sql($db_link, "UPDATE User_auth SET queue_id=$a_queue, filter_group_id=$a_group, enabled=$a_enabled WHERE user_id=".$val);
+            run_sql($db_link, "UPDATE User_auth SET ou_id=$a_ou_id, queue_id=$a_queue, filter_group_id=$a_group, enabled=$a_enabled, changed=1 WHERE user_id=".$val);
         }
     }
     LOG_WARNING($db_link,$msg);
@@ -99,13 +107,14 @@ if ($msg_error) {
 <form name="def" action="index.php" method="post">
 <table class="data">
 <tr>
-<td><b><?php print $list_ou?> - </b><?php print_ou_select($db_link, 'ou', $rou); ?> Отображать:<?php print_row_at_pages('rows',$displayed); ?>
+<td><b><?php print $list_ou ?> - </b><?php print_ou_select($db_link, 'ou', $rou); ?> Отображать:<?php print_row_at_pages('rows',$displayed); ?>
 <input type="submit" value="Показать"></td>
 </tr>
 </table>
 <table class="data">
 <tr>
 <td>Применить к списку</td>
+<td>Группа:&nbsp<?php print_ou_select($db_link, 'a_new_ou', $rou); ?></td>
 <td>Включен&nbsp<?php print_qa_select('a_enabled', 0); ?></td>
 <td>Фильтр&nbsp<?php print_group_select($db_link, 'a_group_id', 0); ?></td>
 <td>Шейпер&nbsp<?php print_queue_select($db_link, 'a_queue_id', 0); ?></td>
@@ -116,8 +125,7 @@ if ($msg_error) {
 <tr>
 <td><input type="submit" name="create" value="Добавить пользователя"></td>
 <td><input type=text name=newlogin value="Unknown"></td>
-<td align="right" colspan=3><input type="submit" onclick="return confirm('Удалить выделенных?')" name="remove" value="Удалить"></td>
-<td align="right" colspan=2></td>
+<td colspan=5></td>
 </tr>
 </table>
 
@@ -154,6 +162,7 @@ $sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month
 <td><b><?php print $cell_perday; ?></b></td>
 <td><b><?php print $cell_permonth; ?></b></td>
 <td><b><?php print $cell_report; ?></b></td>
+<td><input type="submit" onclick="return confirm('Удалить выделенных?')" name="remove" value="Удалить"></td>
 </tr>
 <?php
 
@@ -182,7 +191,7 @@ foreach ($users as $row) {
     print "<td class=\"$cl\">".get_qa($row['enabled']) . "</td>\n";
     print "<td class=\"$cl\">".$row['day_quota']."</td>\n";
     print "<td class=\"$cl\">".$row['month_quota']."</td>\n";
-    print "<td class=\"$cl\" align=left><a href=../reports/userday.php?id=".$row['id'].">Просмотр</a></td>\n";
+    print "<td class=\"$cl\" align=center colspan=2><a href=../reports/userday.php?id=".$row['id'].">Просмотр</a></td>\n";
 }
 ?>
 </table>
