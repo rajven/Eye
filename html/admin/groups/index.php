@@ -37,6 +37,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 <tr align="center">
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b>Id</b></td>
+<td><b>Флаги</b></td>
 <td><b>Название</b></td>
 <td><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
 </tr>
@@ -46,6 +47,10 @@ foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
     print "<td class=\"data\"><input type=\"hidden\" name='id[]' value='{$row['id']}'>{$row['id']}</td>\n";
+    $flag='';
+    if ($row['default_users'] == 1) { $flag='D'; }
+    if ($row['default_hotspot'] == 1) { $flag='H'; }
+    print "<td class=\"data\">$flag</td>\n";
     print "<td class=\"data\">"; print_url($row['ou_name'],"/admin/groups/edit_group.php?id=".$row['id']); print "</td>\n";
     print "<td class=\"data\"></td>\n";
     print "</tr>\n";
