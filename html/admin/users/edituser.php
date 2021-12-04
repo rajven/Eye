@@ -42,7 +42,7 @@ if (isset($_POST["edituser"])) {
 
 if (isset($_POST["addMacRule"])) {
     unset($new);
-    $first_auth = get_record_sql($db_link,"SELECT mac FROM User_auth WHERE user_id=".$id." AND deleted=0 ORDER BY id");
+    $first_auth = get_record_sql($db_link,"SELECT mac FROM User_auth WHERE user_id=".$id." AND deleted=0 AND LENGTH(mac)>0 ORDER BY id");
     if (!empty($first_auth) and !empty($first_auth['mac'])) {
         $new['user_id']=$id;
         $new['type']=2;
