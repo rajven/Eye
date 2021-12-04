@@ -261,7 +261,7 @@ if ($id == $default_user_id or $id == $hotspot_user_id) { $default_sort = 'last_
 <td class="data"><?php print $sort_url . "&sort=timestamp&order=$new_order>Created</a>"; ?></td>
 <td class="data">Last DHCP/ARP Event</td>
 <td class="data"><?php print $sort_url . "&sort=last_found&order=$new_order>Last found</a>"; ?></td>
-<td class="data"><?php print "<input type=\"submit\" name=\"removeauth\" value=".$btn_remove.">"; ?></td>
+<td class="data"><?php print "<input type=\"submit\" onclick=\"return confirm('Применить для выделенных?')\" name=\"removeauth\" value=".$btn_remove.">"; ?></td>
 </tr>
 
 <?php
