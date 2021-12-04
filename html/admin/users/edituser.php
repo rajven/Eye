@@ -35,7 +35,7 @@ if (isset($_POST["edituser"])) {
     if (!empty($changes)) { LOG_WARNING($db_link,"Изменён пользователь id: $id. \r\nПрименено: $changes"); }
     update_record($db_link, "User_list", "id='$id'", $new);
     run_sql($db_link, "UPDATE User_auth SET ou_id=".$new["ou_id"]." WHERE user_id=".$id);
-    run_sql($db_link, "UPDATE devices SET device_name=".$new["login"]." WHERE user_id=".$id);
+    run_sql($db_link, "UPDATE devices SET device_name='".$new["login"]."' WHERE user_id=".$id);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
