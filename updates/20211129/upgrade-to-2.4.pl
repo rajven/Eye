@@ -41,7 +41,16 @@ for (my $i=1; $i < scalar(@auth_list); $i++) {
 	    if ($auth_list[$i]->{user_id} == $hotspot_user_id) { $new_user->{ou_id}=$default_hotspot_ou_id; }
 	    }
 	}
-    $new_user->{login}=mac_splitted($auth_list[$i]->{mac});
+    
+    if ($auth_list[$i]->{mac}) {
+        $new_user->{login}=mac_splitted($auth_list[$i]->{mac});
+	} else {
+	$new_user->{login}=$auth_list[$i]->{ip};
+	}
+
+    my $login_count = get_count_records($dbh,"User_list","(login LIKE '".$new_user->{login}."(%)') OR (login='".$new_user->{login}."')");
+    if ($login_count) { $login_count++; $new_user->{login} .="(".$login_count.")"; }
+    
     $new_user->{enabled}=$auth_list[$i]->{enabled};
     $new_user->{filter_group_id}=$auth_list[$i]->{filter_group_id};
     $new_user->{queue_id}=$auth_list[$i]->{queue_id};
@@ -52,10 +61,11 @@ for (my $i=1; $i < scalar(@auth_list); $i++) {
 	my $user_info = get_record_sql($dbh,"SELECT * FROM User_list WHERE id=".$auth_list[$i]->{user_id});
 	if ($user_info and $user_info->{fio}) { $auth_list[$i]->{comments} = $user_info->{fio}; }
 	}
-    if (!$auth_list[$i]->{dns_name}) { $auth_list[$i]->{dns_name}=''; } else {
+    if (!$auth_list[$i]->{dns_name}) {
+	$auth_list[$i]->{dns_name}='';
+	} else {
         my $name_count = get_count_records($dbh,'User_list',"login='".$auth_list[$i]->{dns_name}."'");
-        if ($name_count>0) { $name_count++; $auth_list[$i]->{dns_name}.="-".$name_count; }
-	$new_user->{login}=$auth_list[$i]->{dns_name};
+        if ($name_count == 0) {	$new_user->{login}=$auth_list[$i]->{dns_name}; }
         }
     $new_user->{fio}=$auth_list[$i]->{dns_name}." ".$auth_list[$i]->{comments};
     my $new_id = insert_record($dbh,"User_list",$new_user);

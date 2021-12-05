@@ -1382,7 +1382,7 @@ if ($user_info['dhcp_hostname']) {
     $user['fio']=$user_info['ip'];
     }
 
-$login_count = get_record_count($db,"SELECT COUNT(*) FROM User_list WHERE (login LIKE '".$user['login']."(%)') OR (login='".$user['login']."')");
+$login_count = get_count_records($db,"User_list","(login LIKE '".$user['login']."(%)') OR (login='".$user['login']."')");
 if (!empty($login_count) and $login_count>0) { $login_count++; $user['login'] = $user['login']."(".$login_count.")"; }
 
 $user['ou_id'] = $user_info['ou_id'];
