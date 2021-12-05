@@ -88,7 +88,14 @@ if (!$pid) {
         if ( !defined $hdb ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
         $urgent_sync=get_option($hdb,50);
         if ($urgent_sync) {
+    	    #clean changed for dynamic clients or hotspot
     	    do_sql($hdb,"UPDATE User_auth SET changed=0 WHERE ou_id=".$default_user_ou_id." OR ou_id=".$default_hotspot_ou_id);
+    	    #clean unmanagment ip changed
+    	    my @all_changed = get_records_sql($hdb,"SELECT id, ip FROM User_auth WHERE changed = 1");
+    	    foreach my $row(@all_changed) {
+    		next if ($office_networks->match_string($row->{ip}));
+    		do_sql($hdb,"UPDATE User_auth SET changed = 0 WHERE id=".$row->{id});
+    		}
             my $changed = get_record_sql($hdb,"SELECT COUNT(*) as c_count from User_auth WHERE changed=1");
 	    if ($changed->{"c_count"}>0) {
                 log_info("Found changed records: ".$changed->{'c_count'});
