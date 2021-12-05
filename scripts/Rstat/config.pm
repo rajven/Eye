@@ -144,6 +144,8 @@ $config_ref{log_owner_user}= $Config->{_}->{user} || 'nagios';
 $config_ref{log_owner_group}= $Config->{_}->{group} || 'nagios';
 $config_ref{sw_login}=$Config->{_}->{sw_login} || 'admin';
 $config_ref{sw_password}=$Config->{_}->{sw_password} || 'admin';
+$config_ref{nagios_dir}=$Config->{_}->{nagios_dir} || '/etc/nagios';
+$config_ref{nagios_dir}=~s/\/$//;
 
 our $MY_NAME=$FN[-1];
 our $SPID="/var/run/".$FN[-1];
