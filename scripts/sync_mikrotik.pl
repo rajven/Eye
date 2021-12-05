@@ -322,6 +322,8 @@ my %found_users;
 
 foreach my $row (@authlist_ref) {
 if ($connected_users_only) { next if (!$connected_users->match_string($row->{ip})); }
+#skip not office ip's
+next if (!$office_networks->match_string($row->{ip}));
 $found_users{$row->{'id'}}=$row->{ip};
 $users{'group_'.$row->{filter_group_id}}->{$row->{ip}}=1;
 $users{'group_all'}->{$row->{ip}}=1;

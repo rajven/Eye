@@ -712,7 +712,7 @@ sub new_user {
 my $db = shift;
 my $user_info = shift;
 my $user;
-if ($user_info->{mac}) { 
+if ($user_info->{mac}) {
     $user->{login}=mac_splitted($user_info->{mac});
     } else {
     $user->{login}=$user_info->{ip};
@@ -722,6 +722,10 @@ if ($user_info->{dhcp_hostname}) {
     } else {
     $user->{fio}=$user_info->{ip};
     }
+
+my $login_count = get_record_count($db,"SELECT COUNT(*) FROM User_list WHERE (login LIKE '".$user->{login}."(%)') OR (login='".$user->{login}."')");
+if ($login_count) { $login_count++; $user->{login} .="(".$login_count.")"; }
+
 $user->{ou_id} = $user_info->{ou_id};
 my $ou_info = get_record_sql($db,"SELECT * FROM OU WHERE id=".$user_info->{'ou_id'});
 if ($ou_info) {

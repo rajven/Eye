@@ -1381,6 +1381,10 @@ if ($user_info['dhcp_hostname']) {
     } else {
     $user['fio']=$user_info['ip'];
     }
+
+$login_count = get_record_count($db,"SELECT COUNT(*) FROM User_list WHERE (login LIKE '".$user['login']."(%)') OR (login='".$user['login']."')");
+if (!empty($login_count) and $login_count>0) { $login_count++; $user['login'] = $user['login']."(".$login_count.")"; }
+
 $user['ou_id'] = $user_info['ou_id'];
 $ou_info = get_record_sql($db,"SELECT * FROM OU WHERE id=".$user_info['ou_id']);
 if (!empty($ou_info)) {

@@ -90,7 +90,8 @@ if ($conn->{auth_id}) {
 foreach my $conn_id (keys %conn_info) {
 if (exists $port_info{$conn_info{$conn_id}{port_id}}{count}) {
     $port_info{$conn_info{$conn_id}{port_id}}{count}++;
-    if ($conn_info{$conn_id}{ou_id}~~[7,10,12,28] and $conn_info{$conn_id}{description}) {
+    #OU: Switches, Routers, WiFi AP
+    if ($conn_info{$conn_id}{ou_id}~~[7,10,12] and $conn_info{$conn_id}{description}) {
         $port_info{$conn_info{$conn_id}{port_id}}{description} = $conn_info{$conn_id}{description};
         }
     next;
@@ -124,8 +125,6 @@ my $device = $devices{$device_name};
 
 #skip unknown vendor
 next if (!$switch_auth{$device->{vendor_id}});
-
-#next if ($device->{ip} ne "192.168.32.11");
 
 my $ip = $device->{ip};
 my $community = $device->{community};
