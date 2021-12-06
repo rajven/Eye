@@ -48,7 +48,6 @@ $nets{$scope_name}= new Net::Patricia;
 $nets{$scope_name}->add_string($net);
 }
 
-my $dhcp_networks = new Net::Patricia;
 
 my $now = DateTime->now(time_zone=>'local');
 $now->set(day=>1);
@@ -59,7 +58,8 @@ my $next_month = $now + $month_dur;
 $next_month->set(day=>1);
 my $month_stop = $dbh->quote($next_month->ymd("-")." 00:00:00");
 
-my @subnets=get_records_sql($dbh,'SELECT * FROM subnets WHERE dhcp=1 and vpn=0 ORDER BY ip_int_start');
+my $dhcp_networks = new Net::Patricia;
+my @subnets=get_records_sql($dbh,'SELECT * FROM subnets WHERE office=1 AND dhcp=1 AND vpn=0 ORDER BY ip_int_start');
 foreach my $subnet (@subnets) {
 $dhcp_networks->add_string($subnet->{subnet});
 my $subnet_name = $subnet->{subnet};
@@ -89,14 +89,6 @@ if ($day==1) {
         }
     }
 
-#### dhcpd ####
-my $dhcp_networks = new Net::Patricia;
-my @subnets=get_records_sql($dbh,'SELECT * FROM subnets ORDER BY ip_int_start');
-foreach my $subnet (@subnets) {
-next if (!$subnet->{subnet} or ! $subnet->{dhcp_lease_time});
-$dhcp_networks->add_string($subnet->{subnet},$subnet->{dhcp_lease_time});
-}
-
 #clean temporary dhcp leases & connections only for dhcp pool ip
 my $users_sql = "SELECT * FROM User_auth WHERE deleted=0 AND (`ou_id`=".$default_user_ou_id." OR `ou_id`=".$default_hotspot_ou_id.")";
 my @users_auth = get_records_sql($dbh,$users_sql);
@@ -107,15 +99,18 @@ if ($dhcp_networks->match_string($row->{ip})) {
     my $clean_dhcp_time = $last_dhcp_time + 60*$dhcp_networks->match_string($row->{ip});
     if (time() - $clean_dhcp_time>0) {
         db_log_verbose($dbh,"Clean overdue dhcp leases for ip: $row->{ip} id: $row->{id} last dhcp: $row->{dhcp_time} clean time: ".GetTimeStrByUnixTime($clean_dhcp_time)." now: ".GetNowTime());
-        do_sql($dbh,"DELETE FROM connections WHERE auth_id='".$row->{id}."'");
-        do_sql($dbh,"DELETE FROM dhcp_log WHERE auth_id='".$row->{id}."'");
+#        do_sql($dbh,"DELETE FROM connections WHERE auth_id='".$row->{id}."'");
         do_sql($dbh,"UPDATE User_auth SET deleted=1 WHERE id='".$row->{id}."'");
+        my $u_count=get_count_records($dbh,'User_auth','deleted=0 and user_id='.$row->{user_id});
+        if (!$u_count) {
+		delete_record($dbh,"User_list","id=".$row->{'user_id'});
+		db_log_verbose($dbh,"Remove dynamic user id: $row->{'user_id'} by dhcp lease timeout");
+	        }
         }
     }
 }
 
 $now = DateTime->now(time_zone=>'local');
-
 my $day_dur = DateTime::Duration->new( days => $history_dhcp );
 my $clean_date = $now - $day_dur;
 my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
