@@ -71,7 +71,7 @@ for (my $i=1; $i < scalar(@auth_list); $i++) {
     $new_user->{fio}=$auth_list[$i]->{comments};
     my $new_id = insert_record($dbh,"User_list",$new_user);
     if ($new_id) {
-        do_sql($dbh,"UPDATE User_auth SET user_id=$new_id WHERE mac='".$auth_list[$i]->{mac}."' and deleted=0");
+        do_sql($dbh,"UPDATE User_auth SET user_id=$new_id WHERE user_id=".$row->{id}." AND mac='".$auth_list[$i]->{mac}."' and deleted=0");
 	print "Created user for mac $auth_list[$i]->{mac} : $new_user->{login} and move all auth records for this mac to new user id: $new_id\n";
 	} else {
 	print "Error create user for ".Dumper($auth_list[$i])."\n";

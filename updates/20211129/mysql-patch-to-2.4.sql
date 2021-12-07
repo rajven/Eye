@@ -1,4 +1,5 @@
 ALTER TABLE `auth_rules` ADD `ou_id` INT NULL DEFAULT NULL AFTER `user_id`;
+ALTER TABLE `auth_rules` CHANGE `user_id` `user_id` INT(11) NULL DEFAULT NULL;
 ALTER TABLE `OU` ADD `default_users` BOOLEAN NOT NULL DEFAULT FALSE AFTER `ou_name`;
 ALTER TABLE `OU` ADD `default_hotspot` BOOLEAN NOT NULL DEFAULT FALSE AFTER `default_users`;
 ALTER TABLE `User_list` ADD `device_id` INT NULL DEFAULT NULL AFTER `ou_id`;
