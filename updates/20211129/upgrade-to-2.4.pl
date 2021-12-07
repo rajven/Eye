@@ -28,6 +28,9 @@ foreach my $row (@user_list) {
 next if ($row->{a_count} <=1);
 my @auth_list = get_records_sql($dbh,"SELECT * FROM User_auth WHERE user_id=$row->{id} and deleted=0 GROUP BY mac");
 next if (scalar(@auth_list)<=1);
+my $rule_count = get_count_records($dbh,"auth_rules","user_id=".$row->{id});
+#skip user with provisiong rules
+next if ($rule_count >0);
 for (my $i=1; $i < scalar(@auth_list); $i++) {
     my $new_user;
     $new_user->{ou_id}=$auth_list[$i]->{ou_id};
@@ -50,7 +53,7 @@ for (my $i=1; $i < scalar(@auth_list); $i++) {
 
     my $login_count = get_count_records($dbh,"User_list","(login LIKE '".$new_user->{login}."(%)') OR (login='".$new_user->{login}."')");
     if ($login_count) { $login_count++; $new_user->{login} .="(".$login_count.")"; }
-    
+
     $new_user->{enabled}=$auth_list[$i]->{enabled};
     $new_user->{filter_group_id}=$auth_list[$i]->{filter_group_id};
     $new_user->{queue_id}=$auth_list[$i]->{queue_id};
@@ -61,13 +64,11 @@ for (my $i=1; $i < scalar(@auth_list); $i++) {
 	my $user_info = get_record_sql($dbh,"SELECT * FROM User_list WHERE id=".$auth_list[$i]->{user_id});
 	if ($user_info and $user_info->{fio}) { $auth_list[$i]->{comments} = $user_info->{fio}; }
 	}
-    if (!$auth_list[$i]->{dns_name}) {
-	$auth_list[$i]->{dns_name}='';
-	} else {
-        my $name_count = get_count_records($dbh,'User_list',"login='".$auth_list[$i]->{dns_name}."'");
-        if ($name_count == 0) {	$new_user->{login}=$auth_list[$i]->{dns_name}; }
+    if (!$auth_list[$i]->{dns_name}) { $auth_list[$i]->{dns_name}=''; } else {
+        $login_count = get_count_records($dbh,"User_list","(login LIKE '".$auth_list[$i]->{dns_name}."(%)') OR (login='".$auth_list[$i]->{dns_name}."')");
+	if ($login_count) { $login_count++; $new_user->{login} =$auth_list[$i]->{dns_name}."(".$login_count.")"; }
         }
-    $new_user->{fio}=$auth_list[$i]->{dns_name}." ".$auth_list[$i]->{comments};
+    $new_user->{fio}=$auth_list[$i]->{comments};
     my $new_id = insert_record($dbh,"User_list",$new_user);
     if ($new_id) {
         do_sql($dbh,"UPDATE User_auth SET user_id=$new_id WHERE mac='".$auth_list[$i]->{mac}."' and deleted=0");

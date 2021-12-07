@@ -50,7 +50,7 @@ if (!empty($_GET["ip"]) and !empty($_GET["mac"])) {
 	        $u_count=get_count_records($db_link,'User_auth','deleted=0 and user_id='.$auth['user_id']);
 	        if ($u_count == 0) {
 	    	    delete_record($db_link,"User_list","id=".$auth['user_id']);
-                    LOG_VERBOSE($db_link,"Remove dynamic user id: $auth['user_id'] by dhcp request");
+                    LOG_VERBOSE($db_link,"Remove dynamic user id: ".$auth['user_id']." by dhcp request");
 	    	    }
 	        }
 	    }
