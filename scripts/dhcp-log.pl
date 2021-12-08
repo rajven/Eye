@@ -158,12 +158,16 @@ if (!$pid) {
             log_debug("UTF8 HOSTNAME: ".$dhcp_record->{hostname_utf8});
             log_debug("END GET");
 
-            if ($type eq 'add') {
-                my $res_id = resurrection_auth($hdb,$dhcp_record->{ip},$mac,$type,$dhcp_record->{hostname_utf8});
-                log_info("Check for new auth. Found id: $res_id");
-                }
 
             my $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
+	    if (!$auth_record and $type eq 'old' ) { $type='add'; }
+
+            if ($type eq 'add') {
+                my $res_id = resurrection_auth($hdb,$dhcp_record->{ip},$mac,$type,$dhcp_record->{hostname_utf8});
+                $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE id='.$res_id);
+                log_info("Check for new auth. Found id: $res_id");
+                } else { $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC'); }
+
             my $auth_id = $auth_record->{id};
 	    my $auth_ou_id = $auth_record->{ou_id};
 

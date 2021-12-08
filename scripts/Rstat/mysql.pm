@@ -496,7 +496,7 @@ if (defined $ip and $ip) {
     my $users = new Net::Patricia;
     #check ip rules
     my @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND user_id IS NOT NULL');
-    foreach my $row (@ip_rules) { $users->add_string($row->{rule},$row->{user_id}); }
+    foreach my $row (@ip_rules) { eval { $users->add_string($row->{rule},$row->{user_id}); }; }
     if ($users->match_string($ip)) { $result->{user_id}=$users->match_string($ip); }
     }
 
@@ -530,7 +530,7 @@ if (defined $ip and $ip) {
     if ($users->match_string($ip)) { $result->{ou_id}=$users->match_string($ip); }
     #check ip rules
     @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND ou_id IS NOT NULL');
-    foreach my $row (@ip_rules) { $users->add_string($row->{rule},$row->{ou_id}); }
+    foreach my $row (@ip_rules) { eval { $users->add_string($row->{rule},$row->{ou_id}); }; }
     if ($users->match_string($ip)) { $result->{ou_id}=$users->match_string($ip); }
     }
 
