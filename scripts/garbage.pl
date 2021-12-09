@@ -154,6 +154,7 @@ db_log_verbose($dbh,"Remove dup connection $c_id: $c_port_id $c_auth_id");
 $users_sql = "SELECT mac FROM User_auth WHERE deleted=0";
 @users_auth = get_records_sql($dbh,$users_sql);
 foreach my $row (@users_auth) {
+next if (!$row->{mac});
 do_sql($dbh,"DELETE FROM Unknown_mac WHERE mac='".mac_simplify($row->{mac})."'");
 }
 
