@@ -554,14 +554,9 @@ CREATE TABLE `mac_history` (
 
 CREATE TABLE `mac_vendors` (
   `id` int(11) NOT NULL,
-  `oui` varchar(18) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `isprivate` tinyint(1) NOT NULL DEFAULT 0,
-  `companyName` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `companyAddress` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `countryCode` varchar(3) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `assignmentBlockSize` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `dateCreated` date DEFAULT NULL,
-  `dateUpdated` date DEFAULT NULL
+  `oui` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `companyName` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `companyAddress` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -1061,12 +1056,9 @@ ALTER TABLE `mac_history`
   ADD KEY `timestamp` (`timestamp`,`mac`),
   ADD KEY `timestamp_2` (`timestamp`,`ip`);
 
---
--- Индексы таблицы `mac_vendors`
---
-ALTER TABLE `mac_vendors`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `oui` (`oui`);
+
+ALTER TABLE `mac_vendors` ADD PRIMARY KEY (`id`),  ADD KEY `oui` (`oui`);
+ALTER TABLE `mac_vendors` MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Индексы таблицы `OU`
@@ -1277,11 +1269,6 @@ ALTER TABLE `mac_history`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT для таблицы `mac_vendors`
---
-ALTER TABLE `mac_vendors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38949;
-
 --
 -- AUTO_INCREMENT для таблицы `OU`
 --

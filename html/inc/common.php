@@ -2544,7 +2544,7 @@ function set_port_for_group($db, $group_id, $place_id, $state)
 function get_vendor($db,$mac)
 {
     $mac = mac_dotted($mac);
-    $vendor = get_record_sql($db,'SELECT companyName,companyAddress FROM mac_vendors WHERE oui="'.substr($mac,0,8).'" or oui="'.substr($mac,0,10).'"');
+    $vendor = get_record_sql($db,'SELECT companyName,companyAddress FROM mac_vendors WHERE oui="'.substr($mac,0,8).'" or oui="'.substr($mac,0,11).'"');
     $result='';
     if (!empty($vendor)) {
 	$result = $vendor['companyName'];
