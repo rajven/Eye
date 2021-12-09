@@ -62,13 +62,12 @@ mysql_secure_installation - утсановить пароль для root
 
 Создать юзера и базу данных
 
-MariaDB [(none)]> create database stat;
+MariaDB [(none)]> CREATE DATABASE `stat` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 MariaDB [(none)]> grant all privileges on stat.* to stat@localhost identified by 'password';
 MariaDB [(none)]> flush privileges;
 MariaDB [(none)]> quit
 
-cat docs/mysql/stat_table_*.sql | mysql -u root -p stat
-cat docs/mysql/stat_extra.sql | mysql -u root -p stat
+cat docs/mysql/mysql.sql | mysql -u root -p stat
 
 6. Настраиваем конфиги для вэба и скриптов:
 
@@ -196,5 +195,19 @@ add name=download_root_[LAN_INTERFACE_NAME] parent=[LAN_INTERFACE_NAME] queue=pc
 
 #dhcp script
 /tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&password=<PASSWORD_HASH>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
+
+#просмотреть хэши паролей - print-customers.pl
+
+#расширенный скрипт, создаёт список доступа для дальнейшей блокировки клиентов с статическими адресами
+/tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&password=<PASSWORD_HASH>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
+:if ($leaseBound = 0) do={
+/log info ("Dhcp del: $leaseActIP list: dmz-dhcp")
+/ip firewall address-list remove [ find where list=dmz-dhcp and address=$leaseActIP ].
+}
+:if ($leaseBound = 1) do={
+/log info ("Dhcp add: $leaseActIP list: dmz-dhcp")
+/ip firewall address-list add address=$leaseActIP list=dmz-dhcp timeout=4h
+/ip firewall address-list set [ find where list=dmz-dhcp and address=$leaseActIP ] timeout=4h
+}
 
 #########################################################################################################################

@@ -2,6 +2,8 @@ Installation steps for CentOS 8:
 
 1. Enable repo:
 
+для CentOS 8:
+
 yum install dnf-plugins-core
 yum config-manager --set-enabled powertools
 yum config-manager --set-enabled extras
@@ -9,11 +11,21 @@ dnf install epel-release elrepo-release
 
 2. Install packages:
 
+Centos:
+
 dnf install httpd php php-common perl mariadb-server git fping net-snmp-utils \
 php-mysqlnd php-bcmath php-intl php-mbstring php-pear-Date php-pear-Mail php-snmp perl-Net-Patricia \
 perl-NetAddr-IP perl-Config-Tiny perl-Net-DNS perl-DateTime perl-Proc-Daemon perl-Net-Netmask \
 perl-Text-Iconv perl-DateTime-Format-DateParse perl-Net-SNMP perl-Net-Telnet perl-Net-IPv4Addr \
-perl-DBI perl-DBD-MySQL perl-Parallel-ForkManager -y
+perl-DBI perl-DBD-MySQL perl-Net-OpenSSH perl-Parallel-ForkManager -y
+
+Ubuntu:
+apt install apache2 git fping perl mariadb-server php php-mysql php-bcmath php-intl \
+php-mbstring php-date php-mail php-snmp \
+libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
+libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl libdbi-perl \
+libdbd-mysql-perl libparallel-forkmanager-perl libproc-daemon-perl libdatetime-format-dateparse-perl \
+libnetwork-ipv4addr-perl libnet-openssh-perl
 
 3. Download project:
 
@@ -48,13 +60,12 @@ mysql_secure_installation - configure root password!!!
 
 #mysql -u root -p
 
-MariaDB [(none)]> create database stat;
+MariaDB [(none)]> CREATE DATABASE `stat` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 MariaDB [(none)]> grant all privileges on stat.* to stat@localhost identified by 'password';
 MariaDB [(none)]> flush privileges;
 MariaDB [(none)]> quit
 
-cat docs/mysql/stat_table_*.sql | mysql -u root -p stat
-cat docs/mysql/stat_extra.sql | mysql -u root -p stat
+cat docs/mysql/mysql.sql | mysql -u root -p stat
 
 6. Save configuration for web and scripts:
 
@@ -67,17 +78,23 @@ set mysql database|user|password
 
 7. Configure apache & php:
 
+Centos:
 sed -i 's/short_open_tag = Off/short_open_tag = On/' /etc/php.ini
-
 #set timezone
 sed -i 's/;date.timezone =/date.timezone = Europe\/Moscow/' /etc/php.ini
-
 #enable php
 sed -i 's/#LoadModule mpm_prefork_module/LoadModule mpm_prefork_module/' /etc/httpd/conf.modules.d/00-mpm.conf
 sed -i 's/LoadModule mpm_event_module/#LoadModule mpm_event_module/' /etc/httpd/conf.modules.d/00-mpm.conf
 
 systemctl enable httpd
 systemctl start httpd
+
+Ubuntu:
+sed -i 's/short_open_tag = Off/short_open_tag = On/' /etc/php/7.4/apache2/php.ini
+sed -i 's/;date.timezone =/date.timezone = Europe\/Moscow/' /etc/php/7.4/apache2/php.ini
+
+systemctl enable apache2
+systemctl start apache2
 
 cp docs/addons/sudoers.d/apache /etc/sudoers.d/apache
 
@@ -170,7 +187,22 @@ add name=download_root_[LAN_INTERFACE_NAME] parent=[LAN_INTERFACE_NAME] queue=pc
 
 run /usr/local/scripts/sync_mikrotik.pl
 
-#dhcp script
+#simple dhcp script
 /tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&password=<PASSWORD_HASH>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
+
+#show password hash - print-customers.pl
+
+#advanced dhcp script - create ip list for allow work only dhcp clients
+/tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&password=<PASSWORD_HASH>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
+:if ($leaseBound = 0) do={
+/log info ("Dhcp del: $leaseActIP list: dmz-dhcp")
+/ip firewall address-list remove [ find where list=dmz-dhcp and address=$leaseActIP ] 
+}
+:if ($leaseBound = 1) do={
+/log info ("Dhcp add: $leaseActIP list: dmz-dhcp")
+/ip firewall address-list add address=$leaseActIP list=dmz-dhcp timeout=4h
+/ip firewall address-list set [ find where list=dmz-dhcp and address=$leaseActIP ] timeout=4h
+}
+
 
 #########################################################################################################################
