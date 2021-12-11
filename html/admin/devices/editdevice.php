@@ -124,15 +124,14 @@ if ($device['device_type']==2) {
     print "<tr><td colspan=4>"; print_url("Список интерфейсов","/admin/devices/edit_l3int.php?id=$id"); print "</td></tr>";
     print "<tr><td colspan=4 class=\"data\">"; print get_l3_interfaces($db_link,$device['id']); print "</td></tr>";
     }
-if ($device['device_type']<=2) {
-    print "</tr><td>Snmp Version</td><td><p title='Некоторые устройства отдают mac-таблицу по индексу порта в snmp, другие - по номеру.'>Mac by snmp</p></td>";
-    print "<td>Discovery</td><td>Nagios</td></tr>";
-    print "<tr><td class=\"data\">"; print_snmp_select('f_snmp_version', $device['snmp_version']); print "</td>\n";
-    print "<td class=\"data\">"; print_qa_select('f_fdb_snmp', $device['fdb_snmp_index']); print "</td>\n";
-    print "<td class=\"data\">"; print_qa_select('f_discovery', $device['discovery']); print "</td>\n";
-    print "<td class=\"data\">"; print_qa_select('f_nagios', $device['nagios']); print "</td>\n";
-    print "</tr>";
-    if ($device['snmp_version'] ==3) {
+print "</tr><td>Snmp Version</td><td><p title='Некоторые устройства отдают mac-таблицу по индексу порта в snmp, другие - по номеру.'>Mac by snmp</p></td>";
+print "<td>Discovery</td><td>Nagios</td></tr>";
+print "<tr><td class=\"data\">"; print_snmp_select('f_snmp_version', $device['snmp_version']); print "</td>\n";
+print "<td class=\"data\">"; print_qa_select('f_fdb_snmp', $device['fdb_snmp_index']); print "</td>\n";
+print "<td class=\"data\">"; print_qa_select('f_discovery', $device['discovery']); print "</td>\n";
+print "<td class=\"data\">"; print_qa_select('f_nagios', $device['nagios']); print "</td>\n";
+print "</tr>";
+if ($device['snmp_version'] ==3) {
         print "<tr><td>Snmpv3 RO user</td><td>Snmpv3 RW user</td><td>Snmpv3 RO password</td><td>Snmpv3 RW password</td><td></td>";
 	print "</tr><tr>";
         print "<td class=\"data\"><input type=\"text\" name='f_snmp3_user_ro' value=".$device['snmp3_user_ro']."></td>\n";
@@ -141,14 +140,13 @@ if ($device['device_type']<=2) {
 	print "<td class=\"data\"><input type=\"text\" name='f_snmp3_user_rw_password' value=".$device['snmp3_user_rw_password']."></td>\n";
         print "<td></td></tr>\n";
 	}
-    print "<tr><td>Snmp RO Community</td><td>Snmp RW Community</td><td></td><td></td></tr>";
-    print "<tr>\n";
-    print "<td class=\"data\"><input type=\"text\" name='f_community' value=".$device['community']."></td>\n";
-    print "<td class=\"data\"><input type=\"text\" name='f_rw_community' value=".$device['rw_community']."></td>\n";
-    print "<td><button name=\"port_walk\" onclick=\"window.open('mactable.php?id=" . $id . "')\">Mac table</button></td>";
-    print "<td><button name=\"port_walk\" onclick=\"window.open('snmpwalk.php?id=" . $id . "')\">Port Walk</button></td>";
-    print "</tr>";
-    }
+print "<tr><td>Snmp RO Community</td><td>Snmp RW Community</td><td></td><td></td></tr>";
+print "<tr>\n";
+print "<td class=\"data\"><input type=\"text\" name='f_community' value=".$device['community']."></td>\n";
+print "<td class=\"data\"><input type=\"text\" name='f_rw_community' value=".$device['rw_community']."></td>\n";
+print "<td><button name=\"port_walk\" onclick=\"window.open('mactable.php?id=" . $id . "')\">Mac table</button></td>";
+print "<td><button name=\"port_walk\" onclick=\"window.open('snmpwalk.php?id=" . $id . "')\">Port Walk</button></td>";
+print "</tr>";
 print "<tr><td colspan=4 align=right><input type=\"submit\" name=\"editdevice\" value=\"Сохранить\"></td></tr>";
 print "</table>\n";
 ?>
