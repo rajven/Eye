@@ -114,12 +114,12 @@ if ($msg_error) {
 <table class="data">
 <tr>
 <td>Применить к списку</td>
-<td>Группа:&nbsp<?php print_ou_select($db_link, 'a_new_ou', $rou); ?></td>
 <td>Включен&nbsp<?php print_qa_select('a_enabled', 0); ?></td>
 <td>Фильтр&nbsp<?php print_group_select($db_link, 'a_group_id', 0); ?></td>
 <td>Шейпер&nbsp<?php print_queue_select($db_link, 'a_queue_id', 0); ?></td>
 <td>В день&nbsp<input type="text" name="a_day_q" value="0" size=5></td>
 <td>В месяц&nbsp<input type="text" name="a_month_q" value="0" size=5></td>
+<td>Группа:&nbsp<?php print_ou_select($db_link, 'a_new_ou', $rou); ?></td>
 <td>&nbsp<input type="submit" onclick="return confirm('Применить для выделенных?')" name="ApplyForAll" value="Применить"></td>
 </tr>
 <tr>
