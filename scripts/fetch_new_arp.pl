@@ -167,7 +167,7 @@ foreach my $auth (@auth_list) {
     $auth_table{oper_table}{$auth_mac}=$auth->{id};
     }
 
-$auth_sql="SELECT id,mac FROM User_auth WHERE mac IS NOT NULL AND deleted=0 ORDER BY id ASC";
+$auth_sql="SELECT id,mac FROM User_auth WHERE mac IS NOT NULL AND deleted=0 ORDER BY id DESC";
 my @auth_full_list=get_records_sql($dbh,$auth_sql);
 foreach my $auth (@auth_full_list) {
     next if (!$auth);
@@ -185,7 +185,7 @@ foreach my $unknown (@unknown_list) {
     $unknown_table{$unknown_mac}{device_id}=$unknown->{device_id};
     }
 
-my @device_list = get_records_sql($dbh,"SELECT * FROM devices WHERE deleted=0 AND discovery=1 AND snmp_version>0" );
+my @device_list = get_records_sql($dbh,"SELECT * FROM devices WHERE deleted=0 AND discovery=1 AND device_type<=2 AND snmp_version>0" );
 
 my @fdb_array=();
 
@@ -326,11 +326,11 @@ foreach my $mac (keys %mac_address_table) {
 
     if (exists $auth_table{full_table}{$simple_mac} or exists $auth_table{oper_table}{$simple_mac}) {
                 my $auth_id;
-                if (exists $auth_table{oper_table}{$simple_mac}) { $auth_id=$auth_table{oper_table}{$simple_mac}; } else {
+                if (exists $auth_table{oper_table}{$simple_mac}) {
+            	    $auth_id=$auth_table{oper_table}{$simple_mac};
+            	    } else {
                     $auth_id=$auth_table{full_table}{$simple_mac};
-                    if ($debug) {
-                        db_log_debug($dbh,"Mac not found in oper ARP-table. Use old values auth_id: $auth_id [$simple_mac] at device $dev_name [$port]");
-                        }
+                    db_log_debug($dbh,"Mac not found in oper ARP-table. Use old values auth_id: $auth_id [$simple_mac] at device $dev_name [$port]");
                     }
 
                 if (exists $connections{$auth_id}) {
