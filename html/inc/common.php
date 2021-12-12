@@ -1347,6 +1347,7 @@ $user_rec = get_record($db, 'User_list', "id=".$user_id);
 if (empty($user_rec)) { return; }
 //set filter and status by user
 $set_auth['ou_id']=$user_rec['ou_id'];
+$set_auth['user_id']=$user_rec['id'];
 $set_auth['filter_group_id']=$user_rec['filter_group_id'];
 $set_auth['queue_id']= $user_rec['queue_id'];
 $set_auth['enabled'] = $user_rec['enabled'];

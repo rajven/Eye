@@ -99,14 +99,8 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
 
 if (isset($_POST["moveauth"])) {
     $new_parent_id = $_POST["f_new_parent"]*1;
-    $new_parent = get_record($db_link,"User_list","id=".$new_parent_id);
-    if (!empty($new_parent)) {
-        $new['user_id'] = $new_parent_id;
-	$new['ou_id'] = $new_parent['ou_id'];
-        $changes = get_diff_rec($db_link,"User_auth","id='$id'", $new, 0);
-	if (!empty($changes)) { LOG_WARNING($db_link,"Адрес доступа перемещён к другому пользователю! Применено: $changes"); }
-        update_record($db_link, "User_auth", "id='$id'", $new);
-        }
+    apply_auth_rule($db_link,$id,$new_parent_id);
+    LOG_WARNING($db_link,"Адрес доступа перемещён к другому пользователю! Применено: $changes");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
     }
