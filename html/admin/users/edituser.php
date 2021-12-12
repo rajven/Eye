@@ -124,6 +124,7 @@ if (isset($_POST["addauth"])) {
             if (!empty($fid)) {
                 $new['dhcp']=$f_dhcp;
                 update_record($db_link,"User_auth","id=".$fid,$new);
+                apply_auth_rule($db_link,$fid,$id);
                 LOG_WARNING($db_link,"Создан новый адрес доступа: ip => $fip, mac => $fmac");
                 header("Location: /admin/users/editauth.php?id=".$fid);
                 exit;
