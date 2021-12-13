@@ -125,7 +125,7 @@ if (isset($_POST["addauth"])) {
                 $new['dhcp']=$f_dhcp;
                 update_record($db_link,"User_auth","id=".$fid,$new);
                 apply_auth_rule($db_link,$fid,$id);
-                LOG_WARNING($db_link,"Создан новый адрес доступа: ip => $fip, mac => $fmac");
+                LOG_WARNING($db_link,"Создан новый адрес доступа: ip => $fip, mac => $fmac",$fid);
                 header("Location: /admin/users/editauth.php?id=".$fid);
                 exit;
                 }
@@ -148,7 +148,7 @@ if (isset($_POST["removeauth"])) {
             run_sql($db_link, 'DELETE FROM User_auth_alias WHERE auth_id='.$val);
             $auth["deleted"] = 1;
             $changes = get_diff_rec($db_link,"User_auth","id='$val'", '', 0);
-            if (!empty($changes)) { LOG_WARNING($db_link,"Удалён адрес доступа: \r\n $changes"); }
+            if (!empty($changes)) { LOG_WARNING($db_link,"Удалён адрес доступа: \r\n $changes",$val); }
             update_record($db_link, "User_auth", "id=" . $val, $auth);
         }
     }

@@ -106,7 +106,7 @@ if (!$pid) {
         while (my $logline = <DHCP_SOCKET>) {
             next unless defined $logline;
             chomp($logline);
-            log_info("GET CLIENT REQUEST: $logline");
+            log_verbose("GET CLIENT REQUEST: $logline");
             my ($type,$mac,$ip,$hostname,$timestamp,$tags,$sup_hostname,$old_hostname) = split (/\;/, $logline);
             next if (!$type);
             next if ($type!~/(old|add|del)/i);
@@ -158,14 +158,13 @@ if (!$pid) {
             log_debug("UTF8 HOSTNAME: ".$dhcp_record->{hostname_utf8});
             log_debug("END GET");
 
-
             my $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
 	    if (!$auth_record and $type eq 'old' ) { $type='add'; }
 
             if ($type eq 'add') {
                 my $res_id = resurrection_auth($hdb,$dhcp_record->{ip},$mac,$type,$dhcp_record->{hostname_utf8});
                 $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE id='.$res_id);
-                log_info("Check for new auth. Found id: $res_id");
+                db_log_info($hdb,"Check for new auth. Found id: $res_id",$res_id);
                 } else { $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC'); }
 
             my $auth_id = $auth_record->{id};
@@ -177,7 +176,7 @@ if (!$pid) {
                 my $auth_rec;
                 $auth_rec->{dhcp_hostname} = $dhcp_record->{hostname_utf8};
                 $auth_rec->{dhcp_time}=$dhcp_event_time;
-                log_info("Add lease by dhcp event for dynamic clients id:$auth_id ip: $dhcp_record->{ip}");
+                db_log_verbose($hdb,"Add lease by dhcp event for dynamic clients id:$auth_id ip: $dhcp_record->{ip}",$auth_id);
                 update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
                 }
 
@@ -189,7 +188,7 @@ if (!$pid) {
                     my $auth_rec;
                     $auth_rec->{dhcp_action}=$type;
                     $auth_rec->{dhcp_time}=$dhcp_event_time;
-                    log_info("Update lease by dhcp event for dynamic clients id:$auth_id ip: $dhcp_record->{ip}");
+                    db_log_verbose($hdb,"Update lease by dhcp event for dynamic clients id:$auth_id ip: $dhcp_record->{ip}",$auth_id);
                     update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
                 }
 
@@ -197,7 +196,7 @@ if (!$pid) {
                 if ($auth_record->{dhcp_time} =~ /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})/) {
                     my $d_time = mktime($6,$5,$4,$3,$2-1,$1-1900);
                     if (time()-$d_time>60 and ($auth_ou_id == $default_user_ou_id or $auth_ou_id==$default_hotspot_ou_id)) {
-                        log_info("Remove user ip record by dhcp release event for dynamic clients id:$auth_id ip: $dhcp_record->{ip}");
+                        db_log_info($hdb,"Remove user ip record by dhcp release event for dynamic clients id:$auth_id ip: $dhcp_record->{ip}",$auth_id);
                         my $auth_rec;
                         $auth_rec->{deleted}="1";
                         $auth_rec->{dhcp_action}=$type;
@@ -206,7 +205,7 @@ if (!$pid) {
                         my $u_count=get_count_records($hdb,'User_auth','deleted=0 and user_id='.$auth_record->{'user_id'});
 		        if (!$u_count) {
 				delete_record($hdb,"User_list","id=".$auth_record->{'user_id'});
-	                        log_info("Remove dynamic user id: $auth_record->{'user_id'} by dhcp request");
+	                        db_log_info($hdb,"Remove dynamic user id: $auth_record->{'user_id'} by dhcp request",$auth_id);
 	                        }
                         }
                     }

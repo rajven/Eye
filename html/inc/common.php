@@ -1592,40 +1592,40 @@ function isRO($db)
     return $f_ro;
 }
 
-function LOG_INFO($db,$msg) {
+function LOG_INFO($db,$msg,$auth_id = 0) {
 global $L_INFO;
 global $log_level;
 if ($log_level < $L_INFO) { return; }
-write_log($db,$msg,$L_INFO);
+write_log($db,$msg,$L_INFO,$auth_id);
 }
 
-function LOG_ERROR($db,$msg) {
+function LOG_ERROR($db,$msg,$auth_id = 0) {
 global $L_ERROR;
 global $log_level;
 if ($log_level < $L_ERROR) { return; }
 email($L_ERROR,$msg);
-write_log($db,$msg,$L_ERROR);
+write_log($db,$msg,$L_ERROR,$auth_id);
 }
 
-function LOG_VERBOSE($db,$msg) {
+function LOG_VERBOSE($db,$msg,$auth_id=0) {
 global $L_VERBOSE;
 global $log_level;
 if ($log_level < $L_VERBOSE) { return; }
-write_log($db,$msg,$L_VERBOSE);
+write_log($db,$msg,$L_VERBOSE,$auth_id);
 }
 
-function LOG_WARNING($db,$msg) {
+function LOG_WARNING($db,$msg,$auth_id=0) {
 global $L_WARNING;
 global $log_level;
 if ($log_level < $L_WARNING) { return; }
 email($L_WARNING,$msg);
-write_log($db,$msg,$L_WARNING);
+write_log($db,$msg,$L_WARNING,$auth_id);
 }
 
-function LOG_DEBUG($db,$msg) {
+function LOG_DEBUG($db,$msg,$auth_id=0) {
 global $debug;
 global $L_DEBUG;
-if (isset($debug) and $debug) { write_log($db,$msg,$L_DEBUG); }
+if (isset($debug) and $debug) { write_log($db,$msg,$L_DEBUG,$auth_id); }
 }
 
 function email ($level,$msg) {
@@ -1656,7 +1656,7 @@ $send = SimpleMail::make()
     ->send();
 }
 
-function write_log($db, $msg, $level)
+function write_log($db, $msg, $level, $auth_id = 0)
 {
     $work_user = 'http';
     if (isset($_SESSION['login'])) {
@@ -1668,7 +1668,7 @@ function write_log($db, $msg, $level)
     global $L_INFO;
     if (!isset($level)) { $level = $L_INFO; }
     $msg = str_replace("'", '', $msg);
-    $sSQL = "insert into syslog(customer,message,level) values('$work_user','$msg',$level)";
+    $sSQL = "insert into syslog(customer,message,level,auth_id) values('$work_user','$msg',$level,$auth_id)";
     mysqli_query($db, $sSQL);
 }
 

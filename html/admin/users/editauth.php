@@ -81,7 +81,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
                 $new['filter_group_id'] = $_POST["f_group_id"] * 1;
             }
         $changes = get_diff_rec($db_link,"User_auth","id='$id'", $new, 0);
-        if (!empty($changes)) { LOG_WARNING($db_link,"Изменен адрес доступа! Список изменений: $changes"); }
+        if (!empty($changes)) { LOG_WARNING($db_link,"Изменен адрес доступа! Список изменений: $changes",$id); }
         if (is_auth_bind_changed($db_link,$id,$ip,$mac)) {
             $new_id = copy_auth($db_link,$id,$new);
             header("Location: /admin/users/editauth.php?id=".$new_id,TRUE, 302);
@@ -100,7 +100,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
 if (isset($_POST["moveauth"])) {
     $new_parent_id = $_POST["f_new_parent"]*1;
     apply_auth_rule($db_link,$id,$new_parent_id);
-    LOG_WARNING($db_link,"Адрес доступа перемещён к другому пользователю! Применено: $changes");
+    LOG_WARNING($db_link,"Адрес доступа перемещён к другому пользователю! Применено: $changes",$id);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
     }
@@ -175,7 +175,7 @@ if (isset($_POST["recovery"])) {
                 $new['filter_group_id'] = $_POST["f_group_id"] * 1;
             }
         $changes = get_diff_rec($db_link,"User_auth","id='$id'", $new, 0);
-        if (!empty($changes)) { LOG_WARNING($db_link,"Восстановлен адрес доступа! Применено: $changes"); }
+        if (!empty($changes)) { LOG_WARNING($db_link,"Восстановлен адрес доступа! Применено: $changes",$id); }
         update_record($db_link, "User_auth", "id='$id'", $new);
 	apply_auth_rule($db_link,$id,$new['user_id']);
 	} else {

@@ -331,7 +331,7 @@ foreach my $mac (keys %mac_address_table) {
             	    $auth_id=$auth_table{oper_table}{$simple_mac};
             	    } else {
                     $auth_id=$auth_table{full_table}{$simple_mac};
-                    db_log_debug($dbh,"Mac not found in oper ARP-table. Use old values auth_id: $auth_id [$simple_mac] at device $dev_name [$port]");
+                    db_log_debug($dbh,"Mac not found in oper ARP-table. Use old values auth_id: $auth_id [$simple_mac] at device $dev_name [$port]",$auth_id);
                     }
 
                 if (exists $connections{$auth_id}) {
@@ -347,7 +347,7 @@ foreach my $mac (keys %mac_address_table) {
                     $connections{$auth_id}{port}=$port_id;
                     $mac_history{$simple_mac}{changed}=1;
                     $mac_history{$simple_mac}{auth_id}=$auth_id;
-                    db_log_info($dbh,"Found auth_id: $auth_id [$mac_splitted] at device $dev_name [$port]. Update connection");
+                    db_log_info($dbh,"Found auth_id: $auth_id [$mac_splitted] at device $dev_name [$port]. Update connection",$auth_id);
                     my $auth_rec;
                     $auth_rec->{last_found}=$now_str;
                     update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
@@ -359,7 +359,7 @@ foreach my $mac (keys %mac_address_table) {
                     $mac_history{$simple_mac}{changed}=1;
                     $mac_history{$simple_mac}{auth_id}=$auth_id;
                     $connections{$auth_id}{port}=$port_id;
-                    db_log_info($dbh,"Found auth_id: $auth_id [$mac_splitted] at device $dev_name [$port]. Create connection.");
+                    db_log_info($dbh,"Found auth_id: $auth_id [$mac_splitted] at device $dev_name [$port]. Create connection.",$auth_id);
                     my $auth_rec;
                     $auth_rec->{last_found}=$now_str;
                     update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);

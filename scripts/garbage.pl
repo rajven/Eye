@@ -177,7 +177,15 @@ $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
 db_log_verbose($dbh,"Clean worklog older that ".$clean_str);
 do_sql($dbh,"DELETE FROM syslog WHERE `timestamp` < $clean_str" );
 
-##### syslog  ######
+#clean debug logs older than 2 days
+$day_dur = DateTime::Duration->new( days => 2 );
+$clean_date = $now - $day_dur;
+$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+
+db_log_verbose($dbh,"Clean debug worklog older that ".$clean_str);
+do_sql($dbh,"DELETE FROM syslog WHERE level>3 AND `timestamp` < $clean_str" );
+
+##### remote syslog  ######
 
 $day_dur = DateTime::Duration->new( days => $history_syslog_day );
 $clean_date = $now - $day_dur;

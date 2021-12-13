@@ -218,7 +218,8 @@ if ($log_level >= $L_ERROR) {
 sub db_log_info {
 my $db = shift;
 my $msg = shift;
-if ($log_level >= $L_INFO) { write_db_log($db,$msg,$L_INFO); }
+my $id = shift;
+if ($log_level >= $L_INFO) { write_db_log($db,$msg,$L_INFO,$id); }
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -226,7 +227,8 @@ if ($log_level >= $L_INFO) { write_db_log($db,$msg,$L_INFO); }
 sub db_log_verbose {
 my $db = shift;
 my $msg = shift;
-if ($log_level >= $L_VERBOSE) { write_db_log($db,$msg,$L_VERBOSE); }
+my $id = shift;
+if ($log_level >= $L_VERBOSE) { write_db_log($db,$msg,$L_VERBOSE,$id); }
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -234,9 +236,10 @@ if ($log_level >= $L_VERBOSE) { write_db_log($db,$msg,$L_VERBOSE); }
 sub db_log_warning {
 my $db = shift;
 my $msg = shift;
+my $id = shift;
 if ($log_level >= $L_WARNING) {
     sendEmail("WARN! ".substr($msg,0,30),$msg,1);
-    write_db_log($db,$msg,$L_WARNING);
+    write_db_log($db,$msg,$L_WARNING,$id);
     }
 }
 
