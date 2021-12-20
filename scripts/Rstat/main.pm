@@ -26,6 +26,7 @@ log_warning
 log_info
 log_debug
 log_error
+log_verbose
 log_die
 timestamp
 do_exec
@@ -132,6 +133,10 @@ sub log_session { log_file($LOG_COMMON,"SESSION:",$_[0]) if ($log_enable); }
 #---------------------------------------------------------------------------------------------------------
 
 sub log_info { log_file($LOG_COMMON,"INFO:",$_[0]) if ($log_enable); }
+
+#---------------------------------------------------------------------------------------------------------
+
+sub log_verbose { log_file($LOG_COMMON,"VERBOSE:",$_[0]) if ($log_enable); }
 
 #---------------------------------------------------------------------------------------------------------
 
