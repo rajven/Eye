@@ -9,8 +9,8 @@
 #refresh dnsmasq(dhcpd) dhcp server config's
 #02 * * * * root /usr/local/scripts/update-dnsmasq
 
-#scan network
-09 * * * * root /usr/local/scripts/fetch_new_arp.pl
+#scan network => 2 * arp_timeout (default: 5m * 2)
+*/12 * * * * root /usr/local/scripts/fetch_new_arp.pl
 
 #garbage trash
 01 0 * * * root /usr/local/scripts/garbage.pl
