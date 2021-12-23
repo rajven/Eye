@@ -186,23 +186,25 @@ if (!empty($_SESSION[$page_url]['msg'])) {
 <tr>
 <td colspan=2><?php print $cell_perday; ?></td>
 <td colspan=2><?php print $cell_permonth; ?></td>
-<td colspan=2><?php print $cell_blocked; ?></td>
+<td><?php print $cell_blocked; ?></td>
+<td><?php print $cell_enabled; ?></td>
 </tr>
 <tr>
 <td colspan=2><input type="text" name="f_perday" value="<?php echo $user_info["day_quota"]; ?>" size=5></td>
 <td colspan=2><input type="text" name="f_permonth" value="<?php echo $user_info["month_quota"]; ?>" size=5></td>
-<td colspan=2><?php print_qa_select('f_blocked', $user_info["blocked"]); ?></td>
+<td ><?php print_qa_select('f_blocked', $user_info["blocked"]); ?></td>
+<td ><?php print_qa_select('f_enabled', $user_info["enabled"]); ?></td>
 </tr>
 <tr><td class=data colspan=6>Параметры для автоназначенных адресов:</td></tr>
 <tr>
 <td colspan=2><?php print $cell_filter; ?></td>
 <td colspan=2><?php print $cell_shaper; ?></td>
-<td colspan=2><?php print $cell_enabled; ?></td>
+<td colspan=2></td>
 </tr>
 <tr>
 <td colspan=2><?php print_group_select($db_link, 'f_filter', $user_info["filter_group_id"]); ?></td>
 <td colspan=2><?php print_queue_select($db_link, 'f_queue', $user_info["queue_id"]); ?></td>
-<td colspan=2><?php print_qa_select('f_enabled', $user_info["enabled"]); ?></td>
+<td colspan=2></td>
 </tr>
 <tr>
 <?php

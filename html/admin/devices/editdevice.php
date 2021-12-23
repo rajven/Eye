@@ -38,12 +38,14 @@ if (isset($_POST["editdevice"]) and isset($id)) {
         }
     }
     unset($new);
+    if (isset($_POST["f_ip"])) { $new['ip'] = $_POST["f_ip"]; }
+    $cur_device = get_record_sql($db_link,"SELECT * FROM devices WHERE id=".$id);
+    if (!empty($new['ip'])) { $cur_auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE deleted=0 AND ip='".$new['ip']."'"); }
     if (isset($_POST["f_device_model_id"])) { $new['device_model_id'] = $_POST["f_device_model_id"]*1; }
     if (isset($_POST["f_devtype_id"])) { $new['device_type'] = $_POST["f_devtype_id"]*1; }
     if (isset($_POST["f_comment"])) { $new['comment'] = $_POST["f_comment"]; }
     if (isset($_POST["f_SN"])) { $new['SN'] = $_POST["f_SN"]; }
     if (isset($_POST["f_firmware"])) { $new['firmware'] = $_POST["f_firmware"]; }
-    if (isset($_POST["f_ip"])) { $new['ip'] = substr($_POST["f_ip"], 0, 15); }
     if (isset($_POST["f_snmp_version"])) { $new['snmp_version'] = $_POST["f_snmp_version"] * 1; }
     if (isset($_POST["f_community"])) { $new['community'] = substr($_POST["f_community"], 0, 50); }
     if (isset($_POST["f_rw_community"])) { $new['rw_community'] = substr($_POST["f_rw_community"], 0, 50); }
@@ -60,10 +62,15 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     if (isset($_POST["f_wan"])) { $new['wan_int'] = $_POST["f_wan"]; }
     if (isset($_POST["f_lan"])) { $new['lan_int'] = $_POST["f_lan"]; }
     if (isset($_POST["f_building_id"])) { $new['building_id'] = $_POST["f_building_id"] * 1; }
-    $new['user_id'] = get_user_by_ip($db_link,$new['ip']);
-    if (!isset($new['user_id']) or empty($new['user_id'])) { $new['user_id']=0; }
-    if (isset($_POST["f_nagios"])) { $new['nagios'] = $_POST["f_nagios"] * 1; }
-    if (empty($new['nagios'])) { $new['nagios_status'] = 'UP'; }
+    if (isset($_POST["f_nagios"])) {
+	$new['nagios'] = $_POST["f_nagios"] * 1;
+        if ($new['nagios'] ==0) { $new['nagios_status']='UP'; }
+	} else {
+	if (!empty($cur_auth)) {
+	    $new['nagios']=0;
+	    $new['nagios_status']=$cur_auth['nagios_status'];
+	    }
+	}
     $new['vendor_id'] = get_device_model_vendor($db_link,$new['device_model_id']);
     if (isset($_POST["f_port_count"])) { $new['port_count'] = $sw_ports; }
     update_record($db_link, "devices", "id='$id'", $new);

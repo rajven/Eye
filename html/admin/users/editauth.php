@@ -80,6 +80,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
                 $new['queue_id'] = $_POST["f_queue_id"] * 1;
                 $new['filter_group_id'] = $_POST["f_group_id"] * 1;
             }
+        if ($new['nagios'] ==0) { $new['nagios_status']='UP'; }
         $changes = get_diff_rec($db_link,"User_auth","id='$id'", $new, 0);
         if (!empty($changes)) { LOG_WARNING($db_link,"Изменен адрес доступа! Список изменений: $changes",$id); }
         if (is_auth_bind_changed($db_link,$id,$ip,$mac)) {
