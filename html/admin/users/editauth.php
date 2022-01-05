@@ -8,11 +8,11 @@ global $default_hotspot_ou_id;
 
 $msg_error = "";
 
-$sSQL = "SELECT * FROM User_auth WHERE id=$id";
-$old_auth_info = get_record_sql($db_link, $sSQL);
-
-$parent_ou_id = $old_auth_info['ou_id'];
+$old_auth_info = get_record_sql($db_link, "SELECT * FROM User_auth WHERE id=".$id);
 $parent_id = $old_auth_info['user_id'];
+
+$user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$parent_id);
+$parent_ou_id = $user_info['ou_id'];
 
 if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
     $ip = trim($_POST["f_ip"]);
@@ -46,9 +46,9 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             exit;
     	    }
         $new['ip'] = $ip;
+	$new['ou_id'] = $parent_ou_id;
         $new['ip_int'] = $ip_aton;
         $new['mac'] = mac_dotted($_POST["f_mac"]);
-//      $new['clientid'] = $_POST["f_clientid"];
         $new['comments'] = $_POST["f_comments"];
         $new['firmware'] = $_POST["f_firmware"];
         $new['WikiName'] = $_POST["f_wiki"];
