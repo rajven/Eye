@@ -162,7 +162,9 @@ $lines_stats->{line}{unknown}=0;
 
 my @detail_traffic=();
 foreach my $line (@$lines) {
+next if (!$line);
 my ($l_time,$l_proto,$l_src_ip,$l_dst_ip,$l_src_port,$l_dst_port,$l_packets,$l_bytes,$l_in_dev,$l_out_dev) = split(/;/,$line);
+next if (!$l_time or !$l_src_ip or !$l_dst_ip);
 
 $lines_stats->{pkt}{all}+=$l_packets;
 $lines_stats->{line}{all}++;
@@ -173,15 +175,16 @@ if ($l_src_ip eq '0.0.0.0') { $lines_stats->{line}{illegal}++; $lines_stats->{pk
 if ($l_dst_ip eq '0.0.0.0') { $lines_stats->{line}{illegal}++; $lines_stats->{pkt}{illegal}+=$l_packets; next; }
 if ($l_src_ip eq '255.255.255.255') { $lines_stats->{line}{illegal}++; $lines_stats->{pkt}{illegal}+=$l_packets; next; }
 if ($l_dst_ip eq '255.255.255.255') { $lines_stats->{line}{illegal}++; $lines_stats->{pkt}{illegal}+=$l_packets; next; }
+
 #special networks
-if ($Special_Nets->match_string($l_src_ip) or $Special_Nets->match_string($l_dst_ip)) { $lines_stats->{line}{illegal}++; $lines_stats->{pkt}{illegal}+=$l_packets; next; }
+if ($Special_Nets and $Special_Nets->match_string($l_src_ip) or $Special_Nets->match_string($l_dst_ip)) { $lines_stats->{line}{illegal}++; $lines_stats->{pkt}{illegal}+=$l_packets; next; }
 #unknown networks
-if (!$office_networks->match_string($l_src_ip) and !$office_networks->match_string($l_dst_ip)) { $lines_stats->{line}{illegal}++; $lines_stats->{pkt}{illegal}+=$l_packets; next; }
+if ($office_networks and (!$office_networks->match_string($l_src_ip) and !$office_networks->match_string($l_dst_ip))) { $lines_stats->{line}{illegal}++; $lines_stats->{pkt}{illegal}+=$l_packets; next; }
 #local forward
-if ($office_networks->match_string($l_src_ip) and $office_networks->match_string($l_dst_ip)) { $lines_stats->{line}{free}++; $lines_stats->{line}{free}+=$l_packets; next; }
+if ($office_networks and ($office_networks->match_string($l_src_ip) and $office_networks->match_string($l_dst_ip))) { $lines_stats->{line}{free}++; $lines_stats->{line}{free}+=$l_packets; next; }
 #free forward
-if ($office_networks->match_string($l_src_ip) and $free_networks->match_string($l_dst_ip)) { $lines_stats->{line}{free}++; $lines_stats->{line}{free}+=$l_packets; next; }
-if ($free_networks->match_string($l_src_ip) and $office_networks->match_string($l_dst_ip)) { $lines_stats->{line}{free}++; $lines_stats->{line}{free}+=$l_packets; next; }
+if ($office_networks and ($office_networks->match_string($l_src_ip) and $free_networks->match_string($l_dst_ip))) { $lines_stats->{line}{free}++; $lines_stats->{line}{free}+=$l_packets; next; }
+if ($free_networks and ($free_networks->match_string($l_src_ip) and $office_networks->match_string($l_dst_ip))) { $lines_stats->{line}{free}++; $lines_stats->{line}{free}+=$l_packets; next; }
 
 my $l_src_ip_aton=StrToIp($l_src_ip);
 my $l_dst_ip_aton=StrToIp($l_dst_ip);
@@ -290,7 +293,7 @@ if (!$auth_id) {
     $auth_id=new_auth($m_dbh,$user_ip);
     $user_stats{$user_ip}{auth_id}=$auth_id;
     #fix traffic detail for new users
-    push(@batch_sql_traf,"UPDATE Traffic_detail set auth_id=$auth_id WHERE auth_id=0 AND `timestamp`>='$hour_date1' AND `timestamp`<'$hour_date2' AND (src_ip=$user_ip_aton OR dst_ip=$user_ip_aton)");
+    push(@batch_sql_traf,"UPDATE Traffic_detail set auth_id=$auth_id WHERE auth_id=0 AND `timestamp`>=$hour_date1 AND `timestamp`<$hour_date2 AND (src_ip=$user_ip_aton OR dst_ip=$user_ip_aton)");
     }
 
 #skip empty stats
