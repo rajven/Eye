@@ -246,8 +246,7 @@ foreach my $auth (@auth_full_list) {
         $new->{ip}=$auth->{ip};
         $new->{mac}=$auth_mac;
         $new->{timestamp}=$auth->{last_found};
-        db_log_info($dbh,"Auth id: $auth->{id} $auth_mac found at location:");
-        db_log_info($dbh,Dumper($new));
+        db_log_info($dbh,"Auth id: $auth->{id} $auth_mac found at location device_id: $new->{device_id} port_id: $new->{port_id}");
         insert_record($dbh,"mac_history",$new);
         next;
         }
@@ -262,8 +261,7 @@ foreach my $auth (@auth_full_list) {
             $new->{ip}=$auth->{ip};
             $new->{mac}=$auth_mac;
             $new->{timestamp}=$auth->{last_found};
-            db_log_info($dbh,"Auth id: $auth->{id} $auth_mac moved to another location:");
-            db_log_info($dbh,Dumper($new));
+            db_log_info($dbh,"Auth id: $auth->{id} $auth_mac moved to another location device_id: $new->{device_id} port_id: $new->{port_id}");
             insert_record($dbh,"mac_history",$new);
             }
 }
