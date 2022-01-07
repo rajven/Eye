@@ -81,8 +81,10 @@ $btn_save = "Сохранить";
 $btn_move = "Переместить";
 $btn_apply = "Применить конфигурацию";
 $btn_device = "+Устройство";
-$btn_mac_add = "Привязать";
-$btn_mac_del = "Отвязать";
+$btn_mac_add = "+MAC";
+$btn_mac_del = "-MAC";
+$btn_ip_add = "+IP";
+$btn_ip_del = "-IP";
 
 /* error messages */
 $msg_exists = "уже существует!";

@@ -61,6 +61,27 @@ if (isset($_POST["delMacRule"])) {
     exit;
 }
 
+if (isset($_POST["addIPRule"])) {
+    unset($new);
+    $first_auth = get_record_sql($db_link,"SELECT ip FROM User_auth WHERE user_id=".$id." AND deleted=0 AND LENGTH(ip)>0 ORDER BY id");
+    if (!empty($first_auth) and !empty($first_auth['ip'])) {
+        $new['user_id']=$id;
+        $new['type']=1;
+        $new['rule']=$first_auth['ip'];
+	insert_record($db_link,"auth_rules",$new);
+	LOG_INFO($db_link,"Создано правило атоназначения юзеру id: ".$id." для IP ".$first_auth['IP']);
+	}
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
+if (isset($_POST["delIPRule"])) {
+    run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$id." AND type=1");
+    LOG_INFO($db_link,"Удалены все правила атоназначения юзеру id: $id по ip");
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
 if (isset($_POST["showDevice"])) {
     $device = get_record_sql($db_link,"SELECT * FROM devices WHERE user_id=".$id);
     $auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE user_id=".$id);
@@ -210,18 +231,26 @@ if (!empty($_SESSION[$page_url]['msg'])) {
 <?php
 print "<td>"; print_url("Список правил","/admin/users/edit_rules.php?id=$id"); print "</td>";
 $rule_count = get_count_records($db_link,"auth_rules","user_id=".$id);
-if ($rule_count>0) { print "<td > Count: ".$rule_count."</td>"; } else { print "<td></td>"; }
+print "<td > Count: ".$rule_count."</td>";
 $first_auth = get_record_sql($db_link,"SELECT id FROM User_auth WHERE user_id=".$id." AND deleted=0 ORDER BY id");
 if (!empty($first_auth)) {
+    //mac
     $mac_rule_count = get_count_records($db_link,"auth_rules","user_id=".$id." AND type=2");
     if (!empty($mac_rule_count)) { 
 	print "<td><input type=\"submit\" name=\"delMacRule\" value=".$btn_mac_del." ></td>";
 	} else {
 	print "<td><input type=\"submit\" name=\"addMacRule\" value=".$btn_mac_add." ></td>";
 	}
-    } else { print "<td></td>"; }
+    //ip
+    $ip_rule_count = get_count_records($db_link,"auth_rules","user_id=".$id." AND type=1");
+    if (!empty($ip_rule_count)) { 
+	print "<td><input type=\"submit\" name=\"delIPRule\" value=".$btn_ip_del." ></td>";
+	} else {
+	print "<td><input type=\"submit\" name=\"addIPRule\" value=".$btn_ip_add." ></td>";
+	}
+    } else { print "<td colspan=2></td>"; }
 ?>
-<td colspan=3 align=right>Created: <?php print $user_info["timestamp"]; ?></td>
+<td colspan=2 align=right>Created: <?php print $user_info["timestamp"]; ?></td>
 </tr>
 <tr>
 <?php print "<td colspan=2>"; print_url("Трафик за день","/admin/reports/userday.php?id=$id"); ?></td>

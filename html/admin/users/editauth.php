@@ -98,7 +98,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
     exit;
     }
 
-if (isset($_POST["moveauth"])) {
+if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
     $new_parent_id = $_POST["f_new_parent"]*1;
     apply_auth_rule($db_link,$id,$new_parent_id);
     LOG_WARNING($db_link,"Адрес доступа перемещён к другому пользователю! Применено: $changes",$id);
@@ -106,7 +106,7 @@ if (isset($_POST["moveauth"])) {
     exit;
     }
 
-if (isset($_POST["recovery"])) {
+if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
     $ip = trim($_POST["f_ip"]);
     if (checkValidIp($ip)) {
         $ip_aton = ip2long($ip);
