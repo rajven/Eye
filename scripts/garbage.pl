@@ -217,6 +217,57 @@ do_sql($dbh,"DELETE FROM User_stats_full WHERE `timestamp` < $clean_str" );
 #### clean unknown user ip
 do_sql($dbh,"DELETE FROM User_auth WHERE (mac is NULL or mac='') and deleted=1");
 
+#### save location changes
+my %connections;
+my @connections_list=get_records_sql($dbh,"SELECT * FROM connections ORDER BY auth_id");
+foreach my $connection (@connections_list) {
+    next if (!$connection);
+    $connections{$connection->{auth_id}}=$connection;
+    }
+
+my $auth_sql="SELECT * FROM User_auth WHERE mac IS NOT NULL AND mac !='' AND deleted=0 ORDER BY last_found DESC";
+my %auth_table;
+my @auth_full_list=get_records_sql($dbh,$auth_sql);
+foreach my $auth (@auth_full_list) {
+    next if (!$auth);
+    my $auth_mac=mac_simplify($auth->{mac});
+    next if (exists $auth_table{$auth_mac});
+    next if (!exists $connections{$auth->{id}});
+    $auth_table{$auth_mac}=1;
+    my $h_sql = "SELECT * FROM mac_history WHERE mac='".$auth_mac."' ORDER BY `timestamp` DESC";
+    my $history = get_record_sql($dbh,$h_sql);
+    if (!$history) {
+        #add record to history
+        my $cur_conn = $connections{$auth->{id}};
+        my $new;
+        $new->{device_id}=$cur_conn->{device_id};
+        $new->{port_id}=$cur_conn->{port_id};
+        $new->{auth_id}=$auth->{id};
+        $new->{ip}=$auth->{ip};
+        $new->{mac}=$auth_mac;
+        $new->{timestamp}=$auth->{last_found};
+        log_info("Auth id: $auth->{id} $auth_mac found at location:");
+        log_info(Dumper($new));
+        insert_record($dbh,"mac_history",$new);
+        next;
+        }
+    my $cur_conn = $connections{$auth->{id}};
+    #check record history
+    if ($history->{device_id} != $cur_conn->{device_id} or $history->{port_id} != $cur_conn->{port_id}) {
+            #add new record
+            my $new;
+            $new->{device_id}=$cur_conn->{device_id};
+            $new->{port_id}=$cur_conn->{port_id};
+            $new->{auth_id}=$auth->{id};
+            $new->{ip}=$auth->{ip};
+            $new->{mac}=$auth_mac;
+            $new->{timestamp}=$auth->{last_found};
+            log_info("Auth id: $auth->{id} $auth_mac moved to another location:");
+            log_info(Dumper($new));
+            insert_record($dbh,"mac_history",$new);
+            }
+}
+
 db_log_info($dbh,'Garbage stopped.');
 $dbh->disconnect;
 
