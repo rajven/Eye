@@ -1628,6 +1628,13 @@ global $L_DEBUG;
 if (isset($debug) and $debug) { write_log($db,$msg,$L_DEBUG,$auth_id); }
 }
 
+function get_first_line($msg) {
+if (empty $msg) { return; }
+preg_match('/(.*)(\n|\<br\\>)/', $msg, $matches);
+if (!empty $matches[1]) { return $matches[1]; }
+return;
+}
+
 function email ($level,$msg) {
 global $send_email;
 global $admin_email;
@@ -1638,7 +1645,7 @@ global $L_ERROR;
 if (!$send_email) { return; }
 if (!($level === $L_WARNING or $level === $L_ERROR)) { return; }
 
-$subject = substr($msg,0,80);
+$subject = get_first_line($msg);
 
 if ($level === $L_WARNING) { $subject = "WARN: ".$subject."..."; $message = 'WARNING! Manager: '.$_SESSION['login'].' </br>'; }
 if ($level === $L_ERROR) { $subject = "ERROR: ".$subject."..."; $message = 'ERROR! Manager: '.$_SESSION['login'].' </br>'; }

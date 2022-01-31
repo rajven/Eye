@@ -100,7 +100,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
 
 if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
     $new_parent_id = $_POST["f_new_parent"]*1;
-    apply_auth_rule($db_link,$id,$new_parent_id);
+    $changes=apply_auth_rule($db_link,$id,$new_parent_id);
     LOG_WARNING($db_link,"Адрес доступа перемещён к другому пользователю! Применено: $changes",$id);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
