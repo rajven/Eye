@@ -1629,9 +1629,9 @@ if (isset($debug) and $debug) { write_log($db,$msg,$L_DEBUG,$auth_id); }
 }
 
 function get_first_line($msg) {
-if (empty $msg) { return; }
+if (empty($msg)) { return; }
 preg_match('/(.*)(\n|\<br\\>)/', $msg, $matches);
-if (!empty $matches[1]) { return $matches[1]; }
+if (!empty($matches[1])) { return $matches[1]; }
 return;
 }
 

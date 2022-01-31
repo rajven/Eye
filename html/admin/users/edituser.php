@@ -11,6 +11,9 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 
 $msg_error = "";
 
+$sSQL = "SELECT * FROM User_list WHERE id=$id";
+$user_info = get_record_sql($db_link, $sSQL);
+
 if (isset($_POST["edituser"])) {
     unset($new);
     $new["ou_id"] = $_POST["f_ou"] * 1;
@@ -32,7 +35,7 @@ if (isset($_POST["edituser"])) {
         $new["month_quota"] = trim($_POST["f_permonth"]) * 1;
     }
     $changes = get_diff_rec($db_link,"User_list","id='$id'", $new, 0);
-    if (!empty($changes)) { LOG_WARNING($db_link,"Изменён пользователь id: $id. \r\nПрименено: $changes"); }
+    if (!empty($changes)) { LOG_WARNING($db_link,"Изменён пользователь id: $id login: ".$new["login"].". \r\nПрименено: $changes"); }
     update_record($db_link, "User_list", "id='$id'", $new);
     run_sql($db_link, "UPDATE User_auth SET ou_id=".$new["ou_id"]." WHERE user_id=".$id);
     run_sql($db_link, "UPDATE devices SET device_name='".$new["login"]."' WHERE user_id=".$id);
@@ -48,7 +51,7 @@ if (isset($_POST["addMacRule"])) {
         $new['type']=2;
         $new['rule']=$first_auth['mac'];
 	insert_record($db_link,"auth_rules",$new);
-	LOG_INFO($db_link,"Создано правило атоназначения юзеру id: ".$id." для мака ".$first_auth['mac']);
+	LOG_INFO($db_link,"Создано правило атоназначения юзеру id: ".$id." login: ".$user_info["login"]." для мака ".$first_auth['mac']);
 	}
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -56,7 +59,7 @@ if (isset($_POST["addMacRule"])) {
 
 if (isset($_POST["delMacRule"])) {
     run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$id." AND type=2");
-    LOG_INFO($db_link,"Удалены все правила атоназначения юзеру id: $id по маку");
+    LOG_INFO($db_link,"Удалены все правила атоназначения юзеру id: $id login: ".$user_info["login"]." по маку");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -69,7 +72,7 @@ if (isset($_POST["addIPRule"])) {
         $new['type']=1;
         $new['rule']=$first_auth['ip'];
 	insert_record($db_link,"auth_rules",$new);
-	LOG_INFO($db_link,"Создано правило атоназначения юзеру id: ".$id." для IP ".$first_auth['IP']);
+	LOG_INFO($db_link,"Создано правило атоназначения юзеру id: ".$id." login: ".$user_info["login"]." для IP ".$first_auth['IP']);
 	}
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -77,7 +80,7 @@ if (isset($_POST["addIPRule"])) {
 
 if (isset($_POST["delIPRule"])) {
     run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$id." AND type=1");
-    LOG_INFO($db_link,"Удалены все правила атоназначения юзеру id: $id по ip");
+    LOG_INFO($db_link,"Удалены все правила атоназначения юзеру id: $id login: ".$user_info["login"]." по ip");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -86,8 +89,6 @@ if (isset($_POST["showDevice"])) {
     $device = get_record_sql($db_link,"SELECT * FROM devices WHERE user_id=".$id);
     $auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE user_id=".$id);
     if (empty($device) and !empty($auth)) {
-	$sSQL = "SELECT * FROM User_list WHERE id=$id";
-	$user_info = get_record_sql($db_link, $sSQL);
         global $snmp_default_version;
         global $snmp_default_community;
 	$new['user_id']=$id;
@@ -146,7 +147,7 @@ if (isset($_POST["addauth"])) {
                 $new['dhcp']=$f_dhcp;
                 update_record($db_link,"User_auth","id=".$fid,$new);
                 apply_auth_rule($db_link,$fid,$id);
-                LOG_WARNING($db_link,"Создан новый адрес доступа: ip => $fip, mac => $fmac",$fid);
+                LOG_WARNING($db_link,"Создан новый адрес доступа для login: ".$user_info["login"].": ip => $fip, mac => $fmac",$fid);
                 header("Location: /admin/users/editauth.php?id=".$fid);
                 exit;
                 }
@@ -169,7 +170,7 @@ if (isset($_POST["removeauth"])) {
             run_sql($db_link, 'DELETE FROM User_auth_alias WHERE auth_id='.$val);
             $auth["deleted"] = 1;
             $changes = get_diff_rec($db_link,"User_auth","id='$val'", '', 0);
-            if (!empty($changes)) { LOG_WARNING($db_link,"Удалён адрес доступа: \r\n $changes",$val); }
+            if (!empty($changes)) { LOG_WARNING($db_link,"Удалён адрес доступа для login: ".$user_info["login"].": \r\n $changes",$val); }
             update_record($db_link, "User_auth", "id=" . $val, $auth);
         }
     }
@@ -178,9 +179,6 @@ if (isset($_POST["removeauth"])) {
 }
 
 unset($_POST);
-
-$sSQL = "SELECT * FROM User_list WHERE id=$id";
-$user_info = get_record_sql($db_link, $sSQL);
 
 require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/header.php");
 ?>
