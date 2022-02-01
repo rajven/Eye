@@ -177,7 +177,7 @@ return $sql_ref;
 
 sub get_first_line {
 my $msg = shift;
-if (!$msg)) { return; }
+if (!$msg) { return; }
 if ($msg=~ /(.*)(\n|\<br\>)/) {
     $msg = $1 if ($1);
     chomp($msg);
