@@ -55,6 +55,7 @@ IpToStr
 resurrection_auth
 new_auth
 StrToIp
+get_first_line
 update_dns_record
 update_ad_hostname
 update_record
@@ -171,6 +172,19 @@ $sql_prep->finish();
 return $sql_ref;
 }
 
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_first_line {
+my $msg = shift;
+if (!$msg)) { return; }
+if ($msg=~ /(.*)(\n|\<br\>)/) {
+    $msg = $1 if ($1);
+    chomp($msg);
+    }
+return $msg;
+}
+
 #---------------------------------------------------------------------------------------------------------------
 
 sub write_db_log {
@@ -208,7 +222,7 @@ sub db_log_error {
 my $db = shift;
 my $msg = shift;
 if ($log_level >= $L_ERROR) {
-    sendEmail("ERROR! ".substr($msg,0,30),$msg,1);
+    sendEmail("ERROR! ".get_first_line($msg),$msg,1);
     write_db_log($db,$msg,$L_ERROR);
     }
 }
@@ -238,7 +252,7 @@ my $db = shift;
 my $msg = shift;
 my $id = shift;
 if ($log_level >= $L_WARNING) {
-    sendEmail("WARN! ".substr($msg,0,30),$msg,1);
+    sendEmail("WARN! ".get_first_line($msg),$msg,1);
     write_db_log($db,$msg,$L_WARNING,$id);
     }
 }
