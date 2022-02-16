@@ -58,15 +58,15 @@ if (isset($_POST["discovery2"]) and is_option($db_link, 41)) {
     exit;
 }
 
-if (isset($_POST["save_traf_all"]) and get_option($db_link, 23)) {
-    run_sql($db_link, 'Update User_auth set save_traf=1 where deleted=0');
+if (!empty($_POST["save_traf_all"]) and $_POST["save_traf_all"]) {
+    run_sql($db_link, 'Update User_auth SET save_traf=1');
     LOG_INFO($db_link, "Enable save traffic for all!");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST["not_save_traf_all"]) and get_option($db_link, 23)) {
-    run_sql($db_link, 'Update User_auth set save_traf=0 where deleted=0');
+if (!empty($_POST["not_save_traf_all"]) and $_POST["not_save_traf_all"]) {
+    run_sql($db_link, 'Update User_auth SET save_traf=0');
     LOG_INFO($db_link, "Disable save traffic for all!");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
