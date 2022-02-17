@@ -154,7 +154,7 @@ db_log_verbose($dbh,"Remove dup connection $c_id: $c_port_id $c_auth_id");
 my $u_sql = "SELECT * FROM User_list as U WHERE (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0";
 my @u_ref = get_records_sql($dbh,$u_sql);
 foreach my $row (@u_ref) {
-do_sql($dbh,"DELETE FROM User_List WHERE id='".$row->{id}."'");
+do_sql($dbh,"DELETE FROM User_list WHERE id='".$row->{id}."'");
 db_log_verbose($dbh,"Remove empty user id: $row->{id} login: $row->{login}");
 }
 

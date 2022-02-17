@@ -178,6 +178,43 @@ if (isset($_POST["removeauth"])) {
     exit;
 }
 
+if (isset($_POST["new_user"])) {
+    $auth_id = $_POST["f_auth_id"];
+    $save_traf = get_option($db_link, 23) * 1;
+    foreach ($auth_id as $key => $val) {
+        if ($val) {
+	    $auth_info = get_record_sql($db_link,"SELECT ip, mac, comments, dns_name, dhcp_hostname FROM User_auth WHERE id=$val");
+            $ou_id = $user_info["ou_id"];
+            $login = NULL;
+            if (!empty($auth_info["dns_name"])) { $login = $auth_info["dns_name"]; }
+            if (empty($login) and !empty($auth_info["comments"])) { $login = transliterate($auth_info["comments"]); }
+            if (empty($login) and !empty($auth_info["dhcp_hostname"])) { $login = $auth_info["dhcp_hostname"]; }
+            if (empty($login) and !empty($auth_info["mac"])) { $login = $auth_info["mac"]; }
+	    if (empty($login)) { $login = $auth_info["ip"]; }
+	    $new_user = get_record_sql($db_link,"SELECT * FROM User_list WHERE LCase(login)=LCase('$login') and deleted=0");
+            if (!empty($new_user)) {
+                // move auth
+                $auth["user_id"] = $new_user["id"];
+                $auth["ou_id"] = $new_user["ou_id"];
+                $auth["save_traf"] = $save_traf;
+                update_record($db_link, "User_auth", "id='" . $val . "'", $auth);
+                apply_auth_rule($db_link,$val,$l_id);
+                LOG_WARNING($db_link,"Адрес доступа id: $val перемещён к другому юзеру user_id: ".$new_user["id"], $val);
+            } else {
+                $new["login"] = $login;
+                $new["ou_id"] = $ou_id;
+                $l_id=insert_record($db_link, "User_list", $new);
+                $auth["user_id"] = $l_id;
+                $auth["save_traf"] = $save_traf;
+                update_record($db_link, "User_auth", "id='" . $val . "'", $auth);
+                LOG_WARNING($db_link,"Создан новый пользователь из адреса доступа: login => $login. Адрес доступа auth_id: $val перемещён к созданному пользователю.", $val);
+            }
+        }
+    }
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
 unset($_POST);
 
 require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/header.php");
@@ -272,6 +309,7 @@ if ($id == $default_user_id or $id == $hotspot_user_id) { $default_sort = 'last_
 <td class="data">Новый адрес доступа IP:&nbsp<input type=text name=newip value=""></td>
 <td class="data">Mac (необязательно):&nbsp<input type=text name=newmac value=""></td>
 <td class="data"><input type="submit" name="addauth" value="Добавить"></td>
+<td class="data" align=right><input type="submit" name="new_user" value="Преобразовать"></td>
 </tr>
 </table>
 
