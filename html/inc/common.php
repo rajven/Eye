@@ -122,7 +122,7 @@ function fbytes($traff)
         "T"
     );
     $KB = 1024;
-    if ($traff) {
+    if (!empty($traff) and $traf > 0) {
         $index = min(((int) log($traff, $KB)), count($units) - 1);
         $result = round($traff / pow($KB, $index), 3) . ' ' . $units[$index] . 'b';
     } else {
@@ -141,7 +141,7 @@ function fpkts($packets)
         "T"
     );
     $KB = 1000;
-    if ($packets) {
+    if (!empty($packets) and $packets > 0) {
         $index = min(((int) log($packets, $KB)), count($units) - 1);
         $result = round($packets / pow($KB, $index), 3) . ' ' . $units[$index] . 'pkt/s';
     } else {
@@ -872,7 +872,7 @@ function get_vendor_name($db, $v_id)
 
 function get_qa($qa_value)
 {
-    if ($qa_value) { return "Да"; }
+    if ($qa_value == 1) { return "Да"; }
     return "Нет";
 }
 
@@ -886,7 +886,7 @@ function print_action_select($action_name, $action_value)
 
 function get_action($action_value)
 {
-    if ($action_value) { return "Разрешить"; }
+    if ($action_value == 1) { return "Разрешить"; }
     return "Запретить";
 }
 
@@ -1073,7 +1073,7 @@ function get_device_ips($db, $device_id)
 {
     $switch=get_record($db,'devices','id='.$device_id);
     $index=0;
-    if ($switch['user_id']) {
+    if (!empty($switch['user_id'])) {
         $auth_ips=get_records($db,'User_auth','deleted=0 and user_id='.$switch['user_id']);
         foreach ( $auth_ips as $key => $value ) {
     	    if (isset($value['ip'])) { $result[$index]=$value['ip']; $index++; }
@@ -1161,7 +1161,7 @@ function print_auth_detail($db, $auth_id)
     if (empty($name)) { $name = $auth['comments']; } else { $name.=" (".$auth['comments'].")"; }
     if (empty($name)) { $name = $auth['ip']; } else { $name.=" [".$auth['ip']."]"; }
     $name.=" last: [".$auth['last_found']."] ";
-    if ($auth['deleted']) { $name.=" <font color='red'>DELETED!!!</font>"; }
+    if ($auth['deleted'] ==1) { $name.=" <font color='red'>DELETED!!!</font>"; }
     print "<a href=\"/admin/users/editauth.php?id=$auth_id\">" . $name . "</a><br>";
 }
 
@@ -1372,12 +1372,12 @@ if (!empty($t_hotspot)) {
 
 function new_user($db,$user_info) {
 global $auto_mac_rule;
-if ($user_info['mac']) {
+if (!empty($user_info['mac'])) {
     $user['login']=mac_dotted($user_info['mac']);
     } else {
     $user['login']=$user_info['ip'];
     }
-if ($user_info['dhcp_hostname']) {
+if (!empty($user_info['dhcp_hostname'])) {
     $user['fio']=$user_info['ip']. '['.$user_info['dhcp_hostname'] .']';
     } else {
     $user['fio']=$user_info['ip'];
@@ -1485,7 +1485,7 @@ function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
 
     // default id
     $new_user_info = get_new_user_id($db, $ip, $mac, $dhcp_hostname);
-    if ($new_user_info['user_id']) { $new_user_id = $new_user_info['user_id']; }
+    if (!empty($new_user_info['user_id'])) { $new_user_id = $new_user_info['user_id']; }
     if (empty($new_user_id)) { $new_user_id = new_user($db,$new_user_info); }
 
     $resurrection_id = NULL;
@@ -1818,7 +1818,7 @@ function get_fdb_port_table($ip, $port_index, $community, $version)
             if (! $vlan_oid) { continue; }
             $pattern = '/\.(\d{1,4})$/';
             $result = preg_match($pattern, $vlan_oid, $matches);
-            if ($result) {
+            if (!empty($result)) {
                 $vlan_id = preg_replace('/^\./', '', $matches[0]);
                 if ($vlan_id > 1000 and $vlan_id < 1009) { continue; }
                 $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community . '@' . $vlan_id, $version, $mac_table_oid2);
@@ -1856,7 +1856,7 @@ function get_mac_table($ip, $community, $version, $oid)
             $value = intval(trim(str_replace('INTEGER:', '', $value)));
             $pattern = '/\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/';
             $result = preg_match($pattern, $key, $matches);
-            if ($result) {
+            if (!empty($result)) {
                     $mac_key = preg_replace('/^\./', '', $matches[0]);
                     $fdb_port_table[$mac_key] = $value;
                 }
@@ -1897,7 +1897,7 @@ function get_fdb_table($ip, $community, $version)
             if (! $vlan_oid) { continue; }
             $pattern = '/\.(\d{1,4})$/';
             $result = preg_match($pattern, $vlan_oid, $matches);
-            if ($result) {
+            if (!empty($result)) {
                 $vlan_id = preg_replace('/^\./', '', $matches[0]);
                 if ($vlan_id > 1000 and $vlan_id < 1009) { continue; }
                 $fdb_vlan_table = get_mac_table($ip, $community . '@' . $vlan_id, $version, $mac_table_oid2);
@@ -2230,7 +2230,7 @@ function get_port_vlan($port, $port_index, $ip, $community, $version, $fdb_by_sn
     }
     // if (!is_up($ip)) { return; }
 
-    if ($fdb_by_snmp) { $port = $port_index; }
+    if ($fdb_by_snmp == 1) { $port = $port_index; }
 
     global $port_vlan_oid;
     $port_oid = $port_vlan_oid . $port;
@@ -2505,7 +2505,7 @@ function set_port_state($vendor_id, $port, $ip, $community, $version, $state)
     }
     global $port_admin_status_oid;
     $port_status = $port_admin_status_oid . $port;
-    if ($state) {
+    if ($state == 1) {
         // enable port
         $c_state = set_snmp($ip, $community, $version, $port_status, 'i', 1);
         return $c_state;
@@ -2535,7 +2535,7 @@ function set_port_for_group($db, $group_id, $place_id, $state)
         if (! isset($d_id)) {
             continue;
         }
-        if ($state) {
+        if ($state == 1) {
             $mode = 'enable';
             run_sql($db, "Update User_auth set nagios_handler='restart-port' WHERE id=$a_id and nagios_handler='manual-mode'");
         } else {
@@ -2865,7 +2865,8 @@ function get_record_sql($db, $sql)
     }
     $record = mysqli_query($db, $sql." LIMIT 1");
     $result = NULL;
-    if ($rec = mysqli_fetch_array($record, MYSQLI_ASSOC)) {
+    $rec = mysqli_fetch_array($record, MYSQLI_ASSOC);
+    if (!empty($rec)) {
         foreach ($rec as $key => $value) {
 	    if (! isset($value) or $value==='NULL') { $value = ''; }
     	    $result[$key] = $value;
