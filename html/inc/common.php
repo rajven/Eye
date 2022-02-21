@@ -122,7 +122,7 @@ function fbytes($traff)
         "T"
     );
     $KB = 1024;
-    if (!empty($traff) and $traf > 0) {
+    if (!empty($traff) and $traff > 0) {
         $index = min(((int) log($traff, $KB)), count($units) - 1);
         $result = round($traff / pow($KB, $index), 3) . ' ' . $units[$index] . 'b';
     } else {

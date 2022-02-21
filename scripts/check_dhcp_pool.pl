@@ -8,6 +8,7 @@ use utf8;
 use English;
 use base;
 use FindBin '$Bin';
+no warnings qw( experimental);
 use lib "$Bin/";
 use strict;
 use DBI;

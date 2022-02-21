@@ -6,6 +6,7 @@ package Rstat::cmd;
 
 use utf8;
 use strict;
+no warnings qw( experimental);
 use English;
 use FindBin '$Bin';
 use lib "$Bin";

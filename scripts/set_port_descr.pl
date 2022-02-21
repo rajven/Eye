@@ -21,6 +21,10 @@ use Rstat::snmp;
 use Rstat::cmd;
 use Net::SNMP qw(:snmp);
 use Fcntl qw(:flock);
+
+no warnings qw( experimental);
+
+
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 

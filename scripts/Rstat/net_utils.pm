@@ -6,6 +6,7 @@ package Rstat::net_utils;
 
 use utf8;
 use strict;
+no warnings qw( experimental);
 use English;
 use FindBin qw($Bin);
 use lib "$Bin";
