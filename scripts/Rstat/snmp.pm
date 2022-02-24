@@ -198,8 +198,18 @@ sub get_fdb_table {
     my $timeout = 5;
     if (!$version) { $version='2'; }
 
-    my $fdb=get_mac_table($host,$community,$fdb_table_oid,$version);
-    if (!$fdb) { $fdb=get_mac_table($host,$community,$fdb_table_oid2,$version); }
+    my $fdb1=get_mac_table($host,$community,$fdb_table_oid,$version);
+    my $fdb2=get_mac_table($host,$community,$fdb_table_oid2,$version);
+    my $fdb;
+    if ($fdb1) { $fdb = $fdb1; }
+    if ($fdb2) {
+        if (!$fdb) { $fdb = $fdb2; }
+            else {
+            foreach my $mac (keys %$fdb2) {
+                if (!exists($fdb->{$mac})) { $fdb->{$mac}=$fdb2->{$mac}; }
+                }
+            }
+        }
 
     #maybe cisco?!
     if (!$fdb) {
