@@ -6,8 +6,8 @@ package Rstat::cmd;
 
 use utf8;
 use strict;
-no warnings qw( experimental);
 use English;
+no if $] >= 5.018, warnings =>  "experimental::smartmatch";
 use FindBin '$Bin';
 use lib "$Bin";
 use base 'Exporter';

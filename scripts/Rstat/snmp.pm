@@ -8,7 +8,6 @@ use utf8;
 use strict;
 use English;
 use FindBin '$Bin';
-no warnings qw( experimental);
 use lib "$Bin";
 use base 'Exporter';
 use vars qw(@EXPORT @ISA);

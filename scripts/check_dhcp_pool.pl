@@ -8,7 +8,7 @@ use utf8;
 use English;
 use base;
 use FindBin '$Bin';
-no warnings qw( experimental);
+no if $] >= 5.018, warnings =>  "experimental::smartmatch";
 use lib "$Bin/";
 use strict;
 use DBI;

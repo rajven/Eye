@@ -7,7 +7,6 @@ package Rstat::mysql;
 use utf8;
 use strict;
 use English;
-no warnings qw( experimental);
 use FindBin '$Bin';
 use lib "$Bin";
 use base 'Exporter';

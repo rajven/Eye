@@ -21,8 +21,7 @@ use Rstat::snmp;
 use Rstat::cmd;
 use Net::SNMP qw(:snmp);
 use Fcntl qw(:flock);
-
-no warnings qw( experimental);
+no if $] >= 5.018, warnings =>  "experimental::smartmatch";
 
 
 open(SELF,"<",$0) or die "Cannot open $0 - $!";

@@ -1802,10 +1802,20 @@ function get_fdb_port_table($ip, $port_index, $community, $version)
         $version = '2';
     }
 
-    $fdb_port_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid2);
-    if (! isset($fdb_port_table) or ! $fdb_port_table or count($fdb_port_table) == 0) {
-        $fdb_port_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid);
-    }
+    $fdb1_port_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid2);
+    $fdb2_port_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid);
+
+    if (!empty($fdb1_port_table)) { $fdb_port_table = $fdb1_port_table; }
+    if (!empty($fdb2_port_table)) {
+        if (empty($fdb_port_table)) {
+            $fdb_port_table = $fdb2_port_table;
+            } else {
+            foreach ($fdb2_port_table as $mac => $port) {
+                if (empty($fdb_port_table[$mac])) { $fdb_port_table[$mac]=$port; }
+                }
+            }
+        }
+
     // maybe cisco?!
     if (! isset($fdb_port_table) or ! $fdb_port_table or count($fdb_port_table) == 0) {
         global $cisco_vlan_oid;
@@ -1882,10 +1892,20 @@ function get_fdb_table($ip, $community, $version)
         $version = '2';
     }
 
-    $fdb_port_table = get_mac_table($ip, $community, $version, $mac_table_oid2);
-    if (! isset($fdb_port_table) or ! $fdb_port_table or count($fdb_port_table) == 0) {
-        $fdb_port_table = get_mac_table($ip, $community, $version, $mac_table_oid);
-    }
+    $fdb1_port_table = get_mac_table($ip, $community, $version, $mac_table_oid2);
+    $fdb2_port_table = get_mac_table($ip, $community, $version, $mac_table_oid);
+
+    if (!empty($fdb1_port_table)) { $fdb_port_table = $fdb1_port_table; }
+    if (!empty($fdb2_port_table)) {
+        if (empty($fdb_port_table)) {
+            $fdb_port_table = $fdb2_port_table;
+            } else {
+            foreach ($fdb2_port_table as $mac => $port) {
+                if (empty($fdb_port_table[$mac])) { $fdb_port_table[$mac]=$port; }
+                }
+            }
+        }
+
     // maybe cisco?!
     if (! isset($fdb_port_table) or ! $fdb_port_table or count($fdb_port_table) == 0) {
         global $cisco_vlan_oid;
