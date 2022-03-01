@@ -367,7 +367,8 @@ foreach my $row (@filterlist_ref) {
 $filters{$row->{id}}->{id}=$row->{id};
 $filters{$row->{id}}->{proto}=$row->{proto};
 $filters{$row->{id}}->{dst}=$row->{dst};
-$filters{$row->{id}}->{port}=$row->{dstport};
+$filters{$row->{id}}->{dstport}=$row->{dstport};
+$filters{$row->{id}}->{srcport}=$row->{srcport};
 $filters{$row->{id}}->{action}=$row->{action};
 }
 
@@ -469,6 +470,7 @@ foreach my $filter_index (sort keys %{$group_filters{$group_name}}) {
     next if (!$filters{$filter_id});
     my $src_rule='chain='.$group_name;
     my $dst_rule='chain='.$group_name;
+
     if ($filters{$filter_id}->{action}) {
 	$src_rule=$src_rule." action=accept";
 	$dst_rule=$dst_rule." action=accept";
@@ -476,18 +478,35 @@ foreach my $filter_index (sort keys %{$group_filters{$group_name}}) {
 	$src_rule=$src_rule." action=reject";
 	$dst_rule=$dst_rule." action=reject";
 	}
+
     if ($filters{$filter_id}->{proto} and ($filters{$filter_id}->{proto}!~/all/i)) {
 	$src_rule=$src_rule." protocol=".$filters{$filter_id}->{proto};
 	$dst_rule=$dst_rule." protocol=".$filters{$filter_id}->{proto};
 	}
+
     if ($filters{$filter_id}->{dst} and $filters{$filter_id}->{dst} ne '0/0') {
 	$src_rule=$src_rule." src-address=".trim($filters{$filter_id}->{dst});
 	$dst_rule=$dst_rule." dst-address=".trim($filters{$filter_id}->{dst});
 	}
-    if ($filters{$filter_id}->{port} and $filters{$filter_id}->{port} ne '0') {
-	$src_rule=$src_rule." src-port=".trim($filters{$filter_id}->{port});
-	$dst_rule=$dst_rule." dst-port=".trim($filters{$filter_id}->{port});
-	}
+
+    #dstport and srcport
+    if (!$filters{$filter_id}->{dstport}) { $filters{$filter_id}->{dstport}=0; }
+    if (!$filters{$filter_id}->{srcport}) { $filters{$filter_id}->{srcport}=0; }
+
+    if ($filters{$filter_id}->{dstport} ne '0' and $filters{$filter_id}->{srcport} ne '0') {
+		$src_rule=$src_rule." dst-port=".trim($filters{$filter_id}->{srcport})." src-port=".trim($filters{$filter_id}->{dstport});
+		$dst_rule=$dst_rule." src-port=".trim($filters{$filter_id}->{srcport})." dst-port=".trim($filters{$filter_id}->{dstport});
+		}
+
+    if ($filters{$filter_id}->{dstport} eq '0' and $filters{$filter_id}->{srcport} ne '0') {
+		$src_rule=$src_rule." dst-port=".trim($filters{$filter_id}->{srcport});
+		$dst_rule=$dst_rule." src-port=".trim($filters{$filter_id}->{srcport});
+		}
+
+    if ($filters{$filter_id}->{dstport} ne '0' and $filters{$filter_id}->{srcport} eq '0') {
+		$src_rule=$src_rule." src-port=".trim($filters{$filter_id}->{dstport});
+		$dst_rule=$dst_rule." dst-port=".trim($filters{$filter_id}->{dstport});
+		}
 
     if ($src_rule ne $dst_rule) {
         push(@{$chain_rules{$group_name}},$src_rule);
