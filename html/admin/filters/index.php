@@ -42,7 +42,8 @@ print_filters_submenu($page_url);
 		<td><b>Тип</b></td>
 		<td><b>Протокол</b></td>
 		<td><b>Адрес назначения</b></td>
-		<td><b>Порт</b></td>
+		<td><b>Порт назначения</b></td>
+		<td><b>Порт источник</b></td>
 		<td><b>Действие</b></td>
 	</tr>
 <?php
@@ -57,6 +58,7 @@ foreach ($filters as $row) {
         print "<td class=\"data\">".$row['proto']."</td>\n";
         print "<td class=\"data\">".$row['dst']."</td>\n";
         print "<td class=\"data\">".$row['dstport']."</td>\n";
+        print "<td class=\"data\">".$row['srcport']."</td>\n";
         print "<td class=\"data\">" . get_action($row['action']) . "</td>\n<tr>";
     } else {
         print "<td class=\"data\">Name фильтр</td>\n";
