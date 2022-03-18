@@ -58,6 +58,7 @@ StrToIp
 get_first_line
 update_dns_record
 update_ad_hostname
+update_ad_ptr
 update_record
 write_db_log
 set_changed
@@ -710,6 +711,7 @@ if (!$db) {
     } else {
     db_log_info($db,"DNS-UPDATE: Zone $zone Server: $server A: $fqdn IP: $ip");
     }
+my $ad_zone = get_option($db,33);
 my @add_dns=();
 push(@add_dns,"gsstsig");
 push(@add_dns,"server $server");
@@ -719,7 +721,42 @@ push(@add_dns,"update add $fqdn 3600 A $ip");
 push(@add_dns,"send");
 my $nsupdate_file = "/tmp/".$fqdn.".nsupdate";
 write_to_file($nsupdate_file,\@add_dns);
-do_exec('kinit -k -t /usr/local/scripts/cfg/dns_updater.keytab dns_updater@'.uc($zone).' && nsupdate "'.$nsupdate_file.'"');
+do_exec('kinit -k -t /usr/local/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && nsupdate "'.$nsupdate_file.'"');
+if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub update_ad_ptr {
+my $fqdn = shift;
+my $ip = shift;
+my $server = shift;
+my $db = shift;
+my $radr;
+my $zone;
+if ($ip =~ /([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(\/[0-9]{1,2}){0,1}/) {
+    return 0 if($1 > 255 || $2 > 255 || $3 > 255 || $4 > 255);
+    $radr = "$4.$3.$2.$1.in-addr.arpa";
+    $zone = "$3.$2.$1.in-addr.arpa";
+    }
+if (!$radr or !$zone) { return 0; }
+if (!$db) { 
+    log_info("DNS-UPDATE: Zone $zone Server: $server A: $fqdn PTR: $ip"); 
+    } else {
+    db_log_info($db,"DNS-UPDATE: Zone $zone Server: $server A: $fqdn PTR: $ip");
+    }
+my $ad_zone = get_option($db,33);
+my @add_dns=();
+push(@add_dns,"gsstsig");
+push(@add_dns,"server $server");
+push(@add_dns,"zone $zone");
+push(@add_dns,"update delete $radr PTR");
+push(@add_dns,"update add $radr 3600 PTR $fqdn.");
+push(@add_dns,"send");
+my $nsupdate_file = "/tmp/".$radr.".nsupdate";
+write_to_file($nsupdate_file,\@add_dns);
+my $run_cmd = 'kinit -k -t /usr/local/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && nsupdate "'.$nsupdate_file.'"';
+do_exec($run_cmd);
 if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
 }
 
