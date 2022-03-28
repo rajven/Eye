@@ -8,14 +8,12 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/subnetfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
-
-$enabled=2;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/enabledfilter.php");
 
 if (isset($_POST["ApplyForAll"])) {
     $auth_id = $_POST["fid"];
     $n_enabled = $_POST["n_enabled"] * 1;
-    $n_link = $_POST["n_enabled"] * 1;
+    $n_link = $_POST["n_link"] * 1;
     $n_handler = $_POST["n_handler"];
     $msg="Массовое изменение пользователей!";
     foreach ($auth_id as $key => $val) {
