@@ -2,10 +2,13 @@
 
 logger -t dhcpd "Refresh dnsmasq config request"
 
+force=$1
+
 /usr/local/scripts/print-dnsmasq.pl >/tmp/mac-all
 ret=$?
 
 if [ ${ret} -ne 0 ]; then
+    logger -t dhcpd "Config generate error! Bye."
     exit
     fi
 
@@ -13,14 +16,16 @@ touch /etc/dnsmasq.d/mac-all
 diff -aqbBfi /tmp/mac-all /etc/dnsmasq.d/mac-all >/dev/null
 ret=$?
 
-if [ ${ret} -ne 0 ]; then
+if [ ${ret} -ne 0 -o -n "${force}" ]; then
     logger -t dhcpd "Update dnsmasq config"
     cat /etc/dnsmasq.d/mac-all >/tmp/mac.old
     cat  /tmp/mac-all >/etc/dnsmasq.d/mac-all
     /usr/sbin/dnsmasq --test >/dev/null 2>&1
     ret=$?
     if [ ${ret} -eq 0 ]; then
-        systemctl restart dnsmasq>/dev/null
+        systemctl stop dnsmasq>/dev/null
+        >/var/lib/misc/dnsmasq.leases
+        systemctl start dnsmasq>/dev/null
 	else
         logger -t dhcpd "Config error! Rollback changes."
 	cat /tmp/mac.old >/etc/dnsmasq.d/mac-all

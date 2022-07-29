@@ -830,6 +830,12 @@ if ($record->{user_id}) {
     return $record->{id};
     }
 
+my $user_subnet=$office_networks->match_string($ip);
+if ($user_subnet->{static}) {
+    db_log_warning($db,"Unknown ip+mac found in static subnet! Stop work for ip: $ip mac: [".$mac."]");
+    return 0;
+    }
+
 #search changed mac
 $record=get_record_sql($db,'SELECT * FROM User_auth WHERE `ip_int`='.$ip_aton." and deleted=0");
 if ($record->{id}) {
@@ -1097,26 +1103,26 @@ next if (!$net->{subnet});
 $subnets_ref{$net->{subnet}}=$net;
 if ($net->{office}) {
 	push(@office_network_list,$net->{subnet});
-        $office_networks->add_string($net->{subnet});
+        $office_networks->add_string($net->{subnet},$net);
         }
 
 if ($net->{free}) {
 	push(@free_network_list,$net->{subnet});
-        $free_networks->add_string($net->{subnet});
+        $free_networks->add_string($net->{subnet},$net);
         }
 
 if ($net->{vpn}) {
 	push(@vpn_network_list,$net->{subnet});
-        $vpn_networks->add_string($net->{subnet});
+        $vpn_networks->add_string($net->{subnet},$net);
         }
 
 if ($net->{hotspot}) {
         push(@hotspot_network_list,$net->{subnet});
         push(@all_network_list,$net->{subnet});
-        $hotspot_networks->add_string($net->{subnet});
+        $hotspot_networks->add_string($net->{subnet},$net);
         }
 push(@all_network_list,$net->{subnet});
-$all_networks->add_string($net->{subnet});
+$all_networks->add_string($net->{subnet},$net);
 }
 
 }

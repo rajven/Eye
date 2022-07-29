@@ -163,6 +163,7 @@ if (!$pid) {
 
             if ($type eq 'add') {
                 my $res_id = resurrection_auth($hdb,$dhcp_record->{ip},$mac,$type,$dhcp_record->{hostname_utf8});
+                next if (!$res_id);
                 $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE id='.$res_id);
                 db_log_info($hdb,"Check for new auth. Found id: $res_id",$res_id);
                 } else { $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC'); }

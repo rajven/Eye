@@ -129,6 +129,7 @@ foreach my $arp_table (@arp_array) {
         db_log_debug($dbh,"Analyze ip: $ip mac: $mac") if ($debug);
         my $auth_id = $users->match_string($ip);
         my $cur_auth_id=resurrection_auth($dbh,$ip,$mac,'arp');
+        next if (!$cur_auth_id);
         $mac_history{$simple_mac}{auth_id}=$cur_auth_id;
         if ($auth_id ne $cur_auth_id) { $mac_history{$simple_mac}{changed}=1; }
     }

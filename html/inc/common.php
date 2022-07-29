@@ -1306,17 +1306,9 @@ function get_ip_subnet($db,$ip)
 {
 if (empty($ip)) { return; }
 $ip_aton = ip2long($ip);
-$t_option = mysqli_query($db, "SELECT id,subnet,ip_int_start,ip_int_stop FROM `subnets` WHERE hotspot=1 or office=1");
-while (list ($f_net_id,$f_net,$f_start,$f_stop) = mysqli_fetch_array($t_option)) {
-    if ($ip_aton >= $f_start and $ip_aton <= $f_stop) {
-	    $result['subnet_id']=$f_net_id;
-	    $result['subnet']=$f_net;
-	    $result['int_start']=$f_start;
-	    $result['int_stop']=$f_stop;
-            return $result;
-        }
-    }
-return;
+$user_subnet = get_record_sql($db, "SELECT * FROM `subnets` WHERE hotspot=1 or office=1 and ( $ip_aton >= ip_int_start and $ip_aton <= ip_int_stop)");
+if (empty($user_subnet)) { return; }
+return $user_subnet;
 }
 
 function find_mac_in_subnet($db,$ip,$mac)
@@ -1324,8 +1316,8 @@ function find_mac_in_subnet($db,$ip,$mac)
 if (empty($ip)) { return; }
 if (empty($mac)) { return; }
 $ip_subnet=get_ip_subnet($db,$ip);
-if (!isset($ip_subnet)) { return; }
-$t_auth=get_records_sql($db, "SELECT id,mac,user_id FROM User_auth WHERE ip_int>=".$ip_subnet['int_start']." and ip_int<=".$ip_subnet['int_stop']." and mac='" . $mac . "' and deleted=0 ORDER BY id");
+if (empty($ip_subnet)) { return; }
+$t_auth=get_records_sql($db, "SELECT id,mac,user_id FROM User_auth WHERE ip_int>=".$ip_subnet['ip_int_start']." and ip_int<=".$ip_subnet['ip_int_stop']." and mac='" . $mac . "' and deleted=0 ORDER BY id");
 $auth_count=0;
 $result['count']=0;
 $result['users_id']=[];
@@ -1462,6 +1454,12 @@ function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
         if ($action == 'add') { $auth['last_found'] = GetNowTimeString();  }
         update_record($db, "User_auth", "id=" . $auth_record['id'], $auth);
         return $auth_record['id'];
+	}
+
+    $ip_subnet=get_ip_subnet($db,$ip);
+    if ($ip_subnet['static']) {
+        LOG_WARNING($db, "Unknown pair ip+mac in static subnet! ip: $ip mac: [".mac_dotted($mac)."]. Skip");
+        return;
 	}
 
     $msg = '';

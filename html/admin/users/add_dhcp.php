@@ -38,6 +38,7 @@ if (!empty($_GET["ip"]) and !empty($_GET["mac"])) {
 
 	if ($action ==='add' and empty($auth)) {
 	    $aid = resurrection_auth($db_link, $ip, $mac, $action, $dhcp_hostname);
+	    if (empty($aid)) { return; }
 	    LOG_VERBOSE($db_link,"Add user by dhcp request ip: $ip mac: $mac",$aid);
             }
 
