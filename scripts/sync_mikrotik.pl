@@ -188,20 +188,11 @@ next if (!$value);
 $value=~s/\"//g;
 if ($token=~/^address$/i) { $tmp_lease{ip}=GetIP($value); }
 if ($token=~/^mac-address$/i) { $tmp_lease{mac}=uc(mac_splitted($value)); }
-if ($token=~/^host-name$/i) { $tmp_lease{dhcp_hostname}=$value; }
 if ($token=~/^address-lists$/i) { $tmp_lease{acl}=$value; }
 }
 
 next if (!$tmp_lease{ip});
 next if (!$tmp_lease{mac});
-
-if ($tmp_lease{dhcp_hostname}) {
-        my $dSQL="Update User_auth set dhcp_hostname='".$tmp_lease{dhcp_hostname}."' where deleted=0 and ip_int=".StrToIp($tmp_lease{ip})." and mac='".lc($tmp_lease{mac})."'";
-        db_log_debug($dbh,"Update dhcp hostname $tmp_lease{dhcp_hostname} for $tmp_lease{ip} [$tmp_lease{mac}] from mikrotik dhcp server");
-        do_sql($dbh,$dSQL);
-        }
-
-#skip dynamic leases. this check MUST BE After update dhcp hostname!!!
 next if ($lease=~/^(\d*)\s+D\s+/);
 
 $active_leases{$tmp_lease{ip}}{ip}=$tmp_lease{ip};
