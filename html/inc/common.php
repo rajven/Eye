@@ -998,6 +998,18 @@ function print_device_select($db, $field_name, $device_id)
     print "</select>\n";
 }
 
+function print_netdevice_select($db, $field_name, $device_id)
+{
+    print "<select name=\"$field_name\" class=\"js-select-single\" >\n";
+    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type<=2 order by D.device_name ASC";
+    $t_device = mysqli_query($db, $d_sql);
+    print_select_item('Все',0,$device_id);
+    while (list ($f_name, $f_device_id) = mysqli_fetch_array($t_device)) {
+	print_select_item($f_name,$f_device_id,$device_id);
+    }
+    print "</select>\n";
+}
+
 function print_vlan_select($db, $field_name, $vlan)
 {
     print "<select name=\"$field_name\" class=\"js-select-single\">\n";
