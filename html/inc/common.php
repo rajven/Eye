@@ -1582,7 +1582,7 @@ function get_auth_mac($db, $current_auth)
     return $result;
 }
 
-function isRO($db)
+function isRO($db,$table)
 {
     $result = 1;
     if (isset($_SESSION['login'])) {
@@ -1594,6 +1594,7 @@ function isRO($db)
     if (! isset($work_user) or ! isset($work_id)) {
         return $result;
     }
+    if (preg_match('/^(variables|dns_cache|syslog)$/',$table)) { return $result; }
     $t_login = mysqli_query($db, "SELECT readonly FROM Customers WHERE Login='" . $work_user . "' and id='" . $work_id . "'");
     list ($f_ro) = mysqli_fetch_array($t_login);
     if (! isset($f_ro)) {
@@ -2930,7 +2931,7 @@ return $new_id;
 
 function update_record($db, $table, $filter, $newvalue)
 {
-    if (isRO($db)) {
+    if (isRO($db,$table)) {
         LOG_ERROR($db, "User does not have write permission");
         return;
     }
@@ -3004,7 +3005,7 @@ function update_record($db, $table, $filter, $newvalue)
 
 function delete_record($db, $table, $filter)
 {
-    if (isRO($db)) {
+    if (isRO($db,$table)) {
         LOG_ERROR($db, "User does not have write permission");
         return;
     }
@@ -3044,7 +3045,7 @@ function delete_record($db, $table, $filter)
 
 function insert_record($db, $table, $newvalue)
 {
-    if (isRO($db)) {
+    if (isRO($db,$table)) {
         LOG_ERROR($db, "User does not have write permission");
         return;
     }
