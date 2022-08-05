@@ -49,9 +49,9 @@ if (!isset($datetime_stop) or empty($datetime_stop)) {
         $datetime_stop = new DateTime($date1);
         $datetime_stop->modify('+1 day');
         $time_stop = $datetime_stop->getTimestamp();
-        $date2 = $datetime_start->format('Y-m-d');
-        $date1 = $datetime_start->format('Y-m-1');
-        $datetime_start = new DateTime($date1);
+        $date2 = $datetime_stop->format('Y-m-d');
+        $datetime_start->modify('-1 month');
+        $date1 = $datetime_start->format('Y-m-d');
         $time_start = $datetime_start->getTimestamp();
         }
     if (empty($datetime_stop)) {
