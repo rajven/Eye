@@ -2,6 +2,7 @@
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
+$default_date_shift='d';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datefilter.php");
 
 if (isset($_POST['dhcp_show'])) { $f_dhcp = $_POST['dhcp_show']; }

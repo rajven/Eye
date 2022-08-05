@@ -2,6 +2,7 @@
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
+$default_date_shift='d';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/loglevelfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/logfilter.php");

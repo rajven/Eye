@@ -11,6 +11,13 @@ $start_time = $start_array[1] + $start_array[0];
 $page_full_url=$_SERVER['PHP_SELF'];
 $page_url_array = explode('?', $page_full_url);
 $page_url = $page_url_array[0];
+$page_url_args = $page_url_array[1];
+if (!empty($page_url_args)) {
+    $page_args = explode('&', $page_url_args);
+    foreach ($page_args as &$arg) {
+	if (preg_match('/^id=/', $arg)) { $page_url =$page_url.'='.$arg; break; }
+	}
+    }
 
 if (isset($_GET['logout'])) { session_destroy(); header("Location: /logout.php"); }
 
