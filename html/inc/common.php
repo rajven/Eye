@@ -9,59 +9,61 @@ $config["init"]=0;
 #ValidHostnameRegex = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$";
 #$ValidMacAddressRegex="^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12}$";
 
-$port_status_oid = '.1.3.6.1.2.1.2.2.1.8.';
-$port_admin_status_oid = '.1.3.6.1.2.1.2.2.1.7.';
-$port_speed_oid = '.1.3.6.1.2.1.2.2.1.5.';
-$port_errors_oid = '.1.3.6.1.2.1.2.2.1.14.';
-$port_vlan_oid = '.1.3.6.1.2.1.17.7.1.4.5.1.1.';
+$port_status_oid        = '.1.3.6.1.2.1.2.2.1.8.';
+$port_admin_status_oid  = '.1.3.6.1.2.1.2.2.1.7.';
+$port_speed_oid         = '.1.3.6.1.2.1.2.2.1.5.';
+$port_errors_oid        = '.1.3.6.1.2.1.2.2.1.14.';
+$port_vlan_oid          = '.1.3.6.1.2.1.17.7.1.4.5.1.1.';
 
-$mac_table_oid = '.1.3.6.1.2.1.17.7.1.2.2.1.2';
-$mac_table_oid2 = '.1.3.6.1.2.1.17.4.3.1.2';
 
-$eltex_sfp_status = '.1.3.6.1.4.1.89.90.1.2.1.3';
-$eltex_sfp_vendor = '.1.3.6.1.4.1.35265.1.23.53.1.1.1.5';
-$eltex_sfp_sn = '.1.3.6.1.4.1.35265.1.23.53.1.1.1.6';
-$eltex_sfp_freq = '.1.3.6.1.4.1.35265.1.23.53.1.1.1.4';
-$eltex_sfp_length = '.1.3.6.1.4.1.35265.1.23.53.1.1.1.8';
+$mac_table_oid          = '.1.3.6.1.2.1.17.7.1.2.2.1.2';
+$mac_table_oid2         = '.1.3.6.1.2.1.17.4.3.1.2';
 
-$cisco_descr = '.1.3.6.1.2.1.1.1.0';
-$cisco_modules = '.1.3.6.1.2.1.47.1.1.1.1.7';
-$cisco_sfp_sensors = '.1.3.6.1.4.1.9.9.91.1.1.1.1.4';
-$cisco_sfp_precision = '.1.3.6.1.4.1.9.9.91.1.1.1.1.3';
-$cisco_vlan_oid = '.1.3.6.1.4.1.9.9.9.46.1.3.1.1.2';
+$eltex_sfp_status       = '.1.3.6.1.4.1.89.90.1.2.1.3';
+$eltex_sfp_vendor       = '.1.3.6.1.4.1.35265.1.23.53.1.1.1.5';
+$eltex_sfp_sn           = '.1.3.6.1.4.1.35265.1.23.53.1.1.1.6';
+$eltex_sfp_freq         = '.1.3.6.1.4.1.35265.1.23.53.1.1.1.4';
+$eltex_sfp_length       = '.1.3.6.1.4.1.35265.1.23.53.1.1.1.8';
 
-$ifmib_ifindex  = '.1.3.6.1.2.1.2.2.1.1';
-$ifmib_ifdescr  = '.1.3.6.1.2.1.2.2.1.2';
-$ifmib_ifname   = '.1.3.6.1.2.1.31.1.1.1.1';
+$cisco_descr            = '.1.3.6.1.2.1.1.1.0';
+$cisco_modules          = '.1.3.6.1.2.1.47.1.1.1.1.7';
+$cisco_sfp_sensors      = '.1.3.6.1.4.1.9.9.91.1.1.1.1.4';
+$cisco_sfp_precision    = '.1.3.6.1.4.1.9.9.91.1.1.1.1.3';
+$cisco_vlan_oid         = '.1.3.6.1.4.1.9.9.9.46.1.3.1.1.2';
 
-$huawei_sfp_vendor = '.1.3.6.1.4.1.2011.5.25.31.1.1.2.1.11';
-$huawei_sfp_speed = '.1.3.6.1.4.1.2011.5.25.31.1.1.2.1.2';
-$huawei_sfp_volt = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.6';
-$huawei_sfp_optrx = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.32';
-$huawei_sfp_opttx = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.33';
+$ifmib_ifindex          = '.1.3.6.1.2.1.2.2.1.1';
+$ifmib_ifindex_map      = '.1.3.6.1.2.1.17.1.4.1.2';
+$ifmib_ifdescr          = '.1.3.6.1.2.1.2.2.1.2';
+$ifmib_ifname           = '.1.3.6.1.2.1.31.1.1.1.1';
+
+$huawei_sfp_vendor      = '.1.3.6.1.4.1.2011.5.25.31.1.1.2.1.11';
+$huawei_sfp_speed       = '.1.3.6.1.4.1.2011.5.25.31.1.1.2.1.2';
+$huawei_sfp_volt        = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.6';
+$huawei_sfp_optrx       = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.32';
+$huawei_sfp_opttx       = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.33';
 $huawei_sfp_biascurrent = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.31';
-$huawei_sfp_rx = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.8';
-$huawei_sfp_tx = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.9';
+$huawei_sfp_rx          = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.8';
+$huawei_sfp_tx          = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.9';
 
 $pethPsePortAdminEnable = '.1.3.6.1.2.1.105.1.1.1.3.1';
-$huawei_poe_oid = '.1.3.6.1.4.1.2011.5.25.195.3.1.3';
-$allied_poe_oid = '.1.3.6.1.2.1.105.1.1.1.3.1';
-$hp_poe_oid = '.1.3.6.1.2.1.105.1.1.1.3.1';
-$netgear_poe_oid = '.1.3.6.1.4.1.4526.11.15.1.1.1.6.1';
-$mikrotik_poe_oid = '.1.3.6.1.4.1.14988.1.1.15.1.1.3';
+$huawei_poe_oid         = '.1.3.6.1.4.1.2011.5.25.195.3.1.3';
+$allied_poe_oid         = '.1.3.6.1.2.1.105.1.1.1.3.1';
+$hp_poe_oid             = '.1.3.6.1.2.1.105.1.1.1.3.1';
+$netgear_poe_oid        = '.1.3.6.1.4.1.4526.11.15.1.1.1.6.1';
+$mikrotik_poe_oid       = '.1.3.6.1.4.1.14988.1.1.15.1.1.3';
 
 // interface id
-$mikrotik_poe_int = '.1.3.6.1.4.1.14988.1.1.15.1.1.1';
+$mikrotik_poe_int       = '.1.3.6.1.4.1.14988.1.1.15.1.1.1';
 // interface names
 $mikrotik_poe_int_names = '.1.3.6.1.4.1.14988.1.1.15.1.1.2';
 // voltage in dV (decivolt)
-$mikrotik_poe_volt = '.1.3.6.1.4.1.14988.1.1.15.1.1.4';
+$mikrotik_poe_volt      = '.1.3.6.1.4.1.14988.1.1.15.1.1.4';
 // current in mA
-$mikrotik_poe_current = '.1.3.6.1.4.1.14988.1.1.15.1.1.5';
+$mikrotik_poe_current   = '.1.3.6.1.4.1.14988.1.1.15.1.1.5';
 // power usage in dW (deviwatt)
-$mikrotik_poe_usage = '.1.3.6.1.4.1.14988.1.1.15.1.1.6';
+$mikrotik_poe_usage     = '.1.3.6.1.4.1.14988.1.1.15.1.1.6';
 
-$sysinfo_mib = '.1.3.6.1.2.1.1';
+$sysinfo_mib            = '.1.3.6.1.2.1.1';
 
 $L_ERROR = 0;
 $L_WARNING = 1;
@@ -1758,7 +1760,7 @@ function is_up($ip)
     return $rval === 0;
 }
 
-function get_mac_port_table($ip, $port_index, $community, $version, $oid)
+function get_mac_port_table($ip, $port_index, $community, $version, $oid, $index_map)
 {
     if (! isset($ip)) {
         return;
@@ -1780,6 +1782,7 @@ function get_mac_port_table($ip, $port_index, $community, $version, $oid)
         foreach ($mac_table as $key => $value) {
             $key = trim($key);
             $value = intval(trim(str_replace('INTEGER:', '', $value)));
+            $value = $index_map[$value];
             if ($value == $port_index) {
                 $pattern = '/\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/';
                 $result = preg_match($pattern, $key, $matches);
@@ -1791,6 +1794,34 @@ function get_mac_port_table($ip, $port_index, $community, $version, $oid)
         }
     }
     return $fdb_port_table;
+}
+
+function get_ifmib_index_table ($ip, $community, $version)
+{
+global $ifmib_ifindex_map;
+global $ifmib_ifindex;
+$ifmib_map = NULL;
+$index_table =  walk_snmp($ip, $community, $version, $ifmib_ifindex_map);
+if (isset($index_table) and count($index_table) > 0) {
+        foreach ($index_table as $key => $value) {
+            $key = trim($key);
+            $value = intval(trim(str_replace('INTEGER:', '', $value)));
+            $result = preg_match('/\.(\d{1,10})$/',$key,$matches);
+            if ($result) {
+                $int_index = preg_replace('/^\./', '', $matches[0]);
+                $ifmib_map[$int_index]=$value;
+                }
+            }
+        } else {
+        $index_table =  walk_snmp($ip, $community, $version, $ifmib_ifindex);
+        if (isset($index_table) and count($index_table) > 0) {
+            foreach ($index_table as $key => $value) {
+                $value = intval(trim(str_replace('INTEGER:', '', $value)));
+                $ifmib_map[$value]=$value;
+                }
+            }
+        }
+return $ifmib_map;
 }
 
 function get_fdb_port_table($ip, $port_index, $community, $version)
@@ -1813,8 +1844,10 @@ function get_fdb_port_table($ip, $port_index, $community, $version)
         $version = '2';
     }
 
-    $fdb1_port_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid2);
-    $fdb2_port_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid);
+    $ifindex_map = get_ifmib_index_table($ip,$community, $version);
+
+    $fdb1_port_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid2, $ifindex_map);
+    $fdb2_port_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid, $ifindex_map);
 
     if (!empty($fdb1_port_table)) { $fdb_port_table = $fdb1_port_table; }
     if (!empty($fdb2_port_table)) {
@@ -1842,9 +1875,9 @@ function get_fdb_port_table($ip, $port_index, $community, $version)
             if (!empty($result)) {
                 $vlan_id = preg_replace('/^\./', '', $matches[0]);
                 if ($vlan_id > 1000 and $vlan_id < 1009) { continue; }
-                $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community . '@' . $vlan_id, $version, $mac_table_oid2);
+                $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community . '@' . $vlan_id, $version, $mac_table_oid2,$ifindex_map);
                 if (! isset($fdb_vlan_table) or ! $fdb_vlan_table or count($fdb_vlan_table) == 0) {
-                    $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid);
+                    $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid,$ifindex_map);
                 }
                 foreach ($fdb_vlan_table as $mac => $port) {
                     if (! isset($mac)) { continue; }
@@ -1856,7 +1889,7 @@ function get_fdb_port_table($ip, $port_index, $community, $version)
     return $fdb_port_table;
 }
 
-function get_mac_table($ip, $community, $version, $oid)
+function get_mac_table($ip, $community, $version, $oid, $index_map)
 {
     if (! isset($ip)) {
         return;
@@ -1870,11 +1903,13 @@ function get_mac_table($ip, $community, $version, $oid)
     if (! isset($version)) {
         $version = '2';
     }
+
     $mac_table = walk_snmp($ip, $community, $version, $oid);
     if (isset($mac_table) and count($mac_table) > 0) {
         foreach ($mac_table as $key => $value) {
             $key = trim($key);
             $value = intval(trim(str_replace('INTEGER:', '', $value)));
+            $value = $index_map[$value];
             $pattern = '/\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/';
             $result = preg_match($pattern, $key, $matches);
             if (!empty($result)) {
@@ -1903,8 +1938,10 @@ function get_fdb_table($ip, $community, $version)
         $version = '2';
     }
 
-    $fdb1_port_table = get_mac_table($ip, $community, $version, $mac_table_oid2);
-    $fdb2_port_table = get_mac_table($ip, $community, $version, $mac_table_oid);
+    $ifindex_map = get_ifmib_index_table($ip,$community, $version);
+
+    $fdb1_port_table = get_mac_table($ip, $community, $version, $mac_table_oid2, $ifindex_map);
+    $fdb2_port_table = get_mac_table($ip, $community, $version, $mac_table_oid, $ifindex_map);
 
     if (!empty($fdb1_port_table)) { $fdb_port_table = $fdb1_port_table; }
     if (!empty($fdb2_port_table)) {
