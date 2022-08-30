@@ -57,6 +57,8 @@ our $ifAlias      ='.1.3.6.1.2.1.31.1.1.1.18';
 our $ifName       ='.1.3.6.1.2.1.31.1.1.1.1';
 our $ifDescr      ='.1.3.6.1.2.1.2.2.1.2';
 our $ifIndex      ='.1.3.6.1.2.1.2.2.1.1';
+our $ifIndex_map  ='.1.3.6.1.2.1.17.1.4.1.2';
+
 our $bgp_prefixes ='.1.3.6.1.4.1.9.9.187.1.2.4.1.1';
 our $bgp_aslist   ='.1.3.6.1.2.1.15.3.1.9';
 our $arp_oid      ='.1.3.6.1.2.1.3.1.1.2';
@@ -165,7 +167,7 @@ sub get_arp_table {
 #-------------------------------------------------------------------------------------
 
 sub get_mac_table {
-    my ($host,$community,$oid,$version) = @_;
+    my ($host,$community,$oid,$version,$index_map) = @_;
     my $port = 161;
     my $timeout = 5;
     if (!$version) { $version='2'; }
@@ -183,10 +185,41 @@ sub get_mac_table {
         	$mac=sprintf "%02x%02x%02x%02x%02x%02x",$1,$2,$3,$4,$5,$6;
         	}
             next if (!$mac);
+            $port_index = $index_map->{$port_index};
 	    $fdb->{$mac}=$port_index;
 	    };
         return $fdb;
 	}
+}
+
+#-------------------------------------------------------------------------------------
+
+sub get_ifmib_index_table {
+my $ip = shift;
+my $community = shift;
+my $version = shift;
+my $ifmib_map;
+my $index_table =  snmp_walk_oid($ip, $community, $ifIndex_map, $version);
+if ($index_table) {
+        foreach my $row (keys(%$index_table)) {
+	    my $port_index = $index_table->{$row};
+            next if (!$port_index);
+	    my $value;
+	    if ($row=~/\.([0-9]{1,10})$/) { $value = $1; }
+            next if (!$value);
+	    $ifmib_map->{$value}=$port_index;
+	    };
+        } else {
+        my $index_table =  snmp_walk_oid($ip, $community, $ifIndex, $version);
+        if ($index_table) {
+            foreach my $row (keys(%$index_table)) {
+	        my $port_index = $index_table->{$row};
+                next if (!$port_index);
+	        $ifmib_map->{$port_index}=$port_index;
+	        };
+            }
+        }
+return $ifmib_map;
 }
 
 #-------------------------------------------------------------------------------------
@@ -198,8 +231,11 @@ sub get_fdb_table {
     my $timeout = 5;
     if (!$version) { $version='2'; }
 
-    my $fdb1=get_mac_table($host,$community,$fdb_table_oid,$version);
-    my $fdb2=get_mac_table($host,$community,$fdb_table_oid2,$version);
+    my $ifindex_map = get_ifmib_index_table($host,$community,$version);
+
+    my $fdb1=get_mac_table($host,$community,$fdb_table_oid,$version,$ifindex_map);
+    my $fdb2=get_mac_table($host,$community,$fdb_table_oid2,$version,$ifindex_map);
+
     my $fdb;
     if ($fdb1) { $fdb = $fdb1; }
     if ($fdb2) {
@@ -224,8 +260,8 @@ sub get_fdb_table {
 	    if ($vlan_oid=~/\.([0-9]{1,4})$/) { $vlan_id=$1; }
 	    next if (!$vlan_id);
 	    next if ($vlan_id>1000 and $vlan_id<=1009);
-	    $fdb_vlan{$vlan_id}=get_mac_table($host,$community.'@'.$vlan_id,$fdb_table_oid,$version);
-	    if (!$fdb_vlan{$vlan_id}) { $fdb_vlan{$vlan_id}=get_mac_table($host,$community.'@'.$vlan_id,$fdb_table_oid2,$version); }
+	    $fdb_vlan{$vlan_id}=get_mac_table($host,$community.'@'.$vlan_id,$fdb_table_oid,$version,$ifindex_map);
+	    if (!$fdb_vlan{$vlan_id}) { $fdb_vlan{$vlan_id}=get_mac_table($host,$community.'@'.$vlan_id,$fdb_table_oid2,$version,$ifindex_map); }
 	    }
 	foreach my $vlan_id (keys %fdb_vlan) {
 	    next if (!exists $fdb_vlan{$vlan_id});
