@@ -26,6 +26,7 @@ get_mac_table
 get_vlan_at_port
 get_switch_vlans
 get_snmp_ifindex
+get_ifmib_index_table
 get_interfaces
 get_router_state
 get_bgp
@@ -37,6 +38,7 @@ $ifAlias
 $ifName
 $ifDescr
 $ifIndex
+$ifIndex_map
 $bgp_prefixes
 $bgp_aslist
 $arp_oid
@@ -199,24 +201,26 @@ my $ip = shift;
 my $community = shift;
 my $version = shift;
 my $ifmib_map;
-my $index_table =  snmp_walk_oid($ip, $community, $ifIndex_map, $version);
-if ($index_table) {
+my $index_table =  snmp_get_oid($ip, $community, $ifIndex_map, $version);
+if (!%$index_table) { $index_table =  snmp_walk_oid($ip, $community, $ifIndex_map, $version); }
+if (%$index_table) {
         foreach my $row (keys(%$index_table)) {
-	    my $port_index = $index_table->{$row};
+            my $port_index = $index_table->{$row};
             next if (!$port_index);
-	    my $value;
-	    if ($row=~/\.([0-9]{1,10})$/) { $value = $1; }
+            my $value;
+            if ($row=~/\.([0-9]{1,10})$/) { $value = $1; }
             next if (!$value);
-	    $ifmib_map->{$value}=$port_index;
-	    };
+            $ifmib_map->{$value}=$port_index;
+            };
         } else {
-        my $index_table =  snmp_walk_oid($ip, $community, $ifIndex, $version);
-        if ($index_table) {
+        $index_table =  snmp_get_oid($ip, $community, $ifIndex, $version);
+        if (!%$index_table) { $index_table =  snmp_walk_oid($ip, $community, $ifIndex, $version); }
+        if (%$index_table) {
             foreach my $row (keys(%$index_table)) {
-	        my $port_index = $index_table->{$row};
+                my $port_index = $index_table->{$row};
                 next if (!$port_index);
-	        $ifmib_map->{$port_index}=$port_index;
-	        };
+                $ifmib_map->{$port_index}=$port_index;
+                };
             }
         }
 return $ifmib_map;
