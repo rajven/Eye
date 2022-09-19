@@ -1802,7 +1802,8 @@ global $ifmib_ifindex_map;
 global $ifmib_ifindex;
 $ifmib_map = NULL;
 $index_table =  walk_snmp($ip, $community, $version, $ifmib_ifindex_map);
-if (isset($index_table) and count($index_table) > 0) {
+$is_mikrotik = walk_snmp($ip, $community, '.1.3.6.1.2.1.9999.1.1.1.1.0', $version);
+if (isset($index_table) and count($index_table) > 0 and isset($is_mikrotik)) {
         foreach ($index_table as $key => $value) {
             $key = trim($key);
             $value = intval(trim(str_replace('INTEGER:', '', $value)));

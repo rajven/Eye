@@ -42,8 +42,8 @@ if ($f_id>0) {
 
 <?php
 
-if (isset($fmessage)) {
-    if (isset($log_filter)) { $log_filter = $log_filter." and message LIKE '%".$fmessage."%'"; } else { $log_filter = " message LIKE '%".$fmessage."%'"; }
+if (!empty($fmessage)) {
+    if (!empty($log_filter)) { $log_filter = $log_filter." and message LIKE '%".$fmessage."%'"; } else { $log_filter = " message LIKE '%".$fmessage."%'"; }
     }
 
 $countSQL="SELECT Count(*) FROM `remote_syslog` WHERE `date`>='$date1' AND `date`<'$date2' $log_filter";

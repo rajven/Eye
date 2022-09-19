@@ -35,9 +35,9 @@ if ($log_level == $L_ERROR) { $log_filter = " and (`level`=$L_INFO or `level`=$L
 if ($log_level == $L_VERBOSE) { $log_filter = " and (`level`=$L_INFO or `level`=$L_ERROR or `level`=$L_VERBOSE) "; }
 if ($log_level == $L_DEBUG) { $log_filter = ""; }
 
-if (isset($log_filter)) { $log_filter = $log_filter." and auth_id=".$auth_id; } else { $log_filter = "auth_id=".$auth_id; }
-if (isset($fcustomer)) { $log_filter = $log_filter." and customer LIKE '%".$fcustomer."%'"; }
-if (isset($fmessage)) { $log_filter = $log_filter." and message LIKE '%".$fmessage."%'"; }
+if (!empty($log_filter)) { $log_filter = $log_filter." and auth_id=".$auth_id; } else { $log_filter = "auth_id=".$auth_id; }
+if (!empty($fcustomer)) { $log_filter = $log_filter." and customer LIKE '%".$fcustomer."%'"; }
+if (!empty($fmessage)) { $log_filter = $log_filter." and message LIKE '%".$fmessage."%'"; }
 
 $countSQL="SELECT Count(*) FROM syslog WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $log_filter";
 $res = mysqli_query($db_link, $countSQL);

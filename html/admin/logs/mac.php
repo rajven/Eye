@@ -13,7 +13,7 @@ if (!isset($f_mac)) { $f_mac=''; }
 $_SESSION[$page_url]['mac']=$f_mac;
 
 $mac_where = '';
-if (isset($f_mac) and $f_mac != '') { $mac_where = " and mac='$f_mac' "; } 
+if (!empty($f_mac)) { $mac_where = " and mac='$f_mac' "; }
 
 print_log_submenu($page_url);
 ?>
@@ -40,12 +40,13 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 ?>
 <br>
 <table class="data" width="850">
-	<tr align="center">
-			<td class="data" width=150><b>Время</b></td>
-			<td class="data"><b>Mac</b></td>
-			<td class="data"><b>Switch</b></td>
-			<td class="data"><b>IP</b></td>
-	</tr>
+<tr align="center">
+	<td class="data" width=150><b>Время</b></td>
+	<td class="data"><b>Mac</b></td>
+	<td class="data"><b>Switch</b></td>
+	<td class="data"><b>IP</b></td>
+</tr>
+
 <?php
 
 $sSQL = "SELECT * FROM mac_history WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $mac_where ORDER BY `timestamp` DESC LIMIT $start,$displayed";

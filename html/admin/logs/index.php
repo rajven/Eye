@@ -35,8 +35,8 @@ if ($log_level === $L_INFO) { $log_filter = " and `level`<=$L_INFO "; }
 if ($log_level === $L_VERBOSE) { $log_filter = " and `level`<=$L_VERBOSE "; }
 if ($log_level === $L_DEBUG) { $log_filter = ""; }
 
-if (isset($fcustomer)) { $log_filter = $log_filter." and customer LIKE '%".$fcustomer."%'"; }
-if (isset($fmessage)) { $log_filter = $log_filter." and message LIKE '%".$fmessage."%'"; }
+if (!empty($fcustomer)) { $log_filter = $log_filter." and customer LIKE '%".$fcustomer."%'"; }
+if (!empty($fmessage)) { $log_filter = $log_filter." and message LIKE '%".$fmessage."%'"; }
 
 $countSQL="SELECT Count(*) FROM syslog WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $log_filter";
 $res = mysqli_query($db_link, $countSQL);
@@ -49,16 +49,19 @@ $start = ($page * $displayed) - $displayed;
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 ?>
 <br>
-<table class="data" width="90%">
-			<tr align="center">
-				<td class="data" width=150><b>Время</b></td>
-				<td class="data"><b>Менеджер</b></td>
-				<td class="data"><b>Level</b></td>
-				<td class="data"><b>Лог</b></td>
-			</tr>
+
+<table class="data">
+<tr align="center">
+	<td class="data" width=150><b>Время</b></td>
+	<td class="data"><b>Менеджер/Источник</b></td>
+	<td class="data"><b>Level</b></td>
+	<td class="data"><b>Лог</b></td>
+</tr>
+
 <?php
 #speedup paging
 $sSQL = "SELECT `timestamp`,customer,message,level FROM syslog as S JOIN (SELECT id FROM syslog WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $log_filter ORDER BY id DESC LIMIT $start,$displayed) AS I ON S.id = I.id";
+
 $userlog = get_records_sql($db_link, $sSQL);
 foreach ($userlog as $row) {
     print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";

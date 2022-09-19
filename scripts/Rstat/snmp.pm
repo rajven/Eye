@@ -203,15 +203,18 @@ my $version = shift;
 my $ifmib_map;
 my $index_table =  snmp_get_oid($ip, $community, $ifIndex_map, $version);
 if (!%$index_table) { $index_table =  snmp_walk_oid($ip, $community, $ifIndex_map, $version); }
-if (%$index_table) {
-        foreach my $row (keys(%$index_table)) {
-            my $port_index = $index_table->{$row};
-            next if (!$port_index);
-            my $value;
-            if ($row=~/\.([0-9]{1,10})$/) { $value = $1; }
-            next if (!$value);
-            $ifmib_map->{$value}=$port_index;
-            };
+my $is_mikrotik = snmp_get_oid($ip, $community, '.1.3.6.1.2.1.9999.1.1.1.1.0', $version);
+if (%$index_table and $is_mikrotik) {
+	if ($is_mikrotik) {
+            foreach my $row (keys(%$index_table)) {
+	        my $port_index = $index_table->{$row};
+	        next if (!$port_index);
+        	my $value;
+                if ($row=~/\.([0-9]{1,10})$/) { $value = $1; }
+	        next if (!$value);
+    	        $ifmib_map->{$value}=$port_index;
+        	}
+	    }
         } else {
         $index_table =  snmp_get_oid($ip, $community, $ifIndex, $version);
         if (!%$index_table) { $index_table =  snmp_walk_oid($ip, $community, $ifIndex, $version); }
