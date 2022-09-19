@@ -1,13 +1,13 @@
-body                            { font-family: tahoma; font-size: 10pt; color: #181818; margin: 0; background-color: #ffffff; }
+body                            { font-family: tahoma; font-size: 12pt; color: #181818; margin: 0; background-color: #ffffff; }
 img                             { border: 0; }
 
-table                           { font-family: tahoma; font-size: 10pt; border-spacing: 1px; }
+table                           { font-family: tahoma; font-size: 12pt; border-spacing: 1px; }
 table.800                       { table; width: 800; }
 table.300                       { table; width: 300; }
 table.data                      { background-color: #cfcfcf; margin-bottom: 5px; }
 table.info                      { background-color: #f8f2aa; margin-bottom: 5px; }
 
-td                              { padding: 4px; }
+td                              { padding: 4px; border-bottom: 1px solid #ddd; }
 td.data                         { background-color: #ffffff; }
 td.info                         { background-color: #f8f2aa; }
 td.up                           { background-color: #33ff99; }
