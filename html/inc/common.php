@@ -2913,7 +2913,7 @@ function get_records_sql($db, $sql)
         LOG_ERROR($db, "Empty query! Skip command.");
         return;
 	}
-    $record = mysqli_query($db, $sql);
+    $record = mysqli_query($db, $sql) or LOG_ERROR($db, mysqli_error($db));
     $index = 0;
     $result = NULL;
     while ($rec = mysqli_fetch_array($record, MYSQLI_ASSOC)) {
@@ -2932,7 +2932,7 @@ function get_record_sql($db, $sql)
         LOG_ERROR($db, "Empty query! Skip command.");
         return;
     }
-    $record = mysqli_query($db, $sql." LIMIT 1");
+    $record = mysqli_query($db, $sql." LIMIT 1") or LOG_ERROR($db, mysqli_error($db));
     $result = NULL;
     $rec = mysqli_fetch_array($record, MYSQLI_ASSOC);
     if (!empty($rec)) {
@@ -3037,7 +3037,8 @@ function update_record($db, $table, $filter, $newvalue)
 
     $new_sql = "UPDATE $table SET $run_sql WHERE $filter";
     LOG_DEBUG($db, "Run sql: $new_sql");
-    mysqli_query($db, $new_sql);
+    $sql_result = mysqli_query($db, $new_sql);
+    if ($sql_result === false) { LOG_ERROR($db, mysqli_error($db)); return; }
     LOG_VERBOSE($db, "Change table $table WHERE $filter set $changed_log");
 }
 
@@ -3072,11 +3073,13 @@ function delete_record($db, $table, $filter)
         $changed_time = GetNowTimeString();
         $new_sql = "UPDATE $table SET deleted=1, changed=1, `changed_time`='".$changed_time."' WHERE $filter";
         LOG_DEBUG($db, "Run sql: $new_sql");
-        mysqli_query($db, $new_sql);
+        $sql_result = mysqli_query($db, $new_sql);
+        if ($sql_result === false) { LOG_ERROR($db, mysqli_error($db)); return; }
         } else {
         $new_sql = "DELETE FROM $table WHERE $filter";
         LOG_DEBUG($db, "Run sql: $new_sql");
-        mysqli_query($db, $new_sql);
+        $sql_result = mysqli_query($db, $new_sql);
+        if ($sql_result === false) { LOG_ERROR($db, mysqli_error($db)); return; }
         }
     LOG_VERBOSE($db, "Delete FROM table $table WHERE $filter $changed_log");
 }
@@ -3091,15 +3094,16 @@ function insert_record($db, $table, $newvalue)
         LOG_ERROR($db, "Create record for unknown table! Skip command.");
         return;
     }
-    if (! isset($newvalue)) {
+    if (empty($newvalue)) {
         LOG_ERROR($db, "Create record ($table) with empty data! Skip command.");
         return;
     }
+
     $changed_log = '';
     $field_list = '';
     $value_list = '';
     foreach ($newvalue as $key => $value) {
-        if (! isset($value)) { $value = ''; }
+        if (empty($value)) { $value = ''; }
         $changed_log = $changed_log . " $key => $value,";
         $field_list = $field_list . "`" . $key . "`,";
         $value = trim($value);
@@ -3113,12 +3117,12 @@ function insert_record($db, $table, $newvalue)
     $value_list = substr_replace($value_list, "", - 1);
     $new_sql = "insert into $table(" . $field_list . ") values(" . $value_list . ")";
     LOG_DEBUG($db, "Run sql: $new_sql");
-    if (mysqli_query($db, $new_sql)) {
-            $last_id = mysqli_insert_id($db);
-            LOG_VERBOSE($db, "Create record in table $table: $changed_log with id: $last_id");
-            if ($table === 'User_auth') { run_sql($db,"UPDATE User_auth SET changed=1 WHERE id=".$last_id); }
-            return $last_id;
-            }
+    $sql_result = mysqli_query($db, $new_sql);
+    if ($sql_result === false) { LOG_ERROR($db, mysqli_error($db)); return; }
+    $last_id = mysqli_insert_id($db);
+    LOG_VERBOSE($db, "Create record in table $table: $changed_log with id: $last_id");
+    if ($table === 'User_auth') { run_sql($db,"UPDATE User_auth SET changed=1 WHERE id=".$last_id); }
+    return $last_id;
 }
 
 function get_diff_rec($db, $table, $filter, $newvalue, $only_changed)

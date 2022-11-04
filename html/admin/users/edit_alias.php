@@ -17,7 +17,8 @@ if (isset($_POST["s_remove"])) {
             delete_record($db_link, "User_auth_alias", "id=" . $val);
         }
     }
-    header("Location: " . $_SERVER["REQUEST_URI"]);
+    header("Location: " . $page_url);
+    exit;
 }
 
 if (isset($_POST['s_save'])) {
@@ -32,30 +33,29 @@ if (isset($_POST['s_save'])) {
             update_record($db_link, "User_auth_alias", "id='{$save_id}'", $new);
         }
     }
-    header("Location: " . $_SERVER["REQUEST_URI"]);
+    header("Location: " . $page_url);
     exit;
 }
 
 if (isset($_POST["s_create"])) {
     $new_alias = $_POST["s_create_alias"];
     if (isset($new_alias)) {
-        $new['alias'] = trim($new_alias);
-        $new['auth_id'] = $id;
+        $new_rec['alias'] = trim($new_alias);
+        $new_rec['auth_id'] = $id;
         LOG_INFO($db_link, "Create new alias $new_alias");
-        insert_record($db_link, "User_auth_alias", $new);
+        insert_record($db_link, "User_auth_alias", $new_rec);
     }
-    header("Location: " . $_SERVER["REQUEST_URI"]);
+    header("Location: " . $page_url);
     exit;
 }
 
-unset($_POST);
-
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
+
 
 ?>
 <div id="cont">
 <br>
-<form name="def" action="edit_alias.php" method="post">
+<form name="def" action="edit_alias.php?id=<?php echo $id; ?>" method="post">
 <b>Альясы для <?php print_url($auth_info['ip'],"/admin/users/editauth.php?id=$id"); ?></b> <br>
 <table class="data">
 <tr align="center">
@@ -67,6 +67,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 </tr>
 <?php
 $t_User_auth_alias = get_records($db_link,'User_auth_alias',"auth_id=$id ORDER BY alias");
+if (!empty($t_User_auth_alias)) {
 foreach ( $t_User_auth_alias as $row ) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=s_id[] value='{$row['id']}'></td>\n";
@@ -75,6 +76,7 @@ foreach ( $t_User_auth_alias as $row ) {
     print "<td class=\"data\"><input type=\"text\" name='s_comment[]' value='{$row['description']}'></td>\n";
     print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>Сохранить</button></td>\n";
     print "</tr>\n";
+}
 }
 ?>
 <tr>

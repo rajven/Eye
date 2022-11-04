@@ -25,8 +25,8 @@ print_reports_submenu($page_url);
 
 <?php
 print "<br><br>\n";
-print "<table class=\"data\" width=\"650\" cellspacing=\"1\" cellpadding=\"4\">\n";
-print "<tr align=\"center\">\n";
+print "<table class=\"data\">\n";
+print "<tr class=\"info\">\n";
 print "<td ><b><a href=index.php?sort=login&order=$new_order>Логин</a></b></td>\n";
 print "<td ><b>Gate</b></td>\n";
 print "<td ><b><a href=index.php?sort=tin&order=$new_order>Входящий</a></b></td>\n";
@@ -48,15 +48,13 @@ AND User_stats.timestamp>='$date1'
 AND User_stats.timestamp<'$date2' 
 ";
 
-if ($rou !== 0) {
-    $trafSQL = $trafSQL . " AND User_list.ou_id=$rou";
-}
+if ($rou !== 0) { $trafSQL = $trafSQL . " AND User_list.ou_id=$rou"; }
 
 if ($rgateway == 0) {
     $trafSQL = $trafSQL . " GROUP by User_auth.user_id,User_stats.router_id";
-} else {
+    } else {
     $trafSQL = $trafSQL . " AND User_stats.router_id=$rgateway GROUP by User_auth.user_id,User_stats.router_id";
-}
+    }
 
 #set sort
 $trafSQL=$trafSQL ." $sort_sql";

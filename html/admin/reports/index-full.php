@@ -66,7 +66,7 @@ $trafSQL=$trafSQL ." $sort_sql LIMIT $start,$displayed";
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
 print "<br><br>\n";
-print "<table class=\"data\" width=\"850\" cellspacing=\"1\" cellpadding=\"4\">\n";
+print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
 print "<tr align=\"center\">\n";
 print "<td ><b><a href=index-full.php?sort=login&order=$new_order>Логин</a></b></td>\n";
 print "<td ><b><a href=index-full.php?sort=ip&order=$new_order>IP</a></b></td>\n";

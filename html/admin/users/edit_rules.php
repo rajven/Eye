@@ -43,6 +43,7 @@ if (isset($_POST["s_create"])) {
         $new['type'] = $_POST["s_new_type"];
         $new['rule'] = $new_rule;
         $new['user_id'] = $id;
+	var_dump($new);
         LOG_INFO($db_link, "Create new rule $new_rule");
         insert_record($db_link, "auth_rules", $new);
     }
@@ -59,7 +60,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 ?>
 <div id="cont">
 <br>
-<form name="def" action="edit_rules.php" method="post">
+<form name="def" action="edit_rules.php?id=<?php echo $id; ?>" method="post">
 <b>Правила автоназначения адресов в <?php print_url($auth_info['login'],"/admin/users/edituser.php?id=$id"); ?></b>
 <br>
 Порядок применения: hotspot => subnet => mac => hostname => default user
