@@ -43,7 +43,6 @@ if (isset($_POST["s_create"])) {
         $new['type'] = $_POST["s_new_type"];
         $new['rule'] = $new_rule;
         $new['user_id'] = $id;
-	var_dump($new);
         LOG_INFO($db_link, "Create new rule $new_rule");
         insert_record($db_link, "auth_rules", $new);
     }
