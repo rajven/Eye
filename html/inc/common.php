@@ -1232,7 +1232,9 @@ function print_option_select($db, $option_name)
 
 function run_sql($db, $query)
 {
-    return mysqli_query($db, $query);
+    $sql_result = mysqli_query($db, $query);
+    if ($sql_result === false) { LOG_ERROR($db, "At simple SQL: $query :".mysqli_error($db)); return; }
+    return $sql_result;
 }
 
 function get_count_records($db, $table, $filter)
@@ -2845,7 +2847,7 @@ function get_record_field($db, $table, $field, $filter)
         return;
     }
     $old_sql = "SELECT $field FROM $table WHERE $filter LIMIT 1";
-    $old_record = mysqli_query($db, $old_sql);
+    $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "Select SQL: $old_sql :".mysqli_error($db));
     $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
     foreach ($old as $key => $value) {
         if (! isset($value) or $value==='NULL') { $value = ''; }
@@ -2869,7 +2871,7 @@ function get_record($db, $table, $filter)
         return;
     }
     $old_sql = "SELECT * FROM $table WHERE $filter LIMIT 1";
-    $old_record = mysqli_query($db, $old_sql);
+    $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "Select SQL: $old_sql :".mysqli_error($db));
     $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
     $result = NULL;
     if (!empty($old)) {
@@ -2894,7 +2896,7 @@ function get_records($db, $table, $filter)
     $s_filter='';
     if (isset($filter)) { $s_filter = 'WHERE '.$filter; }
     $old_sql = "SELECT * FROM $table $s_filter";
-    $old_record = mysqli_query($db, $old_sql);
+    $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "Select SQL: $old_sql :".mysqli_error($db));
     $result = NULL;
     $index = 0;
     while ($old = mysqli_fetch_array($old_record, MYSQLI_ASSOC)) {
@@ -2913,7 +2915,7 @@ function get_records_sql($db, $sql)
         LOG_ERROR($db, "Empty query! Skip command.");
         return;
 	}
-    $record = mysqli_query($db, $sql) or LOG_ERROR($db, mysqli_error($db));
+    $record = mysqli_query($db, $sql) or LOG_ERROR($db, "Select SQL: $sql :".mysqli_error($db));
     $index = 0;
     $result = NULL;
     while ($rec = mysqli_fetch_array($record, MYSQLI_ASSOC)) {
@@ -2932,7 +2934,7 @@ function get_record_sql($db, $sql)
         LOG_ERROR($db, "Empty query! Skip command.");
         return;
     }
-    $record = mysqli_query($db, $sql." LIMIT 1") or LOG_ERROR($db, mysqli_error($db));
+    $record = mysqli_query($db, $sql." LIMIT 1") or LOG_ERROR($db, "Select SQL: $sql LIMIT 1: ".mysqli_error($db));
     $result = NULL;
     $rec = mysqli_fetch_array($record, MYSQLI_ASSOC);
     if (!empty($rec)) {
@@ -2990,7 +2992,7 @@ function update_record($db, $table, $filter, $newvalue)
         return;
     }
     $old_sql = "SELECT * FROM $table WHERE $filter";
-    $old_record = mysqli_query($db, $old_sql);
+    $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "Select SQL: $old_sql :".mysqli_error($db));
     $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
     $changed_log = '';
     $run_sql = '';
@@ -3037,8 +3039,8 @@ function update_record($db, $table, $filter, $newvalue)
 
     $new_sql = "UPDATE $table SET $run_sql WHERE $filter";
     LOG_DEBUG($db, "Run sql: $new_sql");
-    $sql_result = mysqli_query($db, $new_sql);
-    if ($sql_result === false) { LOG_ERROR($db, mysqli_error($db)); return; }
+    $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "Select SQL: $new_sql :".mysqli_error($db));
+    if ($sql_result === false) { LOG_ERROR($db, "UPDATE Request: $new_sql :".mysqli_error($db)); return; }
     LOG_VERBOSE($db, "Change table $table WHERE $filter set $changed_log");
 }
 
@@ -3061,7 +3063,7 @@ function delete_record($db, $table, $filter)
         return;
     }
     $old_sql = "SELECT * FROM $table WHERE $filter";
-    $old_record = mysqli_query($db, $old_sql);
+    $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "Select SQL: $old_sql :".mysqli_error($db));
     $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
     $changed_log = 'record: ';
     foreach ($old as $key => $value) {
@@ -3073,13 +3075,13 @@ function delete_record($db, $table, $filter)
         $changed_time = GetNowTimeString();
         $new_sql = "UPDATE $table SET deleted=1, changed=1, `changed_time`='".$changed_time."' WHERE $filter";
         LOG_DEBUG($db, "Run sql: $new_sql");
-        $sql_result = mysqli_query($db, $new_sql);
-        if ($sql_result === false) { LOG_ERROR($db, mysqli_error($db)); return; }
+        $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "Select SQL: $new_sql :".mysqli_error($db));
+        if ($sql_result === false) { LOG_ERROR($db, "UPDATE Request (from delete): ".mysqli_error($db)); return; }
         } else {
         $new_sql = "DELETE FROM $table WHERE $filter";
         LOG_DEBUG($db, "Run sql: $new_sql");
-        $sql_result = mysqli_query($db, $new_sql);
-        if ($sql_result === false) { LOG_ERROR($db, mysqli_error($db)); return; }
+        $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "Select SQL: $new_sql :".mysqli_error($db));
+        if ($sql_result === false) { LOG_ERROR($db, "DELETE Request: $new_sql : ".mysqli_error($db)); return; }
         }
     LOG_VERBOSE($db, "Delete FROM table $table WHERE $filter $changed_log");
 }
@@ -3117,8 +3119,8 @@ function insert_record($db, $table, $newvalue)
     $value_list = substr_replace($value_list, "", - 1);
     $new_sql = "insert into $table(" . $field_list . ") values(" . $value_list . ")";
     LOG_DEBUG($db, "Run sql: $new_sql");
-    $sql_result = mysqli_query($db, $new_sql);
-    if ($sql_result === false) { LOG_ERROR($db, mysqli_error($db)); return; }
+    $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "Select SQL: $new_sql :".mysqli_error($db));
+    if ($sql_result === false) { LOG_ERROR($db, "INSERT Request:".mysqli_error($db)); return; }
     $last_id = mysqli_insert_id($db);
     LOG_VERBOSE($db, "Create record in table $table: $changed_log with id: $last_id");
     if ($table === 'User_auth') { run_sql($db,"UPDATE User_auth SET changed=1 WHERE id=".$last_id); }
@@ -3140,7 +3142,7 @@ function get_diff_rec($db, $table, $filter, $newvalue, $only_changed)
     if (!isset($only_changed)) { $only_changed=0; }
 
     $old_sql = "SELECT * FROM $table WHERE $filter";
-    $old_record = mysqli_query($db, $old_sql);
+    $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "Select SQL: $old_sql :".mysqli_error($db));
     $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
     $changed_log = "\r\n";
     foreach ($newvalue as $key => $value) {
@@ -3286,10 +3288,8 @@ function get_option($db, $option_id)
 
 function is_option($db, $option_id)
 {
-    list ($option) = mysqli_fetch_array(mysqli_query($db, "SELECT value FROM `config` WHERE option_id=$option_id"));
-    if (! isset($option) or empty($option) or $option === '') {
-        return;
-    }
+    $option = get_record($db, "config", "option_id=".$option_id);
+    if (empty($option) or empty($option['value'])) { return; }
     return 1;
 }
 
