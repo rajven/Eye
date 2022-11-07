@@ -1398,6 +1398,7 @@ $user['ou_id'] = $user_info['ou_id'];
 $ou_info = get_record_sql($db,"SELECT * FROM OU WHERE id=".$user_info['ou_id']);
 if (!empty($ou_info)) {
     $user['enabled'] = $ou_info['enabled'];
+    if (empty($user['enabled'])) {  $user['enabled']=0; }
     $user['queue_id'] = $ou_info['queue_id'];
     $user['filter_group_id'] = $ou_info['filter_group_id'];
     }
@@ -1505,7 +1506,7 @@ function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
     $resurrection_id = NULL;
     $save_traf = get_option($db, 23);
 
-    $auth_record =get_record_sql($db, 'User_auth', "ip_int=" . $ip_aton . " and mac='" . $mac . "'");
+    $auth_record =get_record_sql($db, "SELECT * FROM User_auth WHERE ip_int=" . $ip_aton . " and mac='" . $mac . "'");
     // seek old auth with same ip and mac
     if (!empty($auth_record)) {
         // found ->Resurrection old record
@@ -3105,7 +3106,7 @@ function insert_record($db, $table, $newvalue)
     $field_list = '';
     $value_list = '';
     foreach ($newvalue as $key => $value) {
-        if (empty($value)) { $value = ''; }
+        if (empty($value) and $value !== 0) { $value = ''; }
         $changed_log = $changed_log . " $key => $value,";
         $field_list = $field_list . "`" . $key . "`,";
         $value = trim($value);
