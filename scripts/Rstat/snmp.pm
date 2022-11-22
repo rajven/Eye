@@ -216,13 +216,16 @@ if (%$index_table and $is_mikrotik) {
         	}
 	    }
         } else {
-        $index_table =  snmp_get_oid($ip, $community, $ifIndex, $version);
-        if (!%$index_table) { $index_table =  snmp_walk_oid($ip, $community, $ifIndex, $version); }
+#        $index_table =  snmp_get_oid($ip, $community, $ifIndex, $version);
+#        if (!%$index_table) { $index_table =  snmp_walk_oid($ip, $community, $ifIndex, $version); }
         if (%$index_table) {
             foreach my $row (keys(%$index_table)) {
-                my $port_index = $index_table->{$row};
-                next if (!$port_index);
-                $ifmib_map->{$port_index}=$port_index;
+	        my $port_index = $index_table->{$row};
+	        next if (!$port_index);
+        	my $value;
+                if ($row=~/\.([0-9]{1,10})$/) { $value = $1; }
+	        next if (!$value);
+    	        $ifmib_map->{$value}=$value;
                 };
             }
         }

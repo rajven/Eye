@@ -1820,11 +1820,16 @@ if (isset($index_table) and count($index_table) > 0 and isset($is_mikrotik)) {
                 }
             }
         } else {
-        $index_table =  walk_snmp($ip, $community, $version, $ifmib_ifindex);
+#        $index_table =  walk_snmp($ip, $community, $version, $ifmib_ifindex);
         if (isset($index_table) and count($index_table) > 0) {
             foreach ($index_table as $key => $value) {
-                $value = intval(trim(str_replace('INTEGER:', '', $value)));
-                $ifmib_map[$value]=$value;
+                $key = trim($key);
+	        $value = intval(trim(str_replace('INTEGER:', '', $value)));
+    	        $result = preg_match('/\.(\d{1,10})$/',$key,$matches);
+        	if ($result) {
+            	        $int_index = preg_replace('/^\./', '', $matches[0]);
+            		$ifmib_map[$int_index]=$int_index;
+            		}
                 }
             }
         }
@@ -1949,7 +1954,6 @@ function get_fdb_table($ip, $community, $version)
 
     $fdb1_port_table = get_mac_table($ip, $community, $version, $mac_table_oid2, $ifindex_map);
     $fdb2_port_table = get_mac_table($ip, $community, $version, $mac_table_oid, $ifindex_map);
-
     if (!empty($fdb1_port_table)) { $fdb_port_table = $fdb1_port_table; }
     if (!empty($fdb2_port_table)) {
         if (empty($fdb_port_table)) {
