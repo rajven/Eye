@@ -1,10 +1,8 @@
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-global $default_user_ou_id;
-global $default_hotspot_ou_id;
 
 $msg_error = "";
 
@@ -58,7 +56,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         if (empty($f_dnsname)) { $new['dns_name'] = ''; }
         $new['save_traf'] = $_POST["f_save_traf"] * 1;
         $new['dhcp_acl'] = trim($_POST["f_acl"]);
-        if ($default_user_ou_id == $parent_ou_id or $default_hotspot_ou_id == $parent_ou_id) {
+        if (get_const('default_user_ou_id') == $parent_ou_id or get_const('default_hotspot_ou_id') == $parent_ou_id) {
                 $new['nagios_handler'] = '';
                 $new['enabled'] = 0;
                 $new['link_check'] = 0;
@@ -153,7 +151,7 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
 	        $new['user_id'] = $new_user_id;
 		}
 
-        if ($default_user_ou_id == $parent_ou_id or $default_hotspot_ou_id == $parent_ou_id) {
+        if (get_const('default_user_ou_id') == $parent_ou_id or get_const('default_hotspot_ou_id') == $parent_ou_id) {
                 $new['nagios_handler'] = '';
                 $new['enabled'] = 0;
                 $new['link_check'] = 0;

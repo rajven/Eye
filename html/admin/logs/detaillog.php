@@ -1,6 +1,6 @@
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $default_date_shift='h';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");

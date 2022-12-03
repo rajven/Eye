@@ -1,6 +1,6 @@
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 if (isset($_POST["regensnmp"])) {
@@ -106,16 +106,15 @@ foreach ($ports as $row) {
         print "<td class=\"$cl\" >" . get_qa($row['skip']) . "</td>\n";
         $vlan = $row['vlan'];
         $ifname= compact_port_name($row['ifName']);
-        global $torrus_url;
         $f_cacti_url = get_cacti_graph($switch['ip'], $row['snmp_index']);
-        if (! isset($torrus_url) and (! isset($f_cacti_url))) {  $snmp_url=$ifname; }
+        if (! isset(get_const('torrus_url')) and (! isset($f_cacti_url))) {  $snmp_url=$ifname; }
                 else {
                 if (isset($f_cacti_url)) { $snmp_url = "<a href=\"$f_cacti_url\">" . $ifname . "</a>"; }
-                if (isset($torrus_url)) {
+                if (isset(get_const('torrus_url'))) {
                     $normed_ifname = str_replace("/", "_", $ifname);
                     $normed_ifname = str_replace(".", "_", $normed_ifname);
                     $normed_ifname = trim(str_replace(" ", "_", $normed_ifname));
-                    $t_url = str_replace("HOST_IP", $switch['ip'], $torrus_url);
+                    $t_url = str_replace("HOST_IP", $switch['ip'], get_const('torrus_url'));
                     $t_url = str_replace("IF_NAME", $normed_ifname, $t_url);
                     $snmp_url = "<a href=\"$t_url\">" . $ifname . "</a>";
                     }

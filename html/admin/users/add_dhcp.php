@@ -1,8 +1,6 @@
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/qauth.php");
 
-global $default_user_ou_id;
-global $default_hotspot_user_id;
 
 if (!empty($_GET["ip"]) and !empty($_GET["mac"])) {
     $ip = $_GET["ip"];
@@ -45,7 +43,7 @@ if (!empty($_GET["ip"]) and !empty($_GET["mac"])) {
 	if ($action ==='del' and !empty($auth)) {
             $last_time = strtotime($auth['dhcp_time']);
             LOG_VERBOSE($db_link,"Delete action found for ip $ip (id: $aid, userid: ".$auth['user_id']."). Last timestamp = ".strftime('%Y-%m-%d %H-%M-%S',$last_time)." Now = ".strftime('%Y-%m-%d %H-%M-%S',time()),$aid);
-	    if ((time() - $last_time>60) and ($auth['ou_id'] == $default_user_ou_id or $auth['ou_id'] == $default_hotspot_ou_id)) {
+	    if ((time() - $last_time>60) and ($auth['ou_id'] == get_const('default_user_ou_id') or $auth['ou_id'] == get_const('default_hotspot_ou_id'))) {
                 LOG_VERBOSE($db_link,"Remove dynamic user ip (id: $aid) by dhcp request for ip: $ip mac: $mac",$aid);
 	        delete_record($db_link,"User_auth","id=".$aid);
 	        $u_count=get_count_records($db_link,'User_auth','deleted=0 and user_id='.$auth['user_id']);

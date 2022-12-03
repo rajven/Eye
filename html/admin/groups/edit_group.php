@@ -1,9 +1,7 @@
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/idfilter.php");
-global $default_user_ou_id;
-global $default_hotspot_ou_id;
 
 if (isset($_POST['save'])) {
         $new['ou_name'] = $_POST['f_group_name'];

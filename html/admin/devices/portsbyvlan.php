@@ -1,7 +1,7 @@
 <?php
 $default_displayed=100;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 $default_id=1;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");

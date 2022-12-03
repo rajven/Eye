@@ -1,6 +1,6 @@
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $switch=get_record($db_link,'devices',"id=".$id);
@@ -80,12 +80,11 @@ if ($switch['snmp_version']>0) {
     $snmp_ok = check_snmp_access($switch['ip'], $switch['community'], $switch['snmp_version']);
     $modules_oids = NULL;
     if ($snmp_ok) {
-	    global $cisco_modules;
             if ($switch['snmp_version'] == 2) {
-	        $modules_oids = snmp2_real_walk($switch['ip'], $switch['community'], $cisco_modules);
+	        $modules_oids = snmp2_real_walk($switch['ip'], $switch['community'], CISCO_MODULES);
 	        }
             if ($switch['snmp_version'] == 1) {
-	        $modules_oids = snmprealwalk($switch['ip'], $switch['community'], $cisco_modules);
+	        $modules_oids = snmprealwalk($switch['ip'], $switch['community'], CISCO_MODULES);
 	        }
 	    }
     } else { $snmp_ok = 0; }
@@ -169,16 +168,15 @@ if ($switch['snmp_version']>0) {
         if (!empty($new_info)) { update_record($db_link, "device_ports", "id=".$row['id'], $new_info); }
 
         $ifname=compact_port_name($ifname);
-        global $torrus_url;
         $f_cacti_url = get_cacti_graph($switch['ip'], $row['snmp_index']);
-        if (! isset($torrus_url) and (! isset($f_cacti_url))) {  $snmp_url=$ifname; } 
+        if (empty(get_const('torrus_url')) and (empty($f_cacti_url))) {  $snmp_url=$ifname; } 
                 else {
                 if (isset($f_cacti_url)) { $snmp_url = "<a href=\"$f_cacti_url\">" . $ifname . "</a>"; }
-                if (isset($torrus_url)) {
+                if (!empty(get_const('torrus_url'))) {
                     $normed_ifname = str_replace("/", "_", $ifname);
                     $normed_ifname = str_replace(".", "_", $normed_ifname);
                     $normed_ifname = trim(str_replace(" ", "_", $normed_ifname));
-                    $t_url = str_replace("HOST_IP", $switch['ip'], $torrus_url);
+                    $t_url = str_replace("HOST_IP", $switch['ip'], get_const('torrus_url'));
                     $t_url = str_replace("IF_NAME", $normed_ifname, $t_url);
                     $snmp_url = "<a href=\"$t_url\">" . $ifname . "</a>";
                     }

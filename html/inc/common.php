@@ -3,75 +3,12 @@ if (! defined("CONFIG")) { die("Not defined"); }
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/class.simple.mail.php");
 
-$config["init"]=0;
-
 #ValidIpAddressRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 #ValidHostnameRegex = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$";
 #$ValidMacAddressRegex="^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12}$";
 
-$port_status_oid        = '.1.3.6.1.2.1.2.2.1.8.';
-$port_admin_status_oid  = '.1.3.6.1.2.1.2.2.1.7.';
-$port_speed_oid         = '.1.3.6.1.2.1.2.2.1.5.';
-$port_errors_oid        = '.1.3.6.1.2.1.2.2.1.14.';
-$port_vlan_oid          = '.1.3.6.1.2.1.17.7.1.4.5.1.1.';
 
-
-$mac_table_oid          = '.1.3.6.1.2.1.17.7.1.2.2.1.2';
-$mac_table_oid2         = '.1.3.6.1.2.1.17.4.3.1.2';
-
-$eltex_sfp_status       = '.1.3.6.1.4.1.89.90.1.2.1.3';
-$eltex_sfp_vendor       = '.1.3.6.1.4.1.35265.1.23.53.1.1.1.5';
-$eltex_sfp_sn           = '.1.3.6.1.4.1.35265.1.23.53.1.1.1.6';
-$eltex_sfp_freq         = '.1.3.6.1.4.1.35265.1.23.53.1.1.1.4';
-$eltex_sfp_length       = '.1.3.6.1.4.1.35265.1.23.53.1.1.1.8';
-
-$cisco_descr            = '.1.3.6.1.2.1.1.1.0';
-$cisco_modules          = '.1.3.6.1.2.1.47.1.1.1.1.7';
-$cisco_sfp_sensors      = '.1.3.6.1.4.1.9.9.91.1.1.1.1.4';
-$cisco_sfp_precision    = '.1.3.6.1.4.1.9.9.91.1.1.1.1.3';
-$cisco_vlan_oid         = '.1.3.6.1.4.1.9.9.9.46.1.3.1.1.2';
-
-$ifmib_ifindex          = '.1.3.6.1.2.1.2.2.1.1';
-$ifmib_ifindex_map      = '.1.3.6.1.2.1.17.1.4.1.2';
-$ifmib_ifdescr          = '.1.3.6.1.2.1.2.2.1.2';
-$ifmib_ifname           = '.1.3.6.1.2.1.31.1.1.1.1';
-
-$huawei_sfp_vendor      = '.1.3.6.1.4.1.2011.5.25.31.1.1.2.1.11';
-$huawei_sfp_speed       = '.1.3.6.1.4.1.2011.5.25.31.1.1.2.1.2';
-$huawei_sfp_volt        = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.6';
-$huawei_sfp_optrx       = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.32';
-$huawei_sfp_opttx       = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.33';
-$huawei_sfp_biascurrent = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.31';
-$huawei_sfp_rx          = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.8';
-$huawei_sfp_tx          = '.1.3.6.1.4.1.2011.5.25.31.1.1.3.1.9';
-
-$pethPsePortAdminEnable = '.1.3.6.1.2.1.105.1.1.1.3.1';
-$huawei_poe_oid         = '.1.3.6.1.4.1.2011.5.25.195.3.1.3';
-$allied_poe_oid         = '.1.3.6.1.2.1.105.1.1.1.3.1';
-$hp_poe_oid             = '.1.3.6.1.2.1.105.1.1.1.3.1';
-$netgear_poe_oid        = '.1.3.6.1.4.1.4526.11.15.1.1.1.6.1';
-$mikrotik_poe_oid       = '.1.3.6.1.4.1.14988.1.1.15.1.1.3';
-
-// interface id
-$mikrotik_poe_int       = '.1.3.6.1.4.1.14988.1.1.15.1.1.1';
-// interface names
-$mikrotik_poe_int_names = '.1.3.6.1.4.1.14988.1.1.15.1.1.2';
-// voltage in dV (decivolt)
-$mikrotik_poe_volt      = '.1.3.6.1.4.1.14988.1.1.15.1.1.4';
-// current in mA
-$mikrotik_poe_current   = '.1.3.6.1.4.1.14988.1.1.15.1.1.5';
-// power usage in dW (deviwatt)
-$mikrotik_poe_usage     = '.1.3.6.1.4.1.14988.1.1.15.1.1.6';
-
-$sysinfo_mib            = '.1.3.6.1.2.1.1';
-
-$L_ERROR = 0;
-$L_WARNING = 1;
-$L_INFO = 2;
-$L_VERBOSE = 3;
-$L_DEBUG = 255;
-
-$log_level = 2;
+$config["init"]=0;
 
 // #### vendor id
 // 1, Unknown
@@ -89,15 +26,6 @@ $log_level = 2;
 // 16, 'Cisco'
 // 17, 'Maipu'
 // 18, 'Asus'
-
-$admin_email = "admin";
-$sender_email = "root";
-$send_email = 0;
-
-
-
-$mac_table_str_oid = '.1.3.6.1.2.1.17.4.3.1.2';
-$mac_table_str_oid2 = '1.3.6.1.2.1.17.7.1.2.2.1.2';
 
 function get_user_ip()
 {
@@ -123,10 +51,9 @@ function fbytes($traff)
         "G",
         "T"
     );
-    $KB = 1024;
     if (!empty($traff) and $traff > 0) {
-        $index = min(((int) log($traff, $KB)), count($units) - 1);
-        $result = round($traff / pow($KB, $index), 3) . ' ' . $units[$index] . 'b';
+        $index = min(((int) log($traff, get_const('KB'))), count($units) - 1);
+        $result = round($traff / pow(get_const('KB'), $index), 3) . ' ' . $units[$index] . 'b';
     } else {
         $result = '0 b';
     }
@@ -142,10 +69,9 @@ function fpkts($packets)
         "G",
         "T"
     );
-    $KB = 1000;
     if (!empty($packets) and $packets > 0) {
-        $index = min(((int) log($packets, $KB)), count($units) - 1);
-        $result = round($packets / pow($KB, $index), 3) . ' ' . $units[$index] . 'pkt/s';
+        $index = min(((int) log($packets, get_const('KB'))), count($units) - 1);
+        $result = round($packets / pow(get_const('KB'), $index), 3) . ' ' . $units[$index] . 'pkt/s';
     } else {
         $result = '0 pkt/s';
     }
@@ -480,16 +406,11 @@ function print_subnet_select_office($db, $subnet_name, $subnet_value)
 function print_loglevel_select($item_name, $value)
 {
     print "<select name=\"$item_name\">\n";
-    global $L_INFO;
-    global $L_WARNING;
-    global $L_ERROR;
-    global $L_VERBOSE;
-    global $L_DEBUG;
-    print_select_item('Error',$L_ERROR,$value);
-    print_select_item('Warning',$L_WARNING,$value);
-    print_select_item('Info',$L_INFO,$value);
-    print_select_item('Verbose',$L_VERBOSE,$value);
-    print_select_item('Debug',$L_DEBUG,$value);
+    print_select_item('Error',L_ERROR,$value);
+    print_select_item('Warning',L_WARNING,$value);
+    print_select_item('Info',L_INFO,$value);
+    print_select_item('Verbose',L_VERBOSE,$value);
+    print_select_item('Debug',L_DEBUG,$value);
     print "</select>\n";
 }
 
@@ -1365,11 +1286,9 @@ return $set_auth;
 }
 
 function fix_auth_rules($db) {
-global $default_user_ou_id;
-global $default_hotspot_ou_id;
 //cleanup hotspot subnet rules
-delete_record($db,"auth_rules","ou_id=".$default_user_ou_id);
-delete_record($db,"auth_rules","ou_id=".$default_hotspot_ou_id);
+delete_record($db,"auth_rules","ou_id=".get_const('default_user_ou_id'));
+delete_record($db,"auth_rules","ou_id=".get_const('default_hotspot_ou_id'));
 $t_hotspot = get_records_sql($db,"SELECT * FROM subnets WHERE hotspot=1");
 if (!empty($t_hotspot)) {
     foreach ($t_hotspot as $row) { delete_record($db,"auth_rules","rule='".$row['subnet']."'"); }
@@ -1379,7 +1298,6 @@ if (!empty($t_hotspot)) {
 #---------------------------------------------------------------------------------------------------------------
 
 function new_user($db,$user_info) {
-global $auto_mac_rule;
 if (!empty($user_info['mac'])) {
     $user['login']=mac_dotted($user_info['mac']);
     } else {
@@ -1612,39 +1530,29 @@ function isRO($db,$table)
 }
 
 function LOG_INFO($db,$msg,$auth_id = 0) {
-global $L_INFO;
-global $log_level;
-if ($log_level < $L_INFO) { return; }
-write_log($db,$msg,$L_INFO,$auth_id);
+if (get_const('log_level') < L_INFO) { return; }
+write_log($db,$msg,L_INFO,$auth_id);
 }
 
 function LOG_ERROR($db,$msg,$auth_id = 0) {
-global $L_ERROR;
-global $log_level;
-if ($log_level < $L_ERROR) { return; }
-email($L_ERROR,$msg);
-write_log($db,$msg,$L_ERROR,$auth_id);
+if (get_const('log_level') < L_ERROR) { return; }
+email(L_ERROR,$msg);
+write_log($db,$msg,L_ERROR,$auth_id);
 }
 
 function LOG_VERBOSE($db,$msg,$auth_id=0) {
-global $L_VERBOSE;
-global $log_level;
-if ($log_level < $L_VERBOSE) { return; }
-write_log($db,$msg,$L_VERBOSE,$auth_id);
+if (get_const('log_level') < L_VERBOSE) { return; }
+write_log($db,$msg,L_VERBOSE,$auth_id);
 }
 
 function LOG_WARNING($db,$msg,$auth_id=0) {
-global $L_WARNING;
-global $log_level;
-if ($log_level < $L_WARNING) { return; }
-email($L_WARNING,$msg);
-write_log($db,$msg,$L_WARNING,$auth_id);
+if (get_const('log_level') < L_WARNING) { return; }
+email(L_WARNING,$msg);
+write_log($db,$msg,L_WARNING,$auth_id);
 }
 
 function LOG_DEBUG($db,$msg,$auth_id=0) {
-global $debug;
-global $L_DEBUG;
-if (isset($debug) and $debug) { write_log($db,$msg,$L_DEBUG,$auth_id); }
+if (!empty(get_const('debug')) and get_const('debug')) { write_log($db,$msg,L_DEBUG,$auth_id); }
 }
 
 function get_first_line($msg) {
@@ -1655,26 +1563,21 @@ return;
 }
 
 function email ($level,$msg) {
-global $send_email;
-global $admin_email;
-global $sender_email;
-global $L_WARNING;
-global $L_ERROR;
 
-if (!$send_email) { return; }
-if (!($level === $L_WARNING or $level === $L_ERROR)) { return; }
+if (!get_const('send_email')) { return; }
+if (!($level === L_WARNING or $level === L_ERROR)) { return; }
 
 $subject = get_first_line($msg);
 
-if ($level === $L_WARNING) { $subject = "WARN: ".$subject."..."; $message = 'WARNING! Manager: '.$_SESSION['login'].' </br>'; }
-if ($level === $L_ERROR) { $subject = "ERROR: ".$subject."..."; $message = 'ERROR! Manager: '.$_SESSION['login'].' </br>'; }
+if ($level === L_WARNING) { $subject = "WARN: ".$subject."..."; $message = 'WARNING! Manager: '.$_SESSION['login'].' </br>'; }
+if ($level === L_ERROR) { $subject = "ERROR: ".$subject."..."; $message = 'ERROR! Manager: '.$_SESSION['login'].' </br>'; }
 
 $msg_lines = preg_replace("/\r\n/","</br>",$msg);
 $message .= $msg_lines;
 
 $send = SimpleMail::make()
-    ->setTo($admin_email, 'Administrator')
-    ->setFrom($sender_email, 'Stat')
+    ->setTo(get_const('admin_email'), 'Administrator')
+    ->setFrom(get_const('sender_email'), 'Stat')
     ->setSubject($subject)
     ->setMessage($message)
     ->setHtml()
@@ -1691,8 +1594,7 @@ function write_log($db, $msg, $level, $auth_id = 0)
     if (! isset($msg)) {
         $msg = 'ERROR! Empty log string!';
     }
-    global $L_INFO;
-    if (!isset($level)) { $level = $L_INFO; }
+    if (!isset($level)) { $level = L_INFO; }
     $msg = str_replace("'", '', $msg);
     $sSQL = "insert into syslog(customer,message,level,auth_id) values('$work_user','$msg',$level,$auth_id)";
     mysqli_query($db, $sSQL);
@@ -1784,6 +1686,7 @@ function get_mac_port_table($ip, $port_index, $community, $version, $oid, $index
         $version = '2';
     }
     $mac_table = walk_snmp($ip, $community, $version, $oid);
+var_dump($mac_table);
     if (isset($mac_table) and count($mac_table) > 0) {
         foreach ($mac_table as $key => $value) {
             $key = trim($key);
@@ -1804,11 +1707,9 @@ function get_mac_port_table($ip, $port_index, $community, $version, $oid, $index
 
 function get_ifmib_index_table ($ip, $community, $version)
 {
-global $ifmib_ifindex_map;
-global $ifmib_ifindex;
 $ifmib_map = NULL;
-$index_table =  walk_snmp($ip, $community, $version, $ifmib_ifindex_map);
-$is_mikrotik = walk_snmp($ip, $community, '.1.3.6.1.2.1.9999.1.1.1.1.0', $version);
+$index_table =  walk_snmp($ip, $community, $version, IFMIB_IFINDEX_MAP);
+$is_mikrotik = walk_snmp($ip, $community, $version, '.1.3.6.1.2.1.9999.1.1.1.1.0');
 if (isset($index_table) and count($index_table) > 0 and isset($is_mikrotik)) {
         foreach ($index_table as $key => $value) {
             $key = trim($key);
@@ -1820,7 +1721,7 @@ if (isset($index_table) and count($index_table) > 0 and isset($is_mikrotik)) {
                 }
             }
         } else {
-#        $index_table =  walk_snmp($ip, $community, $version, $ifmib_ifindex);
+#        $index_table =  walk_snmp($ip, $community, $version, IFMIB_IFINDEX);
         if (isset($index_table) and count($index_table) > 0) {
             foreach ($index_table as $key => $value) {
                 $key = trim($key);
@@ -1838,10 +1739,6 @@ return $ifmib_map;
 
 function get_fdb_port_table($ip, $port_index, $community, $version)
 {
-    global $mac_table_str_oid;
-    global $mac_table_str_oid2;
-    global $mac_table_oid;
-    global $mac_table_oid2;
 
     if (! isset($ip)) {
         return;
@@ -1857,9 +1754,8 @@ function get_fdb_port_table($ip, $port_index, $community, $version)
     }
 
     $ifindex_map = get_ifmib_index_table($ip,$community, $version);
-
-    $fdb1_port_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid2, $ifindex_map);
-    $fdb2_port_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid, $ifindex_map);
+    $fdb1_port_table = get_mac_port_table($ip, $port_index, $community, $version, MAC_TABLE_OID2, $ifindex_map);
+    $fdb2_port_table = get_mac_port_table($ip, $port_index, $community, $version, MAC_TABLE_OID, $ifindex_map);
 
     if (!empty($fdb1_port_table)) { $fdb_port_table = $fdb1_port_table; }
     if (!empty($fdb2_port_table)) {
@@ -1874,8 +1770,7 @@ function get_fdb_port_table($ip, $port_index, $community, $version)
 
     // maybe cisco?!
     if (! isset($fdb_port_table) or ! $fdb_port_table or count($fdb_port_table) == 0) {
-        global $cisco_vlan_oid;
-        $vlan_table = walk_snmp($ip, $community, $version, $cisco_vlan_oid);
+        $vlan_table = walk_snmp($ip, $community, $version, CISCO_VLAN_OID);
         if (! $vlan_table) {
             return;
         }
@@ -1887,9 +1782,9 @@ function get_fdb_port_table($ip, $port_index, $community, $version)
             if (!empty($result)) {
                 $vlan_id = preg_replace('/^\./', '', $matches[0]);
                 if ($vlan_id > 1000 and $vlan_id < 1009) { continue; }
-                $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community . '@' . $vlan_id, $version, $mac_table_oid2,$ifindex_map);
+                $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community . '@' . $vlan_id, $version, MAC_TABLE_OID2,$ifindex_map);
                 if (! isset($fdb_vlan_table) or ! $fdb_vlan_table or count($fdb_vlan_table) == 0) {
-                    $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community, $version, $mac_table_oid,$ifindex_map);
+                    $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community, $version, MAC_TABLE_OID,$ifindex_map);
                 }
                 foreach ($fdb_vlan_table as $mac => $port) {
                     if (! isset($mac)) { continue; }
@@ -1926,19 +1821,15 @@ function get_mac_table($ip, $community, $version, $oid, $index_map)
             $result = preg_match($pattern, $key, $matches);
             if (!empty($result)) {
                     $mac_key = preg_replace('/^\./', '', $matches[0]);
-                    $fdb_port_table[$mac_key] = $value;
+                    $fdb_table[$mac_key] = $value;
                 }
         }
     }
-    return $fdb_port_table;
+    return $fdb_table;
 }
 
 function get_fdb_table($ip, $community, $version)
 {
-    global $mac_table_str_oid;
-    global $mac_table_str_oid2;
-    global $mac_table_oid;
-    global $mac_table_oid2;
 
     if (! isset($ip)) {
         return;
@@ -1951,24 +1842,23 @@ function get_fdb_table($ip, $community, $version)
     }
 
     $ifindex_map = get_ifmib_index_table($ip,$community, $version);
+    $fdb1_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID2, $ifindex_map);
+    $fdb2_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID, $ifindex_map);
 
-    $fdb1_port_table = get_mac_table($ip, $community, $version, $mac_table_oid2, $ifindex_map);
-    $fdb2_port_table = get_mac_table($ip, $community, $version, $mac_table_oid, $ifindex_map);
-    if (!empty($fdb1_port_table)) { $fdb_port_table = $fdb1_port_table; }
-    if (!empty($fdb2_port_table)) {
-        if (empty($fdb_port_table)) {
-            $fdb_port_table = $fdb2_port_table;
+    if (!empty($fdb1_table)) { $fdb_table = $fdb1_table; }
+    if (!empty($fdb2_table)) {
+        if (empty($fdb_table)) {
+            $fdb_table = $fdb2_table;
             } else {
-            foreach ($fdb2_port_table as $mac => $port) {
-                if (empty($fdb_port_table[$mac])) { $fdb_port_table[$mac]=$port; }
+            foreach ($fdb2_table as $mac => $port) {
+                if (empty($fdb_table[$mac])) { $fdb_table[$mac]=$port; }
                 }
             }
         }
 
     // maybe cisco?!
-    if (! isset($fdb_port_table) or ! $fdb_port_table or count($fdb_port_table) == 0) {
-        global $cisco_vlan_oid;
-        $vlan_table = walk_snmp($ip, $community, $version, $cisco_vlan_oid);
+    if (! isset($fdb_table) or ! $fdb_table or count($fdb_table) == 0) {
+        $vlan_table = walk_snmp($ip, $community, $version, CISCO_VLAN_OID);
         if (! $vlan_table) {
             return;
         }
@@ -1979,18 +1869,18 @@ function get_fdb_table($ip, $community, $version)
             if (!empty($result)) {
                 $vlan_id = preg_replace('/^\./', '', $matches[0]);
                 if ($vlan_id > 1000 and $vlan_id < 1009) { continue; }
-                $fdb_vlan_table = get_mac_table($ip, $community . '@' . $vlan_id, $version, $mac_table_oid2);
+                $fdb_vlan_table = get_mac_table($ip, $community . '@' . $vlan_id, $version, MAC_TABLE_OID2);
                 if (! isset($fdb_vlan_table) or ! $fdb_vlan_table or count($fdb_vlan_table) == 0) {
-                    $fdb_vlan_table = get_mac_table($ip, $community, $version, $mac_table_oid);
+                    $fdb_vlan_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID);
                 }
                 foreach ($fdb_vlan_table as $mac => $port) {
                     if (! isset($mac)) { continue; }
-                    $fdb_port_table[$mac] = $port;
+                    $fdb_table[$mac] = $port;
                 }
             }
         }
     }
-    return $fdb_port_table;
+    return $fdb_table;
 }
 
 function check_snmp_access($ip, $community, $version)
@@ -2023,8 +1913,7 @@ function get_port_state($port, $ip, $community, $version)
     if (! isset($version)) {
         $version = '2';
     }
-    global $port_status_oid;
-    $port_oid = $port_status_oid . $port;
+    $port_oid = PORT_STATUS_OID . $port;
     $port_state = get_snmp($ip, $community, $version, $port_oid);
     return $port_state;
 }
@@ -2042,10 +1931,8 @@ function get_last_digit($oid)
 function get_cisco_sensors($ip, $community, $version, $mkey)
 {
     $index = get_last_digit($mkey);
-    global $cisco_sfp_sensors;
-    global $cisco_sfp_precision;
-    $result = parse_snmp_value(get_snmp($ip, $community, $version, $cisco_sfp_sensors . "." . $index));
-    $prec = parse_snmp_value(get_snmp($ip, $community, $version, $cisco_sfp_precision . "." . $index));
+    $result = parse_snmp_value(get_snmp($ip, $community, $version, CISCO_SFP_SENSORS . "." . $index));
+    $prec = parse_snmp_value(get_snmp($ip, $community, $version, CISCO_SFP_PRECISION . "." . $index));
     if (! isset($prec)) { $prec = 1; }
     $result = round(trim($result) / (10 * $prec), 2);
     return $result;
@@ -2053,24 +1940,20 @@ function get_cisco_sensors($ip, $community, $version, $mkey)
 
 function get_snmp_ifname1($ip, $community, $version, $port)
 {
-    global $ifmib_ifname;
-    $port_name = parse_snmp_value(get_snmp($ip, $community, $version, $ifmib_ifname . "." . $port));
+    $port_name = parse_snmp_value(get_snmp($ip, $community, $version, IFMIB_IFNAME . "." . $port));
     return $port_name;
 }
 
 function get_snmp_ifname2($ip, $community, $version, $port)
 {
-    global $ifmib_ifdescr;
-    $port_name = parse_snmp_value(get_snmp($ip, $community, $version, $ifmib_ifdescr . "." . $port));
+    $port_name = parse_snmp_value(get_snmp($ip, $community, $version, IFMIB_IFDESCR . "." . $port));
     return $port_name;
 }
 
 function get_snmp_interfaces($ip, $community, $version)
 {
-    global $ifmib_ifname;
-    global $ifmib_ifdescr;
-    $result = walk_snmp($ip, $community, $version, $ifmib_ifname);
-    if (empty($result)) { $result = walk_snmp($ip, $community, $version, $ifmib_ifdescr); }
+    $result = walk_snmp($ip, $community, $version, IFMIB_IFNAME);
+    if (empty($result)) { $result = walk_snmp($ip, $community, $version, IFMIB_IFDESCR); }
     return $result;
 }
 
@@ -2118,33 +2001,26 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
     }
     // if (!is_up($ip)) { return; }
 
-    global $ifmib_ifname;
-    global $ifmib_ifdescr;
 
     $status = '';
     // eltex
     if ($vendor_id == 2) {
-        global $eltex_sfp_status;
-        global $eltex_sfp_vendor;
-        global $eltex_sfp_sn;
-        global $eltex_sfp_freq;
-        global $eltex_sfp_length;
-        $sfp_vendor = parse_snmp_value(get_snmp($ip, $community, $version, $eltex_sfp_vendor . "." . $port));
+        $sfp_vendor = parse_snmp_value(get_snmp($ip, $community, $version, ELTEX_SFP_VENDOR . "." . $port));
         if (isset($sfp_vendor)) {
-            $sfp_status_temp = $eltex_sfp_status . "." . $port . ".5";
-            $sfp_status_volt = $eltex_sfp_status . "." . $port . ".6";
-            $sfp_status_circut = $eltex_sfp_status . "." . $port . ".7";
-            $sfp_status_tx = $eltex_sfp_status . "." . $port . ".8";
-            $sfp_status_rx = $eltex_sfp_status . "." . $port . ".9";
+            $sfp_status_temp = ELTEX_SFP_STATUS . "." . $port . ".5";
+            $sfp_status_volt = ELTEX_SFP_STATUS . "." . $port . ".6";
+            $sfp_status_circut = ELTEX_SFP_STATUS . "." . $port . ".7";
+            $sfp_status_tx = ELTEX_SFP_STATUS . "." . $port . ".8";
+            $sfp_status_rx = ELTEX_SFP_STATUS . "." . $port . ".9";
             $temp = parse_snmp_value(get_snmp($ip, $community, $version, $sfp_status_temp));
             $volt = parse_snmp_value(get_snmp($ip, $community, $version, $sfp_status_volt));
             $circut = parse_snmp_value(get_snmp($ip, $community, $version, $sfp_status_circut));
             $tx = parse_snmp_value(get_snmp($ip, $community, $version, $sfp_status_tx));
             $rx = parse_snmp_value(get_snmp($ip, $community, $version, $sfp_status_rx));
-            $sfp_sn = parse_snmp_value(get_snmp($ip, $community, $version, $eltex_sfp_sn . "." . $port));
-            $sfp_freq = parse_snmp_value(get_snmp($ip, $community, $version, $eltex_sfp_freq . "." . $port));
+            $sfp_sn = parse_snmp_value(get_snmp($ip, $community, $version, ELTEX_SFP_SN . "." . $port));
+            $sfp_freq = parse_snmp_value(get_snmp($ip, $community, $version, ELTEX_SFP_FREQ . "." . $port));
             if (! isset($sfp_freq) or $sfp_freq == 65535) {  $sfp_freq = 'unspecified';  }
-            $sfp_length = parse_snmp_value(get_snmp($ip, $community, $version, $eltex_sfp_length . "." . $port));
+            $sfp_length = parse_snmp_value(get_snmp($ip, $community, $version, ELTEX_SFP_LENGTH . "." . $port));
             $status = 'Vendor: ' . $sfp_vendor . ' Serial: ' . $sfp_sn . ' Laser: ' . $sfp_freq . ' Distance: ' . $sfp_length . '<br>';
             if (isset($sfp_status_temp) and $temp > 0.1) { $status .= 'Temp: ' . $temp . " C"; }
             if (isset($sfp_status_volt) and $volt > 0.1) { $status .= ' Volt: ' . round($volt / 1000000, 2) . ' V'; }
@@ -2158,12 +2034,10 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
     }
     // cisco
     if ($vendor_id == 16) {
-        global $cisco_descr;
-        global $cisco_modules;
         // get interface names
-        $port_name = parse_snmp_value(get_snmp($ip, $community, $version, $ifmib_ifname . "." . $port));
+        $port_name = parse_snmp_value(get_snmp($ip, $community, $version, IFMIB_IFNAME . "." . $port));
         if (empty($port_name)) {
-            $port_name = parse_snmp_value(get_snmp($ip, $community, $version, $ifmib_ifdescr . "." . $port));
+            $port_name = parse_snmp_value(get_snmp($ip, $community, $version, IFMIB_IFDESCR . "." . $port));
             }
         // search module indexes
         $port_name = preg_quote(trim($port_name), '/');
@@ -2223,21 +2097,12 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
 
     // huawei
     if ($vendor_id == 3) {
-        global $huawei_sfp_vendor;
-        global $huawei_sfp_speed;
-        global $huawei_sfp_db;
         
-        global $huawei_sfp_volt;
-        global $huawei_sfp_optrx;
-        global $huawei_sfp_opttx;
-        global $huawei_sfp_rx;
-        global $huawei_sfp_tx;
-        global $huawei_sfp_biascurrent;
         
         // get interface names
-        $port_name = parse_snmp_value(get_snmp($ip, $community, $version, $ifmib_ifname . "." . $port));
+        $port_name = parse_snmp_value(get_snmp($ip, $community, $version, IFMIB_IFNAME . "." . $port));
         if (empty($port_name)) {
-            $port_name = parse_snmp_value(get_snmp($ip, $community, $version, $ifmib_ifdescr . "." . $port));
+            $port_name = parse_snmp_value(get_snmp($ip, $community, $version, IFMIB_IFDESCR . "." . $port));
     	    }
         // search module indexes
         $port_name = preg_quote(trim($port_name), '/');
@@ -2247,22 +2112,22 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
             if (isset($matches[0])) {
                 $module_id = get_last_digit($key);
                 unset($result);
-                $result = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_vendor . "." . $module_id));
+                $result = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_VENDOR . "." . $module_id));
                 if (isset($result)) { $sfp_vendor = $result; }
                 unset($result);
-                $result = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_speed . "." . $module_id));
+                $result = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_SPEED . "." . $module_id));
                 if (isset($result)) {
                     list ($sfp_speed, $spf_lenght, $sfp_type) = explode('-', $result);
                     if ($sfp_type == 0) { $sfp_type = 'MultiMode'; }
                     if ($sfp_type == 1) { $sfp_type = 'SingleMode'; }
                 }
 
-                $volt = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_volt . "." . $module_id));
-                $circut = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_biascurrent . "." . $module_id));
-                $tx = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_opttx . "." . $module_id));
-                $rx = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_optrx . "." . $module_id));
-		if (!isset($tx)) { $tx = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_tx . "." . $module_id)); }
-            	if (!isset($rx)) { $rx = parse_snmp_value(get_snmp($ip, $community, $version, $huawei_sfp_rx . "." . $module_id)); }
+                $volt = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_VOLT . "." . $module_id));
+                $circut = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_BIASCURRENT . "." . $module_id));
+                $tx = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_OPTTX . "." . $module_id));
+                $rx = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_OPTRX . "." . $module_id));
+		if (!isset($tx)) { $tx = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_TX . "." . $module_id)); }
+            	if (!isset($rx)) { $rx = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_RX . "." . $module_id)); }
                 if (isset($sfp_vendor)) {  $status .= ' Name:' . $sfp_vendor.'<br>';  }
 //                if (isset($sfp_speed)) { $status .= ' ' . $sfp_speed; }
 //                if (isset($spf_lenght)) { $status .= ' ' . $spf_lenght; }
@@ -2311,8 +2176,7 @@ function get_port_vlan($port, $port_index, $ip, $community, $version, $fdb_by_sn
 
     if ($fdb_by_snmp == 1) { $port = $port_index; }
 
-    global $port_vlan_oid;
-    $port_oid = $port_vlan_oid . $port;
+    $port_oid = PORT_VLAN_OID . $port;
     $port_vlan = get_snmp($ip, $community, $version, $port_oid);
     $port_vlan = preg_replace('/.*\:/','',$port_vlan);
     $port_vlan = intval(trim($port_vlan));
@@ -2337,32 +2201,26 @@ function get_port_poe_state($vendor_id, $port, $ip, $community, $version)
     // if (!is_up($ip)) { return; }
 
     // default poe oid
-    global $pethPsePortAdminEnable;
-    $poe_status = $pethPsePortAdminEnable . "." . $port;
+    $poe_status = PETH_PSE_PORT_ADMIN_ENABLE . "." . $port;
 
     if ($vendor_id == 3) {
-        global $huawei_poe_oid;
-        $poe_status = $huawei_poe_oid . "." . $port;
+        $poe_status = HUAWEI_POE_OID . "." . $port;
     }
 
     if ($vendor_id == 8) {
-        global $allied_poe_oid;
-        $poe_status = $allied_poe_oid . "." . $port;
+        $poe_status = ALLIED_POE_OID . "." . $port;
     }
 
     if ($vendor_id == 15) {
-        global $hp_poe_oid;
-        $poe_status = $hp_poe_oid . "." . $port;
+        $poe_status = HP_POE_OID . "." . $port;
     }
 
     if ($vendor_id == 9) {
-        global $mikrotik_poe_oid;
-        $poe_status = $mikrotik_poe_oid . "." . $port;
+        $poe_status = MIKROTIK_POE_OID . "." . $port;
     }
 
     if ($vendor_id == 10) {
-        global $netgear_poe_oid;
-        $poe_status = $netgear_poe_oid . "." . $port;
+        $poe_status = NETGEAR_POE_OID . "." . $port;
     }
 
     $result = '';
@@ -2395,23 +2253,18 @@ function set_port_poe_state($vendor_id, $port, $ip, $community, $version, $state
     }
     // if (!is_up($ip)) { return; }
     // default poe oid
-    global $pethPsePortAdminEnable;
-    $poe_status = $pethPsePortAdminEnable . "." . $port;
+    $poe_status = PETH_PSE_PORT_ADMIN_ENABLE . "." . $port;
     if ($vendor_id == 3) {
-        global $huawei_poe_oid;
-        $poe_status = $huawei_poe_oid . "." . $port;
+        $poe_status = HUAWEI_POE_OID . "." . $port;
     }
     if ($vendor_id == 8) {
-        global $allied_poe_oid;
-        $poe_status = $allied_poe_oid . "." . $port;
+        $poe_status = ALLIED_POE_OID . "." . $port;
     }
     if ($vendor_id == 15) {
-        global $hp_poe_oid;
-        $poe_status = $hp_poe_oid . "." . $port;
+        $poe_status = HP_POE_OID . "." . $port;
     }
     if ($vendor_id == 10) {
-        global $netgear_poe_oid;
-        $poe_status = $netgear_poe_oid . "." . $port;
+        $poe_status = NETGEAR_POE_OID . "." . $port;
     }
 
     if ($state) {
@@ -2469,12 +2322,9 @@ function get_port_poe_detail($vendor_id, $port, $ip, $community, $version)
 
     // mikrotik
     if ($vendor_id == 9) {
-        global $mikrotik_poe_volt;
-        global $mikrotik_poe_current;
-        global $mikrotik_poe_usage;
-        $poe_power = $mikrotik_poe_usage . '.' . $port;
-        $poe_current = $mikrotik_poe_current . '.' . $port;
-        $poe_volt = $mikrotik_poe_volt . '.' . $port;
+        $poe_power = MIKROTIK_POE_USAGE . '.' . $port;
+        $poe_current = MIKROTIK_POE_CURRENT . '.' . $port;
+        $poe_volt = MIKROTIK_POE_VOLT . '.' . $port;
     }
 
     // netgear
@@ -2582,8 +2432,7 @@ function set_port_state($vendor_id, $port, $ip, $community, $version, $state)
     if (! isset($version)) {
         $version = '2';
     }
-    global $port_admin_status_oid;
-    $port_status = $port_admin_status_oid . $port;
+    $port_status = PORT_ADMIN_STATUS_OID . $port;
     if ($state == 1) {
         // enable port
         $c_state = set_snmp($ip, $community, $version, $port_status, 'i', 1);
@@ -2656,15 +2505,11 @@ function get_port_state_detail($port, $ip, $community, $version)
     }
     // if (!is_up($ip)) { return; }
 
-    global $port_status_oid;
-    global $port_admin_status_oid;
-    global $port_speed_oid;
-    global $port_errors_oid;
 
-    $oper = $port_status_oid . $port;
-    $admin = $port_admin_status_oid . $port;
-    $speed = $port_speed_oid . $port;
-    $errors = $port_errors_oid . $port;
+    $oper = PORT_STATUS_OID . $port;
+    $admin = PORT_ADMIN_STATUS_OID . $port;
+    $speed = PORT_SPEED_OID . $port;
+    $errors = PORT_ERRORS_OID . $port;
     $result = '';
     $c_state = get_snmp($ip, $community, $version, $oper);
     $p_state = parse_snmp_value($c_state);
@@ -3172,17 +3017,12 @@ function get_diff_rec($db, $table, $filter, $newvalue, $only_changed)
 
 function get_cacti_graph($host_ip, $port_index)
 {
-    global $cacti_dbname;
-    global $cacti_dbhost;
-    global $cacti_url;
-    global $dbuser;
-    global $dbpass;
 
-    if (! isset($cacti_url)) { return; }
+    if (empty(get_const('cacti_url'))) { return; }
 
-    $cacti_db_link = mysqli_connect($cacti_dbhost, $dbuser, $dbpass, $cacti_dbname);
+    $cacti_db_link = mysqli_connect(CACTI_DB_HOST, DB_USER, DB_PASS, CACTI_DB_NAME);
     if (! $cacti_db_link) {
-        echo "Ошибка: Невозможно установить соединение с MySQL with $cacti_dbhost [$cacti_dbname] for $dbuser." . PHP_EOL;
+        echo "Ошибка: Невозможно установить соединение с MySQL with CACTI_DB_HOST [CACTI_DB_NAME] for DB_USER." . PHP_EOL;
         echo "Код ошибки errno: " . mysqli_connect_errno() . PHP_EOL;
         echo "Текст ошибки error: " . mysqli_connect_error() . PHP_EOL;
         return FALSE;
@@ -3198,7 +3038,7 @@ function get_cacti_graph($host_ip, $port_index)
     $graph_id = $cacti_graph["id"];
 
     if (empty($graph_id)) { return; }
-    $result = $cacti_url . "/graph_image.php?local_graph_id=" . $graph_id;
+    $result = get_const('cacti_url') . "/graph_image.php?local_graph_id=" . $graph_id;
     return $result;
 }
 
@@ -3317,8 +3157,6 @@ return 0;
 
 function get_new_user_id($db, $ip, $mac, $hostname)
 {
-    global $default_hotspot_ou_id;
-    global $default_user_ou_id;
     
     $result['ip']=$ip;
     $result['mac']=mac_dotted($mac);
@@ -3355,7 +3193,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
     //ou rules
     //ip
     if (!empty($ip)) {
-        if (is_hotspot($db, $ip)) { $result['ou_id']=$default_hotspot_ou_id; }
+        if (is_hotspot($db, $ip)) { $result['ou_id']=get_const('default_hotspot_ou_id'); }
         $t_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND ou_id IS NOT NULL");
         foreach ($t_rules as $row) {
             if (!empty($row['rule']) and is_subnet_aton($row['rule'],$ip_aton)) { $result['ou_id']=$row['ou_id']; }
@@ -3376,7 +3214,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
             }
         }
 
-    if (empty($result['ou_id'])) { $result['ou_id']=$default_user_ou_id; }
+    if (empty($result['ou_id'])) { $result['ou_id']=get_const('default_user_ou_id'); }
 
     return $result;
 }
@@ -3431,66 +3269,42 @@ function is_our_network($db, $ip)
     return 0;
 }
 
-function init_option($db)
-{
-    global $org_name;
-    $org_name = get_option($db, 32);
-
-    global $KB;
-    $KB = get_option($db, 1);
-
-    global $debug;
-    $debug = get_option($db, 34);
-
-    global $log_level;
-    $log_level = get_option($db, 53);
-
-    if ($debug) { $log_level = 255; }
-
-    global $send_email;
-    $send_email = get_option($db, 51);
-
-    global $admin_email;
-    $admin_email = get_option($db, 21);
-
-    global $sender_email;
-    $sender_email = get_option($db, 52);
-
-    global $mac_discovery;
-    $mac_discovery = get_option($db, 17);
-
-    global $snmp_default_version;
-    $snmp_default_version = get_option($db, 9);
-
-    global $snmp_default_community;
-    $snmp_default_community = get_option($db, 11);
-
-    global $cacti_url;
-    $cacti_url = rtrim(get_option($db, 58),'/');
-    if (preg_match('/127.0.0.1/', $cacti_url)) { $cacti_url=NULL; }
-
-    global $nagios_url;
-    $nagios_url = rtrim(get_option($db, 57),'/').'/cgi-bin/';
-    if (preg_match('/127.0.0.1/', $nagios_url)) { $nagios_url=NULL; }
-
-    global $torrus_url;
-    $torrus_url = rtrim(get_option($db, 59),'/').'?nodeid=if//HOST_IP//IF_NAME////inoutbps';
-    if (preg_match('/127.0.0.1/', $torrus_url)) { $torrus_url=NULL; }
-
-    global $auto_mac_rule;
-    $auto_mac_rule = get_option($db, 64);
-
-    global $default_user_ou_id;
-    $ou = get_record_sql($db,"SELECT id FROM OU WHERE default_users = 1");
-    if (empty($ou)) { $default_user_ou_id = 0; } else { $default_user_ou_id = $ou['id']; }
-
-    global $default_hotspot_ou_id;
-    $ou = get_record_sql($db,"SELECT id FROM OU WHERE default_hotspot = 1");
-    if (empty($ou)) { $default_hotspot_ou_id = $default_user_ou_id; } else { $default_hotspot_ou_id = $ou['id']; }
-
+function get_const($const_name) {
+global $config;
+if (isset($config[$const_name])) { return $config[$const_name]; }
+return NULL;
 }
 
-init_option($db_link);
+$config["org_name"]= get_option($db_link, 32);
+$config["KB"]= get_option($db_link, 1);
+$config["debug"]= get_option($db_link, 34);
+$config["log_level"]= get_option($db_link, 53);
+if ($config["debug"]) { $config["log_level"]= 255; }
+$config["send_email"]= get_option($db_link, 51);
+$config["admin_email"]= get_option($db_link, 21);
+$config["sender_email"]= get_option($db_link, 52);
+$config["mac_discovery"]= get_option($db_link, 17);
+$config["snmp_default_version"]= get_option($db_link, 9);
+$config["snmp_default_community"]= get_option($db_link, 11);
+$config["auto_mac_rule"]= get_option($db_link, 64);
+
+$config["cacti_url"]= rtrim(get_option($db_link, 58),'/');
+if (preg_match('/127.0.0.1/', $config["cacti_url"])) { $config["cacti_url"]=NULL; }
+
+$config["nagios_url"]= rtrim(get_option($db_link, 57),'/').'/cgi-bin/';
+if (preg_match('/127.0.0.1/', $config["nagios_url"])) { $config["nagios_url"]=NULL; }
+
+$config["torrus_url"]= rtrim(get_option($db_link, 59),'/').'?nodeid=if//HOST_IP//IF_NAME////inoutbps';
+if (preg_match('/127.0.0.1/', $config["torrus_url"])) { $config["torrus_url"]=NULL; }
+
+$ou=get_record_sql($db_link,"SELECT id FROM OU WHERE default_users = 1");
+if (empty($ou)) { $config["default_user_ou_id"]=0; } else { $config["default_user_ou_id"]= $ou['id']; }
+
+$ou=get_record_sql($db_link,"SELECT id FROM OU WHERE default_hotspot=1");
+if (empty($ou)) { $config["default_hotspot_ou_id"]= $config["default_user_ou_id"]; } else { $config["default_hotspot_ou_id"]=$ou['id']; }
+
+$config["init"]=1;
+
 clean_dns_cache($db_link);
 
 snmp_set_valueretrieval(SNMP_VALUE_LIBRARY);

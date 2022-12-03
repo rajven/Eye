@@ -2,7 +2,7 @@
 <html>
 <head>
 <title>Панель администратора</title>
-<link rel="stylesheet" type="text/css" href=<? echo "\"/$style.css\""; ?>>
+<link rel="stylesheet" type="text/css" href="/<?php echo HTML_STYLE.'.css'; ?>">
 <script src="/js/jq/jquery.min.js"></script>
 <link href="/js/select2/css/select2.min.css" rel="stylesheet"/>
 <script src="/js/select2/js/select2.min.js"></script>
@@ -34,7 +34,7 @@ $('.js-select-single').select2();
 </head>
 <body>
 
-<div id="title"><?php print $org_name?></div>
+<div id="title"><?php print get_const('org_name')?></div>
 <div id="navi">
 <a href="/admin/reports/index-full.php">
 <?php print $title_reports?>

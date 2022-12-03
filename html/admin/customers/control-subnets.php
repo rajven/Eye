@@ -1,7 +1,7 @@
 <?php
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 
 if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];

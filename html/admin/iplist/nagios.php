@@ -1,7 +1,7 @@
 <?php
 $default_displayed=500;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $default_sort='ip_int';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
@@ -145,9 +145,9 @@ foreach ($users as $user) {
         }
 
     if (!empty($user['nagios']) and $user['nagios']) {
-        $nagios_url = rtrim(get_option($db_link, 57),'/');
-        if (preg_match('/127.0.0.1/', $nagios_url)) { print "<td class=\"$cl\" >". get_qa($user['nagios']) ."</td>\n"; } else {
-            $nagios_link = $nagios_url.'/cgi-bin/status.cgi?host='.get_nagios_name($user);
+        get_const('nagios_url') = rtrim(get_option($db_link, 57),'/');
+        if (preg_match('/127.0.0.1/', get_const('nagios_url'))) { print "<td class=\"$cl\" >". get_qa($user['nagios']) ."</td>\n"; } else {
+            $nagios_link = get_const('nagios_url').'/cgi-bin/status.cgi?host='.get_nagios_name($user);
             print "<td class=\"$cl\" >"; print_url(get_qa($user['nagios']),$nagios_link); print "</td>\n";
             }
         } else {

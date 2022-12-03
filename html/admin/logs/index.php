@@ -1,6 +1,6 @@
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $default_date_shift='d';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datefilter.php");
@@ -14,7 +14,7 @@ print_log_submenu($page_url);
 Начало:<input type="date" name="date_start" value="<?php echo $date1; ?>" />
 Конец:<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
 Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-Уровень логов:<?php print_loglevel_select('log_level',$log_level); ?>
+Уровень логов:<?php print_loglevel_select('log_level',get_const('log_level')); ?>
 <input type="submit" value="OK"><br><br>
 Фильтр Источник:<input name="customer" value="<?php echo $fcustomer; ?>" />
 Сообщение:<input name="message" value="<?php echo $fmessage; ?>" />
@@ -23,17 +23,12 @@ print_log_submenu($page_url);
 <?php
 $log_filter ='';
 
-global $L_ERROR;
-global $L_WARNING;
-global $L_INFO;
-global $L_VERBOSE;
-global $L_DEBUG;
 
-if ($log_level === $L_ERROR) { $log_filter = " and `level`=$L_ERROR "; }
-if ($log_level === $L_WARNING) { $log_filter = " and `level`<=$L_WARNING "; }
-if ($log_level === $L_INFO) { $log_filter = " and `level`<=$L_INFO "; }
-if ($log_level === $L_VERBOSE) { $log_filter = " and `level`<=$L_VERBOSE "; }
-if ($log_level === $L_DEBUG) { $log_filter = ""; }
+if (get_const('log_level') === L_ERROR) { $log_filter = " and `level`=L_ERROR "; }
+if (get_const('log_level') === L_WARNING) { $log_filter = " and `level`<=L_WARNING "; }
+if (get_const('log_level') === L_INFO) { $log_filter = " and `level`<=L_INFO "; }
+if (get_const('log_level') === L_VERBOSE) { $log_filter = " and `level`<=L_VERBOSE "; }
+if (get_const('log_level') === L_DEBUG) { $log_filter = ""; }
 
 if (!empty($fcustomer)) { $log_filter = $log_filter." and customer LIKE '%".$fcustomer."%'"; }
 if (!empty($fmessage)) { $log_filter = $log_filter." and message LIKE '%".$fmessage."%'"; }
@@ -68,10 +63,10 @@ foreach ($userlog as $row) {
     print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
     print "<td class=\"data\">" . $row['customer'] . "</td>\n";
     $msg_level = 'INFO';
-    if ($row['level'] == $L_ERROR) { $msg_level='ERROR'; }
-    if ($row['level'] == $L_WARNING) { $msg_level='WARNING'; }
-    if ($row['level'] == $L_DEBUG) { $msg_level='DEBUG'; }
-    if ($row['level'] == $L_VERBOSE) { $msg_level='VERBOSE'; }
+    if ($row['level'] == L_ERROR) { $msg_level='ERROR'; }
+    if ($row['level'] == L_WARNING) { $msg_level='WARNING'; }
+    if ($row['level'] == L_DEBUG) { $msg_level='DEBUG'; }
+    if ($row['level'] == L_VERBOSE) { $msg_level='VERBOSE'; }
     print "<td class=\"data\">" . $msg_level . "</td>\n";
     $print_msg = expand_log_str($db_link, $row['message']);
     print "<td class=\"data\" align=left>" . $print_msg . "</td>\n";

@@ -1,7 +1,7 @@
 <?php
 $default_displayed=100;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $default_date_shift='d';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datefilter.php");

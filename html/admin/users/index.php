@@ -1,10 +1,9 @@
 <?php
 $default_displayed = 500;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
-global $default_user_ou_id;
-$default_ou=$default_user_ou_id;
+$default_ou=get_const('default_user_ou_id');
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
 $default_sort='login';

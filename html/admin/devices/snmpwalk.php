@@ -1,12 +1,12 @@
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 ?>
 <html>
 <head>
 <title>Панель администратора</title>
-<link rel="stylesheet" type="text/css" href=<?php echo "\"/$style.css\""; ?>>
+<link rel="stylesheet" type="text/css" href=<?php echo "\"/HTML_STYLE.css\""; ?>>
 <meta http-equiv="content-type" content="application/xhtml+xml">
 <meta charset="UTF-8">
 </head>
@@ -15,8 +15,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 <?php
 $dev_info = get_record($db_link,'devices','id='.$id);
 $interfaces = get_snmp_interfaces($dev_info['ip'], $dev_info['community'], $dev_info['snmp_version']);
-global $sysinfo_mib;
-$dev_info = walk_snmp($dev_info['ip'], $dev_info['community'], $dev_info['snmp_version'],$sysinfo_mib);
+$dev_info = walk_snmp($dev_info['ip'], $dev_info['community'], $dev_info['snmp_version'],SYSINFO_MIB);
 foreach ($dev_info as $key => $value) {
 list ($v_type,$v_data)=explode(':',$value);
 $v_clean = preg_replace('/\s/', '', $v_data);

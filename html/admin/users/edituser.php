@@ -1,10 +1,8 @@
 <?php
 require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/auth.php");
-require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/languages/" . $language . ".php");
+require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/idfilter.php");
 
-global $default_user_ou_id;
-global $default_hotspot_ou_id;
 
 $default_sort='ip_int';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
@@ -21,7 +19,7 @@ if (isset($_POST["edituser"])) {
     $new["queue_id"] = $_POST["f_queue"]*1;
     $new["login"] = trim($_POST["f_login"]);
     $new["fio"] = trim($_POST["f_fio"]);
-    if ($default_user_ou_id == $new["ou_id"] or $default_hotspot_ou_id == $new["ou_id"]) {
+    if (get_const('default_user_ou_id') == $new["ou_id"] or get_const('default_hotspot_ou_id') == $new["ou_id"]) {
         $new["enabled"] = 0;
         $new["blocked"] = 0;
         $new["day_quota"] = 0;
@@ -89,14 +87,12 @@ if (isset($_POST["showDevice"])) {
     $device = get_record_sql($db_link,"SELECT * FROM devices WHERE user_id=".$id);
     $auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE user_id=".$id);
     if (empty($device) and !empty($auth)) {
-        global $snmp_default_version;
-        global $snmp_default_community;
 	$new['user_id']=$id;
         $new['device_name'] = $user_info['login'];
         $new['device_type'] = 5;
         $new['ip']=$auth['ip'];
-        $new['community'] = $snmp_default_community;
-        $new['snmp_version'] = $snmp_default_version;
+        $new['community'] = get_const('snmp_default_community');
+        $new['snmp_version'] = get_const('snmp_default_version');
         $new_id=insert_record($db_link, "devices", $new);
         unset($_POST);
         if (!empty($new_id)) {

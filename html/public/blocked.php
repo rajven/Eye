@@ -45,10 +45,10 @@ if (empty($user['day_quota'])) { $user['day_quota']=0; }
 if (empty($auth['month_quota'])) { $auth['month_quota']=0; }
 if (empty($auth['day_quota'])) { $auth['day_quota']=0; }
 
-$user['month_quota'] = $user['month_quota'] * $KB * $KB;
-$user['day_quota'] = $user['day_quota'] * $KB * $KB;
-$auth['month_quota'] = $auth['month_quota'] * $KB * $KB;
-$auth['day_quota'] = $auth['day_quota'] * $KB * $KB;
+$user['month_quota'] = $user['month_quota'] * get_const('KB') * get_const('KB');
+$user['day_quota'] = $user['day_quota'] * get_const('KB') * get_const('KB');
+$auth['month_quota'] = $auth['month_quota'] * get_const('KB') * get_const('KB');
+$auth['day_quota'] = $auth['day_quota'] * get_const('KB') * get_const('KB');
 
 $day =  GetNowDayString();
 $month = strftime('%m',time());

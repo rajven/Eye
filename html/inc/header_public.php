@@ -19,9 +19,9 @@ $page_url = $page_url_array[0];
 <html>
 <head>
 <title>Панель статистики</title>
-<link rel="stylesheet" type="text/css" href=<? echo "\"../$style.css\""; ?>>
+<link rel="stylesheet" type="text/css" href=<? echo "\"../HTML_STYLE.css\""; ?>>
 <meta http-equiv="content-type" content="text/html; charset=utf-8">
 </head>
 <body>
-<div id="title"><?php print $org_name; ?></div>
+<div id="title"><?php print get_const('org_name'); ?></div>
 

@@ -1,10 +1,10 @@
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 
 // if(isset($_POST['f_ou_id'])){ $f_ou_id=$_POST['f_ou_id']*1; } else { $f_ou_id=1; }
 
-$f_ou_id = $ipcam_group_id;
+$f_ou_id = IPCAM_GROUP_ID;
 
 if (isset($_POST['port_on'])) {
     $len = is_array($_POST['port_on']) ? count($_POST['port_on']) : 0;

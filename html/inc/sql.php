@@ -1,7 +1,7 @@
 <?php
 if (! defined("SQL")) { die("Not defined"); }
 
-$db_link = mysqli_connect($dbhost, $dbuser, $dbpass, $dbname);
+$db_link = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 
 if (! $db_link) {
     echo "Ошибка: Невозможно установить соединение с MySQL." . PHP_EOL;

@@ -1,7 +1,7 @@
 <?php
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 
 if (isset($_POST["recheck_ip"]) and is_option($db_link, 37)) {
     $run_cmd = get_option($db_link, 37);

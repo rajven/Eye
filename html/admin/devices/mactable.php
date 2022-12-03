@@ -1,12 +1,12 @@
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . $language . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 ?>
 <html>
 <head>
 <title>Панель администратора</title>
-<link rel="stylesheet" type="text/css"	href=<?php echo "\"/$style.css\""; ?>>
+<link rel="stylesheet" type="text/css"	href=<?php echo "\"/HTML_STYLE.css\""; ?>>
 <meta http-equiv="content-type" content="application/xhtml+xml">
 <meta charset="UTF-8">
 </head>
