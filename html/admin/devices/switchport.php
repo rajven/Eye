@@ -107,10 +107,10 @@ foreach ($ports as $row) {
         $vlan = $row['vlan'];
         $ifname= compact_port_name($row['ifName']);
         $f_cacti_url = get_cacti_graph($switch['ip'], $row['snmp_index']);
-        if (! isset(get_const('torrus_url')) and (! isset($f_cacti_url))) {  $snmp_url=$ifname; }
+        if (empty(get_const('torrus_url')) and (empty($f_cacti_url))) {  $snmp_url=$ifname; }
                 else {
                 if (isset($f_cacti_url)) { $snmp_url = "<a href=\"$f_cacti_url\">" . $ifname . "</a>"; }
-                if (isset(get_const('torrus_url'))) {
+                if (!empty(get_const('torrus_url'))) {
                     $normed_ifname = str_replace("/", "_", $ifname);
                     $normed_ifname = str_replace(".", "_", $normed_ifname);
                     $normed_ifname = trim(str_replace(" ", "_", $normed_ifname));

@@ -19,7 +19,7 @@ $page_url = $page_url_array[0];
 <html>
 <head>
 <title>Панель статистики</title>
-<link rel="stylesheet" type="text/css" href=<? echo "\"../HTML_STYLE.css\""; ?>>
+<link rel="stylesheet" type="text/css" href="/<?php echo HTML_STYLE.".css"; ?>">
 <meta http-equiv="content-type" content="text/html; charset=utf-8">
 </head>
 <body>

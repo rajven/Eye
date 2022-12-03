@@ -1686,7 +1686,6 @@ function get_mac_port_table($ip, $port_index, $community, $version, $oid, $index
         $version = '2';
     }
     $mac_table = walk_snmp($ip, $community, $version, $oid);
-var_dump($mac_table);
     if (isset($mac_table) and count($mac_table) > 0) {
         foreach ($mac_table as $key => $value) {
             $key = trim($key);

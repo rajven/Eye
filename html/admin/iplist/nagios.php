@@ -145,7 +145,6 @@ foreach ($users as $user) {
         }
 
     if (!empty($user['nagios']) and $user['nagios']) {
-        get_const('nagios_url') = rtrim(get_option($db_link, 57),'/');
         if (preg_match('/127.0.0.1/', get_const('nagios_url'))) { print "<td class=\"$cl\" >". get_qa($user['nagios']) ."</td>\n"; } else {
             $nagios_link = get_const('nagios_url').'/cgi-bin/status.cgi?host='.get_nagios_name($user);
             print "<td class=\"$cl\" >"; print_url(get_qa($user['nagios']),$nagios_link); print "</td>\n";
