@@ -678,8 +678,8 @@ if ($fqdn_static ne '') {
 if ($fqdn ne '' and $dynamic_ok ne '') { db_log_debug($hdb,"Dynamic record for $fqdn [$dynamic_ok] correct. No changes required."); }
 
 if ($fqdn ne '' and !$dynamic_ok) {
-    #log event
-    db_log_error($hdb,"Dynamic record mismatch! Expected: $fqdn => $dhcp_record->{ip}, recivied: $dynamic_ref. Checking the status.");
+    #log event without email alert
+    log_error("Dynamic record mismatch! Expected: $fqdn => $dhcp_record->{ip}, recivied: $dynamic_ref. Checking the status.");
     #check exists hostname
     my $another_hostname_exists = 0;
     my $hostname_filter = ' LOWER(dns_name) REGEXP("^'.lc($dhcp_record->{hostname_utf8}).'\.*$")';
