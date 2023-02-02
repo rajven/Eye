@@ -600,12 +600,12 @@ $update_hostname_from_dhcp = get_option($hdb,46) || 0;
 my $subnets_dhcp = get_subnets_ref($hdb);
 my $enable_ad_dns_update = ($ad_zone and $ad_dns and $update_hostname_from_dhcp);
 
-log_debug("Subnet: $dhcp_record->{network}");
+log_debug("Dhcp record: ".Dumper($dhcp_record));
+log_debug("Subnets: ".Dumper($subnets_dhcp->{$dhcp_record->{network}->{subnet}}));
+log_debug("enable_ad_dns_update: ".$enable_ad_dns_update);
+log_debug("DNS update flags - zone: ".$ad_zone.",dns: ".$ad_dns.", update_hostname_from_dhcp: ".$update_hostname_from_dhcp.", enable_ad_dns_update: ".$enable_ad_dns_update);
 
-log_debug("DNS update flags - zone: $ad_zone dns: $ad_dns config: $update_hostname_from_dhcp subnet: $subnets_dhcp->{$dhcp_record->{network}}->{dhcp_update_hostname}");
-
-my $maybe_update_dns=(($dhcp_record->{type}=~/add/i or $dhcp_record->{type}=~/old/i) and $dhcp_record->{hostname_utf8} and $dhcp_record->{hostname_utf8} !~/UNDEFINED/i and $enable_ad_dns_update and $subnets_dhcp->{$dhcp_record->{network}}->{dhcp_update_hostname});
-
+my $maybe_update_dns=(($dhcp_record->{type}=~/add/i or $dhcp_record->{type}=~/old/i) and $dhcp_record->{hostname_utf8} and $dhcp_record->{hostname_utf8} !~/UNDEFINED/i and $enable_ad_dns_update and $subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname});
 if (!$maybe_update_dns) {
     db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id}. DNS update don't needed.");
     return 0;
@@ -616,14 +616,14 @@ log_debug("DNS update enabled.");
 my $fqdn_static;
 if ($auth_record->{dns_name}) {
     $fqdn_static=lc($auth_record->{dns_name});
-    if ($fqdn_static!~/$ad_zone$/i) {
+    if ($fqdn_static!~/\.$ad_zone$/i) {
             $fqdn_static=~s/\.$//;
             $fqdn_static=lc($fqdn_static.'.'.$ad_zone);
             }
     }
 
 my $fqdn=lc(trim($dhcp_record->{hostname_utf8}));
-if ($fqdn!~/$ad_zone$/i) {
+if ($fqdn!~/\.$ad_zone$/i) {
     $fqdn=~s/\.$//;
     $fqdn=lc($fqdn.'.'.$ad_zone);
     }
@@ -660,6 +660,9 @@ if ($fqdn ne '') {
             }
     }
 
+db_log_debug($hdb,"Dns record for static record $fqdn_static: $static_ok");
+db_log_debug($hdb,"Dns record for dhcp-hostname $fqdn: $dynamic_ok");
+
 if ($fqdn_static ne '') {
     if (!$static_ok) {
         db_log_info($hdb,"Static record mismatch! Expected $fqdn_static => $dhcp_record->{ip}, recivied: $static_ref");
@@ -667,20 +670,29 @@ if ($fqdn_static ne '') {
                 db_log_info($hdb,"Static dns hostname defined but not found. Create it ($fqdn_static => $dhcp_record->{ip})!");
                 update_ad_hostname($fqdn_static,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
                 }
-        } else { db_log_debug($hdb,"Static record for $fqdn_static [$static_ok] correct."); }
+        } else {
+	db_log_debug($hdb,"Static record for $fqdn_static [$static_ok] correct.");
+	}
     }
 
 if ($fqdn ne '' and $dynamic_ok ne '') { db_log_debug($hdb,"Dynamic record for $fqdn [$dynamic_ok] correct. No changes required."); }
+
 if ($fqdn ne '' and !$dynamic_ok) {
-    #log only to file!!!
-    log_error($hdb,"Dynamic record mismatch! Expected: $fqdn => $dhcp_record->{ip}, recivied: $dynamic_ref. Checking the status.");
+    #log event
+    db_log_error($hdb,"Dynamic record mismatch! Expected: $fqdn => $dhcp_record->{ip}, recivied: $dynamic_ref. Checking the status.");
     #check exists hostname
     my $another_hostname_exists = 0;
-    my $hostname_filter = ' LOWER(dns_name)="'.lc($dhcp_record->{hostname_utf8}).'"';
-    if ($fqdn_static ne '' and $fqdn !~/$fqdn_static/) { $hostname_filter = $hostname_filter . ' or LOWER(dns_name)="'.lc($auth_record->{dns_name}).'"'; }
+    my $hostname_filter = ' LOWER(dns_name) REGEXP("^'.lc($dhcp_record->{hostname_utf8}).'\.*$")';
+    if ($fqdn_static ne '' and $fqdn !~/$fqdn_static/) {
+	    $hostname_filter = $hostname_filter . ' or LOWER(dns_name) REGEXP("^'.lc($auth_record->{dns_name}).'\.*$")';
+	    }
     #check exists another records with some static hostname
-    my $name_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE id<>'.$auth_record->{id}.' and deleted=0 and ('.$hostname_filter.') ORDER BY last_found DESC');
-    if ($name_record->{id}) { $another_hostname_exists = 1; }
+    my $filter_sql = 'SELECT * FROM User_auth WHERE id<>'.$auth_record->{id}.' and deleted=0 and ('.$hostname_filter.') ORDER BY last_found DESC';
+    db_log_debug($hdb,"Search dhcp hostname by: ".$filter_sql);
+    my $name_record = get_record_sql($hdb,$filter_sql);
+    if ($name_record->{dns_name} =~/^$fqdn$/i or $name_record->{dns_name} =~/^$dhcp_record->{hostname_utf8}$/i) {
+	    $another_hostname_exists = 1;
+	    }
     if (!$another_hostname_exists) {
             if ($fqdn_static and $fqdn_static ne '') {
                     if ($fqdn_static!~/$fqdn/) {
@@ -692,7 +704,7 @@ if ($fqdn ne '' and !$dynamic_ok) {
         	    update_ad_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
         	    }
 	    } else {
-            db_log_error($hdb,"Found another record with some hostname id: $name_record->{id} ip: $name_record->{ip} hostname: $name_record->{dns_hostname}. Skip update.");
+            db_log_error($hdb,"Found another record with some hostname id: $name_record->{id} ip: $name_record->{ip} hostname: $name_record->{dns_name}. Skip update.");
             }
     }
 #end update dns block
@@ -721,7 +733,7 @@ push(@add_dns,"update add $fqdn 3600 A $ip");
 push(@add_dns,"send");
 my $nsupdate_file = "/tmp/".$fqdn.".nsupdate";
 write_to_file($nsupdate_file,\@add_dns);
-do_exec('kinit -k -t /usr/local/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && nsupdate "'.$nsupdate_file.'"');
+do_exec('/usr/bin/kinit -k -t /usr/local/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"');
 if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
 }
 
@@ -755,7 +767,7 @@ push(@add_dns,"update add $radr 3600 PTR $fqdn.");
 push(@add_dns,"send");
 my $nsupdate_file = "/tmp/".$radr.".nsupdate";
 write_to_file($nsupdate_file,\@add_dns);
-my $run_cmd = 'kinit -k -t /usr/local/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && nsupdate "'.$nsupdate_file.'"';
+my $run_cmd = '/usr/bin/kinit -k -t /usr/local/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"';
 do_exec($run_cmd);
 if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
 }
