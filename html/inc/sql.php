@@ -1,4 +1,6 @@
 <?php
+if (! defined("CONFIG")) die("Not defined");
+
 if (! defined("SQL")) { die("Not defined"); }
 
 $db_link = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);

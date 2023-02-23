@@ -1,4 +1,5 @@
 <?php
+if (! defined("CONFIG")) die("Not defined");
 
 if (!isset($default_sort)) { $default_sort=''; }
 if (!isset($default_order)) { $default_order='ASC'; }

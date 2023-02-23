@@ -85,8 +85,9 @@ my ($session, $error) = Net::SNMP->session(
    -community => $community,
    -port      => $port,
    -version   => $snmp_version,
-   -timeout   => $snmp_timeout
+   -timeout   => 5
 );
+return if (!defined($session));
 my $result = $session->get_request( -varbindlist => [$oid]);
 $session->close;
 return if (!$result->{$oid});
@@ -110,6 +111,7 @@ my ($session, $error) = Net::SNMP->session(
    -version   => $snmp_version,
    -timeout   => $snmp_timeout
 );
+return if (!defined($session));
 my $result = $session->set_request( -varbindlist => [$oid,INTEGER,$value]);
 $session->close;
 return $result->{$oid};
@@ -203,9 +205,19 @@ my $version = shift;
 my $ifmib_map;
 my $index_table =  snmp_get_oid($ip, $community, $ifIndex_map, $version);
 if (!%$index_table) { $index_table =  snmp_walk_oid($ip, $community, $ifIndex_map, $version); }
-my $is_mikrotik = snmp_get_oid($ip, $community, '.1.3.6.1.2.1.9999.1.1.1.1.0', $version);
-if (%$index_table and $is_mikrotik) {
-	if ($is_mikrotik) {
+return if (!$index_table);
+my $is_mikrotik = snmp_get_request($ip, '.1.3.6.1.2.1.9999.1.1.1.1.0', $community, 161, $version);
+my $mk_ros_version = 6491;
+
+if ($is_mikrotik) {
+    my $mikrotik_version = snmp_get_request($ip, '.1.0.8802.1.1.2.1.3.4.0', $community, 161, $version);
+    #"MikroTik RouterOS 6.46.8 (long-term) CRS326-24S+2Q+"
+    if ($mikrotik_version =~/RouterOS\s+(\d)\.(\d{1,3})\.(\d{1,3})\s+/) {
+        $mk_ros_version = $1*1000 + $2*10 + $3;
+        }
+    }
+
+if ($is_mikrotik and ($mk_ros_version > 6468)) {
             foreach my $row (keys(%$index_table)) {
 	        my $port_index = $index_table->{$row};
 	        next if (!$port_index);
@@ -214,10 +226,7 @@ if (%$index_table and $is_mikrotik) {
 	        next if (!$value);
     	        $ifmib_map->{$value}=$port_index;
         	}
-	    }
         } else {
-#        $index_table =  snmp_get_oid($ip, $community, $ifIndex, $version);
-#        if (!%$index_table) { $index_table =  snmp_walk_oid($ip, $community, $ifIndex, $version); }
         if (%$index_table) {
             foreach my $row (keys(%$index_table)) {
 	        my $port_index = $index_table->{$row};

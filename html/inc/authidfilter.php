@@ -1,4 +1,6 @@
 <?php
+if (! defined("CONFIG")) die("Not defined");
+
 if (isset($_GET['auth_id'])) { $auth_id = $_GET["auth_id"] * 1; }
 if (isset($_POST['auth_id'])) { $auth_id = $_POST["auth_id"] * 1; }
 if (!isset($auth_id)) {

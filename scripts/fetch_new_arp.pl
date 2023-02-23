@@ -30,6 +30,8 @@ flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
 setpriority(0,0,19);
 
+$debug = 1;
+
 my %mac_history;
 
 my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime(time());
