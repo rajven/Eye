@@ -209,7 +209,7 @@ return if (!$index_table);
 my $is_mikrotik = snmp_get_request($ip, '.1.3.6.1.2.1.9999.1.1.1.1.0', $community, 161, $version);
 my $mk_ros_version = 6491;
 
-if ($is_mikrotik) {
+if ($is_mikrotik=~/MikroTik/i) {
     my $mikrotik_version = snmp_get_request($ip, '.1.0.8802.1.1.2.1.3.4.0', $community, 161, $version);
     #"MikroTik RouterOS 6.46.8 (long-term) CRS326-24S+2Q+"
     if ($mikrotik_version =~/RouterOS\s+(\d)\.(\d{1,3})\.(\d{1,3})\s+/) {
@@ -217,7 +217,7 @@ if ($is_mikrotik) {
         }
     }
 
-if ($is_mikrotik and ($mk_ros_version > 6468)) {
+if ($is_mikrotik=~/MikroTik/i and ($mk_ros_version > 6468)) {
             foreach my $row (keys(%$index_table)) {
 	        my $port_index = $index_table->{$row};
 	        next if (!$port_index);
