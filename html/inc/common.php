@@ -1717,9 +1717,19 @@ function get_mac_port_table($ip, $port_index, $community, $version, $oid, $index
 function get_ifmib_index_table ($ip, $community, $version)
 {
 $ifmib_map = NULL;
-$index_table =  walk_snmp($ip, $community, $version, IFMIB_IFINDEX_MAP);
+$index_table = walk_snmp($ip, $community, $version, IFMIB_IFINDEX_MAP);
 $is_mikrotik = walk_snmp($ip, $community, $version, '.1.3.6.1.2.1.9999.1.1.1.1.0');
-if (isset($index_table) and count($index_table) > 0 and isset($is_mikrotik)) {
+$mk_ros_version = 6497;
+
+if ($is_mikrotik) {
+    $mikrotik_version = walk_snmp($ip, $community, $version, '.1.0.8802.1.1.2.1.3.4.0');
+    $result = preg_match('/RouterOS\s+(\d)\.(\d{1,3})\.(\d{1,3})\s+/',$mikrotik_version['.1.0.8802.1.1.2.1.3.4.0'],$matches);
+    if ($result) {
+        $mk_ros_version = $matches[1]*1000 + $matches[2]*10 + $matches[3];
+        }
+    }
+
+if (isset($index_table) and count($index_table) > 0 and ($is_mikrotik and $mk_ros_version>6468)) {
         foreach ($index_table as $key => $value) {
             $key = trim($key);
             $value = intval(trim(str_replace('INTEGER:', '', $value)));
@@ -1968,6 +1978,8 @@ function get_snmp_interfaces($ip, $community, $version)
 
 function walk_snmp($ip, $community, $version, $oid)
 {
+    snmp_set_oid_output_format(SNMP_OID_OUTPUT_NUMERIC);
+
     if ($version == 2) {
         $result = snmp2_real_walk($ip, $community, $oid);
     }
@@ -2406,6 +2418,7 @@ function get_port_poe_detail($vendor_id, $port, $ip, $community, $version)
 
 function get_snmp($ip, $community, $version, $oid)
 {
+    snmp_set_oid_output_format(SNMP_OID_OUTPUT_NUMERIC);
     if ($version == 2) {
         $result = snmp2_get($ip, $community, $oid);
     }
@@ -3039,9 +3052,9 @@ function get_cacti_graph($host_ip, $port_index)
 
     if (empty(get_const('cacti_url'))) { return; }
 
-    $cacti_db_link = mysqli_connect(CACTI_DB_HOST, DB_USER, DB_PASS, CACTI_DB_NAME);
+    $cacti_db_link = mysqli_connect(CACTI_DB_HOST, CACTI_DB_USER, CACTI_DB_PASS, CACTI_DB_NAME);
     if (! $cacti_db_link) {
-        echo "Ошибка: Невозможно установить соединение с MySQL with CACTI_DB_HOST [CACTI_DB_NAME] for DB_USER." . PHP_EOL;
+        echo "Ошибка: Невозможно установить соединение с MySQL with ".CACTI_DB_HOST." [".CACTI_DB_NAME."] for ".CACTI_DB_USER." ". PHP_EOL;
         echo "Код ошибки errno: " . mysqli_connect_errno() . PHP_EOL;
         echo "Текст ошибки error: " . mysqli_connect_error() . PHP_EOL;
         return FALSE;
