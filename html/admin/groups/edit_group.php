@@ -62,14 +62,14 @@ if (isset($_POST["s_create"])) {
     exit;
 }
 
-unset($_POST);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
 fix_auth_rules($db_link);
 
 ?>
 <div id="cont">
-<form name="def" action="edit_group.php" method="post">
+<form name="def" action="edit_group.php?id=<?php echo $id; ?>" method="post">
+<input type="hidden" name="id" value=<?php echo $id; ?>>
 <table class="data">
 <tr align="center">
 <td colspan=2><b>Название</b></td>
@@ -107,7 +107,7 @@ print "<td class=\"data\"><input type=\"text\" name='f_nagios_service' value='{$
 </tr>
 </table>
 <br>
-<b>Правила автоназначения адресов в <?php print_url($auth_info['login'],"/admin/users/edituser.php?id=$id"); ?></b>
+<b>Правила автоназначения адресов в <?php print $ou_info['ou_name']; ?></b>
 <br>
 Порядок применения: hotspot => subnet => mac => hostname => default user
 <br><br>

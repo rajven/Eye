@@ -296,7 +296,6 @@ if ($msg_error) { print "<div id='msg'><b>$msg_error</b></div><br>\n"; }
 
 $sort_table = 'User_auth';
 $sort_url = "<a href=edituser.php?id=" . $id;
-if ($id == $default_user_id or $id == $hotspot_user_id) { $default_sort = 'last_found DESC'; }
 ?>
 
 <br><b>Список адресов доступа</b><br>

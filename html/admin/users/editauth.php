@@ -30,7 +30,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
 		}
 	//disable dhcp for secondary ip
 	$f_dhcp = $_POST["f_dhcp"] * 1;
-	if (in_array($parent_id,$mac_exists['users_id'])) {
+	if (!empty($mac_exists) and in_array($parent_id,$mac_exists['users_id'])) {
 	    if ($parent_id != $mac_exists['users_id'][0]) { $f_dhcp = 0; }
 	    }
 	//search ip
@@ -48,7 +48,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         $new['ip_int'] = $ip_aton;
         $new['mac'] = mac_dotted($_POST["f_mac"]);
         $new['comments'] = $_POST["f_comments"];
-        $new['firmware'] = $_POST["f_firmware"];
+//        $new['firmware'] = $_POST["f_firmware"];
         $new['WikiName'] = $_POST["f_wiki"];
         $f_dnsname=trim($_POST["f_dns_name"]);
 //        if (!empty($f_dnsname) and checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) { $new['dns_name'] = $f_dnsname; }
@@ -80,7 +80,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             }
         if ($new['nagios'] ==0) { $new['nagios_status']='UP'; }
         $changes = get_diff_rec($db_link,"User_auth","id='$id'", $new, 0);
-        if (!empty($changes)) { LOG_WARNING($db_link,"Изменена запись для адреса $ip! Список изменений: $changes",$id); }
+        if (!empty($changes)) { LOG_WARNING($db_link,"Изменена запись для адреса $ip! Список изменений: ".$changes,$id); }
         if (is_auth_bind_changed($db_link,$id,$ip,$mac)) {
             $new_id = copy_auth($db_link,$id,$new);
             header("Location: /admin/users/editauth.php?id=".$new_id,TRUE, 302);
@@ -99,7 +99,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
 if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
     $new_parent_id = $_POST["f_new_parent"]*1;
     $changes=apply_auth_rule($db_link,$id,$new_parent_id);
-    LOG_WARNING($db_link,"Адрес доступа перемещён к другому пользователю! Применено: $changes",$id);
+    LOG_WARNING($db_link,"Адрес доступа перемещён к другому пользователю! Применено: ".get_rec_str($changes),$id);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
     }

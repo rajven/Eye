@@ -16,7 +16,7 @@ if (!isset($auth_id)) { header('Location: /admin/logs/index.php', true, 301); ex
 Начало:<input type="date" name="date_start" value="<?php echo $date1; ?>" />
 Конец:<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
 Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-Уровень логов:<?php print_loglevel_select('log_level',get_const('log_level')); ?>
+Уровень логов:<?php print_loglevel_select('display_log_level',$display_log_level); ?>
 <input type="submit" value="OK"><br><br>
 Фильтр Источник:<input name="customer" value="<?php echo $fcustomer; ?>" />
 Сообщение:<input name="message" value="<?php echo $fmessage; ?>" />
@@ -25,11 +25,11 @@ if (!isset($auth_id)) { header('Location: /admin/logs/index.php', true, 301); ex
 <?php
 $log_filter ='';
 
-
-if (get_const('log_level') == L_INFO) { $log_filter = " and `level`=L_INFO "; }
-if (get_const('log_level') == L_ERROR) { $log_filter = " and (`level`=L_INFO or `level`=L_ERROR) "; }
-if (get_const('log_level') == L_VERBOSE) { $log_filter = " and (`level`=L_INFO or `level`=L_ERROR or `level`=L_VERBOSE) "; }
-if (get_const('log_level') == L_DEBUG) { $log_filter = ""; }
+if ($display_log_level == L_ERROR) { $log_filter = " and `level`=". L_ERROR." "; }
+if ($display_log_level == L_WARNING) { $log_filter = " and `level`<=".L_WARNING." "; }
+if ($display_log_level == L_INFO) { $log_filter = " and `level`<=".L_INFO." "; }
+if ($display_log_level == L_VERBOSE) { $log_filter = " and `level`<=".L_VERBOSE." "; }
+if ($display_log_level == L_DEBUG) { $log_filter = ""; }
 
 if (!empty($log_filter)) { $log_filter = $log_filter." and auth_id=".$auth_id; } else { $log_filter = " and auth_id=".$auth_id; }
 if (!empty($fcustomer)) { $log_filter = $log_filter." and customer LIKE '%".$fcustomer."%'"; }

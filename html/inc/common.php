@@ -29,6 +29,12 @@ $config["init"]=0;
 // 17, 'Maipu'
 // 18, 'Asus'
 
+function mb_ucfirst($str) {
+    $str = mb_strtolower($str);
+    $fc = mb_strtoupper(mb_substr($str, 0, 1));
+    return $fc.mb_substr($str, 1);
+}
+
 function get_user_ip()
 {
     $auth_ip = getenv("HTTP_CLIENT_IP");
@@ -1024,39 +1030,40 @@ function get_device_ips($db, $device_id)
 function get_device_id($db, $device_name)
 {
     $d_sql = "SELECT id FROM devices WHERE device_name='$device_name' and deleted=0";
-    $t_device = mysqli_query($db, $d_sql);
-    list ($f_device_id) = mysqli_fetch_array($t_device);
-    return $f_device_id;
+    $dev = get_record_sql($db,$d_sql);
+    if (empty($dev)) { return NULL; }
+    return $dev["id"];
 }
 
 function get_device_name($db, $device_id)
 {
     $d_sql = "SELECT device_name FROM devices WHERE id='$device_id'";
-    $t_device = mysqli_query($db, $d_sql);
-    list ($f_device_name) = mysqli_fetch_array($t_device);
-    return $f_device_name;
+    $dev = get_record_sql($db,$d_sql);
+    if (empty($dev)) { return NULL; }
+    return $dev["device_name"];
 }
 
 function get_auth_by_ip($db, $ip)
 {
     $d_sql = "SELECT id FROM User_auth WHERE ip='$ip' and deleted=0";
-    $auth_q = mysqli_query($db, $d_sql);
-    list ($f_auth_id) = mysqli_fetch_array($auth_q);
-    return $f_auth_id;
+    $auth = get_record_sql($db,$d_sql);
+    if (empty($auth)) { return NULL; }
+    return $auth["id"];
 }
 
 function get_user_by_ip($db, $ip)
 {
     $d_sql = "SELECT user_id FROM User_auth WHERE ip='$ip' and deleted=0";
-    $auth_q = mysqli_query($db, $d_sql);
-    list ($f_auth_id) = mysqli_fetch_array($auth_q);
-    return $f_auth_id;
+    $auth = get_record_sql($db,$d_sql);
+    if (empty($auth)) { return NULL; }
+    return $auth["user_id"];
 }
 
 function get_device_by_auth($db, $id)
 {
     $d_sql = "SELECT id FROM devices WHERE user_id=$id and deleted=0";
     $f_dev = get_record_sql($db,$d_sql);
+    if (empty($f_dev)) { return NULL; }
     return $f_dev['id'];
 }
 
@@ -1326,6 +1333,7 @@ if (!empty($ou_info)) {
     }
 
 $result = insert_record($db,"User_list",$user);
+$auto_mac_rule = get_option($db, 64);
 if (!empty($result) and $auto_mac_rule and $user_info['mac']) {
     $auth_rule['user_id'] = $result;
     $auth_rule['type'] = 2;
@@ -2784,12 +2792,13 @@ function get_records_sql($db, $sql)
 
 function get_record_sql($db, $sql)
 {
+    $result = NULL;
     if (! isset($sql)) {
         LOG_ERROR($db, "Empty query! Skip command.");
-        return;
+        return $result;
     }
     $record = mysqli_query($db, $sql." LIMIT 1") or LOG_ERROR($db, "SQL: $sql LIMIT 1: ".mysqli_error($db));
-    $result = NULL;
+    if (!isset($record)) { return $result; }
     $rec = mysqli_fetch_array($record, MYSQLI_ASSOC);
     if (!empty($rec)) {
         foreach ($rec as $key => $value) {
@@ -2920,10 +2929,12 @@ function delete_record($db, $table, $filter)
     $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "SQL: $old_sql :".mysqli_error($db));
     $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
     $changed_log = 'record: ';
-    foreach ($old as $key => $value) {
-        if (! isset($value)) { $value = ''; }
-        $changed_log = $changed_log . " $key => $value,";
-    }
+    if (!empty($old)) {
+        foreach ($old as $key => $value) {
+            if (! isset($value)) { $value = ''; }
+            $changed_log = $changed_log . " $key => $value,";
+            }
+        }
     //never delete user ip record
     if ($table === 'User_auth') {
         $changed_time = GetNowTimeString();
@@ -2981,6 +2992,13 @@ function insert_record($db, $table, $newvalue)
     return $last_id;
 }
 
+function get_rec_str ($array) {
+    $result='';
+    foreach ($array as $key => $value) { $result .= "[".$key."]=".$value.", "; }
+    $result = preg_replace('/,\s+$/','',$result);
+    return $result;
+}
+
 function get_diff_rec($db, $table, $filter, $newvalue, $only_changed)
 {
     if (! isset($table)) {
@@ -3008,7 +3026,7 @@ function get_diff_rec($db, $table, $filter, $newvalue, $only_changed)
     if (!$only_changed) {
         $old_record = "\r\n Не изменялось:\r\n";
 	foreach ($old as $key => $value) {
-            if (!$newvalue[$key]) { $old_record = $old_record . " $key = $value,\r\n"; }
+            if (!empty($newvalue[$key])) { $old_record = $old_record . " $key = $value,\r\n"; }
             }
 	$old_record = substr_replace($old_record, "", -3);
 	}
@@ -3178,14 +3196,15 @@ function get_new_user_id($db, $ip, $mac, $hostname)
     if (!empty($mac)) {
         $mac_rules=get_records_sql($db,"SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0 AND user_id IS NOT NULL");
         foreach ($mac_rules as $row) {
-            if (!empty($row['rule']) and preg_match(mac_simplify($row['rule']), mac_simplify($mac))) { $result['user_id']=$row['user_id']; }
+            $pattern = '/'.mac_simplify($row['rule']).'/';
+            if (!empty($row['rule']) and preg_match($pattern, mac_simplify($mac))) { $result['user_id']=$row['user_id']; }
             }
         }
     //hostname
     if (!empty($hostname)) {
         $mac_rules=get_records_sql($db,"SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0 AND user_id IS NOT NULL");
         foreach ($mac_rules as $row) {
-            if (!empty($row['rule']) and preg_match($row['rule'], $mac)) { $result['user_id']=$row['user_id']; }
+            if (!empty($row['rule']) and preg_match($row['rule'], $hostname)) { $result['user_id']=$row['user_id']; }
             }
         }
 
@@ -3204,14 +3223,15 @@ function get_new_user_id($db, $ip, $mac, $hostname)
     if (!empty($mac)) {
         $mac_rules=get_records_sql($db,"SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0 AND ou_id IS NOT NULL");
         foreach ($mac_rules as $row) {
-            if (!empty($row['rule']) and preg_match(mac_simplify($row['rule']), mac_simplify($mac))) { $result['ou_id']=$row['ou_id']; }
+            $pattern = '/'.mac_simplify($row['rule']).'/';
+            if (!empty($row['rule']) and preg_match($pattern, mac_simplify($mac))) { $result['ou_id']=$row['ou_id']; }
             }
         }
     //hostname
     if (!empty($hostname)) {
         $mac_rules=get_records_sql($db,"SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0 AND ou_id IS NOT NULL");
         foreach ($mac_rules as $row) {
-            if (!empty($row['rule']) and preg_match($row['rule'], $mac)) { $result['ou_id']=$row['ou_id']; }
+            if (!empty($row['rule']) and preg_match($row['rule'], $hostname)) { $result['ou_id']=$row['ou_id']; }
             }
         }
 

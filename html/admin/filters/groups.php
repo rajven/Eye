@@ -29,21 +29,22 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 print_filters_submenu($page_url);
 ?>
 <div id="cont">
-<br> <b>Список групп</b> <br>
 <form name="def" action="groups.php" method="post">
 <table class="data">
 <tr align="center">
 	<td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 	<td><b>Id</b></td>
 	<td width=200><b>Название</b></td>
+	<td width=200><b>Комментарий</b></td>
 </tr>
 <?php
-$users = mysqli_query($db_link, "select * from Group_list order by id");
-while (list ($id, $grpname) = mysqli_fetch_array($users)) {
+$groups = get_records_sql($db_link,'SELECT * FROM Group_list ORDER BY id');
+foreach ($groups as $row) {
     print "<tr align=center>\n";
-    print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=$id></td>\n";
-    print "<td class=\"data\" ><input type=\"hidden\" name=\"id\" value=$id>$id</td>\n";
-    print "<td class=\"data\"><a href=editgroup.php?id=$id>" . $grpname . "</a></td>\n";
+    print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=".$row["id"]."></td>\n";
+    print "<td class=\"data\" ><input type=\"hidden\" name=\"".$row["id"]."\" value=".$row["id"].">".$row["id"]."</td>\n";
+    print "<td class=\"data\"><a href=editgroup.php?id=".$row["id"].">" . $row["group_name"] . "</a></td>\n";
+    print "<td class=\"data\">" . $row["comment"] . "</td>\n";
 }
 ?>
 </table>

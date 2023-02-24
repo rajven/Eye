@@ -83,6 +83,7 @@ $user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device
 unset($_POST);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
+
 print_editdevice_submenu($page_url,$id,$device['device_type']);
 
 ?>

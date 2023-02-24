@@ -19,11 +19,13 @@ if (isset($_POST["edituser"])) {
 
 unset($_POST);
 
+print_control_submenu($page_url);
+
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $customer=get_record($db_link,'Customers',"id=".$id);
 ?>
 <div id="cont">
-
+<br><b>Пользователь</b><br>
 	<form name="def" action="editcustom.php?id=<?php echo $id; ?>" method="post">
 		<input type="hidden" name="id" value=<?php echo $id; ?>>
 		<table class="data">

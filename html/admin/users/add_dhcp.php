@@ -1,11 +1,10 @@
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/qauth.php");
 
-
 if (!empty($_GET["ip"]) and !empty($_GET["mac"])) {
     $ip = $_GET["ip"];
     $mac = mac_dotted(trim($_GET["mac"]));
-    $dhcp_hostname = NULL;
+    $dhcp_hostname = '';
     if (!empty($_GET["hostname"])) { $dhcp_hostname = trim($_GET["hostname"]); }
     $faction = $_GET["action"] * 1;
     $action = 'add';
@@ -16,7 +15,6 @@ if (!empty($_GET["ip"]) and !empty($_GET["mac"])) {
     if (checkValidIp($ip) and is_our_network($db_link, $ip)) {
 	$log_dhcp = 1;
         $ip_aton = ip2long($ip);
-
 	//check hotspot
 	$hotspot_user = is_hotspot($db_link,$ip);
 	if ($hotspot_user) {
@@ -25,46 +23,44 @@ if (!empty($_GET["ip"]) and !empty($_GET["mac"])) {
 		if (!isset($log_dhcp_hotspot)) { $log_dhcp_hotspot = 0; }
 		$log_dhcp = !$log_dhcp_hotspot;
 		}
-
 	$auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE ip_int=" . $ip_aton . " AND deleted=0");
-
 	$aid = NULL;
 	if (!empty($auth)) {
 	    $aid = $auth['id'];
 	    LOG_VERBOSE($db_link,"Found auth for dhcp id: $aid with ip: $ip mac: $mac",$aid);
-	    }
-
-	if ($action ==='add' and empty($auth)) {
+            } else {
+	    LOG_VERBOSE($db_link,"User ip record not found for ip: $ip mac: $mac action: $action. Create it!",0);
 	    $aid = resurrection_auth($db_link, $ip, $mac, $action, $dhcp_hostname);
-	    if (empty($aid)) { return; }
-	    LOG_VERBOSE($db_link,"Add user by dhcp request ip: $ip mac: $mac",$aid);
+	    if (empty($aid)) {
+                LOG_ERRROR($db_link,"Failed create new user record",0);
+                exit;
+                }
+	    LOG_VERBOSE($db_link,"Add user by dhcp request ip: $ip mac: $mac action: $action",$aid);
+            $auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE id=" . $aid);
             }
-
-	if ($action ==='del' and !empty($auth)) {
-            $last_time = strtotime($auth['dhcp_time']);
-            LOG_VERBOSE($db_link,"Delete action found for ip $ip (id: $aid, userid: ".$auth['user_id']."). Last timestamp = ".strftime('%Y-%m-%d %H-%M-%S',$last_time)." Now = ".strftime('%Y-%m-%d %H-%M-%S',time()),$aid);
-	    if ((time() - $last_time>60) and ($auth['ou_id'] == get_const('default_user_ou_id') or $auth['ou_id'] == get_const('default_hotspot_ou_id'))) {
-                LOG_VERBOSE($db_link,"Remove dynamic user ip (id: $aid) by dhcp request for ip: $ip mac: $mac",$aid);
-	        delete_record($db_link,"User_auth","id=".$aid);
-	        $u_count=get_count_records($db_link,'User_auth','deleted=0 and user_id='.$auth['user_id']);
-	        if ($u_count == 0) {
-	    	    delete_record($db_link,"User_list","id=".$auth['user_id']);
-                    LOG_VERBOSE($db_link,"Remove dynamic user id: ".$auth['user_id']." by dhcp request",$aid);
+        if ($action ==='del' and !empty($auth['dhcp_time'])) {
+                $last_time = strtotime($auth['dhcp_time']);
+                LOG_VERBOSE($db_link,"Delete action found for ip $ip (id: $aid, userid: ".$auth['user_id']."). Last timestamp = ".strftime('%Y-%m-%d %H-%M-%S',$last_time)." Now = ".strftime('%Y-%m-%d %H-%M-%S',time()),$aid);
+	        if ((time() - $last_time>60) and ($auth['ou_id'] == get_const('default_user_ou_id') or $auth['ou_id'] == get_const('default_hotspot_ou_id'))) {
+                    LOG_VERBOSE($db_link,"Remove dynamic user ip (id: $aid) by dhcp request for ip: $ip mac: $mac",$aid);
+	            delete_record($db_link,"User_auth","id=".$aid);
+	            $u_count=get_count_records($db_link,'User_auth','deleted=0 and user_id='.$auth['user_id']);
+	            if ($u_count == 0) {
+	    	        delete_record($db_link,"User_list","id=".$auth['user_id']);
+                        LOG_VERBOSE($db_link,"Remove dynamic user id: ".$auth['user_id']." by dhcp request",$aid);
 	    	    }
 	        }
 	    }
-	
-	if ($log_dhcp) {
-    	    $dhcp_log['auth_id'] = $aid;
-            $dhcp_log['ip'] = $ip;
-	    $dhcp_log['ip_int'] = $ip_aton;
-            $dhcp_log['mac'] = $mac;
-	    $dhcp_log['action'] = $action;
-    	    insert_record($db_link, "dhcp_log", $dhcp_log); 
-    	    }
-        } else {
-        LOG_ERROR($db_link, "$ip - wrong network!");
-        }
+        if ($log_dhcp) {
+    	        $dhcp_log['auth_id'] = $aid;
+                $dhcp_log['ip'] = $ip;
+	        $dhcp_log['ip_int'] = $ip_aton;
+                $dhcp_log['mac'] = $mac;
+	        $dhcp_log['action'] = $action;
+	        $dhcp_log['dhcp_hostname'] = $dhcp_hostname;
+    	        insert_record($db_link, "dhcp_log", $dhcp_log); 
+    	        }
+        } else { LOG_ERROR($db_link, "$ip - wrong network!"); }
 }
 unset($_GET);
 ?>

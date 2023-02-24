@@ -30,8 +30,6 @@ flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
 setpriority(0,0,19);
 
-$debug = 1;
-
 my %mac_history;
 
 my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime(time());
@@ -39,6 +37,7 @@ $month += 1;
 $year += 1900;
 
 my $fork_count = $cpu_count*5;
+
 #disable fork for debug
 #if ($debug) { $fork_count = 0; }
 

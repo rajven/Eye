@@ -8,7 +8,8 @@ if (isset($_POST["remove"])) {
     if (!empty($fid)) {
         foreach ($fid as $key => $val) {
             if (isset($val) and $val != 1) {
-                LOG_INFO($db_link, "Remove config option id: $val");
+                $opt_def = get_record($db_link, "config_options","id=$val");
+                LOG_INFO($db_link, WEB_config_remove_option." id: ".$val." name: ".$opt_def["option_name"]);
                 delete_record($db_link, "config", "id=" . $val);
                 }
             }
@@ -27,7 +28,12 @@ if (isset($_POST['save'])) {
             $value = $_POST['f_config_value'][$j];
             if (isset($value) and $value!=='********') {
                 $new['value'] = $value;
-                update_record($db_link, "config", "id='{$save_id}'", $new);
+                $opt_cur = get_record($db_link, "config","id=$save_id");
+                if (isset($opt_cur) and !empty($opt_cur["option_id"])) {
+                    $opt_def = get_record($db_link, "config_options","id=".$opt_cur["option_id"]);
+                    LOG_INFO($db_link, WEB_config_set_option." id: ".$save_id." name: ".$opt_def["option_name"]." = ".$value);
+                    update_record($db_link, "config", "id='$save_id'", $new);
+                    }
             }
         }
     }
@@ -40,7 +46,8 @@ if (isset($_POST["create"])) {
     if (isset($new_option)) {
         $new['option_id'] = $new_option;
         $new['value'] = get_option($db_link,$new_option);
-        LOG_INFO($db_link, "Add config option $new_option");
+        $opt_def = get_record($db_link, "config_options","id=$new_option");
+        LOG_INFO($db_link, WEB_config_add_option." id: ".$new_option." name: ".$opt_def["option_name"]." = ".$new['value']);
         insert_record($db_link, "config", $new);
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -59,15 +66,15 @@ print_control_submenu($page_url);
 <div id="cont">
 <br>
 <form name="def" action="control-options.php" method="post">
-<br><b>Настройки</b><br>
+<br><b><?php print WEB_config_parameters; ?></b><br>
 <table class="data" width=800>
 <tr align="center">
 <td width=20><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td width=30><b>Id</b></td>
-<td width=150><b>Параметр</b></td>
-<td width=150><b>Значение</b></td>
-<td width=350><b>Комментарий</b></td>
-<td width=100><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
+<td width=150><b><?php print WEB_config_option; ?></b></td>
+<td width=150><b><?php print WEB_config_value; ?></b></td>
+<td width=350><b><?php print WEB_msg_comment; ?></b></td>
+<td width=100><input type="submit" onclick="return confirm('<?php print WEB_msg_delete; ?>?')" name="remove" value="<?php print WEB_msg_delete; ?>"></td>
 </tr>
 
 <?php
@@ -105,7 +112,7 @@ while ($row = mysqli_fetch_array($t_config)) {
 }
 ?>
 <tr>
-<td colspan=5 class="data">Добавить параметр :<?php print_option_select($db_link, "f_new_option"); ?></td>
+<td colspan=5 class="data"><?php print WEB_msg_add." ".mb_strtolower(WEB_config_option).":&nbsp"; print_option_select($db_link, "f_new_option"); ?></td>
 <td><input type="submit" name="create" value="Добавить"></td>
 </tr>
 </table>

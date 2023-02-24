@@ -11,4 +11,5 @@ if (empty($id)) {
     }
 
 $_SESSION[$page_url]['id']=$id;
+
 ?>

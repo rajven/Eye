@@ -45,28 +45,38 @@ print_filters_submenu($page_url);
 		<td><b>Порт назначения</b></td>
 		<td><b>Порт источник</b></td>
 		<td><b>Действие</b></td>
+		<td><b>Комментарий</b></td>
 	</tr>
 <?php
-$filters = get_records($db_link,'Filter_list','TRUE ORDER BY name');
+$filters = get_records_sql($db_link,'SELECT * FROM Filter_list ORDER BY name');
 foreach ($filters as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
     print "<td class=\"data\" ><input type=hidden name=\"id\" value=".$row['id'].">".$row['id']."</td>\n";
     print "<td class=\"data\" align=left><a href=editfilter.php?id=".$row['id'].">" . $row['name'] . "</a></td>\n";
+    if (empty($row['comment'])) { $row['comment']=''; }
+    if (empty($row['proto'])) { $row['proto']=''; }
+    if (empty($row['dst'])) { $row['dst']=''; }
+    if (empty($row['dstport'])) { $row['dstport']=''; }
+    if (empty($row['srcport'])) { $row['srcport']=''; }
     if ($row['type'] == 0) {
         print "<td class=\"data\">IP фильтр</td>\n";
         print "<td class=\"data\">".$row['proto']."</td>\n";
         print "<td class=\"data\">".$row['dst']."</td>\n";
         print "<td class=\"data\">".$row['dstport']."</td>\n";
         print "<td class=\"data\">".$row['srcport']."</td>\n";
-        print "<td class=\"data\">" . get_action($row['action']) . "</td>\n<tr>";
+        print "<td class=\"data\">" . get_action($row['action']) . "</td>\n";
+        print "<td class=\"data\">".$row['comment']."</td>\n";
     } else {
         print "<td class=\"data\">Name фильтр</td>\n";
         print "<td class=\"data\"></td>\n";
         print "<td class=\"data\">".$row['dst']."</td>\n";
         print "<td class=\"data\"></td>\n";
-        print "<td class=\"data\">" . get_action($row['action']) . "</td>\n<tr>";
+        print "<td class=\"data\"></td>\n";
+        print "<td class=\"data\">" . get_action($row['action']) . "</td>\n";
+        print "<td class=\"data\">".$row['comment']."</td>\n";
     }
+    print "</tr>";
 }
 ?>
 </table>

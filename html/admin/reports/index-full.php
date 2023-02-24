@@ -86,7 +86,7 @@ while (list ($s_login,$s_ou_id,$u_id,$s_ip,$s_auth_id, $s_router_id, $traf_day_i
     if ($traf_day_in + $traf_day_out ==0) { continue; }
     $total_in += $traf_day_in;
     $total_out += $traf_day_out;
-    $s_router = $gateway_list[$s_router_id];
+    if (!empty($gateway_list[$s_router_id])) { $s_router = $gateway_list[$s_router_id]; } else { $s_router=''; }
     $cl = "data";
     if ($traf_day_out > 2 * $traf_day_in) { $cl = "nb"; }
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
