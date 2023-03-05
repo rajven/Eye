@@ -32,11 +32,11 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
 ?>
 <div id="cont">
-	<form name="def" action="ipcam.php" method="post">
+<form name="def" action="ipcam.php" method="post">
 <?php
 print "<table cellspacing=\"0\" cellpadding=\"0\" width=\"500\">";
 print "<tr >\n";
-print "<td align=center colspan=2>Для группы</td><td>";
+print "<td align=center colspan=2>".WEB_control_group."</td><td>";
 print_ou_select($db_link, 'f_ou_id', $f_ou_id);
 print "</td>\n";
 print "</tr>\n";
@@ -45,14 +45,14 @@ $t_config = get_records_sql($db_link, "select id,name from building order by nam
 foreach ($t_config as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_name[]' value='{$row['name']}' disabled=true readonly=true></td>\n";
-    print "<td class=\"data\"><button name='port_on[]' value='{$row['id']}'>Включить порты</button></td>\n";
-    print "<td class=\"data\"><button name='port_off[]' value='{$row['id']}'>Выключить порты</button></td>\n";
+    print "<td class=\"data\"><button name='port_on[]' value='{$row['id']}'>".WEB_control_port_poe_on."</button></td>\n";
+    print "<td class=\"data\"><button name='port_off[]' value='{$row['id']}'>".WEB_control_port_poe_off."</button></td>\n";
     print "</tr>\n";
 }
 print "<tr align=center>\n";
 print "<td class=\"data\"><input type=\"text\" name='f_name[]' value='ALL' disabled=true readonly=true></td>\n";
-print "<td class=\"data\"><button name='port_on[]' value='{0}'>Включить порты</button></td>\n";
-print "<td class=\"data\"><button name='port_off[]' value='{0}'>Выключить порты</button></td>\n";
+print "<td class=\"data\"><button name='port_on[]' value='{0}'>".WEB_control_port_poe_on."</button></td>\n";
+print "<td class=\"data\"><button name='port_off[]' value='{0}'>".WEB_control_port_poe_off."</button></td>\n";
 print "</tr>\n";
 ?>
 </table>

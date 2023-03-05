@@ -31,25 +31,28 @@ libnetwork-ipv4addr-perl libnet-openssh-perl
 
 git clone https://github.com/rajven/statV2
 mkdir -p /usr/local/scripts
+mkdir -p /usr/local/scripts/cfg
 cd statV2/
 cp -R scripts/ /usr/local/
-mkdir -p /usr/local/scripts/cfg
 cp docs/addons/cfg/config /usr/local/scripts/cfg/
 cp -R html/ /var/www
 
 4. Можно скачать дополнительные скрипты (красивости)
 
+mkdir -p /var/www/html/js/jq
+mkdir -p /var/www/html/js/select2
+
 download from https://jquery.com/download/ production jQuery to /var/www/html/js/jq
-example: wget https://code.jquery.com/jquery-3.6.0.min.js
-rename jquery-3.6.0.min.js to jquery.min.js
+#wget https://code.jquery.com/jquery-3.6.0.min.js -O /var/www/html/js/jq/jquery.min.js
 
 download from https://github.com/select2/select2 release
-example: wget https://github.com/select2/select2/archive/4.0.12.tar.gz
-extract contents from directory dist archive to /var/www/html/js/select2/
+#wget https://github.com/select2/select2/archive/4.0.12.tar.gz
+#tar -xzf 4.0.12.tar.gz -C /var/www/html/js/select2/ --strip-components=2 select2-4.0.12/dist
 
 download jstree from  https://github.com/vakata/jstree/
-wget https://github.com/vakata/jstree/zipball/3.3.12 -O js.zip
-extract contents from directory dist archive to /var/www/html/js/jstree
+#wget https://github.com/vakata/jstree/zipball/3.3.12 -O js.zip
+#unzip js.zip "vakata-jstree-7a03954/dist/*" -d "/var/www/html/"
+#mv /var/www/html/vakata-jstree-7a03954/dist/ /var/www/html/js/jstree
 
 5. Настраиваем mysql 
 
@@ -62,10 +65,11 @@ mysql_secure_installation - утсановить пароль для root
 
 Создать юзера и базу данных
 
-MariaDB [(none)]> CREATE DATABASE `stat` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-MariaDB [(none)]> grant all privileges on stat.* to stat@localhost identified by 'password';
-MariaDB [(none)]> flush privileges;
-MariaDB [(none)]> quit
+MariaDB [(none)]> 
+CREATE DATABASE `stat` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+grant all privileges on stat.* to stat@localhost identified by 'password';
+flush privileges;
+quit
 
 cat docs/mysql/mysql.sql | mysql -u root -p stat
 
@@ -74,7 +78,11 @@ cat docs/mysql/mysql.sql | mysql -u root -p stat
 cp html/inc/config.php.sample /var/www/html/cfg/
 mv /var/www/html/cfg/config.php.sample /var/www/html/cfg/config.php
 
-edit: /var/www/html/cfg/config.php & /usr/local/scripts/cfg/config
+edit: /var/www/html/cfg/config.php
+
+cp scripts/cfg/config.sample /usr/local/scripts/cfg/config
+
+edit: /usr/local/scripts/cfg/config
 
 Надо указать пароль в  mysql и базу данных!!!
 
@@ -116,6 +124,10 @@ cp docs/logrotate/scripts /etc/logrotate.d/scripts
 
 dnf install dnsmasq -y
 
+or 
+
+apt install dnsmasq -y
+
 cp docs/systemd/dnsmasq.service /etc/systemd/system
 cp docs/systemd/dhcp-log.service /etc/systemd/system
 cp /etc/dnsmasq.conf /etc/dnsmasq.conf.default
@@ -127,6 +139,28 @@ systemctl enable dnsmasq
 systemctl enable dhcp-log
 systemctl start dnsmasq
 systemctl start dhcp-log
+
+######################################### Additional ##################################################################
+
+1. Для определения вендора оборудования по маку, необходимо импортировать базу маков:
+
+cp docs/mac-oids/download-macs.sh /usr/local/scripts/
+cp docs/mac-oids/update-mac-vendors.pl /usr/local/scripts/
+
+chmod +x /usr/local/scripts/download-macs.sh
+chmod +x /usr/local/scripts/update-mac-vendors.pl
+
+Run:
+/usr/local/scripts/download-macs.sh
+/usr/local/scripts/update-mac-vendors.pl
+
+И удалите скрипты после завершения их работы
+
+2. Для изменения списков доступа на маршрутизаторе сразу после внесения изменений необходимо включить сервис stat-sync
+
+cp docs/systemd/stat-sync.service /etc/systemd/system
+
+systemctl enable stat-sync.service
 
 ######################################### Netflow #####################################################################
 
@@ -179,7 +213,7 @@ add action=jump chain=forward jump-target=Users out-interface-list=WAN
 
 #указанные выше правила надо поставить выше этих дефалтных:
 #add action=drop chain=forward comment="drop forward invalid" connection-state=invalid
-#dd action=accept chain=forward comment=related,established connection-state=established,related
+#add action=accept chain=forward comment=related,established connection-state=established,related
 
 #А эти правила должны быть ниже дефолтных
 add action=reject chain=forward comment="deny default wan" in-interface-list=WAN reject-with=icmp-network-unreachable

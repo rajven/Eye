@@ -1,0 +1,40 @@
+#log files
+log_dir=/var/log/scripts
+
+#dnsmasq configs
+dhcpd_conf=/etc/dnsmasq.d
+
+#admin email
+admin_email=admin@example.com
+
+#sender address
+from_addr=admin@example.com
+
+#database - change it!!!
+DBSERVER=localhost
+DBUSER=mysql_user
+DBNAME=mysql_database
+DBPASS=mysql_password
+
+#login for windows AD
+#domain_auth=EXAMPLE\roman%password
+#winexe=/usr/bin/winexe
+
+#fping
+fping=/sbin/fping
+
+#mysql
+MYSQL=/usr/bin/mysql
+
+#log file owners
+user=nagios
+group=nagios
+
+#access to switches
+sw_login=admin
+sw_password=password
+
+#nagios settings
+nagios_dir=/etc/nagios4
+nagios_cmd=/var/spool/nagios4/cmd/nagios.cmd
+nagios_event_socket=/var/spool/nagios4/hoststate.socket

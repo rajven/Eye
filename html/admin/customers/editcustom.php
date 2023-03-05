@@ -25,21 +25,21 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $customer=get_record($db_link,'Customers',"id=".$id);
 ?>
 <div id="cont">
-<br><b>Пользователь</b><br>
+<br><b><?php echo WEB_custom_titles; ?></b><br>
 	<form name="def" action="editcustom.php?id=<?php echo $id; ?>" method="post">
 		<input type="hidden" name="id" value=<?php echo $id; ?>>
 		<table class="data">
 			<tr>
-				<td>Login</td>
-				<td>Password</td>
-				<td>RO</td>
+				<td><?php echo WEB_custom_login; ?></td>
+				<td><?php echo WEB_custom_password; ?></td>
+				<td><?php echo WEB_custom_mode; ?></td>
 			</tr>
 			<tr>
 				<td><input type="text" name="login" value="<?php print $customer['Login']; ?>" size=20></td>
 				<td><input type="text" name="pass" value="" size=20></td>
 				<td><?php print_qa_select('f_ro',$customer['readonly']); ?></td>
 			</tr>
-			<td colspan=2><input type="submit" name="edituser" value="Save"></td>
+			<td colspan=2><input type="submit" name="edituser" value="<?php echo WEB_btn_save; ?>"></td>
 		</table>
 	</form>
 <?php require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php"); ?>

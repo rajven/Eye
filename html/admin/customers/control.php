@@ -104,32 +104,32 @@ print_control_submenu($page_url);
 <table class="data">
 <?php
         if (is_option($db_link, 37)) {
-            print "<tr><td align=right>Управление доступом &nbsp<input type=submit name='recheck_ip' value='Обновить'></td></tr>";
+            print "<tr><td align=right>".WEB_control_access."&nbsp<input type=submit name='recheck_ip' value='".WEB_msg_refresh."'></td></tr>";
         }
         if (is_option($db_link, 38)) {
-            print "<tr><td align=right>Конфигурация dhcp &nbsp<input type=submit name='refresh_dhcp' value='Обновить' ></td></tr>";
+            print "<tr><td align=right>".WEB_control_dhcp."&nbsp<input type=submit name='refresh_dhcp' value='".WEB_msg_refresh."' ></td></tr>";
         }
         if (is_option($db_link, 39)) {
-            print "<tr><td align=right>Конфигурация dns &nbsp<input type=submit name='refresh_dns' value='Обновить'  ></td></tr>";
+            print "<tr><td align=right>".WEB_control_dns."&nbsp<input type=submit name='refresh_dns' value='".WEB_msg_refresh."'  ></td></tr>";
         }
         if (is_option($db_link, 40)) {
-            print "<tr><td align=right>Reconfigure Nagios &nbsp<input type=submit name='refresh_nagios' value='Обновить'></td></tr>";
-            print "<tr><td align=right>Nagios - сбросить аварию &nbsp<input type=submit name='up_nagios' value='Сбросить'></td></tr>";
+            print "<tr><td align=right>".WEB_control_nagios."&nbsp<input type=submit name='refresh_nagios' value='".WEB_msg_refresh."'></td></tr>";
+            print "<tr><td align=right>".WEB_control_nagios_clear_alarm."&nbsp<input type=submit name='up_nagios' value='".WEB_msg_run."'></td></tr>";
         }
         if (is_option($db_link, 41)) {
-            print "<tr><td align=right>Сканирование сети &nbsp<input type=submit name='discovery' value='Выполнить'></td></tr>";
+            print "<tr><td align=right>".WEB_control_scan_network."&nbsp<input type=submit name='discovery' value='".WEB_msg_run."'></td></tr>";
         }
         if (is_option($db_link, 41)) {
-            print "<tr><td  align=right>Активное сканирование &nbsp<input type=submit name='discovery2' value='Выполнить'></td></tr>";
+            print "<tr><td  align=right>".WEB_control_fping_scan_network."&nbsp<input type=submit name='discovery2' value='".WEB_msg_run."'></td></tr>";
         }
         if (get_option($db_link, 23)) {
-            print "<tr><td  align=right>Включить запись трафика у всех&nbsp<input type=submit name='save_traf_all' value='Выполнить'></td></tr>";
-            print "<tr><td  align=right>Выключить запись трафика у всех&nbsp<input type=submit name='not_save_traf_all' value='Выполнить'></td></tr>";
+            print "<tr><td  align=right>".WEB_control_log_traffic_on."&nbsp<input type=submit name='save_traf_all' value='".WEB_msg_run."'></td></tr>";
+            print "<tr><td  align=right>".WEB_control_log_traffic_off."&nbsp<input type=submit name='not_save_traf_all' value='".WEB_msg_run."'></td></tr>";
         }
-        print "<tr><td  align=right>Сбросить кэш&nbsp<input type=submit name='clean_cache' value='Выполнить'></td></tr>";
+        print "<tr><td  align=right>".WEB_control_clear_dns_cache."&nbsp<input type=submit name='clean_cache' value='".WEB_msg_run."'></td></tr>";
 ?>
 <tr>
-<td align=right><a href="ipcam.php">Управление портами</a></td>
+<td align=right><a href="ipcam.php"><?php echo WEB_control_port_off; ?></a></td>
 </tr>
 </table>
 </form>

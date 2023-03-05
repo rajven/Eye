@@ -983,6 +983,8 @@ $config_ref{dhcp_server}=get_option($db,5);
 $config_ref{snmp_default_version}=get_option($db,9);
 $config_ref{snmp_default_community}=get_option($db,11);
 $config_ref{KB}=get_option($db,1);
+if ($config_ref{KB} ==0) { $config_ref{KB}=1000; }
+if ($config_ref{KB} ==1) { $config_ref{KB}=1024; }
 $config_ref{mac_discovery}=get_option($db,17);
 $config_ref{arp_discovery}=get_option($db,19);
 $config_ref{admin_email}=get_option($db,21);
@@ -1034,7 +1036,7 @@ $snmp_default_version=get_option($db,9);
 #$snmp_default_community='public'; id=11
 $snmp_default_community=get_option($db,11);
 #$KB=1024; id=1
-$KB=get_option($db,1);
+$KB=$config_ref{KB};
 #$mac_discovery; id=17
 $mac_discovery=get_option($db,17);
 #$arp_discovery; id=19

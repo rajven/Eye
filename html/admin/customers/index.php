@@ -9,14 +9,14 @@ if (isset($_POST["create"])) {
     if ($login) {
         list ($lcount) = mysqli_fetch_array(mysqli_query($db_link, "Select count(id) from Customers where LCase(Login)=LCase('$login')"));
         if ($lcount > 0) {
-            $msg_error = "Ошибка создания менеджера. Логин $login в базе уже есть!";
+            $msg_error = "Login already $login already exists!";
             LOG_INFO($db_link, $msg_error);
             unset($_POST);
         } else {
             $new['Login'] = $login;
             insert_record($db_link, "Customers", $new);
             list ($id) = mysqli_fetch_array(mysqli_query($db_link, "Select id from Customers where Login='$login' order by id DESC"));
-            LOG_INFO($db_link, "Создание нового менеджера login: $login");
+            LOG_INFO($db_link, "Create new login: $login");
             header("location: editcustom.php?id=$id");
             exit;
         }
@@ -29,7 +29,7 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["fid"];
     foreach ($fid as $key => $val) {
         if ($val) {
-            LOG_INFO($db_link, "Удаляем менеджера с id: $val");
+            LOG_INFO($db_link, "Remove login with id: $val");
             delete_record($db_link, "Customers", "id=" . $val);
         }
     }
@@ -45,7 +45,7 @@ print_control_submenu($page_url);
 <div id="cont">
 <br>
 <form name="def" action="index.php" method="post">
-<b>Список администраторов.</b>
+<b><?php echo WEB_custom_index_title; ?></b>
 <table class="data">
 <tr align="center">
 <td width="30"><input type="checkbox" onClick="checkAll(this.checked);"></td>
@@ -64,8 +64,8 @@ foreach ($users as $row) {
 <table class="data">
 	<tr>
 		<td><input type=text name=newlogin value="Unknown"></td>
-		<td><input type="submit" name="create" value="Добавить логин"></td>
-		<td align="right"><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
+		<td><input type="submit" name="create" value="<?php echo WEB_msg_add; ?>"></td>
+		<td align="right"><input type="submit" onclick="return confirm('<?php print WEB_msg_delete; ?>?')" name="remove" value="<?php print WEB_btn_remove; ?>"></td>
 		</tr>
 	</table>
 </form>

@@ -74,11 +74,13 @@ print_control_submenu($page_url);
 <td width=150><b><?php print WEB_config_option; ?></b></td>
 <td width=150><b><?php print WEB_config_value; ?></b></td>
 <td width=350><b><?php print WEB_msg_comment; ?></b></td>
-<td width=100><input type="submit" onclick="return confirm('<?php print WEB_msg_delete; ?>?')" name="remove" value="<?php print WEB_msg_delete; ?>"></td>
+<td width=100><input type="submit" onclick="return confirm('<?php print WEB_msg_delete; ?>?')" name="remove" value="<?php print WEB_btn_remove; ?>"></td>
 </tr>
 
 <?php
-$t_config = mysqli_query($db_link, "select config.id,option_id,option_name,value,type,description,min_value,max_value from config,config_options where config.option_id=config_options.id order by option_name");
+$descr_field = "description.".HTML_LANG;
+$t_config = mysqli_query($db_link, "SELECT `config`.`id`,`option_id`,`option_name`,`value`,`type`,`".$descr_field."`,`min_value`,`max_value` FROM `config`,`config_options` WHERE
+ `config`.`option_id`=`config_options`.`id` ORDER BY `option_name`");
 while ($row = mysqli_fetch_array($t_config)) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
@@ -106,14 +108,14 @@ while ($row = mysqli_fetch_array($t_config)) {
         print_qa_select("f_config_value[]", $option_value);
     }
     print "</td>\n";
-    print "<td class=\"data\">".$row['description']."</td>\n";
-    print "<td class=\"data\"><button name='save[]' value='{$row['id']}'>Сохранить</button></td>\n";
+    print "<td class=\"data\">".$row[$descr_field]."</td>\n";
+    print "<td class=\"data\"><button name='save[]' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
     print "</tr>\n";
 }
 ?>
 <tr>
 <td colspan=5 class="data"><?php print WEB_msg_add." ".mb_strtolower(WEB_config_option).":&nbsp"; print_option_select($db_link, "f_new_option"); ?></td>
-<td><input type="submit" name="create" value="Добавить"></td>
+<td><input type="submit" name="create" value="<?php echo WEB_btn_add; ?>"></td>
 </tr>
 </table>
 </form>

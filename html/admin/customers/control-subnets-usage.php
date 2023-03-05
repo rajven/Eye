@@ -11,21 +11,19 @@ $zombi_days = get_option($db_link, 35);
 <div id="cont">
 <br>
 <form name="def" action="control-subnets.php" method="post">
-<b>Статистика использования сетей организации</b> <br>
+<b><?php echo WEB_network_usage_title; ?></b> <br>
 <table class="data">
 <tr align="center">
-	<td><b>Сеть</b></td>
-	<td><b>Всего<br>адресов</b></td>
-	<td><b>Занято</b></td>
-	<td><b>Свободно<br>(всего)</b></td>
-	<td><b>Размер<br>dhcp пула</b></td>
-	<td><b>Занято<br>в пуле</b></td>
-	<td><b>Свободно<br>в пуле</b></td>
-	<td><b>Свободно<br>(static)</b></td>
-<?php
-print "<td><b>Зомби, всего <br>(> $zombi_days дней)</b></td>";
-print "<td><b>Зомби dhcp<br>(> $zombi_days дней)</b></td>";
-?>
+	<td><b><?php echo WEB_network_subnet; ?></b></td>
+	<td><b><?php echo WEB_network_all_ip; ?></b></td>
+	<td><b><?php echo WEB_network_used_ip; ?></b></td>
+	<td><b><?php echo WEB_network_free_ip; ?></b></td>
+	<td><b><?php echo WEB_network_dhcp_size; ?></b></td>
+	<td><b><?php echo WEB_network_dhcp_used; ?></b></td>
+	<td><b><?php echo WEB_network_dhcp_free; ?></b></td>
+	<td><b><?php echo WEB_network_static_free; ?></b></td>
+	<td><b><?php echo WEB_network_zombi; ?><br><?php print "(> ".$zombi_days." ".WEB_days.")"; ?></b></td>
+	<td><b><?php echo WEB_network_zombi_dhcp; ?><br><?php print "(> ".$zombi_days." ".WEB_days.")"; ?></b></td>
 </tr>
 <?php
 $t_subnets = get_records($db_link,'subnets','office=1 ORDER BY ip_int_start');

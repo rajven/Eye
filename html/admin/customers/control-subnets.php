@@ -128,26 +128,26 @@ print_control_submenu($page_url);
 <div id="cont">
 <br>
 <form name="def" action="control-subnets.php" method="post">
-<b>Сети организации</b> <br>
+<b><?php echo WEB_network_org_title; ?></b> <br>
 <table class="data">
 <tr align="center">
 	<td></td>
 	<td width=30><b>id</b></td>
-	<td><b>Сеть</b></td>
-	<td><b>Шлюз</b></td>
-	<td><b>DHCP</b></td>
-	<td><b>Static</b></td>
-	<td><b>DHCP start</b></td>
-	<td><b>DHCP end</b></td>
-	<td><b>Lease time,m</b></td>
-	<td><b>Офисная</b></td>
-	<td><b>Хот-спот</b></td>
-	<td><b>VPN</b></td>
-	<td><b>Free</b></td>
-	<td><b>Обновлять dns</b></td>
-	<td><b>Discovery</b></td>
-	<td><b>Комментарий</b></td>
-	<td><input type="submit" onclick="return confirm('Удалить?')" name="s_remove" value="Удалить"></td>
+	<td><b><?php echo WEB_network_subnet; ?></b></td>
+	<td><b><?php echo WEB_network_gateway; ?></b></td>
+	<td><b><?php echo WEB_network_use_dhcp; ?></b></td>
+	<td><b><?php echo WEB_network_static; ?></b></td>
+	<td><b><?php echo WEB_network_dhcp_first; ?></b></td>
+	<td><b><?php echo WEB_network_dhcp_last; ?></b></td>
+	<td><b><?php echo WEB_network_dhcp_leasetime; ?></b></td>
+	<td><b><?php echo WEB_network_office_subnet; ?></b></td>
+	<td><b><?php echo WEB_network_hotspot; ?></b></td>
+	<td><b><?php echo WEB_network_vpn; ?></b></td>
+	<td><b><?php echo WEB_network_free; ?></b></td>
+	<td><b><?php echo WEB_network_dyndns; ?></b></td>
+	<td><b><?php echo WEB_network_discovery; ?></b></td>
+	<td><b><?php echo WEB_cell_comment; ?></b></td>
+	<td><input type="submit" onclick="return confirm('<?php print WEB_msg_delete; ?>?')" name="s_remove" value="<?php print WEB_btn_remove; ?>"></td>
 </tr>
 <?php
 $t_subnets = get_records($db_link,'subnets','True ORDER BY ip_int_start');
@@ -202,13 +202,13 @@ foreach ( $t_subnets as $row ) {
     print_qa_select_ext("s_discovery[]",$row['discovery'],!$row['office']);
     print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_comment[]' value='{$row['comment']}'></td>\n";
-    print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>Сохранить</button></td>\n";
+    print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
     print "</tr>\n";
 }
 ?>
 <tr>
-<td colspan=6>Новая сеть :<?php print "<input type=\"text\" name='s_create_subnet' value=''>"; ?></td>
-<td><input type="submit" name="s_create" value="Добавить"></td>
+<td colspan=6><?php print WEB_network_create."&nbsp:<input type=\"text\" name='s_create_subnet' value=''>"; ?></td>
+<td><input type="submit" name="s_create" value="<?php echo WEB_btn_add; ?>"></td>
 </tr>
 </table>
 </form>

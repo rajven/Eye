@@ -9,12 +9,11 @@ define("HTML_STYLE","white");
 
 define("DB_HOST","localhost");
 define("DB_NAME","stat");
-define("CACTI_DB_HOST","localhost");
-define("CACTI_DB_NAME","cacti");
-
 define("DB_USER","user");
 define("DB_PASS","password");
 
+define("CACTI_DB_HOST","localhost");
+define("CACTI_DB_NAME","cacti");
 define("CACTI_DB_USER","user");
 define("CACTI_DB_PASS","password");
 

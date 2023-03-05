@@ -4,11 +4,8 @@ login($db_link);
 
 if (isset($_GET['logout'])) { session_destroy(); header("Location: /logout.php"); }
 
-// считываем текущее время
 $start_time = microtime();
-// разделяем секунды и миллисекунды (становятся значениями начальных ключей массива-списка)
 $start_array = explode(" ",$start_time);
-// это и есть стартовое время
 $start_time = $start_array[1] + $start_array[0];
 
 $page_full_url=$_SERVER['PHP_SELF'];

@@ -52,18 +52,34 @@ function get_user_ip()
 
 function fbytes($traff)
 {
-    $units = array(
+    $units_IEC = array(
+        "",
+        "Ki",
+        "Mi",
+        "Gi",
+        "Ti"
+    );
+
+    $units_metric = array(
         "",
         "k",
         "M",
         "G",
         "T"
     );
+
     if (!empty($traff) and $traff > 0) {
-        $index = min(((int) log($traff, get_const('KB'))), count($units) - 1);
-        $result = round($traff / pow(get_const('KB'), $index), 3) . ' ' . $units[$index] . 'b';
+	$KB = get_const('KB');
+	//IEC
+	if ($KB == 1024) {
+    	    $index = min(((int) log($traff, $KB)), count($units_IEC) - 1);
+    	    $result = round($traff / pow($KB, $index), 3) . ' ' . $units_IEC[$index] . 'B';
+	    } else {
+    	    $index = min(((int) log($traff, $KB)), count($units_metric) - 1);
+    	    $result = round($traff / pow($KB, $index), 3) . ' ' . $units_metric[$index] . 'B';
+	    }
     } else {
-        $result = '0 b';
+        $result = '0 B';
     }
     return $result;
 }
@@ -78,8 +94,8 @@ function fpkts($packets)
         "T"
     );
     if (!empty($packets) and $packets > 0) {
-        $index = min(((int) log($packets, get_const('KB'))), count($units) - 1);
-        $result = round($packets / pow(get_const('KB'), $index), 3) . ' ' . $units[$index] . 'pkt/s';
+        $index = min(((int) log($packets, 1000)), count($units) - 1);
+        $result = round($packets / pow(1000, $index), 3) . ' ' . $units[$index] . 'pkt/s';
     } else {
         $result = '0 pkt/s';
     }
@@ -3310,7 +3326,11 @@ return NULL;
 }
 
 $config["org_name"]= get_option($db_link, 32);
+
 $config["KB"]= get_option($db_link, 1);
+if ($config["KB"] == 0) { $config["KB"]=1000; }
+if ($config["KB"] == 1) { $config["KB"]=1024; }
+
 $config["debug"]= get_option($db_link, 34);
 $config["log_level"]= get_option($db_link, 53);
 if ($config["debug"]) { $config["log_level"]= 255; }

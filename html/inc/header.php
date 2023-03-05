@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Панель администратора</title>
+<title><?php echo WEB_site_title; ?></title>
 <link rel="stylesheet" type="text/css" href="/<?php echo HTML_STYLE.'.css'; ?>">
 <script src="/js/jq/jquery.min.js"></script>
 <link href="/js/select2/css/select2.min.css" rel="stylesheet"/>

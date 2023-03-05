@@ -4,7 +4,7 @@ define("SQL", 1);
 require_once ($_SERVER['DOCUMENT_ROOT']."/cfg/config.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sql.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/common.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/russian.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header_public.php");
 
 if (! isset($auth_ip)) { $auth_ip = get_user_ip(); }
