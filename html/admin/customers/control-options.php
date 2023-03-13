@@ -22,9 +22,9 @@ if (isset($_POST['save'])) {
     $len = is_array($_POST['save']) ? count($_POST['save']) : 0;
     for ($i = 0; $i < $len; $i ++) {
         $save_id = intval($_POST['save'][$i]);
-        $len_all = is_array($_POST['id']) ? count($_POST['id']) : 0;
+        $len_all = is_array($_POST['r_id']) ? count($_POST['r_id']) : 0;
         for ($j = 0; $j < $len_all; $j ++) {
-            if (intval($_POST['id'][$j]) != $save_id) { continue; }
+            if (intval($_POST['r_id'][$j]) != $save_id) { continue; }
             $value = $_POST['f_config_value'][$j];
             if (isset($value) and $value!=='********') {
                 $new['value'] = $value;
@@ -84,7 +84,7 @@ $t_config = mysqli_query($db_link, "SELECT `config`.`id`,`option_id`,`option_nam
 while ($row = mysqli_fetch_array($t_config)) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
-    print "<td class=\"data\"><input type=\"hidden\" name='id[]' value='{$row['id']}'>{$row['id']}</td>\n";
+    print "<td class=\"data\"><input type=\"hidden\" name='r_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_config_option[]' value='{$row['option_name']}' disabled=true readonly=true></td>\n";
     $type = $row['type'];
     print "<td class=\"data\">";

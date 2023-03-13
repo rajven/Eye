@@ -28,9 +28,9 @@ if (isset($_POST['save'])) {
     for ($i = 0; $i < $len; $i ++) {
         $save_id = intval($saved[$i]);
         if ($save_id == 0) { continue;  }
-        $len_all = is_array($_POST['id']) ? count($_POST['id']) : 0;
+        $len_all = is_array($_POST['r_id']) ? count($_POST['r_id']) : 0;
         for ($j = 0; $j < $len_all; $j ++) {
-            if (intval($_POST['id'][$j]) != $save_id) { continue; }
+            if (intval($_POST['r_id'][$j]) != $save_id) { continue; }
             if ($save_id>=10000) {
                 $new['vendor_id'] = $_POST['f_vendor'][$j];
 	        $new['model_name'] = $_POST['f_name'][$j];
@@ -104,7 +104,7 @@ $t_ou = get_records_sql($db_link,'SELECT * FROM device_models '.$v_filter." ORDE
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
-    print "<td class=\"data\"><input type=\"hidden\" name='id[]' value='{$row['id']}'>{$row['id']}</td>\n";
+    print "<td class=\"data\"><input type=\"hidden\" name='r_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\" width=150>"; print_vendor_set($db_link,'f_vendor[]',$row['vendor_id']); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_name[]' value='{$row['model_name']}'></td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_nagios[]' value='{$row['nagios_template']}'></td>\n";

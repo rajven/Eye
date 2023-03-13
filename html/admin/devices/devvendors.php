@@ -30,9 +30,9 @@ if (isset($_POST['save'])) {
         $save_id = intval($saved[$i]);
         if ($save_id == 0) { continue;  }
         if ($save_id<10000) { continue; }
-        $len_all = is_array($_POST['id']) ? count($_POST['id']) : 0;
+        $len_all = is_array($_POST['r_id']) ? count($_POST['r_id']) : 0;
         for ($j = 0; $j < $len_all; $j ++) {
-            if (intval($_POST['id'][$j]) != $save_id) { continue; }
+            if (intval($_POST['r_id'][$j]) != $save_id) { continue; }
             $new['name'] = $_POST['f_name'][$j];
             update_record($db_link, "vendors", "id='{$save_id}'", $new);
             }
@@ -95,7 +95,7 @@ $t_ou = get_records_sql($db_link,"SELECT * FROM vendors ORDER BY name LIMIT $sta
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
-    print "<td class=\"data\">{$row['id']}</td>\n";
+    print "<td class=\"data\"><input type=\"hidden\" name='r_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_name[]' value='{$row['name']}'></td>\n";
     print "<td class=\"data\"></td>\n";
     print "</tr>\n";

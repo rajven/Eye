@@ -15,15 +15,15 @@ if (isset($_POST["remove"])) {
 }
 
 if (isset($_POST['save'])) {
-    $len = is_array($_POST['id']) ? count($_POST['id']) : 0;
+    $len = is_array($_POST['r_id']) ? count($_POST['r_id']) : 0;
     for ($i = 0; $i < $len; $i ++) {
         $save_id = intval($_POST['save'][$i]);
         if ($save_id == 0) {
             continue;
         }
-        $len_all = is_array($_POST['id']) ? count($_POST['id']) : 0;
+        $len_all = is_array($_POST['r_id']) ? count($_POST['r_id']) : 0;
         for ($j = 0; $j < $len_all; $j ++) {
-            if (intval($_POST['id'][$j]) != $save_id) {
+            if (intval($_POST['r_id'][$j]) != $save_id) {
                 continue;
             }
             $value = $_POST['f_building_name'][$j];
@@ -72,7 +72,7 @@ $t_building = get_records($db_link,'building','TRUE ORDER BY id');
 foreach ($t_building as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
-    print "<td class=\"data\"><input type=\"hidden\" name='id[]' value='{$row['id']}'>{$row['id']}</td>\n";
+    print "<td class=\"data\"><input type=\"hidden\" name='r_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_building_name[]' value='{$row['name']}'></td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_building_comment[]' value='{$row['comment']}'></td>\n";
     print "<td class=\"data\"><button name='save[]' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";

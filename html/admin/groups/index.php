@@ -46,7 +46,7 @@ $t_ou = get_records($db_link,'OU','TRUE ORDER BY ou_name');
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
-    print "<td class=\"data\"><input type=\"hidden\" name='id[]' value='{$row['id']}'>{$row['id']}</td>\n";
+    print "<td class=\"data\"><input type=\"hidden\" name='r_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     $flag='';
     if ($row['default_users'] == 1) { $flag='D'; }
     if ($row['default_hotspot'] == 1) { $flag='H'; }
