@@ -3132,7 +3132,7 @@ print "</select>\n";
 function print_navigation($url,$page,$displayed,$count_records,$total) {
 if ($total<=1) { return; }
 #две назад
-    print "<br><div align=left>";
+    print "<div align=left class=records >";
     if(($page-2)>0):
       $pagetwoleft="<a class='first_page_link' href=".$url."?page=".($page-2).">".($page-2)."</a>  ";
     else:
@@ -3178,7 +3178,7 @@ if ($total<=1) { return; }
       $nextp=null;
     endif;
 
-print "<br>".$pagerevp.$pagetwoleft.$pageoneleft.'<span class="num_page_not_link"><b>'.$page.'</b></span>'.$pageoneright.$pagetworight.$nextp;
+print $pagerevp.$pagetwoleft.$pageoneleft.'<span class="num_page_not_link"><b>'.$page.'</b></span>'.$pageoneright.$pagetworight.$nextp;
 print " | Total records: $count_records";
 print "</div>";
 }

@@ -60,13 +60,15 @@ print_device_submenu($page_url);
 
 ?>
 <div id="cont">
+<br>
+
 <form name="def" action="devvendors.php" method="post">
 
 <table class="data">
 <tr>
-<td><b>Список вендоров</b></td>
-<td>Отображать:<?php print_row_at_pages('rows',$displayed); ?></td>
-<td><input type="submit" name="OK" value="Показать"></td>
+<td><b><?php print WEB_list_vendors; ?></b></td>
+<td><?php print WEB_rows_at_page."&nbsp:";print_row_at_pages('rows',$displayed); ?></td>
+<td><input type="submit" name="OK" value="<?php print WEB_btn_show; ?>"></td>
 </tr>
 </table>
 
@@ -85,15 +87,15 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <tr align="center">
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b>Id</b></td>
-<td><b>Производитель</b></td>
-<td><input type="submit" name='save' value="Сохранить"></td>
+<td><b><?php echo WEB_model_vendor; ?></b></td>
+<td><input type="submit" name='save' value="<?php echo WEB_btn_save; ?>"></td>
 </tr>
 <?php
 $t_ou = get_records_sql($db_link,"SELECT * FROM vendors ORDER BY name LIMIT $start,$displayed");
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
-    print "<td class=\"data\"><input type=\"hidden\" name='id[]' value='{$row['id']}'>{$row['id']}</td>\n";
+    print "<td class=\"data\">{$row['id']}</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_name[]' value='{$row['name']}'></td>\n";
     print "<td class=\"data\"></td>\n";
     print "</tr>\n";
@@ -103,7 +105,7 @@ foreach ($t_ou as $row) {
 <table>
 <tr>
 <td><input type=text name=new_vendor value="Unknown"></td>
-<td><input type="submit" name="create" value="Добавить"></td>
+<td><input type="submit" name="create" value="<?php echo WEB_btn_add; ?>"></td>
 <td align="right"></td>
 </tr>
 </table>

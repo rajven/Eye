@@ -15,15 +15,6 @@ $m = array(
     12 => "Декабрь"
 );
 
-/* header title */
-$title_reports = "Отчёт";
-$title_groups = "Группы";
-$title_users = "Пользователи";
-$title_users_ips = "Все IP";
-$title_filters = "Фильтры";
-$title_shapers = "Шейперы";
-$title_devices = "Инфраструктура";
-
 /* traffic headers */
 $title_ip = "Адрес";
 $title_date = "Дата";
@@ -110,6 +101,8 @@ define("WEB_MONTHS", array(
 /* common variables */
 define("WEB_days","дней");
 define("WEB_sec","секунд");
+define("WEB_page_speed","Страница сгенерирована за ");
+define("WEB_rows_at_page","Записей на страницу");
 
 /* error messages */
 define("WEB_auth_unknown","IP-адрес клиента не установлен");
@@ -166,8 +159,8 @@ define("WEB_submenu_traffic_ip_report","Отчёт по трафику (ip)");
 define("WEB_submenu_traffic_login_report","Отчёт по трафику (login)");
 define("WEB_submenu_traffic_top10","TOP 10 по трафику");
 define("WEB_submenu_detail_log","Подробный лог");
-define("WEB_submenu_net_devices","Активное сетевое оборудование");
-define("WEB_submenu_passive_net_devices","Пассивное оборудование");
+define("WEB_submenu_net_devices","Сетевые устройства");
+define("WEB_submenu_passive_net_devices","Пассивные устройства");
 define("WEB_submenu_buildings","Расположение");
 define("WEB_submenu_hierarchy","Структура");
 define("WEB_submenu_device_models","Модели устройств");
@@ -191,8 +184,9 @@ define("WEB_title_users_ips","Все адреса");
 define("WEB_title_filters","Фильтры");
 define("WEB_title_shapers","Шейперы");
 define("WEB_title_devices","Инфраструктура");
-define("WEB_page_speed","Страница сгенерирована за ");
-define("WEB_rows_at_page","Записей на страницу");
+define("WEB_title_logs","Логи");
+define("WEB_title_control","Настройки");
+define("WEB_title_exit","Выход");
 
 /* traffic headers */
 define("WEB_title_ip","Адрес");
@@ -249,6 +243,7 @@ define("WEB_list_customers","Список администраторов");
 define("WEB_list_filters","Список фильтров");
 define("WEB_list_users","Список полльзователей");
 define("WEB_list_models","Список моделей устройств");
+define("WEB_list_vendors","Список вендоров");
 
 /* button names */
 define("WEB_btn_remove","Удалить");

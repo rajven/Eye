@@ -36,22 +36,14 @@ $('.js-select-single').select2();
 
 <div id="title"><?php print get_const('org_name')?></div>
 <div id="navi">
-<a href="/admin/reports/index-full.php">
-<?php print $title_reports?>
-</a> | <a href="/admin/groups/">
-<?php print $title_groups?>
-</a> | <a href="/admin/users/">
-<?php print $title_users?>
-</a> | <a href="/admin/iplist/">
-<?php print $title_users_ips?>
-</a> | <a href="/admin/filters/">
-<?php print $title_filters?>
-</a> | <a href="/admin/queues/">
-<?php print $title_shapers?>
-</a> | <a href="/admin/devices/">
-<?php print $title_devices?>
-</a> |
-<a href="/admin/customers/control.php"> Managment </a> |
-<a href="/admin/logs/"> Logs </a> |
-<a href="/logout.php">Exit</a>
+<a href="/admin/reports/index-full.php"><?php print WEB_title_reports; ?></a> | 
+<a href="/admin/groups/"><?php print WEB_title_groups; ?></a> | 
+<a href="/admin/users/"><?php print WEB_title_users; ?></a> | 
+<a href="/admin/iplist/"><?php print WEB_title_users_ips; ?></a> | 
+<a href="/admin/filters/"><?php print WEB_title_filters; ?></a> | 
+<a href="/admin/queues/"><?php print WEB_title_shapers; ?></a> | 
+<a href="/admin/devices/"><?php print WEB_title_devices; ?></a> |
+<a href="/admin/customers/control.php"><?php print WEB_title_control; ?></a> |
+<a href="/admin/logs/"><?php print WEB_title_logs; ?></a> |
+<a href="/logout.php"><?php print WEB_title_exit; ?></a>
 </div>
