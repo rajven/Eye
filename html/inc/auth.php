@@ -1,8 +1,7 @@
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/login.php");
-login($db_link);
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
 
-if (isset($_GET['logout'])) { session_destroy(); header("Location: /logout.php"); }
+login($db_link);
 
 $start_time = microtime();
 $start_array = explode(" ",$start_time);

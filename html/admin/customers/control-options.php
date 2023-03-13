@@ -74,7 +74,7 @@ print_control_submenu($page_url);
 <td width=150><b><?php print WEB_config_option; ?></b></td>
 <td width=150><b><?php print WEB_config_value; ?></b></td>
 <td width=350><b><?php print WEB_msg_comment; ?></b></td>
-<td width=100><input type="submit" onclick="return confirm('<?php print WEB_msg_delete; ?>?')" name="remove" value="<?php print WEB_btn_remove; ?>"></td>
+<td width=100><input type="submit" onclick="return confirm('<?php print WEB_btn_delete; ?>?')" name="remove" value="<?php print WEB_btn_remove; ?>"></td>
 </tr>
 
 <?php
@@ -114,7 +114,7 @@ while ($row = mysqli_fetch_array($t_config)) {
 }
 ?>
 <tr>
-<td colspan=5 class="data"><?php print WEB_msg_add." ".mb_strtolower(WEB_config_option).":&nbsp"; print_option_select($db_link, "f_new_option"); ?></td>
+<td colspan=5 class="data"><?php print WEB_btn_add." ".mb_strtolower(WEB_config_option).":&nbsp"; print_option_select($db_link, "f_new_option"); ?></td>
 <td><input type="submit" name="create" value="<?php echo WEB_btn_add; ?>"></td>
 </tr>
 </table>

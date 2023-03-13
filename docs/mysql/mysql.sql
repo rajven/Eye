@@ -176,7 +176,8 @@ CREATE TABLE `connections` (
 CREATE TABLE `Customers` (
   `id` int(11) NOT NULL,
   `Login` varchar(20) DEFAULT 'NULL',
-  `Pwd` varchar(32) DEFAULT 'NULL',
+  `password` varchar(255) DEFAULT 'NULL',
+  `api_key` varchar(255) DEFAULT NULL,
   `readonly` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -184,8 +185,8 @@ CREATE TABLE `Customers` (
 -- Дамп данных таблицы `Customers`
 --
 
-INSERT INTO `Customers` (`id`, `Login`, `Pwd`, `readonly`) VALUES(1, 'admin', '21232f297a57a5a743894a0e4a801fc3', 0);
-
+INSERT INTO `Customers` (`id`, `Login`, `password`, `api_key`, `readonly`) VALUES
+(1, 'admin', '$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG', 'c3284d0f94606de1fd2af172aba15bf31', 0);
 -- --------------------------------------------------------
 
 --

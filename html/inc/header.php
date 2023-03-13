@@ -53,5 +53,5 @@ $('.js-select-single').select2();
 </a> |
 <a href="/admin/customers/control.php"> Managment </a> |
 <a href="/admin/logs/"> Logs </a> |
-<a href="<?php print $page_url.'?logout=1'; ?>">Exit</a>
+<a href="/logout.php">Exit</a>
 </div>

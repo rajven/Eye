@@ -7,18 +7,17 @@ $msg_error = "";
 if (isset($_POST["create"])) {
     $login = $_POST["newlogin"];
     if ($login) {
-        list ($lcount) = mysqli_fetch_array(mysqli_query($db_link, "Select count(id) from Customers where LCase(Login)=LCase('$login')"));
-        if ($lcount > 0) {
-            $msg_error = "Login already $login already exists!";
+	$customer = get_record_sql($db_link,"Select * from Customers WHERE LCase(Login)=LCase('$login')");
+        if (!empty($customer)) {
+            $msg_error = "Login $login already exists!";
             LOG_INFO($db_link, $msg_error);
             unset($_POST);
         } else {
             $new['Login'] = $login;
-            insert_record($db_link, "Customers", $new);
-            list ($id) = mysqli_fetch_array(mysqli_query($db_link, "Select id from Customers where Login='$login' order by id DESC"));
+	    $new['api_key'] = randomPassword(20);
             LOG_INFO($db_link, "Create new login: $login");
-            header("location: editcustom.php?id=$id");
-            exit;
+            $id = insert_record($db_link, "Customers", $new);
+	    if (!empty($id)) { header("Location: editcustom.php?id=$id"); exit; }
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -64,8 +63,8 @@ foreach ($users as $row) {
 <table class="data">
 	<tr>
 		<td><input type=text name=newlogin value="Unknown"></td>
-		<td><input type="submit" name="create" value="<?php echo WEB_msg_add; ?>"></td>
-		<td align="right"><input type="submit" onclick="return confirm('<?php print WEB_msg_delete; ?>?')" name="remove" value="<?php print WEB_btn_remove; ?>"></td>
+		<td><input type="submit" name="create" value="<?php echo WEB_btn_add; ?>"></td>
+		<td align="right"><input type="submit" onclick="return confirm('<?php print WEB_btn_delete; ?>?')" name="remove" value="<?php print WEB_btn_remove; ?>"></td>
 		</tr>
 	</table>
 </form>

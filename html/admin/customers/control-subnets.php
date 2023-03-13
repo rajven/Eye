@@ -147,7 +147,7 @@ print_control_submenu($page_url);
 	<td><b><?php echo WEB_network_dyndns; ?></b></td>
 	<td><b><?php echo WEB_network_discovery; ?></b></td>
 	<td><b><?php echo WEB_cell_comment; ?></b></td>
-	<td><input type="submit" onclick="return confirm('<?php print WEB_msg_delete; ?>?')" name="s_remove" value="<?php print WEB_btn_remove; ?>"></td>
+	<td><input type="submit" onclick="return confirm('<?php print WEB_btn_delete; ?>?')" name="s_remove" value="<?php print WEB_btn_remove; ?>"></td>
 </tr>
 <?php
 $t_subnets = get_records($db_link,'subnets','True ORDER BY ip_int_start');

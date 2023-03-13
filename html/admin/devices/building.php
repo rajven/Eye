@@ -6,7 +6,7 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["f_id"];
     foreach ($fid as $key => $val) {
         if (isset($val) and $val > 1) {
-            LOG_INFO($db_link,'Удаляем расположение с id: '.$val);
+            LOG_INFO($db_link,'Remove building id: '.$val);
             delete_record($db_link, "building", "id=" . $val);
         }
     }
@@ -31,7 +31,7 @@ if (isset($_POST['save'])) {
             if (isset($value)) {
                 $new['name'] = $value;
                 $new['comment'] = $value_comment;
-                LOG_INFO($db_link,"Изменяем расположение id='{$save_id}': name=".$value." comment=".$value_comment);
+                LOG_INFO($db_link,"Change building id='{$save_id}': name=".$value." comment=".$value_comment);
                 update_record($db_link, "building", "id='{$save_id}'", $new);
             }
         }
@@ -44,7 +44,7 @@ if (isset($_POST["create"])) {
     $building_name = $_POST["new_building"];
     if (isset($building_name)) {
         $new['name'] = $building_name;
-        LOG_INFO($db_link,'Добавляем расположение $building_name');
+        LOG_INFO($db_link,'Add building $building_name');
         insert_record($db_link, "building", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -61,9 +61,11 @@ print_device_submenu($page_url);
 <tr align="center">
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b>id</b></td>
-<td><b>Название</b></td>
-<td><b>Комментарий</b></td>
-<td><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
+<td><b><?php echo WEB_cell_name; ?></b></td>
+<td><b><?php echo WEB_cell_comment; ?></b></td>
+<td>
+<input type="submit" onclick="return confirm('<?php print WEB_btn_delete; ?>?')" name="remove" value="<?php print WEB_btn_remove; ?>">
+</td>
 </tr>
 <?php
 $t_building = get_records($db_link,'building','TRUE ORDER BY id');
@@ -73,7 +75,7 @@ foreach ($t_building as $row) {
     print "<td class=\"data\"><input type=\"hidden\" name='id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_building_name[]' value='{$row['name']}'></td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_building_comment[]' value='{$row['comment']}'></td>\n";
-    print "<td class=\"data\"><button name='save[]' value='{$row['id']}'>Сохранить</button></td>\n";
+    print "<td class=\"data\"><button name='save[]' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
     print "</tr>\n";
 }
 ?>
@@ -81,7 +83,9 @@ foreach ($t_building as $row) {
 <table>
 <tr>
 <td><input type=text name=new_building value="Unknown"></td>
-<td><input type="submit" name="create" value="Добавить"></td>
+<td>
+<input type="submit" name="create" value="<?php print WEB_btn_add; ?>">
+</td>
 <td align="right"></td>
 </tr>
 </table>

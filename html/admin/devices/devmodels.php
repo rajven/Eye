@@ -64,14 +64,15 @@ print_device_submenu($page_url);
 
 ?>
 <div id="cont">
+<br>
 <form name="def" action="devmodels.php" method="post">
 
 <table class="data">
 <tr>
-<td><b>Список моделей</b></td>
+<td><b><?php echo WEB_list_models; ?></b></td>
 <td><?php print_vendor_select($db_link,'vendor_select',$f_vendor_select); ?></td>
-<td>Отображать:<?php print_row_at_pages('rows',$displayed); ?></td>
-<td><input type="submit" name="OK" value="Показать"></td>
+<td><?php print WEB_rows_at_page."&nbsp:";print_row_at_pages('rows',$displayed); ?></td>
+<td><input type="submit" name="OK" value="<?php print WEB_btn_show; ?>"></td>
 </tr>
 </table>
 
@@ -87,16 +88,16 @@ if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
-
 ?>
+<br>
 <table class="data">
 <tr align="center">
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b>Id</b></td>
-<td><b>Производитель</b></td>
-<td><b>Название</b></td>
-<td><b>Шаблон Nagios</b></td>
-<td><input type="submit" name='save' value="Сохранить"></td>
+<td><b><?php echo WEB_model_vendor; ?></b></td>
+<td><b><?php echo WEB_cell_name; ?></b></td>
+<td><b><?php echo WEB_nagios_template; ?></b></td>
+<td><input type="submit" name='save' value="<?php echo WEB_btn_save; ?>"></td>
 </tr>
 <?php
 $t_ou = get_records_sql($db_link,'SELECT * FROM device_models '.$v_filter." ORDER BY vendor_id, model_name LIMIT $start,$displayed");
@@ -115,7 +116,7 @@ foreach ($t_ou as $row) {
 <table>
 <tr>
 <td><input type=text name=new_model value="Unknown"></td>
-<td><input type="submit" name="create" value="Добавить"></td>
+<td><input type="submit" name="create" value="<?php echo WEB_btn_add; ?>"></td>
 <td align="right"></td>
 </tr>
 </table>

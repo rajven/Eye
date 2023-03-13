@@ -29,6 +29,17 @@ $config["init"]=0;
 // 17, 'Maipu'
 // 18, 'Asus'
 
+function randomPassword($length = 8) {
+    $alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
+    $pass = array(); //remember to declare $pass as an array
+    $alphaLength = strlen($alphabet) - 1; //put the length -1 in cache
+    for ($i = 0; $i < $length; $i++) {
+        $n = rand(0, $alphaLength);
+        $pass[] = $alphabet[$n];
+    }
+    return implode($pass); //turn the array into a string
+}
+
 function mb_ucfirst($str) {
     $str = mb_strtolower($str);
     $fc = mb_strtoupper(mb_substr($str, 0, 1));
@@ -399,7 +410,7 @@ function print_subnet_select($db, $subnet_name, $subnet_value)
 {
     print "<select name=\"$subnet_name\" >\n";
     $t_subnet = mysqli_query($db, "SELECT id,subnet FROM subnets ORDER BY ip_int_start");
-    print_select_item('Всe ip',0,$subnet_value);
+    print_select_item(WEB_select_item_all_ips,0,$subnet_value);
     while (list ($f_subnet_id, $f_subnet_name) = mysqli_fetch_array($t_subnet)) {
 	print_select_item($f_subnet_name,$f_subnet_id,$subnet_value);
     }
@@ -420,7 +431,7 @@ function print_subnet_select_office($db, $subnet_name, $subnet_value)
 {
     print "<select name=\"$subnet_name\" >\n";
     $t_subnet = mysqli_query($db, "SELECT id,subnet FROM subnets WHERE office=1 ORDER BY ip_int_start");
-    print_select_item('Всe ip',0,$subnet_value);
+    print_select_item(WEB_select_item_all_ips,0,$subnet_value);
     while (list ($f_subnet_id, $f_subnet_name) = mysqli_fetch_array($t_subnet)) {
 	print_select_item($f_subnet_name,$f_subnet_id,$subnet_value);
     }
@@ -471,57 +482,57 @@ print "<a href='".reencodeurl($page)."'> $display_name </a>";
 
 function print_log_submenu ($current_page) {
 print "<div id='submenu'>\n";
-print_submenu_url('Журнал dhcp','/admin/logs/dhcp.php',$current_page,0);
-print_submenu_url('Журнал работы ','/admin/logs/index.php',$current_page,0);
-print_submenu_url('Приключения маков','/admin/logs/mac.php',$current_page,0);
-print_submenu_url('История ip-адресов','/admin/logs/ip.php',$current_page,0);
-print_submenu_url('Неизвестные','/admin/logs/unknown.php',$current_page,0);
-print_submenu_url('Трафик','/admin/logs/detaillog.php',$current_page,0);
-print_submenu_url('syslog','/admin/logs/syslog.php',$current_page,1);
+print_submenu_url(WEB_submenu_dhcp_log,'/admin/logs/dhcp.php',$current_page,0);
+print_submenu_url(WEB_submenu_work_log,'/admin/logs/index.php',$current_page,0);
+print_submenu_url(WEB_submenu_mac_history,'/admin/logs/mac.php',$current_page,0);
+print_submenu_url(WEB_submenu_ip_history,'/admin/logs/ip.php',$current_page,0);
+print_submenu_url(WEB_submenu_mac_unknown,'/admin/logs/unknown.php',$current_page,0);
+print_submenu_url(WEB_submenu_traffic,'/admin/logs/detaillog.php',$current_page,0);
+print_submenu_url(WEB_submenu_syslog,'/admin/logs/syslog.php',$current_page,1);
 print "</div>\n";
 }
 
 function print_control_submenu ($current_page) {
 print "<div id='submenu'>\n";
-print_submenu_url('Управление','/admin/customers/control.php',$current_page,0);
-print_submenu_url('Сети','/admin/customers/control-subnets.php',$current_page,0);
-print_submenu_url('Сети (Статистика)','/admin/customers/control-subnets-usage.php',$current_page,0);
-print_submenu_url('Параметры','/admin/customers/control-options.php',$current_page,0);
-print_submenu_url('Пользователи','/admin/customers/index.php',$current_page,1);
+print_submenu_url(WEB_submenu_control,'/admin/customers/control.php',$current_page,0);
+print_submenu_url(WEB_submenu_network,'/admin/customers/control-subnets.php',$current_page,0);
+print_submenu_url(WEB_submenu_network_stats,'/admin/customers/control-subnets-usage.php',$current_page,0);
+print_submenu_url(WEB_submenu_options,'/admin/customers/control-options.php',$current_page,0);
+print_submenu_url(WEB_submenu_customers,'/admin/customers/index.php',$current_page,1);
 print "</div>\n";
 }
 
 function print_filters_submenu ($current_page) {
 print "<div id='submenu'>\n";
-print_submenu_url('Список фильтров','/admin/filters/index.php',$current_page,0);
-print_submenu_url('Группы фильтров','/admin/filters/groups.php',$current_page,1);
+print_submenu_url(WEB_submenu_filter_list,'/admin/filters/index.php',$current_page,0);
+print_submenu_url(WEB_submenu_filter_group,'/admin/filters/groups.php',$current_page,1);
 print "</div>\n";
 }
 
 function print_reports_submenu ($current_page) {
 print "<div id='submenu'>\n";
-print_submenu_url('Отчёт по трафику (ip)','/admin/reports/index-full.php',$current_page,0);
-print_submenu_url('Отчёт по трафику (login)','/admin/reports/index.php',$current_page,1);
+print_submenu_url(WEB_submenu_traffic_ip_report,'/admin/reports/index-full.php',$current_page,0);
+print_submenu_url(WEB_submenu_traffic_login_report,'/admin/reports/index.php',$current_page,1);
 print "</div>\n";
 }
 
 function print_trafdetail_submenu ($current_page,$params,$description) {
 print "<div id='submenu'>\n";
 print "$description\n";
-print_submenu_url('TOP 10 по трафику','/admin/reports/userdaydetail.php'."?$params",$current_page,0);
-print_submenu_url('Подробный лог','/admin/reports/userdaydetaillog.php'."?$params",$current_page,1);
+print_submenu_url(WEB_submenu_traffic_top10,'/admin/reports/userdaydetail.php'."?$params",$current_page,0);
+print_submenu_url(WEB_submenu_detail_log,'/admin/reports/userdaydetaillog.php'."?$params",$current_page,1);
 print "</div>\n";
 }
 
 function print_device_submenu ($current_page) {
 print "<div id='submenu'>\n";
-print_submenu_url('Активное сетевое оборудование','/admin/devices/index.php',$current_page,0);
-print_submenu_url('Пассивное оборудование','/admin/devices/index-passive.php',$current_page,0);
-print_submenu_url('Расположение','/admin/devices/building.php',$current_page,0);
-print_submenu_url('Структура','/admin/devices/index-tree.php',$current_page,0);
-print_submenu_url('Модели устройств','/admin/devices/devmodels.php',$current_page,0);
-print_submenu_url('Vendors','/admin/devices/devvendors.php',$current_page,0);
-print_submenu_url('Порты по вланам','/admin/devices/portsbyvlan.php',$current_page,1);
+print_submenu_url(WEB_submenu_net_devices,'/admin/devices/index.php',$current_page,0);
+print_submenu_url(WEB_submenu_passive_net_devices,'/admin/devices/index-passive.php',$current_page,0);
+print_submenu_url(WEB_submenu_buildings,'/admin/devices/building.php',$current_page,0);
+print_submenu_url(WEB_submenu_hierarchy,'/admin/devices/index-tree.php',$current_page,0);
+print_submenu_url(WEB_submenu_device_models,'/admin/devices/devmodels.php',$current_page,0);
+print_submenu_url(WEB_submenu_vendors,'/admin/devices/devvendors.php',$current_page,0);
+print_submenu_url(WEB_submenu_ports_vlan,'/admin/devices/portsbyvlan.php',$current_page,1);
 print "</div>\n";
 }
 
@@ -529,22 +540,22 @@ function print_editdevice_submenu ($current_page,$id,$dev_type) {
 print "<div id='submenu'>\n";
 $dev_id='';
 if (isset($id)) { $dev_id='?id='.$id; }
-print_submenu_url('Параметры','/admin/devices/editdevice.php'.$dev_id,$current_page,0);
+print_submenu_url(WEB_submenu_options,'/admin/devices/editdevice.php'.$dev_id,$current_page,0);
 if ($dev_type<=2) {
-    print_submenu_url('Порты','/admin/devices/switchport.php'.$dev_id,$current_page,0);
-    print_submenu_url('Состояние','/admin/devices/switchstatus.php'.$dev_id,$current_page,0);
-    print_submenu_url('Соединения','/admin/devices/switchport-conn.php'.$dev_id,$current_page,1);
+    print_submenu_url(WEB_submenu_ports,'/admin/devices/switchport.php'.$dev_id,$current_page,0);
+    print_submenu_url(WEB_submenu_state,'/admin/devices/switchstatus.php'.$dev_id,$current_page,0);
+    print_submenu_url(WEB_submenu_connections,'/admin/devices/switchport-conn.php'.$dev_id,$current_page,1);
     }
 print "</div>\n";
 }
 
 function print_ip_submenu ($current_page) {
 print "<div id='submenu'>\n";
-print_submenu_url('Список адресов','/admin/iplist/index.php',$current_page,0);
-print_submenu_url('Информация для nagios','/admin/iplist/nagios.php',$current_page,0);
-print_submenu_url('Дубли','/admin/iplist/doubles.php',$current_page,0);
-print_submenu_url('Удалённые адреса','/admin/iplist/deleted.php',$current_page,0);
-print_submenu_url('Правила автоназначения','/admin/iplist/auto_rules.php',$current_page,1);
+print_submenu_url(WEB_submenu_ip_list,'/admin/iplist/index.php',$current_page,0);
+print_submenu_url(WEB_submenu_nagios,'/admin/iplist/nagios.php',$current_page,0);
+print_submenu_url(WEB_submenu_doubles,'/admin/iplist/doubles.php',$current_page,0);
+print_submenu_url(WEB_submenu_deleted,'/admin/iplist/deleted.php',$current_page,0);
+print_submenu_url(WEB_submenu_auto_rules,'/admin/iplist/auto_rules.php',$current_page,1);
 print "</div>\n";
 }
 
@@ -626,7 +637,7 @@ function print_group_select($db, $group_name, $group_value)
 function print_building_select($db, $building_name, $building_value)
 {
     print "<select name=\"$building_name\">\n";
-    print_select_item('Всё',0,$building_value);
+    print_select_item(WEB_select_item_all,0,$building_value);
     $t_building = mysqli_query($db, "SELECT id,name FROM building Order by name");
     while (list ($f_building_id, $f_building_name) = mysqli_fetch_array($t_building)) {
 	print_select_item($f_building_name,$f_building_id,$building_value);
@@ -637,7 +648,7 @@ function print_building_select($db, $building_name, $building_value)
 function print_devtypes_select($db, $devtype_name, $devtype_value, $mode)
 {
     print "<select name=\"$devtype_name\">\n";
-    print_select_item('Всё',0,$devtype_value);
+    print_select_item(WEB_select_item_all,0,$devtype_value);
     $filter='';
     if (!empty($mode)) { $filter = "WHERE $mode"; }
     $t_devtype = mysqli_query($db, "SELECT id,name FROM device_types $filter ORDER BY name");
@@ -705,8 +716,8 @@ function get_queue($db, $queue_value)
 function print_qa_l3int_select($qa_name, $qa_value)
 {
     print "<select name=\"$qa_name\">\n";
-    print_select_item('Внутренний',0,$qa_value);
-    print_select_item('Внешний',1,$qa_value);
+    print_select_item(WEB_select_item_lan,0,$qa_value);
+    print_select_item(WEB_select_item_wan,1,$qa_value);
     print "</select>\n";
 }
 
@@ -722,8 +733,8 @@ function print_qa_rule_select($qa_name, $qa_value)
 function print_qa_select($qa_name, $qa_value)
 {
     print "<select name=\"$qa_name\">\n";
-    print_select_item('Да',1,$qa_value);
-    print_select_item('Нет',0,$qa_value);
+    print_select_item(WEB_select_item_yes,1,$qa_value);
+    print_select_item(WEB_select_item_no,0,$qa_value);
     print "</select>\n";
 }
 
@@ -732,8 +743,8 @@ function print_qa_select_ext($qa_name, $qa_value, $readonly)
     $state = '';
     if ($readonly) { $state='disabled=true'; }
     print "<select name=\"$qa_name\">\n";
-    print_select_item_ext('Да',1,$qa_value, $readonly);
-    print_select_item_ext('Нет',0,$qa_value, $readonly);
+    print_select_item_ext(WEB_select_item_yes,1,$qa_value, $readonly);
+    print_select_item_ext(WEB_select_item_no,0,$qa_value, $readonly);
     print "</select>\n";
 }
 
@@ -753,17 +764,17 @@ function print_dhcp_select($qa_name, $qa_value)
     if (! isset($qa_value) or strlen($qa_value) == 0) {
         $qa_value = 'all';
     }
-    print_select_item('Все события','all',$qa_value);
-    print_select_item('Аренда адреса','add',$qa_value);
-    print_select_item('Обновление аренды','old',$qa_value);
-    print_select_item('Освобождение адреса','del',$qa_value);
+    print_select_item(WEB_select_item_events,'all',$qa_value);
+    print_select_item(WEB_select_item_lease,'add',$qa_value);
+    print_select_item(WEB_select_item_lease_refresh,'old',$qa_value);
+    print_select_item(WEB_select_item_lease_free,'del',$qa_value);
     print "</select>\n";
 }
 
 function print_nagios_handler_select($qa_name)
 {
     print "<select name=\"$qa_name\">\n";
-    print_select_simple('Нет','');
+    print_select_simple(WEB_select_item_no,'');
     print_select_simple('restart-port','restart-port');
     print "</select>\n";
 }
@@ -771,7 +782,7 @@ function print_nagios_handler_select($qa_name)
 function print_dhcp_acl_select($qa_name)
 {
     print "<select name=\"$qa_name\">\n";
-    print_select_simple('Нет','');
+    print_select_simple(WEB_select_item_no,'');
     print_select_simple('hotspot-free','hotspot-free');
     print "</select>\n";
 }
@@ -780,9 +791,9 @@ function print_enabled_select($qa_name, $qa_value)
 {
     print "<select name=\"$qa_name\">\n";
     if (! isset($qa_value) or strlen($qa_value) == 0) { $qa_value = 0; }
-    print_select_item('Все',0,$qa_value);
-    print_select_item('Выключенные',1,$qa_value);
-    print_select_item('Включенные',2,$qa_value);
+    print_select_item(WEB_select_item_every,0,$qa_value);
+    print_select_item(WEB_select_item_disabled,1,$qa_value);
+    print_select_item(WEB_select_item_enabled,2,$qa_value);
     print "</select>\n";
 }
 
@@ -791,7 +802,7 @@ function print_vendor_select($db, $qa_name, $qa_value)
     print "<select name=\"$qa_name\" class=\"js-select-single\">\n";
     $sSQL = "SELECT id,`name` FROM `vendors` order by `name`";
     $vendors = mysqli_query($db, $sSQL);
-    print_select_item('Всё',0,$qa_value);
+    print_select_item(WEB_select_item_all,0,$qa_value);
     while (list ($v_id, $v_name) = mysqli_fetch_array($vendors)) {
 	print_select_item($v_name,$v_id,$qa_value);
     }
@@ -826,8 +837,8 @@ function get_qa($qa_value)
 function print_action_select($action_name, $action_value)
 {
     print "<select name=\"$action_name\">\n";
-	print_select_item('Разрешить',1,$action_value);
-	print_select_item('Запретить',0,$action_value);
+	print_select_item(WEB_select_item_allow,1,$action_value);
+	print_select_item(WEB_select_item_forbidden,0,$action_value);
     print "</select>\n";
 }
 
@@ -938,7 +949,7 @@ function print_device_select($db, $field_name, $device_id)
     print "<select name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 order by D.device_name ASC";
     $t_device = mysqli_query($db, $d_sql);
-    print_select_item('Все',0,$device_id);
+    print_select_item(WEB_select_item_every,0,$device_id);
     while (list ($f_name, $f_device_id) = mysqli_fetch_array($t_device)) {
 	print_select_item($f_name,$f_device_id,$device_id);
     }
@@ -950,7 +961,7 @@ function print_netdevice_select($db, $field_name, $device_id)
     print "<select name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type<=2 order by D.device_name ASC";
     $t_device = mysqli_query($db, $d_sql);
-    print_select_item('Все',0,$device_id);
+    print_select_item(WEB_select_item_every,0,$device_id);
     while (list ($f_name, $f_device_id) = mysqli_fetch_array($t_device)) {
 	print_select_item($f_name,$f_device_id,$device_id);
     }
@@ -976,7 +987,7 @@ function print_device_select_ip($db, $field_name, $device_ip)
     print "<select name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT D.device_name, D.ip FROM devices AS D Where D.deleted=0 order by D.device_name ASC";
     $t_device = mysqli_query($db, $d_sql);
-    print_select_item('Все','',$device_ip);
+    print_select_item(WEB_select_item_every,'',$device_ip);
     while (list ($f_name, $f_device_ip) = mysqli_fetch_array($t_device)) {
 	print_select_item($f_name,$f_device_ip,$device_ip);
     }
@@ -988,7 +999,7 @@ function print_syslog_device_select($db, $field_name, $syslog_filter, $device_ip
     print "<select name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT R.ip, D.device_name FROM (SELECT DISTINCT ip FROM remote_syslog WHERE $syslog_filter) AS R LEFT JOIN (SELECT ip, device_name FROM devices WHERE deleted=0) AS D ON R.ip=D.ip ORDER BY R.ip ASC";
     $t_device = mysqli_query($db, $d_sql);
-    print_select_item('Все','',$device_ip);
+    print_select_item(WEB_select_item_every,'',$device_ip);
     while (list ($f_ip, $f_name) = mysqli_fetch_array($t_device)) {
         if (!isset($f_name) or $f_name === '') { $f_name=$f_ip; }
 	print_select_item($f_name,$f_ip,$device_ip);
@@ -1001,7 +1012,7 @@ function print_gateway_select($db, $field_name, $device_id)
     print "<select name=\"$field_name\" >\n";
     $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type=2 order by D.device_name ASC";
     $t_device = mysqli_query($db, $d_sql);
-    print_select_item('Все',0,$device_id);
+    print_select_item(WEB_select_item_every,0,$device_id);
     while (list ($f_name, $f_device_id) = mysqli_fetch_array($t_device)) {
 	print_select_item($f_name,$f_device_id,$device_id);
     }
@@ -3107,7 +3118,7 @@ if ($value == $current) { print "<option value=$value selected>$description</opt
 
 function print_row_at_pages ($name,$value) {
 print "<select name='".$name."'>\n";
-print_select_item('Много',pow(10,10),$value);
+print_select_item(WEB_select_item_more,pow(10,10),$value);
 print_select_item('25',25,$value);
 print_select_item('50',50,$value);
 print_select_item('100',100,$value);

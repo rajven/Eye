@@ -107,10 +107,18 @@ define("WEB_MONTHS", array(
 12 => "Декабрь"
 ));
 
-/* common */
+/* common variables */
+define("WEB_days","дней");
+define("WEB_sec","секунд");
+
+/* error messages */
+define("WEB_auth_unknown","IP-адрес клиента не установлен");
+define("WEB_msg_exists","уже существует!");
+define("WEB_msg_ip_error","Формат адреса не верен!");
+
+/* common message */
 define("WEB_msg_IP","IP-адрес");
 define("WEB_msg_ERROR","Ошибка!");
-define("WEB_auth_unknown","IP-адрес клиента не установлен");
 define("WEB_msg_enabled","Включен");
 define("WEB_msg_disabled","Выключен");
 define("WEB_msg_login","Логин");
@@ -120,14 +128,59 @@ define("WEB_msg_now","Сейчас");
 define("WEB_msg_forbidden","Запрещено");
 define("WEB_msg_traffic_blocked","Блок по трафику");
 define("WEB_msg_internet","Интернет");
-define("WEB_msg_run","Выполнить");
-define("WEB_msg_refresh","Обновить");
-define("WEB_msg_delete","Удалить");
-define("WEB_msg_apply","Применить");
-define("WEB_msg_add","Добавить");
-define("WEB_days","дней");
-define("WEB_sec","секунд");
-define("WEB_page_speed","Страница сгенерирована за ");
+
+/* select items */
+define("WEB_select_item_yes","Да");
+define("WEB_select_item_no","Нет");
+define("WEB_select_item_lease","Аренда адреса");
+define("WEB_select_item_enabled","Включенные");
+define("WEB_select_item_wan","Внешний");
+define("WEB_select_item_lan","Внутренний");
+define("WEB_select_item_all_ips","Всe ip");
+define("WEB_select_item_every","Все");
+define("WEB_select_item_all","Всё");
+define("WEB_select_item_events","Все события");
+define("WEB_select_item_disabled","Выключенные");
+define("WEB_select_item_forbidden","Запретить");
+define("WEB_select_item_more","Много");
+define("WEB_select_item_lease_refresh","Обновление аренды");
+define("WEB_select_item_lease_free","Освобождение адреса");
+define("WEB_select_item_allow","Разрешить");
+
+/* submenu */
+define("WEB_submenu_dhcp_log","Журнал dhcp");
+define("WEB_submenu_work_log","Журнал работы");
+define("WEB_submenu_mac_history","Приключения маков");
+define("WEB_submenu_ip_history","История ip-адресов");
+define("WEB_submenu_mac_unknown","Неизвестные");
+define("WEB_submenu_traffic","Трафик");
+define("WEB_submenu_syslog","syslog");
+define("WEB_submenu_control","Управление");
+define("WEB_submenu_network","Сети");
+define("WEB_submenu_network_stats","Сети (Статистика)");
+define("WEB_submenu_options","Параметры");
+define("WEB_submenu_customers","Пользователи");
+define("WEB_submenu_filter_list","Список фильтров");
+define("WEB_submenu_filter_group","Группы фильтров");
+define("WEB_submenu_traffic_ip_report","Отчёт по трафику (ip)");
+define("WEB_submenu_traffic_login_report","Отчёт по трафику (login)");
+define("WEB_submenu_traffic_top10","TOP 10 по трафику");
+define("WEB_submenu_detail_log","Подробный лог");
+define("WEB_submenu_net_devices","Активное сетевое оборудование");
+define("WEB_submenu_passive_net_devices","Пассивное оборудование");
+define("WEB_submenu_buildings","Расположение");
+define("WEB_submenu_hierarchy","Структура");
+define("WEB_submenu_device_models","Модели устройств");
+define("WEB_submenu_vendors","Vendors");
+define("WEB_submenu_ports_vlan","Порты по вланам");
+define("WEB_submenu_ports","Порты");
+define("WEB_submenu_state","Состояние");
+define("WEB_submenu_connections","Соединения");
+define("WEB_submenu_ip_list","Список адресов");
+define("WEB_submenu_nagios","Информация для nagios");
+define("WEB_submenu_doubles","Дубли");
+define("WEB_submenu_deleted","Удалённые адреса");
+define("WEB_submenu_auto_rules","Правила автоназначения");
 
 /* header title */
 define("WEB_site_title","Панель администратора");
@@ -138,6 +191,8 @@ define("WEB_title_users_ips","Все адреса");
 define("WEB_title_filters","Фильтры");
 define("WEB_title_shapers","Шейперы");
 define("WEB_title_devices","Инфраструктура");
+define("WEB_page_speed","Страница сгенерирована за ");
+define("WEB_rows_at_page","Записей на страницу");
 
 /* traffic headers */
 define("WEB_title_ip","Адрес");
@@ -193,6 +248,7 @@ define("WEB_list_subnet","Список подсетей");
 define("WEB_list_customers","Список администраторов");
 define("WEB_list_filters","Список фильтров");
 define("WEB_list_users","Список полльзователей");
+define("WEB_list_models","Список моделей устройств");
 
 /* button names */
 define("WEB_btn_remove","Удалить");
@@ -205,12 +261,12 @@ define("WEB_btn_mac_add","+MAC");
 define("WEB_btn_mac_del","-MAC");
 define("WEB_btn_ip_add","+IP");
 define("WEB_btn_ip_del","-IP");
-
-/* error messages */
-define("WEB_msg_exists","уже существует!");
-define("WEB_msg_ip_error","Формат адреса не верен!");
-
-/* log messages */
+define("WEB_btn_run","Выполнить");
+define("WEB_btn_refresh","Обновить");
+define("WEB_btn_delete","Удалить");
+define("WEB_btn_apply","Применить");
+define("WEB_btn_add","Добавить");
+define("WEB_btn_show","Показать");
 
 /* control options */
 define("WEB_config_remove_option","Удалён параметр");
@@ -267,6 +323,7 @@ define("WEB_custom_titles","Администратор");
 define("WEB_custom_login","Логин");
 define("WEB_custom_password","Пароль");
 define("WEB_custom_mode","Только просмотр");
+define("WEB_custom_api_key","Ключ API");
 
 /* custom index */
 define("WEB_custom_index_title","Администраторы");
@@ -283,5 +340,9 @@ define("WEB_msg_traffic_for_ip","Трафик на адрес");
 define("WEB_msg_traffic_for_login","Трафик клиента");
 define("WEB_public_day_traffic","за день, (Вх/Исх)");
 define("WEB_public_month_traffic","за месяц, (Вх/Исх)");
+
+/* device models */
+define("WEB_model_vendor","Производитель");
+define("WEB_nagios_template","Шаблон Нагиос");
 
 ?>
