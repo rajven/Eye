@@ -368,4 +368,12 @@ define("WEB_device_mac_table","Show mac table");
 define("WEB_device_walk_port_list","Port Walk");
 define("WEB_device_port_count","Портов");
 
+/* editport */
+define("WEB_device_port_number","Порт N");
+define("WEB_device_port_name","Порт");
+define("WEB_device_port_snmp_index","Номер порта в snmp");
+define("WEB_device_port_uplink_device","Устройство");
+define("WEB_device_port_uplink","Uplink");
+define("WEB_device_port_allien","Не проверять");
+
 ?>

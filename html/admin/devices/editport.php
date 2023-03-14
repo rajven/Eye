@@ -15,35 +15,39 @@ if (isset($_POST["editport"])) {
     $target_id = $_POST["f_target_port"];
     bind_ports($db_link, $id, $target_id);
 
-    // redirect to device
-    $device_id = get_record_field($db_link,'device_ports','device_id',"id=".$id);
-    header("location: switchport.php?id=$device_id");
+    header("location: editport.php?id=$id");
     exit;
 }
 
 unset($_POST);
 
 $device_id = get_record_field($db_link,'device_ports','device_id',"id=".$id);
-
 $port = get_record($db_link, 'device_ports',"id=".$id);
 
+$device=get_record($db_link,'devices',"id=".$device_id);
+$user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
+
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
+
+print_device_submenu($page_url);
+print_editdevice_submenu($page_url,$device_id,$device['device_type'],$user_info['login']);
+
 ?>
-<div id="cont">
+<div id="contsubmenu">
 
 <form name="def" action="editport.php?id=<?php echo $id; ?>" method="post">
 <table class="data">
 <tr align="center">
 <td width=20>id</td>
-<td width=40>Порт N</td>
-<td width=40>Порт</td>
-<td width=40>snmp</td>
+<td width=40><?php echo WEB_device_port_number; ?></td>
+<td width=40><?php echo WEB_device_port_name; ?></td>
+<td width=40><?php echo WEB_device_port_snmp_index; ?></td>
 <td width=100>ifIndex</td>
-<td width=200>Комментарий</td>
-<td width=100>Device</td>
-<td width=40>Uplink</td>
-<td width=40>Nagios</td>
-<td width=40>Не проверять</td>
+<td width=200><?php echo WEB_cell_comment; ?></td>
+<td width=100><?php echo WEB_device_port_uplink_device; ?></td>
+<td width=40><?php echo WEB_device_port_uplink; ?></td>
+<td width=40><?php echo WEB_nagios; ?></td>
+<td width=40><?php echo WEB_device_port_allien; ?></td>
 </tr>
 <?php
 print "<tr>";
@@ -59,7 +63,7 @@ print "<td class=\"data\">"; print_qa_select('f_nagios', $port['nagios']); print
 print "<td class=\"data\">"; print_qa_select('f_skip', $port['skip']); print "</td>\n";
 ?>
 </tr>
-<tr><td colspan=2><input type="submit" name="editport" value="Сохранить"></td></tr>
+<tr><td colspan=2><input type="submit" name="editport" value="<?php echo WEB_btn_save; ?>"></td></tr>
 </table>
 </form>
 <?php
