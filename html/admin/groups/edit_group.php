@@ -72,7 +72,7 @@ fix_auth_rules($db_link);
 <input type="hidden" name="id" value=<?php echo $id; ?>>
 <table class="data">
 <tr align="center">
-<td colspan=2><b>Название</b></td>
+<td colspan=2><b><?php echo WEB_cell_name; ?></b></td>
 <td><b>Default</b></td>
 <td><b>Hotspot</b></td>
 </tr>
@@ -98,26 +98,26 @@ print "<td class=\"data\">"; print_qa_select("f_nagios_ping",$ou_info['nagios_pi
 print "<td class=\"data\"><input type=\"text\" name='f_nagios_service' value='{$ou_info['nagios_default_service']}'></td>\n";
 ?>
 </tr>
-<tr><td colspan=4>Правила для автоназначенных клиентов</td></tr>
+<tr><td colspan=4><?php echo WEB_ou_autoclient_rules; ?></td></tr>
 <tr>
-<td class="data">Фильтр&nbsp<?php print_group_select($db_link, 'f_filter_group_id', $ou_info['filter_group_id']); ?></td>
-<td class="data">Шейпер&nbsp<?php print_queue_select($db_link, 'f_queue_id', $ou_info['queue_id']); ?></td>
-<td class="data">Включен&nbsp<?php print_qa_select('f_enabled', $ou_info['enabled']); ?></td>
-<?php print "<td align=right class=\"data\"><button name='save' value='{$ou_info['id']}'>Сохранить</button></td>\n"; ?>
+<td class="data"><?php print WEB_cell_filter."&nbsp"; print_group_select($db_link, 'f_filter_group_id', $ou_info['filter_group_id']); ?></td>
+<td class="data"><?php print WEB_cell_shaper."&nbsp"; print_queue_select($db_link, 'f_queue_id', $ou_info['queue_id']); ?></td>
+<td class="data"><?php print WEB_cell_enabled."&nbsp"; print_qa_select('f_enabled', $ou_info['enabled']); ?></td>
+<?php print "<td align=right class=\"data\"><button name='save' value='{$ou_info['id']}'>".WEB_btn_save."</button></td>\n"; ?>
 </tr>
 </table>
 <br>
-<b>Правила автоназначения адресов в <?php print $ou_info['ou_name']; ?></b>
+<b><?php echo WEB_ou_rules_for_autoassigning."&nbsp"; print $ou_info['ou_name']; ?></b>
 <br>
-Порядок применения: hotspot => subnet => mac => hostname => default user
+<?php echo WEB_ou_rules_order; ?>: hotspot => subnet => mac => hostname => default user
 <br><br>
 <table class="data">
 <tr align="center">
     <td></td>
     <td width=30><b>id</b></td>
-    <td><b>Тип</b></td>
-    <td><b>Правило</b></td>
-    <td><input type="submit" onclick="return confirm('Удалить?')" name="s_remove" value="Удалить"></td>
+    <td><b><?php echo WEB_cell_type; ?></b></td>
+    <td><b><?php echo WEB_ou_rule; ?></b></td>
+    <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="s_remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
 $t_auth_rules = get_records($db_link,'auth_rules',"ou_id=$id ORDER BY id");
@@ -127,14 +127,15 @@ foreach ( $t_auth_rules as $row ) {
     print "<td class=\"data\"><input type=\"hidden\" name='n_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\">"; print_qa_rule_select("s_type[]","{$row['type']}"); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_rule[]' value='{$row['rule']}'></td>\n";
-    print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>Сохранить</button></td>\n";
+    print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
     print "</tr>\n";
 }
 ?>
-<tr>
-<td colspan=6>Новое правило :<?php print_qa_rule_select("s_new_type","1");  print "<input type=\"text\" name='s_new_rule' value=''>"; ?></td>
-<td><input type="submit" name="s_create" value="Добавить"></td>
-</tr>
 </table>
+<div>
+<?php print WEB_ou_new_rule."&nbsp"; print_qa_rule_select("s_new_type","1");  
+print "<input type=\"text\" name='s_new_rule' value=''>"; ?>
+<input type="submit" name="s_create" value="<?php WEB_btn_add; ?>">
+</div>
 </form>
 <?php require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php"); ?>

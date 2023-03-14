@@ -31,15 +31,17 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 <div id="cont">
 <table>
 <tr>
-<td><b>Список групп</b><br>
+<td><b><?php echo WEB_list_ou; ?></b><br>
 <form name="def" action="index.php" method="post">
 <table class="data">
 <tr align="center">
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b>Id</b></td>
-<td><b>Флаги</b></td>
-<td><b>Название</b></td>
-<td><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
+<td><b><?php echo WEB_cell_flags; ?></b></td>
+<td><b><?php echo WEB_cell_name; ?></b></td>
+<td>
+<input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>">
+</td>
 </tr>
 <?php
 $t_ou = get_records($db_link,'OU','TRUE ORDER BY ou_name');
@@ -57,13 +59,10 @@ foreach ($t_ou as $row) {
 }
 ?>
 </table>
-<table>
-<tr>
-<td><input type=text name=new_ou value="Unknown"></td>
-<td><input type="submit" name="create" value="Добавить"></td>
-<td align="right"></td>
-</tr>
-</table>
+<div>
+    <input type=text name=new_ou value="Unknown"></td>
+    <input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
+</div>
 </form>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");

@@ -195,6 +195,7 @@ define("WEB_cell_skip","Пропустить");
 define("WEB_cell_vlan","Vlan");
 define("WEB_cell_mac_count","Mac count");
 define("WEB_cell_forename","Имя");
+define("WEB_cell_flags","Флаги");
 
 /* lists name */
 define("WEB_list_ou","Список групп");
@@ -373,5 +374,12 @@ define("WEB_title_group","Группа");
 define("WEB_groups_filter_list","Список фильтров группы");
 define("WEB_group_filter_order","Порядок правил");
 define("WEB_group_filter_name","Название фильтра");
+
+/* edit OU */
+define("WEB_ou_autoclient_rules","Правила для автоназначенных клиентов");
+define("WEB_ou_rules_for_autoassigning","Правила автоназначения адресов в");
+define("WEB_ou_rules_order","Порядок применения");
+define("WEB_ou_rule","Правило");
+define("WEB_ou_new_rule","Новое правило");
 
 ?>
