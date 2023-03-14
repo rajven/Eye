@@ -29,13 +29,13 @@ select                          { font-family: tahoma; }
 form                            { margin: 0; margin-top: 5px; }
 .cont                           { font-family: tahoma; }
 
-span.num_page_not_link          { border: 1px solid; font-color: black; padding: 3px; margin-bottom: 1em;}
+span.num_page_not_link          { border: 1px solid; color: black; padding: 3px; margin-bottom: 1em;}
 
-div.records                     { font-color: black; margin-bottom: 1em; margin-top: 1em; }
+div.records                     { color: black; margin-bottom: 1em; margin-top: 1em; }
 div.simple                      { margin-bottom: 1em; margin-top: 1em; }
 
 a                               { font-family: tahoma; color: #000000; text-decoration: underline; }
-a.first_page_link               { border: 1px solid green; font-color: black; background-color: #A5FF33; padding: 3px; margin-bottom: 1em;}
+a.first_page_link               { border: 1px solid green; color: black; background-color: #A5FF33; padding: 3px; margin-bottom: 1em;}
 a:visited                       { color: #000000; text-decoration: underline; }
 a:link                          { color: #000000; text-decoration: underline; }
 a:active                        { color: #ed8b0d; text-decoration: none; }
@@ -45,11 +45,11 @@ a:hover                         { color: #ed8b0d; text-decoration: none; }
 #title                          { position: absolute; top: 15px; left: 15px; font-size: 18pt; color: #ed8b0d; }
 #subtitle                       { position: absolute; top: 43px; left: 15px; font-size: 8pt; }
 #submenu                        { position: absolute; top: 55px; left: 20px; }
-#subsubmenu                     { position: absolute; top: 70px; left: 20px; }
+#subsubmenu                     { position: absolute; top: 75px; left: 20px; }
 #cont                           { position: absolute; top: 70px; left: 15px; background-color: url('img/vr.gif'); background-repeat: repeat-y; background-position: right; }
-#contsubmenu                    { position: absolute; top: 85px; left: 15px; background-color: url('img/vr.gif'); background-repeat: repeat-y; background-position: right; }
+#contsubmenu                    { position: absolute; top: 90px; left: 15px; background-color: url('img/vr.gif'); background-repeat: repeat-y; background-position: right; }
 #copyright                      { margin-top: 10px; margin-bottom: 10px; }
-#msg                            { font-size: 18pt; font-color: black; color: red; }
+#msg                            { font-size: 18pt; color: black; color: red; }
 
 html                            { margin:0; padding:0; font-size:62.5%; }
 h1                              { font-size:1.8em; }
