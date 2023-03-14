@@ -33,7 +33,8 @@ if ($rdns) { $dns_checked='checked="checked"'; }
 $dns_cache=NULL;
 
 print_log_submenu($page_url);
-print_trafdetail_submenu($page_url,"id=$id&date_start=$date1&date_stop=$date2","<b>".WEB_log_detail_for."<a href=/admin/users/editauth.php?id=$id>$f_ip</a></b> ::&nbsp");
+/* print_trafdetail_submenu($page_url,"id=$id&date_start=$date1&date_stop=$date2","<b>".WEB_log_detail_for."<a href=/admin/users/editauth.php?id=$id>$f_ip</a></b> ::&nbsp"); */
+
 ?>
 
 <div id="contsubmenu">

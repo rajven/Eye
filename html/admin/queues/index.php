@@ -29,16 +29,16 @@ unset($_POST);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 ?>
 <div id="cont">
-<td><b>Список шейперов</b> <br>
+<b><?php echo WEB_list_queues; ?></b> <br>
 <form name="def" action="index.php" method="post">
 <table class="data">
 <tr align="center">
 	<td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 	<td><b>Id</b></td>
-	<td><b>Название</b></td>
+	<td><b><?php echo WEB_cell_name; ?></b></td>
 	<td><b>Download</b></td>
 	<td><b>Upload</b></td>
-	<td><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
+	<td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
 $t_queue=get_records($db_link, "Queue_list",'TRUE ORDER BY id');
@@ -49,18 +49,15 @@ foreach ($t_queue as $row) {
     print "<td class=\"data\"><input type=\"text\" name='f_queue_name[]' value='{$row['queue_name']}'></td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_down[]' value='{$row['Download']}'></td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_up[]' value='{$row['Upload']}'></td>\n";
-    print "<td class=\"data\"><input type=\"submit\" name=\"save\" value=\"Сохранить\"></td>\n";
+    print "<td class=\"data\"><input type=\"submit\" name=\"save\" value='".WEB_btn_save."'></td>\n";
     print "</tr>\n";
 }
 ?>
 </table>
-<table>
-<tr>
-	<td><input type=text name=new_queue value="New_queue"></td>
-	<td><input type="submit" name="create" value="Добавить"></td>
-	<td align="right"></td>
-</tr>
-</table>
+<div>
+<input type=text name=new_queue value="New_queue">
+<input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
+</div>
 </form>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");

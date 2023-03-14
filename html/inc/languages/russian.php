@@ -215,6 +215,7 @@ define("WEB_list_filters","Список фильтров");
 define("WEB_list_users","Список полльзователей");
 define("WEB_list_models","Список моделей устройств");
 define("WEB_list_vendors","Список вендоров");
+define("WEB_list_queues","Список шейперов");
 
 /* button names */
 define("WEB_btn_remove","Удалить");
