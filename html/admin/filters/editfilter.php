@@ -27,16 +27,16 @@ print_filters_submenu($page_url);
 
 print "<div id=cont>";
 
-print "<br> <b>Фильтр</b> <br>";
+print "<br> <b>".WEB_title_filter."</b> <br>";
 
 print "<form name=def action='editfilter.php?id=".$id."' method=post>";
 print "<input type=hidden name=id value=$id>";
 
 if (isset($filter['type']) and $filter['type'] == 0) {
     print "<table class=\"data\" cellspacing=\"0\" cellpadding=\"4\">";
-    print "<tr><td><b>Имя</b></td>";
-    print "<td ><b>Комментарий</b></td>";
-    print "<td ><b>Действие</b></td>";
+    print "<tr><td><b>".WEB_cell_forename."</b></td>";
+    print "<td ><b>".WEB_cell_comment."</b></td>";
+    print "<td ><b>".WEB_traffic_action."</b></td>";
     print "</tr>";
     print "<tr>";
     print "<td align=left><input type=text name=f_name value='".$filter['name']."'></td>";
@@ -44,13 +44,13 @@ if (isset($filter['type']) and $filter['type'] == 0) {
     print "<td>";
     print_action_select('f_action', $filter['action']);
     print "</td>";
-    print "<td><input type=submit name=editfilter value=Сохранить></td>";
+    print "<td><input type=submit name=editfilter value='".WEB_btn_save."'></td>";
     print "</tr>";
     print "<tr>";
-    print "<td ><b>Протокол</b></td>";
-    print "<td ><b>Адрес назначения</b></td>";
-    print "<td ><b>Порт назначения</b></td>";
-    print "<td ><b>Порт источник</b></td>";
+    print "<td ><b>".WEB_traffic_proto."</b></td>";
+    print "<td ><b>".WEB_traffic_dest_address."</b></td>";
+    print "<td ><b>".WEB_traffic_dst_port."</b></td>";
+    print "<td ><b>".WEB_traffic_src_port."</b></td>";
     print "</tr>";
     print "<tr>";
     print "<td ><input type=text name=f_proto value='".$filter['proto']."'></td>";
@@ -61,10 +61,10 @@ if (isset($filter['type']) and $filter['type'] == 0) {
     print "</table>";
 } else {
     print "<table class=\"data\" cellspacing=\"0\" cellpadding=\"4\">";
-    print "<tr><td><b>Имя</b></td>";
-    print "<td ><b>Комментарий</b></td>";
-    print "<td ><b>Действие</b></td>";
-    print "<td><input type=submit name=editfilter value=Сохранить></td>";
+    print "<tr><td><b>".WEB_cell_forename."</b></td>";
+    print "<td ><b>".WEB_cell_comment."</b></td>";
+    print "<td ><b>".WEB_traffic_action."</b></td>";
+    print "<td><input type=submit name=editfilter value=".WEB_btn_save."></td>";
     print "</tr>";
     print "<tr>";
     print "<td align=left><input type=text name=f_name value='".$filter['name']."'></td>";

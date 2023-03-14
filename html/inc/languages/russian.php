@@ -42,6 +42,8 @@ define("WEB_msg_internet","Интернет");
 define("WEB_msg_delete","Удалить");
 define("WEB_msg_additional","Дополнительно");
 define("WEB_msg_unsupported","Не поддерживается");
+define("WEB_msg_delete_filter","Удалить фильтр");
+define("WEB_msg_add_filter", "Добавить фильтр");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");
@@ -192,6 +194,7 @@ define("WEB_cell_type","Тип");
 define("WEB_cell_skip","Пропустить");
 define("WEB_cell_vlan","Vlan");
 define("WEB_cell_mac_count","Mac count");
+define("WEB_cell_forename","Имя");
 
 /* lists name */
 define("WEB_list_ou","Список групп");
@@ -218,6 +221,7 @@ define("WEB_btn_refresh","Обновить");
 define("WEB_btn_delete","Удалить");
 define("WEB_btn_apply","Применить");
 define("WEB_btn_show","Показать");
+define("WEB_btn_reorder","Применить порядок");
 
 /* control options */
 define("WEB_config_remove_option","Удалён параметр");
@@ -353,5 +357,21 @@ define("WEB_device_port_on","Включить порт");
 define("WEB_device_port_off","Выключить порт");
 define("WEB_device_poe_on","Включить POE");
 define("WEB_device_poe_off","Выключить POE");
+
+/* edit filter */
+define("WEB_title_filter","Фильтр");
+define("Web_filter_type","Тип фильтра");
+define("WEB_traffic_action","Действие");
+define("WEB_traffic_dest_address","Адрес назначения");
+define("WEB_traffic_source_address","Адрес источника");
+define("WEB_traffic_proto","Протокол");
+define("WEB_traffic_src_port","Порт источник");
+define("WEB_traffic_dst_port","Порт назначения");
+
+/* edit group filters */
+define("WEB_title_group","Группа");
+define("WEB_groups_filter_list","Список фильтров группы");
+define("WEB_group_filter_order","Порядок правил");
+define("WEB_group_filter_name","Название фильтра");
 
 ?>

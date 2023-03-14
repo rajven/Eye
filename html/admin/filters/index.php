@@ -38,14 +38,14 @@ print_filters_submenu($page_url);
 	<tr align="center">
 		<td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 		<td><b>id</b></td>
-		<td><b>Имя</b></td>
-		<td><b>Тип</b></td>
-		<td><b>Протокол</b></td>
-		<td><b>Адрес назначения</b></td>
-		<td><b>Порт назначения</b></td>
-		<td><b>Порт источник</b></td>
-		<td><b>Действие</b></td>
-		<td><b>Комментарий</b></td>
+		<td><b><?php echo WEB_cell_forename; ?></b></td>
+		<td><b><?php echo WEB_cell_type; ?></b></td>
+		<td><b><?php echo WEB_traffic_proto; ?></b></td>
+		<td><b><?php echo WEB_traffic_dest_address; ?></b></td>
+		<td><b><?php echo WEB_traffic_dst_port; ?></b></td>
+		<td><b><?php echo WEB_traffic_src_port; ?></b></td>
+		<td><b><?php echo WEB_traffic_action; ?></b></td>
+		<td><b><?php echo WEB_cell_comment; ?></b></td>
 	</tr>
 <?php
 $filters = get_records_sql($db_link,'SELECT * FROM Filter_list ORDER BY name');
@@ -80,18 +80,16 @@ foreach ($filters as $row) {
 }
 ?>
 </table>
-<table class="data">
-	<tr align=left>
-	<td>Название <input type=text name=newfilter value="Unknown"></td>
-	<td>Тип фильтра <select name="filter_type" disabled=true>
+<div>
+<?php echo WEB_cell_name; ?>
+<input type=text name=newfilter value="Unknown">
+<?php echo Web_filter_type; ?>
+<select name="filter_type" disabled=true>
 	<option value=0 selected>IP фильтр</option>
 	<option value=1>Name фильтр</option>
-	</select>
-	</td>
-	<td><input type="submit" name="create" value="Добавить"></td>
-	<td align="right"><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
-	</tr>
-	</table>
+</select>
+<input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
+<input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>">
 </form>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");

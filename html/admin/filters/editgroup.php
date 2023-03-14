@@ -55,28 +55,28 @@ print_filters_submenu($page_url);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 ?>
 <div id="cont">
-<br> <b>Группа</b> <br>
+<br> <b><?php echo WEB_title_group; ?></b> <br>
 
 <form name="def" action="editgroup.php?id=<?php echo $id; ?>" method="post">
 <input type="hidden" name="id" value=<?php echo $id; ?>>
 <table class="data">
 <tr>
-<td>Название</td>
+<td><?php echo WEB_cell_name; ?></td>
 <td><input type="text" name="f_group_name" value="<?php echo $group['group_name']; ?>"></td>
-<td>Комментарий</td>
+<td><?php echo WEB_cell_comment; ?></td>
 <td><input type="text" name="f_group_comment" value="<?php echo $group['comment']; ?>"></td>
 </tr>
 <tr>
-<td colspan=2><input type="submit" name="editgroup"	value="Сохранить"></td>
+<td colspan=2><input type="submit" name="editgroup"	value="<?php echo WEB_btn_save; ?>"></td>
 </tr>
 </table>
-<br> <b>Список фильтров группы</b><br>
+<br> <b><?php echo WEB_groups_filter_list; ?></b><br>
 <table class="data">
 <tr>
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
-<td>Order</td>
-<td>Название фильтра</td>
-<td align="right"><input type="submit" onclick="return confirm('Удалиьт фильтр?')" name="removefilter" value="Удалить"></td>
+<td><?php echo WEB_group_filter_order; ?></td>
+<td><?php echo WEB_group_filter_name; ?></td>
+<td align="right"><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete_filter; ?>?')" name="removefilter" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 
 <?php
@@ -92,12 +92,10 @@ foreach ($flist as $row) {
 }
 ?>
 </table>
-<table>
-<tr>
-<td><input type="submit" name="addfilter" value="Добавить фильтр"> <?php print_filter_select($db_link, 'newfilter', $id); ?> </td>
-<td align="right"><input type="submit" name="saveorder" value="Применить порядок"></td>
-</tr>
-</table>
+<div>
+<input type="submit" name="addfilter" value="<?php echo WEB_msg_add_filter; ?>"> <?php print_filter_select($db_link, 'newfilter', $id); ?>
+<input type="submit" name="saveorder" value="<?php echo WEB_btn_reorder; ?>">
+</div>
 </form>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");

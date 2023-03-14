@@ -34,8 +34,8 @@ print_filters_submenu($page_url);
 <tr align="center">
 	<td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 	<td><b>Id</b></td>
-	<td width=200><b>Название</b></td>
-	<td width=200><b>Комментарий</b></td>
+	<td width=200><b><?php echo WEB_cell_name; ?></b></td>
+	<td width=200><b><?php echo WEB_cell_comment; ?></b></td>
 </tr>
 <?php
 $groups = get_records_sql($db_link,'SELECT * FROM Group_list ORDER BY id');
@@ -48,13 +48,11 @@ foreach ($groups as $row) {
 }
 ?>
 </table>
-<table class="data">
-	<tr align=left>
-		<td>Название <input type=text name=newgroup value="Unknown"></td>
-		<td><input type="submit" name="create" value="Добавить"></td>
-		<td align="right"><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
-		</tr>
-	</table>
+<div>
+<?php echo WEB_cell_name; ?><input type=text name=newgroup value="Unknown">
+<input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
+<input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>">
+</div>
 </form>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
