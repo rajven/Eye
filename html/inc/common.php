@@ -536,10 +536,11 @@ print_submenu_url(WEB_submenu_ports_vlan,'/admin/devices/portsbyvlan.php',$curre
 print "</div>\n";
 }
 
-function print_editdevice_submenu ($current_page,$id,$dev_type) {
+function print_editdevice_submenu ($current_page,$id,$dev_type,$dev_name = NULL) {
 print "<div id='subsubmenu'>\n";
 $dev_id='';
 if (isset($id)) { $dev_id='?id='.$id; }
+if (!empty($dev_name)) { print "<b>".$dev_name."::</b>"; }
 print_submenu_url(WEB_submenu_options,'/admin/devices/editdevice.php'.$dev_id,$current_page,0);
 if ($dev_type<=2) {
     print_submenu_url(WEB_submenu_ports,'/admin/devices/switchport.php'.$dev_id,$current_page,0);
