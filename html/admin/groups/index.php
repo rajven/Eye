@@ -29,9 +29,7 @@ unset($_POST);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 ?>
 <div id="cont">
-<table>
-<tr>
-<td><b><?php echo WEB_list_ou; ?></b><br>
+<b><?php echo WEB_list_ou; ?></b><br>
 <form name="def" action="index.php" method="post">
 <table class="data">
 <tr align="center">
