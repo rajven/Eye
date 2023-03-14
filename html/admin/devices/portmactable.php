@@ -15,7 +15,7 @@ $user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
 print_device_submenu($page_url);
-print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login']);
+print_editdevice_submenu($page_url,$device_id,$device['device_type'],$user_info['login']);
 
 ?>
 

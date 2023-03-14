@@ -3,8 +3,6 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-$device=get_record($db_link,'devices',"id=".$id);
-
 if (isset($_POST["regensnmp"])) {
     $snmp_index = $_POST["f_snmp_start"] * 1;
     $sSQL = "SELECT id,port from device_ports WHERE device_ports.device_id=$id order by id";
@@ -57,12 +55,13 @@ if (isset($_POST['save'])) {
 
 unset($_POST);
 
+$device=get_record($db_link,'devices',"id=".$id);
 $user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
 print_device_submenu($page_url);
-print_editdevice_submenu($page_url,$device_id,$device['device_type'],$user_info['login']);
+print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login']);
 
 ?>
 <div id="contsubmenu">

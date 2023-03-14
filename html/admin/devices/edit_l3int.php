@@ -4,8 +4,8 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-$sSQL = "SELECT * FROM devices WHERE id=$id";
-$device_info = get_record_sql($db_link, $sSQL);
+$device=get_record($db_link,'devices',"id=".$id);
+$user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
 
 if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
@@ -50,13 +50,15 @@ if (isset($_POST["s_create"])) {
 unset($_POST);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
+
 print_device_submenu($page_url);
+print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login']);
 
 ?>
-<div id="cont">
+<div id="contsubmenu">
 <br>
 <?php print "<form name=def action='edit_l3int.php?id=".$id."' method=post>"; ?>
-<?php print WEB_list_l3_interfaces."<b>"; print_url($device_info['device_name'],"/admin/devices/editdevice.php?id=$id"); ?>
+<?php print WEB_list_l3_interfaces."<b>"; print_url($device['device_name'],"/admin/devices/editdevice.php?id=$id"); ?>
 </b> <br>
 <table class="data">
 <tr align="center">
