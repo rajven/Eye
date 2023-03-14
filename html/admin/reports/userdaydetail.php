@@ -23,22 +23,22 @@ print_trafdetail_submenu($page_url,"id=$id&date_start='$date1'&date_stop='$date2
 
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
 <input type="hidden" name="id" value=<?php echo $id; ?>>
-  Начало:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-  Конец:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
-  Шлюз:&nbsp <?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
-  DNS:&nbsp <input type=checkbox name=dns value="1" <?php print $dns_checked; ?>>
-  <input type="submit" value="OK">
+<?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
+<?php echo WEB_log_stop_date; ?>:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
+<?php echo WEB_cell_gateway; ?>:&nbsp<?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
+DNS:&nbsp <input type=checkbox name=dns value="1" <?php print $dns_checked; ?>>
+<input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
 
 <br>
-<b>Топ 10 по входящему трафику</b>
+<b><?php echo WEB_report_top10_in; ?></b>
 <table class="data">
 <tr align="center">
-<td class="data" width=30><b>Протокол</b></td>
-<td class="data" width=150><b>Откуда</b></td>
+<td class="data" width=30><b><?php echo WEB_traffic_proto; ?></b></td>
+<td class="data" width=150><b><?php echo WEB_traffic_source_address; ?></b></td>
 <td class="data"><b>DNS</b></td>
-<td class="data" width=50><b>Порт</b></td>
-<td class="data" width=80><b>Байт</b></td>
+<td class="data" width=50><b><?php echo WEB_traffic_src_port; ?></b></td>
+<td class="data" width=80><b><?php echo WEB_bytes; ?></b></td>
 </tr>
 <?php
 $ip_aton = ip2long($fip);
@@ -63,14 +63,14 @@ while (list ($uproto, $uip, $uport, $ubytes) = mysqli_fetch_array($userdata)) {
 }
 ?>
 </table>
-<b>Топ 10 по исходящему трафику</b>
+<b><?php echo WEB_report_top10_out; ?></b>
 <table class="data">
 <tr align="center">
-<td class="data" width=30><b>Протокол</b></td>
-<td class="data" width=150><b>Куда</b></td>
+<td class="data" width=30><b><?php echo WEB_traffic_proto; ?></b></td>
+<td class="data" width=150><b><?php echo WEB_traffic_dest_address; ?></b></td>
 <td class="data"><b>DNS</b></td>
-<td class="data" width=50><b>Порт</b></td>
-<td class="data" width=80><b>Байт</b></td>
+<td class="data" width=50><b><?php echo WEB_traffic_dst_port; ?></b></td>
+<td class="data" width=80><b><?php echo WEB_bytes; ?></b></td>
 </tr>
 <?php
 $fsql = "SELECT A.proto, A.dst_ip, A.dst_port, SUM(A.bytes) as tout FROM Traffic_detail A

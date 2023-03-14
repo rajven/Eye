@@ -16,21 +16,22 @@ print_reports_submenu($page_url);
 <div id="cont">
 
 <form action="index.php" method="post">
-Группа:&nbsp<?php print_ou_select($db_link,'ou',$rou); ?>
-Начало:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-Конец:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
-Шлюз:&nbsp<?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
-<input type="submit" value="OK">
+<?php echo WEB_cell_ou; ?>:&nbsp<?php print_ou_select($db_link,'ou',$rou); ?>
+<?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
+<?php echo WEB_log_stop_date; ?>:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
+<?php echo WEB_cell_gateway; ?>:&nbsp<?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
+<?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+<input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
 
 <?php
 print "<br><br>\n";
 print "<table class=\"data\">\n";
 print "<tr class=\"info\">\n";
-print "<td ><b><a href=index.php?sort=login&order=$new_order>Логин</a></b></td>\n";
-print "<td ><b>Gate</b></td>\n";
-print "<td ><b><a href=index.php?sort=tin&order=$new_order>Входящий</a></b></td>\n";
-print "<td ><b><a href=index.php?sort=tout&order=$new_order>Исходящий<a></b></td>\n";
+print "<td ><b><a href=index.php?sort=login&order=$new_order>".WEB_cell_login."</a></b></td>\n";
+print "<td ><b>".WEB_cell_gateway."</b></td>\n";
+print "<td ><b><a href=index.php?sort=tin&order=$new_order>".WEB_title_input."</a></b></td>\n";
+print "<td ><b><a href=index.php?sort=tout&order=$new_order>".WEB_title_output."<a></b></td>\n";
 print "</tr>\n";
 
 $sort_sql=" ORDER BY tin DESC";
@@ -79,7 +80,7 @@ while (list ($s_login,$s_ou_id,$u_id,$s_auth_id, $s_router_id, $traf_day_in, $tr
     print "</tr>\n";
 }
 print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-print "<td class=\"data\" colspan=2><b>Итого</b></td>\n";
+print "<td class=\"data\" colspan=2><b>".WEB_title_itog."</b></td>\n";
 print "<td class=\"data\"><b>" . fbytes($total_in) . "</b></td>\n";
 print "<td class=\"data\"><b>" . fbytes($total_out) . "</b></td>\n";
 print "</tr>\n";

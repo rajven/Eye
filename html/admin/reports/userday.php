@@ -17,20 +17,20 @@ $user=get_record_sql($db_link,'SELECT * FROM User_list WHERE id='.$id);
 <br>
 <form action="<?php print $_SERVER['PHP_SELF']; ?>" method="post">
 <input type="hidden" name="id" value=<?php echo $id; ?>>
-Начало:&nbsp<input type="date" name="date_start" value="<?php print $date1; ?>" />
-Конец:&nbsp<input type="date" name="date_stop" value="<?php print $date2; ?>" />
-Шлюз:&nbsp <?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
-<input type="submit" value="OK">
+<?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
+<?php echo WEB_log_stop_date; ?>:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
+<?php echo WEB_cell_gateway; ?>:&nbsp<?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
+<input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
 
 <br>
 <table class="data" width='100%'>
 <tr align="center">
-<td class="data"><b><?php print $title_ip; ?></b></td>
-<td class="data"><b> Gateway </b></td>
-<td class="data"><b><?php print $title_date; ?></b></td>
-<td class="data"><b><?php print $title_input; ?></b></td>
-<td class="data"><b><?php print $title_output; ?></b></td>
+<td class="data"><b><?php print WEB_title_ip; ?></b></td>
+<td class="data"><b><?php print WEB_cell_gateway; ?></b></td>
+<td class="data"><b><?php print WEB_title_date; ?></b></td>
+<td class="data"><b><?php print WEB_title_input; ?></b></td>
+<td class="data"><b><?php print WEB_title_output; ?></b></td>
 </tr>
 
 <?php
@@ -102,7 +102,7 @@ while ($row = mysqli_fetch_array($usersip)) {
             $sum_out += $uout;
         }
         print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-        print "<td class=\"data\"><b>" . $title_sum . "</b></td>\n";
+        print "<td class=\"data\"><b>" . WEB_title_sum . "</b></td>\n";
         print "<td class=\"data\"><b> </b></td>\n";
         print "<td class=\"data\"><b> </b></td>\n";
         print "<td class=\"data\"><b>" . fbytes($sum_in) . "</b></td>\n";
@@ -114,7 +114,7 @@ while ($row = mysqli_fetch_array($usersip)) {
 }
 if ($ipcount > 1) {
     print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td class=\"data\"><b> Итого </b></td>\n";
+    print "<td class=\"data\"><b>".WEB_title_itog."</b></td>\n";
     print "<td class=\"data\"><b> </b></td>\n";
     print "<td class=\"data\"><b> </b></td>\n";
     print "<td class=\"data\"><b>" . fbytes($itog_in) . "</b></td>\n";

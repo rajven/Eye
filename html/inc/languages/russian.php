@@ -20,6 +20,7 @@ define("WEB_days","дней");
 define("WEB_sec","секунд");
 define("WEB_date","Дата");
 define("WEB_bytes","Байт");
+define("WEB_pkts","Pkt");
 define("WEB_page_speed","Страница сгенерирована за ");
 define("WEB_rows_at_page","Записей на страницу");
 define("WEB_nagios","Nagios");
@@ -420,4 +421,10 @@ define("WEB_log_select_ip_mac","ip или mac");
 define("WEB_log_report_by_device","Отчёт по устройству");
 define("WEB_log_mac_history_hint","Здесь находится история всех работавших когда-то маков/ip.<br>Если нужно найти место подключения - смотреть приключения маков!<br>");
 
+/* reports */
+define("WEB_report_user_traffic","Трафик пользователя");
+define("WEB_report_traffic_for_ip","для адреса");
+define("WEB_report_detail","Детализация");
+define("WEB_report_top10_in","Топ 10 по входящему трафику");
+define("WEB_report_top10_out","Топ 10 по исходящему трафику");
 ?>
