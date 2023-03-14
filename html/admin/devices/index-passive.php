@@ -22,7 +22,7 @@ if (isset($_POST["removeauth"])) {
 	            run_sql($db_link, 'DELETE FROM device_l3_interfaces WHERE device_id='.$val);
 	            run_sql($db_link, 'DELETE FROM device_ports WHERE device_id='.$val);
         	    delete_record($db_link, "devices", "id=".$val);
-        	    LOG_WARNING($db_link,"Удалено устройство ".$device['device_name']." id: ".$val);
+        	    LOG_WARNING($db_link,"Removed device ".$device['device_name']." id: ".$val);
         	    }
                 }
             }
@@ -58,6 +58,7 @@ if ($f_devtype_id > 0) { $d_filter .= ' and D.device_type=' . $f_devtype_id; } e
 $ip_list_filter = $ou_filter.$subnet_filter;
 
 unset($_POST);
+
 print_device_submenu($page_url);
 
 ?>
@@ -65,21 +66,21 @@ print_device_submenu($page_url);
 <form name="def" action="index-passive.php" method="post">
 <table class="data">
 <tr>
-<td class="info"> Тип оборудования: </td>
-<td class="info"> <?php  print_devtypes_select($db_link, "devtypes", $f_devtype_id, "id>2"); ?>
-<td class="info">Показать оборудование из</td>
-<td class="info"> <?php  print_building_select($db_link, "building_id", $f_building_id); ?></td>
-<td class="info" colspan=2 align=right><input name="OK" type="submit" value="Показать"></td>
-<td align=right><input type="submit" onclick="return confirm('Удалить выделенных?')" name="removeauth" value="Удалить"></td>
+<td class="info"> <?php echo WEB_device_type_show; ?>: </td>
+<td class="info"> <?php print_devtypes_select($db_link, "devtypes", $f_devtype_id, "id>2"); ?>
+<td class="info"> <?php print WEB_device_show_location; ?></td>
+<td class="info"> <?php print_building_select($db_link, "building_id", $f_building_id); ?></td>
+<td class="info" colspan=2 align=right><input name="OK" type="submit" value="<?php echo WEB_btn_show; ?>"></td>
+<td align=right><input type="submit" onclick="return confirm('<?php print WEB_msg_delete; ?>?')" name="removeauth" value="<?php print WEB_btn_remove; ?>"></td>
 </tr>
 <tr>
 <td class="info"><?php print $list_ou; ?> </td>
 <td class="info"><?php print_ou_select($db_link, 'ou', $rou); ?></td>
-<td class="info">Отображать:<?php print_row_at_pages('rows',$displayed); ?></td>
+<td class="info"><?php print WEB_rows_at_page."&nbsp:"; print_row_at_pages('rows',$displayed); ?></td>
 <td class="info"><?php print $list_subnet; ?> </td>
 <td class="info"><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?></td>
-<td class="info">Hide unknown:&nbsp <input type=checkbox name=f_unknown value="1" <?php print $unknown_checked; ?>> </td>
-<td class="info">Vendor: <?php print_vendor_select($db_link,"vendor_select",$f_vendor_select); ?></td>
+<td class="info"><?php print WEB_device_hide_unknown."&nbsp"; ?> <input type=checkbox name=f_unknown value="1" <?php print $unknown_checked; ?>> </td>
+<td class="info"><?php print WEB_model_vendor."&nbsp"; print_vendor_select($db_link,"vendor_select",$f_vendor_select); ?></td>
 </td>
 </tr>
 </table>
@@ -131,14 +132,14 @@ foreach ($users as $user) {
     if ($user['last_found'] == '0000-00-00 00:00:00') { $user['last_found'] = ''; }
     print "<tr align=center>\n";
     $cl = "data";
-    print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$user['dev_id']."></td>\n";
-    print "<td class=\"$cl\" ><a href=/admin/devices/editdevice.php?id=".$user['dev_id'].">" . $user['login'] . "</a></td>\n";
-    print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user['ip'] . "</a></td>\n";
-    print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
-    print "<td class=\"$cl\" >".$user['name'].' '.$user['model_name']."</td>\n";
-    print "<td class=\"$cl\" >".$user['comment']."</td>\n";
-    print "<td class=\"data\" >" . get_connection($db_link, $user['id']) . "</td>\n";
-    print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
+    print "<td class='".$cl."' style='padding:0'><input type=checkbox name=fid[] value=".$user['dev_id']."></td>\n";
+    print "<td class='".$cl."' ><a href=/admin/devices/editdevice.php?id=".$user['dev_id'].">" . $user['login'] . "</a></td>\n";
+    print "<td class='".$cl."' ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user['ip'] . "</a></td>\n";
+    print "<td class='".$cl."' >" . expand_mac($db_link,$user['mac']) . "</td>\n";
+    print "<td class='".$cl."' >".$user['name'].' '.$user['model_name']."</td>\n";
+    print "<td class='".$cl."' >".$user['comment']."</td>\n";
+    print "<td class='data'>" . get_connection($db_link, $user['id']) . "</td>\n";
+    print "<td class='".$cl."' >".$user['last_found']."</td>\n";
     print "</tr>\n";
 }
 print "</table>\n";
@@ -146,10 +147,10 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 ?>
 <br>
 <table class="data">
-<tr><td>Цветовая маркировка</td></tr>
+<tr><td><?php echo WEB_color_description; ?></td></tr>
 <tr>
-<td class="warn">Пользователь выключен</td>
-<td class="error">Блокировка по трафику</td>
+<td class="warn"><?php echo WEB_color_user_disabled; ?></td>
+<td class="error"><?php echo WEB_color_user_blocked; ?></td>
 </table>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");

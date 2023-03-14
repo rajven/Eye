@@ -133,6 +133,11 @@ define("WEB_snmp_v3_rw_password","Snmpv3 RW password");
 define("WEB_snmp_community_ro","Snmp RO Community");
 define("WEB_snmp_community_rw","Snmp RW Community");
 
+/* color schema description */
+define("WEB_color_description","Цветовая маркировка");
+define("WEB_color_user_disabled","Пользователь вылкючен");
+define("WEB_color_user_blocked","Блокировка по трафику");
+
 /* select items */
 define("WEB_select_item_yes","Да");
 define("WEB_select_item_no","Нет");
@@ -362,7 +367,7 @@ define("WEB_device_access_control","Управление доступом");
 define("WEB_device_queues_enabled","Шейперы");
 define("WEB_device_connected_only","Только сети маршрутизатора");
 define("WEB_device_dhcp_server","DHCP-Server");
-define("WEB_device_snmp_comment","Некоторые устройства отдают mac-таблицу по индексу порта в snmp, другие - по номеру");
+define("WEB_device_snmp_hint","Некоторые устройства отдают mac-таблицу по индексу порта в snmp, другие - по номеру");
 define("WEB_device_mac_by_oid","Mac by snmp");
 define("WEB_device_mac_table","Show mac table");
 define("WEB_device_walk_port_list","Port Walk");
@@ -375,5 +380,10 @@ define("WEB_device_port_snmp_index","Номер порта в snmp");
 define("WEB_device_port_uplink_device","Устройство");
 define("WEB_device_port_uplink","Uplink");
 define("WEB_device_port_allien","Не проверять");
+
+/* devices: index-passive */
+define("WEB_device_type_show","Тип оборудования");
+define("WEB_device_hide_unknown","Скрыть неизвестные");
+define("WEB_device_show_location","Расположение оборуодвания");
 
 ?>

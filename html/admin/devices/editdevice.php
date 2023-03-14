@@ -132,7 +132,7 @@ if ($device['device_type']==2) {
     print "<tr><td colspan=4 class='data'>"; print get_l3_interfaces($db_link,$device['id']); print "</td></tr>";
     }
 if ($device['device_type']<=2) {
-    print "<tr><td>".WEB_snmp_version."</td><td><p title='".WEB_device_snmp_comment."'>".WEB_device_mac_by_oid."</p></td>";
+    print "<tr><td>".WEB_snmp_version."</td><td><p title='".WEB_device_snmp_hint."'>".WEB_device_mac_by_oid."</p></td>";
     print "<td>".WEB_network_discovery."</td><td>".WEB_nagios."</td></tr>";
     print "<tr><td class='data'>"; print_snmp_select('f_snmp_version', $device['snmp_version']); print "</td>\n";
     print "<td class='data'>"; print_qa_select('f_fdb_snmp', $device['fdb_snmp_index']); print "</td>\n";
