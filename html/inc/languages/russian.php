@@ -18,6 +18,8 @@ define("WEB_MONTHS", array(
 /* common variables */
 define("WEB_days","дней");
 define("WEB_sec","секунд");
+define("WEB_date","Дата");
+define("WEB_bytes","Байт");
 define("WEB_page_speed","Страница сгенерирована за ");
 define("WEB_rows_at_page","Записей на страницу");
 define("WEB_nagios","Nagios");
@@ -177,6 +179,7 @@ define("WEB_cell_wikiname","Wiki Name");
 define("WEB_cell_filter","Фильтр");
 define("WEB_cell_proxy","Proxy");
 define("WEB_cell_dhcp","Dhcp");
+define("WEB_cell_dhcp_hostname","DHCP-hostname");
 define("WEB_cell_nat","НАТ");
 define("WEB_cell_transparent","Transparent");
 define("WEB_cell_shaper","Шейпер");
@@ -202,6 +205,7 @@ define("WEB_cell_forename","Имя");
 define("WEB_cell_flags","Флаги");
 define("WEB_cell_created","Создан");
 define("WEB_cell_deleted","Удалён");
+define("WEB_cell_gateway","Шлюз");
 
 /* lists name */
 define("WEB_list_ou","Список групп");
@@ -396,5 +400,23 @@ define("WEB_ips_show_by_state","По активности");
 define("WEB_ips_search_host","Поиск ip or mac");
 define("WEB_selection_title","Применить к выделению");
 define("WEB_ips_search_full","Поиск по комментарию/ip/mac/dhcp hostname");
+
+/* logs */
+define("WEB_log_start_date","Начало");
+define("WEB_log_stop_date","Конец");
+define("WEB_log_level_display","Уровень логов");
+define("WEB_log_filter_source","Фильтр Источник");
+define("WEB_log_filter_event","Фильтр - сообщение");
+define("WEB_log_message","Сообщение");
+define("WEB_log_time","Время");
+define("WEB_log_manager","Администратор");
+define("WEB_log_level","Уровень");
+define("WEB_log_event","Событие");
+define("WEB_log_event_type","Тип события");
+define("WEB_log_detail_for","Детализация для");
+define("WEB_log_full","Полный лог");
+define("WEB_log_select_ip_mac","ip или mac");
+define("WEB_log_report_by_device","Отчёт по устройству");
+define("WEB_log_mac_history_hint","Здесь находится история всех работавших когда-то маков/ip.<br>Если нужно найти место подключения - смотреть приключения маков!<br>");
 
 ?>

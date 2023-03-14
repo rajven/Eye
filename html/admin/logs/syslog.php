@@ -32,12 +32,12 @@ if ($f_id>0) {
 <div id="cont">
 <br>
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
-Начало:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-Конец:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
-Отчёт по устройству&nbsp <?php print_device_select($db_link, "device_show", $f_id); ?>
-Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-<input type="submit" value="OK"><br><br>
-Фильтр - сообщение:<input name="message" value="<?php echo $fmessage; ?>" />
+<?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
+<?php echo WEB_log_stop_date; ?>:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
+<?php echo WEB_log_report_by_device; ?>&nbsp <?php print_device_select($db_link, "device_show", $f_id); ?>
+<?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+<input type="submit" value="<?php echo WEB_btn_show; ?>"><br><br>
+<?php echo WEB_log_filter_event; ?>:<input name="message" value="<?php echo $fmessage; ?>" />
 </form>
 
 <?php
@@ -59,9 +59,9 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <br>
 <table class="data" width="90%">
 		<tr align="center">
-			<td class="data" width=150><b>Дата</b></td>
-			<td class="data"><b>IP </b></td>
-			<td class="data"><b>Сообщение</b></td>
+			<td class="data" width=150><b><?php echo WEB_date; ?></b></td>
+			<td class="data"><b><?php echo WEB_cell_ip; ?></b></td>
+			<td class="data"><b><?php echo WEB_log_event; ?></b></td>
 		</tr>
 
 <?php

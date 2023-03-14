@@ -19,11 +19,11 @@ if ($f_id > 0) { $where_dev = " and D.id=$f_id "; }
 <div id="cont">
 <br>
 	<form action="<?=$_SERVER['PHP_SELF']?>" method="post">
-  Отчёт по свичу&nbsp<?php print_netdevice_select($db_link, "device_show", $f_id); ?>
-  Начало:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-  Конец:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
-  Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-  <input type="submit" value="OK">
+  <?php echo WEB_log_report_by_device; ?>&nbsp<?php print_netdevice_select($db_link, "device_show", $f_id); ?>
+  <?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
+  <?php echo WEB_log_stop_date; ?>:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
+  <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+  <input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
 
 <?php
@@ -39,10 +39,10 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <br>
 <table class="data" width="750">
 <tr align="center">
-	<td class="data" width=110><b>Switch</b></td>
-	<td class="data"><b>Port</b></td>
-	<td class="data"><b>Mac</b></td>
-	<td class="data"><b>Last found</b></td>
+	<td class="data" width=110><b><?php echo WEB_cell_connection; ?></b></td>
+	<td class="data"><b><?php echo WEB_device_port_name; ?></b></td>
+	<td class="data"><b><?php echo WEB_cell_mac; ?></b></td>
+	<td class="data"><b><?php echo WEB_cell_last_found; ?></b></td>
 </tr>
 <?php
 

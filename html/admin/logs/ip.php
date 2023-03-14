@@ -23,14 +23,13 @@ if (!empty($f_ip)) {
 
 <div id="cont">
 <br>
-Здесь находится история всех работавших когда-то маков/ip.<br>
-Если нужно найти место подключения - смотреть приключения маков!<br>
+<?php echo WEB_log_mac_history_hint; ?>
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
-Начало:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-Конец:&nbsp<input type="date"	name="date_stop" value="<?php echo $date2; ?>" />
-ip or mac:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])|([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12})$"/>
-Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-<input type="submit" value="OK">
+<?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
+<?php echo WEB_log_stop_date; ?>:&nbsp<input type="date"	name="date_stop" value="<?php echo $date2; ?>" />
+<?php echo WEB_log_select_ip_mac; ?>:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])|([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12})$"/>
+<?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+<input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
 
 <?php
@@ -47,12 +46,12 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <table class="data">
 		<tr align="center">
 				<td class="data"><b>id</b></td>
-				<td class="data" width=150><b>Время создания</b></td>
-				<td class="data" width=150><b>Последняя работа</b></td>
-				<td class="data"><b>IP</b></td>
-				<td class="data"><b>mac</b></td>
-				<td class="data"><b>dhcp hostname</b></td>
-				<td class="data"><b>dns name</b></td>
+				<td class="data" width=150><b><?php echo WEB_cell_created; ?></b></td>
+				<td class="data" width=150><b><?php echo WEB_cell_last_found; ?></b></td>
+				<td class="data"><b><?php echo WEB_cell_ip; ?></b></td>
+				<td class="data"><b><?php echo WEB_cell_mac; ?></b></td>
+				<td class="data"><b><?php echo WEB_cell_dhcp_hostname; ?></b></td>
+				<td class="data"><b><?php echo WEB_cell_dns_name; ?></b></td>
 		</tr>
 
 <?php

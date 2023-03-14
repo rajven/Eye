@@ -11,13 +11,13 @@ print_log_submenu($page_url);
 <div id="cont">
 <br>
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
-Начало:<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-Конец:<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
-Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-Уровень логов:<?php print_loglevel_select('display_log_level',$display_log_level); ?>
-<input type="submit" value="OK"><br><br>
-Фильтр Источник:<input name="customer" value="<?php echo $fcustomer; ?>" />
-Сообщение:<input name="message" value="<?php echo $fmessage; ?>" />
+<?php echo WEB_log_start_date; ?>:<input type="date" name="date_start" value="<?php echo $date1; ?>" />
+<?php echo WEB_log_stop_date; ?>:<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
+<?php echo WEB_log_level_display; ?>:<?php print_loglevel_select('display_log_level',$display_log_level); ?>
+<?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+<input type="submit" value="<?php echo WEB_btn_show; ?>"><br><br>
+<?php echo WEB_log_filter_source; ?>:<input name="customer" value="<?php echo $fcustomer; ?>" />
+<?php echo WEB_log_event; ?>:<input name="message" value="<?php echo $fmessage; ?>" />
 </form>
 
 <?php
@@ -46,10 +46,10 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
 <table class="data">
 <tr align="center">
-	<td class="data" width=150><b>Время</b></td>
-	<td class="data"><b>Менеджер/Источник</b></td>
-	<td class="data"><b>Level</b></td>
-	<td class="data"><b>Лог</b></td>
+	<td class="data" width=150><b><?php echo WEB_log_time; ?></b></td>
+	<td class="data"><b><?php echo WEB_log_manager; ?></b></td>
+	<td class="data"><b><?php echo WEB_log_level; ?></b></td>
+	<td class="data"><b><?php echo WEB_log_event; ?></b></td>
 </tr>
 
 <?php

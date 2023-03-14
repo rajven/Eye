@@ -22,11 +22,11 @@ print_log_submenu($page_url);
 <div id="cont">
 <br>
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
-  Начало:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-  Конец:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
-  Тип события:&nbsp<?php print_dhcp_select('dhcp_show', $f_dhcp); ?>
-  Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-  <input type="submit" value="OK">
+  <?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
+  <?php echo WEB_log_stop_date; ?>:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
+  <?php echo WEB_log_event_type; ?>:&nbsp<?php print_dhcp_select('dhcp_show', $f_dhcp); ?>
+  <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+  <input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
 
 <?php
@@ -42,10 +42,10 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <br>
 <table class="data" width="900">
 <tr align="center">
-	<td class="data" width=150><b>Время</b></td>
-	<td class="data"><b>Тип</b></td>
-	<td class="data"><b>Mac</b></td>
-	<td class="data"><b>IP</b></td>
+	<td class="data" width=150><b><?php echo WEB_log_time; ?></b></td>
+	<td class="data"><b><?php echo WEB_cell_type; ?></b></td>
+	<td class="data"><b><?php echo WEB_cell_mac; ?></b></td>
+	<td class="data"><b><?php echo WEB_cell_ip; ?></b></td>
 </tr>
 
 <?php

@@ -13,13 +13,13 @@ if (!isset($auth_id)) { header('Location: /admin/logs/index.php', true, 301); ex
 <br>
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
 <input name="auth_id" value="<?php print $auth_id; ?>" hidden=true>
-Начало:<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-Конец:<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
-Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-Уровень логов:<?php print_loglevel_select('display_log_level',$display_log_level); ?>
-<input type="submit" value="OK"><br><br>
-Фильтр Источник:<input name="customer" value="<?php echo $fcustomer; ?>" />
-Сообщение:<input name="message" value="<?php echo $fmessage; ?>" />
+<?php echo WEB_log_start_date; ?>:<input type="date" name="date_start" value="<?php echo $date1; ?>" />
+<?php echo WEB_log_stop_date; ?>:<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
+<?php echo WEB_log_level_display; ?>:<?php print_loglevel_select('display_log_level',$display_log_level); ?>
+<?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+<input type="submit" value="<?php echo WEB_btn_show; ?>"><br><br>
+<?php echo WEB_log_filter_source; ?>:<input name="customer" value="<?php echo $fcustomer; ?>" />
+<?php echo WEB_log_message; ?>:<input name="message" value="<?php echo $fmessage; ?>" />
 </form>
 
 <?php
@@ -48,10 +48,10 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <br>
 <table class="data" width="90%">
 	<tr align="center">
-		<td class="data" width=150><b>Время</b></td>
-		<td class="data"><b>Менеджер</b></td>
-		<td class="data"><b>Level</b></td>
-		<td class="data"><b>Лог</b></td>
+		<td class="data" width=150><b><?php echo WEB_log_time; ?></b></td>
+		<td class="data"><b><?php echo WEB_log_manager; ?></b></td>
+		<td class="data"><b><?php echo WEB_log_level; ?></b></td>
+		<td class="data"><b><?php echo WEB_log_event; ?></b></td>
 	</tr>
 <?php
 #speedup paging

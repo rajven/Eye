@@ -33,23 +33,23 @@ if ($rdns) { $dns_checked='checked="checked"'; }
 $dns_cache=NULL;
 
 print_log_submenu($page_url);
-/* print_trafdetail_submenu($page_url,"id=$id&date_start=$date1&date_stop=$date2","<b>Детализация для <a href=/admin/users/editauth.php?id=$id>$fip</a></b> ::&nbsp"); */
+print_trafdetail_submenu($page_url,"id=$id&date_start=$date1&date_stop=$date2","<b>".WEB_log_detail_for."<a href=/admin/users/editauth.php?id=$id>$f_ip</a></b> ::&nbsp");
 ?>
 
-<div id="cont">
+<div id="contsubmenu">
 
 <form action="<?php print $page_url; ?>" method="post">
 <input type="hidden" name="id" value=<?php echo $id; ?>>
-ip:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
-Начало:&nbsp<input type="datetime-local" name="date_start" value="<?php echo $date1; ?>" />
-Конец:&nbsp<input type="datetime-local" name="date_stop" value="<?php echo $date2; ?>" />
-Шлюз:&nbsp <?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
+<?php echo WEB_cell_ip; ?>:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
+<?php echo WEB_log_start_date; ?>:&nbsp<input type="datetime-local" name="date_start" value="<?php echo $date1; ?>" />
+<?php echo WEB_log_stop_date; ?>:&nbsp<input type="datetime-local" name="date_stop" value="<?php echo $date2; ?>" />
+<?php echo WEB_cell_gateway; ?>:&nbsp <?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
 DNS:&nbsp <input type=checkbox name=dns value="1" <?php print $dns_checked; ?>>
-Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-<input type="submit" value="OK">
+<?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+<input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
 
-<b>Полный лог</b>
+<b><?php echo WEB_log_full; ?></b>
 
 <?php
 $sort_url = "<a href='detaillog.php?date_start=\"".$date1.'"&date_stop="'.$date2.'"';
@@ -73,17 +73,17 @@ $gateway_list = get_gateways($db_link);
 <table class="data">
 <tr align="center">
 <td class="data" width=20><b><?php $url = $sort_url.'&sort=id&order='.$new_order."'>id</a>"; print $url; ?></b></td>
-<td class="data" width=20><b>Юзер</b></td>
-<td class="data" width=150><b><?php $url = $sort_url.'&sort=timestamp&order='.$new_order."'>Дата</a>"; print $url; ?></b></td>
-<td class="data" width=30><b>Роутер</b></td>
-<td class="data" width=30><b>Протокол</b></td>
-<td class="data" width=150><b><?php $url = $sort_url.'&sort=src_ip&order='.$new_order."'>Откуда</a>"; print $url; ?></b></td>
+<td class="data" width=20><b><?php echo WEB_cell_login; ?></b></td>
+<td class="data" width=150><b><?php $url = $sort_url.'&sort=timestamp&order='.$new_order."'>".WEB_date."</a>"; print $url; ?></b></td>
+<td class="data" width=30><b><?php echo WEB_cell_gateway; ?></b></td>
+<td class="data" width=30><b><?php echo WEB_traffic_proto; ?></b></td>
+<td class="data" width=150><b><?php $url = $sort_url.'&sort=src_ip&order='.$new_order."'>".WEB_traffic_source_address."</a>"; print $url; ?></b></td>
 <td class="data"><b>DNS</b></td>
-<td class="data" width=50><b>Порт</b></td>
-<td class="data" width=150><b><?php $url = $sort_url.'&sort=dst_ip&order='.$new_order."'>Куда</a>"; print $url; ?></b></td>
+<td class="data" width=50><b><?php echo WEB_traffic_src_port; ?></b></td>
+<td class="data" width=150><b><?php $url = $sort_url.'&sort=dst_ip&order='.$new_order."'>".WEB_traffic_dest_address."</a>"; print $url; ?></b></td>
 <td class="data"><b>DNS</b></td>
-<td class="data" width=50><b>Порт</b></td>
-<td class="data" width=80><b><?php $url = $sort_url.'&sort=bytes&order='.$new_order."'>Байт</a>"; print $url; ?></b></td>
+<td class="data" width=50><b><?php echo WEB_traffic_dst_port; ?></b></td>
+<td class="data" width=80><b><?php $url = $sort_url.'&sort=bytes&order='.$new_order."'>".WEB_bytes."</a>"; print $url; ?></b></td>
 <td class="data" width=80><b><?php $url = $sort_url.'&sort=pkt&order='.$new_order."'>Pkt</a>"; print $url; ?></b></td>
 </tr>
 <?php
@@ -117,7 +117,6 @@ while (list ($uid, $auth_id, $udata, $urouter, $uproto, $sip, $sport,$dip, $dpor
 ?>
 </table>
 <?php print_navigation($page_url,$page,$displayed,$count_records[0],$total); ?>
-<br>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

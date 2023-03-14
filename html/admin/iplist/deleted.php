@@ -41,6 +41,7 @@ print_ip_submenu($page_url);
 ?>
 <div id="cont">
 <form name="def" action="deleted.php" method="post">
+<br>
 <div>
         <b><?php print WEB_network_subnet; ?> - </b><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?>
         <?php echo WEB_ips_search_full; ?>: &nbsp <input type=text name=searchComment value="<?php print $f_comment; ?>">
