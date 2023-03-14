@@ -42,10 +42,12 @@ a:active                        { color: #ed8b0d; text-decoration: none; }
 a:hover                         { color: #ed8b0d; text-decoration: none; }
 
 #navi                           { position: absolute; font-size: 12pt; top: 15px; left: 190px; }
-#submenu                        { position: absolute; top: 55px; left: 20px; }
 #title                          { position: absolute; top: 15px; left: 15px; font-size: 18pt; color: #ed8b0d; }
 #subtitle                       { position: absolute; top: 43px; left: 15px; font-size: 8pt; }
+#submenu                        { position: absolute; top: 55px; left: 20px; }
+#subsubmenu                     { position: absolute; top: 70px; left: 20px; }
 #cont                           { position: absolute; top: 70px; left: 15px; background-color: url('img/vr.gif'); background-repeat: repeat-y; background-position: right; }
+#contsubmenu                    { position: absolute; top: 85px; left: 15px; background-color: url('img/vr.gif'); background-repeat: repeat-y; background-position: right; }
 #copyright                      { margin-top: 10px; margin-bottom: 10px; }
 #msg                            { font-size: 18pt; font-color: black; color: red; }
 

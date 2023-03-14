@@ -84,10 +84,11 @@ unset($_POST);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
+print_device_submenu($page_url);
 print_editdevice_submenu($page_url,$id,$device['device_type']);
 
 ?>
-<div id="cont">
+<div id="contsubmenu">
 <form name="def" action="editdevice.php?id=<?php echo $id; ?>" method="post">
 <table class="data">
 <tr>

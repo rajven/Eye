@@ -537,7 +537,7 @@ print "</div>\n";
 }
 
 function print_editdevice_submenu ($current_page,$id,$dev_type) {
-print "<div id='submenu'>\n";
+print "<div id='subsubmenu'>\n";
 $dev_id='';
 if (isset($id)) { $dev_id='?id='.$id; }
 print_submenu_url(WEB_submenu_options,'/admin/devices/editdevice.php'.$dev_id,$current_page,0);
