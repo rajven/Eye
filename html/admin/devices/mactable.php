@@ -37,6 +37,5 @@ foreach ($ports as $port) {
     }
 }
 print "</table>\n";
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>
-</body>
-</html>

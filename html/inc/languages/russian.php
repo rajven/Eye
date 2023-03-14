@@ -309,5 +309,10 @@ define("WEB_device_show_location","Расположение оборудован
 
 /* mac table */
 define("WEB_device_mac_table_show","Список маков активных на оборудовании");
+define("WEB_device_port_mac_table_show","Список маков активных на порту оборудования");
+define("WEB_device_port_mac_table_history","Список маков когда-либо обнаруженных на порту");
+
+/* portsbyvlan */
+define("WEB_device_ports_by_vlan","Список портов в влане");
 
 ?>

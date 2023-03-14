@@ -10,9 +10,9 @@ print_device_submenu($page_url);
 <div id="cont">
 <br>
 <form name="def" action="portsbyvlan.php" method="post">
-<b>Список портов в влане &nbsp</b> <?php print_vlan_select($db_link,'id',$id); ?>
-<input type="submit" name="show_vlan" value="Показать">
-Отображать:<?php print_row_at_pages('rows',$displayed); ?>
+<b><?php echo WEB_device_ports_by_vlan; ?> &nbsp</b> <?php print_vlan_select($db_link,'id',$id); ?>
+<input type="submit" name="show_vlan" value="<?php echo WEB_btn_show; ?>">
+<?php print WEB_rows_at_page; print_row_at_pages('rows',$displayed); ?>
 </form>
 
 <?php
@@ -28,8 +28,8 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
 <table class="data">
 <tr>
-<td>Device</td>
-<td>Port</td>
+<td><?php echo WEB_cell_name; ?></td>
+<td><?php echo WEB_device_port_name; ?></td>
 </tr>
 <?php
 $sSQL = "SELECT DP.id, DP.port, D.id, D.device_name FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.vlan=$id";
@@ -42,6 +42,6 @@ while (list ($f_port_id,$f_port,$f_switch_id,$f_switch) = mysqli_fetch_array($po
 }
 ?>
 </table>
-<?php print_navigation($page_url,$page,$displayed,$count_records[0],$total); ?>
-</body>
-</html>
+<?php print_navigation($page_url,$page,$displayed,$count_records[0],$total); 
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
+?>
