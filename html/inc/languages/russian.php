@@ -447,5 +447,6 @@ define("WEB_user_ip_list","Список адресов доступа");
 define("WEB_user_add_ip","Новый адрес доступа IP");
 define("WEB_user_add_mac","Mac (необязательно)");
 define("WEB_user_list_apply","Применить к списку");
+define("WEB_new_user","Новый юзер");
 
 ?>

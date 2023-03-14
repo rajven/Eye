@@ -123,6 +123,7 @@ print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
 </table>
 
 <div>
+<?php echo WEB_new_user."&nbsp"; ?>
 <input type=text name=newlogin value="Unknown">
 <input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
 </div>
