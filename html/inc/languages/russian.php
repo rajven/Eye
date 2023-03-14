@@ -121,6 +121,7 @@ define("WEB_msg_now","Сейчас");
 define("WEB_msg_forbidden","Запрещено");
 define("WEB_msg_traffic_blocked","Блок по трафику");
 define("WEB_msg_internet","Интернет");
+define("WEB_msg_delete","Удалить");
 
 /* select items */
 define("WEB_select_item_yes","Да");
@@ -231,10 +232,11 @@ define("WEB_cell_link","Линк");
 define("WEB_cell_traf","Запись трафика");
 define("WEB_cell_acl","dhcp acl");
 define("WEB_cell_le","Правил");
-define("WEB_ceil_login_quote_month","Квота на логин, месяц");
-define("WEB_ceil_ip_quote_month","Квота на адрес, месяц");
-define("WEB_ceil_login_quote_day","Квота на логин, день");
-define("WEB_ceil_ip_quote_day","Квота на адрес, день");
+define("WEB_cell_login_quote_month","Квота на логин, месяц");
+define("WEB_cell_ip_quote_month","Квота на адрес, месяц");
+define("WEB_cell_login_quote_day","Квота на логин, день");
+define("WEB_cell_ip_quote_day","Квота на адрес, день");
+define("WEB_cell_type","Тип");
 
 /* lists name */
 define("WEB_list_ou","Список групп");
@@ -339,5 +341,9 @@ define("WEB_public_month_traffic","за месяц, (Вх/Исх)");
 /* device models */
 define("WEB_model_vendor","Производитель");
 define("WEB_nagios_template","Шаблон Нагиос");
+
+/* edit_l3int */
+define("WEB_list_l3_interfaces","Список L3 интерфейсов");
+define("WEB_l3_interface_add","Добавить интерфейс");
 
 ?>

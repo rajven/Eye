@@ -50,19 +50,23 @@ if (isset($_POST["s_create"])) {
 unset($_POST);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
+print_device_submenu($page_url);
 
 ?>
 <div id="cont">
 <br>
-<form name="def" action="edit_l3int.php" method="post">
-<b>Список L3 интерфейсов <?php print_url($device_info['device_name'],"/admin/devices/editdevice.php?id=$id"); ?></b> <br>
+<?php print "<form name=def action='edit_l3int.php?id=".$id."' method=post>"; ?>
+<?php print WEB_list_l3_interfaces."<b>"; print_url($device_info['device_name'],"/admin/devices/editdevice.php?id=$id"); ?>
+</b> <br>
 <table class="data">
 <tr align="center">
 	<td></td>
 	<td width=30><b>id</b></td>
-	<td><b>Название</b></td>
-	<td><b>Тип</b></td>
-	<td><input type="submit" onclick="return confirm('Удалить?')" name="s_remove" value="Удалить"></td>
+	<td><b><?php echo WEB_cell_name; ?></b></td>
+	<td><b><?php echo WEB_cell_type; ?></b></td>
+	<td>
+	<input type="submit" onclick="return confirm('<?php print WEB_msg_delete; ?>?')" name="s_remove" value="<?php print WEB_btn_remove; ?>">
+	</td>
 </tr>
 <?php
 $t_l3_interface = get_records($db_link,'device_l3_interfaces',"device_id=$id ORDER BY name");
@@ -72,14 +76,16 @@ foreach ( $t_l3_interface as $row ) {
     print "<td class=\"data\"><input type=\"hidden\" name='n_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_name[]' value='{$row['name']}'></td>\n";
     print "<td class=\"data\">"; print_qa_l3int_select('s_type[]',$row['interface_type']); print "</td>\n";
-    print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>Сохранить</button></td>\n";
+    print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
     print "</tr>\n";
     }
 ?>
 <tr>
-<td colspan=4>Добавить интерфейс :<?php print "<input type=\"text\" name='s_create_name' value=''";?>
+<td colspan=4><?php print WEB_l3_interface_add; print "&nbsp:<input type=\"text\" name='s_create_name' value=''";?>
 </td>
-<td><input type="submit" name="s_create" value="Добавить"></td>
+<td>
+<input type="submit" name="s_create" value="<?php echo WEB_btn_add; ?>">
+</td>
 </tr>
 </table>
 </form>
