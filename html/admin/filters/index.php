@@ -46,6 +46,7 @@ print_filters_submenu($page_url);
 		<td><b><?php echo WEB_traffic_src_port; ?></b></td>
 		<td><b><?php echo WEB_traffic_action; ?></b></td>
 		<td><b><?php echo WEB_cell_comment; ?></b></td>
+        <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>"></td>
 	</tr>
 <?php
 $filters = get_records_sql($db_link,'SELECT * FROM Filter_list ORDER BY name');
@@ -76,7 +77,7 @@ foreach ($filters as $row) {
         print "<td class=\"data\">" . get_action($row['action']) . "</td>\n";
         print "<td class=\"data\">".$row['comment']."</td>\n";
     }
-    print "</tr>";
+    print "<td></td></tr>";
 }
 ?>
 </table>
@@ -89,7 +90,6 @@ foreach ($filters as $row) {
 	<option value=1>Name фильтр</option>
 </select>
 <input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
-<input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>">
 </form>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
