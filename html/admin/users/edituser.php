@@ -48,9 +48,9 @@ if (isset($_POST["addMacRule"])) {
         $new['user_id']=$id;
         $new['type']=2;
         $new['rule']=$first_auth['mac'];
-	insert_record($db_link,"auth_rules",$new);
-	LOG_INFO($db_link,"Создано правило атоназначения юзеру id: ".$id." login: ".$user_info["login"]." для мака ".$first_auth['mac']);
-	}
+	    insert_record($db_link,"auth_rules",$new);
+	    LOG_INFO($db_link,"Создано правило атоназначения юзеру id: ".$id." login: ".$user_info["login"]." для мака ".$first_auth['mac']);
+	    }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -69,8 +69,8 @@ if (isset($_POST["addIPRule"])) {
         $new['user_id']=$id;
         $new['type']=1;
         $new['rule']=$first_auth['ip'];
-	insert_record($db_link,"auth_rules",$new);
-	LOG_INFO($db_link,"Создано правило атоназначения юзеру id: ".$id." login: ".$user_info["login"]." для IP ".$first_auth['IP']);
+	    insert_record($db_link,"auth_rules",$new);
+	    LOG_INFO($db_link,"Создано правило атоназначения юзеру id: ".$id." login: ".$user_info["login"]." для IP ".$first_auth['IP']);
 	}
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -87,7 +87,7 @@ if (isset($_POST["showDevice"])) {
     $device = get_record_sql($db_link,"SELECT * FROM devices WHERE user_id=".$id);
     $auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE user_id=".$id);
     if (empty($device) and !empty($auth)) {
-	$new['user_id']=$id;
+	    $new['user_id']=$id;
         $new['device_name'] = $user_info['login'];
         $new['device_type'] = 5;
         $new['ip']=$auth['ip'];
@@ -97,13 +97,13 @@ if (isset($_POST["showDevice"])) {
         unset($_POST);
         if (!empty($new_id)) {
             LOG_INFO($db_link, "Created device with id: $new_id for auth_id: $id");
-	    header("Location: /admin/devices/editdevice.php?id={$new_id}");
-	    exit;
-	    } else {
-	    header("Location: ".$_SERVER["REQUEST_URI"]);
-	    exit;
+	        header("Location: /admin/devices/editdevice.php?id={$new_id}");
+	        exit;
+	        } else {
+	        header("Location: ".$_SERVER["REQUEST_URI"]);
+	        exit;
+	        }
 	    }
-	}
     header("Location: /admin/devices/editdevice.php?id=".$device['id']);
     exit;
 }
@@ -147,8 +147,8 @@ if (isset($_POST["addauth"])) {
                 header("Location: /admin/users/editauth.php?id=".$fid);
                 exit;
                 }
-	    header("Location: " . $_SERVER["REQUEST_URI"]);
-	    exit;
+	        header("Location: " . $_SERVER["REQUEST_URI"]);
+	        exit;
     	    } else {
                 $msg_error = "$msg_ip_error xxx.xxx.xxx.xxx";
                 $_SESSION[$page_url]['msg'] = $msg_error;
@@ -179,15 +179,15 @@ if (isset($_POST["new_user"])) {
     $save_traf = get_option($db_link, 23) * 1;
     foreach ($auth_id as $key => $val) {
         if ($val) {
-	    $auth_info = get_record_sql($db_link,"SELECT ip, mac, comments, dns_name, dhcp_hostname FROM User_auth WHERE id=$val");
+	        $auth_info = get_record_sql($db_link,"SELECT ip, mac, comments, dns_name, dhcp_hostname FROM User_auth WHERE id=$val");
             $ou_id = $user_info["ou_id"];
             $login = NULL;
             if (!empty($auth_info["dns_name"])) { $login = $auth_info["dns_name"]; }
             if (empty($login) and !empty($auth_info["comments"])) { $login = transliterate($auth_info["comments"]); }
             if (empty($login) and !empty($auth_info["dhcp_hostname"])) { $login = $auth_info["dhcp_hostname"]; }
             if (empty($login) and !empty($auth_info["mac"])) { $login = $auth_info["mac"]; }
-	    if (empty($login)) { $login = $auth_info["ip"]; }
-	    $new_user = get_record_sql($db_link,"SELECT * FROM User_list WHERE LCase(login)=LCase('$login') and deleted=0");
+	        if (empty($login)) { $login = $auth_info["ip"]; }
+	        $new_user = get_record_sql($db_link,"SELECT * FROM User_list WHERE LCase(login)=LCase('$login') and deleted=0");
             if (!empty($new_user)) {
                 // move auth
                 $auth["user_id"] = $new_user["id"];
@@ -226,9 +226,9 @@ if (!empty($_SESSION[$page_url]['msg'])) {
 <input type="hidden" name="id" value=<?php echo $id; ?>>
 <table class="data">
 <tr>
-<td colspan=2><?php print $cell_login; ?></td>
-<td colspan=2><?php print $cell_fio; ?></td>
-<td colspan=2><?php print $cell_ou; ?></td>
+<td colspan=2><?php print WEB_cell_login; ?></td>
+<td colspan=2><?php print WEB_cell_fio; ?></td>
+<td colspan=2><?php print WEB_cell_ou; ?></td>
 </tr>
 <tr>
 <td colspan=2><input type="text" name="f_login" value="<?php print $user_info["login"]; ?>" size=25></td>
@@ -236,10 +236,10 @@ if (!empty($_SESSION[$page_url]['msg'])) {
 <td colspan=2><?php print_ou_set($db_link, 'f_ou', $user_info["ou_id"]); ?></td>
 </tr>
 <tr>
-<td colspan=2><?php print $cell_perday; ?></td>
-<td colspan=2><?php print $cell_permonth; ?></td>
-<td><?php print $cell_blocked; ?></td>
-<td><?php print $cell_enabled; ?></td>
+<td colspan=2><?php print WEB_cell_perday; ?></td>
+<td colspan=2><?php print WEB_cell_permonth; ?></td>
+<td><?php print WEB_cell_blocked; ?></td>
+<td><?php print WEB_cell_enabled; ?></td>
 </tr>
 <tr>
 <td colspan=2><input type="text" name="f_perday" value="<?php echo $user_info["day_quota"]; ?>" size=5></td>
@@ -247,10 +247,10 @@ if (!empty($_SESSION[$page_url]['msg'])) {
 <td ><?php print_qa_select('f_blocked', $user_info["blocked"]); ?></td>
 <td ><?php print_qa_select('f_enabled', $user_info["enabled"]); ?></td>
 </tr>
-<tr><td class=data colspan=6>Параметры для автоназначенных адресов:</td></tr>
+<tr><td class=data colspan=6><?php echo WEB_user_rules_for_autoassign; ?>:</td></tr>
 <tr>
-<td colspan=2><?php print $cell_filter; ?></td>
-<td colspan=2><?php print $cell_shaper; ?></td>
+<td colspan=2><?php print WEB_cell_filter; ?></td>
+<td colspan=2><?php print WEB_cell_shaper; ?></td>
 <td colspan=2></td>
 </tr>
 <tr>
@@ -260,7 +260,7 @@ if (!empty($_SESSION[$page_url]['msg'])) {
 </tr>
 <tr>
 <?php
-print "<td>"; print_url("Список правил","/admin/users/edit_rules.php?id=$id"); print "</td>";
+print "<td>"; print_url(WEB_user_rule_list,"/admin/users/edit_rules.php?id=$id"); print "</td>";
 $rule_count = get_count_records($db_link,"auth_rules","user_id=".$id);
 print "<td > Count: ".$rule_count."</td>";
 $first_auth = get_record_sql($db_link,"SELECT id FROM User_auth WHERE user_id=".$id." AND deleted=0 ORDER BY id");
@@ -268,27 +268,27 @@ if (!empty($first_auth)) {
     //mac
     $mac_rule_count = get_count_records($db_link,"auth_rules","user_id=".$id." AND type=2");
     if (!empty($mac_rule_count)) { 
-	print "<td><input type=\"submit\" name=\"delMacRule\" value=".$btn_mac_del." ></td>";
-	} else {
-	print "<td><input type=\"submit\" name=\"addMacRule\" value=".$btn_mac_add." ></td>";
-	}
+	    print "<td><input type=\"submit\" name=\"delMacRule\" value=".WEB_btn_mac_del." ></td>";
+	    } else {
+	    print "<td><input type=\"submit\" name=\"addMacRule\" value=".WEB_btn_mac_add." ></td>";
+	    }
     //ip
     $ip_rule_count = get_count_records($db_link,"auth_rules","user_id=".$id." AND type=1");
     if (!empty($ip_rule_count)) { 
-	print "<td><input type=\"submit\" name=\"delIPRule\" value=".$btn_ip_del." ></td>";
-	} else {
-	print "<td><input type=\"submit\" name=\"addIPRule\" value=".$btn_ip_add." ></td>";
-	}
+	    print "<td><input type=\"submit\" name=\"delIPRule\" value=".WEB_btn_ip_del." ></td>";
+	    } else {
+	    print "<td><input type=\"submit\" name=\"addIPRule\" value=".WEB_btn_ip_add." ></td>";
+	    }
     } else { print "<td colspan=2></td>"; }
 ?>
-<td colspan=2 align=right>Created: <?php print $user_info["timestamp"]; ?></td>
+<td colspan=2 align=right><?php print WEB_cell_created.":";print $user_info["timestamp"]; ?></td>
 </tr>
 <tr>
-<?php print "<td colspan=2>"; print_url("Трафик за день","/admin/reports/userday.php?id=$id"); ?></td>
+<?php print "<td colspan=2>"; print_url(WEB_report_by_day,"/admin/reports/userday.php?id=$id"); ?></td>
 <td></td>
-<td><input type="submit" name="showDevice" value=<?php print $btn_device; ?>></td>
+<td><input type="submit" name="showDevice" value=<?php print WEB_btn_device; ?>></td>
 <td></td>
-<td align=right><input type="submit" name="edituser" value=<?php print $btn_save; ?>></td>
+<td align=right><input type="submit" name="edituser" value=<?php print WEB_btn_save; ?>></td>
 </tr>
 </table>
 <?php
@@ -298,33 +298,33 @@ $sort_table = 'User_auth';
 $sort_url = "<a href=edituser.php?id=" . $id;
 ?>
 
-<br><b>Список адресов доступа</b><br>
+<br><b><?php echo WEB_user_ip_list; ?></b><br>
 <table class="data">
 <tr>
-<td class="data">Новый адрес доступа IP:&nbsp<input type=text name=newip value=""></td>
-<td class="data">Mac (необязательно):&nbsp<input type=text name=newmac value=""></td>
-<td class="data"><input type="submit" name="addauth" value="Добавить"></td>
-<td class="data" align=right><input type="submit" name="new_user" value="Преобразовать"></td>
+<td class="data"><?php echo WEB_user_add_ip; ?>:&nbsp<input type=text name=newip value=""></td>
+<td class="data"><?php echo WEB_user_add_mac; ?>:&nbsp<input type=text name=newmac value=""></td>
+<td class="data"><input type="submit" name="addauth" value="<?php echo WEB_btn_add; ?>"></td>
+<td class="data" align=right><input type="submit" name="new_user" value="<?php echo WEB_btn_transfom; ?>"></td>
 </tr>
 </table>
 
 <table class="data">
 <tr>
 <td class="data"><input type="checkbox" onClick="checkAll(this.checked);"></td>
-<td class="data"><?php print $sort_url . "&sort=ip_int&order=$new_order>" . $cell_ip . "</a>"; ?></td>
-<td class="data"><?php print $sort_url . "&sort=mac&order=$new_order>" . $cell_mac . "</a>"; ?></td>
-<td class="data"><?php print $cell_comment; ?></td>
-<td class="data"><?php print $sort_url . "&sort=dns_name&order=$new_order>" . $cell_dns_name . "</a>"; ?></td>
-<td class="data"><?php print $cell_enabled; ?></td>
-<td class="data"><?php print $cell_dhcp; ?></td>
-<td class="data"><?php print $cell_filter; ?></td>
-<td class="data"><?php print $cell_shaper; ?></td>
-<td class="data"><?php print $cell_perday."/<br>".$cell_permonth.", Mb"; ?></td>
-<td class="data"><?php print $cell_connection; ?></td>
-<td class="data"><?php print $sort_url . "&sort=timestamp&order=$new_order>Created</a>"; ?></td>
+<td class="data"><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
+<td class="data"><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
+<td class="data"><?php print WEB_cell_comment; ?></td>
+<td class="data"><?php print $sort_url . "&sort=dns_name&order=$new_order>" . WEB_cell_dns_name . "</a>"; ?></td>
+<td class="data"><?php print WEB_cell_enabled; ?></td>
+<td class="data"><?php print WEB_cell_dhcp; ?></td>
+<td class="data"><?php print WEB_cell_filter; ?></td>
+<td class="data"><?php print WEB_cell_shaper; ?></td>
+<td class="data"><?php print WEB_cell_perday."/<br>".WEB_cell_permonth.", Mb"; ?></td>
+<td class="data"><?php print WEB_cell_connection; ?></td>
+<td class="data"><?php print $sort_url . "&sort=timestamp&order=$new_order>".WEB_cell_created."</a>"; ?></td>
 <td class="data">Last DHCP/ARP Event</td>
-<td class="data"><?php print $sort_url . "&sort=last_found&order=$new_order>Last found</a>"; ?></td>
-<td class="data"><?php print "<input type=\"submit\" onclick=\"return confirm('Применить для выделенных?')\" name=\"removeauth\" value=".$btn_remove.">"; ?></td>
+<td class="data"><?php print $sort_url . "&sort=last_found&order=$new_order>".WEB_cell_last_found."</a>"; ?></td>
+<td class="data"><?php print "<input type=\"submit\" onclick=\"return confirm('".WEB_msg_apply_selected."?')\" name=\"removeauth\" value=".WEB_btn_remove.">"; ?></td>
 </tr>
 
 <?php

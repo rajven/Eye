@@ -56,14 +56,14 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 <div id="cont">
 <br>
 <form name="def" action="edit_alias.php?id=<?php echo $id; ?>" method="post">
-<b>Альясы для <?php print_url($auth_info['ip'],"/admin/users/editauth.php?id=$id"); ?></b> <br>
+<b><?php print WEB_user_alias_for."&nbsp"; print_url($auth_info['ip'],"/admin/users/editauth.php?id=$id"); ?></b> <br>
 <table class="data">
 <tr align="center">
 	<td></td>
 	<td width=30><b>id</b></td>
-	<td><b>Название</b></td>
-	<td><b>Комментарий</b></td>
-	<td><input type="submit" onclick="return confirm('Удалить?')" name="s_remove" value="Удалить"></td>
+	<td><b><?php echo WEB_cell_name; ?></b></td>
+	<td><b><?php echo WEB_cell_comment; ?></b></td>
+	<td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="s_remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
 $t_User_auth_alias = get_records($db_link,'User_auth_alias',"auth_id=$id ORDER BY alias");
@@ -74,16 +74,17 @@ foreach ( $t_User_auth_alias as $row ) {
     print "<td class=\"data\"><input type=\"hidden\" name='n_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_alias[]' value='{$row['alias']}' pattern=\"^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$\"></td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_comment[]' value='{$row['description']}'></td>\n";
-    print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>Сохранить</button></td>\n";
+    print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
     print "</tr>\n";
 }
 }
 ?>
-<tr>
-<td colspan=6>Новый альяс :<?php print "<input type=\"text\" name='s_create_alias' value='' pattern=\"^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$\">"; ?></td>
-<td><input type="submit" name="s_create" value="Добавить"></td>
-</tr>
 </table>
+<div>
+<?php echo WEB_user_dns_add_alias; ?>:
+<input type="text" name='s_create_alias' value='' pattern="^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$">
+<input type="submit" name="s_create" value="<?php echo WEB_btn_add; ?>">
+</div>
 </form>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");

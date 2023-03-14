@@ -21,6 +21,10 @@ define("WEB_sec","секунд");
 define("WEB_date","Дата");
 define("WEB_bytes","Байт");
 define("WEB_pkts","Pkt");
+define("WEB_log","Лог");
+define("WEB_deleted","Удалён");
+define("WEB_status","Состояние");
+
 define("WEB_page_speed","Страница сгенерирована за ");
 define("WEB_rows_at_page","Записей на страницу");
 define("WEB_nagios","Nagios");
@@ -68,6 +72,7 @@ define("WEB_color_description","Цветовая маркировка");
 define("WEB_color_user_disabled","Пользователь выключен");
 define("WEB_color_user_blocked","Блокировка по трафику");
 define("WEB_color_device_description","Состояние устройства");
+define("WEB_color_user_empty","Логин пуст");
 
 /* device and port state */
 define("WEB_device_online","Online");
@@ -207,6 +212,7 @@ define("WEB_cell_flags","Флаги");
 define("WEB_cell_created","Создан");
 define("WEB_cell_deleted","Удалён");
 define("WEB_cell_gateway","Шлюз");
+define("WEB_cell_rule","Правил");
 
 /* lists name */
 define("WEB_list_ou","Список групп");
@@ -235,6 +241,8 @@ define("WEB_btn_delete","Удалить");
 define("WEB_btn_apply","Применить");
 define("WEB_btn_show","Показать");
 define("WEB_btn_reorder","Применить порядок");
+define("WEB_btn_recover","Восстановить");
+define("WEB_btn_transfom","Преобразовать");
 
 /* control options */
 define("WEB_config_remove_option","Удалён параметр");
@@ -427,4 +435,17 @@ define("WEB_report_traffic_for_ip","для адреса");
 define("WEB_report_detail","Детализация");
 define("WEB_report_top10_in","Топ 10 по входящему трафику");
 define("WEB_report_top10_out","Топ 10 по исходящему трафику");
+define("WEB_report_by_day","Трафик за день");
+
+/* user info */
+define("WEB_user_alias_for","Альясы для");
+define("WEB_user_dns_add_alias","Новый альяс");
+define("WEB_user_title","Адрес доступа пользователя");
+define("WEB_user_rules_for_autoassign","Параметры для автоназначенных адресов");
+define("WEB_user_rule_list","Список правил");
+define("WEB_user_ip_list","Список адресов доступа");
+define("WEB_user_add_ip","Новый адрес доступа IP");
+define("WEB_user_add_mac","Mac (необязательно)");
+define("WEB_user_list_apply","Применить к списку");
+
 ?>

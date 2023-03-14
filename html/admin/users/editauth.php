@@ -80,7 +80,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             }
         if ($new['nagios'] ==0) { $new['nagios_status']='UP'; }
         $changes = get_diff_rec($db_link,"User_auth","id='$id'", $new, 0);
-        if (!empty($changes)) { LOG_WARNING($db_link,"Изменена запись для адреса $ip! Список изменений: ".$changes,$id); }
+        if (!empty($changes)) { LOG_WARNING($db_link,"Changed record for $ip! Log: ".$changes,$id); }
         if (is_auth_bind_changed($db_link,$id,$ip,$mac)) {
             $new_id = copy_auth($db_link,$id,$new);
             header("Location: /admin/users/editauth.php?id=".$new_id,TRUE, 302);
@@ -99,7 +99,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
 if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
     $new_parent_id = $_POST["f_new_parent"]*1;
     $changes=apply_auth_rule($db_link,$id,$new_parent_id);
-    LOG_WARNING($db_link,"Адрес доступа перемещён к другому пользователю! Применено: ".get_rec_str($changes),$id);
+    LOG_WARNING($db_link,"IP-address moved to another user! Applyed: ".get_rec_str($changes),$id);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
     }
@@ -108,48 +108,48 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
     $ip = trim($_POST["f_ip"]);
     if (checkValidIp($ip)) {
         $ip_aton = ip2long($ip);
-	$mac=mac_dotted($_POST["f_mac"]);
+	    $mac=mac_dotted($_POST["f_mac"]);
         //search mac
-	$mac_exists=find_mac_in_subnet($db_link,$ip,$mac);
-	if (isset($mac_exists) and $mac_exists['count']>=1 and !in_array($parent_id,$mac_exists['users_id'])) {
+	    $mac_exists=find_mac_in_subnet($db_link,$ip,$mac);
+	    if (isset($mac_exists) and $mac_exists['count']>=1 and !in_array($parent_id,$mac_exists['users_id'])) {
 	        $dup_sql = "SELECT * FROM User_list WHERE id=".$mac_exists['users_id']['0'];
 	        $dup_info = get_record_sql($db_link, $dup_sql);
-		$msg_error="Mac already exists at another user in this subnet! Skip creating $ip [$mac].<br>Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
-		$_SESSION[$page_url]['msg'] = $msg_error;
+		    $msg_error="Mac already exists at another user in this subnet! Skip creating $ip [$mac].<br>Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
+		    $_SESSION[$page_url]['msg'] = $msg_error;
 	        LOG_ERROR($db_link, $msg_error);
 	        header("Location: " . $_SERVER["REQUEST_URI"]);
 	        exit;
-		}
-	//disable dhcp for secondary ip
-	$f_dhcp = $_POST["f_dhcp"] * 1;
-	if (in_array($parent_id,$mac_exists['users_id'])) {
-	    if ($parent_id != $mac_exists['users_id'][0]) { $f_dhcp = 0; }
-	    }
-	//search ip
+		    }
+	    //disable dhcp for secondary ip
+	    $f_dhcp = $_POST["f_dhcp"] * 1;
+	    if (in_array($parent_id,$mac_exists['users_id'])) {
+	         if ($parent_id != $mac_exists['users_id'][0]) { $f_dhcp = 0; }
+	        }
+	    //search ip
         $dup_ip_record = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
         if (!empty($dup_ip_record)) {
             $dup_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=".$dup_ip_record['user_id']);
             $msg_error = "$ip already exists. Skip creating $ip [$mac].<br>Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
-	    $_SESSION[$page_url]['msg'] = $msg_error;
+	        $_SESSION[$page_url]['msg'] = $msg_error;
             LOG_ERROR($db_link, $msg_error);
             header("Location: " . $_SERVER["REQUEST_URI"]);
             exit;
     	    }
         $new['deleted'] = 0;
 
-	if (!empty($_POST["f_nagios"])) { $a_nagios=$_POST["f_nagios"] * 1; } else { $a_nagios = 0; }
-	if (!empty($_POST["f_link"])) { $a_link=$_POST["f_link"] * 1; } else { $a_link = 0; }
+	    if (!empty($_POST["f_nagios"])) { $a_nagios=$_POST["f_nagios"] * 1; } else { $a_nagios = 0; }
+	    if (!empty($_POST["f_link"])) { $a_link=$_POST["f_link"] * 1; } else { $a_link = 0; }
 
         $new_parent = get_record_sql($db_link,"User_list","id=".$parent_id);
         if (!empty($new_parent)) {
 	        $new['user_id'] = $parent_id;
-		$new['ou_id'] = $new_parent['ou_id'];
-		} else {
+		    $new['ou_id'] = $new_parent['ou_id'];
+		    } else {
 	        $new_user_info = get_new_user_id($db_link, $ip, $mac, NULL);
 	        if ($new_user_info['user_id']) { $new_user_id = $new_user_info['user_id']; }
 	        if (empty($new_user_id)) { $new_user_id = new_user($db_link,$new_user_info); }
 	        $new['user_id'] = $new_user_id;
-		}
+		    }
 
         if (get_const('default_user_ou_id') == $parent_ou_id or get_const('default_hotspot_ou_id') == $parent_ou_id) {
                 $new['nagios_handler'] = '';
@@ -174,13 +174,13 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
                 $new['filter_group_id'] = $_POST["f_group_id"] * 1;
             }
         $changes = get_diff_rec($db_link,"User_auth","id='$id'", $new, 0);
-        if (!empty($changes)) { LOG_WARNING($db_link,"Восстановлен адрес доступа! Применено: $changes",$id); }
+        if (!empty($changes)) { LOG_WARNING($db_link,"Recovered ip-address. Applyed: $changes",$id); }
         update_record($db_link, "User_auth", "id='$id'", $new);
-	apply_auth_rule($db_link,$id,$new['user_id']);
-	} else {
+	    apply_auth_rule($db_link,$id,$new['user_id']);
+	    } else {
         $msg_error = "$msg_ip_error xxx.xxx.xxx.xxx/xx";
         $_SESSION[$page_url]['msg'] = $msg_error;
-	}
+	    }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
     }
@@ -203,16 +203,16 @@ if (!empty($_SESSION[$page_url]['msg'])) {
     print '<div id="msg">'.$_SESSION[$page_url]['msg'].'</div>';
     unset($_SESSION[$page_url]['msg']);
     }
-print "<b> Адрес доступа пользователя <a href=/admin/users/edituser.php?id=".$auth_info['user_id'].">".$parent_name."</a> </b>";
+print "<b>".WEB_user_title."<a href=/admin/users/edituser.php?id=".$auth_info['user_id'].">".$parent_name."</a> </b>";
 ?>
 <form name="def" action="editauth.php?id=<?php echo $id; ?>" method="post">
 <input type="hidden" name="id" value=<?php echo $id; ?>>
 <table class="data">
 <tr>
-<td width=200><?php print $cell_dns_name." &nbsp | &nbsp "; print_url("Альясы","/admin/users/edit_alias.php?id=$id"); ?></td>
-<td width=200><?php print $cell_comment; ?></td>
-<td width=70><?php print $cell_enabled; ?></td>
-<td><?php print $cell_traf; ?></td>
+<td width=200><?php print WEB_cell_dns_name." &nbsp | &nbsp "; print_url("Альясы","/admin/users/edit_alias.php?id=$id"); ?></td>
+<td width=200><?php print WEB_cell_comment; ?></td>
+<td width=70><?php print WEB_cell_enabled; ?></td>
+<td><?php print WEB_cell_traf; ?></td>
 <td></td>
 </tr>
 <tr>
@@ -223,10 +223,10 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 <td></td>
 </tr>
 <tr>
-<td><?php print $cell_ip; ?></td>
-<td><?php print $cell_mac; ?></td>
-<td><?php print $cell_dhcp; ?></td>
-<td><?php print $cell_acl; ?></td>
+<td><?php print WEB_cell_ip; ?></td>
+<td><?php print WEB_cell_mac; ?></td>
+<td><?php print WEB_cell_dhcp; ?></td>
+<td><?php print WEB_cell_acl; ?></td>
 <td></td>
 <tr>
 <td><input type="text" name="f_ip" value="<?php echo $auth_info['ip']; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"></td>
@@ -235,11 +235,11 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 <td colspan=2><input type="text" name="f_acl" value="<?php echo $auth_info['dhcp_acl']; ?>"></td>
 </tr>
 <tr>
-<td><?php print $cell_filter; ?></td>
-<td><?php print $cell_shaper; ?></td>
-<td><?php print $cell_blocked; ?></td>
-<td><?php print $cell_perday; ?></td>
-<td><?php print $cell_permonth; ?></td>
+<td><?php print WEB_cell_filter; ?></td>
+<td><?php print WEB_cell_shaper; ?></td>
+<td><?php print WEB_cell_blocked; ?></td>
+<td><?php print WEB_cell_perday; ?></td>
+<td><?php print WEB_cell_permonth; ?></td>
 </tr>
 <tr>
 <td><?php print_group_select($db_link, 'f_group_id', $auth_info['filter_group_id']); ?> </td>
@@ -249,19 +249,19 @@ print "<b> Адрес доступа пользователя <a href=/admin/use
 <td><input type="text" name="f_month_q" value="<?php echo $auth_info['month_quota']; ?>" size=5></td>
 </tr>
 <tr>
-<td><?php print $cell_nagios_handler; ?></td>
+<td><?php print WEB_cell_nagios_handler; ?></td>
 <td width=200>
 <?php 
 if (!empty($auth_info['WikiName'])) {
     $wiki_url = rtrim(get_option($db_link, 60),'/');
-    if (preg_match('/127.0.0.1/', $wiki_url)) { print $cell_wikiname; } else {
+    if (preg_match('/127.0.0.1/', $wiki_url)) { print WEB_cell_wikiname; } else {
         $wiki_web = rtrim(get_option($db_link, 63),'/');
         $wiki_web = ltrim($wiki_web,'/');
         $wiki_link = $wiki_url.'/'.$wiki_web.'/'.$auth_info['WikiName'];
-        print_url($cell_wikiname,$wiki_link);
+        print_url(WEB_cell_wikiname,$wiki_link);
         }
     } else {
-    print $cell_wikiname;
+    print WEB_cell_wikiname;
     }
 $dev_id = get_device_by_auth($db_link,$auth_info['user_id']);
 if (isset($dev_id)) {
@@ -270,8 +270,8 @@ if (isset($dev_id)) {
     }
 ?>
 </td>
-<td><?php if (empty($device) or (!empty($device) and $device['device_type']>2)) { print $cell_nagios; } ?></td>
-<td><?php if (empty($device) or (!empty($device) and $device['device_type']>2)) {  print $cell_link; }?></td>
+<td><?php if (empty($device) or (!empty($device) and $device['device_type']>2)) { print WEB_cell_nagios; } ?></td>
+<td><?php if (empty($device) or (!empty($device) and $device['device_type']>2)) {  print WEB_cell_link; }?></td>
 <tr>
 <td><input type="text" name="f_handler"	value="<?php echo $auth_info['nagios_handler']; ?>"></td>
 <td><input type="text" name="f_wiki" value="<?php echo $auth_info['WikiName']; ?>"></td>
@@ -280,31 +280,31 @@ if (isset($dev_id)) {
 <td></td>
 </tr>
 <tr>
-<td colspan=2><input type="submit" name="moveauth" value=<?php print $btn_move; ?>><?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?></td>
-<td><a href=/admin/logs/authlog.php?auth_id=<?php print $id; ?>>Лог</a></td>
+<td colspan=2><input type="submit" name="moveauth" value=<?php print WEB_btn_move; ?>><?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?></td>
+<td><a href=/admin/logs/authlog.php?auth_id=<?php print $id; ?>><?php print WEB_log; ?></a></td>
 <?php
 if ($auth_info['deleted']) {
-    print "<td >Deleted: " . $auth_info['changed_time']."</td>";
-    print "<td align=right><input type=\"submit\" name=\"recovery\" value=\"Восстановить\"></td>";
+    print "<td >".WEB_deleted.": " . $auth_info['changed_time']."</td>";
+    print "<td align=right><input type=\"submit\" name=\"recovery\" value='".WEB_btn_recover."'></td>";
 } else {
     print "<td ></td>";
-    print "<td align=right><input type=\"submit\" name=\"editauth\" value=\"$btn_save\"></td>";
+    print "<td align=right><input type=\"submit\" name=\"editauth\" value='".WEB_btn_save."'></td>";
 }
 ?>
 </tr>
 </table>
 <table class="data">
-<tr><td class="data" colspan=5>Status:</td></tr>
+<tr><td class="data" colspan=5><?php echo WEB_status.":"; ?></td></tr>
 <tr>
-<td colspan=2><?php print "Dhcp hostname: " . $auth_info['dhcp_hostname']; ?></td><td width=100>&nbsp</td><td align=right><?php print "Dhcp event: " . $dhcp_str; ?></td>
+<td colspan=2><?php print WEB_cell_dhcp_hostname.": " . $auth_info['dhcp_hostname']; ?></td><td width=100>&nbsp</td><td align=right><?php print "Dhcp event: " . $dhcp_str; ?></td>
 </tr>
 <tr>
-<td><?php print "Created: "; ?></td><td><?php print $auth_info['timestamp']; ?></td>
-<td align=right colspan=2><?php print_url("Трафик за день","/admin/reports/authday.php?id=$id"); ?></td>
+<td><?php print WEB_cell_created.": "; ?></td><td><?php print $auth_info['timestamp']; ?></td>
+<td align=right colspan=2><?php print_url(WEB_report_by_day,"/admin/reports/authday.php?id=$id"); ?></td>
 </tr>
 <tr>
-<td><?php print "Last found: "; ?></td><td><?php print $auth_info['last_found']."<br>"; ?></td>
-<td align=right><?php print "Connected: "; ?></td><td align=right><?php print get_connection($db_link, $id)."<br>"; ?></td>
+<td><?php print WEB_cell_last_found.": "; ?></td><td><?php print $auth_info['last_found']."<br>"; ?></td>
+<td align=right><?php print WEB_cell_connection.": "; ?></td><td align=right><?php print get_connection($db_link, $id)."<br>"; ?></td>
 </tr>
 </table>
 <?php

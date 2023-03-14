@@ -16,7 +16,7 @@ if (isset($_POST["create"])) {
     if (!empty($login)) {
         $lcount = get_count_records($db_link,"User_list","LCase(login)=LCase('$login')");
         if ($lcount > 0) {
-            $msg_error = "$cell_login $login $msg_exists!";
+            $msg_error = "WEB_cell_login $login $msg_exists!";
             unset($_POST);
         } else {
             $new['login'] = $login;
@@ -73,13 +73,13 @@ if (isset($_POST["remove"])) {
             $login = get_record($db_link,"User_list","id='$val'");
             LOG_INFO($db_link, "Delete device for user id: $val");
             $device= get_record($db_link,"devices","user_id='$val'");
-	    if (!empty($device)) {
+	        if (!empty($device)) {
                 unbind_ports($db_link, $device['id']);
-	        run_sql($db_link, "DELETE FROM connections WHERE device_id=".$device['id']);
+	            run_sql($db_link, "DELETE FROM connections WHERE device_id=".$device['id']);
     	        run_sql($db_link, "DELETE FROM device_l3_interfaces WHERE device_id=".$device['id']);
-    		run_sql($db_link, "DELETE FROM device_ports WHERE device_id=".$device['id']);
+    		    run_sql($db_link, "DELETE FROM device_ports WHERE device_id=".$device['id']);
                 delete_record($db_link, "devices", "id=".$device['id']);
-		}
+		        }
             run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=$val");
             run_sql($db_link,"UPDATE User_auth SET deleted=1 WHERE user_id=$val");
             delete_record($db_link, "User_list", "id=$val");
@@ -104,25 +104,24 @@ if ($msg_error) {
 
 ?>
 <form name="def" action="index.php" method="post">
+<div><b><?php print WEB_list_ou; ?> - </b>
+<?php print_ou_select($db_link, 'ou', $rou); 
+print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+<input type="submit" value="<?php echo WEB_btn_show; ?>">
+</div>
 <table class="data">
 <tr>
-<td><b><?php print $list_ou ?> - </b><?php print_ou_select($db_link, 'ou', $rou); ?> Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-<input type="submit" value="Показать"></td>
-</tr>
-</table>
-<table class="data">
-<tr>
-<td>Применить к списку</td>
-<td>Включен&nbsp<?php print_qa_select('a_enabled', 0); ?></td>
-<td>Фильтр&nbsp<?php print_group_select($db_link, 'a_group_id', 0); ?></td>
-<td>Шейпер&nbsp<?php print_queue_select($db_link, 'a_queue_id', 0); ?></td>
-<td>В день&nbsp<input type="text" name="a_day_q" value="0" size=5></td>
-<td>В месяц&nbsp<input type="text" name="a_month_q" value="0" size=5></td>
-<td>Группа:&nbsp<?php print_ou_select($db_link, 'a_new_ou', $rou); ?></td>
-<td>&nbsp<input type="submit" onclick="return confirm('Применить для выделенных?')" name="ApplyForAll" value="Применить"></td>
+<td><?php echo WEB_user_list_apply; ?></td>
+<td><?php print WEB_cell_enabled."&nbsp";print_qa_select('a_enabled', 0); ?></td>
+<td><?php print WEB_cell_filter."&nbsp";print_group_select($db_link, 'a_group_id', 0); ?></td>
+<td><?php print WEB_cell_shaper."&nbsp";print_queue_select($db_link, 'a_queue_id', 0); ?></td>
+<td><?php print WEB_cell_perday."&nbsp"; ?><input type="text" name="a_day_q" value="0" size=5></td>
+<td><?php print WEB_cell_permonth."&nbsp"; ?><input type="text" name="a_month_q" value="0" size=5></td>
+<td><?php print WEB_cell_ou."&nbsp";print_ou_select($db_link, 'a_new_ou', $rou); ?></td>
+<td>&nbsp<input type="submit" onclick="return confirm('<?php echo WEB_msg_apply_selected; ?>?')" name="ApplyForAll" value="<?php echo WEB_btn_apply; ?>"></td>
 </tr>
 <tr>
-<td><input type="submit" name="create" value="Добавить пользователя"></td>
+<td><input type="submit" name="create" value="<?php echo WEB_btn_add; ?>"></td>
 <td><input type=text name=newlogin value="Unknown"></td>
 <td colspan=5></td>
 </tr>
@@ -153,15 +152,15 @@ $sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month
 <tr align="center">
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b><?php print $sort_url . "sort=id&order=$new_order>id</a>"; ?></b></td>
-<td><b><?php print $sort_url . "sort=login&order=$new_order>" . $cell_login . "</a>"; ?></b></td>
-<td><b><?php print $sort_url . "sort=fio&order=$new_order>" . $cell_fio . "</a>"; ?></b></td>
-<td><b><?php print $cell_rule; ?></b></td>
-<td><b><?php print $cell_ou; ?></b></td>
-<td><b><?php print $cell_enabled; ?></b></td>
-<td><b><?php print $cell_perday; ?></b></td>
-<td><b><?php print $cell_permonth; ?></b></td>
-<td><b><?php print $cell_report; ?></b></td>
-<td><input type="submit" onclick="return confirm('Удалить выделенных?')" name="remove" value="Удалить"></td>
+<td><b><?php print $sort_url . "sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></b></td>
+<td><b><?php print $sort_url . "sort=fio&order=$new_order>" . WEB_cell_fio . "</a>"; ?></b></td>
+<td><b><?php print WEB_cell_rule; ?></b></td>
+<td><b><?php print WEB_cell_ou; ?></b></td>
+<td><b><?php print WEB_cell_enabled; ?></b></td>
+<td><b><?php print WEB_cell_perday; ?></b></td>
+<td><b><?php print WEB_cell_permonth; ?></b></td>
+<td><b><?php print WEB_cell_report; ?></b></td>
+<td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
 
@@ -201,12 +200,12 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 </form>
 <table class="data">
 <tr>
-<td>Цветовая маркировка</td>
+<td colspan = 3><?php echo WEB_color_description; ?></td>
 </tr>
 <tr>
-<td class="nb">Логин пуст</td>
-<td class="warn">Пользователь выключен</td>
-<td class="error">Блокировка по трафику</td>
+<td class="nb"><?php echo WEB_color_user_empty; ?></td>
+<td class="warn"><?php echo WEB_color_user_disabled; ?></td>
+<td class="error"><?php echo WEB_color_user_blocked; ?></td>
 </table>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");

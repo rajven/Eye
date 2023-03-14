@@ -60,17 +60,17 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 <div id="cont">
 <br>
 <form name="def" action="edit_rules.php?id=<?php echo $id; ?>" method="post">
-<b>Правила автоназначения адресов в <?php print_url($auth_info['login'],"/admin/users/edituser.php?id=$id"); ?></b>
+<b><?php print WEB_ou_rules_for_autoassigning."&nbsp"; print_url($auth_info['login'],"/admin/users/edituser.php?id=$id"); ?></b>
 <br>
-Порядок применения: hotspot => subnet => mac => hostname => default user
+<?php echo WEB_ou_rules_order; ?>:  hotspot => subnet => mac => hostname => default user
 <br><br>
 <table class="data">
 <tr align="center">
-	<td></td>
-	<td width=30><b>id</b></td>
-	<td><b>Тип</b></td>
-	<td><b>Правило</b></td>
-	<td><input type="submit" onclick="return confirm('Удалить?')" name="s_remove" value="Удалить"></td>
+    <td></td>
+    <td width=30><b>id</b></td>
+    <td><b><?php echo WEB_cell_type; ?></b></td>
+    <td><b><?php echo WEB_ou_rule; ?></b></td>
+    <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="s_remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
 $t_auth_rules = get_records($db_link,'auth_rules',"user_id=$id ORDER BY id");
@@ -80,15 +80,16 @@ foreach ( $t_auth_rules as $row ) {
     print "<td class=\"data\"><input type=\"hidden\" name='n_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\">"; print_qa_rule_select("s_type[]","{$row['type']}"); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_rule[]' value='{$row['rule']}'></td>\n";
-    print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>Сохранить</button></td>\n";
+    print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
     print "</tr>\n";
 }
 ?>
-<tr>
-<td colspan=6>Новое правило :<?php print_qa_rule_select("s_new_type","1");  print "<input type=\"text\" name='s_new_rule' value=''>"; ?></td>
-<td><input type="submit" name="s_create" value="Добавить"></td>
-</tr>
 </table>
+<div>
+<?php print WEB_ou_new_rule."&nbsp"; print_qa_rule_select("s_new_type","1");  
+print "<input type=\"text\" name='s_new_rule' value=''>"; ?>
+<input type="submit" name="s_create" value="<?php echo WEB_btn_add; ?>">
+</div>
 </form>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
