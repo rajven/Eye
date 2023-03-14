@@ -13,10 +13,10 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 
 ?>
 
-<div id="cont">
+<div id="contsubmenu">
 <?php
 $ports = get_records($db_link,'device_ports',"device_id=$id AND uplink=0 ORDER BY port");
-print "<b>Список маков активных на свиче ".$device['device_name']." (".$device['ip']."):</b>\n";
+print "<b>".WEB_device_mac_table_show."&nbsp".$device['device_name']." (".$device['ip']."):</b>\n";
 $fdb = get_fdb_table($device['ip'], $device['community'], $device['snmp_version']);
 print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
 print "<tr>";

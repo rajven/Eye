@@ -307,4 +307,7 @@ define("WEB_device_type_show","Тип оборудования");
 define("WEB_device_hide_unknown","Скрыть неизвестные");
 define("WEB_device_show_location","Расположение оборудования");
 
+/* mac table */
+define("WEB_device_mac_table_show","Список маков активных на оборудовании");
+
 ?>
