@@ -44,6 +44,7 @@ define("WEB_msg_additional","Дополнительно");
 define("WEB_msg_unsupported","Не поддерживается");
 define("WEB_msg_delete_filter","Удалить фильтр");
 define("WEB_msg_add_filter", "Добавить фильтр");
+define("WEB_msg_apply_selected","Применить для выделения");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");
@@ -384,5 +385,9 @@ define("WEB_ou_new_rule","Новое правило");
 
 /* auto rules */
 define("WEB_rules_target","Юзер/группа");
+
+/* all ip list */
+define("WEB_ips_show_by_state","По активности");
+define("WEB_ips_search_host","Поиск ip or mac");
 
 ?>

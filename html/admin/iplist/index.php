@@ -24,7 +24,7 @@ if (isset($_POST["removeauth"])) {
                 run_sql($db_link, 'DELETE FROM User_auth_alias WHERE auth_id='.$val);
                 $auth["deleted"] = 1;
                 $changes = get_diff_rec($db_link,"User_auth","id='$val'", '', 0);
-                if (!empty($changes)) { LOG_WARNING($db_link,"Удалён адрес доступа: \r\n $changes"); }
+                if (!empty($changes)) { LOG_WARNING($db_link,"Remove user ip: \r\n $changes"); }
                 update_record($db_link, "User_auth", "id=" . $val, $auth);
                 }
             }
@@ -40,7 +40,7 @@ if (isset($_POST["ApplyForAll"])) {
     $a_queue = $_POST["a_queue_id"] * 1;
     $a_group = $_POST["a_group_id"] * 1;
     $a_traf = $_POST["a_traf"] * 1;
-    $msg="Массовое изменение пользователей!";
+    $msg="Massive User change!";
     foreach ($auth_id as $key => $val) {
         if ($val) {
             unset($auth);
@@ -94,12 +94,12 @@ print_ip_submenu($page_url);
 <table class="data">
 	<tr>
         <td>
-        <b><?php print $list_ou; ?> - </b><?php print_ou_select($db_link, 'ou', $rou); ?>
-        <b>Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-        <b><?php print $list_subnet; ?> - </b><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?>
-        <b>По активности - </b><?php print_enabled_select('enabled', $enabled); ?>
-        <b>Поиск ip or mac:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])|([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12})$"/>
-        <input type="submit" value="Показать">
+        <b><?php print WEB_list_ou; ?> - </b><?php print_ou_select($db_link, 'ou', $rou); ?>
+        <b><?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+        <b><?php print WEB_list_subnet; ?> - </b><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?>
+        <b><?php echo WEB_ips_show_by_state; ?> - </b><?php print_enabled_select('enabled', $enabled); ?>
+        <b><?php echo WEB_ips_search_host; ?>:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])|([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12})$"/>
+        <input type="submit" value="<?php echo WEB_btn_show; ?>">
         </td>
 	</tr>
 </table>
@@ -119,33 +119,33 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <table class="data">
 <tr>
 <td>Для выделенных установить: Включен&nbsp<?php print_qa_select('a_enabled', 1); ?></td>
-<td>Фильтр&nbsp<?php print_group_select($db_link, 'a_group_id', 0); ?></td>
-<td>Шейпер&nbsp<?php print_queue_select($db_link, 'a_queue_id', 0); ?></td>
+<td><?php print WEB_cell_filter."&nbsp";print_group_select($db_link, 'a_group_id', 0); ?></td>
+<td><?php print WEB_cell_shaper."&nbsp";print_queue_select($db_link, 'a_queue_id', 0); ?></td>
 <td>Dhcp&nbsp<?php print_qa_select('a_dhcp', 1); ?></td>
 <td>Dhcp-acl&nbsp<?php print_dhcp_acl_select('a_dhcp_acl',''); ?></td>
 <td>Save traffic&nbsp<?php print_qa_select('a_traf',1); ?></td>
-<td>&nbsp<input type="submit" onclick="return confirm('Применить для выделенных?')" name="ApplyForAll" value="Применить"></td>
-<td align=right><input type="submit" onclick="return confirm('Удалить выделенных?')" name="removeauth" value="Удалить"></td>
+<td>&nbsp<input type="submit" onclick="return confirm('<?php echo WEB_msg_apply_selected; ?>?')" name="ApplyForAll" value="<?php echo WEB_btn_apply; ?>"></td>
+<td align=right><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="removeauth" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 </table>
 
 <table class="data">
 	<tr>
-        	<td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
-		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . $cell_login . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . $cell_ip . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . $cell_mac . "</a>"; ?></td>
-		<td align=Center><?php print $cell_comment; ?></td>
-		<td align=Center><?php print $cell_dns_name; ?></td>
-		<td align=Center><?php print $cell_enabled; ?></td>
-		<td align=Center><?php print $cell_filter; ?></td>
-		<td align=Center><?php print $cell_shaper; ?></td>
-		<td align=Center><?php print $cell_traf; ?></td>
-		<td align=Center><?php print $cell_dhcp; ?></td>
-		<td align=Center><?php print $cell_acl; ?></td>
+        <td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
+		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
+		<td align=Center><?php print WEB_cell_comment; ?></td>
+		<td align=Center><?php print WEB_cell_dns_name; ?></td>
+		<td align=Center><?php print WEB_cell_enabled; ?></td>
+		<td align=Center><?php print WEB_cell_filter; ?></td>
+		<td align=Center><?php print WEB_cell_shaper; ?></td>
+		<td align=Center><?php print WEB_cell_traf; ?></td>
+		<td align=Center><?php print WEB_cell_dhcp; ?></td>
+		<td align=Center><?php print WEB_cell_acl; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=dhcp_time&order=$new_order>DHCP event</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=last_found&order=$new_order>Last</a>"; ?></td>
-		<td align=Center><?php print $cell_connection; ?></td>
+		<td align=Center><?php print WEB_cell_connection; ?></td>
 	</tr>
 <?php
 
@@ -191,10 +191,10 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 ?>
 <br>
 <table class="data">
-<tr><td>Цветовая маркировка</td></tr>
+<tr><td><?php echo WEB_color_description; ?></td></tr>
 <tr>
-<td class="warn">Пользователь выключен</td>
-<td class="error">Блокировка по трафику</td>
+<td class="warn"><?php echo WEB_color_user_disabled; ?></td>
+<td class="error"><?php echo WEB_color_user_blocked; ?></td>
 </table>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
