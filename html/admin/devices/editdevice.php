@@ -91,88 +91,88 @@ print_editdevice_submenu($page_url,$id,$device['device_type']);
 <form name="def" action="editdevice.php?id=<?php echo $id; ?>" method="post">
 <table class="data">
 <tr>
-<td>Название</td>
-<td>IP</td>
-<td>Тип</td>
+<td><?php echo WEB_cell_name; ?></td>
+<td><?php echo WEB_cell_ip; ?></td>
+<td><?php echo WEB_cell_type; ?></td>
 <?php
-if ($device['device_type']<=2) { print "<td>Портов</td>"; } else { print "<td></td>"; }
+if ($device['device_type']<=2) { print "<td>".WEB_device_port_count."</td>"; } else { print "<td></td>"; }
 print "</tr>";
 print "<tr>\n";
-print "<td class=\"data\"><a href=/admin/users/edituser.php?id=".$device['user_id'].">".$user_info['login']."</a></td>\n";
-print "<td class=\"data\">"; print_device_ip_select($db_link,'f_ip',$device['ip'],$device['user_id']); print "</td>\n";
-print "<td class=\"data\">"; print_devtype_select($db_link,'f_devtype_id',$device['device_type']); print "</td>\n";
-if ($device['device_type']<=2) { print "<td class=\"data\"><input type=\"text\" name='f_port_count' value='".$device['port_count']."' size=5></td>\n"; } else { print "<td></td>"; }
+print "<td class='data'><a href=/admin/users/edituser.php?id=".$device['user_id'].">".$user_info['login']."</a></td>\n";
+print "<td class='data'>"; print_device_ip_select($db_link,'f_ip',$device['ip'],$device['user_id']); print "</td>\n";
+print "<td class='data'>"; print_devtype_select($db_link,'f_devtype_id',$device['device_type']); print "</td>\n";
+if ($device['device_type']<=2) { print "<td class='data'><input type='text' name='f_port_count' value='".$device['port_count']."' size=5></td>\n"; } else { print "<td></td>"; }
 print "</tr>\n";
 ?>
 </tr>
-<td colspan=2>Модель</td>
-<td>Firmware</td>
-<td>SN</td>
+<td colspan=2><?php echo WEB_cell_host_model; ?></td>
+<td><?php echo WEB_cell_host_firmware; ?></td>
+<td><?php echo WEB_cell_sn; ?></td>
 <?php
 print "<tr>\n";
-print "<td class=\"data\" colspan=2>"; print_device_model_select($db_link,'f_device_model_id',$device['device_model_id']); print "</td>\n";
-print "<td class=\"data\" ><input type=\"text\" name='f_firmware' value='".$device['firmware']."'></td>\n";
-print "<td class=\"data\" ><input type=\"text\" name='f_SN' value='".$device['SN']."'></td>\n";
+print "<td class='data' colspan=2>"; print_device_model_select($db_link,'f_device_model_id',$device['device_model_id']); print "</td>\n";
+print "<td class='data' ><input type='text' name='f_firmware' value='".$device['firmware']."'></td>\n";
+print "<td class='data' ><input type='text' name='f_SN' value='".$device['SN']."'></td>\n";
 print "</tr>\n";
-print "<tr><td>Расположен</td><td colspan=2>Комментарий</td><td><td>";
+print "<tr><td>".WEB_location_name."</td><td colspan=2>".WEB_cell_comment."</td><td><td>";
 print "</tr><tr>";
-print "<td class=\"data\">"; print_building_select($db_link, 'f_building_id', $device['building_id']); print "</td>\n";
-print "<td class=\"data\" colspan=3><input type=\"text\" size=50 name='f_comment' value='".$device['comment']."'></td>\n";
+print "<td class='data'>"; print_building_select($db_link, 'f_building_id', $device['building_id']); print "</td>\n";
+print "<td class='data' colspan=3><input type='text' size=50 name='f_comment' value='".$device['comment']."'></td>\n";
 print "</tr>";
 if ($device['device_type']==2) {
-    print "<tr><td>Управление доступом</td><td>DHCP-Server</td><td>Шейперы</td><td>Только connected юзеры</td></tr>";
+    print "<tr><td>".WEB_device_access_control."</td><td>".WEB_device_dhcp_server."</td><td>".WEB_device_queues_enabled."</td><td>".WEB_device_connected_only."</td></tr>";
     print "<tr>";
-    print "<td class=\"data\">"; print_qa_select('f_user_acl', $device['user_acl']); print "</td>\n"; 
-    print "<td class=\"data\">"; print_qa_select('f_dhcp', $device['dhcp']); print "</td>\n";
-    print "<td class=\"data\">"; print_qa_select('f_queue_enabled', $device['queue_enabled']); print "</td>\n";
-    print "<td class=\"data\">"; print_qa_select('f_connected_user_only', $device['connected_user_only']); print "</td>\n";
+    print "<td class='data'>"; print_qa_select('f_user_acl', $device['user_acl']); print "</td>\n"; 
+    print "<td class='data'>"; print_qa_select('f_dhcp', $device['dhcp']); print "</td>\n";
+    print "<td class='data'>"; print_qa_select('f_queue_enabled', $device['queue_enabled']); print "</td>\n";
+    print "<td class='data'>"; print_qa_select('f_connected_user_only', $device['connected_user_only']); print "</td>\n";
     print "</tr>\n";
-    print "<tr><td colspan=4>"; print_url("Список интерфейсов","/admin/devices/edit_l3int.php?id=$id"); print "</td></tr>";
-    print "<tr><td colspan=4 class=\"data\">"; print get_l3_interfaces($db_link,$device['id']); print "</td></tr>";
+    print "<tr><td colspan=4>"; print_url(WEB_list_l3_interfaces,"/admin/devices/edit_l3int.php?id=$id"); print "</td></tr>";
+    print "<tr><td colspan=4 class='data'>"; print get_l3_interfaces($db_link,$device['id']); print "</td></tr>";
     }
 if ($device['device_type']<=2) {
-    print "<tr><td>Snmp Version</td><td><p title='Некоторые устройства отдают mac-таблицу по индексу порта в snmp, другие - по номеру.'>Mac by snmp</p></td>";
-    print "<td>Discovery</td><td>Nagios</td></tr>";
-    print "<tr><td class=\"data\">"; print_snmp_select('f_snmp_version', $device['snmp_version']); print "</td>\n";
-    print "<td class=\"data\">"; print_qa_select('f_fdb_snmp', $device['fdb_snmp_index']); print "</td>\n";
-    print "<td class=\"data\">"; print_qa_select('f_discovery', $device['discovery']); print "</td>\n";
-    print "<td class=\"data\">"; print_qa_select('f_nagios', $device['nagios']); print "</td>\n";
+    print "<tr><td>".WEB_snmp_version."</td><td><p title='".WEB_device_snmp_comment."'>".WEB_device_mac_by_oid."</p></td>";
+    print "<td>".WEB_network_discovery."</td><td>".WEB_nagios."</td></tr>";
+    print "<tr><td class='data'>"; print_snmp_select('f_snmp_version', $device['snmp_version']); print "</td>\n";
+    print "<td class='data'>"; print_qa_select('f_fdb_snmp', $device['fdb_snmp_index']); print "</td>\n";
+    print "<td class='data'>"; print_qa_select('f_discovery', $device['discovery']); print "</td>\n";
+    print "<td class='data'>"; print_qa_select('f_nagios', $device['nagios']); print "</td>\n";
     print "</tr>";
     if ($device['snmp_version'] ==3) {
-        print "<tr><td>Snmpv3 RO user</td><td>Snmpv3 RW user</td><td>Snmpv3 RO password</td><td>Snmpv3 RW password</td><td></td>";
-	print "</tr><tr>";
-        print "<td class=\"data\"><input type=\"text\" name='f_snmp3_user_ro' value=".$device['snmp3_user_ro']."></td>\n";
-	print "<td class=\"data\"><input type=\"text\" name='f_snmp3_user_rw' value=".$device['snmp3_user_rw']."></td>\n";
-        print "<td class=\"data\"><input type=\"text\" name='f_snmp3_user_ro_password' value=".$device['snmp3_user_ro_password']."></td>\n";
-	print "<td class=\"data\"><input type=\"text\" name='f_snmp3_user_rw_password' value=".$device['snmp3_user_rw_password']."></td>\n";
+        print "<tr><td>".WEB_snmp_v3_user_ro."</td><td>".WEB_snmp_v3_user_rw."</td><td>".WEB_snmp_v3_ro_password."</td><td>".WEB_snmp_v3_rw_password."</td><td></td>";
+	    print "</tr><tr>";
+        print "<td class='data'><input type='text' name='f_snmp3_user_ro' value=".$device['snmp3_user_ro']."></td>\n";
+	    print "<td class='data'><input type='text' name='f_snmp3_user_rw' value=".$device['snmp3_user_rw']."></td>\n";
+        print "<td class='data'><input type='text' name='f_snmp3_user_ro_password' value=".$device['snmp3_user_ro_password']."></td>\n";
+	    print "<td class='data'><input type='text' name='f_snmp3_user_rw_password' value=".$device['snmp3_user_rw_password']."></td>\n";
         print "</tr>\n";
-	}
-    print "<tr><td>Snmp RO Community</td><td>Snmp RW Community</td><td></td><td></td></tr>";
+	    }
+    print "<tr><td>".WEB_snmp_community_ro."</td><td>".WEB_snmp_community_rw."</td><td></td><td></td></tr>";
     print "<tr>\n";
-    print "<td class=\"data\"><input type=\"text\" name='f_community' value=".$device['community']."></td>\n";
-    print "<td class=\"data\"><input type=\"text\" name='f_rw_community' value=".$device['rw_community']."></td>\n";
-    print "<td><button name=\"port_walk\" onclick=\"window.open('mactable.php?id=" . $id . "')\">Mac table</button>";
-    print "<button name=\"port_walk\" onclick=\"window.open('snmpwalk.php?id=" . $id . "')\">Port Walk</button></td>";
+    print "<td class='data'><input type='text' name='f_community' value=".$device['community']."></td>\n";
+    print "<td class='data'><input type='text' name='f_rw_community' value=".$device['rw_community']."></td>\n";
+    print "<td><button name='mac_walk' onclick=\"window.open('mactable.php?id=" . $id . "')\">".WEB_device_mac_table."</button>";
+    print "<button name='port_walk' onclick=\"window.open('snmpwalk.php?id=" . $id . "')\">".WEB_device_walk_port_list."</button></td>";
     print "<td></td>";
     print "</tr>";
     }
 if ($device['device_type']>2) {
-    print "<tr><td>Snmp Version</td><td>Snmp RO Community</td><td>Snmp RW Community</td><td></td></tr>";
-    print "<tr><td class=\"data\">"; print_snmp_select('f_snmp_version', $device['snmp_version']); print "</td>\n";
-    print "<td class=\"data\"><input type=\"text\" name='f_community' value=".$device['community']."></td>\n";
-    print "<td class=\"data\"><input type=\"text\" name='f_rw_community' value=".$device['rw_community']."></td>\n";
+    print "<tr><td>".WEB_snmp_version."</td><td>".WEB_snmp_community_ro."</td><td>".WEB_snmp_community_rw."</td><td></td></tr>";
+    print "<tr><td class='data'>"; print_snmp_select('f_snmp_version', $device['snmp_version']); print "</td>\n";
+    print "<td class='data'><input type='text' name='f_community' value=".$device['community']."></td>\n";
+    print "<td class='data'><input type='text' name='f_rw_community' value=".$device['rw_community']."></td>\n";
     print "<dtd></td></tr>";
     if ($device['snmp_version'] ==3) {
-        print "<tr><td>Snmpv3 RO user</td><td>Snmpv3 RW user</td><td>Snmpv3 RO password</td><td>Snmpv3 RW password</td><td></td>";
-	print "</tr><tr>";
-        print "<td class=\"data\"><input type=\"text\" name='f_snmp3_user_ro' value=".$device['snmp3_user_ro']."></td>\n";
-	print "<td class=\"data\"><input type=\"text\" name='f_snmp3_user_rw' value=".$device['snmp3_user_rw']."></td>\n";
-        print "<td class=\"data\"><input type=\"text\" name='f_snmp3_user_ro_password' value=".$device['snmp3_user_ro_password']."></td>\n";
-	print "<td class=\"data\"><input type=\"text\" name='f_snmp3_user_rw_password' value=".$device['snmp3_user_rw_password']."></td>\n";
+        print "<tr><td>".WEB_snmp_v3_user_ro."</td><td>".WEB_snmp_v3_user_rw."</td><td>".WEB_snmp_v3_ro_password."</td><td>".WEB_snmp_v3_rw_password."</td><td></td>";
+	    print "</tr><tr>";
+        print "<td class='data'><input type='text' name='f_snmp3_user_ro' value=".$device['snmp3_user_ro']."></td>\n";
+	    print "<td class='data'><input type='text' name='f_snmp3_user_rw' value=".$device['snmp3_user_rw']."></td>\n";
+        print "<td class='data'><input type='text' name='f_snmp3_user_ro_password' value=".$device['snmp3_user_ro_password']."></td>\n";
+	    print "<td class='data'><input type='text' name='f_snmp3_user_rw_password' value=".$device['snmp3_user_rw_password']."></td>\n";
         print "<td></td></tr>\n";
-	}
+	    }
     }
-    print "<tr><td colspan=4 align=right><input type=\"submit\" name=\"editdevice\" value=\"Сохранить\"></td></tr>";
+    print "<tr><td colspan=4 align=right><input type='submit' name='editdevice' value='".WEB_btn_save."'></td></tr>";
     print "</table>\n";
 ?>
 </form>

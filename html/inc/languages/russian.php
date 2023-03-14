@@ -103,6 +103,7 @@ define("WEB_days","дней");
 define("WEB_sec","секунд");
 define("WEB_page_speed","Страница сгенерирована за ");
 define("WEB_rows_at_page","Записей на страницу");
+define("WEB_nagios","Nagios");
 
 /* error messages */
 define("WEB_auth_unknown","IP-адрес клиента не установлен");
@@ -122,6 +123,15 @@ define("WEB_msg_forbidden","Запрещено");
 define("WEB_msg_traffic_blocked","Блок по трафику");
 define("WEB_msg_internet","Интернет");
 define("WEB_msg_delete","Удалить");
+
+/* SNMP */
+define("WEB_snmp_version","SNMP version");
+define("WEB_snmp_v3_user_ro","Snmpv3 RO user");
+define("WEB_snmp_v3_user_rw","Snmpv3 RW user");
+define("WEB_snmp_v3_ro_password","Snmpv3 RO password");
+define("WEB_snmp_v3_rw_password","Snmpv3 RW password");
+define("WEB_snmp_community_ro","Snmp RO Community");
+define("WEB_snmp_community_rw","Snmp RW Community");
 
 /* select items */
 define("WEB_select_item_yes","Да");
@@ -215,6 +225,7 @@ define("WEB_cell_ip","IP");
 define("WEB_cell_mac","MAC");
 define("WEB_cell_clientid","Client-id");
 define("WEB_cell_host_firmware","Прошивка");
+define("WEB_cell_sn","SN");
 define("WEB_cell_comment","Комментарий");
 define("WEB_cell_wikiname","Wiki Name");
 define("WEB_cell_filter","Фильтр");
@@ -252,7 +263,7 @@ define("WEB_btn_remove","Удалить");
 define("WEB_btn_add","Добавить");
 define("WEB_btn_save","Сохранить");
 define("WEB_btn_move","Переместить");
-define("WEB_btn_apply","Применить конфигурацию");
+define("WEB_btn_config_apply","Применить конфигурацию");
 define("WEB_btn_device","+Устройство");
 define("WEB_btn_mac_add","+MAC");
 define("WEB_btn_mac_del","-MAC");
@@ -262,7 +273,6 @@ define("WEB_btn_run","Выполнить");
 define("WEB_btn_refresh","Обновить");
 define("WEB_btn_delete","Удалить");
 define("WEB_btn_apply","Применить");
-define("WEB_btn_add","Добавить");
 define("WEB_btn_show","Показать");
 
 /* control options */
@@ -345,5 +355,17 @@ define("WEB_nagios_template","Шаблон Нагиос");
 /* edit_l3int */
 define("WEB_list_l3_interfaces","Список L3 интерфейсов");
 define("WEB_l3_interface_add","Добавить интерфейс");
+
+/* editdevice */
+define("WEB_location_name","Расположение");
+define("WEB_device_access_control","Управление доступом");
+define("WEB_device_queues_enabled","Шейперы");
+define("WEB_device_connected_only","Только сети маршрутизатора");
+define("WEB_device_dhcp_server","DHCP-Server");
+define("WEB_device_snmp_comment","Некоторые устройства отдают mac-таблицу по индексу порта в snmp, другие - по номеру");
+define("WEB_device_mac_by_oid","Mac by snmp");
+define("WEB_device_mac_table","Show mac table");
+define("WEB_device_walk_port_list","Port Walk");
+define("WEB_device_port_count","Портов");
 
 ?>
