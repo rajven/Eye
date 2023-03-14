@@ -27,14 +27,14 @@ print_ip_submenu($page_url);
 <table class="data">
 <tr>
     <td class="data"><input type="checkbox" onClick="checkAll(this.checked);"></td>
-    <td align=Center><?php print $cell_login; ?></td>
-    <td align=Center><?php print $cell_ip; ?></td>
-    <td align=Center><?php print $cell_mac ; ?></td>
-    <td align=Center><?php print $cell_comment; ?></td>
-    <td align=Center><?php print $cell_dns_name; ?></td>
-    <td align=Center>Создан</td>
-    <td align=Center>Работал</td>
-    <td align=right><input type="submit" onclick="return confirm('Удалить выделенных?')" name="removeauth" value="Удалить выделенных"></td>
+    <td align=Center><?php print WEB_cell_login; ?></td>
+    <td align=Center><?php print WEB_cell_ip; ?></td>
+    <td align=Center><?php print WEB_cell_mac ; ?></td>
+    <td align=Center><?php print WEB_cell_comment; ?></td>
+    <td align=Center><?php print WEB_cell_dns_name; ?></td>
+    <td align=Center><?php print WEB_cell_created; ?></td>
+    <td align=Center><?php print WEB_cell_last_found; ?></td>
+    <td align=right><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="removeauth" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
 $sSQL = "SELECT U.id, U.ip, U.mac, S.subnet as net FROM User_auth U, subnets S WHERE (U.mac IS NOT NULL AND U.mac<>'') AND (U.ip_int BETWEEN S.ip_int_start AND S.ip_int_stop) AND S.office=1 AND deleted=0 ORDER BY net,mac,ip";

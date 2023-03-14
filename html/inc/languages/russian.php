@@ -21,6 +21,9 @@ define("WEB_sec","секунд");
 define("WEB_page_speed","Страница сгенерирована за ");
 define("WEB_rows_at_page","Записей на страницу");
 define("WEB_nagios","Nagios");
+define("WEB_nagios_host_up","Хост активен");
+define("WEB_nagios_host_down","Хост не доступен");
+define("WEB_nagios_host_unknown","Состояние неизвестно");
 
 /* error messages */
 define("WEB_auth_unknown","IP-адрес клиента не установлен");
@@ -197,6 +200,8 @@ define("WEB_cell_vlan","Vlan");
 define("WEB_cell_mac_count","Mac count");
 define("WEB_cell_forename","Имя");
 define("WEB_cell_flags","Флаги");
+define("WEB_cell_created","Создан");
+define("WEB_cell_deleted","Удалён");
 
 /* lists name */
 define("WEB_list_ou","Список групп");
@@ -389,5 +394,7 @@ define("WEB_rules_target","Юзер/группа");
 /* all ip list */
 define("WEB_ips_show_by_state","По активности");
 define("WEB_ips_search_host","Поиск ip or mac");
+define("WEB_selection_title","Применить к выделению");
+define("WEB_ips_search_full","Поиск по комментарию/ip/mac/dhcp hostname");
 
 ?>

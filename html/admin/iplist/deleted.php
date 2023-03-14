@@ -41,16 +41,12 @@ print_ip_submenu($page_url);
 ?>
 <div id="cont">
 <form name="def" action="deleted.php" method="post">
-<table class="data">
-	<tr>
-        <td>
-        <b><?php print $list_subnet; ?> - </b><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?>
-        Поиск по комментарию/ip/mac/dhcp hostname: &nbsp <input type=text name=searchComment value="<?php print $f_comment; ?>">
-        Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-        <input type="submit" value="Показать">
-        </td>
-	</tr>
-</table>
+<div>
+        <b><?php print WEB_network_subnet; ?> - </b><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?>
+        <?php echo WEB_ips_search_full; ?>: &nbsp <input type=text name=searchComment value="<?php print $f_comment; ?>">
+        <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+        <input type="submit" value="<?php echo WEB_btn_show; ?>">
+</div>
 
 <?php
 $countSQL="SELECT Count(*) FROM User_auth WHERE User_auth.deleted = 1 $ip_list_filter";
@@ -66,13 +62,13 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
 <table class="data">
 	<tr>
-		<td align=Center><?php print $sort_url . "sort=ip_int&order=$new_order>" . $cell_ip . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "sort=mac&order=$new_order>" . $cell_mac . "</a>"; ?></td>
-		<td align=Center><?php print $cell_comment; ?></td>
-		<td align=Center><?php print $cell_dns_name; ?></td>
-		<td align=Center><?php print $sort_url . "sort=timestamp&order=$new_order>Создан</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "sort=changed_time&order=$new_order>Удалён</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "sort=last_found&order=$new_order>Работал</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
+		<td align=Center><?php print WEB_cell_comment; ?></td>
+		<td align=Center><?php print WEB_cell_dns_name; ?></td>
+		<td align=Center><?php print $sort_url . "sort=timestamp&order=$new_order>".WEB_cell_created."</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "sort=changed_time&order=$new_order>".WEB_cell_deleted."</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "sort=last_found&order=$new_order>".WEB_cell_last_found."</a>"; ?></td>
 	</tr>
 <?php
 
@@ -104,7 +100,6 @@ foreach ($users as $user) {
 print "</table>\n";
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 ?>
-<br>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

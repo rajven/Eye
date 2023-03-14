@@ -59,11 +59,11 @@ print_ip_submenu($page_url);
 <table class="data">
 	<tr>
         <td>
-        <b><?php print $list_ou; ?> - </b><?php print_ou_select($db_link, 'ou', $rou); ?>
-        <b>Отображать:<?php print_row_at_pages('rows',$displayed); ?>
-        <b><?php print $list_subnet; ?> - </b><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?>
-        <b>Мониторится - </b><?php print_enabled_select('enabled', $enabled); ?>
-        <input type="submit" value="Показать">
+        <b><?php print WEB_cell_ou; ?> :</b><?php print_ou_select($db_link, 'ou', $rou); ?>
+        <b><?php print WEB_network_subnet; ?> - </b><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?>
+        <b><?php print WEB_nagios; ?> :</b><?php print_enabled_select('enabled', $enabled); ?>
+        <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+        <input type="submit" value="<?php print WEB_btn_show; ?>">
         </td>
 	</tr>
 </table>
@@ -82,26 +82,26 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
 <table class="data">
 <tr>
-<td>Для выделенных установить: Nagios&nbsp<?php print_qa_select('n_enabled', 1); ?></td>
-<td>Lnk&nbsp<?php print_qa_select('n_link', 0); ?></td>
+<td><?php echo WEB_selection_title; ?>: Nagios&nbsp<?php print_qa_select('n_enabled', 1); ?></td>
+<td>Link&nbsp<?php print_qa_select('n_link', 0); ?></td>
 <td>Event-handler&nbsp<?php print_nagios_handler_select('n_handler', ''); ?></td>
-<td>&nbsp<input type="submit" onclick="return confirm('Применить для выделенных?')" name="ApplyForAll" value="Применить"></td>
+<td>&nbsp<input type="submit" onclick="return confirm('<?php echo WEB_msg_apply_selected; ?>?')" name="ApplyForAll" value="<?php echo WEB_btn_apply; ?>"></td>
 </tr>
 </table>
 
 <table class="data">
 	<tr>
-        	<td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
-		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . $cell_login . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . $cell_ip . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . $cell_mac . "</a>"; ?></td>
-		<td align=Center><?php print $cell_comment; ?></td>
-		<td align=Center><?php print $cell_wikiname; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=nagios&order=$new_order>" . $cell_nagios; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=link_check&order=$new_order>" . $cell_link; ?></td>
-		<td align=Center><?php print $cell_nagios_handler; ?></td>
+        <td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
+		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
+		<td align=Center><?php print WEB_cell_comment; ?></td>
+		<td align=Center><?php print WEB_cell_wikiname; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=nagios&order=$new_order>" . WEB_cell_nagios; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=link_check&order=$new_order>" . WEB_cell_link; ?></td>
+		<td align=Center><?php print WEB_cell_nagios_handler; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=last_found&order=$new_order>Last</a>"; ?></td>
-		<td align=Center><?php print $cell_connection; ?></td>
+		<td align=Center><?php print WEB_cell_connection; ?></td>
 	</tr>
 <?php
 
@@ -164,11 +164,11 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 ?>
 <br>
 <table class="data">
-<tr><td>Цветовая маркировка</td></tr>
+<tr><td><?php echo WEB_color_description; ?></td></tr>
 <tr>
-<td class="up">Хост включен</td>
-<td class="down">Хост недоступен</td>
-<td class="data">Неизвестно</td>
+<td class="up"><?php echo WEB_nagios_host_up; ?></td>
+<td class="down"><?php echo WEB_nagios_host_down; ?></td>
+<td class="data"><?php echo WEB_nagios_host_unknown; ?></td>
 </table>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
