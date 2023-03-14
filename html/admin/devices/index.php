@@ -18,19 +18,19 @@ if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field
 <form name="def" action="index.php" method="post">
 <table class="data">
 <tr class="info" align="right">
-<td class="info" colspan=6> Тип оборудования: <?php  print_devtypes_select($db_link, "devtypes", $f_devtype_id, "id<3"); ?>
-Показать оборудование из <?php  print_building_select($db_link, "building_id", $f_building_id); ?></td>
-<td class="info" colspan=2> <input type="submit" name="apply" value="Показать"></td>
+<td class="info" colspan=6> <?php  print WEB_device_type_show; print_devtypes_select($db_link, "devtypes", $f_devtype_id, "id<3"); ?>
+<?php print WEB_device_show_location; print_building_select($db_link, "building_id", $f_building_id); ?></td>
+<td class="info" colspan=2> <input type="submit" name="apply" value="<?php echo WEB_btn_show; ?>"></td>
 </tr>
 <tr align="center">
-<td><b><a href=index.php?sort=device_type&order=<?php print $new_order; ?>>Тип</a></b></td>
-<td><b><a href=index.php?sort=device_name&order=<?php print $new_order; ?>>Название</a></b></td>
-<td><b><a href=index.php?sort=ip&order=<?php print $new_order; ?>>IP</a></b></td>
-<td><b><a href=index.php?sort=device_model_id&order=<?php print $new_order; ?>>Модель</a></b></td>
-<td><b><a href=index.php?sort=building_id&order=<?php print $new_order; ?>>Расположен</a></b></td>
-<td><b>Портов</b></td>
-<td><b>Nagios</b></td>
-<td><b>Discavery</b></td>
+<td><b><a href=index.php?sort=device_type&order=<?php print $new_order; ?>><?php echo WEB_cell_type; ?></a></b></td>
+<td><b><a href=index.php?sort=device_name&order=<?php print $new_order; ?>><?php echo WEB_cell_name; ?></a></b></td>
+<td><b><a href=index.php?sort=ip&order=<?php print $new_order; ?>><?php echo WEB_cell_ip; ?></a></b></td>
+<td><b><a href=index.php?sort=device_model_id&order=<?php print $new_order; ?>><?php echo WEB_cell_host_model; ?></a></b></td>
+<td><b><a href=index.php?sort=building_id&order=<?php print $new_order; ?>><?php echo WEB_location_name; ?></a></b></td>
+<td><b><?php echo WEB_device_port_count; ?></b></td>
+<td><b><?php echo WEB_nagios; ?></b></td>
+<td><b><?php echo WEB_network_discovery; ?></b></td>
 </tr>
 <?php
 $filter = '';
@@ -63,12 +63,10 @@ foreach ($switches as $row) {
 </table>
 </form>
 <table class="data">
+<tr><td><?php echo WEB_color_device_description; ?></td></tr>
 <tr>
-<td>Device status</td>
-</tr>
-<tr>
-<td class="shutdown">Down</td>
-<td class="up">Online</td>
+<td class="shutdown"><?php echo WEB_color_device_down; ?></td>
+<td class="up"><?php echo WEB_color_device_online; ?></td>
 <tr>
 </table>
 <?php

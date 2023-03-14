@@ -2,21 +2,22 @@
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
+
+$device=get_record($db_link,'devices',"id=".$id);
+$user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
+
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
+
+print_device_submenu($page_url);
+print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login']);
+
 ?>
-<html>
-<head>
-<title>Панель администратора</title>
-<link rel="stylesheet" type="text/css"	href="/<?php echo HTML_STYLE.".css"; ?>">
-<meta http-equiv="content-type" content="application/xhtml+xml">
-<meta charset="UTF-8">
-</head>
-<body>
+
 <div id="cont">
 <?php
-$dev = get_record($db_link,'devices',"id=$id");
 $ports = get_records($db_link,'device_ports',"device_id=$id AND uplink=0 ORDER BY port");
-print "<b>Список маков активных на свиче ".$dev['device_name']." (".$dev['ip']."):</b>\n";
-$fdb = get_fdb_table($dev['ip'], $dev['community'], $dev['snmp_version']);
+print "<b>Список маков активных на свиче ".$device['device_name']." (".$device['ip']."):</b>\n";
+$fdb = get_fdb_table($device['ip'], $device['community'], $device['snmp_version']);
 print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
 print "<tr>";
 print "<td>Port</td>\n";
@@ -24,7 +25,7 @@ print "<td>User</td>\n";
 print "<td>Mac</td>\n";
 print "</tr>";
 foreach ($ports as $port) {
-    if (!$dev['fdb_snmp_index']) { $port['snmp_index'] = $port['port']; }
+    if (!$device['fdb_snmp_index']) { $port['snmp_index'] = $port['port']; }
     foreach ($fdb as $a_mac => $a_port) {
 	if ($a_port == $port['snmp_index']) {
 		print "<tr>";

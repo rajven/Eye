@@ -111,13 +111,13 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <table class="data">
 	<tr>
 		<td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
-		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . $cell_login . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . $cell_ip . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . $cell_mac . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=model_name&order=$new_order>".$cell_host_model; ?></td>
-		<td align=Center><?php print $cell_comment; ?></td>
-		<td align=Center><?php print $cell_connection; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=last_found&order=$new_order>Last</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=model_name&order=$new_order>".WEB_cell_host_model; ?></td>
+		<td align=Center><?php print WEB_cell_comment; ?></td>
+		<td align=Center><?php print WEB_cell_connection; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=last_found&order=$new_order>".WEB_cell_last_found."</a>"; ?></td>
 	</tr>
 <?php
 
