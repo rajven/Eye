@@ -129,15 +129,17 @@ foreach ($ports as $row) {
 print "</tr>";
 }
 print "<tr>\n";
-print "<td colspan=6>".WEB_device_first_port_snmp_value."</td>\n";
-print "<td class='data'><input type='text' name='f_snmp_start' value=1></td>\n";
-print "<td><input type='submit' name='regensnmp' value='".WEB_device_recalc_snmp_port."'></td>\n";
-print "<td colspan=5 align=right><input type='submit' name='save' value='".WEB_btn_save."'></td>\n";
+print "<td colspan=12 align=right><input type='submit' name='save' value='".WEB_btn_save."'></td>\n";
 print "</tr>\n";
 print "</table>\n";
 ?>
+<div>
+    <?php echo WEB_device_first_port_snmp_value; ?>
+    &nbsp
+    <input type='text' name='f_snmp_start' value=1>
+    <input type='submit' name='regensnmp' value='<?php echo WEB_device_recalc_snmp_port ?>'>
+</div>
 </form>
-
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.small.php");
 ?>

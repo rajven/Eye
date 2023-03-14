@@ -239,14 +239,17 @@ if ($device['snmp_version']>0) {
         print "</tr>";
     }
     print "<tr>\n";
-    print "<td colspan=12>".WEB_device_first_port_snmp_value."</td>\n";
-    print "<td class='data'><input type='text' name='f_snmp_start' value=1></td>\n";
-    print "<td><input type='submit' name='regensnmp' value='".WEB_device_recalc_snmp_port."'></td>\n";
-    print "<td colspan=5 align=right><input type='submit' name='save' value='".WEB_btn_save."'></td>\n";
-    print "</tr>\n";
     print "</table>\n";
+?>
 
+<div>
+    <?php echo WEB_device_first_port_snmp_value; ?>
+    &nbsp
+    <input type='text' name='f_snmp_start' value=1>
+    <input type='submit' name='regensnmp' value='<?php echo WEB_device_recalc_snmp_port ?>'>
+</div>
 
+<?php
     print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
     print "<tr><td>".WEB_port_status."</td></tr>\n";
     print "<tr><td class=\"down\">".WEB_port_oper_down."</td>";
@@ -257,8 +260,6 @@ if ($device['snmp_version']>0) {
     print "<tr><td>".WEB_port_speed."</td></tr>\n";
     print "<tr><td class=\"speed10M\">".WEB_port_speed_10."</td><td class=\"speed100M\">".WEB_port_speed_100."</td><td class=\"speed1G\">".WEB_port_speed_1G."</td><td class=\"speed10G\">".WEB_port_speed_10G."</td><tr>\n";
     print "</table>\n";
-
 print "</form>";
-
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.small.php");
 ?>
