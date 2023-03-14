@@ -382,4 +382,7 @@ define("WEB_ou_rules_order","Порядок применения");
 define("WEB_ou_rule","Правило");
 define("WEB_ou_new_rule","Новое правило");
 
+/* auto rules */
+define("WEB_rules_target","Юзер/группа");
+
 ?>

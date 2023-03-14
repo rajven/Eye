@@ -135,7 +135,7 @@ foreach ( $t_auth_rules as $row ) {
 <div>
 <?php print WEB_ou_new_rule."&nbsp"; print_qa_rule_select("s_new_type","1");  
 print "<input type=\"text\" name='s_new_rule' value=''>"; ?>
-<input type="submit" name="s_create" value="<?php WEB_btn_add; ?>">
+<input type="submit" name="s_create" value="<?php echo WEB_btn_add; ?>">
 </div>
 </form>
 <?php require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php"); ?>

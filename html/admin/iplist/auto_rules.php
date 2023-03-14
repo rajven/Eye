@@ -18,9 +18,10 @@ print_ip_submenu($page_url);
 <div id="cont">
 <br>
 <form name="def" action="auto_rules.php" method="post">
-<table class="data">
-<tr><td><b>Отображать:<?php print_row_at_pages('rows',$displayed); ?> <input type="submit" value="Показать"> </td></tr>
-</table>
+<div>
+<?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?> <input type="submit" value="<?php echo WEB_btn_show; ?>">
+</div>
+
 <?php
 fix_auth_rules($db_link);
 $countSQL="SELECT Count(*) FROM auth_rules";
@@ -35,10 +36,10 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <table class="data">
 <tr align="center">
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
-<td><b>Тип</b></td>
-<td><b>Правило</b></td>
-<td><b>Юзер/Группа</b></td>
-<td align=right><input type="submit" onclick="return confirm('Удалить выделенных?')" name="removeRule" value="Удалить"></td>
+<td><b><?php echo WEB_cell_type; ?></b></td>
+<td><b><?php echo WEB_ou_rule; ?></b></td>
+<td><b><?php echo WEB_rules_target; ?></b></td>
+<td align=right><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="removeRule" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
 $t_auth_rules = get_records_sql($db_link,"SELECT * FROM auth_rules ORDER BY id LIMIT $start,$displayed");
