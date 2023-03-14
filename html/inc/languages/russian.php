@@ -40,6 +40,8 @@ define("WEB_msg_forbidden","Запрещено");
 define("WEB_msg_traffic_blocked","Блок по трафику");
 define("WEB_msg_internet","Интернет");
 define("WEB_msg_delete","Удалить");
+define("WEB_msg_additional","Дополнительно");
+define("WEB_msg_unsupported","Не поддерживается");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");
@@ -49,14 +51,27 @@ define("WEB_snmp_v3_ro_password","Snmpv3 RO password");
 define("WEB_snmp_v3_rw_password","Snmpv3 RW password");
 define("WEB_snmp_community_ro","Snmp RO Community");
 define("WEB_snmp_community_rw","Snmp RW Community");
+define("WEB_snmp_interface_name","Interface name");
+define("WEB_snmp_interface_index","Interface index");
 
 /* color schema description */
 define("WEB_color_description","Цветовая маркировка");
-define("WEB_color_user_disabled","Пользователь вылкючен");
+define("WEB_color_user_disabled","Пользователь выключен");
 define("WEB_color_user_blocked","Блокировка по трафику");
-define("WEB_color_device_description","Device status");
-define("WEB_color_device_online","Online");
-define("WEB_color_device_down","Down");
+define("WEB_color_device_description","Состояние устройства");
+
+/* device and port state */
+define("WEB_device_online","Online");
+define("WEB_device_down","Down");
+define("WEB_port_status","Состояние портов");
+define("WEB_port_oper_down","Oper down");
+define("WEB_port_oper_up","Oper up");
+define("WEB_port_admin_shutdown","Admin off");
+define("WEB_port_speed","Port speed");
+define("WEB_port_speed_10","10M");
+define("WEB_port_speed_100","100M");
+define("WEB_port_speed_1G","1G");
+define("WEB_port_speed_10G","10G");
 
 /* select items */
 define("WEB_select_item_yes","Да");
@@ -174,6 +189,9 @@ define("WEB_cell_ip_quote_month","Квота на адрес, месяц");
 define("WEB_cell_login_quote_day","Квота на логин, день");
 define("WEB_cell_ip_quote_day","Квота на адрес, день");
 define("WEB_cell_type","Тип");
+define("WEB_cell_skip","Пропустить");
+define("WEB_cell_vlan","Vlan");
+define("WEB_cell_mac_count","Mac count");
 
 /* lists name */
 define("WEB_list_ou","Список групп");
@@ -314,5 +332,26 @@ define("WEB_device_port_mac_table_history","Список маков когда-�
 
 /* portsbyvlan */
 define("WEB_device_ports_by_vlan","Список портов в влане");
+
+/* switchport-connection */
+define("WEB_device_port_connections","Список соединений на портах");
+
+/* switchport */
+define("WEB_device_port_list","Список портов");
+define("WEB_device_connected_endpoint","Юзер/Устройство");
+define("WEB_device_first_port_snmp_value","SNMP-индекс первого порта");
+define("WEB_device_recalc_snmp_port","Пересчитать snmp индексы");
+
+/* switchport-status */
+define("WEB_device_port_state_list","Состояние портов");
+define("WEB_device_snmp_port_oid_name","IfName");
+define("WEB_device_port_speed","Speed");
+define("WEB_device_port_errors","Errors");
+define("WEB_device_poe_control","Управление POE");
+define("WEB_device_port_control","Управление портом");
+define("WEB_device_port_on","Включить порт");
+define("WEB_device_port_off","Выключить порт");
+define("WEB_device_poe_on","Включить POE");
+define("WEB_device_poe_off","Выключить POE");
 
 ?>

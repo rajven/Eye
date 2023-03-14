@@ -3,7 +3,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-$switch=get_record($db_link,'devices',"id=".$id);
+$device=get_record($db_link,'devices',"id=".$id);
 
 if (isset($_POST["remove"])) {
     $fid = $_POST["f_id"];
@@ -19,22 +19,26 @@ if (isset($_POST["remove"])) {
 
 unset($_POST);
 
+$user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
+
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
-print_editdevice_submenu($page_url,$id,$device['device_type']);
+
+print_device_submenu($page_url);
+print_editdevice_submenu($page_url,$device_id,$device['device_type'],$user_info['login']);
 
 ?>
-<div id="cont">
+<div id="contsubmenu">
 <form name="def" action="switchport-conn.php?id=<?php echo $id; ?>" method="post">
 <br>
 
-<?php print "<b>Список соединений на портах ".$switch['device_name']." - ".$switch['ip']."</b><br>\n"; ?>
+<?php print "<b>".WEB_device_port_connections."&nbsp".$device['device_name']." - ".$device['ip']."</b><br>\n"; ?>
 
 <table class="data">
 <tr>
 <td width=20><input type="checkbox" onClick="checkAll(this.checked);"></td>
-<td width=40><b>Порт</b></td>
-<td ><b>Юзер</b></td>
-<td width=100><input type="submit" onclick="return confirm('Удалить?')" name="remove" value="Удалить"></td>
+<td width=40><b><?php echo WEB_device_port_number; ?></b></td>
+<td ><b><?php echo WEB_cell_login; ?></b></td>
+<td width=100><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 
 <?php

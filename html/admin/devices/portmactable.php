@@ -35,7 +35,7 @@ if ($port_info['vendor_id'] == 9) {
 
 if ($port_info['snmp_index'] > 0) {
     print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
-    print "<tr><td><b>".WEB_device_port_mac_table_show."</b></td></tr>\n";
+    print "<tr><td colspan=2><b>".WEB_device_port_mac_table_show."</b></td></tr>\n";
     if (! $port_info['fdb_snmp_index']) { $port_info['snmp_index'] = $port_info['port']; }
     $fdb = get_fdb_port_table($port_info['ip'], $port_info['snmp_index'], $port_info['community'], $port_info['snmp_version']);
     foreach ($fdb as $a_mac => $a_port) {
