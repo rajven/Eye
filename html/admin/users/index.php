@@ -104,7 +104,7 @@ if ($msg_error) {
 
 ?>
 <form name="def" action="index.php" method="post">
-<div><b><?php print WEB_list_ou; ?> - </b>
+<div><b><?php print WEB_cell_ou; ?> - </b>
 <?php print_ou_select($db_link, 'ou', $rou); 
 print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
 <input type="submit" value="<?php echo WEB_btn_show; ?>">
@@ -120,12 +120,12 @@ print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
 <td><?php print WEB_cell_ou."&nbsp";print_ou_select($db_link, 'a_new_ou', $rou); ?></td>
 <td>&nbsp<input type="submit" onclick="return confirm('<?php echo WEB_msg_apply_selected; ?>?')" name="ApplyForAll" value="<?php echo WEB_btn_apply; ?>"></td>
 </tr>
-<tr>
-<td><input type="submit" name="create" value="<?php echo WEB_btn_add; ?>"></td>
-<td><input type=text name=newlogin value="Unknown"></td>
-<td colspan=5></td>
-</tr>
 </table>
+
+<div>
+<input type=text name=newlogin value="Unknown">
+<input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
+</div>
 
 <?php
 
@@ -179,6 +179,7 @@ foreach ($users as $row) {
     }
     print "<tr align=center>\n";
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
+    print "<td class=\"$cl\">".$row['id']."</td>\n";
     if (empty($row['login'])) { $row['login']=$row['id']; }
     print "<td class=\"$cl\" align=left><a href=edituser.php?id=".$row['id'].">" . $row['login'] . "</a></td>\n";
     print "<td class=\"$cl\">".$row['fio']."</td>\n";
