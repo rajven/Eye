@@ -16,7 +16,7 @@ $_SESSION[$page_url]['dns']=$rdns;
 $dns_checked='';
 if ($rdns) { $dns_checked='checked="checked"'; }
 
-print_trafdetail_submenu($page_url,"id=$id&date_start='$date1'&date_stop='$date2'","<b>".WEB_log_detail_for."<a href=/admin/users/editauth.php?id=$id>$fip</a></b> ::&nbsp");
+print_trafdetail_submenu($page_url,"id=$id&date_start='$date1'&date_stop='$date2'","<b>".WEB_log_detail_for."&nbsp<a href=/admin/users/editauth.php?id=$id>$fip</a></b> ::&nbsp");
 ?>
 
 <div id="contsubmenu">
