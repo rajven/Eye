@@ -203,7 +203,7 @@ if (!empty($_SESSION[$page_url]['msg'])) {
     print '<div id="msg">'.$_SESSION[$page_url]['msg'].'</div>';
     unset($_SESSION[$page_url]['msg']);
     }
-print "<b>".WEB_user_title."<a href=/admin/users/edituser.php?id=".$auth_info['user_id'].">".$parent_name."</a> </b>";
+print "<b>".WEB_user_title."&nbsp<a href=/admin/users/edituser.php?id=".$auth_info['user_id'].">".$parent_name."</a> </b>";
 ?>
 <form name="def" action="editauth.php?id=<?php echo $id; ?>" method="post">
 <input type="hidden" name="id" value=<?php echo $id; ?>>

@@ -14,8 +14,8 @@ $user=get_record_sql($db_link,'SELECT * FROM User_list WHERE id='.$auth['user_id
 <div id="cont">
 <b>
 <?php
-print WEB_report_user_traffic."<a href=../users/edituser.php?id=".$auth['user_id'].">" . $user['login'] . "</a>"; 
-print WEB_report_traffic_for_ip."<a href=../users/editauth.php?id=$id>".$auth['ip']."</a>";
+print WEB_report_user_traffic."&nbsp<a href=../users/edituser.php?id=".$auth['user_id'].">" . $user['login'] . "</a>&nbsp"; 
+print WEB_report_traffic_for_ip."&nbsp<a href=../users/editauth.php?id=$id>".$auth['ip']."</a>";
 ?>
 </b>
 <br>
