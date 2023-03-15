@@ -74,10 +74,10 @@ print_device_submenu($page_url);
 <td align=right><input type="submit" onclick="return confirm('<?php print WEB_msg_delete; ?>?')" name="removeauth" value="<?php print WEB_btn_remove; ?>"></td>
 </tr>
 <tr>
-<td class="info"><?php print $list_ou; ?> </td>
+<td class="info"><?php print WEB_cell_ou."&nbsp"; ?> </td>
 <td class="info"><?php print_ou_select($db_link, 'ou', $rou); ?></td>
 <td class="info"><?php print WEB_rows_at_page."&nbsp:"; print_row_at_pages('rows',$displayed); ?></td>
-<td class="info"><?php print $list_subnet; ?> </td>
+<td class="info"><?php print WEB_network_subnet; ?> </td>
 <td class="info"><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?></td>
 <td class="info"><?php print WEB_device_hide_unknown."&nbsp"; ?> <input type=checkbox name=f_unknown value="1" <?php print $unknown_checked; ?>> </td>
 <td class="info"><?php print WEB_model_vendor."&nbsp"; print_vendor_select($db_link,"vendor_select",$f_vendor_select); ?></td>
