@@ -57,7 +57,6 @@ $gateway_list = get_gateways($db_link);
 <br>
 <table class="data">
 <tr align="center">
-<td class="data" width=20><b><?php $url = $sort_url.'&sort=id&order='.$new_order."'>id</a>"; print $url; ?></b></td>
 <td class="data" width=150><b><?php $url = $sort_url.'&sort=timestamp&order='.$new_order."'>".WEB_date."</a>"; print $url; ?></b></td>
 <td class="data" width=30><b><?php echo WEB_cell_gateway; ?></b></td>
 <td class="data" width=30><b><?php echo WEB_traffic_proto; ?></b></td>
@@ -77,7 +76,6 @@ $fsql = "SELECT A.id, A.`timestamp`, A.router_id, A.proto, A.src_ip, A.src_port,
 $userdata = mysqli_query($db_link, $fsql);
 while (list ($uid,$udata, $urouter, $uproto, $sip, $sport,$dip, $dport, $ubytes, $upkt) = mysqli_fetch_array($userdata)) {
     print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td class=\"data\">$uid</td>\n";
     print "<td class=\"data\">$udata</td>\n";
     print "<td class=\"data\">$gateway_list[$urouter]</td>\n";
     if ($uproto==='6') { $uproto = 'tcp'; }
