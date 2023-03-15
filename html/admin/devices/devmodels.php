@@ -113,13 +113,9 @@ foreach ($t_ou as $row) {
 }
 ?>
 </table>
-<table>
-<tr>
-<td><input type=text name=new_model value="Unknown"></td>
-<td><input type="submit" name="create" value="<?php echo WEB_btn_add; ?>"></td>
-<td align="right"></td>
-</tr>
-</table>
+<div><input type=text name=new_model value="Unknown">
+<input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
+</div>
 </form>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
