@@ -33,7 +33,7 @@ if (isset($_POST['save'])) {
             if (intval($_POST['r_id'][$j]) != $save_id) { continue; }
             if ($save_id>=10000) {
                 $new['vendor_id'] = $_POST['f_vendor'][$j];
-	        $new['model_name'] = $_POST['f_name'][$j];
+	            $new['model_name'] = $_POST['f_name'][$j];
 	        }
             $new['nagios_template'] = $_POST['f_nagios'][$j];
             update_record($db_link, "device_models", "id='{$save_id}'", $new);

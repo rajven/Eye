@@ -823,10 +823,9 @@ function print_vendor_set($db, $qa_name, $qa_value)
 
 function get_vendor_name($db, $v_id)
 {
-    $sSQL = "SELECT `name` FROM `vendors` WHERE id=$v_id";
-    $vendors = mysqli_query($db, $sSQL);
-    (list ($v_name) = mysqli_fetch_array($vendors));
-    return $v_name;
+    $vendor = get_record_sql($db,"SELECT * FROM `vendors` WHERE id=".$v_id);
+    if (empty($vendor)) { return NULL; }
+    return $vendor['name'];
 }
 
 function get_qa($qa_value)
