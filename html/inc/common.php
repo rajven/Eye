@@ -517,7 +517,7 @@ print "</div>\n";
 }
 
 function print_trafdetail_submenu ($current_page,$params,$description) {
-print "<div id='subssubmenu'>\n";
+print "<div id='subsubmenu'>\n";
 print "$description\n";
 print_submenu_url(WEB_submenu_traffic_top10,'/admin/reports/userdaydetail.php'."?$params",$current_page,0);
 print_submenu_url(WEB_submenu_detail_log,'/admin/reports/userdaydetaillog.php'."?$params",$current_page,1);

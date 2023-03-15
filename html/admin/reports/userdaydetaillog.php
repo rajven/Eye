@@ -20,10 +20,10 @@ $dns_cache=NULL;
 $usersip = mysqli_query($db_link, "SELECT ip,user_id,comments FROM User_auth WHERE User_auth.id=$id");
 list ($fip, $parent, $fcomm) = mysqli_fetch_array($usersip);
 
-print_trafdetail_submenu($page_url,"id=$id&date_start=$date1&date_stop=$date2","<b>Детализация для <a href=/admin/users/editauth.php?id=$id>$fip</a></b> ::&nbsp");
+print_trafdetail_submenu($page_url,"id=$id&date_start=$date1&date_stop=$date2","<b".WEB_log_detail_for."<a href=/admin/users/editauth.php?id=$id>$fip</a></b> ::&nbsp");
 ?>
 
-<div id="cont">
+<div id="contsubmenu">
 
 <form action="<?php print $page_url; ?>" method="post">
 <input type="hidden" name="id" value=<?php echo $id; ?>>
