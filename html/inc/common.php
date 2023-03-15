@@ -3102,7 +3102,11 @@ function get_cacti_graph($host_ip, $port_index)
 }
 
 function print_select_item ($description,$value,$current) {
-if ($value == $current) { print "<option value=$value selected>$description</option>"; } else { print "<option value=$value>$description</option>"; }
+if ($value === $current) { 
+    print "<option value=$value selected>$description</option>"; 
+    } else { 
+    print "<option value=$value>$description</option>"; 
+    }
 }
 
 function print_select_simple ($description,$value) {
