@@ -11,10 +11,10 @@ if (! isset($auth_ip)) { $auth_ip = get_user_ip(); }
 if (! isset($auth_ip)) { print "Error detecting user!!!"; }
 
 /* month */
-$pmdate_start = DateTime::createFromFormat("Y-m-d",date("Y-m-d"));
-$pmdate_start->modify('+1 day');
+$pmdate_start = DateTime::createFromFormat("Y-m-d",date("Y-m-1"));
 $date1m = $pmdate_start->format('Y-m-d');
-$pmdate_stop = DateTime::createFromFormat("Y-m-d",date("Y-m-1"));
+$pmdate_stop = DateTime::createFromFormat("Y-m-d",date("Y-m-d"));
+$pmdate_stop->modify('+1 day');
 $date2m = $pmdate_stop->format('Y-m-d');
 
 /* day */
