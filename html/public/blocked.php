@@ -11,16 +11,17 @@ if (! isset($auth_ip)) { $auth_ip = get_user_ip(); }
 if (! isset($auth_ip)) { print "Error detecting user!!!"; }
 
 /* month */
-$pmdate_start = DateTimeImmutable::createFromFormat('U', mktime(0, 0, 0, date("m"), 1, date("Y")));
+$pmdate_start = DateTime::createFromFormat("Y-m-d",date("Y-m-d"));
+$pmdate_start->modify('+1 day');
 $date1m = $pmdate_start->format('Y-m-d');
-$pmdate_stop = DateTimeImmutable::createFromFormat('U', mktime(0, 0, 0, date("m")+1, 1, date("Y")));
+$pmdate_stop = DateTime::createFromFormat("Y-m-1",date("Y-m-d"));
 $date2m = $pmdate_stop->format('Y-m-d');
 
 /* day */
-$pdate_start = DateTimeImmutable::createFromFormat('U', mktime(0, 0, 0, date("m"), date("d"), date("Y")));
+$pdate_start = DateTime::createFromFormat("Y-m-d",date("Y-m-d"));
 $date1 = $pdate_start->format('Y-m-d');
-$pdate_stop = DateTimeImmutable::createFromFormat('U', mktime(0, 0, 0, date("m"), date("d")+1, date("Y")));
-$date2 = $pdate_stop->format('Y-m-d');
+$pdate_start->modify('+1 day');
+$date2 = $pdate_start->format('Y-m-d');
 
 ?>
 
@@ -66,7 +67,7 @@ $year = $date_now->format('Y');
 <tr>
 <td><b><?php echo WEB_cell_login; ?></b></td> <td><?php print $user['login']; ?></td>
 </tr><tr>
-<td><b>ФИО</b></td> <td><?php print $user['fio']; ?></td>
+<td><b><?php echo WEB_cell_fio; ?></b></td> <td><?php print $user['fio']; ?></td>
 </tr><tr>
 <td> <?php echo WEB_msg_access_login; ?> </td> <td><b><?php 
 if ($user['enabled'] and !$user['blocked']) { print WEB_msg_enabled; }

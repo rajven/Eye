@@ -1266,15 +1266,15 @@ return $date1;
 }
 
 function GetNowTimeString() {
-$date_now = DateTimeImmutable::createFromFormat('U', time());
-$now = $date_now->format('Y-m-d H:i:s');
-return $now;
+$now = new DateTimeImmutable('now');
+$result = $now->format('Y-m-d H:i:s');
+return $result;
 }
 
 function GetNowDayString() {
-$date_now = DateTimeImmutable::createFromFormat('U', time());
-$now = $date_now->format('Y-m-d');
-return $now;
+$now = new DateTimeImmutable('now');
+$result = $now->format('Y-m-d');
+return $result;
 }
 
 function get_ip_subnet($db,$ip)

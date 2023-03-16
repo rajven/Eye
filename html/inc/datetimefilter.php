@@ -2,7 +2,7 @@
 
 if (!defined("CONFIG")) die("Not defined");
 
-$datetime_start = new DateTime(strftime('%Y-%m-%d 00:00:00',time()));
+$datetime_start = DateTime::createFromFormat("Y-m-d 00:00:00",date("Y-m-d"));
 
 if (empty($default_date_shift)) { $default_date_shift='h'; }
 
@@ -48,7 +48,7 @@ if (!isset($datetime_stop) or empty($datetime_stop)) {
         }
     if ($default_date_shift==='m') {
         $datetime_stop = new DateTime($date1);
-        $datetime_stop->modify('+1 day');
+        $datetime_stop->modify('+1 month');
         $time_stop = $datetime_stop->getTimestamp();
         $date2 = $datetime_start->format('Y-m-d H:i:s');
         $date1 = $datetime_start->format('Y-m-1 H:i:s');
