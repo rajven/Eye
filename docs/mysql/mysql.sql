@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: localhost
--- Время создания: Мар 05 2023 г., 00:09
+-- Время создания: Мар 16 2023 г., 21:22
 -- Версия сервера: 10.5.18-MariaDB-0+deb11u1-log
 -- Версия PHP: 7.4.33
 
@@ -85,6 +85,7 @@ INSERT INTO `config` (`id`, `option_id`, `value`) VALUES(131, 47, '365');
 INSERT INTO `config` (`id`, `option_id`, `value`) VALUES(132, 53, '2');
 INSERT INTO `config` (`id`, `option_id`, `value`) VALUES(133, 55, '10');
 INSERT INTO `config` (`id`, `option_id`, `value`) VALUES(134, 56, '30');
+INSERT INTO `config` (`id`, `option_id`, `value`) VALUES(135, 34, '1');
 
 -- --------------------------------------------------------
 
@@ -108,7 +109,7 @@ CREATE TABLE `config_options` (
 -- Дамп данных таблицы `config_options`
 --
 
-INSERT INTO `config_options` (`id`, `option_name`, `description.russian`, `description.english`, `uniq`, `type`, `default_value`, `min_value`, `max_value`) VALUES(1, 'KB', 'Еденица измерения трафика - Килобайт (1000b) или кибибайт(1024b,default)', 'Traffic measurement unit - Kilobyte (1000b) or kibibyte (1024b,default)', 1, 'bool', '1', 0, 1);
+INSERT INTO `config_options` (`id`, `option_name`, `description.russian`, `description.english`, `uniq`, `type`, `default_value`, `min_value`, `max_value`) VALUES(1, 'KB', 'Еденица измерения трафика - Килобайт или кибибайт', 'Traffic measurement unit - Kilobyte (0) or kibibyte (1,default)', 1, 'bool', '1', 0, 1);
 INSERT INTO `config_options` (`id`, `option_name`, `description.russian`, `description.english`, `uniq`, `type`, `default_value`, `min_value`, `max_value`) VALUES(3, 'dns server', 'ip-адрес DNS-сервера', 'DNS server ip address', 1, 'text', '127.0.0.1', 0, 0);
 INSERT INTO `config_options` (`id`, `option_name`, `description.russian`, `description.english`, `uniq`, `type`, `default_value`, `min_value`, `max_value`) VALUES(5, 'dhcp server', 'ip-адрес DHCP-сервера', 'ip address of the DHCP server', 1, 'text', '127.0.0.1', 0, 0);
 INSERT INTO `config_options` (`id`, `option_name`, `description.russian`, `description.english`, `uniq`, `type`, `default_value`, `min_value`, `max_value`) VALUES(9, 'default snmp version', 'Версия snmp по умолчанию. В настоящий момент поддерживаются 1 и 2. Поддержка версии 3 в разработке.', 'The default version of snmp. Currently, 1 and 2 are supported. Support for version 3 is in development.', 1, 'int', '2', 1, 3);
@@ -161,10 +162,10 @@ INSERT INTO `config_options` (`id`, `option_name`, `description.russian`, `descr
 --
 
 CREATE TABLE `connections` (
-  `id` int(11) NOT NULL,
-  `device_id` int(11) NOT NULL,
-  `port_id` int(11) NOT NULL,
-  `auth_id` int(11) NOT NULL
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `device_id` bigint(20) UNSIGNED NOT NULL,
+  `port_id` bigint(20) UNSIGNED NOT NULL,
+  `auth_id` bigint(20) UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -185,8 +186,8 @@ CREATE TABLE `Customers` (
 -- Дамп данных таблицы `Customers`
 --
 
-INSERT INTO `Customers` (`id`, `Login`, `password`, `api_key`, `readonly`) VALUES
-(1, 'admin', '$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG', 'c3284d0f94606de1fd2af172aba15bf31', 0);
+INSERT INTO `Customers` (`id`, `Login`, `password`, `api_key`, `readonly`) VALUES(1, 'admin', '$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG', 'c3284d0f94606de1fd2af172aba15bf31', 0);
+
 -- --------------------------------------------------------
 
 --
@@ -310,35 +311,35 @@ INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`)
 INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(55, 'ZyWall 310', 4, NULL);
 INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(56, 'APC Smart-UPS_3000', 20, 'ups.cfg');
 INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(57, 'APC Smart-UPS_5000', 20, 'ups.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(58, 'Schneider Smart-UPS_3000', 27, 'ups.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(58, 'Schneider Smart-UPS_3000', 21, 'ups.cfg');
 INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(59, 'SMG-1016M', 2, NULL);
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(60, 'EATON 9PX 1500i RT 2U', 24, 'ups.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(61, 'EATON 9PX3000i_RT_2U', 24, 'ups.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(62, 'EATON 9PX_6000i', 24, 'ups.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(63, 'EATON PW9130_3000', 24, 'ups.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(64, 'EATON PW9130_3000VA-R', 24, 'ups.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(65, 'Epson WF-5620 Series', 26, 'epson.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(66, 'Epson WF-8590 Series', 26, 'epson.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(60, 'EATON 9PX 1500i RT 2U', 64, 'ups.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(61, 'EATON 9PX3000i_RT_2U', 64, 'ups.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(62, 'EATON 9PX_6000i', 64, 'ups.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(63, 'EATON PW9130_3000', 64, 'ups.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(64, 'EATON PW9130_3000VA-R', 64, 'ups.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(65, 'Epson WF-5620 Series', 59, 'epson.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(66, 'Epson WF-8590 Series', 59, 'epson.cfg');
 INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(67, 'HP Officejet-7000', 15, 'hp.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(68, 'OKI C610', 22, 'oki.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(69, 'OKI MB472', 22, 'oki.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(70, 'OKI MB491', 22, 'oki.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(71, 'OKI MC562', 22, 'oki.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(72, 'OKI MC573', 22, 'oki.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(73, 'OKI MC861', 22, 'oki.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(74, 'Panasonic KX-MB2000RU', 21, 'panasonic.cfg');
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(75, 'PT-MZ10KE', 21, NULL);
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(76, 'PT-VX41', 21, NULL);
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(68, 'OKI C610', 62, 'oki.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(69, 'OKI MB472', 62, 'oki.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(70, 'OKI MB491', 62, 'oki.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(71, 'OKI MC562', 62, 'oki.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(72, 'OKI MC573', 62, 'oki.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(73, 'OKI MC861', 62, 'oki.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(74, 'Panasonic KX-MB2000RU', 61, 'panasonic.cfg');
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(75, 'PT-MZ10KE', 61, NULL);
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(76, 'PT-VX41', 61, NULL);
 INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(77, 'Rave 522AA', 33, NULL);
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(78, 'DZ570E', 21, NULL);
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(79, 'DZ6700', 21, NULL);
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(80, 'Rcq80', 21, NULL);
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(81, 'RZ12K', 21, NULL);
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(82, 'RZ660', 21, NULL);
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(83, 'RZ770', 21, NULL);
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(84, 'RZ970', 21, NULL);
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(85, 'XVR-5216', 32, NULL);
-INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(86, 'HWg-STE', 30, NULL);
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(78, 'DZ570E', 61, NULL);
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(79, 'DZ6700', 61, NULL);
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(80, 'Rcq80', 61, NULL);
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(81, 'RZ12K', 61, NULL);
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(82, 'RZ660', 61, NULL);
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(83, 'RZ770', 61, NULL);
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(84, 'RZ970', 61, NULL);
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(85, 'XVR-5216', 66, NULL);
+INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(86, 'HWg-STE', 68, NULL);
 INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(87, 'Computer', 1, '');
 INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(88, 'Mobile Phone', 1, NULL);
 INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`) VALUES(89, 'Switch', 1, NULL);
@@ -370,7 +371,7 @@ INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`)
 --
 
 CREATE TABLE `device_ports` (
-  `id` int(11) NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL,
   `device_id` int(11) DEFAULT NULL,
   `snmp_index` int(11) DEFAULT NULL,
   `port` int(11) DEFAULT NULL,
@@ -378,7 +379,7 @@ CREATE TABLE `device_ports` (
   `port_name` varchar(40) DEFAULT NULL,
   `comment` varchar(50) DEFAULT NULL,
   `target_port_id` int(11) NOT NULL DEFAULT 0,
-  `auth_id` int(11) DEFAULT NULL,
+  `auth_id` bigint(20) UNSIGNED DEFAULT NULL,
   `last_mac_count` int(11) DEFAULT 0,
   `uplink` tinyint(1) NOT NULL DEFAULT 0,
   `nagios` tinyint(1) NOT NULL DEFAULT 0,
@@ -414,13 +415,13 @@ INSERT INTO `device_types` (`id`, `name`) VALUES(5, 'Сетевое устрой
 --
 
 CREATE TABLE `dhcp_log` (
-  `id` int(10) UNSIGNED NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL,
   `mac` varchar(17) NOT NULL,
-  `ip_int` int(10) UNSIGNED NOT NULL,
+  `ip_int` bigint(20) UNSIGNED NOT NULL,
   `ip` varchar(15) NOT NULL,
   `action` varchar(10) NOT NULL,
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
-  `auth_id` int(11) NOT NULL,
+  `auth_id` bigint(20) UNSIGNED NOT NULL,
   `dhcp_hostname` varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -431,9 +432,9 @@ CREATE TABLE `dhcp_log` (
 --
 
 CREATE TABLE `dns_cache` (
-  `id` int(11) NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL,
   `dns` varchar(250) DEFAULT NULL,
-  `ip` int(11) DEFAULT NULL,
+  `ip` bigint(20) UNSIGNED DEFAULT NULL,
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -600,13 +601,13 @@ INSERT INTO `Group_list` (`id`, `group_name`, `comment`) VALUES(2, 'Users', 'Д�
 --
 
 CREATE TABLE `mac_history` (
-  `id` int(10) UNSIGNED NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL,
   `mac` varchar(12) DEFAULT NULL,
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
-  `device_id` int(11) DEFAULT NULL,
-  `port_id` int(11) DEFAULT NULL,
+  `device_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `port_id` bigint(20) UNSIGNED DEFAULT NULL,
   `ip` varchar(16) NOT NULL DEFAULT '',
-  `auth_id` int(11) DEFAULT NULL,
+  `auth_id` bigint(20) UNSIGNED DEFAULT NULL,
   `dhcp_hostname` varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -698,9 +699,9 @@ INSERT INTO `Queue_list` (`id`, `queue_name`, `Download`, `Upload`) VALUES(7, '1
 --
 
 CREATE TABLE `remote_syslog` (
-  `id` int(11) NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL,
   `date` timestamp NOT NULL DEFAULT current_timestamp(),
-  `device_id` int(11) NOT NULL,
+  `device_id` bigint(20) UNSIGNED NOT NULL,
   `ip` varchar(15) NOT NULL,
   `message` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -731,12 +732,6 @@ CREATE TABLE `subnets` (
   `comment` varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Дамп данных таблицы `subnets`
---
-
-INSERT INTO `subnets` (`id`, `subnet`, `ip_int_start`, `ip_int_stop`, `dhcp_start`, `dhcp_stop`, `dhcp_lease_time`, `gateway`, `office`, `hotspot`, `vpn`, `free`, `dhcp`, `static`, `dhcp_update_hostname`, `discovery`, `comment`) VALUES(1, '192.168.120.0/24', 3232266240, 3232266495, 3232266303, 3232266431, 480, 3232266241, 1, 0, 0, 0, 1, 0, 0, 1, 'Office network');
-
 -- --------------------------------------------------------
 
 --
@@ -744,39 +739,13 @@ INSERT INTO `subnets` (`id`, `subnet`, `ip_int_start`, `ip_int_stop`, `dhcp_star
 --
 
 CREATE TABLE `syslog` (
-  `id` int(11) UNSIGNED NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL,
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
-  `auth_id` int(11) NOT NULL DEFAULT 0,
+  `auth_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
   `customer` varchar(50) NOT NULL DEFAULT 'system',
   `message` text NOT NULL,
   `level` int(11) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Дамп данных таблицы `syslog`
---
-
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(1, '2023-03-04 19:55:16', 0, 'admin', 'Добавлен параметр id: 19 name: arp discavery = 1', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(2, '2023-03-04 19:55:23', 0, 'admin', 'Добавлен параметр id: 35 name: connections history, days = 90', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(3, '2023-03-04 19:55:38', 0, 'admin', 'Изменён параметр id: 124 name: connections history, days = 120', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(4, '2023-03-04 19:55:44', 0, 'admin', 'Добавлен параметр id: 9 name: default snmp version = 2', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(5, '2023-03-04 19:55:52', 0, 'admin', 'Добавлен параметр id: 41 name: discavery network = /usr/local/scripts/fetch_new_arp.pl', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(6, '2023-03-04 19:56:03', 0, 'admin', 'Добавлен параметр id: 26 name: history detail traffic = 3', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(7, '2023-03-04 19:56:13', 0, 'admin', 'Добавлен параметр id: 27 name: history dhcp lease = 1', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(8, '2023-03-04 19:56:24', 0, 'admin', 'Изменён параметр id: 128 name: history dhcp lease = 10', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(9, '2023-03-04 19:56:32', 0, 'admin', 'Добавлен параметр id: 48 name: history syslog = 90', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(10, '2023-03-04 19:56:49', 0, 'admin', 'Добавлен параметр id: 49 name: history traffic stats = 365', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(11, '2023-03-04 19:57:10', 0, 'admin', 'Добавлен параметр id: 47 name: history worklog = 90', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(12, '2023-03-04 19:57:26', 0, 'admin', 'Изменён параметр id: 131 name: history worklog = 365', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(13, '2023-03-04 19:57:32', 0, 'admin', 'Добавлен параметр id: 53 name: log level = 2', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(14, '2023-03-04 19:57:40', 0, 'admin', 'Добавлен параметр id: 55 name: netflow_step = 10', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(15, '2023-03-04 19:58:09', 0, 'admin', 'Добавлен параметр id: 56 name: traffic_ipstat_history = 30', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(16, '2023-03-04 21:06:40', 0, 'admin', 'Create new subnet 192.168.0.0/24', 2);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(17, '2023-03-04 21:08:04', 0, 'admin', 'Создан новый пользователь: Login => User1', 1);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(18, '2023-03-04 21:08:10', 0, 'admin', 'Изменён пользователь id: 1 login: User1. \r\nПрименено: \r\n filter_group_id => cur: 1 old: 0,\r\n\r\n Не изменялось:\r\n login = User1,\r\n enabled = 1,\r\n ou_id = 3,\r\n filter_group_id = 0', 1);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(19, '2023-03-04 21:08:19', 0, 'admin', 'Создаём новый ip-адрес \r\nip: 192.168.120.30\r\nmac: \r\n', 1);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(20, '2023-03-04 21:08:19', 1, 'admin', 'Создан новый адрес доступа для login: User1: ip => 192.168.120.30, mac => ', 1);
-INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `level`) VALUES(21, '2023-03-04 21:08:27', 1, 'admin', 'Изменена запись для адреса 192.168.120.30! Список изменений: \r\n comments => cur: User1 old: ,\r\n nagios_status => cur: UP old: ,\r\n\r\n Не изменялось:\r\n ou_id = 3,\r\n ip = 192.168.120.30,\r\n ip_int = 3232266270,\r\n save_traf = 1,\r\n enabled = 1,\r\n dhcp = 1,\r\n filter_group_id = 1,\r\n comments = ,\r\n nagios_status = ', 1);
 
 -- --------------------------------------------------------
 
@@ -786,12 +755,12 @@ INSERT INTO `syslog` (`id`, `timestamp`, `auth_id`, `customer`, `message`, `leve
 
 CREATE TABLE `Traffic_detail` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `auth_id` int(11) DEFAULT NULL,
+  `auth_id` bigint(20) UNSIGNED DEFAULT NULL,
   `router_id` int(11) NOT NULL DEFAULT 0,
   `timestamp` timestamp NULL DEFAULT NULL,
   `proto` int(11) DEFAULT NULL,
-  `src_ip` int(10) UNSIGNED NOT NULL,
-  `dst_ip` int(10) UNSIGNED NOT NULL,
+  `src_ip` bigint(20) UNSIGNED NOT NULL,
+  `dst_ip` bigint(20) UNSIGNED NOT NULL,
   `src_port` smallint(5) UNSIGNED NOT NULL,
   `dst_port` smallint(5) UNSIGNED NOT NULL,
   `bytes` bigint(20) NOT NULL,
@@ -805,9 +774,9 @@ CREATE TABLE `Traffic_detail` (
 --
 
 CREATE TABLE `Unknown_mac` (
-  `id` int(11) NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL,
   `mac` varchar(12) DEFAULT NULL,
-  `port_id` int(11) DEFAULT NULL,
+  `port_id` bigint(20) UNSIGNED DEFAULT NULL,
   `device_id` int(11) DEFAULT NULL,
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -820,10 +789,10 @@ CREATE TABLE `Unknown_mac` (
 
 CREATE TABLE `User_auth` (
   `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL DEFAULT 0,
+  `user_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
   `ou_id` int(11) DEFAULT NULL,
   `ip` varchar(18) NOT NULL DEFAULT '',
-  `ip_int` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `ip_int` bigint(10) UNSIGNED NOT NULL DEFAULT 0,
   `save_traf` tinyint(1) NOT NULL DEFAULT 0,
   `enabled` tinyint(1) NOT NULL DEFAULT 0,
   `dhcp` tinyint(1) NOT NULL DEFAULT 1,
@@ -854,12 +823,6 @@ CREATE TABLE `User_auth` (
   `changed_time` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Дамп данных таблицы `User_auth`
---
-
-INSERT INTO `User_auth` (`id`, `user_id`, `ou_id`, `ip`, `ip_int`, `save_traf`, `enabled`, `dhcp`, `filter_group_id`, `deleted`, `comments`, `dns_name`, `WikiName`, `dhcp_acl`, `queue_id`, `mac`, `dhcp_action`, `dhcp_time`, `dhcp_hostname`, `last_found`, `blocked`, `day_quota`, `month_quota`, `device_model_id`, `firmware`, `timestamp`, `clientid`, `nagios`, `nagios_status`, `nagios_handler`, `link_check`, `changed`, `changed_time`) VALUES(1, 1, 3, '192.168.120.30', 3232266270, 1, 1, 1, 1, 0, 'User1', '', NULL, NULL, 0, '', '', '2023-03-05 00:08:19', NULL, '2023-03-05 00:08:19', 0, 0, 0, 87, NULL, '2023-03-04 21:08:19', '', 0, 'UP', '', 0, 1, '2023-03-05 00:08:27');
-
 -- --------------------------------------------------------
 
 --
@@ -881,7 +844,7 @@ CREATE TABLE `User_auth_alias` (
 --
 
 CREATE TABLE `User_list` (
-  `id` int(10) UNSIGNED NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL,
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
   `login` varchar(255) DEFAULT NULL,
   `fio` varchar(255) DEFAULT NULL,
@@ -896,12 +859,6 @@ CREATE TABLE `User_list` (
   `month_quota` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Дамп данных таблицы `User_list`
---
-
-INSERT INTO `User_list` (`id`, `timestamp`, `login`, `fio`, `enabled`, `blocked`, `deleted`, `ou_id`, `device_id`, `filter_group_id`, `queue_id`, `day_quota`, `month_quota`) VALUES(1, '2023-03-04 21:08:04', 'User1', NULL, 1, 0, 0, 3, NULL, 1, 0, 0, 0);
-
 -- --------------------------------------------------------
 
 --
@@ -909,9 +866,9 @@ INSERT INTO `User_list` (`id`, `timestamp`, `login`, `fio`, `enabled`, `blocked`
 --
 
 CREATE TABLE `User_stats` (
-  `id` int(11) NOT NULL,
-  `router_id` int(11) DEFAULT 0,
-  `auth_id` int(11) NOT NULL DEFAULT 0,
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `router_id` bigint(20) UNSIGNED DEFAULT 0,
+  `auth_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
   `timestamp` datetime NOT NULL DEFAULT current_timestamp(),
   `byte_in` bigint(20) NOT NULL DEFAULT 0,
   `byte_out` bigint(20) NOT NULL DEFAULT 0
@@ -924,9 +881,9 @@ CREATE TABLE `User_stats` (
 --
 
 CREATE TABLE `User_stats_full` (
-  `id` int(11) NOT NULL,
-  `router_id` int(11) DEFAULT 0,
-  `auth_id` int(11) NOT NULL DEFAULT 0,
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `router_id` bigint(20) UNSIGNED DEFAULT 0,
+  `auth_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
   `timestamp` datetime NOT NULL DEFAULT current_timestamp(),
   `byte_in` bigint(20) NOT NULL DEFAULT 0,
   `byte_out` bigint(20) NOT NULL DEFAULT 0,
@@ -1010,6 +967,14 @@ INSERT INTO `vendors` (`id`, `name`) VALUES(57, 'Canon');
 INSERT INTO `vendors` (`id`, `name`) VALUES(58, 'Brother');
 INSERT INTO `vendors` (`id`, `name`) VALUES(59, 'Epson');
 INSERT INTO `vendors` (`id`, `name`) VALUES(60, 'IP-COM');
+INSERT INTO `vendors` (`id`, `name`) VALUES(61, 'Panasonic');
+INSERT INTO `vendors` (`id`, `name`) VALUES(62, 'OKI');
+INSERT INTO `vendors` (`id`, `name`) VALUES(63, 'Apple');
+INSERT INTO `vendors` (`id`, `name`) VALUES(64, 'Eaton');
+INSERT INTO `vendors` (`id`, `name`) VALUES(65, 'Barco');
+INSERT INTO `vendors` (`id`, `name`) VALUES(66, 'Trassir');
+INSERT INTO `vendors` (`id`, `name`) VALUES(67, 'Testo');
+INSERT INTO `vendors` (`id`, `name`) VALUES(68, 'Hw-group');
 
 --
 -- Индексы сохранённых таблиц
@@ -1269,7 +1234,7 @@ ALTER TABLE `building`
 -- AUTO_INCREMENT для таблицы `config`
 --
 ALTER TABLE `config`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=135;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=136;
 
 --
 -- AUTO_INCREMENT для таблицы `config_options`
@@ -1281,13 +1246,13 @@ ALTER TABLE `config_options`
 -- AUTO_INCREMENT для таблицы `connections`
 --
 ALTER TABLE `connections`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `Customers`
 --
 ALTER TABLE `Customers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT для таблицы `devices`
@@ -1311,7 +1276,7 @@ ALTER TABLE `device_models`
 -- AUTO_INCREMENT для таблицы `device_ports`
 --
 ALTER TABLE `device_ports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `device_types`
@@ -1323,13 +1288,13 @@ ALTER TABLE `device_types`
 -- AUTO_INCREMENT для таблицы `dhcp_log`
 --
 ALTER TABLE `dhcp_log`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `dns_cache`
 --
 ALTER TABLE `dns_cache`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `Filter_list`
@@ -1353,7 +1318,7 @@ ALTER TABLE `Group_list`
 -- AUTO_INCREMENT для таблицы `mac_history`
 --
 ALTER TABLE `mac_history`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `mac_vendors`
@@ -1377,19 +1342,19 @@ ALTER TABLE `Queue_list`
 -- AUTO_INCREMENT для таблицы `remote_syslog`
 --
 ALTER TABLE `remote_syslog`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `subnets`
 --
 ALTER TABLE `subnets`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `syslog`
 --
 ALTER TABLE `syslog`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `Traffic_detail`
@@ -1401,13 +1366,13 @@ ALTER TABLE `Traffic_detail`
 -- AUTO_INCREMENT для таблицы `Unknown_mac`
 --
 ALTER TABLE `Unknown_mac`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `User_auth`
 --
 ALTER TABLE `User_auth`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `User_auth_alias`
@@ -1419,19 +1384,19 @@ ALTER TABLE `User_auth_alias`
 -- AUTO_INCREMENT для таблицы `User_list`
 --
 ALTER TABLE `User_list`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `User_stats`
 --
 ALTER TABLE `User_stats`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `User_stats_full`
 --
 ALTER TABLE `User_stats_full`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `variables`
