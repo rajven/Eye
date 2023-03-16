@@ -12,12 +12,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
 
     // validate if login is empty
     if (empty($login)) {
-        $error .= '<p class="error">Please enter login.</p>';
+        $error .= '<p class="error">'.WEB_msg_login_hint.'.</p>';
 	}
 
     // validate if password is empty
     if (empty($password)) {
-        $error .= '<p class="error">Please enter your password.</p>';
+        $error .= '<p class="error">'.WEB_msg_password_hint.'.</p>';
 	}
 
     if (empty($error)) {
@@ -38,17 +38,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
     </head>
     <body>
 	<div class="login">
-	    <h1>Login</h1>
+	    <h1><?php echo WEB_msg_login; ?></h1>
 	    <form action="" method="post">
 		<label for="username">
 		    <i class="fas fa-user"></i>
 		</label>
-		<input type="text" name="login" placeholder="Username" id="login" required>
+		<input type="text" name="login" placeholder="<?php echo WEB_msg_username; ?>" id="login" required>
 		<label for="password">
 		    <i class="fas fa-lock"></i>
 		</label>
-		<input type="password" name="password" placeholder="Password" id="password" required>
-		<input type="submit" name="submit" value="Login">
+		<input type="password" name="password" placeholder="<?php echo WEB_msg_password; ?>" id="password" required>
+		<input type="submit" name="submit" value="<?php echo WEB_btn_login; ?>">
 	    </form>
 	</div>
     </body>

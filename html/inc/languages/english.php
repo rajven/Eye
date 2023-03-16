@@ -29,6 +29,8 @@ define("WEB_msg_ERROR","Error!");
 define("WEB_msg_enabled","Enabled");
 define("WEB_msg_disabled","Disabled");
 define("web_msg_login","Login");
+define("WEB_msg_username","Username");
+define("WEB_msg_password","Password");
 define("web_msg_fullname","Full name");
 define("WEB_msg_comment","Comment");
 define("WEB_msg_now","Now");
@@ -41,6 +43,8 @@ define("WEB_msg_unsupported","Not supported");
 define("WEB_msg_delete_filter","Remove Filter");
 define("WEB_msg_add_filter", "Add filter");
 define("WEB_msg_apply_selected","Apply to highlight");
+define("WEB_msg_login_hint","Please enter login");
+define("WEB_msg_password_hint","Please enter your password");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");
@@ -229,6 +233,7 @@ define("WEB_btn_show","Show");
 define("WEB_btn_reorder","Apply Order");
 define("WEB_btn_recover","Restore");
 define("WEB_btn_transfom","Transform");
+define("WEB_btn_login","Login");
 
 /* control options */
 define("WEB_config_remove_option","Parameter removed");

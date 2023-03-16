@@ -28,7 +28,9 @@ define("WEB_msg_IP","IP-адрес");
 define("WEB_msg_ERROR","Ошибка!");
 define("WEB_msg_enabled","Включен");
 define("WEB_msg_disabled","Выключен");
-define("WEB_msg_login","Логин");
+define("WEB_msg_login","Вход");
+define("WEB_msg_username","Имя пользователя");
+define("WEB_msg_password","Пароль");
 define("WEB_msg_fullname","ФИО");
 define("WEB_msg_comment","Комментарий");
 define("WEB_msg_now","Сейчас");
@@ -41,6 +43,8 @@ define("WEB_msg_unsupported","Не поддерживается");
 define("WEB_msg_delete_filter","Удалить фильтр");
 define("WEB_msg_add_filter", "Добавить фильтр");
 define("WEB_msg_apply_selected","Применить для выделения");
+define("WEB_msg_login_hint","Введите имя пользователя");
+define("WEB_msg_password_hint","Введите пароль");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");
@@ -229,6 +233,7 @@ define("WEB_btn_show","Показать");
 define("WEB_btn_reorder","Применить порядок");
 define("WEB_btn_recover","Восстановить");
 define("WEB_btn_transfom","Преобразовать");
+define("WEB_btn_login","Вход");
 
 /* control options */
 define("WEB_config_remove_option","Удалён параметр");
