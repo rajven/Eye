@@ -75,7 +75,7 @@ define("WEB_port_speed_10G","10G");
 /* select items */
 define("WEB_select_item_yes","Yes");
 define("WEB_select_item_no","No");
-define("WEB_select_item_lease","Address rental");
+define("WEB_select_item_lease","Lease added");
 define("WEB_select_item_enabled","Enabled");
 define("WEB_select_item_wan","External");
 define("WEB_select_item_lan","Internal");
