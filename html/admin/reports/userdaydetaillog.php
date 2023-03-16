@@ -32,7 +32,7 @@ print_trafdetail_submenu($page_url,"id=$id&date_start='$date1'&date_stop='$date2
 <?php echo WEB_cell_gateway; ?>:&nbsp <?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
 DNS:&nbsp <input type=checkbox name=dns value="1" <?php print $dns_checked; ?>>
 <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
-<input type="submit" value="OK">
+<input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
 
 <b><?php echo WEB_log_full; ?></b>

@@ -11,7 +11,7 @@ define("WEB_deleted","Deleted");
 define("WEB_status","Status");
 
 define("WEB_page_speed","Page generated for ");
-define("web_rows_at_page","Entries per page");
+define("WEB_rows_at_page","Entries per page");
 define("WEB_nagios","Nagios");
 define("WEB_nagios_host_up","Host is active");
 define("WEB_nagios_host_down","Host is not available");
@@ -101,7 +101,7 @@ define("WEB_submenu_syslog","syslog");
 define("WEB_submenu_control","Management");
 define("WEB_submenu_network","Networks");
 define("WEB_submenu_network_stats","Networks (Statistics)");
-define("web_submenu_options","Parameters");
+define("WEB_submenu_options","Parameters");
 define("WEB_submenu_customers","Users");
 define("WEB_submenu_filter_list","Filter List");
 define("WEB_submenu_filter_group","Filter Groups");

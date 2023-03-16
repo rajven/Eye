@@ -64,7 +64,7 @@ while ($row = mysqli_fetch_array($usersip)) {
         print "<td class=\"data\" ><b><a href=/admin/users/editauth.php?id=$fid>$fip</a></b></td>\n";
         print "<td class=\"data\" colspan=2>$fcomm</td>\n";
         print "<td class=\"data\" ><a href=/admin/reports/userdaydetail.php?id=$fid&date_start=$date1&date_stop=$date2>TOP 10</a></td>\n";
-        print "<td class=\"data\" ><a href=/admin/reports/userdaydetaillog.php?id=$fid&date_start=$date1&date_stop=$date2>Детализация</a></td>\n";
+        print "<td class=\"data\" ><a href=/admin/reports/userdaydetaillog.php?id=$fid&date_start=$date1&date_stop=$date2>".WEB_report_detail."</a></td>\n";
         print "</tr>\n";
 
 	$display_date_format='%Y-%m-%d %H';
