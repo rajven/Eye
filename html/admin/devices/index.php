@@ -66,7 +66,7 @@ foreach ($switches as $row) {
 <tr><td><?php echo WEB_color_device_description; ?></td></tr>
 <tr>
 <td class="shutdown"><?php echo WEB_device_down; ?></td>
-<td class="up"><?php echo WEB_color_device_online; ?></td>
+<td class="up"><?php echo WEB_device_online; ?></td>
 <tr>
 </table>
 <?php
