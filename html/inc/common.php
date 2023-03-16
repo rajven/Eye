@@ -81,6 +81,7 @@ function fbytes($traff)
 
     if (!empty($traff) and $traff > 0) {
 	$KB = get_const('KB');
+    if ($KB) { $KB=1024; } else { $KB=1000; }
 	//IEC
 	if ($KB === 1024) {
     	    $index = min(((int) log($traff, $KB)), count($units_IEC) - 1);
