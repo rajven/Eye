@@ -1235,9 +1235,8 @@ return $ip_name;
 function clean_dns_cache($db) {
 $date = time();
 $date = $date - 86400;
-$now = strftime('%Y-%m-%d %H:%M:%S',time());
-$clean_date=strftime('%Y-%m-%d %H:%M:%S',$date);
-#LOG_DEBUG($db,"Clean dns cache before $clean_date at $now");
+$date_clean = DateTimeImmutable::createFromFormat('U', $date);
+$clean_date = $date_clean->format('Y-m-d H:i:s');
 run_sql($db,"DELETE FROM dns_cache WHERE `timestamp`<='".$clean_date."'");
 }
 
@@ -1267,12 +1266,14 @@ return $date1;
 }
 
 function GetNowTimeString() {
-$now = strftime('%Y-%m-%d %H:%M:%S',time());
+$date_now = DateTimeImmutable::createFromFormat('U', time());
+$now = $date_now->format('Y-m-d H:i:s');
 return $now;
 }
 
 function GetNowDayString() {
-$now = strftime('%Y-%m-%d',time());
+$date_now = DateTimeImmutable::createFromFormat('U', time());
+$now = $date_now->format('Y-m-d');
 return $now;
 }
 
@@ -1379,7 +1380,7 @@ function new_auth($db, $ip, $mac, $user_id)
     if (!empty($mac)) {
         $auth_record = get_record_sql($db, "SELECT * FROM User_auth WHERE ip_int=$ip_aton AND mac='" . mac_dotted($mac) . "' AND deleted=0");
 	if (!empty($auth_record)) {
-	        LOG_WARNING($db, "Pair ip-mac already exists! Skip creating $ip [$mac] auth_id: $aid");
+	        LOG_WARNING($db, "Pair ip-mac already exists! Skip creating $ip [$mac] auth_id: ".$auth_record["id"]);
     		return $auth_record['id'];
 	    }
 	}
@@ -1662,8 +1663,9 @@ function print_date_select($dd, $mm, $yy)
         print "<b>Месяц</b>\n";
         print "<select name=\"month\" class=\"js-select-single\" >\n";
         for ($i = 1; $i <= 12; $i ++) {
-            $month_name = strftime("%B", strtotime("$i/01/$yy"));
-	    print_select_item($month_name,$i,$mm);
+            $tmp_date = DateTimeImmutable::createFromFormat('U', strtotime("$i/01/$yy"));
+            $month_name = $tmp_date->format('F');
+	        print_select_item($month_name,$i,$mm);
         }
         print "</select>\n";
     }
@@ -1687,7 +1689,8 @@ function print_date_select2($dd, $mm, $yy)
         print "<b>Месяц</b>\n";
         print "<select name=\"month2\" class=\"js-select-single\" >\n";
         for ($i = 1; $i <= 12; $i ++) {
-            $month_name = strftime("%B", strtotime("$i/01/$yy"));
+            $tmp_date = DateTimeImmutable::createFromFormat('U', strtotime("$i/01/$yy"));
+            $month_name = $tmp_date->format('F');
 	    print_select_item($month_name,$i,$mm);
         }
         print "</select>\n";
@@ -1916,9 +1919,9 @@ function get_fdb_table($ip, $community, $version)
             if (!empty($result)) {
                 $vlan_id = preg_replace('/^\./', '', $matches[0]);
                 if ($vlan_id > 1000 and $vlan_id < 1009) { continue; }
-                $fdb_vlan_table = get_mac_table($ip, $community.'@'.$vlan_id, $version, MAC_TABLE_OID2);
+                $fdb_vlan_table = get_mac_table($ip, $community.'@'.$vlan_id, $version, MAC_TABLE_OID2,$ifindex_map);
                 if (! isset($fdb_vlan_table) or ! $fdb_vlan_table or count($fdb_vlan_table) === 0) {
-                    $fdb_vlan_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID);
+                    $fdb_vlan_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID,$ifindex_map);
                 }
                 foreach ($fdb_vlan_table as $mac => $port) {
                     if (! isset($mac)) { continue; }
@@ -3079,6 +3082,8 @@ function get_cacti_graph($host_ip, $port_index)
 {
 
     if (empty(get_const('cacti_url'))) { return; }
+    if (CACTI_DB_HOST ==null or CACTI_DB_USER == null or CACTI_DB_PASS==null or CACTI_DB_NAME==null) { return; }
+    if (empty(CACTI_DB_HOST) or empty(CACTI_DB_USER) or empty(CACTI_DB_PASS) or empty(CACTI_DB_NAME)) { return; }
 
     $cacti_db_link = mysqli_connect(CACTI_DB_HOST, CACTI_DB_USER, CACTI_DB_PASS, CACTI_DB_NAME);
     if (! $cacti_db_link) {
