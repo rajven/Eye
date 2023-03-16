@@ -14,7 +14,7 @@ if (! isset($auth_ip)) { print "Error detecting user!!!"; }
 $pmdate_start = DateTime::createFromFormat("Y-m-d",date("Y-m-d"));
 $pmdate_start->modify('+1 day');
 $date1m = $pmdate_start->format('Y-m-d');
-$pmdate_stop = DateTime::createFromFormat("Y-m-1",date("Y-m-d"));
+$pmdate_stop = DateTime::createFromFormat("Y-m-d",date("Y-m-1"));
 $date2m = $pmdate_stop->format('Y-m-d');
 
 /* day */
@@ -55,11 +55,6 @@ $user['day_quota'] = $user['day_quota'] * $KB * $KB;
 $auth['month_quota'] = $auth['month_quota'] * $KB * $KB;
 $auth['day_quota'] = $auth['day_quota'] * $KB * $KB;
 
-$day =  GetNowDayString();
-$date_now = DateTimeImmutable::createFromFormat('U', time());
-$month = $date_now->format('m');
-$year = $date_now->format('Y');
-
 ?>
 <table>
 <tr>
@@ -74,7 +69,8 @@ if ($user['enabled'] and !$user['blocked']) { print WEB_msg_enabled; }
 if (!$user['enabled']) { print "<font color=red>".WEB_msg_disabled."</font> &nbsp"; }
 if ($user['blocked']) { print "<font colot=red>".WEB_msg_traffic_blocked."</font>"; }
 ?></b>
-</td></tr><tr>
+</td></tr>
+<tr>
 <td> <?php echo WEB_msg_access_ip; ?> </td> <td><b><?php 
 if ($user['enabled'] and !$user['blocked'] and !$auth['blocked'] and $auth['enabled']) { print WEB_msg_enabled; }
 if (!$user['enabled'] or !$auth['enabled']) { print "<font color=red>".WEB_msg_disabled."</font> &nbsp"; }
@@ -84,10 +80,10 @@ if ($auth['blocked']) { print "<font color=red>".WEB_msg_traffic_blocked."</font
 </tr>
 <tr><td><?php echo WEB_cell_filter; ?></td><td><?php print get_group($db_link, $auth["filter_group_id"]); ?> </td></tr>
 <tr><td><?php echo WEB_cell_shaper; ?></td><td><?php print get_queue($db_link, $auth["queue_id"]); ?></td></tr>
-<tr><td><?php echo WEB_cell_login_quote_month; ?> <td><td><?php print fbytes($user['month_quota']); ?> </td></tr>
-<tr><td><?php echo WEB_cell_login_quote_day; ?> <td><td><?php print fbytes($user['day_quota']); ?> </td></tr>
-<tr><td><?php echo WEB_cell_ip_quote_month; ?> <td><td><?php print fbytes($auth['month_quota']); ?> </td></tr>
-<tr><td><?php echo WEB_cell_ip_quote_day;?> <td><td><?php print fbytes($auth['day_quota']); ?> </td></tr>
+<tr><td><?php echo WEB_cell_login_quote_month; ?> </td><td><?php print fbytes($user['month_quota']); ?> </td></tr>
+<tr><td><?php echo WEB_cell_login_quote_day; ?> </td><td><?php print fbytes($user['day_quota']); ?> </td></tr>
+<tr><td><?php echo WEB_cell_ip_quote_month; ?> </td><td><?php print fbytes($auth['month_quota']); ?> </td></tr>
+<tr><td><?php echo WEB_cell_ip_quote_day;?> </td><td><?php print fbytes($auth['day_quota']); ?> </td></tr>
 
 <?php
 
