@@ -9,6 +9,7 @@ define("WEB_pkts","Pkt");
 define("WEB_log","Log");
 define("WEB_deleted","Deleted");
 define("WEB_status","Status");
+define ("WEB_unknown","No data available");
 
 define("WEB_page_speed","Page generated for ");
 define("WEB_rows_at_page","Entries per page");
@@ -433,5 +434,11 @@ define("WEB_user_add_ip","New IP access address");
 define("WEB_user_add_mac","Mac (optional)");
 define("WEB_user_list_apply","Apply to list");
 define("WEB_new_user","New user");
+define("WEB_user_deleted","belongs to a non-existent user. Probably the record has been deleted");
+
+/* public */
+define("WEB_msg_access_login","Internet for login");
+define("WEB_msg_access_ip","Internet for ip");
+define("WEB_traffic_stats","Current statisticks for");
 
 ?>

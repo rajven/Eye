@@ -9,6 +9,7 @@ define("WEB_pkts","Pkt");
 define("WEB_log","Лог");
 define("WEB_deleted","Удалён");
 define("WEB_status","Состояние");
+define ("WEB_unknown","В списках не значится");
 
 define("WEB_page_speed","Страница сгенерирована за ");
 define("WEB_rows_at_page","Записей на страницу");
@@ -433,5 +434,11 @@ define("WEB_user_add_ip","Новый адрес доступа IP");
 define("WEB_user_add_mac","Mac (необязательно)");
 define("WEB_user_list_apply","Применить к списку");
 define("WEB_new_user","Новый юзер");
+define("WEB_user_deleted","принадлежит несуществующему юзеру. Вероятно запись удалена");
+
+/* public */
+define("WEB_msg_access_login","Интернет (логин)");
+define("WEB_msg_access_ip","Интернет (ip)");
+define("WEB_traffic_stats","Текущий трафик для");
 
 ?>
