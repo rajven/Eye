@@ -233,7 +233,7 @@ define("WEB_btn_show","Показать");
 define("WEB_btn_reorder","Применить порядок");
 define("WEB_btn_recover","Восстановить");
 define("WEB_btn_transfom","Преобразовать");
-define("WEB_btn_login","Вход");
+define("WEB_btn_login","Войти");
 
 /* control options */
 define("WEB_config_remove_option","Удалён параметр");
