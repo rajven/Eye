@@ -9,5 +9,8 @@ printf(WEB_page_speed."%f ".WEB_sec,$time);
 ?>
 
 </div>
+
+<script src="/js/select-auto.js"></script>
+
 </body>
 </html>

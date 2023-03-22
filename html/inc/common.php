@@ -389,7 +389,7 @@ function cidrToRange($cidr)
 
 function print_ou_select($db, $ou_name, $ou_value)
 {
-    print "<select name=\"$ou_name\" class=\"js-select-single\">\n";
+    print "<select name=\"$ou_name\" >\n";
     $t_ou = mysqli_query($db, "SELECT id,ou_name FROM OU ORDER BY ou_name");
     while (list ($f_ou_id, $f_ou_name) = mysqli_fetch_array($t_ou)) {
 	print_select_item($f_ou_name,$f_ou_id,$ou_value);
@@ -399,7 +399,7 @@ function print_ou_select($db, $ou_name, $ou_value)
 
 function print_ou_set($db, $ou_name, $ou_value)
 {
-    print "<select name=\"$ou_name\" class=\"js-select-single\">\n";
+    print "<select name=\"$ou_name\">\n";
     $t_ou = mysqli_query($db, "SELECT id,ou_name FROM OU WHERE id>=1 ORDER BY ou_name");
     while (list ($f_ou_id, $f_ou_name) = mysqli_fetch_array($t_ou)) {
 	print_select_item($f_ou_name,$f_ou_id,$ou_value);
@@ -420,7 +420,7 @@ function print_subnet_select($db, $subnet_name, $subnet_value)
 
 function print_device_ip_select($db, $ip_name, $ip, $user_id)
 {
-    print "<select name=\"$ip_name\" >\n";
+    print "<select name=\"$ip_name\" class=\"js-select-single\">\n";
     $auth_list = get_records_sql($db, "SELECT ip FROM User_auth WHERE user_id=$user_id AND deleted=0 ORDER BY ip_int");
     foreach ($auth_list as $row) {
 	print_select_item($row['ip'],$row['ip'],$ip);
@@ -618,7 +618,7 @@ function get_building($db, $building_value)
 
 function print_device_model_select($db, $device_model_name, $device_model_value)
 {
-    print "<select name=\"$device_model_name\" class=\"js-select-single\" style=\"width: 100%\">\n";
+    print "<select name=\"$device_model_name\" class=\"js-select-single\">\n";
     $t_device_model = mysqli_query($db, "SELECT M.id,M.model_name,V.name FROM device_models M,vendors V WHERE M.vendor_id = V.id ORDER BY V.name,M.model_name");
     while (list ($f_device_model_id, $f_device_model_name,$f_vendor_name) = mysqli_fetch_array($t_device_model)) {
 	print_select_item($f_vendor_name." ".$f_device_model_name,$f_device_model_id,$device_model_value);
@@ -1641,7 +1641,7 @@ function write_log($db, $msg, $level, $auth_id = 0)
 
 function print_year_select($year_name, $year)
 {
-    print "<select name=\"$year_name\" class=\"js-select-single\" >\n";
+    print "<select name=\"$year_name\" >\n";
     for ($i = $year - 10; $i <= $year + 10; $i ++) {
 	print_select_item($i,$i,$year);
     }
@@ -1652,7 +1652,7 @@ function print_date_select($dd, $mm, $yy)
 {
     if ($dd >= 1) {
         print "<b>День</b>\n";
-        print "<select name=\"day\" class=\"js-select-single\" >\n";
+        print "<select name=\"day\" >\n";
         for ($i = 1; $i <= 31; $i ++) {
 	    print_select_item($i,$i,$dd);
         }
@@ -1661,7 +1661,7 @@ function print_date_select($dd, $mm, $yy)
 
     if ($mm >= 1) {
         print "<b>Месяц</b>\n";
-        print "<select name=\"month\" class=\"js-select-single\" >\n";
+        print "<select name=\"month\" >\n";
         for ($i = 1; $i <= 12; $i ++) {
             $tmp_date = DateTimeImmutable::createFromFormat('U', strtotime("$i/01/$yy"));
             $month_name = $tmp_date->format('F');
@@ -1678,7 +1678,7 @@ function print_date_select2($dd, $mm, $yy)
 {
     if ($dd >= 1) {
         print "<b>День</b>\n";
-        print "<select name=\"day2\" class=\"js-select-single\" >\n";
+        print "<select name=\"day2\" >\n";
         for ($i = 1; $i <= 31; $i ++) {
 	    print_select_item($i,$i,$dd);
         }
@@ -1687,7 +1687,7 @@ function print_date_select2($dd, $mm, $yy)
 
     if ($mm >= 1) {
         print "<b>Месяц</b>\n";
-        print "<select name=\"month2\" class=\"js-select-single\" >\n";
+        print "<select name=\"month2\" >\n";
         for ($i = 1; $i <= 12; $i ++) {
             $tmp_date = DateTimeImmutable::createFromFormat('U', strtotime("$i/01/$yy"));
             $month_name = $tmp_date->format('F');

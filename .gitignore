@@ -1,3 +1,6 @@
 /scripts/cfg/config
 /scripts/log/
 /html/cfg/config.php
+/html/js/jq/
+/html/js/jstree/
+/html/js/select2/
