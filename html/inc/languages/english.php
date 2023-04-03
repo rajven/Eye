@@ -331,7 +331,7 @@ define("WEB_device_port_count","Ports");
 /* editport */
 define("WEB_device_port_number","Port N");
 define("WEB_device_port_name","Port");
-define("WEB_device_port_snmp_index","Port number in snmp");
+define("WEB_device_port_snmp_index","Snmp index");
 define("WEB_device_port_uplink_device","Device");
 define("WEB_device_port_uplink","Uplink");
 define("WEB_device_port_allien","Don't check");
