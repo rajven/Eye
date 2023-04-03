@@ -163,7 +163,7 @@ if ($device['snmp_version']>0) {
             $poe_status = get_port_poe_state($device['vendor_id'], $row['port'],$row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
             if (isset($poe_status)) {
                 if ($poe_status == 1) {
-                    $port_poe_detail = get_port_poe_detail($device['vendor_id'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
+                    $port_poe_detail = get_port_poe_detail($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
                     $poe_info="POE:On " . $port_poe_detail;
                     }
                 if ($poe_status == 2) { $poe_info="POE:Off"; }

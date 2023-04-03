@@ -2235,20 +2235,10 @@ function get_port_vlan($port, $port_index, $ip, $community, $version, $fdb_by_sn
     return $port_vlan;
 }
 
-function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community, $version)
+function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community = 'public', $version ='2')
 {
-    if (! isset($port)) {
-        return;
-    }
-    if (! isset($ip)) {
-        return;
-    }
-    if (! isset($community)) {
-        $community = 'public';
-    }
-    if (! isset($version)) {
-        $version = '2';
-    }
+    if (! isset($port)) { return; }
+    if (! isset($ip)) { return; }
 
     // default poe oid
     $poe_status = PETH_PSE_PORT_ADMIN_ENABLE . "." . $port;
@@ -2281,8 +2271,14 @@ function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
     $c_state = get_snmp($ip, $community, $version, $poe_status);
     if (!empty($c_state)) {
         $p_state = parse_snmp_value($c_state);
+        // patch for mikrotik
         if ($vendor_id == 9) {
             if ($p_state == 1) { return 2; }
+            if ($p_state > 1) { return 1; }
+        }
+        //patch for tplink
+        if ($vendor_id == 69) {
+            if ($p_state == 0) { return 2; }
             if ($p_state > 1) { return 1; }
         }
         return $p_state;
@@ -2329,8 +2325,6 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $communit
 
     $result = '';
 
-    $poe_class = PETH_PSE_PORT_POE_CLASS .'.' . $port_snmp_index;
-
     // eltex
     if ($vendor_id == 2) {
         $poe_power = ELTEX_POE_USAGE . '.' . $port_snmp_index;
@@ -2374,25 +2368,32 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $communit
 
     // TP-Link
     if ($vendor_id == 69) {
-        $poe_power = TPLINK_POE_USAGE . '.' . $port_snmp_index;
-        $poe_current = TPLINK_POE_CURRENT .'.' . $port_snmp_index;
-        $poe_volt = TPLINK_POE_VOLT . '.' . $port_snmp_index;
+        $poe_power = TPLINK_POE_USAGE . '.' . $port;
+        $poe_current = TPLINK_POE_CURRENT .'.' . $port;
+        $poe_volt = TPLINK_POE_VOLT . '.' . $port;
     }
 
     if (isset($poe_power)) {
         $c_power = get_snmp($ip, $community, $version, $poe_power);
         if (isset($c_power)) {
             $p_power = parse_snmp_value($c_power);
-            if ($vendor_id == 9) {
-                $p_power = round($p_power / 10, 2);
-            } else {
-                $p_power = round($p_power / 1000, 2);
+            switch ($vendor_id) {
+                case 9:
+                    $p_power = round($p_power / 10, 2);
+                    break;
+                case 69:
+                    $p_power = round($p_power / 10, 2);
+                    break;
+                default:
+                    $p_power = round($p_power / 1000, 2);
+                    break;
             }
             if ($p_power > 0) {
                 $result .= ' P: ' . $p_power . ' W';
             }
         }
     }
+    
     if (isset($poe_current)) {
         $c_current = get_snmp($ip, $community, $version, $poe_current);
         if (isset($c_current)) {
@@ -2402,19 +2403,24 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $communit
             }
         }
     }
+
     if (isset($poe_volt)) {
         $c_volt = get_snmp($ip, $community, $version, $poe_volt);
         if (isset($c_volt)) {
             $p_volt = parse_snmp_value($c_volt);
-            if ($vendor_id == 2 or $vendor_id == 8) {
-                $p_volt = round($p_volt / 1000, 2);
-            }
-            if ($vendor_id == 9) {
-                $p_volt = round($p_volt / 10, 2);
-            }
-            if ($vendor_id == 15) {
-                $p_volt = round($p_volt / 100, 2);
-            }
+            switch ($vendor_id) {
+                case 2:
+                case 8:
+                    $p_volt = round($p_volt / 1000, 2);
+                    break;
+                case 9:
+                case 69:
+                    $p_volt = round($p_volt / 10, 2);
+                    break;
+                case 15:
+                    $p_volt = round($p_volt / 100, 2);
+                    break;
+                }
             if ($p_volt > 0 and $p_power > 0) {
                 $result .= ' V: ' . $p_volt . " V";
             }
