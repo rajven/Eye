@@ -2210,7 +2210,7 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
     return;
 }
 
-function get_port_vlan($port, $port_index, $ip, $community, $version, $fdb_by_snmp)
+function get_port_vlan($vendor, $port, $port_index, $ip, $community, $version, $fdb_by_snmp)
 {
     if (! isset($port)) {
         return;
@@ -2228,7 +2228,7 @@ function get_port_vlan($port, $port_index, $ip, $community, $version, $fdb_by_sn
 
     if ($fdb_by_snmp == 1) { $port = $port_index; }
 
-    $port_oid = PORT_VLAN_OID . $port;
+    if ($vendor == 69) { $port_oid = TPLINK_VLAN_PVID . "." . $port; } else { $port_oid = PORT_VLAN_OID . "." . $port; }
     $port_vlan = get_snmp($ip, $community, $version, $port_oid);
     $port_vlan = preg_replace('/.*\:/','',$port_vlan);
     $port_vlan = intval(trim($port_vlan));
@@ -2393,7 +2393,7 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $communit
             }
         }
     }
-    
+
     if (isset($poe_current)) {
         $c_current = get_snmp($ip, $community, $version, $poe_current);
         if (isset($c_current)) {

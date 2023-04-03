@@ -6,7 +6,11 @@ define("PORT_STATUS_OID",".1.3.6.1.2.1.2.2.1.8.");
 define("PORT_ADMIN_STATUS_OID",".1.3.6.1.2.1.2.2.1.7.");
 define("PORT_SPEED_OID",".1.3.6.1.2.1.2.2.1.5.");
 define("PORT_ERRORS_OID",".1.3.6.1.2.1.2.2.1.14.");
-define("PORT_VLAN_OID",".1.3.6.1.2.1.17.7.1.4.5.1.1.");
+
+//VLANS
+define("PORT_VLAN_OID",".1.3.6.1.2.1.17.7.1.4.5.1.1");
+//tp-link
+define("TPLINK_VLAN_PVID",".1.3.6.1.4.1.11863.6.14.1.1.1.1.2");
 
 define("IFMIB_IFINDEX",".1.3.6.1.2.1.2.2.1.1");
 define("IFMIB_IFINDEX_MAP",".1.3.6.1.2.1.17.1.4.1.2");

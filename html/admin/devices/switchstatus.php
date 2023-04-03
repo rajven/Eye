@@ -156,7 +156,7 @@ if ($device['snmp_version']>0) {
         $ifname= $row['ifName'];
 
         if ($snmp_ok) {
-            $vlan = get_port_vlan($row['port'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version'], $device['fdb_snmp_index']);
+            $vlan = get_port_vlan($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version'], $device['fdb_snmp_index']);
             $ifname = get_snmp_ifname1($device['ip'], $device['community'], $device['snmp_version'], $row['snmp_index']);
             if (empty($ifname)) { $ifname = get_snmp_ifname2($device['ip'], $device['community'], $device['snmp_version'], $row['snmp_index']); }
             $sfp_status = get_sfp_status($device['vendor_id'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version'], $modules_oids);
@@ -164,7 +164,7 @@ if ($device['snmp_version']>0) {
             if (isset($poe_status)) {
                 if ($poe_status == 1) {
                     $port_poe_detail = get_port_poe_detail($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
-                    $poe_info="POE:On " . $port_poe_detail;
+                    if (empty($port_poe_detail)) { $poe_info = 'POE:on'; } else { $poe_info = $port_poe_detail; }
                     }
                 if ($poe_status == 2) { $poe_info="POE:Off"; }
                 }
