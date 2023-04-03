@@ -8,6 +8,11 @@ define("PORT_SPEED_OID",".1.3.6.1.2.1.2.2.1.5.");
 define("PORT_ERRORS_OID",".1.3.6.1.2.1.2.2.1.14.");
 define("PORT_VLAN_OID",".1.3.6.1.2.1.17.7.1.4.5.1.1.");
 
+define("IFMIB_IFINDEX",".1.3.6.1.2.1.2.2.1.1");
+define("IFMIB_IFINDEX_MAP",".1.3.6.1.2.1.17.1.4.1.2");
+define("IFMIB_IFDESCR",".1.3.6.1.2.1.2.2.1.2");
+define("IFMIB_IFNAME",".1.3.6.1.2.1.31.1.1.1.1");
+
 define("MAC_TABLE_OID",".1.3.6.1.2.1.17.7.1.2.2.1.2");
 define("MAC_TABLE_OID2",".1.3.6.1.2.1.17.4.3.1.2");
 define("MAC_TABLE_STR_OID",".1.3.6.1.2.1.17.4.3.1.2");
@@ -25,11 +30,6 @@ define("CISCO_SFP_SENSORS",".1.3.6.1.4.1.9.9.91.1.1.1.1.4");
 define("CISCO_SFP_PRECISION",".1.3.6.1.4.1.9.9.91.1.1.1.1.3");
 define("CISCO_VLAN_OID",".1.3.6.1.4.1.9.9.9.46.1.3.1.1.2");
 
-define("IFMIB_IFINDEX",".1.3.6.1.2.1.2.2.1.1");
-define("IFMIB_IFINDEX_MAP",".1.3.6.1.2.1.17.1.4.1.2");
-define("IFMIB_IFDESCR",".1.3.6.1.2.1.2.2.1.2");
-define("IFMIB_IFNAME",".1.3.6.1.2.1.31.1.1.1.1");
-
 define("HUAWEI_SFP_VENDOR",".1.3.6.1.4.1.2011.5.25.31.1.1.2.1.11");
 define("HUAWEI_SFP_SPEED",".1.3.6.1.4.1.2011.5.25.31.1.1.2.1.2");
 define("HUAWEI_SFP_VOLT",".1.3.6.1.4.1.2011.5.25.31.1.1.3.1.6");
@@ -39,13 +39,59 @@ define("HUAWEI_SFP_BIASCURRENT",".1.3.6.1.4.1.2011.5.25.31.1.1.3.1.31");
 define("HUAWEI_SFP_RX",".1.3.6.1.4.1.2011.5.25.31.1.1.3.1.8");
 define("HUAWEI_SFP_TX",".1.3.6.1.4.1.2011.5.25.31.1.1.3.1.9");
 
+//POE Default mib
+//POE class
+define("PETH_PSE_PORT_POE_CLASS",".1.3.6.1.2.1.105.1.1.1.10.1");
+//POE enable
 define("PETH_PSE_PORT_ADMIN_ENABLE",".1.3.6.1.2.1.105.1.1.1.3.1");
-define("HUAWEI_POE_OID",".1.3.6.1.4.1.2011.5.25.195.3.1.3");
-define("ALLIED_POE_OID",".1.3.6.1.2.1.105.1.1.1.3.1");
-define("HP_POE_OID",".1.3.6.1.2.1.105.1.1.1.3.1");
-define("NETGEAR_POE_OID",".1.3.6.1.4.1.4526.11.15.1.1.1.6.1");
-define("MIKROTIK_POE_OID",".1.3.6.1.4.1.14988.1.1.15.1.1.3");
 
+//Eltex
+define("ELTEX_POE_OID",".1.3.6.1.4.1.14988.1.1.15.1.1.3");
+// VOLTAGE
+define("ELTEX_POE_VOLT",".1.3.6.1.4.1.89.108.1.1.3.1");
+// CURRENT
+define("ELTEX_POE_CURRENT",".1.3.6.1.4.1.89.108.1.1.4.1");
+// POWER USAGE
+define("ELTEX_POE_USAGE",".1.3.6.1.4.1.89.108.1.1.5.1");
+
+// huawei
+define("HUAWEI_POE_OID",".1.3.6.1.4.1.2011.5.25.195.3.1.3");
+// VOLTAGE
+define("HUAWEI_POE_VOLT",".1.3.6.1.4.1.2011.5.25.195.3.1.14");
+// CURRENT
+define("HUAWEI_POE_CURRENT",".1.3.6.1.4.1.4526.11.15.1.1.1.3.1");
+// POWER USAGE
+define("HUAWEI_POE_USAGE",".1.3.6.1.4.1.2011.5.25.195.3.1.10");
+
+// AT
+define("ALLIED_POE_OID",".1.3.6.1.2.1.105.1.1.1.3.1");
+// VOLTAGE
+define("ALLIED_POE_VOLT",".1.3.6.1.4.1.89.108.1.1.3.1");
+// CURRENT
+define("ALLIED_POE_CURRENT",".1.3.6.1.4.1.89.108.1.1.4.1");
+// POWER USAGE
+define("ALLIED_POE_USAGE",".1.3.6.1.4.1.89.108.1.1.5.1");
+
+// netgear
+define("NETGEAR_POE_OID",".1.3.6.1.4.1.4526.11.15.1.1.1.6.1");
+// VOLTAGE
+define("NETGEAR_POE_VOLT",".1.3.6.1.4.1.4526.11.15.1.1.1.4.1");
+// CURRENT
+define("NETGEAR_POE_CURRENT",".1.3.6.1.4.1.4526.11.15.1.1.1.3.1");
+// POWER USAGE
+define("NETGEAR_POE_USAGE",".1.3.6.1.4.1.4526.11.15.1.1.1.2.1");
+
+// HP
+define("HP_POE_OID",".1.3.6.1.2.1.105.1.1.1.3.1");
+// VOLTAGE
+define("HP_POE_VOLT",".1.3.6.1.4.1.25506.2.14.1.1.3.1");
+// CURRENT
+define("HP_POE_CURRENT",".1.3.6.1.4.1.25506.2.14.1.1.2.1");
+// POWER USAGE
+define("HP_POE_USAGE",".1.3.6.1.4.1.25506.2.14.1.1.4.1");
+
+//MIKROTIK
+define("MIKROTIK_POE_OID",".1.3.6.1.4.1.14988.1.1.15.1.1.3");
 //INTERFACE ID
 define("MIKROTIK_POE_INT",".1.3.6.1.4.1.14988.1.1.15.1.1.1");
 // INTERFACE NAMES
@@ -57,8 +103,29 @@ define("MIKROTIK_POE_CURRENT",".1.3.6.1.4.1.14988.1.1.15.1.1.5");
 // POWER USAGE IN DW (DEVIWATT)
 define("MIKROTIK_POE_USAGE",".1.3.6.1.4.1.14988.1.1.15.1.1.6");
 
-define("SYSINFO_MIB",".1.3.6.1.2.1.1");
+//TP-Link
+// INTEGER {off(0), turning-on(1), on(2), overload(3), short(4), nonstandard-pd(5),voltage-high(6), voltage-low(7),hardware-fault(8),overtemperature(9)
+define("TPLINK_POE_OID",".1.3.6.1.4.1.11863.6.56.1.1.2.1.1.11");
+//POE POWER, Displays the port's real time power supply in 0.1W.
+define("TPLINK_POE_USAGE",".1.3.6.1.4.1.11863.6.56.1.1.2.1.1.7");
+//POE CURRENT, Displays the port's real time current in 1mA.
+define("TPLINK_POE_CURRENT",".1.3.6.1.4.1.11863.6.56.1.1.2.1.1.8");
+//POE VOLT, Displays the port's real time voltage in 0.1V.
+define("TPLINK_POE_VOLT",".1.3.6.1.4.1.11863.6.56.1.1.2.1.1.9");
 
+//default mib for detect snmp work
+//SNMPv2-MIB::system
+define("SYSINFO_MIB",".1.3.6.1.2.1.1");
+//sysDescr.0
+define("SYS_DESCR_MIB",".1.3.6.1.2.1.1.1.0");
+
+//ident Mikrotik
+//MikroTik DHCP server
+define("MIKROTIK_DHCP_SERVER",".1.3.6.1.2.1.9999.1.1.1.1.0");
+//MikroTik RouterOS version - for patch mac-address-table
+define("MIKROTIK_ROS_VERSION",".1.0.8802.1.1.2.1.3.4.0");
+
+// log levels
 define("L_ERROR",0);
 define("L_WARNING",1);
 define("L_INFO",2);

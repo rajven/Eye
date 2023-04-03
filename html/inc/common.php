@@ -1749,12 +1749,12 @@ function get_ifmib_index_table ($ip, $community, $version)
 {
 $ifmib_map = NULL;
 $index_table = walk_snmp($ip, $community, $version, IFMIB_IFINDEX_MAP);
-$is_mikrotik = walk_snmp($ip, $community, $version, '.1.3.6.1.2.1.9999.1.1.1.1.0');
+$is_mikrotik = walk_snmp($ip, $community, $version, MIKROTIK_DHCP_SERVER);
 $mk_ros_version = 6497;
 
 if ($is_mikrotik) {
-    $mikrotik_version = walk_snmp($ip, $community, $version, '.1.0.8802.1.1.2.1.3.4.0');
-    $result = preg_match('/RouterOS\s+(\d)\.(\d{1,3})\.(\d{1,3})\s+/',$mikrotik_version['.1.0.8802.1.1.2.1.3.4.0'],$matches);
+    $mikrotik_version = walk_snmp($ip, $community, $version, MIKROTIK_ROS_VERSION);
+    $result = preg_match('/RouterOS\s+(\d)\.(\d{1,3})\.(\d{1,3})\s+/',$mikrotik_version[MIKROTIK_ROS_VERSION],$matches);
     if ($result) {
         $mk_ros_version = $matches[1]*1000 + $matches[2]*10 + $matches[3];
         }
@@ -1944,7 +1944,7 @@ function check_snmp_access($ip, $community, $version)
     if (! isset($version)) {
         $version = '2';
     }
-    $result = get_snmp($ip, $community, $version, '.1.3.6.1.2.1.1.1.0');
+    $result = get_snmp($ip, $community, $version, SYS_DESCR_MIB);
     if (!isset($result)) { return; }
     return 1;
 }
@@ -2235,9 +2235,8 @@ function get_port_vlan($port, $port_index, $ip, $community, $version, $fdb_by_sn
     return $port_vlan;
 }
 
-function get_port_poe_state($vendor_id, $port, $ip, $community, $version)
+function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community, $version)
 {
-    // port = snmp_index!!!!
     if (! isset($port)) {
         return;
     }
@@ -2250,7 +2249,6 @@ function get_port_poe_state($vendor_id, $port, $ip, $community, $version)
     if (! isset($version)) {
         $version = '2';
     }
-    // if (!is_up($ip)) { return; }
 
     // default poe oid
     $poe_status = PETH_PSE_PORT_ADMIN_ENABLE . "." . $port;
@@ -2268,11 +2266,15 @@ function get_port_poe_state($vendor_id, $port, $ip, $community, $version)
     }
 
     if ($vendor_id == 9) {
-        $poe_status = MIKROTIK_POE_OID . "." . $port;
+        $poe_status = MIKROTIK_POE_OID . "." . $port_snmp_index;
     }
 
     if ($vendor_id == 10) {
         $poe_status = NETGEAR_POE_OID . "." . $port;
+    }
+
+    if ($vendor_id == 69) {
+        $poe_status = TPLINK_POE_OID . "." . $port;
     }
 
     $result = '';
@@ -2288,36 +2290,24 @@ function get_port_poe_state($vendor_id, $port, $ip, $community, $version)
     return;
 }
 
-function set_port_poe_state($vendor_id, $port, $ip, $community, $version, $state)
+function set_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community, $version, $state)
 {
-    // port -> snmp_index!!!
-    if (! isset($port)) {
-        return;
-    }
-    if (! isset($ip)) {
-        return;
-    }
-    if (! isset($community)) {
-        $community = 'public';
-    }
-    if (! isset($version)) {
-        $version = '2';
-    }
-    // if (!is_up($ip)) { return; }
+    if (! isset($ip)) { return; }
+
+    if (! isset($community)) { $community = 'public'; }
+    if (! isset($version)) { $version = '2'; }
+
     // default poe oid
-    $poe_status = PETH_PSE_PORT_ADMIN_ENABLE . "." . $port;
-    if ($vendor_id == 3) {
-        $poe_status = HUAWEI_POE_OID . "." . $port;
-    }
-    if ($vendor_id == 8) {
-        $poe_status = ALLIED_POE_OID . "." . $port;
-    }
-    if ($vendor_id == 15) {
-        $poe_status = HP_POE_OID . "." . $port;
-    }
-    if ($vendor_id == 10) {
-        $poe_status = NETGEAR_POE_OID . "." . $port;
-    }
+    $poe_status = PETH_PSE_PORT_ADMIN_ENABLE . "." . $port_snmp_index;
+    if ($vendor_id == 3) { $poe_status = HUAWEI_POE_OID . "." . $port_snmp_index; }
+
+    if ($vendor_id == 8) { $poe_status = ALLIED_POE_OID . "." . $port_snmp_index; }
+
+    if ($vendor_id == 15) { $poe_status = HP_POE_OID . "." . $port_snmp_index; }
+
+    if ($vendor_id == 10) { $poe_status = NETGEAR_POE_OID . "." . $port_snmp_index; }
+
+    if ($vendor_id == 69) { $poe_status = TPLINK_POE_OID . "." . $port; }
 
     if ($state) {
         // enable port
@@ -2330,66 +2320,63 @@ function set_port_poe_state($vendor_id, $port, $ip, $community, $version, $state
     }
 }
 
-function get_port_poe_detail($vendor_id, $port, $ip, $community, $version)
+function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $community, $version)
 {
-    // port = snmp_index!!!!
-    if (! isset($port)) {
-        return;
-    }
-    if (! isset($ip)) {
-        return;
-    }
-    if (! isset($community)) {
-        $community = 'public';
-    }
-    if (! isset($version)) {
-        $version = '2';
-    }
-    // if (!is_up($ip)) { return; }
+    if (! isset($port) or !isset($port_snmp_index)) {  return; }
+    if (! isset($ip)) { return; }
+    if (! isset($community)) { $community = 'public'; }
+    if (! isset($version)) { $version = '2'; }
 
     $result = '';
 
-    $poe_class = '.1.3.6.1.2.1.105.1.1.1.10.1.' . $port;
+    $poe_class = PETH_PSE_PORT_POE_CLASS .'.' . $port_snmp_index;
 
     // eltex
     if ($vendor_id == 2) {
-        $poe_power = '.1.3.6.1.4.1.89.108.1.1.5.1.' . $port;
-        $poe_current = '.1.3.6.1.4.1.89.108.1.1.4.1.' . $port;
-        $poe_volt = '.1.3.6.1.4.1.89.108.1.1.3.1.' . $port;
+        $poe_power = ELTEX_POE_USAGE . '.' . $port_snmp_index;
+        $poe_current = ELTEX_POE_CURRENT .'.' . $port_snmp_index;
+        $poe_volt = ELTEX_POE_VOLT . '.' . $port_snmp_index;
     }
 
     // huawei
     if ($vendor_id == 3) {
-        $poe_power = '.1.3.6.1.4.1.2011.5.25.195.3.1.10.' . $port;
-        $poe_current = '.1.3.6.1.4.1.4526.11.15.1.1.1.3.1.' . $port;
-        $poe_volt = '.1.3.6.1.4.1.2011.5.25.195.3.1.14.' . $port;
+        $poe_power = HUAWEI_POE_USAGE . '.' . $port_snmp_index;
+        $poe_current = HUAWEI_POE_CURRENT .'.' . $port_snmp_index;
+        $poe_volt = HUAWEI_POE_VOLT . '.' . $port_snmp_index;
     }
 
     // AT
     if ($vendor_id == 8) {
-        $poe_power = '.1.3.6.1.4.1.89.108.1.1.5.1.' . $port;
-        $poe_current = '.1.3.6.1.4.1.89.108.1.1.4.1.' . $port;
-        $poe_volt = '.1.3.6.1.4.1.89.108.1.1.3.1.' . $port;
+        $poe_power = ALLIED_POE_USAGE . '.' . $port_snmp_index;
+        $poe_current = ALLIED_POE_CURRENT .'.' . $port_snmp_index;
+        $poe_volt = ALLIED_POE_VOLT . '.' . $port_snmp_index;
     }
 
     // mikrotik
     if ($vendor_id == 9) {
-        $poe_power = MIKROTIK_POE_USAGE . '.' . $port;
-        $poe_current = MIKROTIK_POE_CURRENT . '.' . $port;
-        $poe_volt = MIKROTIK_POE_VOLT . '.' . $port;
+        $poe_power = MIKROTIK_POE_USAGE . '.' . $port_snmp_index;
+        $poe_current = MIKROTIK_POE_CURRENT . '.' . $port_snmp_index;
+        $poe_volt = MIKROTIK_POE_VOLT . '.' . $port_snmp_index;
     }
 
     // netgear
     if ($vendor_id == 10) {
-        $poe_power = '.1.3.6.1.4.1.4526.11.15.1.1.1.2.1.' . $port;
-        $poe_current = '.1.3.6.1.4.1.4526.11.15.1.1.1.3.1.' . $port;
-        $poe_volt = '.1.3.6.1.4.1.4526.11.15.1.1.1.4.1.' . $port;
+        $poe_power = NETGEAR_POE_USAGE . '.' . $port_snmp_index;
+        $poe_current = NETGEAR_POE_CURRENT .'.' . $port_snmp_index;
+        $poe_volt = NETGEAR_POE_VOLT . '.' . $port_snmp_index;
     }
 
     // HP
     if ($vendor_id == 15) {
-        $poe_power = '.1.3.6.1.4.1.25506.2.14.1.1.4.1.' . $port;
-        $poe_volt = '.1.3.6.1.4.1.25506.2.14.1.1.3.1.' . $port;
+        $poe_power = HP_POE_USAGE . '.' . $port_snmp_index;
+        $poe_volt = HP_POE_VOLT . '.' . $port_snmp_index;
+    }
+
+    // TP-Link
+    if ($vendor_id == 69) {
+        $poe_power = TPLINK_POE_USAGE . '.' . $port_snmp_index;
+        $poe_current = TPLINK_POE_CURRENT .'.' . $port_snmp_index;
+        $poe_volt = TPLINK_POE_VOLT . '.' . $port_snmp_index;
     }
 
     if (isset($poe_power)) {
@@ -2525,7 +2512,7 @@ function set_port_for_group($db, $group_id, $place_id, $state)
         }
         LOG_INFO($db, "At device $d_name [$d_ip] $mode port $d_port for auth_id: $a_id ($a_ip [$a_name])");
         set_port_state($d_vendor_id, $d_snmp_index, $d_ip, $d_community, $d_snmp, $state);
-        set_port_poe_state($d_vendor_id, $d_snmp_index, $d_ip, $d_community, $d_snmp, $state);
+        set_port_poe_state($d_vendor_id, $d_port, $d_snmp_index, $d_ip, $d_community, $d_snmp, $state);
     }
     LOG_INFO($db, 'Mass port state change stopped.');
 }

@@ -23,8 +23,10 @@ if (isset($_POST['poe_on']) and $device['snmp_version']>0) {
     $len = is_array($_POST['poe_on']) ? count($_POST['poe_on']) : 0;
     for ($i = 0; $i < $len; $i ++) {
         $port_index = intval($_POST['poe_on'][$i]);
-        LOG_DEBUG($db_link, "Device id: $id enable poe at port snmp index $port_index");
-        set_port_poe_state($device['vendor_id'], $port_index, $device['ip'], $device['rw_community'], $device['snmp_version'], 1);
+        $sSQL = "SELECT port from device_ports WHERE device_id=".$id." and snmp_index=".$port_index;
+        $port = get_record_sql($db_link,$sSQL);
+        LOG_DEBUG($db_link, "Device id: ".$id." enable poe at port ".$port['port']." snmp index ".$port_index);
+        set_port_poe_state($device['vendor_id'], $port['port'], $port_index, $device['ip'], $device['rw_community'], $device['snmp_version'], 1);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -34,8 +36,10 @@ if (isset($_POST['poe_off']) and $device['snmp_version']>0) {
     $len = is_array($_POST['poe_off']) ? count($_POST['poe_off']) : 0;
     for ($i = 0; $i < $len; $i ++) {
         $port_index = intval($_POST['poe_off'][$i]);
-        LOG_DEBUG($db_link, "Device id: $id disable poe at port snmp index $port_index");
-        set_port_poe_state($device['vendor_id'], $port_index, $device['ip'], $device['rw_community'], $device['snmp_version'], 0);
+        $sSQL = "SELECT port from device_ports WHERE device_id=".$id." and snmp_index=".$port_index;
+        $port = get_record_sql($db_link,$sSQL);
+        LOG_DEBUG($db_link, "Device id: ".$id." disable poe at port ".$port['port']." snmp index ".$port_index);
+        set_port_poe_state($device['vendor_id'], $port['port'], $port_index, $device['ip'], $device['rw_community'], $device['snmp_version'], 0);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -156,7 +160,7 @@ if ($device['snmp_version']>0) {
             $ifname = get_snmp_ifname1($device['ip'], $device['community'], $device['snmp_version'], $row['snmp_index']);
             if (empty($ifname)) { $ifname = get_snmp_ifname2($device['ip'], $device['community'], $device['snmp_version'], $row['snmp_index']); }
             $sfp_status = get_sfp_status($device['vendor_id'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version'], $modules_oids);
-            $poe_status = get_port_poe_state($device['vendor_id'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
+            $poe_status = get_port_poe_state($device['vendor_id'], $row['port'],$row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
             if (isset($poe_status)) {
                 if ($poe_status == 1) {
                     $port_poe_detail = get_port_poe_detail($device['vendor_id'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);

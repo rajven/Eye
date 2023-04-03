@@ -975,6 +975,7 @@ INSERT INTO `vendors` (`id`, `name`) VALUES(65, 'Barco');
 INSERT INTO `vendors` (`id`, `name`) VALUES(66, 'Trassir');
 INSERT INTO `vendors` (`id`, `name`) VALUES(67, 'Testo');
 INSERT INTO `vendors` (`id`, `name`) VALUES(68, 'Hw-group');
+INSERT INTO `vendors` (`id`, `name`) VALUES(69, 'TP-Link');
 
 --
 -- Индексы сохранённых таблиц
