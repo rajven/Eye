@@ -420,7 +420,7 @@ function print_subnet_select($db, $subnet_name, $subnet_value)
 
 function print_device_ip_select($db, $ip_name, $ip, $user_id)
 {
-    print "<select name=\"$ip_name\" class=\"js-select-single\">\n";
+    print "<select name=\"$ip_name\">\n";
     $auth_list = get_records_sql($db, "SELECT ip FROM User_auth WHERE user_id=$user_id AND deleted=0 ORDER BY ip_int");
     foreach ($auth_list as $row) {
 	print_select_item($row['ip'],$row['ip'],$ip);
@@ -2074,11 +2074,11 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
             if (! isset($sfp_freq) or $sfp_freq == 65535) {  $sfp_freq = 'unspecified';  }
             $sfp_length = parse_snmp_value(get_snmp($ip, $community, $version, ELTEX_SFP_LENGTH . "." . $port));
             $status = 'Vendor: ' . $sfp_vendor . ' Serial: ' . $sfp_sn . ' Laser: ' . $sfp_freq . ' Distance: ' . $sfp_length . '<br>';
-            if (isset($sfp_status_temp) and $temp > 0.1) { $status .= 'Temp: ' . $temp . " C"; }
-            if (isset($sfp_status_volt) and $volt > 0.1) { $status .= ' Volt: ' . round($volt / 1000000, 2) . ' V'; }
-            if (isset($sfp_status_circut) and $circut > 0.1) { $status .= ' Circut: ' . round($circut / 1000, 2) . ' mA'; }
-            if (isset($sfp_status_tx) and $tx > 0.1) { $status .= ' Tx: ' . round($tx / 1000, 2) . ' dBm'; }
-            if (isset($sfp_status_rx) and $rx > 0.1) { $status .= ' Rx: ' . round($rx / 1000, 2) . ' dBm'; }
+            if (!empty($sfp_status_temp) and $temp > 0.1) { $status .= 'Temp: ' . $temp . " C"; }
+            if (!empty($sfp_status_volt) and $volt > 0.1) { $status .= ' Volt: ' . round($volt / 1000000, 2) . ' V'; }
+            if (!empty($sfp_status_circut) and $circut > 0.1) { $status .= ' Circut: ' . round($circut / 1000, 2) . ' mA'; }
+            if (!empty($sfp_status_tx) and $tx > 0.1) { $status .= ' Tx: ' . round($tx / 1000, 2) . ' dBm'; }
+            if (!empty($sfp_status_rx) and $rx > 0.1) { $status .= ' Rx: ' . round($rx / 1000, 2) . ' dBm'; }
             $status .= '<br>';
             return $status;
         }
@@ -2125,22 +2125,22 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
                 continue;
             }
         }
-        if (isset($temp) and $temp > 0) {
+        if (!empty($temp) and $temp > 0) {
             $status .= 'Temp: ' . $temp . " C";
         }
-        if (isset($volt) and $volt > 0) {
+        if (!empty($volt) and $volt > 0) {
             $status .= ' Volt: ' . $volt . ' V';
         }
-        if (isset($circut) and $circut > 0) {
+        if (!empty($circut) and $circut > 0) {
             $status .= ' Circut: ' . $circut . ' mA';
         }
-        if (isset($tx) and abs($tx)>0.1) {
+        if (!empty($tx) and abs($tx)>0.1) {
             $status .= ' Tx: ' . $tx . ' dBm';
         }
-        if (isset($rx) and abs($rx)>0.1) {
+        if (!empty($rx) and abs($rx)>0.1) {
             $status .= ' Rx: ' . $rx . ' dBm';
         }
-        if (isset($status)) {
+        if (!empty($status)) {
             $status = preg_replace('/"/', '', $status);
             $status .= '<br>';
         }
@@ -2180,19 +2180,19 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
                 $rx = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_OPTRX . "." . $module_id));
 		if (!isset($tx)) { $tx = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_TX . "." . $module_id)); }
             	if (!isset($rx)) { $rx = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_RX . "." . $module_id)); }
-                if (isset($sfp_vendor)) {  $status .= ' Name:' . $sfp_vendor.'<br>';  }
+                if (!empty($sfp_vendor)) {  $status .= ' Name:' . $sfp_vendor.'<br>';  }
 //                if (isset($sfp_speed)) { $status .= ' ' . $sfp_speed; }
 //                if (isset($spf_lenght)) { $status .= ' ' . $spf_lenght; }
                 if ($volt > 0) { $status .= ' Volt: ' . round($volt / 1000, 2) . ' V';  }
-                if (isset($circut)) { $status .= ' Circut: ' . $circut . ' mA <br>'; }
-                if (isset($tx)) {
-	            $tx = preg_replace('/"/', '', $tx);
+                if (!empty($circut) and $circut >0) { $status .= ' Circut: ' . $circut . ' mA <br>'; }
+                if (!empty($tx)) {
+	                $tx = preg_replace('/"/', '', $tx);
             	    list($tx_dbm,$pattern) = explode('.', $tx); 
             	    $tx_dbm=round(trim($tx_dbm) / 100,2);
             	    if (abs($tx_dbm)>0.1) { $status .= ' Tx: '.$tx_dbm.' dBm'; }
             	    }
-                if (isset($rx)) {
-	            $rx = preg_replace('/"/', '', $rx);
+                if (!empty($rx)) {
+	                $rx = preg_replace('/"/', '', $rx);
             	    list($rx_dbm,$pattern) = explode('.', $rx);
             	    $rx_dbm=round(trim($rx_dbm) / 100,2);
             	    if (abs($rx_dbm)>0.1) { $status .= ' Rx: '.$rx_dbm.' dBm'; }
