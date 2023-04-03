@@ -43,6 +43,39 @@ if (isset($_POST['save'])) {
     exit;
     }
 
+if (isset($_POST['remove'])) {
+        $saved = array();
+        //button save
+        $len = is_array($_POST['save']) ? count($_POST['save']) : 0;
+        for ($i = 0; $i < $len; $i ++) {
+            $save_id = intval($_POST['save'][$i]);
+            if ($save_id == 0) { continue;  }
+            array_push($saved,$save_id);
+            }
+        //select box
+        $len = is_array($_POST['f_id']) ? count($_POST['f_id']) : 0;
+        if ($len>0) {
+            for ($i = 0; $i < $len; $i ++) {
+                $save_id = intval($_POST['f_id'][$i]);
+                if ($save_id == 0) { continue; }
+                if (!in_array($save_id, $saved)) { array_push($saved,$save_id); }
+                }
+            }
+        //save changes
+        $len = is_array($saved) ? count($saved) : 0;
+        for ($i = 0; $i < $len; $i ++) {
+            $save_id = intval($saved[$i]);
+            if ($save_id == 0) { continue;  }
+            $len_all = is_array($_POST['r_id']) ? count($_POST['r_id']) : 0;
+            for ($j = 0; $j < $len_all; $j ++) {
+                if (intval($_POST['r_id'][$j]) != $save_id) { continue; }
+                if ($save_id>=10000) { delete_record($db_link, "device_models", "id='{$save_id}'", $new); }
+                }
+            }
+        header("Location: " . $_SERVER["REQUEST_URI"]);
+        exit;
+        }
+
 if (isset($_POST["create"])) {
     $model_name = $_POST["new_model"];
     if (isset($model_name)) {
@@ -98,6 +131,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td><b><?php echo WEB_cell_name; ?></b></td>
 <td><b><?php echo WEB_nagios_template; ?></b></td>
 <td><input type="submit" name='save' value="<?php echo WEB_btn_save; ?>"></td>
+<td><input type="submit" name='remove' value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
 $t_ou = get_records_sql($db_link,'SELECT * FROM device_models '.$v_filter." ORDER BY vendor_id, model_name LIMIT $start,$displayed");
@@ -108,6 +142,7 @@ foreach ($t_ou as $row) {
     print "<td class=\"data\" width=150>"; print_vendor_set($db_link,'f_vendor[]',$row['vendor_id']); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_name[]' value='{$row['model_name']}'></td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_nagios[]' value='{$row['nagios_template']}'></td>\n";
+    print "<td class=\"data\"></td>\n";
     print "<td class=\"data\"></td>\n";
     print "</tr>\n";
 }
