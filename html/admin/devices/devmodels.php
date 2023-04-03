@@ -69,7 +69,10 @@ if (isset($_POST['remove'])) {
             $len_all = is_array($_POST['r_id']) ? count($_POST['r_id']) : 0;
             for ($j = 0; $j < $len_all; $j ++) {
                 if (intval($_POST['r_id'][$j]) != $save_id) { continue; }
-                if ($save_id>=10000) { delete_record($db_link, "device_models", "id='{$save_id}'", $new); }
+                if ($save_id>=10000) { 
+                    delete_record($db_link, "device_models", "id='{$save_id}'");
+                    run_sql($db_link,"UPDATE devices set device_model_id=NULL WHERE device_model_id=".$save_id);
+                    }
                 }
             }
         header("Location: " . $_SERVER["REQUEST_URI"]);
