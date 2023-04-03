@@ -2241,18 +2241,18 @@ function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
     if (! isset($ip)) { return; }
 
     // default poe oid
-    $poe_status = PETH_PSE_PORT_ADMIN_ENABLE . "." . $port;
+    $poe_status = PETH_PSE_PORT_ADMIN_ENABLE . "." . $port_snmp_index;
 
     if ($vendor_id == 3) {
-        $poe_status = HUAWEI_POE_OID . "." . $port;
+        $poe_status = HUAWEI_POE_OID . "." . $port_snmp_index;
     }
 
     if ($vendor_id == 8) {
-        $poe_status = ALLIED_POE_OID . "." . $port;
+        $poe_status = ALLIED_POE_OID . "." . $port_snmp_index;
     }
 
     if ($vendor_id == 15) {
-        $poe_status = HP_POE_OID . "." . $port;
+        $poe_status = HP_POE_OID . "." . $port_snmp_index;
     }
 
     if ($vendor_id == 9) {
@@ -2260,7 +2260,7 @@ function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
     }
 
     if ($vendor_id == 10) {
-        $poe_status = NETGEAR_POE_OID . "." . $port;
+        $poe_status = NETGEAR_POE_OID . "." . $port_snmp_index;
     }
 
     if ($vendor_id == 69) {
