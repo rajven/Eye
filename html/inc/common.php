@@ -2445,12 +2445,12 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $communit
             $p_class = parse_snmp_value($c_class);
             switch ($vendor_id) {
                 case 69: if ($p_class > 0 and $p_power > 0) {
-                        if ($p_class == 7 ) { $p_class = 'class-not-defined'; }
-                        $result .= ' Class: ' . $p_class ;
-                        }
-                        break;
+                            if ($p_class == 7 ) { $p_class = 'class-not-defined'; }
+                            $result .= ' Class: ' . $p_class ;
+                            }
+                         break;
                 default: if ($p_class > 0 and $p_power > 0) { $result .= ' Class: ' . ($p_class - 1); }
-                        break;
+                         break;
             }
         }
     }
