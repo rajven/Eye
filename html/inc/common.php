@@ -2448,7 +2448,9 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $communit
                         if ($p_class == 7 ) { $p_class = 'class-not-defined'; }
                         $result .= ' Class: ' . $p_class ;
                         }
+                        break;
                 default: if ($p_class > 0 and $p_power > 0) { $result .= ' Class: ' . ($p_class - 1); }
+                        break;
             }
         }
     }
