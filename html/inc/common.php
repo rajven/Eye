@@ -2275,12 +2275,12 @@ function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
         if ($vendor_id == 9) {
             if ($p_state == 1) { return 2; }
             if ($p_state > 1) { return 1; }
-        }
+            }
         //patch for tplink
         if ($vendor_id == 69) {
             if ($p_state == 0) { return 2; }
-            if ($p_state > 1) { return 1; }
-        }
+            if ($p_state >= 1) { return 1; }
+            }
         return $p_state;
     }
     return;
@@ -2293,8 +2293,13 @@ function set_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
     if (! isset($community)) { $community = 'public'; }
     if (! isset($version)) { $version = '2'; }
 
+    //default poe status
+    $poe_enable = 1;
+    $poe_disable = 2;
+
     // default poe oid
     $poe_status = PETH_PSE_PORT_ADMIN_ENABLE . "." . $port_snmp_index;
+
     if ($vendor_id == 3) { $poe_status = HUAWEI_POE_OID . "." . $port_snmp_index; }
 
     if ($vendor_id == 8) { $poe_status = ALLIED_POE_OID . "." . $port_snmp_index; }
@@ -2303,15 +2308,19 @@ function set_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
 
     if ($vendor_id == 10) { $poe_status = NETGEAR_POE_OID . "." . $port_snmp_index; }
 
-    if ($vendor_id == 69) { $poe_status = TPLINK_POE_OID . "." . $port; }
+    if ($vendor_id == 69) { 
+        $poe_status = TPLINK_POE_OID . "." . $port; 
+        $poe_enable = 1; 
+        $poe_disable = 0; 
+        }
 
     if ($state) {
         // enable port
-        $c_state = set_snmp($ip, $community, $version, $poe_status, 'i', 1);
+        $c_state = set_snmp($ip, $community, $version, $poe_status, 'i', $poe_enable);
         return $c_state;
     } else {
         // disable port
-        $c_state = set_snmp($ip, $community, $version, $poe_status, 'i', 2);
+        $c_state = set_snmp($ip, $community, $version, $poe_status, 'i', $poe_disable);
         return $c_state;
     }
 }
@@ -2324,6 +2333,8 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $communit
     if (! isset($version)) { $version = '2'; }
 
     $result = '';
+
+    $poe_class = PETH_PSE_PORT_POE_CLASS . $port_snmp_index;
 
     // eltex
     if ($vendor_id == 2) {
@@ -2371,6 +2382,7 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $communit
         $poe_power = TPLINK_POE_USAGE . '.' . $port;
         $poe_current = TPLINK_POE_CURRENT .'.' . $port;
         $poe_volt = TPLINK_POE_VOLT . '.' . $port;
+        $poe_class = TPLINK_POE_CLASS . "." . $port;
     }
 
     if (isset($poe_power)) {

@@ -108,8 +108,14 @@ define("MIKROTIK_POE_CURRENT",".1.3.6.1.4.1.14988.1.1.15.1.1.5");
 define("MIKROTIK_POE_USAGE",".1.3.6.1.4.1.14988.1.1.15.1.1.6");
 
 //TP-Link
+// index port in poe tables
+define("TPLINK_POE_PORT_INDEX",".1.3.6.1.4.1.11863.6.56.1.1.2.1.1.1");
 // INTEGER {off(0), turning-on(1), on(2), overload(3), short(4), nonstandard-pd(5),voltage-high(6), voltage-low(7),hardware-fault(8),overtemperature(9)
-define("TPLINK_POE_OID",".1.3.6.1.4.1.11863.6.56.1.1.2.1.1.11");
+define("TPLINK_POE_STATUS",".1.3.6.1.4.1.11863.6.56.1.1.2.1.1.11");
+//POE class -  INTEGER {class0(0),class1(1),class2(2),class3(3),class4(4),class-not-defined(7)}
+define("TPLINK_POE_CLASS",".1.3.6.1.4.1.11863.6.56.1.1.2.1.1.10");
+//POE Port Config - enable - 1, disable 0
+define("TPLINK_POE_OID",".1.3.6.1.4.1.11863.6.56.1.1.2.1.1.2");    
 //POE POWER, Displays the port's real time power supply in 0.1W.
 define("TPLINK_POE_USAGE",".1.3.6.1.4.1.11863.6.56.1.1.2.1.1.7");
 //POE CURRENT, Displays the port's real time current in 1mA.
