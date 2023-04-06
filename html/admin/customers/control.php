@@ -5,24 +5,24 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 
 if (isset($_POST["recheck_ip"]) and is_option($db_link, 37)) {
     $run_cmd = get_option($db_link, 37);
-    shell_exec("sudo $run_cmd >/dev/null 2>/dev/null &");
-    LOG_INFO($db_link, "Run command: $run_cmd");
+    $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
+    LOG_INFO($db_link, "Run command: $run_cmd ");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
 if (isset($_POST["refresh_dhcp"]) and is_option($db_link, 38)) {
     $run_cmd = get_option($db_link, 38);
-    shell_exec("sudo $run_cmd >/dev/null 2>/dev/null &");
-    LOG_INFO($db_link, "Run command: $run_cmd");
+    $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
+    LOG_INFO($db_link, "Run command: $run_cmd ");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
 if (isset($_POST["refresh_nagios"]) and is_option($db_link, 40)) {
     $run_cmd = get_option($db_link, 40);
-    shell_exec("sudo $run_cmd >/dev/null 2>/dev/null &");
-    LOG_INFO($db_link, "Run command: $run_cmd");
+    $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
+    LOG_INFO($db_link, "Run command: $run_cmd ");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -36,24 +36,24 @@ if (isset($_POST["up_nagios"])) {
 
 if (isset($_POST["refresh_dns"]) and is_option($db_link, 39)) {
     $run_cmd = get_option($db_link, 39);
-    shell_exec("sudo $run_cmd >/dev/null 2>/dev/null &");
-    LOG_INFO($db_link, "Run command: $run_cmd");
+    $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
+    LOG_INFO($db_link, "Run command: $run_cmd ");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
 if (isset($_POST["discovery"]) and is_option($db_link, 41)) {
     $run_cmd = get_option($db_link, 41);
-    shell_exec("sudo $run_cmd >/dev/null 2>/dev/null &");
-    LOG_DEBUG($db_link, "Run command: $run_cmd");
+    $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
+    LOG_INFO($db_link, "Run command: $run_cmd ");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
 if (isset($_POST["discovery2"]) and is_option($db_link, 41)) {
     $run_cmd = get_option($db_link, 41);
-    shell_exec("sudo $run_cmd 1 >/dev/null 2>/dev/null &");
-    LOG_INFO($db_link, "Run command: $run_cmd 1");
+    $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." force >/dev/null 2>/dev/null &");
+    LOG_INFO($db_link, "Run command: $run_cmd force");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }

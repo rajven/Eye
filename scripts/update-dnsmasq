@@ -13,23 +13,26 @@ if [ ${ret} -ne 0 ]; then
     fi
 
 touch /etc/dnsmasq.d/mac-all
-diff -aqbBfi /tmp/mac-all /etc/dnsmasq.d/mac-all >/dev/null
-ret=$?
+CHANGES=$(diff -ubBi /tmp/mac-all /etc/dnsmasq.d/mac-all | egrep "^[+-]dhcp" | awk '{ print $1 }' | sed -E 's/(\+|\-)//;s/dhcp-host=//;s/\,//' | sort -u)
 
-if [ ${ret} -ne 0 -o -n "${force}" ]; then
+if [ -n "${CHANGES}" -o -n "${force}" ]; then
     logger -t dhcpd "Update dnsmasq config"
     cat /etc/dnsmasq.d/mac-all >/tmp/mac.old
     cat  /tmp/mac-all >/etc/dnsmasq.d/mac-all
     /usr/sbin/dnsmasq --test >/dev/null 2>&1
     ret=$?
     if [ ${ret} -eq 0 ]; then
-        systemctl stop dnsmasq>/dev/null
-        >/var/lib/misc/dnsmasq.leases
-        systemctl start dnsmasq>/dev/null
-	else
+        #clear leases
+        systemctl stop dnsmasq >/dev/null
+        echo "${CHANGES}" | while read LEASE; do
+            echo "Clear ${LEASE}"
+            sed -i "/${LEASE}/d" /var/lib/misc/dnsmasq.leases
+        done
+        systemctl start dnsmasq >/dev/null
+        else
         logger -t dhcpd "Config error! Rollback changes."
-	cat /tmp/mac.old >/etc/dnsmasq.d/mac-all
-	fi
+        cat /tmp/mac.old >/etc/dnsmasq.d/mac-all
+        fi
     else
     logger -t dhcpd "Config not changed. Skip restart"
     fi
