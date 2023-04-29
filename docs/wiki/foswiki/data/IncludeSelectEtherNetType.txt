@@ -1,1 +1,0 @@
-Ethernet=eth, Wifi 2.4G=wifi4, Wifi 5G=wifi5

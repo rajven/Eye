@@ -1,5 +1,0 @@
----++ Добавить
-
-%INCLUDE{IncludeAddRoom}%
-
-%INCLUDE{IncludeWorkflow}%

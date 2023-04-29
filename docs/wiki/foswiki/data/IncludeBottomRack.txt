@@ -1,9 +1,0 @@
----++ Добавить
-
-%INCLUDE{IncludeAddHardware}%
-%INCLUDE{IncludeAddSwitch}%
-%INCLUDE{IncludeAddRouter}%
-%INCLUDE{IncludeAddGateway}%
-%INCLUDE{IncludeAddUps}%
-
-%INCLUDE{IncludeWorkflow}%

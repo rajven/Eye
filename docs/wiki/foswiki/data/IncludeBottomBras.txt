@@ -1,7 +1,0 @@
-%INCLUDE{IncludeNetDevCommon}%
-
-%INCLUDE{IncludeSnmpPort}%
-
-%INCLUDE{IncludeFindAuth}%
-
-%INCLUDE{IncludeWorkflow}%

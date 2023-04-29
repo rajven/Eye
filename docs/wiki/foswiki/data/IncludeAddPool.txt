@@ -1,9 +1,0 @@
-<form name="newPool" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
-   * Добавить dhcp-пул:
-     <input type="text" name="topic" value="DhcpPool" size="40" />
-     <input type="hidden" name="templatetopic" value="DefaultPoolTemplate" />
-     <input type="hidden" name="onlywikiname" value="off" />
-     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
-     <input type="hidden" name="formtemplate" value="FormDhcpPool" />
-     <input type="submit" value="Create" />
-</form>

@@ -1,8 +1,0 @@
-<form name="newAuth" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
-   * Добавить пароли:
-     <input type="text" name="topic" value="Auth%BASETOPIC%" size="40" />
-     <input type="hidden" name="templatetopic" value="DefaultAuthTemplate" />
-     <input type="hidden" name="onlywikiname" value="off" />
-     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
-     <input type="submit" value="Create" />
-</form>

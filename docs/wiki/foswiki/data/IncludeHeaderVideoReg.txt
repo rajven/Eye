@@ -1,7 +1,0 @@
-%INCLUDE{IncludeShowStat}%
-
-%INCLUDE{IncludeFindCamList}%
-
-%INCLUDE{IncludeNetDevCommon}%
-
-%INCLUDE{IncludeFindAuth}%

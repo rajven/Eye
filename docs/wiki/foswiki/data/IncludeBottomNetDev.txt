@@ -1,9 +1,0 @@
----++ Добавить
-
-%INCLUDE{IncludeAddCert}%
-
-%INCLUDE{IncludeAddAuth}%
-
-%INCLUDE{IncludeAddAcl}%
-
-%INCLUDE{IncludeWorkflow}%

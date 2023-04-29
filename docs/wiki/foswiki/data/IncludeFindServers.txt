@@ -1,7 +1,0 @@
-%SEARCH{
-topic="Server*"
-type="query"
-nosearch="on"
-header="|*Name*|*OS*|*IP*|*Расположение*|*Включен от*|*Комментарий*|*Deleted*|*Disabled*|"
-format="| [[$topic][$formfield(DnsName)]] | $formfield(DeviceOS) | $formfield(DeviceIP) | $formfield(Place) | $formfield(Parent) [$formfield(ParentPort)] | $formfield(Description) | $formfield(Deleted) | $formfield(Disabled) |"
-}%

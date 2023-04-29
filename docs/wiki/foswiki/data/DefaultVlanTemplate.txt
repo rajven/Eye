@@ -1,9 +1,0 @@
-%META:TOPICINFO{author="roman" date="1602536006" format="1.1" version="1"}%
-
--- %WIKIUSERNAME% - %DATE%
-
-%META:FORM{name="FormVlan"}%
-
-%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
-%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
-%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

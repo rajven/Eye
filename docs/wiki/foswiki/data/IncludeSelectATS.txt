@@ -1,1 +1,0 @@
-, %SEARCH{"\.*" scope="topic" topic="DeviceATS*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}%

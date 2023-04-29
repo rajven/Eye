@@ -1,7 +1,0 @@
-%INCLUDE{IncludeShowStat}%
-
-%INCLUDE{IncludeFindPhoneList}%
-
-%INCLUDE{IncludeNetDevCommon}%
-
-%INCLUDE{IncludeFindAuth}%

@@ -1,8 +1,0 @@
-<form name="newFAQ" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
-   * Добавить FAQ:
-     <input type="text" name="topic" value="Faq" size="40" />
-     <input type="hidden" name="templatetopic" value="DefaultArticleTemplate" />
-     <input type="hidden" name="onlywikiname" value="off" />
-     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
-     <input type="submit" value="Create" />
-</form>

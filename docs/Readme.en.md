@@ -30,26 +30,26 @@ libnetwork-ipv4addr-perl libnet-openssh-perl
 3. Download project:
 
 git clone https://github.com/rajven/statV2
-mkdir -p /usr/local/scripts
+mkdir -p /opt/Eye/scripts
 cd statV2/
-cp -R scripts/ /usr/local/
-mkdir -p /usr/local/scripts/cfg
-cp docs/addons/cfg/config /usr/local/scripts/cfg/
+cp -R scripts/ /opt/Eye/
+mkdir -p /opt/Eye/scripts/cfg
+cp docs/addons/cfg/config /opt/Eye/scripts/cfg/
 cp -R html/ /var/www
 
 4. Download additional scripts (optional)
 
-download from https://jquery.com/download/ production jQuery to /var/www/html/js/jq
+download from https://jquery.com/download/ production jQuery to /opt/Eye/html/js/jq
 example: wget https://code.jquery.com/jquery-3.6.0.min.js
 rename jquery-3.6.0.min.js to jquery.min.js
 
 download from https://github.com/select2/select2 release
 example: wget https://github.com/select2/select2/archive/4.0.12.tar.gz
-extract contents from directory dist archive to /var/www/html/js/select2/
+extract contents from directory dist archive to /opt/Eye/html/js/select2/
 
 download jstree from  https://github.com/vakata/jstree/
 wget https://github.com/vakata/jstree/zipball/3.3.12 -O js.zip
-extract contents from directory dist archive to /var/www/html/js/jstree
+extract contents from directory dist archive to /opt/Eye/html/js/jstree
 
 5. Configure mysql
 
@@ -69,10 +69,10 @@ cat docs/mysql/mysql.sql | mysql -u root -p stat
 
 6. Save configuration for web and scripts:
 
-cp html/inc/config.php.sample /var/www/html/cfg/
-mv /var/www/html/cfg/config.php.sample /var/www/html/cfg/config.php
+cp html/inc/config.php.sample /opt/Eye/html/cfg/
+mv /opt/Eye/html/cfg/config.php.sample /opt/Eye/html/cfg/config.php
 
-edit: /var/www/html/cfg/config.php & /usr/local/scripts/cfg/config
+edit: /opt/Eye/html/cfg/config.php & /opt/Eye/scripts/cfg/config
 
 set mysql database|user|password
 
@@ -185,7 +185,7 @@ add action=reject chain=forward out-interface-list=WAN reject-with=icmp-network-
 add max-limit=[YOU BANDWIDTH] name=upload_root_[WAN_INTERFACE_NAME] parent=[WAN_INTERFACE_NAME] queue=pcq-upload-default
 add name=download_root_[LAN_INTERFACE_NAME] parent=[LAN_INTERFACE_NAME] queue=pcq-download-default
 
-run /usr/local/scripts/sync_mikrotik.pl
+run /opt/Eye/scripts/sync_mikrotik.pl
 
 #simple dhcp script
 /tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&password=<PASSWORD_HASH>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""

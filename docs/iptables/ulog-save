@@ -29,8 +29,8 @@ mv /var/log/ulog-acctd/account.log ${SAVE_PATH}/${TM} --backup --suffix="-`date 
 skill -CONT -c ulog-acctd
 
 # create statistics
-cat ${SAVE_PATH}/${TM} | /usr/local/scripts/parse_ulog.pl
+cat ${SAVE_PATH}/${TM} | /opt/Eye/scripts/parse_ulog.pl
 
-/usr/local/scripts/sync_iptables.pl
+/opt/Eye/scripts/sync_iptables.pl
 
 exit

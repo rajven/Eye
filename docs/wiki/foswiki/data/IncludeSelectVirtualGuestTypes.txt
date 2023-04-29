@@ -1,1 +1,0 @@
-Virtual KVM, Virtual OpenVZ, Virtual Docker, Virtual ESXi

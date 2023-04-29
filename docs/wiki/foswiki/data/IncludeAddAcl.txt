@@ -1,8 +1,0 @@
-<form name="newAcl" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
-   * Добавить список доступа:
-     <input type="text" name="topic" value="Acl%BASETOPIC%" size="40" />
-     <input type="hidden" name="templatetopic" value="DefaultAclTemplate" />
-     <input type="hidden" name="onlywikiname" value="off" />
-     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
-     <input type="submit" value="Create" />
-</form>

@@ -1,9 +1,0 @@
-<form name="newNetDev" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
-   * Добавить устройство:
-     <input type="text" name="topic" value="Device" size="40" />
-     <input type="hidden" name="templatetopic" value="DefaultNetdeviceTemplate" />
-     <input type="hidden" name="onlywikiname" value="off" />
-     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
-     <input type="hidden" name="formtemplate" value="FormNetDevice" />
-     <input type="submit" value="Create" />
-</form>

@@ -1,19 +1,21 @@
 #under root
 
-#active scan network (with fping subnets before analyze)
-20 10,13,19 * * * root /usr/local/scripts/fetch_new_arp.pl 1
-
 #reconfigure nagios
 #16 * * * * root /etc/nagios/restart_nagios >/dev/null
 
-#refresh dnsmasq(dhcpd) dhcp server config's
-#02 * * * * root /usr/local/scripts/update-dnsmasq
+#refresh dnsmasq dhcp server config's
+#02 * * * * root /opt/Eye/scripts/update-dnsmasq
 
-#scan network => 2 * arp_timeout (default: 5m * 2)
-*/12 * * * * root /usr/local/scripts/fetch_new_arp.pl
+#maybe any user
 
 #garbage trash
-01 0 * * * root /usr/local/scripts/garbage.pl
+01 0 * * * root /opt/Eye/scripts/garbage.pl
 
-#sync mikrotik cfg (need for update dhcp hostname)
-#03 * * * * root /usr/local/scripts/sync_mikrotik.pl
+#sync mikrotik cfg
+#03 * * * * root /opt/Eye/scripts/sync_mikrotik.pl
+
+#passive scan network => 2 * arp_timeout (default min: 2 * 5m)
+*/25 * * * * root /opt/Eye/scripts/fetch_new_arp.pl
+
+#active scan network (with fping subnets before analyze)
+20 10,13,19 * * * root /opt/Eye/scripts/fetch_new_arp.pl 1

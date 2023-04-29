@@ -1,1 +1,0 @@
----+!!  %FORMFIELD{"EquipmentType" topic="%BASETOPIC%"}% AT %FORMFIELD{"Parent" topic="%BASETOPIC%"}%

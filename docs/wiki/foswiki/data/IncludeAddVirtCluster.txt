@@ -1,9 +1,0 @@
-<form name="newVirtCluster" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
-   * Добавить кластер виртуальных машин:
-     <input type="text" name="topic" value="Cluster" size="40" />
-     <input type="hidden" name="templatetopic" value="DefaultVirtCluster" />
-     <input type="hidden" name="onlywikiname" value="off" />
-     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
-     <input type="hidden" name="formtemplate" value="FormVirtCluster" />
-     <input type="submit" value="Create" />
-</form>

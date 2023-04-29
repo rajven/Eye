@@ -5,7 +5,7 @@ BN=`basename $0`
 
 #WORKDIR=$(cd "$(dirname "$0")"; pwd -P)
 
-WORKDIR="/usr/local/scripts"
+WORKDIR="/opt/Eye/scripts"
 
 if [ ! -e "${WORKDIR}/cfg/config" ]; then
     echo "Config file not found!"

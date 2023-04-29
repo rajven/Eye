@@ -2,7 +2,7 @@
 
 logger -t named "Refresh named config request"
 
-/usr/local/scripts/print-dns-zones.pl
+/opt/Eye/scripts/print-dns-zones.pl
 [ $? -ne 0 ] && exit 1
 
 RELOAD=

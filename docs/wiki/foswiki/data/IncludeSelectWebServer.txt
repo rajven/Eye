@@ -1,1 +1,0 @@
-, Nginx, Apache, Nginx+Apache, Nginx+fsgi, Nginx+php-fpm, Nginx+uWSGI, Lighttpd, Starman, Other

@@ -1,5 +1,0 @@
----++ Добавить
-
-%INCLUDE{IncludeAddPool}%
-
-%INCLUDE{IncludeWorkflow}%

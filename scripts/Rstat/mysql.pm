@@ -733,7 +733,7 @@ push(@add_dns,"update add $fqdn 3600 A $ip");
 push(@add_dns,"send");
 my $nsupdate_file = "/tmp/".$fqdn.".nsupdate";
 write_to_file($nsupdate_file,\@add_dns);
-do_exec('/usr/bin/kinit -k -t /usr/local/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"');
+do_exec('/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"');
 if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
 }
 
@@ -767,7 +767,7 @@ push(@add_dns,"update add $radr 3600 PTR $fqdn.");
 push(@add_dns,"send");
 my $nsupdate_file = "/tmp/".$radr.".nsupdate";
 write_to_file($nsupdate_file,\@add_dns);
-my $run_cmd = '/usr/bin/kinit -k -t /usr/local/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"';
+my $run_cmd = '/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"';
 do_exec($run_cmd);
 if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
 }

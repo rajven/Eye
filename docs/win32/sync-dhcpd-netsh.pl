@@ -98,7 +98,7 @@ foreach my $dhcp_ip (keys %dynamic_ip) {
 next if (!$office_networks->match_string($dhcp_ip));
 print "New dynamic ip: ".$dhcp_ip." ".$dynamic_ip{$dhcp_ip}{mac}."\n";
 if (!$test_only) {
-    do_exec("/usr/local/scripts/add-to-stat.pl '".$dhcp_ip."' '".$dynamic_ip{$dhcp_ip}{mac}."' '' 'old'");
+    do_exec("/opt/Eye/scripts/add-to-stat.pl '".$dhcp_ip."' '".$dynamic_ip{$dhcp_ip}{mac}."' '' 'old'");
     }
 }
 
@@ -190,7 +190,7 @@ foreach my $scope (keys %dhcp_scope) {
     print "Unknown reserved ip: Dhcp Server Scope ".$scope.' del reservedip '.$check_ip.' '.$mac."\n";
     push(@run_cmd,'Dhcp Server Scope '.$scope.' del reservedip '.$check_ip.' '.$mac);
 #    if (!$test_only) {
-#        do_exec("/usr/local/scripts/add-to-stat.pl '".$check_ip."' '".$mac."' '' 'old' '".$clientid."'");
+#        do_exec("/opt/Eye/scripts/add-to-stat.pl '".$check_ip."' '".$mac."' '' 'old' '".$clientid."'");
 #        }
     }
 }

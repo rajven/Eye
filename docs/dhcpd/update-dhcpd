@@ -2,7 +2,7 @@
 
 logger -t dhcpd "Refresh dhcpd config request"
 
-/usr/local/scripts/print-dhcpd.pl
+/opt/Eye/scripts/print-dhcpd.pl
 ret=$?
 
 if [ ${ret} -ne 0 ]; then

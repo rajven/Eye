@@ -1,1 +1,1 @@
-apache	ALL=(ALL)	NOPASSWD: /usr/local/scripts/sync_mikrotik.pl, /usr/local/scripts/update-dnsmasq, /usr/local/scripts/fetch_new_arp.pl
+apache	ALL=(ALL)	NOPASSWD: /opt/Eye/scripts/sync_mikrotik.pl, /opt/Eye/scripts/update-dnsmasq, /opt/Eye/scripts/fetch_new_arp.pl

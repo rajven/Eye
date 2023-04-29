@@ -1,5 +1,5 @@
 #log files
-log_dir=/var/log/scripts
+log_dir=/opt/Eye/scripts/log
 
 #dnsmasq configs
 dhcpd_conf=/etc/dnsmasq.d
@@ -27,8 +27,10 @@ fping=/sbin/fping
 MYSQL=/usr/bin/mysql
 
 #log file owners
-user=nagios
-group=nagios
+#user=nagios
+#group=nagios
+user=www-data
+group=www-data
 
 #access to switches
 sw_login=admin

@@ -30,29 +30,29 @@ libnetwork-ipv4addr-perl libnet-openssh-perl
 3. Качаем исходники и раскидываем по каталогам:
 
 git clone https://github.com/rajven/statV2
-mkdir -p /usr/local/scripts
-mkdir -p /usr/local/scripts/cfg
+mkdir -p /opt/Eye/scripts
+mkdir -p /opt/Eye/scripts/cfg
 cd statV2/
-cp -R scripts/ /usr/local/
-cp docs/addons/cfg/config /usr/local/scripts/cfg/
+cp -R scripts/ /opt/Eye/
+cp docs/addons/cfg/config /opt/Eye/scripts/cfg/
 cp -R html/ /var/www
 
 4. Можно скачать дополнительные скрипты (красивости)
 
-mkdir -p /var/www/html/js/jq
-mkdir -p /var/www/html/js/select2
+mkdir -p /opt/Eye/html/js/jq
+mkdir -p /opt/Eye/html/js/select2
 
-download from https://jquery.com/download/ production jQuery to /var/www/html/js/jq
-#wget https://code.jquery.com/jquery-3.6.0.min.js -O /var/www/html/js/jq/jquery.min.js
+download from https://jquery.com/download/ production jQuery to /opt/Eye/html/js/jq
+#wget https://code.jquery.com/jquery-3.6.0.min.js -O /opt/Eye/html/js/jq/jquery.min.js
 
 download from https://github.com/select2/select2 release
 #wget https://github.com/select2/select2/archive/4.0.12.tar.gz
-#tar -xzf 4.0.12.tar.gz -C /var/www/html/js/select2/ --strip-components=2 select2-4.0.12/dist
+#tar -xzf 4.0.12.tar.gz -C /opt/Eye/html/js/select2/ --strip-components=2 select2-4.0.12/dist
 
 download jstree from  https://github.com/vakata/jstree/
 #wget https://github.com/vakata/jstree/zipball/3.3.12 -O js.zip
-#unzip js.zip "vakata-jstree-7a03954/dist/*" -d "/var/www/html/"
-#mv /var/www/html/vakata-jstree-7a03954/dist/ /var/www/html/js/jstree
+#unzip js.zip "vakata-jstree-7a03954/dist/*" -d "/opt/Eye/html/"
+#mv /opt/Eye/html/vakata-jstree-7a03954/dist/ /opt/Eye/html/js/jstree
 
 5. Настраиваем mysql 
 
@@ -75,14 +75,14 @@ cat docs/mysql/mysql.sql | mysql -u root -p stat
 
 6. Настраиваем конфиги для вэба и скриптов:
 
-cp html/inc/config.php.sample /var/www/html/cfg/
-mv /var/www/html/cfg/config.php.sample /var/www/html/cfg/config.php
+cp html/inc/config.php.sample /opt/Eye/html/cfg/
+mv /opt/Eye/html/cfg/config.php.sample /opt/Eye/html/cfg/config.php
 
-edit: /var/www/html/cfg/config.php
+edit: /opt/Eye/html/cfg/config.php
 
-cp scripts/cfg/config.sample /usr/local/scripts/cfg/config
+cp scripts/cfg/config.sample /opt/Eye/scripts/cfg/config
 
-edit: /usr/local/scripts/cfg/config
+edit: /opt/Eye/scripts/cfg/config
 
 Надо указать пароль в  mysql и базу данных!!!
 
@@ -144,15 +144,15 @@ systemctl start dhcp-log
 
 1. Для определения вендора оборудования по маку, необходимо импортировать базу маков:
 
-cp docs/mac-oids/download-macs.sh /usr/local/scripts/
-cp docs/mac-oids/update-mac-vendors.pl /usr/local/scripts/
+cp docs/mac-oids/download-macs.sh /opt/Eye/scripts/
+cp docs/mac-oids/update-mac-vendors.pl /opt/Eye/scripts/
 
-chmod +x /usr/local/scripts/download-macs.sh
-chmod +x /usr/local/scripts/update-mac-vendors.pl
+chmod +x /opt/Eye/scripts/download-macs.sh
+chmod +x /opt/Eye/scripts/update-mac-vendors.pl
 
 Run:
-/usr/local/scripts/download-macs.sh
-/usr/local/scripts/update-mac-vendors.pl
+/opt/Eye/scripts/download-macs.sh
+/opt/Eye/scripts/update-mac-vendors.pl
 
 И удалите скрипты после завершения их работы
 
@@ -224,7 +224,7 @@ add action=reject chain=forward out-interface-list=WAN reject-with=icmp-network-
 add max-limit=[YOU BANDWIDTH] name=upload_root_[WAN_INTERFACE_NAME] parent=[WAN_INTERFACE_NAME] queue=pcq-upload-default
 add name=download_root_[LAN_INTERFACE_NAME] parent=[LAN_INTERFACE_NAME] queue=pcq-download-default
 
-запускаем /usr/local/scripts/sync_mikrotik.pl
+запускаем /opt/Eye/scripts/sync_mikrotik.pl
 Скрипт создаст правила фильтрации и шейпера
 
 #dhcp script

@@ -4,13 +4,15 @@ logger -t dhcpd "Refresh dnsmasq config request"
 
 force=$1
 
-/usr/local/scripts/print-dnsmasq.pl >/tmp/mac-all
+/opt/Eye/scripts/print-dnsmasq.pl >/tmp/mac-all
 ret=$?
 
 if [ ${ret} -ne 0 ]; then
     logger -t dhcpd "Config generate error! Bye."
     exit
     fi
+
+[ ! -e "/etc/dnsmasq.d/" ] && mkdir -p "/etc/dnsmasq.d/"
 
 touch /etc/dnsmasq.d/mac-all
 CHANGES=$(diff -ubBi /tmp/mac-all /etc/dnsmasq.d/mac-all | egrep "^[+-]dhcp" | awk '{ print $1 }' | sed -E 's/(\+|\-)//;s/dhcp-host=//;s/\,//' | sort -u)
