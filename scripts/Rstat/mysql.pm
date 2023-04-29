@@ -52,6 +52,7 @@ init_db
 init_option
 insert_record
 IpToStr
+unbind_ports
 resurrection_auth
 new_auth
 StrToIp
@@ -329,6 +330,20 @@ $list->execute() or die "Unable to execute $tsql: " . $db->errstr;
 my $row_ref = $list->fetchrow_hashref();
 $list->finish();
 return $row_ref;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub unbind_ports {
+my $db = shift;
+my $device_id = shift;
+return if (!$db);
+return if (!$device_id);
+my @target = get_records_sql($db, "SELECT U.target_port_id,U.id FROM device_ports U WHERE U.device_id=".$device_id);
+foreach my $row (@target) {
+        do_sql($db, "UPDATE device_ports SET target_port_id=0 WHERE target_port_id=".$row->{id});
+        do_sql($db, "UPDATE device_ports SET target_port_id=0 WHERE id=".$row->{id});
+    }
 }
 
 #---------------------------------------------------------------------------------------------------------------

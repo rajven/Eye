@@ -17,6 +17,7 @@ use Rstat::mysql;
 use Rstat::net_utils;
 use DateTime;
 use Fcntl qw(:flock);
+
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
@@ -150,14 +151,23 @@ do_sql($dbh,"DELETE FROM connections WHERE id='".$c_id."'");
 db_log_verbose($dbh,"Remove dup connection $c_id: $c_port_id $c_auth_id");
 }
 
-##### clean empty user account ################
+##### clean empty user account and corresponded devices ################
 my $u_sql = "SELECT * FROM User_list as U WHERE (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0";
 my @u_ref = get_records_sql($dbh,$u_sql);
 foreach my $row (@u_ref) {
 do_sql($dbh,"DELETE FROM User_list WHERE id='".$row->{id}."'");
 db_log_verbose($dbh,"Remove empty user id: $row->{id} login: $row->{login}");
+#delete binded device
+my $user_device = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=".$row->{id});
+if (!$user_device) {
+    db_log_verbose($dbh,"Remove corresponded device id: $user_device->{id} name: $user_device->{device_name}");
+    unbind_ports($dbh, $user_device->{id});
+    do_sql($dbh, "DELETE FROM connections WHERE device_id=".$user_device->{id});
+    do_sql($dbh, "DELETE FROM device_l3_interfaces WHERE device_id=".$user_device->{id});
+    do_sql($dbh, "DELETE FROM device_ports WHERE device_id=".$user_device->{id});
+    delete_record($dbh, "devices", "id=".$user_device->{id});
+    }
 }
-
 
 ##### unknown mac clean ############
 $users_sql = "SELECT mac FROM User_auth WHERE deleted=0";

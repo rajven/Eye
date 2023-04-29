@@ -36,7 +36,7 @@ if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field
 <td class="info" colspan=6> <?php  print WEB_device_type_show; print_devtypes_select($db_link, "devtypes", $f_devtype_id, "id<3"); ?>
 <?php print WEB_device_show_location; print_building_select($db_link, "building_id", $f_building_id); ?></td>
 <td class="info"><input type="submit" name="apply" value="<?php echo WEB_btn_show; ?>"></td>
-<td class="info"><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove_device" value="<?php echo WEB_btn_delete; ?>"></td>
+<td class="info" colspan=2><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove_device" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <tr align="center">
 <td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
