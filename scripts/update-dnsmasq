@@ -25,7 +25,7 @@ if [ -n "${CHANGES}" -o -n "${force}" ]; then
         #clear leases
         systemctl stop dnsmasq >/dev/null
         echo "${CHANGES}" | while read LEASE; do
-            echo "Clear ${LEASE}"
+            logger -t dhcpd "Clear ${LEASE}"
             sed -i "/${LEASE}/d" /var/lib/misc/dnsmasq.leases
         done
         systemctl start dnsmasq >/dev/null
