@@ -9,10 +9,8 @@ if (isset($_POST["removeauth"])) {
         if ($val) {
                 run_sql($db_link, 'DELETE FROM connections WHERE auth_id='.$val);
                 run_sql($db_link, 'DELETE FROM User_auth_alias WHERE auth_id='.$val);
-                $auth["deleted"] = 1;
-                $changes = get_diff_rec($db_link,"User_auth","id='$val'", '', 0);
-                if (!empty($changes)) { LOG_WARNING($db_link,"Удалён адрес доступа: \r\n $changes"); }
-                update_record($db_link, "User_auth", "id=" . $val, $auth);
+                $changes=delete_record($db_link, "User_auth", "id=" . $val);
+                if (!empty($changes)) { LOG_WARNING($db_link,"Remove user ip: \r\n $changes"); }
                 }
             }
     header("Location: " . $_SERVER["REQUEST_URI"]);

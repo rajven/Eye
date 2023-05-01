@@ -3004,6 +3004,7 @@ function delete_record($db, $table, $filter)
         if (!$sql_result) { LOG_ERROR($db, "DELETE Request: $new_sql : ".mysqli_error($db)); return; }
         }
     LOG_VERBOSE($db, "Delete FROM table $table WHERE $filter $changed_log");
+    return $changed_log;
 }
 
 function insert_record($db, $table, $newvalue)
