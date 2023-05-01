@@ -3080,7 +3080,7 @@ function get_diff_rec($db, $table, $filter, $newvalue, $only_changed)
             }
     $old_record = '';
     if (!$only_changed) {
-        $old_record = "\r\n Не изменялось:\r\n";
+        $old_record = "\r\n Has not changed:\r\n";
 	foreach ($old as $key => $value) {
             if (!empty($newvalue[$key])) { $old_record = $old_record . " $key = $value,\r\n"; }
             }
