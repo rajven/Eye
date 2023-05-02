@@ -146,6 +146,7 @@ if (!$pid) {
             $dhcp_record->{hostname_utf8}=$converter->convert($client_hostname);
             $dhcp_record->{timestamp} = $timestamp;
             $dhcp_record->{last_time} = time();
+            $dhcp_record->{hotspot}=is_hotspot($dbh,$dhcp_record->{ip});
             $leases{$ip}=$dhcp_record;
 
             log_debug(uc($type).">>");
@@ -159,17 +160,17 @@ if (!$pid) {
             log_debug("END GET");
 
             my $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
-	    if (!$auth_record and $type eq 'old' ) { $type='add'; }
+	        if (!$auth_record and $type eq 'old' ) { $type='add'; }
 
             if ($type eq 'add') {
-                my $res_id = resurrection_auth($hdb,$dhcp_record->{ip},$mac,$type,$dhcp_record->{hostname_utf8});
+                my $res_id = resurrection_auth($hdb,$dhcp_record);
                 next if (!$res_id);
                 $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE id='.$res_id);
                 db_log_info($hdb,"Check for new auth. Found id: $res_id",$res_id);
                 } else { $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC'); }
 
             my $auth_id = $auth_record->{id};
-	    my $auth_ou_id = $auth_record->{ou_id};
+	        my $auth_ou_id = $auth_record->{ou_id};
 
             update_dns_record($hdb,$dhcp_record,$auth_record);
 
@@ -181,7 +182,7 @@ if (!$pid) {
                 update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
                 }
 
-            if ($hotspot_networks->match_string($dhcp_record->{ip}) and $ignore_hotspot_dhcp_log) { next; }
+            if ($dhcp_record->{hotspot} and $ignore_hotspot_dhcp_log) { next; }
 
             if ($ignore_update_dhcp_event and $type=~/old/i) { next; }
 

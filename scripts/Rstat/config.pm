@@ -120,8 +120,6 @@ if (! -e "$config_file") { die "Config $config_file not found!"; }
 my $Config = Config::Tiny->new;
 $Config = Config::Tiny->read($config_file, 'utf8' );
 
-#print Dumper($Config);
-
 our %config_ref;
 
 ### current script pathname
@@ -197,8 +195,8 @@ our $DBUSER 		= $Config->{_}->{DBUSER} || "rstat";
 our $DBPASS 		= $Config->{_}->{DBPASS} || "rstat";
 
 our $domain_auth	= $Config->{_}->{domain_auth} || 'Administrator%password';
-our $winexe		= $Config->{_}->{winexe} || '/usr/bin/winexe';
-our $fping		= $Config->{_}->{fping} || '/sbin/fping';
+our $winexe		    = $Config->{_}->{winexe} || '/usr/bin/winexe';
+our $fping		    = $Config->{_}->{fping} || '/sbin/fping';
 
 our @subnets=();
 

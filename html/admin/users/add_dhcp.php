@@ -11,28 +11,33 @@ if (!empty($_GET["ip"]) and !empty($_GET["mac"])) {
     if ($faction == 1) { $action = 'add'; }
     if ($faction == 0) { $action = 'del'; }
 
+	$dhcp_record['ip']=$ip;
+	$dhcp_record['mac']=$mac;
+	$dhcp_record['type']=$action;
+	$dhcp_record['hostname']=$dhcp_hostname;
+	$dhcp_record['hotspot']=is_hotspot($db_link,$ip);
+	$dhcp_record['ip_aton']=ip2long($ip);
+
     LOG_VERBOSE($db_link, "external dhcp request for $ip [$mac] $action");
     if (checkValidIp($ip) and is_our_network($db_link, $ip)) {
 		$log_dhcp = 1;
-        $ip_aton = ip2long($ip);
 		//check hotspot
-		$hotspot_user = is_hotspot($db_link,$ip);
-		if ($hotspot_user) {
+		if ($dhcp_record['hotspot']) {
 			LOG_DEBUG($db_link,"Hotspot user found!");
 			$log_dhcp_hotspot = get_option($db_link,44);
 			if (!isset($log_dhcp_hotspot)) { $log_dhcp_hotspot = 0; }
 			$log_dhcp = !$log_dhcp_hotspot;
 			}
-		$auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE ip_int=" . $ip_aton . " AND deleted=0");
+		$auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE ip_int=" . $dhcp_record['ip_aton'] . " AND deleted=0");
 		$aid = NULL;
 		if (!empty($auth)) {
 	    	$aid = $auth['id'];
 	    	LOG_VERBOSE($db_link,"Found auth for dhcp id: $aid with ip: $ip mac: $mac",$aid);
             } else {
 	    	LOG_VERBOSE($db_link,"User ip record not found for ip: $ip mac: $mac action: $action. Create it!",0);
-	    	$aid = resurrection_auth($db_link, $ip, $mac, $action, $dhcp_hostname);
+	    	$aid = resurrection_auth($db_link, $dhcp_record);
 	    	if (empty($aid)) {
-                LOG_ERRROR($db_link,"Failed create new user record",0);
+                LOG_ERROR($db_link,"Failed create new user record for ip: $ip mac: $mac",0);
                 exit;
                 }
 	    	LOG_VERBOSE($db_link,"Add user by dhcp request ip: $ip mac: $mac action: $action",$aid);
@@ -53,11 +58,11 @@ if (!empty($_GET["ip"]) and !empty($_GET["mac"])) {
 	    	}
         	if ($log_dhcp) {
     	        $dhcp_log['auth_id'] = $aid;
-                $dhcp_log['ip'] = $ip;
-	        	$dhcp_log['ip_int'] = $ip_aton;
-                $dhcp_log['mac'] = $mac;
-	        	$dhcp_log['action'] = $action;
 	        	$dhcp_log['dhcp_hostname'] = $dhcp_hostname;
+				$dhcp_log['ip']=$dhcp_record['ip'];
+				$dhcp_log['mac']=$dhcp_record['mac'];
+				$dhcp_log['action']=$dhcp_record['type'];
+				$dhcp_log['ip_int']=$dhcp_record['ip_aton'];
     	        insert_record($db_link, "dhcp_log", $dhcp_log); 
     	        }
         } else { LOG_ERROR($db_link, "$ip - wrong network!"); }

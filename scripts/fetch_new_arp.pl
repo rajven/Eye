@@ -129,13 +129,18 @@ foreach my $arp_table (@arp_array) {
         next if (!$office_networks->match_string($ip));
         db_log_debug($dbh,"Analyze ip: $ip mac: $mac") if ($debug);
         my $auth_id = $users->match_string($ip);
-        my $cur_auth_id=resurrection_auth($dbh,$ip,$mac,'arp');
+        my $arp_record;
+        $arp_record->{ip} = $ip;
+        $arp_record->{mac} = $mac;
+        $arp_record->{type} = 'arp';
+        $arp_record->{ip_aton} = $ip_aton;
+        $arp_record->{hotspot} = is_hotspot($dbh,$ip);
+        my $cur_auth_id=resurrection_auth($dbh,$arp_record);
         next if (!$cur_auth_id);
         $mac_history{$simple_mac}{auth_id}=$cur_auth_id;
         if ($auth_id ne $cur_auth_id) { $mac_history{$simple_mac}{changed}=1; }
     }
 }
-
 
 db_log_verbose($dbh,'Arp discovery stopped.');
 }

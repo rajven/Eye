@@ -195,8 +195,6 @@ $user_ip_aton=StrToIp($user_ip);
 my $auth_id=new_auth($dbh,$user_ip);
 next if (!$auth_id);
 
-db_log_warning($dbh,"New ip $user_ip added by netflow!");
-
 my $new_user = get_record_sql($dbh,"SELECT * FROM User_auth WHERE id=$auth_id");
 
 $users->add_string($user_ip,$auth_id);

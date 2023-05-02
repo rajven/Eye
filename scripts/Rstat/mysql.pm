@@ -829,12 +829,15 @@ return $result;
 
 sub resurrection_auth {
 my $db = shift;
-my $ip = shift;
-my $mac = shift;
-my $action = shift;
-my $hostname = shift;
+my $ip_record = shift;
 
-my $ip_aton=StrToIp($ip);
+my $ip = $ip_record->{ip};
+my $mac = $ip_record->{mac};
+my $action = $ip_record->{type};
+my $hostname = $ip_record->{hostname};
+
+if (!exists $ip_record->{ip_aton}) { $ip_record->{ip_aton}=StrToIp($ip); }
+my $ip_aton=$ip_record->{ip_aton};
 
 my $timestamp=GetNowTime();
 
@@ -870,18 +873,18 @@ if ($record->{id}) {
     if (!$record->{mac}) {
         db_log_verbose($db,"use empty auth record...");
         $new_record->{mac}=$mac;
-	if ($action!~/arp/i) {
-	    $new_record->{dhcp_action}=$action;
-	    $new_record->{dhcp_time}=$timestamp;
-	    if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
-	    update_record($db,'User_auth',$new_record,"id=$record->{id}");
-            } else {
-	    update_record($db,'User_auth',$new_record,"id=$record->{id}");
-	    }
+	    if ($action!~/arp/i) {
+	        $new_record->{dhcp_action}=$action;
+	        $new_record->{dhcp_time}=$timestamp;
+	        if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
+	            update_record($db,'User_auth',$new_record,"id=$record->{id}");
+                } else {
+	            update_record($db,'User_auth',$new_record,"id=$record->{id}");
+	            }
         return $record->{id};
         }
     if ($record->{mac}) {
-        db_log_warning($db,"For ip: $ip mac change detected! Old mac: [".$record->{mac}."] New mac: [".$mac."]. Disable old auth_id: $record->{id}");
+        db_log_warning($db,"For ip: $ip mac change detected! Old mac: [".$record->{mac}."] New mac: [".$mac."]. Disable old auth_id: $record->{id}") if (!$ip_record->{hotspot});
         my $disable_record;
         $disable_record->{deleted}="1";
         update_record($db,'User_auth',$disable_record,"id=".$record->{id});
@@ -907,12 +910,12 @@ $new_record->{dhcp_time}=$timestamp;
 if ($auth_exists) {
     #found ->Resurrection old record
     my $resurrection_id = get_id_record($db,'User_auth',"ip_int=".$ip_aton." and mac='".$mac."'");
-    if (!is_hotspot($db,$ip)) { db_log_warning($db,"Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac"); }
+    if (!$ip_record->{hotspot}) { db_log_warning($db,"Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac"); }
 	    else { db_log_info($db,"Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac"); }
     update_record($db,'User_auth',$new_record,"id=$resurrection_id");
     } else {
     #not found ->create new record
-    if (!is_hotspot($db,$ip)) { db_log_warning($db,"New ip created! ip: $ip mac: $mac"); } else { db_log_info($db,"New ip created! ip: $ip mac: $mac"); }
+    if (!$ip_record->{hotspot}) { db_log_warning($db,"New ip created! ip: $ip mac: $mac"); } else { db_log_info($db,"New ip created! ip: $ip mac: $mac"); }
     insert_record($db,'User_auth',$new_record);
     }
 #filter and status
@@ -920,12 +923,12 @@ my $cur_auth_id=get_id_record($db,'User_auth',"ip='$ip' and mac='$mac' and delet
 if ($cur_auth_id) {
     $record=get_record_sql($db,"SELECT * FROM User_list WHERE id=".$new_user_id);
     if ($record) {
-	$new_record->{ou_id}=$record->{ou_id};
-	$new_record->{filter_group_id}=$record->{filter_group_id};
-	$new_record->{queue_id}=$record->{queue_id};
-	$new_record->{enabled}="$record->{enabled}";
+	    $new_record->{ou_id}=$record->{ou_id};
+	    $new_record->{filter_group_id}=$record->{filter_group_id};
+	    $new_record->{queue_id}=$record->{queue_id};
+	    $new_record->{enabled}="$record->{enabled}";
         update_record($db,'User_auth',$new_record,"id=$cur_auth_id");
-	}
+	    }
     } else { return; }
 return $cur_auth_id;
 }

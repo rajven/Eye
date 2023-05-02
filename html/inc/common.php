@@ -1379,11 +1379,11 @@ function new_auth($db, $ip, $mac, $user_id)
 
     if (!empty($mac)) {
         $auth_record = get_record_sql($db, "SELECT * FROM User_auth WHERE ip_int=$ip_aton AND mac='" . mac_dotted($mac) . "' AND deleted=0");
-	if (!empty($auth_record)) {
+	    if (!empty($auth_record)) {
 	        LOG_WARNING($db, "Pair ip-mac already exists! Skip creating $ip [$mac] auth_id: ".$auth_record["id"]);
     		return $auth_record['id'];
+	        }
 	    }
-	}
 
     // default id
     $save_traf = get_option($db, 23);
@@ -1392,14 +1392,14 @@ function new_auth($db, $ip, $mac, $user_id)
     // seek old auth with same ip and mac
     $resurrection_id = get_id_record($db, 'User_auth', " deleted=1 AND ip_int=" . $ip_aton . " AND mac='" . $mac . "'");
     if (!empty($resurrection_id)) {
-        $msg.="Восстанавливаем доступ для auth_id: $resurrection_id with ip: $ip and mac: $mac ";
+        $msg.="Recovered auth_id: $resurrection_id with ip: $ip and mac: $mac ";
         $auth['user_id'] = $user_id;
         $auth['deleted'] = 0;
         $auth['save_traf'] = $save_traf *1;
         update_record($db, "User_auth", "id=$resurrection_id", $auth);
         } else {
         // not found ->create new record
-        $msg.="Создаём новый ip-адрес \r\nip: $ip\r\nmac: $mac\r\n";
+        $msg.="Create new ip record \r\nip: $ip\r\nmac: $mac\r\n";
         $auth['deleted'] = 0;
         $auth['user_id'] = $user_id;
         $auth['ip'] = $ip;
@@ -1418,9 +1418,16 @@ function new_auth($db, $ip, $mac, $user_id)
     return $resurrection_id;
 }
 
-function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
+function resurrection_auth($db, $ip_record )
 {
+    $ip = $ip_record['ip'];
+    $mac = $ip_record['mac'];
+    $action = $ip_record['type'];
+    $dhcp_hostname = $ip_record['hostname'];
+    $hotspot_found = $ip_record['hotspot'];
+
     $ip_aton = ip2long($ip);
+    
     $auth_record= get_record_sql($db, "SELECT * FROM User_auth WHERE ip_int=$ip_aton AND mac='" . $mac . "' AND deleted=0");
     if (!empty($auth_record)) {
         $user_info = get_record_sql($db, "SELECT * FROM User_list WHERE id=".$auth_record['user_id']);
@@ -1453,7 +1460,9 @@ function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
             update_record($db, "User_auth", "id=" . $auth_record['id'], $auth);
             return $auth_record['id'];
         } else {
-            LOG_WARNING($db, "for ip: $ip mac change detected! Old mac: [".$auth_record['mac']."] New mac: [".mac_dotted($mac)."]. Disable old auth_id: ".$auth_record['id']);
+            if (!$hotspot_found) {
+                LOG_WARNING($db, "for ip: $ip mac change detected! Old mac: [".$auth_record['mac']."] New mac: [".mac_dotted($mac)."]. Disable old auth_id: ".$auth_record['id']);
+                }
             run_sql($db, "UPDATE User_auth SET changed=1, deleted=1 WHERE id=" . $auth_record['id']);
         }
     }
@@ -1471,7 +1480,7 @@ function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
     if (!empty($auth_record)) {
         // found ->Resurrection old record
         $resurrection_id = $auth_record['id'];
-        $msg .="Восстанавливаем доступ для auth_id: $resurrection_id with ip: $ip and mac: $mac ";
+        $msg .="Recovered auth_id: $resurrection_id with ip: $ip and mac: $mac ";
         $auth['dhcp_action'] = $action;
         $auth['user_id'] = $new_user_id;
         $auth['deleted'] = 0;
@@ -1497,10 +1506,10 @@ function resurrection_auth($db, $ip, $mac, $action, $dhcp_hostname)
     }
     //check rules, update filter and state for new record
     if (!empty($resurrection_id)) {
-            $user_rec=apply_auth_rule($db,$resurrection_id,$new_user_id);
+        $user_rec=apply_auth_rule($db,$resurrection_id,$new_user_id);
 	    $msg.="filter: ".$user_rec['filter_group_id']."\r\n queue_id: ".$user_rec['queue_id']."\r\n enabled: ".$user_rec['enabled']."\r\nid: $resurrection_id";
-	    if (!is_hotspot($db,$ip) and !empty($msg)) { LOG_WARNING($db, $msg); }
-	    if (is_hotspot($db,$ip) and !empty($msg)) { LOG_INFO($db, $msg); }
+	    if (!$hotspot_found and !empty($msg)) { LOG_WARNING($db, $msg); }
+	    if ($hotspot_found and !empty($msg)) { LOG_INFO($db, $msg); }
 	    }
 
     return $resurrection_id;
