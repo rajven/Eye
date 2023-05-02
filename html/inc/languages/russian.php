@@ -419,6 +419,10 @@ define("WEB_log_full","Полный лог");
 define("WEB_log_select_ip_mac","ip или mac");
 define("WEB_log_report_by_device","Отчёт по устройству");
 define("WEB_log_mac_history_hint","Здесь находится история всех работавших когда-то маков/ip.<br>Если нужно найти место подключения - смотреть приключения маков!<br>");
+define("WEB_log_dhcp_add","Аренда адреса");
+define("WEB_log_dhcp_del","Освобождение адреса");
+define("WEB_log_dhcp_old","Обновление аренды");
+
 
 /* reports */
 define("WEB_report_user_traffic","Трафик пользователя");

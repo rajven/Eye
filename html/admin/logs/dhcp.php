@@ -51,13 +51,13 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <?php
 
 #speedup dhcp log paging
-$sSQL = "SELECT `timestamp`,mac,ip,action,auth_id FROM dhcp_log as D JOIN (SELECT id FROM dhcp_log WHERE `timestamp`>='$date1' and `timestamp`<'$date2' $dhcp_where ORDER BY `timestamp` DESC LIMIT $start,$displayed) AS I ON D.id = I.id";
+$sSQL = "SELECT `timestamp`,mac,ip,action,auth_id FROM dhcp_log as D JOIN (SELECT id FROM dhcp_log WHERE `timestamp`>='$date1' and `timestamp`<'$date2' $dhcp_where ORDER BY `id` DESC LIMIT $start,$displayed) AS I ON D.id = I.id";
 $userlog = get_records_sql($db_link, $sSQL);
 
 foreach ($userlog as $row) {
-    if ($row['action'] == "old") { $row['action'] = "Обновление аренды: "; }
-    if ($row['action'] == "add") { $row['action'] = "Аренда адреса: "; }
-    if ($row['action'] == "del") { $row['action'] = "Освобождение адреса: "; }
+    if ($row['action'] == "old") { $row['action'] = WEB_log_dhcp_old.": "; }
+    if ($row['action'] == "add") { $row['action'] = WEB_log_dhcp_add.": "; }
+    if ($row['action'] == "del") { $row['action'] = WEB_log_dhcp_del.": "; }
     $l_msg = $row['action'] . " " . $row['mac'] . " " . $row['ip'];
     print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";

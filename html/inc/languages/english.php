@@ -419,6 +419,9 @@ define("WEB_log_full","Full log");
 define("WEB_log_select_ip_mac","ip or mac");
 define("WEB_log_report_by_device","Device report");
 define("WEB_log_mac_history_hint","Here is the history of all the macs/ip that used to work.<br>If you need to find a place to connect, watch mac adventures!<br>");
+define("WEB_log_dhcp_add","Create lease");
+define("WEB_log_dhcp_del","Release ip");
+define("WEB_log_dhcp_old","Refresh lease");
 
 /* reports */
 define("WEB_report_user_traffic","User traffic");
