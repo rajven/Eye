@@ -4,6 +4,8 @@
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
 
+# Use socket for logging
+
 use utf8;
 use English;
 use base;
@@ -19,13 +21,15 @@ use warnings;
 use Getopt::Long;
 use Proc::Daemon;
 use POSIX;
+use Cwd;
+use IO::Socket::UNIX qw( SOCK_STREAM );
 use Net::Netmask;
+use File::Spec::Functions;
+use File::Copy qw(move);
 use Text::Iconv;
-use File::Tail;
 
 my $pf = '/var/run/dhcp-log.pid';
-
-my $log_file='/var/log/dhcp.log';
+my $socket_path='/var/spool/dhcp-log.socket';
 
 my $mute_time=300;
 
@@ -93,15 +97,17 @@ if (!$pid) {
 
         my %leases;
 
+        if (! -e "$socket_path") { mkfifo($socket_path,0622); }
+
+        open(DHCP_SOCKET,$socket_path) || die("Error open fifo socket $socket_path: $!");
+
         # Create new database handle. If we can't connect, die()
         my $hdb = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS");
         if ( !defined $hdb ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
 
-        #parse log
-        my $dhcp_log=File::Tail->new(name=>$log_file,maxinterval=>5,interval=>1) || die "$log_file not found!";
-        while (defined(my $logline=$dhcp_log->read)) {
+        while (my $logline = <DHCP_SOCKET>) {
+            next unless defined $logline;
             chomp($logline);
-
             log_verbose("GET CLIENT REQUEST: $logline");
             my ($type,$mac,$ip,$hostname,$timestamp,$tags,$sup_hostname,$old_hostname) = split (/\;/, $logline);
             next if (!$type);
@@ -218,6 +224,7 @@ if (!$pid) {
             $dhcp_log->{timestamp} = $dhcp_event_time;
             insert_record($hdb,'dhcp_log',$dhcp_log);
             }
+        close DHCP_SOCKET;
         };
         if ($@) { log_error("Exception found: $@"); sleep(60); }
         }
