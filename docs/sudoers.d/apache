@@ -1,1 +1,5 @@
-apache	ALL=(ALL)	NOPASSWD: /opt/Eye/scripts/sync_mikrotik.pl, /opt/Eye/scripts/update-dnsmasq, /opt/Eye/scripts/fetch_new_arp.pl
+apache        ALL=(root)      NOPASSWD: /opt/Eye/scripts/sync_mikrotik.pl
+apache        ALL=(root)      NOPASSWD: /opt/Eye/scripts/update-dnsmasq
+apache        ALL=(root)      NOPASSWD: /opt/Eye/scripts/fetch_new_arp.pl
+apache        ALL=(root)      NOPASSWD: /opt/Eye/scripts/restart_nagios
+apache        ALL=(root)      NOPASSWD: /opt/Eye/scripts/dnsmasq-hook.sh

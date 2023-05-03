@@ -2,3 +2,4 @@ www-data        ALL=(root)      NOPASSWD: /opt/Eye/scripts/sync_mikrotik.pl
 www-data        ALL=(root)      NOPASSWD: /opt/Eye/scripts/update-dnsmasq
 www-data        ALL=(root)      NOPASSWD: /opt/Eye/scripts/fetch_new_arp.pl
 www-data        ALL=(root)      NOPASSWD: /opt/Eye/scripts/restart_nagios
+www-data        ALL=(root)      NOPASSWD: /opt/Eye/scripts/dnsmasq-hook.sh
