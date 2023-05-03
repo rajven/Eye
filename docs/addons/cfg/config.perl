@@ -1,5 +1,5 @@
 #log files
-log_dir=/var/log/scripts
+log_dir=/opt/Eye/scripts/log
 
 #dnsmasq configs
 dhcpd_conf=/etc/dnsmasq.d
@@ -19,10 +19,6 @@ DBPASS=password
 #login for windows AD
 domain_auth=ORG\dhcp%password
 winexe=/usr/bin/winexe
-
-enable_ad_dns_update=0
-ad_dns=192.168.1.100
-ad_zone=org.local
 
 #fping
 fping=/sbin/fping
