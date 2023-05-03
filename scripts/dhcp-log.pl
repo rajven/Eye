@@ -100,6 +100,9 @@ if (!$pid) {
         #parse log
         my $dhcp_log=File::Tail->new(name=>$log_file,maxinterval=>5,interval=>1) || die "$log_file not found!";
         while (defined(my $logline=$dhcp_log->read)) {
+
+            if (!$logline) { select(undef, undef, undef, 0.15); next; }
+
             chomp($logline);
 
             log_verbose("GET CLIENT REQUEST: $logline");
