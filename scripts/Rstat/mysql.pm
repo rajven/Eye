@@ -501,7 +501,7 @@ my $ip  = shift;
 my $users = new Net::Patricia;
 #check hotspot
 my @ip_rules = get_records_sql($db,'SELECT * FROM subnets WHERE hotspot=1 AND LENGTH(subnet)>0');
-foreach my $row (@ip_rules) { $users->add_string($row->{subnet},$config_ref{hotspot_user_id}); }
+foreach my $row (@ip_rules) { $users->add_string($row->{subnet}); }
 if ($users->match_string($ip)) { return 1; }
 return 0;
 }
@@ -837,6 +837,8 @@ my $action = $ip_record->{type};
 my $hostname = $ip_record->{hostname};
 
 if (!exists $ip_record->{ip_aton}) { $ip_record->{ip_aton}=StrToIp($ip); }
+if (!exists $ip_record->{hotspot}) { $ip_record->{hotspot}=is_hotspot($db,$ip); }
+
 my $ip_aton=$ip_record->{ip_aton};
 
 my $timestamp=GetNowTime();
