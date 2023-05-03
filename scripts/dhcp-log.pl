@@ -98,10 +98,10 @@ if (!$pid) {
         if ( !defined $hdb ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
 
         #parse log
-        my $dhcp_log=File::Tail->new(name=>$log_file,maxinterval=>5,interval=>1,nowait=>0) || die "$log_file not found!";
-        while (defined(my $logline=$dhcp_log->read)) {
+        my $dhcp_log=File::Tail->new(name=>$log_file,maxinterval=>5,interval=>1,ignore_nonexistant=>1) || die "$log_file not found!";
+        while (my $logline=$dhcp_log->read) {
 
-            if (!$logline) { select(undef, undef, undef, 0.15); next; }
+            next if (!$logline);
 
             chomp($logline);
 
