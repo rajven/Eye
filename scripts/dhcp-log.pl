@@ -213,6 +213,7 @@ if (!$pid) {
                 }
 
             my $dhcp_log;
+            if (!$auth_id) { $auth_id=0; }
             $dhcp_log->{auth_id} = $auth_id;
             $dhcp_log->{ip} = $dhcp_record->{ip};
             $dhcp_log->{ip_int} = $dhcp_record->{ip_aton};
