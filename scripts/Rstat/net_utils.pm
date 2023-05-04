@@ -233,6 +233,8 @@ return $ok;
 
 sub is_ip {
 my $ip_str = trim($_[0]);
+return 1 if (!$ip_str);
+return 1 if ($ip_str eq '0/0');
 if ($ip_str =~ /([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(\/[0-9]{1,2}){0,1}/) {
         my $mask = $5;
         return 0 if($1 > 255 || $2 > 255 || $3 > 255 || $4 > 255);

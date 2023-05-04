@@ -326,9 +326,11 @@ if ($connected_users_only) { next if (!$connected_users->match_string($row->{ip}
 #skip not office ip's
 next if (!$office_networks->match_string($row->{ip}));
 $found_users{$row->{'id'}}=$row->{ip};
+#filter group acl's
 $users{'group_'.$row->{filter_group_id}}->{$row->{ip}}=1;
 $users{'group_all'}->{$row->{ip}}=1;
 $lists{'group_'.$row->{filter_group_id}}=1;
+#queue acl's
 if ($row->{queue_id}) { $users{'queue_'.$row->{queue_id}}->{$row->{ip}}=1; }
 }
 
@@ -386,9 +388,9 @@ foreach my $row (@filterlist_ref) {
         } else {
         #if dst not ip - check dns record
         my @dns_record=ResolveNames($row->{dst},undef);
-        $resolved_ips = (scalar @dns_record>0);
+        my $resolved_ips = (scalar @dns_record>0);
         next if (!$resolved_ips);
-        foreach my $resolved_ip (@dns_record) {
+        foreach my $resolved_ip (sort @dns_record) {
                 #enable dns dst filters
                 $filters{$row->{id}}->{dns_dst}=1;
                 #add dynamic dns filter
@@ -400,7 +402,7 @@ foreach my $row (@filterlist_ref) {
                 $filters{$dyn_filters_index}->{action}=$row->{action};
                 $filters{$dyn_filters_index}->{dns_dst}=0;
                 #save new filter dns id for original filter id
-                push(@{$dyn_filters->{$row->{id}}},$dyn_filters_index);
+                push(@{$dyn_filters{$row->{id}}},$dyn_filters_index);
                 $dyn_filters_index++;
             }
         }
@@ -409,10 +411,13 @@ foreach my $row (@filterlist_ref) {
 log_debug("Filters status:". Dumper(\%filters));
 log_debug("DNS-filters status:". Dumper(\%dyn_filters));
 
+#clean unused filter records
+do_sql($dbh,"DELETE FROM Group_filters WHERE group_id NOT IN (SELECT id FROM Group_list)");
+
 my @grouplist_ref = get_records_sql($dbh,"SELECT group_id,filter_id,Group_filters.order FROM Group_filters order by Group_filters.group_id,Group_filters.order");
 
 my %group_filters;
-my $index=1;
+my $index=0;
 foreach my $row (@grouplist_ref) {
     #if dst dns filter not found
     if (!$filters{$row->{filter_id}}->{dns_dst}) {
@@ -420,11 +425,14 @@ foreach my $row (@grouplist_ref) {
         $index++;
     } else {
         #if found dns dst filters - add
-        if (exists $dyn_filters->{$row->{filter_id}} and scalar @{$dyn_filters->{$row->{filter_id}}}>0) {
-            foreach my $dyn_filter (@{$dyn_filters->{$row->{filter_id}}}) {
-                $group_filters{'group_'.$row->{group_id}}->{$index}=$dyn_filter;
-                $index++; 
-            }
+	if (exists $dyn_filters{$row->{filter_id}}) {
+	    my @dyn_ips = @{$dyn_filters{$row->{filter_id}}};
+	    if (scalar @dyn_ips >0) {
+		for (my $i = 0; $i < scalar @dyn_ips; $i++) {
+        	    $group_filters{'group_'.$row->{group_id}}->{$index}=$dyn_ips[$i];
+        	    $index++;
+        	    }
+	    }
         }
     }
 }
@@ -514,6 +522,8 @@ next if (!exists($group_filters{$group_name}));
 foreach my $filter_index (sort keys %{$group_filters{$group_name}}) {
     my $filter_id=$group_filters{$group_name}->{$filter_index};
     next if (!$filters{$filter_id});
+    next if ($filters{$filter_id}->{dns_dst});
+
     my $src_rule='chain='.$group_name;
     my $dst_rule='chain='.$group_name;
 
@@ -563,7 +573,6 @@ foreach my $filter_index (sort keys %{$group_filters{$group_name}}) {
     }
 }
 
-log_debug("New chain rules:".Dumper(\%chain_rules));
 
 #chain filters
 foreach my $group_name (keys %group_filters) {
@@ -571,8 +580,7 @@ foreach my $group_name (keys %group_filters) {
 next if (!$group_name);
 
 my @get_filter=netdev_cmd($gate,$t,'ssh','/ip firewall filter print terse without-paging where chain='.$group_name,1);
-
-log_debug("Get chain $group_name:".Dumper(\@get_filter));
+chomp(@get_filter);
 
 my @cur_filter=();
 my $chain_ok=1;
@@ -581,11 +589,15 @@ foreach (my $f_index=0; $f_index<scalar(@get_filter); $f_index++) {
     my $filter_str=trim($get_filter[$f_index]);
     next if (!$filter_str);
     next if ($filter_str!~/^(\d){1,3}/);
+    $filter_str=~s/[^[:ascii:]]//g;
     $filter_str=~s/^\d{1,3}\s+//;
     $filter_str=trim($filter_str);
     next if (!$filter_str);
     push(@cur_filter,$filter_str);
 }
+
+log_debug("Current filters:".Dumper(\@cur_filter));
+log_debug("New filters:".Dumper($chain_rules{$group_name}));
 
 #current state rules
 foreach (my $f_index=0; $f_index<scalar(@cur_filter); $f_index++) {
