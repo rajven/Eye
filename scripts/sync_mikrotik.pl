@@ -385,7 +385,7 @@ foreach my $row (@filterlist_ref) {
         $filters{$row->{id}}->{dns_dst}=0;
         } else {
         #if dst not ip - check dns record
-        my @dns_record=ResolveNames($row->{dst});
+        my @dns_record=ResolveNames($row->{dst},undef);
         $resolved_ips = (scalar @dns_record>0);
         next if (!$resolved_ips);
         foreach my $resolved_ip (@dns_record) {
@@ -400,7 +400,7 @@ foreach my $row (@filterlist_ref) {
                 $filters{$dyn_filters_index}->{action}=$row->{action};
                 $filters{$dyn_filters_index}->{dns_dst}=0;
                 #save new filter dns id for original filter id
-                push(@{$dyn_filter->{$row->{id}}},$dyn_filters_index);
+                push(@{$dyn_filters->{$row->{id}}},$dyn_filters_index);
                 $dyn_filters_index++;
             }
         }
@@ -420,8 +420,8 @@ foreach my $row (@grouplist_ref) {
         $index++;
     } else {
         #if found dns dst filters - add
-        if (exists $dyn_filter->{$row->{filter_id}} and scalar @{$dyn_filter->{$row->{filter_id}}}>0) {
-            foreach my $dyn_filter (@{$dyn_filter->{$row->{filter_id}}}) {
+        if (exists $dyn_filters->{$row->{filter_id}} and scalar @{$dyn_filters->{$row->{filter_id}}}>0) {
+            foreach my $dyn_filter (@{$dyn_filters->{$row->{filter_id}}}) {
                 $group_filters{'group_'.$row->{group_id}}->{$index}=$dyn_filter;
                 $index++; 
             }

@@ -59,9 +59,10 @@ our $Loopback;
 
 sub ResolveNames {
 my $hostname = shift;
+my $ns_ip = shift;
 my @result=();
 my $res = Net::DNS::Resolver->new;
-$res->nameservers($dns_server) if (!$dns_server);
+$res->nameservers($ns_ip) if ($ns_ip);
 my $query = $res->search($hostname,"A");
 my $result;
 if ($query) {

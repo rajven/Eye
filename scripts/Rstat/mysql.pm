@@ -654,7 +654,7 @@ my $static_ref;
 my $dynamic_ref;
 
 if ($fqdn_static ne '') {
-    my @dns_record=ResolveNames($fqdn_static);
+    my @dns_record=ResolveNames($fqdn_static,$dns_server);
     $static_exists = (scalar @dns_record>0);
     if ($static_exists) {
             $static_ref = join(' ',@dns_record);
@@ -665,7 +665,7 @@ if ($fqdn_static ne '') {
     } else { $static_ok = 1; }
 
 if ($fqdn ne '') {
-    my @dns_record=ResolveNames($fqdn);
+    my @dns_record=ResolveNames($fqdn,$dns_server);
     $dynamic_exists = (scalar @dns_record>0);
     if ($dynamic_exists) {
             $dynamic_ref = join(' ',@dns_record);
