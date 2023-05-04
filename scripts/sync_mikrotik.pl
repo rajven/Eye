@@ -413,6 +413,7 @@ log_debug("DNS-filters status:". Dumper(\%dyn_filters));
 
 #clean unused filter records
 do_sql($dbh,"DELETE FROM Group_filters WHERE group_id NOT IN (SELECT id FROM Group_list)");
+do_sql($dbh,"DELETE FROM Group_filters WHERE filter_id NOT IN (SELECT id FROM Filter_list)");
 
 my @grouplist_ref = get_records_sql($dbh,"SELECT group_id,filter_id,Group_filters.order FROM Group_filters order by Group_filters.group_id,Group_filters.order");
 
