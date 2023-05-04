@@ -23,6 +23,7 @@ use Rstat::mysql;
 use DBI;
 use Fcntl qw(:flock);
 use Parallel::ForkManager;
+use Net::DNS;
 
 #$debug = 1;
 
@@ -363,24 +364,69 @@ log_debug("Queues status:".Dumper(\%queues));
 my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM Filter_list where type=0");
 
 my %filters;
+my %dyn_filters;
+
+my $max_filter_rec = get_record_sql($dbh,"SELECT MAX(id) FROM Filter_list");
+my $max_filter_id = $max_filter_rec->{id};
+
+my $dyn_filters_base = $max_filter_id+1000;
+my $dyn_filters_index = $dyn_filters_base;
+
 foreach my $row (@filterlist_ref) {
-$filters{$row->{id}}->{id}=$row->{id};
-$filters{$row->{id}}->{proto}=$row->{proto};
-$filters{$row->{id}}->{dst}=$row->{dst};
-$filters{$row->{id}}->{dstport}=$row->{dstport};
-$filters{$row->{id}}->{srcport}=$row->{srcport};
-$filters{$row->{id}}->{action}=$row->{action};
+    #if dst - ip address
+    if (is_ip($row->{dst})) {
+        $filters{$row->{id}}->{id}=$row->{id};
+        $filters{$row->{id}}->{proto}=$row->{proto};
+        $filters{$row->{id}}->{dst}=$row->{dst};
+        $filters{$row->{id}}->{dstport}=$row->{dstport};
+        $filters{$row->{id}}->{srcport}=$row->{srcport};
+        $filters{$row->{id}}->{action}=$row->{action};
+        #set false for dns dst flag
+        $filters{$row->{id}}->{dns_dst}=0;
+        } else {
+        #if dst not ip - check dns record
+        my @dns_record=ResolveNames($row->{dst});
+        $resolved_ips = (scalar @dns_record>0);
+        next if (!$resolved_ips);
+        foreach my $resolved_ip (@dns_record) {
+                #enable dns dst filters
+                $filters{$row->{id}}->{dns_dst}=1;
+                #add dynamic dns filter
+                $filters{$dyn_filters_index}->{id}=$row->{id};
+                $filters{$dyn_filters_index}->{proto}=$row->{proto};
+                $filters{$dyn_filters_index}->{dst}=$resolved_ip;
+                $filters{$dyn_filters_index}->{dstport}=$row->{dstport};
+                $filters{$dyn_filters_index}->{srcport}=$row->{srcport};
+                $filters{$dyn_filters_index}->{action}=$row->{action};
+                $filters{$dyn_filters_index}->{dns_dst}=0;
+                #save new filter dns id for original filter id
+                push(@{$dyn_filter->{$row->{id}}},$dyn_filters_index);
+                $dyn_filters_index++;
+            }
+        }
 }
 
 log_debug("Filters status:". Dumper(\%filters));
+log_debug("DNS-filters status:". Dumper(\%dyn_filters));
 
 my @grouplist_ref = get_records_sql($dbh,"SELECT group_id,filter_id,Group_filters.order FROM Group_filters order by Group_filters.group_id,Group_filters.order");
 
 my %group_filters;
 my $index=1;
 foreach my $row (@grouplist_ref) {
-$group_filters{'group_'.$row->{group_id}}->{$index}=$row->{filter_id};
-$index++;
+    #if dst dns filter not found
+    if (!$filters{$row->{filter_id}}->{dns_dst}) {
+        $group_filters{'group_'.$row->{group_id}}->{$index}=$row->{filter_id};
+        $index++;
+    } else {
+        #if found dns dst filters - add
+        if (exists $dyn_filter->{$row->{filter_id}} and scalar @{$dyn_filter->{$row->{filter_id}}}>0) {
+            foreach my $dyn_filter (@{$dyn_filter->{$row->{filter_id}}}) {
+                $group_filters{'group_'.$row->{group_id}}->{$index}=$dyn_filter;
+                $index++; 
+            }
+        }
+    }
 }
 
 log_debug("Group filters: ".Dumper(\%group_filters));

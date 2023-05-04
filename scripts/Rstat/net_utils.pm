@@ -32,6 +32,7 @@ GetDhcpRange
 GetIpRange
 GetIP
 GetSubNet
+is_ip
 is_ipip_valid
 is_ip_valid
 print_net
@@ -60,13 +61,11 @@ sub ResolveNames {
 my $hostname = shift;
 my @result=();
 my $res = Net::DNS::Resolver->new;
-$res->nameservers($dns_server);
-my $query = $res->search($hostname);
+$res->nameservers($dns_server) if (!$dns_server);
+my $query = $res->search($hostname,"A");
 my $result;
 if ($query) {
-    foreach my $rr ($query->answer) {
-        if ($rr->type eq "A") { push(@result,$result = $rr->address); }
-	}
+    foreach my $rr ($query->answer) { push(@result,$result = $rr->address);	}
     }
 return (@result);
 }
@@ -229,6 +228,20 @@ $ok = ((($ip1 ne "0/0") or ($ip2 ne "0/0")) and ($lo1==0) and ($lo2==0));
 return $ok;
 }
 
+#---------------------------------------------------------------------------------------------------------
+
+sub is_ip {
+my $ip_str = trim($_[0]);
+if ($ip_str =~ /([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(\/[0-9]{1,2}){0,1}/) {
+        my $mask = $5;
+        return 0 if($1 > 255 || $2 > 255 || $3 > 255 || $4 > 255);
+        $mask =~s/\/// if ($mask);
+        $mask = 32 if (!$mask);
+        return 0 if ($mask > 32);
+        return 1;
+        }
+return 0;
+}
 #---------------------------------------------------------------------------------------------------------
 
 sub is_ip_valid {
