@@ -391,6 +391,7 @@ foreach my $row (@filterlist_ref) {
         my $resolved_ips = (scalar @dns_record>0);
         next if (!$resolved_ips);
         foreach my $resolved_ip (sort @dns_record) {
+                next if (!$resolved_ip);
                 #enable dns dst filters
                 $filters{$row->{id}}->{dns_dst}=1;
                 #add dynamic dns filter
@@ -426,14 +427,14 @@ foreach my $row (@grouplist_ref) {
         $index++;
     } else {
         #if found dns dst filters - add
-	if (exists $dyn_filters{$row->{filter_id}}) {
-	    my @dyn_ips = @{$dyn_filters{$row->{filter_id}}};
-	    if (scalar @dyn_ips >0) {
-		for (my $i = 0; $i < scalar @dyn_ips; $i++) {
-        	    $group_filters{'group_'.$row->{group_id}}->{$index}=$dyn_ips[$i];
-        	    $index++;
+	    if (exists $dyn_filters{$row->{filter_id}}) {
+	        my @dyn_ips = @{$dyn_filters{$row->{filter_id}}};
+	        if (scalar @dyn_ips >0) {
+		        for (my $i = 0; $i < scalar @dyn_ips; $i++) {
+        	        $group_filters{'group_'.$row->{group_id}}->{$index}=$dyn_ips[$i];
+        	        $index++;
         	    }
-	    }
+	        }
         }
     }
 }
