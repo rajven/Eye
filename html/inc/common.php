@@ -3106,13 +3106,8 @@ function get_cacti_graph($host_ip, $port_index)
     if (CACTI_DB_HOST ==null or CACTI_DB_USER == null or CACTI_DB_PASS==null or CACTI_DB_NAME==null) { return; }
     if (empty(CACTI_DB_HOST) or empty(CACTI_DB_USER) or empty(CACTI_DB_PASS) or empty(CACTI_DB_NAME)) { return; }
 
-    $cacti_db_link = mysqli_connect(CACTI_DB_HOST, CACTI_DB_USER, CACTI_DB_PASS, CACTI_DB_NAME);
-    if (! $cacti_db_link) {
-        echo "Ошибка: Невозможно установить соединение с MySQL with ".CACTI_DB_HOST." [".CACTI_DB_NAME."] for ".CACTI_DB_USER." ". PHP_EOL;
-        echo "Код ошибки errno: " . mysqli_connect_errno() . PHP_EOL;
-        echo "Текст ошибки error: " . mysqli_connect_error() . PHP_EOL;
-        return FALSE;
-    }
+    $cacti_db_link = new_connection(CACTI_DB_HOST, CACTI_DB_USER, CACTI_DB_PASS, CACTI_DB_NAME);
+    if (! $cacti_db_link) { return FALSE; }
 
     $host_sql = 'SELECT * FROM host WHERE hostname="' . $host_ip . '"';
     $cacti_host = get_record_sql($cacti_db_link,$host_sql);
