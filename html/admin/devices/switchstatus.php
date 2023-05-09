@@ -91,10 +91,10 @@ if ($device['snmp_version']>0) {
     $modules_oids = NULL;
     if ($snmp_ok) {
             if ($device['snmp_version'] == 2) {
-	        $modules_oids = snmp2_real_walk($device['ip'], $device['community'], CISCO_MODULES);
+	        $modules_oids = snmp2_real_walk($device['ip'], $device['community'], CISCO_MODULES, SNMP_timeout, SNMP_retry);
 	        }
             if ($device['snmp_version'] == 1) {
-	        $modules_oids = snmprealwalk($device['ip'], $device['community'], CISCO_MODULES);
+	        $modules_oids = snmprealwalk($device['ip'], $device['community'], CISCO_MODULES, SNMP_timeout, SNMP_retry);
 	        }
 	    }
     } else { $snmp_ok = 0; }

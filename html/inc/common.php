@@ -2021,10 +2021,10 @@ function walk_snmp($ip, $community, $version, $oid)
     snmp_set_oid_output_format(SNMP_OID_OUTPUT_NUMERIC);
 
     if ($version == 2) {
-        $result = snmp2_real_walk($ip, $community, $oid);
+        $result = snmp2_real_walk($ip, $community, $oid, SNMP_timeout, SNMP_retry);
     }
     if ($version == 1) {
-        $result = snmprealwalk($ip, $community, $oid);
+        $result = snmprealwalk($ip, $community, $oid, SNMP_timeout, SNMP_retry);
     }
     return $result;
 }
@@ -2174,10 +2174,10 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
                 $module_id = get_last_digit($key);
                 unset($result);
                 $result = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_VENDOR . "." . $module_id));
-                if (isset($result)) { $sfp_vendor = $result; }
+                if (!empty($result)) { $sfp_vendor = $result; }
                 unset($result);
                 $result = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_SPEED . "." . $module_id));
-                if (isset($result)) {
+                if (!empty($result)) {
                     list ($sfp_speed, $spf_lenght, $sfp_type) = explode('-', $result);
                     if ($sfp_type == 0) { $sfp_type = 'MultiMode'; }
                     if ($sfp_type == 1) { $sfp_type = 'SingleMode'; }
@@ -2471,10 +2471,10 @@ function get_snmp($ip, $community, $version, $oid)
 {
     snmp_set_oid_output_format(SNMP_OID_OUTPUT_NUMERIC);
     if ($version == 2) {
-        $result = snmp2_get($ip, $community, $oid);
+        $result = snmp2_get($ip, $community, $oid, SNMP_timeout, SNMP_retry);
     }
     if ($version == 1) {
-        $result = snmpget($ip, $community, $oid);
+        $result = snmpget($ip, $community, $oid, SNMP_timeout, SNMP_retry);
     }
     return $result;
 }
@@ -2482,10 +2482,10 @@ function get_snmp($ip, $community, $version, $oid)
 function set_snmp($ip, $community, $version, $oid, $field, $value)
 {
     if ($version == 2) {
-        $result = snmp2_set($ip, $community, $oid, $field, $value);
-    }
+        $result = snmp2_set($ip, $community, $oid, $field, $value, SNMP_timeout, SNMP_retry);
+    },
     if ($version == 1) {
-        $result = snmpset($ip, $community, $oid, $field, $value);
+        $result = snmpset($ip, $community, $oid, $field, $value, SNMP_timeout, SNMP_retry);
     }
     return $result;
 }
