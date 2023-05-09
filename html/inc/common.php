@@ -2483,7 +2483,7 @@ function set_snmp($ip, $community, $version, $oid, $field, $value)
 {
     if ($version == 2) {
         $result = snmp2_set($ip, $community, $oid, $field, $value, SNMP_timeout, SNMP_retry);
-    },
+    }
     if ($version == 1) {
         $result = snmpset($ip, $community, $oid, $field, $value, SNMP_timeout, SNMP_retry);
     }
