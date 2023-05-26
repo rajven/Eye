@@ -24,8 +24,6 @@ if (isset($_POST["edituser"])) {
         $new["blocked"] = 0;
         $new["day_quota"] = 0;
         $new["month_quota"] = 0;
-        $auth["enabled"] = 0;
-        $auth["blocked"] = 0;
     } else {
         $new["enabled"] = $_POST["f_enabled"] * 1;
         $new["blocked"] = $_POST["f_blocked"] * 1;
@@ -35,6 +33,9 @@ if (isset($_POST["edituser"])) {
     $changes = get_diff_rec($db_link,"User_list","id='$id'", $new, 0);
     if (!empty($changes)) { LOG_WARNING($db_link,"Changed user id: $id login: ".$new["login"].". \r\Apply: $changes"); }
     update_record($db_link, "User_list", "id='$id'", $new);
+    if (!$new["enabled"]) {
+        run_sql($db_link, "UPDATE User_auth SET enabled=0, network_changed=1 WHERE user_id=".$id);
+        }
     run_sql($db_link, "UPDATE User_auth SET ou_id=".$new["ou_id"]." WHERE user_id=".$id);
     run_sql($db_link, "UPDATE devices SET device_name='".$new["login"]."' WHERE user_id=".$id);
     header("Location: " . $_SERVER["REQUEST_URI"]);

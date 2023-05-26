@@ -10,6 +10,7 @@ $parent_id = $old_auth_info['user_id'];
 
 $user_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=" . $parent_id);
 $parent_ou_id = $user_info['ou_id'];
+$user_enabled = $user_info['enabled'];
 
 if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
     $ip = trim($_POST["f_ip"]);
@@ -86,6 +87,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         if ($new['nagios'] == 0) {
             $new['nagios_status'] = 'UP';
             }
+        if (!$user_enabled) { $new['enabled']=0; }
         $changes = get_diff_rec($db_link, "User_auth", "id='$id'", $new, 0);
         if (!empty($changes)) {
             LOG_WARNING($db_link, "Changed record for $ip! Log: " . $changes, $id);
