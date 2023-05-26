@@ -34,7 +34,7 @@ if (isset($_POST["edituser"])) {
     if (!empty($changes)) { LOG_WARNING($db_link,"Changed user id: $id login: ".$new["login"].". \r\Apply: $changes"); }
     update_record($db_link, "User_list", "id='$id'", $new);
     if (!$new["enabled"]) {
-        run_sql($db_link, "UPDATE User_auth SET enabled=0, network_changed=1 WHERE user_id=".$id);
+        run_sql($db_link, "UPDATE User_auth SET enabled=0, changed=1 WHERE user_id=".$id);
         }
     run_sql($db_link, "UPDATE User_auth SET ou_id=".$new["ou_id"]." WHERE user_id=".$id);
     run_sql($db_link, "UPDATE devices SET device_name='".$new["login"]."' WHERE user_id=".$id);
