@@ -2021,10 +2021,10 @@ function walk_snmp($ip, $community, $version, $oid)
     snmp_set_oid_output_format(SNMP_OID_OUTPUT_NUMERIC);
 
     if ($version == 2) {
-        $result = snmp2_real_walk($ip, $community, $oid);
+        $result = snmp2_real_walk($ip, $community, $oid, SNMP_timeout, SNMP_retry);
     }
     if ($version == 1) {
-        $result = snmprealwalk($ip, $community, $oid);
+        $result = snmprealwalk($ip, $community, $oid, SNMP_timeout, SNMP_retry);
     }
     return $result;
 }
@@ -2174,10 +2174,10 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
                 $module_id = get_last_digit($key);
                 unset($result);
                 $result = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_VENDOR . "." . $module_id));
-                if (isset($result)) { $sfp_vendor = $result; }
+                if (!empty($result)) { $sfp_vendor = $result; }
                 unset($result);
                 $result = parse_snmp_value(get_snmp($ip, $community, $version, HUAWEI_SFP_SPEED . "." . $module_id));
-                if (isset($result)) {
+                if (!empty($result)) {
                     list ($sfp_speed, $spf_lenght, $sfp_type) = explode('-', $result);
                     if ($sfp_type == 0) { $sfp_type = 'MultiMode'; }
                     if ($sfp_type == 1) { $sfp_type = 'SingleMode'; }
@@ -2471,10 +2471,10 @@ function get_snmp($ip, $community, $version, $oid)
 {
     snmp_set_oid_output_format(SNMP_OID_OUTPUT_NUMERIC);
     if ($version == 2) {
-        $result = snmp2_get($ip, $community, $oid);
+        $result = snmp2_get($ip, $community, $oid, SNMP_timeout, SNMP_retry);
     }
     if ($version == 1) {
-        $result = snmpget($ip, $community, $oid);
+        $result = snmpget($ip, $community, $oid, SNMP_timeout, SNMP_retry);
     }
     return $result;
 }
@@ -2482,10 +2482,10 @@ function get_snmp($ip, $community, $version, $oid)
 function set_snmp($ip, $community, $version, $oid, $field, $value)
 {
     if ($version == 2) {
-        $result = snmp2_set($ip, $community, $oid, $field, $value);
+        $result = snmp2_set($ip, $community, $oid, $field, $value, SNMP_timeout, SNMP_retry);
     }
     if ($version == 1) {
-        $result = snmpset($ip, $community, $oid, $field, $value);
+        $result = snmpset($ip, $community, $oid, $field, $value, SNMP_timeout, SNMP_retry);
     }
     return $result;
 }
@@ -3106,13 +3106,8 @@ function get_cacti_graph($host_ip, $port_index)
     if (CACTI_DB_HOST ==null or CACTI_DB_USER == null or CACTI_DB_PASS==null or CACTI_DB_NAME==null) { return; }
     if (empty(CACTI_DB_HOST) or empty(CACTI_DB_USER) or empty(CACTI_DB_PASS) or empty(CACTI_DB_NAME)) { return; }
 
-    $cacti_db_link = mysqli_connect(CACTI_DB_HOST, CACTI_DB_USER, CACTI_DB_PASS, CACTI_DB_NAME);
-    if (! $cacti_db_link) {
-        echo "Ошибка: Невозможно установить соединение с MySQL with ".CACTI_DB_HOST." [".CACTI_DB_NAME."] for ".CACTI_DB_USER." ". PHP_EOL;
-        echo "Код ошибки errno: " . mysqli_connect_errno() . PHP_EOL;
-        echo "Текст ошибки error: " . mysqli_connect_error() . PHP_EOL;
-        return FALSE;
-    }
+    $cacti_db_link = new_connection(CACTI_DB_HOST, CACTI_DB_USER, CACTI_DB_PASS, CACTI_DB_NAME);
+    if (! $cacti_db_link) { return FALSE; }
 
     $host_sql = 'SELECT * FROM host WHERE hostname="' . $host_ip . '"';
     $cacti_host = get_record_sql($cacti_db_link,$host_sql);

@@ -3,19 +3,30 @@ if (! defined("CONFIG")) die("Not defined");
 
 if (! defined("SQL")) { die("Not defined"); }
 
-$db_link = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+function new_connection ($db_host, $db_user, $db_password, $db_name)
+{
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-if (! $db_link) {
-    echo "Ошибка: Невозможно установить соединение с MySQL." . PHP_EOL;
-    echo "Код ошибки errno: " . mysqli_connect_errno() . PHP_EOL;
-    echo "Текст ошибки error: " . mysqli_connect_error() . PHP_EOL;
+$result = mysqli_connect($db_host,$db_user,$db_password,$db_name);
+
+if (! $result) {
+    echo "Error connect to MYSQL " . PHP_EOL;
+    echo "Errno: " . mysqli_connect_errno() . PHP_EOL;
+    echo "Error message: " . mysqli_connect_error() . PHP_EOL;
     exit();
     }
 
-/* изменение набора символов на utf8 */
-if (!mysqli_set_charset($db_link,'utf8mb4')) {
-    printf("Ошибка при загрузке набора символов utf8: %s\n", mysqli_error($db_link));
+/* enable utf8 */
+if (!mysqli_set_charset($result,'utf8mb4')) {
+    printf("Error loading utf8: %s\n", mysqli_error($result));
     exit();
     }
+
+//mysqli_options($result, MYSQLI_OPT_INT_AND_FLOAT_NATIVE, 1);
+
+return $result;
+}
+
+$db_link = new_connection(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 
 ?>

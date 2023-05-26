@@ -21,4 +21,9 @@ define("CACTI_DB_PASS","");
 
 define("IPCAM_GROUP_ID","5");
 
+#snmp timeout in microsecond
+define("SNMP_timeout","500000");
+#snmp retry after timeout
+define("SNMP_retry","1");
+
 ?>
