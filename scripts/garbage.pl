@@ -159,7 +159,7 @@ do_sql($dbh,"DELETE FROM User_list WHERE id='".$row->{id}."'");
 db_log_verbose($dbh,"Remove empty user id: $row->{id} login: $row->{login}");
 #delete binded device
 my $user_device = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=".$row->{id});
-if (!$user_device) {
+if ($user_device) {
     db_log_verbose($dbh,"Remove corresponded device id: $user_device->{id} name: $user_device->{device_name}");
     unbind_ports($dbh, $user_device->{id});
     do_sql($dbh, "DELETE FROM connections WHERE device_id=".$user_device->{id});
