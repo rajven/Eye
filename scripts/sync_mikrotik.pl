@@ -843,6 +843,7 @@ if (scalar(@cmd_list)) {
     if ($@) {
         $all_ok = 0;
 	    log_debug("Error programming gateway! Err: ".$@);
+        }
     }
 
 db_log_verbose($dbh,"Sync user state at router $router_name [".$router_ip."] stopped.");
