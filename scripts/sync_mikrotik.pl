@@ -854,7 +854,9 @@ $pm->wait_all_children;
 
 #clear changed
 if ($all_ok) {
-    do_sql($dbh,"UPDATE User_auth SET changed=0 WHERE changed=1");
+    foreach my $row (@changes_found) {
+        do_sql($dbh,"UPDATE User_auth SET changed=0 WHERE id=".$row->{id});
+        }
     }
 
 if (IsMyPID($SPID)) { Remove_PID($SPID); };
