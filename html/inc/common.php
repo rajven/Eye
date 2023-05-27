@@ -3158,7 +3158,7 @@ print "</select>\n";
 function print_navigation($url,$page,$displayed,$count_records,$total) {
 if ($total<=1) { return; }
 $v_char="?";
-if (preg_match('/?/', $url)) { $v_char="&"; }
+if (preg_match('/\.php\?/', $url)) { $v_char="&"; }
 #две назад
     print "<div align=left class=records >";
     if(($page-2)>0):
