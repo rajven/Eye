@@ -36,6 +36,8 @@ if (IsNotRun($SPID)) { Add_PID($SPID); }  else { die "Warning!!! $SPID already r
 
 my $fork_count = $cpu_count*10;
 
+#flag for operation status
+my $all_ok = 1;
 
 my @gateways =();
 #select undeleted mikrotik routers only
@@ -290,16 +292,6 @@ if ($leases{$ip}{acl}!~/$active_leases{$ip}{acl}/) {
 }#end interface dhcp loop
 }#end dhcp config
 
-#clean changed for unmanaged users
-if (!$gate->{user_acl}) {
-    #get userid list
-    my @changed_unmanagment = get_records_sql($dbh,"SELECT * FROM User_auth WHERE changed=1");
-    foreach my $row (@changed_unmanagment) {
-        next if ($connected_users->match_string($row->{ip}));
-        do_sql($dbh,"UPDATE User_auth SET changed=0 WHERE id=".$row->{id});
-	}
-    }
-
 #access lists config
 if ($gate->{user_acl}) {
 
@@ -313,6 +305,7 @@ AND User_auth.deleted =0
 AND User_auth.enabled =1
 AND User_auth.blocked =0
 AND User_list.blocked =0
+AND User_list.enabled =1
 AND User_auth.ou_id <> $default_hotspot_ou_id
 ORDER BY ip_int";
 
@@ -855,6 +848,7 @@ if (scalar(@cmd_list)) {
         netdev_cmd($gate,$t,'ssh',\@cmd_list,1);
     };
     if ($@) {
+    $all_ok = 0;
 	log_debug("Error programming gateway! Err: ".$@);
 	foreach my $row (@changed_ref) {
 	    next if (!$row);
@@ -871,6 +865,11 @@ $pm->finish;
 }
 
 $pm->wait_all_children;
+
+#clear changed
+if ($all_ok) {
+    do_sql($dbh,"UPDATE User_auth SET changed=0 WHERE changed=1");
+    }
 
 if (IsMyPID($SPID)) { Remove_PID($SPID); };
 
