@@ -69,6 +69,9 @@ $dhcp_conf{$subnet_name}->{last_ip_aton}=StrToIp($dhcp_info->{last_ip});
 
 my $pm = Parallel::ForkManager->new($fork_count);
 
+#save changed records
+my @changes_found = get_records_sql($dbh,"SELECT id FROM User_auth WHERE changed=1");
+
 foreach my $gate (@gateways) {
 next if (!$gate);
 
@@ -325,16 +328,6 @@ $users{'group_all'}->{$row->{ip}}=1;
 $lists{'group_'.$row->{filter_group_id}}=1;
 #queue acl's
 if ($row->{queue_id}) { $users{'queue_'.$row->{queue_id}}->{$row->{ip}}=1; }
-}
-
-my @tmp = get_records_sql($dbh,'SELECT id,deleted FROM User_auth WHERE changed=1');
-foreach my $row (@tmp) {
-next if (!$row);
-next if (!exists $found_users{$row->{'id'}} and !$row->{deleted});
-push(@changed_ref,$row);
-my $changed_auth;
-$changed_auth->{changed}=0;
-update_record($dbh,"User_auth",$changed_auth,"id=".$row->{id});
 }
 
 log_debug("Users status:".Dumper(\%users));
@@ -848,15 +841,8 @@ if (scalar(@cmd_list)) {
         netdev_cmd($gate,$t,'ssh',\@cmd_list,1);
     };
     if ($@) {
-    $all_ok = 0;
-	log_debug("Error programming gateway! Err: ".$@);
-	foreach my $row (@changed_ref) {
-	    next if (!$row);
-	    my $changed_auth;
-	    $changed_auth->{changed}=1;
-	    update_record($dbh,"User_auth",$changed_auth,"id=".$row->{id});
-	    }
-	}
+        $all_ok = 0;
+	    log_debug("Error programming gateway! Err: ".$@);
     }
 
 db_log_verbose($dbh,"Sync user state at router $router_name [".$router_ip."] stopped.");
