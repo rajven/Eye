@@ -3157,17 +3157,19 @@ print "</select>\n";
 
 function print_navigation($url,$page,$displayed,$count_records,$total) {
 if ($total<=1) { return; }
+$v_char="?";
+if (preg_match('/\.php?/', $url)) { $v_char="&"; }
 #две назад
     print "<div align=left class=records >";
     if(($page-2)>0):
-      $pagetwoleft="<a class='first_page_link' href=".$url."?page=".($page-2).">".($page-2)."</a>  ";
+      $pagetwoleft="<a class='first_page_link' href=".$url.$v_char."page=".($page-2).">".($page-2)."</a>  ";
     else:
       $pagetwoleft=null;
     endif;
 
 #одна назад
     if(($page-1)>0):
-      $pageoneleft="<a class='first_page_link' href=".$url."?page=".($page-1).">".($page-1)."</a>  ";
+      $pageoneleft="<a class='first_page_link' href=".$url.$v_char."page=".($page-1).">".($page-1)."</a>  ";
       $pagetemp=($page-1);
     else:
       $pageoneleft=null;
@@ -3176,14 +3178,14 @@ if ($total<=1) { return; }
 
 #две вперед
     if(($page+2)<=$total):
-      $pagetworight="  <a class='first_page_link' href=".$url."?page=".($page+2).">".($page+2)."</a>";
+      $pagetworight="  <a class='first_page_link' href=".$url.$v_char."page=".($page+2).">".($page+2)."</a>";
     else:
       $pagetworight=null;
     endif;
 
 #одна вперед
     if(($page+1)<=$total):
-      $pageoneright="  <a class='first_page_link' href=".$url."?page=".($page+1).">".($page+1)."</a>";
+      $pageoneright="  <a class='first_page_link' href=".$url.$v_char."page=".($page+1).">".($page+1)."</a>";
       $pagetemp2=($page+1);
     else:
       $pageoneright=null;
@@ -3192,14 +3194,14 @@ if ($total<=1) { return; }
 
 # в начало
     if($page!=1 && $pagetemp!=1 && $pagetemp!=2):
-      $pagerevp="<a href=".$url."?page=1 class='first_page_link' title='В начало'><<</a> ";
+      $pagerevp="<a href=".$url.$v_char."page=1 class='first_page_link' title='В начало'><<</a> ";
     else:
       $pagerevp=null;
     endif;
 
 #в конец (последняя)
     if($page!=$total && $pagetemp2!=($total-1) && $pagetemp2!=$total):
-      $nextp=" ...  <a href=".$url."?page=".$total." class='first_page_link'>$total</a>";
+      $nextp=" ...  <a href=".$url.$v_char."page=".$total." class='first_page_link'>$total</a>";
     else:
       $nextp=null;
     endif;
