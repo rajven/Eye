@@ -45,6 +45,7 @@ define("WEB_msg_add_filter", "Add filter");
 define("WEB_msg_apply_selected","Apply to highlight");
 define("WEB_msg_login_hint","Please enter login");
 define("WEB_msg_password_hint","Please enter your password");
+define("WEB_msg_delete_selected","Delete selected?");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");
@@ -60,6 +61,7 @@ define("WEB_snmp_interface_index","Interface index");
 /* color schema description */
 define("WEB_color_description","Color coding");
 define("WEB_color_user_disabled","User disabled");
+define("WEB_color_auth_disabled","IP disabled");
 define("WEB_color_user_blocked","Blocked by traffic");
 define("WEB_color_device_description","Device Status");
 define("WEB_color_user_empty","Login is empty");
@@ -234,6 +236,7 @@ define("WEB_btn_reorder","Apply Order");
 define("WEB_btn_recover","Restore");
 define("WEB_btn_transfom","Transform");
 define("WEB_btn_login","Enter");
+define("WEB_btn_apply_selected","Apply for selected");
 
 /* control options */
 define("WEB_config_remove_option","Parameter removed");

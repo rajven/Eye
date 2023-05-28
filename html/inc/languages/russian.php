@@ -45,6 +45,7 @@ define("WEB_msg_add_filter", "Добавить фильтр");
 define("WEB_msg_apply_selected","Применить для выделения");
 define("WEB_msg_login_hint","Введите имя пользователя");
 define("WEB_msg_password_hint","Введите пароль");
+define("WEB_msg_delete_selected","Удалить выделенное?");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");
@@ -60,6 +61,7 @@ define("WEB_snmp_interface_index","Interface index");
 /* color schema description */
 define("WEB_color_description","Цветовая маркировка");
 define("WEB_color_user_disabled","Пользователь выключен");
+define("WEB_color_auth_disabled","ip-адрес выключен");
 define("WEB_color_user_blocked","Блокировка по трафику");
 define("WEB_color_device_description","Состояние устройства");
 define("WEB_color_user_empty","Логин пуст");
@@ -234,6 +236,7 @@ define("WEB_btn_reorder","Применить порядок");
 define("WEB_btn_recover","Восстановить");
 define("WEB_btn_transfom","Преобразовать");
 define("WEB_btn_login","Войти");
+define("WEB_btn_apply_selected","Поменять у выделения");
 
 /* control options */
 define("WEB_config_remove_option","Удалён параметр");
