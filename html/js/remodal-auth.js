@@ -11,7 +11,7 @@ $(document).ready(function () {
 	    post_data = post_data.concat(formNm.serializeArray());
     	    $.ajax({
         	type: "POST",
-        	url: "/inc/auth_apply.php",
+        	url: "/utils/auth_apply.php",
         	data: post_data,
         	success: function (data) {
             	    $(formNm).html(data);
@@ -35,7 +35,7 @@ $(document).ready(function () {
 	    post_data = post_data.concat(formNm.serializeArray());
     	    $.ajax({
         	type: "POST",
-        	url: "/inc/auth_remove.php",
+        	url: "/utils/auth_remove.php",
         	data: post_data,
         	success: function (data) {
             	    $(formNm).html(data);
