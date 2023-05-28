@@ -25,8 +25,8 @@ if ($rsubnet == 0) { $subnet_filter = ''; } else {
 
 $enabled_filter='';
 if ($enabled>0) {
-    if ($enabled===2) { $enabled_filter = ' and User_auth.enabled=1'; }
-    if ($enabled===1) { $enabled_filter = ' and User_auth.enabled=0'; }
+    if ($enabled===2) { $enabled_filter = ' and User_auth.enabled=1 and User_list.enabled=1'; }
+    if ($enabled===1) { $enabled_filter = ' and (User_auth.enabled=0 or User_list.enabled=0)'; }
     }
 
 
