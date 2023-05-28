@@ -1,0 +1,86 @@
+.mainButton{
+  padding: 1px 5px;
+  background: #ffebcd;
+  border-radius: 15px;
+  box-shadow: 0 0 5px rgba(206, 57, 57, 0.5);
+  color: #fff;
+  text-decoration: none;
+}
+
+.delButton{
+  padding: 1px 5px;
+  background: #ffb3b3;
+  border-radius: 15px;
+  box-shadow: 0 0 5px rgba(206, 57, 57, 0.5);
+  color: #fff;
+  text-decoration: none;
+}
+
+.success, .fail{
+  color: #fff;
+}
+
+#modal1Title{
+    font-size: 18px;
+    font-weight: bold;
+    color: red;
+}
+
+.putField {
+  width: 100px;
+  padding: 0 15px;
+  height: 20px;
+  background: #fff;
+  margin-bottom: 15px;
+  border-radius: 2px;
+  border:none;
+  outline: none;
+}
+
+.btn{
+  width: 242px;
+  height: 42px;
+  background: #e57373;
+  margin-bottom: 15px;
+  border-radius: 2px;
+  border:none;
+  outline: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+.btn:hover{
+  background: #C94141;
+}
+
+.remodal {
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  width: 99.2%;
+  padding: .8%;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  color: black;
+  background: white;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.remodalDel {
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  width: 99.2%;
+  padding: .8%;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  color: black;
+  background: white;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+@media only screen and (min-width: 140px) {
+  .remodal {
+    max-width: 380px;
+  }
+}

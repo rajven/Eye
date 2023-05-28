@@ -16,46 +16,6 @@ if ($sort_field == 'fio') { $sort_table = 'User_list'; }
 
 $sort_url = "<a href=index.php?ou=" . $rou; 
 
-if (isset($_POST["removeauth"])) {
-    $auth_id = $_POST["fid"];
-    foreach ($auth_id as $key => $val) {
-        if ($val) {
-                run_sql($db_link, 'DELETE FROM connections WHERE auth_id='.$val);
-                run_sql($db_link, 'DELETE FROM User_auth_alias WHERE auth_id='.$val);
-                $changes=delete_record($db_link, "User_auth", "id=" . $val);
-                if (!empty($changes)) { LOG_WARNING($db_link,"Remove user ip: \r\n $changes"); }
-                }
-            }
-    header("Location: " . $_SERVER["REQUEST_URI"]);
-    exit;
-    }
-
-if (isset($_POST["ApplyForAll"])) {
-    $auth_id = $_POST["fid"];
-    $a_enabled = $_POST["a_enabled"] * 1;
-    $a_dhcp = $_POST["a_dhcp"] * 1;
-    $a_dhcp_acl = $_POST["a_dhcp_acl"];
-    $a_queue = $_POST["a_queue_id"] * 1;
-    $a_group = $_POST["a_group_id"] * 1;
-    $a_traf = $_POST["a_traf"] * 1;
-    $msg="Massive User change!";
-    foreach ($auth_id as $key => $val) {
-        if ($val) {
-            unset($auth);
-            $auth['enabled'] = $a_enabled;
-            $auth['filter_group_id'] = $a_group;
-            $auth['queue_id'] = $a_queue;
-            $auth['dhcp'] = $a_dhcp;
-            $auth['dhcp_acl'] = $a_dhcp_acl;
-            $auth['save_traf'] = $a_traf;
-            update_record($db_link, "User_auth", "id='" . $val . "'", $auth);
-            }
-        }
-    LOG_WARNING($db_link,$msg);
-    header("Location: " . $_SERVER["REQUEST_URI"]);
-    exit;
-    }
-
 if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and User_list.ou_id=$rou "; }
 
 if ($rsubnet == 0) { $subnet_filter = ''; } else {
@@ -88,7 +48,8 @@ print_ip_submenu($page_url);
 
 ?>
 <div id="cont">
-<form name="def" action="index.php" method="post">
+
+<form name="filter" action="index.php" method="post">
 <table class="data">
 	<tr>
         <td>
@@ -101,6 +62,43 @@ print_ip_submenu($page_url);
         </td>
 	</tr>
 </table>
+</form>
+
+<a class="mainButton" href="#modal"><?php print WEB_btn_apply_selected; ?></a>
+<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modal" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
+ <div class="remodalBorder">
+  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
+      <form id="formAuthApply">
+        <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
+	<input type="hidden" name="ApplyForAll" value="MassChange">
+	<table class="data" align=center>
+	<tr><td><input type=checkbox class="putField" name="e_enabled" value='1'></td><td><?php print WEB_cell_enabled."&nbsp"; print_qa_select('a_enabled', 1);?></td></rr>
+	<tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td><?php print WEB_cell_filter."&nbsp";print_group_select($db_link, 'a_group_id', 0);?></td></rr>
+	<tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td><?php print WEB_cell_shaper."&nbsp";print_queue_select($db_link, 'a_queue_id', 0);?></td></rr>
+	<tr><td><input type=checkbox class="putField" name="e_dhcp" value='1'></td><td><?php print "Dhcp&nbsp"; print_qa_select('a_dhcp', 1);?></td></rr>
+	<tr><td><input type=checkbox class="putField" name="e_dhcp_acl" value='1'></td><td><?php print "Dhcp-acl&nbsp";print_dhcp_acl_select('a_dhcp_acl','');?></td></rr>
+	<tr><td><input type=checkbox class="putField" name="e_traf" value='1'></td><td><?php print "Save traffic&nbsp"; print_qa_select('a_traf',1);?></td></rr>
+	</tr>
+	</table>
+	<input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
+    </form>
+</div>
+</div>
+
+<a class="delButton" href="#modalDel"><?php print WEB_btn_delete; ?></a>
+<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modalDel" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
+ <div class="remodalBorder">
+  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
+    <form id="formAuthDel">
+        <h2 id="modal1Title"><?php print WEB_msg_delete_selected; ?></h2>
+	<input type="hidden" name="RemoveAuth" value="MassChange">
+	<?php print_qa_select('f_deleted', 0);?><br><br>
+	<input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
+    </form>
+</div>
+</div>
+
+<form id="def" name="def" action="index.php" method="post">
 
 <?php
 $countSQL="SELECT Count(*) FROM User_auth, User_list WHERE User_auth.user_id = User_list.id AND User_auth.deleted =0 $ip_list_filter";
@@ -113,19 +111,6 @@ $start = ($page * $displayed) - $displayed;
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 ?>
 <br>
-
-<table class="data">
-<tr>
-<td><?php print WEB_selection_title.": ".WEB_cell_enabled."&nbsp"; print_qa_select('a_enabled', 1); ?></td>
-<td><?php print WEB_cell_filter."&nbsp";print_group_select($db_link, 'a_group_id', 0); ?></td>
-<td><?php print WEB_cell_shaper."&nbsp";print_queue_select($db_link, 'a_queue_id', 0); ?></td>
-<td>Dhcp&nbsp<?php print_qa_select('a_dhcp', 1); ?></td>
-<td>Dhcp-acl&nbsp<?php print_dhcp_acl_select('a_dhcp_acl',''); ?></td>
-<td>Save traffic&nbsp<?php print_qa_select('a_traf',1); ?></td>
-<td>&nbsp<input type="submit" onclick="return confirm('<?php echo WEB_msg_apply_selected; ?>?')" name="ApplyForAll" value="<?php echo WEB_btn_apply; ?>"></td>
-<td align=right><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="removeauth" value="<?php echo WEB_btn_delete; ?>"></td>
-</tr>
-</table>
 
 <table class="data">
 	<tr>
@@ -147,7 +132,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 	</tr>
 <?php
 
-$sSQL = "SELECT User_auth.*, User_list.login FROM User_auth, User_list
+$sSQL = "SELECT User_auth.*, User_list.login, User_list.enabled as UEnabled, User_list.blocked as UBlocked FROM User_auth, User_list
 WHERE User_auth.user_id = User_list.id AND User_auth.deleted =0 $ip_list_filter
 ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
 
@@ -163,6 +148,7 @@ foreach ($users as $user) {
     $cl = "data";
     if (!$user['enabled']) { $cl = "warn"; }
     if ($user['blocked']) { $cl = "error"; }
+    if (!$user['UEnabled'] or $user['UBlocked']) { $cl = "off"; }
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$user['id']."></td>\n";
     print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user['login'] . "</a></td>\n";
     print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
@@ -191,9 +177,14 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <table class="data">
 <tr><td><?php echo WEB_color_description; ?></td></tr>
 <tr>
-<td class="warn"><?php echo WEB_color_user_disabled; ?></td>
+<td class="warn"><?php echo WEB_color_auth_disabled; ?></td>
 <td class="error"><?php echo WEB_color_user_blocked; ?></td>
+<td class="off"><?php echo WEB_color_user_disabled; ?></td>
 </table>
+
+<script src="/js/remodal/remodal.min.js"></script>
+<script src="/js/remodal-auth.js"></script>
+
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

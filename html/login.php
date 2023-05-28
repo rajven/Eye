@@ -31,7 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
 <html>
     <head>
     <title><?php echo WEB_site_title; ?> login</title>
-    <link rel="stylesheet" type="text/css" href="/<?php echo HTML_STYLE.'.css'; ?>">
+    <link rel="stylesheet" type="text/css" href="/css/<?php echo HTML_STYLE.'.css'; ?>">
     <link rel="stylesheet" type="text/css" href="/login.css" >
     <meta http-equiv="content-type" content="application/xhtml+xml" />
     <meta charset="UTF-8" />

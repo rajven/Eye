@@ -43,7 +43,9 @@ mkdir -p /opt/Eye/html/js/jq
 mkdir -p /opt/Eye/html/js/select2
 
 download from https://jquery.com/download/ production jQuery to /opt/Eye/html/js/jq
-#wget https://code.jquery.com/jquery-3.6.0.min.js -O /opt/Eye/html/js/jq/jquery.min.js
+#wget https://code.jquery.com/jquery-1.12.4.min.js -O /opt/Eye/html/js/jq/jquery.min.js
+or
+#wget https://code.jquery.com/jquery-3.7.0.min.js -O /opt/Eye/html/js/jq/jquery.min.js
 
 download from https://github.com/select2/select2 release
 #wget https://github.com/select2/select2/archive/4.0.12.tar.gz

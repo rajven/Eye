@@ -170,7 +170,7 @@ $users = get_records_sql($db_link, $sSQL);
 foreach ($users as $row) {
     $cl = "data";
     if (! $row['enabled']) {
-        $cl = "warn";
+        $cl = "off";
     }
     if ($row['blocked']) {
         $cl = "error";
@@ -206,7 +206,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 </tr>
 <tr>
 <td class="nb"><?php echo WEB_color_user_empty; ?></td>
-<td class="warn"><?php echo WEB_color_user_disabled; ?></td>
+<td class="off"><?php echo WEB_color_user_disabled; ?></td>
 <td class="error"><?php echo WEB_color_user_blocked; ?></td>
 </table>
 <?php

@@ -10,26 +10,6 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/enabledfilter.php");
 
-if (isset($_POST["ApplyForAll"])) {
-    $auth_id = $_POST["fid"];
-    $n_enabled = $_POST["n_enabled"] * 1;
-    $n_link = $_POST["n_link"] * 1;
-    $n_handler = $_POST["n_handler"];
-    $msg="Массовое изменение пользователей!";
-    foreach ($auth_id as $key => $val) {
-        if ($val) {
-            unset($auth);
-            $auth['nagios'] = $n_enabled;
-            $auth['link_check'] = $n_link;
-            $auth['nagios_handler'] = $n_handler;
-            update_record($db_link, "User_auth", "id='" . $val . "'", $auth);
-            }
-        }
-    LOG_WARNING($db_link,$msg);
-    header("Location: " . $_SERVER["REQUEST_URI"]);
-    exit;
-    }
-
 $sort_table = 'User_auth';
 if ($sort_field == 'login') { $sort_table = 'User_list'; }
 if ($sort_field == 'fio') { $sort_table = 'User_list'; }
@@ -55,7 +35,7 @@ print_ip_submenu($page_url);
 
 ?>
 <div id="cont">
-<form name="def" action="nagios.php" method="post">
+<form name="filter" action="nagios.php" method="post">
 <table class="data">
 	<tr>
         <td>
@@ -67,6 +47,25 @@ print_ip_submenu($page_url);
         </td>
 	</tr>
 </table>
+</form>
+
+<a class="mainButton" href="#modal"><?php print WEB_btn_apply_selected; ?></a>
+<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modal" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
+ <div class="remodalBorder">
+  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
+      <form id="formAuthApply">
+        <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
+        <input type="hidden" name="ApplyForAll" value="MassChange">
+        <table class="data" align=center>
+        <tr><td><input type=checkbox class="putField" name="e_nag_enabled" value='1'></td><td>Nagios&nbsp<?php print_qa_select('n_enabled', 1); ?></td></rr>
+        <tr><td><input type=checkbox class="putField" name="e_nag_link" value='1'></td><td>Link&nbsp<?php print_qa_select('n_link', 0); ?></td></rr>
+        <tr><td><input type=checkbox class="putField" name="e_nag_handler" value='1'></td><td>Event-handler&nbsp<?php print_nagios_handler_select('n_handler', ''); ?></td></rr>
+        </tr>
+        </table>
+        <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
+    </form>
+</div>
+</div>
 
 <?php
 $countSQL="SELECT Count(*) FROM User_auth, User_list WHERE User_auth.user_id = User_list.id AND User_auth.deleted =0 $ip_list_filter";
@@ -80,14 +79,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 ?>
 <br>
 
-<table class="data">
-<tr>
-<td><?php echo WEB_selection_title; ?>: Nagios&nbsp<?php print_qa_select('n_enabled', 1); ?></td>
-<td>Link&nbsp<?php print_qa_select('n_link', 0); ?></td>
-<td>Event-handler&nbsp<?php print_nagios_handler_select('n_handler', ''); ?></td>
-<td>&nbsp<input type="submit" onclick="return confirm('<?php echo WEB_msg_apply_selected; ?>?')" name="ApplyForAll" value="<?php echo WEB_btn_apply; ?>"></td>
-</tr>
-</table>
+<form id="def" name="def" action="nagios.php" method="post">
 
 <table class="data">
 	<tr>
@@ -170,6 +162,9 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td class="down"><?php echo WEB_nagios_host_down; ?></td>
 <td class="data"><?php echo WEB_nagios_host_unknown; ?></td>
 </table>
+<script src="/js/remodal/remodal.min.js"></script>
+<script src="/js/remodal-auth.js"></script>
+
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>
