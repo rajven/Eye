@@ -37,21 +37,16 @@ if (isset($_POST["create"])) {
     exit;
 }
 
-unset($_POST);
-
 ?>
 <div id="cont">
 
 <?php
 if ($msg_error) {
     print "<div id='msg'><b>$msg_error</b></div><br>\n";
-}
-
-
+    }
 ?>
 
-<form name="main">
-
+<form name="main" action="index.php" method="post">
 <div>
 <b><?php print WEB_cell_ou; ?> - </b>
 <?php print_ou_select($db_link, 'ou', $rou); print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>

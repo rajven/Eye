@@ -15,12 +15,12 @@ $(document).ready(function () {
         	data: post_data,
         	success: function (data) {
             	    $(formNm).html(data);
-		    location.href=formTm.attr("action");
+		    location.href=location.href.replace('#modal','');
 		    setTimeout(hangoutButton.click,1000);
         	},
         	error: function (jqXHR, text, error) {
         	    $(formNm).html(error);
-		    location.href=formTm.attr("action");
+		    location.href=location.href.replace('#modal','');
 		    setTimeout(hangoutButton.click,5000);
         	}
 	    });
@@ -39,12 +39,12 @@ $(document).ready(function () {
         	data: post_data,
         	success: function (data) {
             	    $(formNm).html(data);
-		    location.href=formTm.attr("action");
+		    location.href=location.href.replace('#modalDel','');
 		    setTimeout(hangoutButton.click,1000);
         	},
         	error: function (jqXHR, text, error) {
         	    $(formNm).html(error);
-		    location.href=formTm.attr("action");
+		    location.href=location.href.replace('#modalDel','');
 		    setTimeout(hangoutButton.click,5000);
         	}
 	    });
