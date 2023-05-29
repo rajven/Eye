@@ -43,7 +43,7 @@ print_ip_submenu($page_url);
         <b><?php print WEB_network_subnet; ?> - </b><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?>
         <b><?php print WEB_nagios; ?> :</b><?php print_enabled_select('enabled', $enabled); ?>
         <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
-        <input type="submit" value="<?php print WEB_btn_show; ?>">
+        <input id="btn_filter" type="submit" value="<?php print WEB_btn_show; ?>">
         </td>
 	</tr>
 </table>

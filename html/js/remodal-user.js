@@ -1,6 +1,7 @@
 $(document).ready(function () {
     $("form").submit(function () {
 	var formID = $(this).attr('id');
+	var hangoutButton = document.getElementById("btn_filter");
 
         if (formID == "formUserApply") {
             var formNm = $('#' + formID);
@@ -16,12 +17,12 @@ $(document).ready(function () {
         	success: function (data) {
             	    $(formNm).html(data);
 		    location.href=formTm.attr("action");
-		    setTimeout(location.reload,1000);
+		    setTimeout(hangoutButton.click,1000);
         	},
         	error: function (jqXHR, text, error) {
         	    $(formNm).html(error);
 		    location.href=formTm.attr("action");
-		    setTimeout(location.reload,5000);
+		    setTimeout(hangoutButton.click,5000);
         	}
 	    });
 	    }
@@ -40,16 +41,16 @@ $(document).ready(function () {
         	success: function (data) {
             	    $(formNm).html(data);
 		    location.href=formTm.attr("action");
-		    setTimeout(location.reload,1000);
+		    setTimeout(hangoutButton.click,1000);
         	},
         	error: function (jqXHR, text, error) {
         	    $(formNm).html(error);
 		    location.href=formTm.attr("action");
-		    setTimeout(location.reload,5000);
+		    setTimeout(hangoutButton.click,5000);
         	}
 	    });
 	    }
 
-        return true;
+        return false;
     });
 });

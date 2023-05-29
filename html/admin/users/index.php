@@ -55,7 +55,7 @@ if ($msg_error) {
 <div>
 <b><?php print WEB_cell_ou; ?> - </b>
 <?php print_ou_select($db_link, 'ou', $rou); print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
-<input type="submit" value="<?php echo WEB_btn_show; ?>">
+<input id="btn_filter" type="submit" value="<?php echo WEB_btn_show; ?>">
 </div>
 <br>
 <div>
