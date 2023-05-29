@@ -57,10 +57,9 @@ print_ip_submenu($page_url);
         <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
-        <tr><td><input type=checkbox class="putField" name="e_nag_enabled" value='1'></td><td>Nagios&nbsp<?php print_qa_select('n_enabled', 1); ?></td></rr>
-        <tr><td><input type=checkbox class="putField" name="e_nag_link" value='1'></td><td>Link&nbsp<?php print_qa_select('n_link', 0); ?></td></rr>
-        <tr><td><input type=checkbox class="putField" name="e_nag_handler" value='1'></td><td>Event-handler&nbsp<?php print_nagios_handler_select('n_handler', ''); ?></td></rr>
-        </tr>
+        <tr><td><input type=checkbox class="putField" name="e_nag_enabled" value='1'></td><td>Nagios&nbsp<?php print_qa_select('n_enabled', 1); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_nag_link" value='1'></td><td>Link&nbsp<?php print_qa_select('n_link', 0); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_nag_handler" value='1'></td><td>Event-handler&nbsp<?php print_nagios_handler_select('n_handler', ''); ?></td></tr>
         </table>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>

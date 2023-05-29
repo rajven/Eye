@@ -25,8 +25,8 @@ if ($rsubnet == 0) { $subnet_filter = ''; } else {
 
 $enabled_filter='';
 if ($enabled>0) {
-    if ($enabled===2) { $enabled_filter = ' and User_auth.enabled=1 and User_list.enabled=1'; }
-    if ($enabled===1) { $enabled_filter = ' and (User_auth.enabled=0 or User_list.enabled=0)'; }
+    if ($enabled===2) { $enabled_filter = ' and User_auth.enabled=1'; }
+    if ($enabled===1) { $enabled_filter = ' and User_auth.enabled=0'; }
     }
 
 
@@ -72,13 +72,12 @@ print_ip_submenu($page_url);
         <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
 	<input type="hidden" name="ApplyForAll" value="MassChange">
 	<table class="data" align=center>
-	<tr><td><input type=checkbox class="putField" name="e_enabled" value='1'></td><td><?php print WEB_cell_enabled."&nbsp"; print_qa_select('a_enabled', 1);?></td></rr>
-	<tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td><?php print WEB_cell_filter."&nbsp";print_group_select($db_link, 'a_group_id', 0);?></td></rr>
-	<tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td><?php print WEB_cell_shaper."&nbsp";print_queue_select($db_link, 'a_queue_id', 0);?></td></rr>
-	<tr><td><input type=checkbox class="putField" name="e_dhcp" value='1'></td><td><?php print "Dhcp&nbsp"; print_qa_select('a_dhcp', 1);?></td></rr>
-	<tr><td><input type=checkbox class="putField" name="e_dhcp_acl" value='1'></td><td><?php print "Dhcp-acl&nbsp";print_dhcp_acl_select('a_dhcp_acl','');?></td></rr>
-	<tr><td><input type=checkbox class="putField" name="e_traf" value='1'></td><td><?php print "Save traffic&nbsp"; print_qa_select('a_traf',1);?></td></rr>
-	</tr>
+	<tr><td><input type=checkbox class="putField" name="e_enabled" value='1'></td><td><?php print WEB_cell_enabled."&nbsp"; print_qa_select('a_enabled', 1);?></td></tr>
+	<tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td><?php print WEB_cell_filter."&nbsp";print_group_select($db_link, 'a_group_id', 0);?></td></tr>
+	<tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td><?php print WEB_cell_shaper."&nbsp";print_queue_select($db_link, 'a_queue_id', 0);?></td></tr>
+	<tr><td><input type=checkbox class="putField" name="e_dhcp" value='1'></td><td><?php print "Dhcp&nbsp"; print_qa_select('a_dhcp', 1);?></td></tr>
+	<tr><td><input type=checkbox class="putField" name="e_dhcp_acl" value='1'></td><td><?php print "Dhcp-acl&nbsp";print_dhcp_acl_select('a_dhcp_acl','');?></td></tr>
+	<tr><td><input type=checkbox class="putField" name="e_traf" value='1'></td><td><?php print "Save traffic&nbsp"; print_qa_select('a_traf',1);?></td></tr>
 	</table>
 	<input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>

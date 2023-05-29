@@ -37,61 +37,7 @@ if (isset($_POST["create"])) {
     exit;
 }
 
-if (isset($_POST["ApplyForAll"])) {
-    $auth_id = $_POST["fid"];
-    $a_enabled = $_POST["a_enabled"] * 1;
-    $a_day = $_POST["a_day_q"] * 1;
-    $a_month = $_POST["a_month_q"] * 1;
-    $a_queue = $_POST["a_queue_id"] * 1;
-    $a_group = $_POST["a_group_id"] * 1;
-    $a_ou_id = $_POST["a_new_ou"] * 1;
-    $msg="Массовое изменение пользователей!";
-    foreach ($auth_id as $key => $val) {
-        if ($val) {
-            unset($auth);
-            unset($user);
-            $user['day_quota'] = $a_day;
-            $user['month_quota'] = $a_month;
-            $user['enabled'] = $a_enabled;
-            $user['ou_id'] = $a_ou_id;
-            $login = get_record($db_link,"User_list","id='$val'");
-            $msg.="Всем адресам доступа пользователя id: ".$val." login: ".$login['login']." установлено: \r\n";
-            $msg.= get_diff_rec($db_link,"User_list","id='$val'", $user, 1);
-            update_record($db_link, "User_list", "id='" . $val . "'", $user);
-            run_sql($db_link, "UPDATE User_auth SET ou_id=$a_ou_id, queue_id=$a_queue, filter_group_id=$a_group, enabled=$a_enabled, changed=1 WHERE user_id=".$val);
-        }
-    }
-    LOG_WARNING($db_link,$msg);
-    header("Location: " . $_SERVER["REQUEST_URI"]);
-    exit;
-}
-
-if (isset($_POST["remove"])) {
-    $fid = $_POST["fid"];
-    foreach ($fid as $key => $val) {
-        if ($val) {
-            $login = get_record($db_link,"User_list","id='$val'");
-            $device= get_record($db_link,"devices","user_id='$val'");
-	        if (!empty($device)) {
-                LOG_INFO($db_link, "Delete device for user id: $val");
-                unbind_ports($db_link, $device['id']);
-	            run_sql($db_link, "DELETE FROM connections WHERE device_id=".$device['id']);
-    	        run_sql($db_link, "DELETE FROM device_l3_interfaces WHERE device_id=".$device['id']);
-    		    run_sql($db_link, "DELETE FROM device_ports WHERE device_id=".$device['id']);
-                delete_record($db_link, "devices", "id=".$device['id']);
-		        }
-            run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=$val");
-            run_sql($db_link,"UPDATE User_auth SET deleted=1 WHERE user_id=$val");
-            delete_record($db_link, "User_list", "id=$val");
-            LOG_WARNING($db_link,"Deleted user id: $val login: ".$login['login']."\r\n");
-    	    }
-	}
-    header("Location: " . $_SERVER["REQUEST_URI"]);
-    exit;
-}
-
 unset($_POST);
-
 
 ?>
 <div id="cont">
@@ -103,30 +49,55 @@ if ($msg_error) {
 
 
 ?>
-<form name="def" action="index.php" method="post">
-<div><b><?php print WEB_cell_ou; ?> - </b>
-<?php print_ou_select($db_link, 'ou', $rou); 
-print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+
+<form name="main">
+
+<div>
+<b><?php print WEB_cell_ou; ?> - </b>
+<?php print_ou_select($db_link, 'ou', $rou); print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
 <input type="submit" value="<?php echo WEB_btn_show; ?>">
 </div>
-<table class="data">
-<tr>
-<td><?php echo WEB_user_list_apply; ?></td>
-<td><?php print WEB_cell_enabled."&nbsp";print_qa_select('a_enabled', 0); ?></td>
-<td><?php print WEB_cell_filter."&nbsp";print_group_select($db_link, 'a_group_id', 0); ?></td>
-<td><?php print WEB_cell_shaper."&nbsp";print_queue_select($db_link, 'a_queue_id', 0); ?></td>
-<td><?php print WEB_cell_perday."&nbsp"; ?><input type="text" name="a_day_q" value="0" size=5></td>
-<td><?php print WEB_cell_permonth."&nbsp"; ?><input type="text" name="a_month_q" value="0" size=5></td>
-<td><?php print WEB_cell_ou."&nbsp";print_ou_select($db_link, 'a_new_ou', $rou); ?></td>
-<td>&nbsp<input type="submit" onclick="return confirm('<?php echo WEB_msg_apply_selected; ?>?')" name="ApplyForAll" value="<?php echo WEB_btn_apply; ?>"></td>
-</tr>
-</table>
-
+<br>
 <div>
 <?php echo WEB_new_user."&nbsp"; ?>
 <input type=text name=newlogin value="Unknown">
 <input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
 </div>
+</form>
+<br>
+<a class="mainButton" href="#modal"><?php print WEB_btn_apply_selected; ?></a>
+<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modal" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
+ <div class="remodalBorder">
+  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
+      <form id="formUserApply">
+        <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
+        <input type="hidden" name="ApplyForAll" value="MassChange">
+        <table class="data" align=center>
+        <tr><td><input type=checkbox class="putField" name="e_enabled" value='1'></td><td><?php print WEB_cell_enabled."&nbsp";print_qa_select('a_enabled', 0); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td><?php print WEB_cell_filter."&nbsp";print_group_select($db_link, 'a_group_id', 0); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td><?php print WEB_cell_shaper."&nbsp";print_queue_select($db_link, 'a_queue_id', 0); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_day_q" value='1'></td><td><?php print WEB_cell_perday."&nbsp"; ?><input type="text" name="a_day_q" value="0" size=5></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_month_q" value='1'></td><td><?php print WEB_cell_permonth."&nbsp"; ?><input type="text" name="a_month_q" value="0" size=5></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_new_ou" value='1'></td><td><?php print WEB_cell_ou."&nbsp";print_ou_select($db_link, 'a_new_ou', $rou); ?></td></tr>
+        </table>
+        <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
+    </form>
+</div>
+</div>
+
+<a class="delButton" href="#modalDel"><?php print WEB_btn_delete; ?></a>
+<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modalDel" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
+ <div class="remodalBorder">
+  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
+    <form id="formUserDel">
+        <h2 id="modal1Title"><?php print WEB_msg_delete_selected; ?></h2>
+        <input type="hidden" name="RemoveUser" value="MassChange">
+        <?php print_qa_select('f_deleted', 0);?><br><br>
+        <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
+    </form>
+</div>
+</div>
+
 
 <?php
 
@@ -149,6 +120,8 @@ $sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month
 
 ?>
 
+<form id="def" name="def" action="index.php" method="post">
+
 <table class="data">
 <tr align="center">
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
@@ -161,7 +134,6 @@ $sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month
 <td><b><?php print WEB_cell_perday; ?></b></td>
 <td><b><?php print WEB_cell_permonth; ?></b></td>
 <td><b><?php print WEB_cell_report; ?></b></td>
-<td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
 
@@ -209,6 +181,10 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td class="off"><?php echo WEB_color_user_disabled; ?></td>
 <td class="error"><?php echo WEB_color_user_blocked; ?></td>
 </table>
+
+<script src="/js/remodal/remodal.min.js"></script>
+<script src="/js/remodal-user.js"></script>
+
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>
