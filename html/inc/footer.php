@@ -1,4 +1,4 @@
-<div id="copyright">Copyright &copy; 2008-2023 Stat v2.4 &nbsp<a href="https://github.com/rajven/statV2">rnd@rajven.ru</a></div>
+<div id="copyright">Copyright &copy; 2008-2023 Eye v2.4 &nbsp<a href="https://github.com/rajven/Eye">rnd@rajven.ru</a></div>
 
 <?php
 $end_time = microtime();
