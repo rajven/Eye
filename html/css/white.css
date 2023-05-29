@@ -12,6 +12,7 @@ td.up                           { background-color: #33ff99; }
 td.down                         { background-color: #ffffff; opacity: .4; }
 td.shutdown                     { background-color: #FF8033; }
 td.off                          { background-color: #b3ccff; }
+td.custom                       { background-color: #ccffe6; }
 td.error                        { background-color: #ff6666; }
 td.nb                           { background-color: #ffcc99; }
 td.warn                         { background-color: #ffcccc; }
