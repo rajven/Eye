@@ -65,6 +65,7 @@ define("WEB_color_auth_disabled","ip-адрес выключен");
 define("WEB_color_user_blocked","Блокировка по трафику");
 define("WEB_color_device_description","Состояние устройства");
 define("WEB_color_user_empty","Логин пуст");
+define("WEB_color_user_custom","Вариативно");
 
 /* device and port state */
 define("WEB_device_online","Online");

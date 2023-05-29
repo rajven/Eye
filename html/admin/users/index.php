@@ -140,6 +140,7 @@ $sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month
 $users = get_records_sql($db_link, $sSQL);
 
 foreach ($users as $row) {
+    $auth_customs = get_count_records($db_link,"User_auth","user_id=".$row['id']." AND deleted=0 AND enabled <>'".$row['enabled']."'");
     $cl = "data";
     if (! $row['enabled']) {
         $cl = "off";
@@ -147,6 +148,9 @@ foreach ($users as $row) {
     if ($row['blocked']) {
         $cl = "error";
     }
+    if ($auth_customs > 0) {
+	$cl = "custom";
+	}
     if (! get_auth_count($db_link, $row['id'])) {
         $cl = 'nb';
     }
@@ -180,6 +184,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td class="nb"><?php echo WEB_color_user_empty; ?></td>
 <td class="off"><?php echo WEB_color_user_disabled; ?></td>
 <td class="error"><?php echo WEB_color_user_blocked; ?></td>
+<td class="custom"><?php echo WEB_color_user_custom; ?></td>
 </table>
 
 <script src="/js/remodal/remodal.min.js"></script>
