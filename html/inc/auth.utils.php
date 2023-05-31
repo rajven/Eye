@@ -6,8 +6,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/cfg/config.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/sql.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/common.php");
 
-ini_set('session.use_trans_sid',true);
-ini_set('session.use_only_cookies',false);
+ini_set('session.use_trans_sid', true);
+ini_set('session.use_only_cookies', false);
 
 function logout()
 {
@@ -17,6 +17,10 @@ function logout()
     if (session_id()) {
         // Если есть активная сессия, удаляем куки сессии
         setcookie(session_name(), session_id(), time() - 60 * 60 * 24);
+        if (isset($_COOKIE["Auth"])) { 
+            unset($_COOKIE["Auth"]); 
+            setcookie("Auth", null, -1);
+        }
         session_unset();
         session_destroy();
     }
@@ -31,6 +35,10 @@ function qlogout()
     if (session_id()) {
         // Если есть активная сессия, удаляем куки сессии
         setcookie(session_name(), session_id(), time() - 60 * 60 * 24);
+        if (isset($_COOKIE["Auth"])) { 
+            unset($_COOKIE["Auth"]); 
+            setcookie("Auth", null, -1);
+        }
         session_unset();
         session_destroy();
     }
@@ -46,6 +54,34 @@ function login($db)
             exit();
         }
     }
+
+    #get cookie
+    if (isset($_COOKIE["Auth"])) {
+        $data_array = explode(":", $_COOKIE["Auth"]);
+        # 0 - customer_id
+        # 1 - session_id
+        # 2 - md5 (session_key.':'. user ip)
+        #clear old sessions history
+        $old_time = time() - 60 * 60 * 24;
+        run_sql($db, "DELETE FROM sessions WHERE start_time<" . $old_time);
+        $session = get_record_sql($db, "SELECT * FROM sessions WHERE session_id='" . $data_array[1] . "' AND customer_id=" . $data_array[0]);
+        if (!empty($session)) {
+            $auth_ip = get_user_ip();
+            #check session
+            $current_hash = md5($session['id'] . ":" . $session['session_key'] . ":" . $auth_ip);
+            #enable access
+            if ($current_hash === $data_array[3]) {
+                $auth_record = get_record_sql($db, "SELECT * FROM `Customers` WHERE id='" . $data_array[0] . "'");
+                $_SESSION['IP'] = $auth_ip;
+                $_SESSION['user_id'] = $auth_record['id'];
+                $_SESSION['login'] = $auth_record['Login'];
+            } else {
+                unset($_COOKIE["Auth"]);
+                setcookie("Auth", null, -1);
+            }
+        }
+    }
+
     if (!IsAuthenticated($db)) {
         logout();
         exit();
@@ -87,7 +123,6 @@ function IsAuthenticated($db)
         $pass = trim($_POST['password']);
     }
 
-
     if (empty($login) or empty($pass)) {
         LOG_INFO($db, "login [$login] or password [$pass] undefined from $auth_ip: fail!");
         logout();
@@ -114,6 +149,12 @@ function IsAuthenticated($db)
             }
             $_SESSION['user_id'] = $auth_record['id'];
             $_SESSION['login'] = $login;
+            $session['session_id'] = $_SESSION['session_id'];
+            $session['session_key'] = bin2hex(random_bytes(20));
+            $session['customer_id'] = $auth_record['id'];
+            $session['start_time'] = time();
+            $ret_id = insert_record($db, 'sessions', $session);
+            setcookie("Auth", $auth_record['id'] . ":" . $session['session_id'] . ":" . md5($ret_id . ":" . $session['session_key'] . ":" . $_SESSION['IP']), time() + 60 * 60 * 24);
             return true;
         } else {
             LOG_INFO($db, "login user [$login] from " . $_SESSION['IP'] . ": fail!");
