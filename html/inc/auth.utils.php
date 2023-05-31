@@ -70,7 +70,7 @@ function login($db)
             #check session
             $current_hash = md5($session['id'] . ":" . $session['session_key'] . ":" . $auth_ip);
             #enable access
-            if ($current_hash === $data_array[3]) {
+            if (isset($data_array[2]) and $current_hash === $data_array[2]) {
                 $auth_record = get_record_sql($db, "SELECT * FROM `Customers` WHERE id='" . $data_array[0] . "'");
                 $_SESSION['IP'] = $auth_ip;
                 $_SESSION['user_id'] = $auth_record['id'];
