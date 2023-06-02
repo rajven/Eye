@@ -17,25 +17,27 @@ dnf install httpd php php-common perl mariadb-server git fping net-snmp-utils \
 php-mysqlnd php-bcmath php-intl php-mbstring php-pear-Date php-pear-Mail php-snmp perl-Net-Patricia \
 perl-NetAddr-IP perl-Config-Tiny perl-Net-DNS perl-DateTime perl-Proc-Daemon perl-Net-Netmask \
 perl-Text-Iconv perl-DateTime-Format-DateParse perl-Net-SNMP perl-Net-Telnet perl-Net-IPv4Addr \
-perl-DBI perl-DBD-MySQL perl-Net-OpenSSH perl-Parallel-ForkManager -y
+perl-DBI perl-DBD-MySQL perl-Net-OpenSSH perl-Parallel-ForkManager perl-File-Tail php-fpm -y
 
-Ubuntu:
+Ubuntu/Debian:
+
 apt install apache2 git fping perl mariadb-server php php-mysql php-bcmath php-intl \
 php-mbstring php-date php-mail php-snmp \
 libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
 libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl libdbi-perl \
 libdbd-mysql-perl libparallel-forkmanager-perl libproc-daemon-perl libdatetime-format-dateparse-perl \
-libnetwork-ipv4addr-perl libnet-openssh-perl
+libnetwork-ipv4addr-perl libnet-openssh-perl libfile-tail-perl php-fpm pdo-mysql libapache2-mod-fcgid
 
 3. Качаем исходники и раскидываем по каталогам:
 
 git clone https://github.com/rajven/statV2
 mkdir -p /opt/Eye/scripts
 mkdir -p /opt/Eye/scripts/cfg
+mkdir -p /opt/Eye/scripts/log
 cd statV2/
 cp -R scripts/ /opt/Eye/
 cp docs/addons/cfg/config /opt/Eye/scripts/cfg/
-cp -R html/ /var/www
+cp -R html/ /opt/Eye/
 
 4. Можно скачать дополнительные скрипты (красивости)
 
@@ -231,8 +233,6 @@ add name=download_root_[LAN_INTERFACE_NAME] parent=[LAN_INTERFACE_NAME] queue=pc
 
 #dhcp script
 /tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&password=<PASSWORD_HASH>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
-
-#просмотреть хэши паролей - print-customers.pl
 
 #расширенный скрипт, создаёт список доступа для дальнейшей блокировки клиентов с статическими адресами
 /tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&password=<PASSWORD_HASH>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
