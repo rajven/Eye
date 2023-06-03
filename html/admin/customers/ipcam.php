@@ -44,16 +44,12 @@ print "<tr><td colspan=3><br></td></tr>\n";
 $t_config = get_records_sql($db_link, "select id,name from building order by name");
 foreach ($t_config as $row) {
     print "<tr align=center>\n";
-    print "<td class=\"data\"><input type=\"text\" name='f_name[]' value='{$row['name']}' disabled=true readonly=true></td>\n";
-    print "<td class=\"data\"><button name='port_on[]' value='{$row['id']}'>".WEB_control_port_poe_on."</button></td>\n";
-    print "<td class=\"data\"><button name='port_off[]' value='{$row['id']}'>".WEB_control_port_poe_off."</button></td>\n";
+    print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
+    print "<td class=\"data\"><input type=\"text\" name='f_name[".$row['id']."]' value='".$row['name']."' disabled=true readonly=true></td>\n";
+    print "<td class=\"data\"><button name='port_on[".$row['id']."]' value='".$row['id']."'>".WEB_control_port_poe_on."</button></td>\n";
+    print "<td class=\"data\"><button name='port_off[".$row['id']."]' value='".$row['id']."'>".WEB_control_port_poe_off."</button></td>\n";
     print "</tr>\n";
 }
-print "<tr align=center>\n";
-print "<td class=\"data\"><input type=\"text\" name='f_name[]' value='ALL' disabled=true readonly=true></td>\n";
-print "<td class=\"data\"><button name='port_on[]' value='{0}'>".WEB_control_port_poe_on."</button></td>\n";
-print "<td class=\"data\"><button name='port_off[]' value='{0}'>".WEB_control_port_poe_off."</button></td>\n";
-print "</tr>\n";
 ?>
 </table>
 </form>

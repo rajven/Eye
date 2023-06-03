@@ -40,7 +40,6 @@ if (isset($_POST["removefilter"])) {
 }
 
 if (isset($_POST["updateFilters"])) {
-    var_dump($_POST);
     if (!empty($_POST["f_group_filter"])) {
         $f_group_filter = $_POST["f_group_filter"];
         LOG_DEBUG($db_link, "Update filters for group id: " . $id);

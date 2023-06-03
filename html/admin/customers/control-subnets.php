@@ -4,12 +4,12 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
 
 if (isset($_POST["s_remove"])) {
-    $s_id = $_POST["s_id"];
-    if (!empty($s_id)) {
-        foreach ($s_id as $key => $val) {
-            if (isset($val)) {
-                LOG_INFO($db_link, "Remove subnet id: $val");
-                delete_record($db_link, "subnets", "id=" . $val);
+    if (!empty($_POST["s_id"])) {
+        $s_id = $_POST["s_id"];
+        foreach ($s_id as $key => $net_id) {
+            if (isset($net_id)) {
+                LOG_INFO($db_link, "Remove subnet id: $net_id");
+                delete_record($db_link, "subnets", "id=" . $net_id);
             }
         }
     }
@@ -18,91 +18,88 @@ if (isset($_POST["s_remove"])) {
 }
 
 if (isset($_POST['s_save'])) {
-    $len = is_array($_POST['s_save']) ? count($_POST['s_save']) : 0;
-    for ($i = 0; $i < $len; $i++) {
-        $save_id = intval($_POST['s_save'][$i]);
-        $len_all = is_array($_POST['n_id']) ? count($_POST['n_id']) : 0;
-        for ($j = 0; $j < $len_all; $j++) {
-            if (intval($_POST['n_id'][$j]) != $save_id) {
-                continue;
+    if (!empty($_POST["s_id"])) {
+        $s_id = $_POST["s_id"];
+        foreach ($s_id as $key => $net_id) {
+            if (isset($net_id)) {
+                $new['subnet'] = trim($_POST['s_subnet'][$net_id]);
+                $new['office'] = $_POST['s_office'][$net_id] * 1;
+                $new['hotspot'] = $_POST['s_hotspot'][$net_id] * 1;
+                $new['vpn'] = $_POST['s_vpn'][$net_id] * 1;
+                $new['free'] = $_POST['s_free'][$net_id] * 1;
+                $new['dhcp'] = $_POST['s_dhcp'][$net_id] * 1;
+                $new['dhcp_lease_time'] = $_POST['s_lease_time'][$net_id] * 1;
+                $new['static'] = $_POST['s_static'][$net_id] * 1;
+                $new['discovery'] = $_POST['s_discovery'][$net_id] * 1;
+                $new['dhcp_update_hostname'] = $_POST['s_dhcp_update'][$net_id] * 1;
+                $new['comment'] = trim($_POST['s_comment'][$net_id]);
+                $range = cidrToRange($new['subnet']);
+                $first_user_ip = $range[0];
+                $last_user_ip = $range[1];
+                $cidr = $range[2][1];
+                if (isset($cidr) and $cidr <= 32) {
+                    $new['subnet'] = $first_user_ip . '/' . $cidr;
+                } else {
+                    $new['subnet'] = '';
+                }
+                $new['ip_int_start'] = ip2long($first_user_ip);
+                $new['ip_int_stop'] = ip2long($last_user_ip);
+                $new['dhcp_start'] = ip2long(trim($_POST['s_dhcp_start'][$net_id]));
+                $new['dhcp_stop'] = ip2long(trim($_POST['s_dhcp_stop'][$net_id]));
+                $dhcp_fail = 0;
+                if (!isset($new['dhcp_start']) or $new['dhcp_start'] == 0) {
+                    $dhcp_fail = 1;
+                }
+                if (!isset($new['dhcp_stop']) or $new['dhcp_stop'] == 0) {
+                    $dhcp_fail = 1;
+                }
+                if (!$dhcp_fail and ($new['dhcp_start'] - $new['ip_int_stop'] >= 0)) {
+                    $dhcp_fail = 1;
+                }
+                if (!$dhcp_fail and ($new['dhcp_start'] - $new['ip_int_start'] <= 0)) {
+                    $dhcp_fail = 1;
+                }
+                if (!$dhcp_fail and ($new['dhcp_stop'] - $new['ip_int_stop'] >= 0)) {
+                    $dhcp_fail = 1;
+                }
+                if (!$dhcp_fail and ($new['dhcp_stop'] - $new['ip_int_start'] <= 0)) {
+                    $dhcp_fail = 1;
+                }
+                if (!$dhcp_fail and ($new['dhcp_start'] - $new['dhcp_stop'] >= 0)) {
+                    $dhcp_fail = 1;
+                }
+                if ($dhcp_fail) {
+                    $new['dhcp_start'] = ip2long($range[3]);
+                    $new['dhcp_stop'] = ip2long($range[4]);
+                }
+                $gateway = ip2long(trim($_POST['s_gateway'][$net_id]));
+                if (!isset($gateway)) {
+                    $gateway = $range[5];
+                }
+                $new['gateway'] = $gateway;
+                if ($new['hotspot']) {
+                    $new['dhcp_update_hostname'] = 0;
+                    $new['discovery'] = 0;
+                    $new['vpn'] = 0;
+                }
+                if ($new['vpn']) {
+                    $new['discovery'] = 0;
+                    $new['dhcp'] = 0;
+                }
+                if ($new['office']) {
+                    $new['free'] = 0;
+                }
+                if (!$new['office']) {
+                    $new['discovery'] = 0;
+                    $new['dhcp'] = 0;
+                    $new['static'] = 0;
+                    $new['dhcp_update_hostname'] = 0;
+                    $new['gateway'] = 0;
+                    $new['dhcp_start'] = 0;
+                    $new['dhcp_stop'] = 0;
+                }
+                update_record($db_link, "subnets", "id='$net_id'", $new);
             }
-            $new['subnet'] = trim($_POST['s_subnet'][$j]);
-            $new['office'] = $_POST['s_office'][$j] * 1;
-            $new['hotspot'] = $_POST['s_hotspot'][$j] * 1;
-            $new['vpn'] = $_POST['s_vpn'][$j] * 1;
-            $new['free'] = $_POST['s_free'][$j] * 1;
-            $new['dhcp'] = $_POST['s_dhcp'][$j] * 1;
-            $new['dhcp_lease_time'] = $_POST['s_lease_time'][$j] * 1;
-            $new['static'] = $_POST['s_static'][$j] * 1;
-            $new['discovery'] = $_POST['s_discovery'][$j] * 1;
-            $new['dhcp_update_hostname'] = $_POST['s_dhcp_update'][$j] * 1;
-            $new['comment'] = trim($_POST['s_comment'][$j]);
-            $range = cidrToRange($new['subnet']);
-            $first_user_ip = $range[0];
-            $last_user_ip = $range[1];
-            $cidr = $range[2][1];
-            if (isset($cidr) and $cidr <= 32) {
-                $new['subnet'] = $first_user_ip . '/' . $cidr;
-            } else {
-                $new['subnet'] = '';
-            }
-            $new['ip_int_start'] = ip2long($first_user_ip);
-            $new['ip_int_stop'] = ip2long($last_user_ip);
-            $new['dhcp_start'] = ip2long(trim($_POST['s_dhcp_start'][$j]));
-            $new['dhcp_stop'] = ip2long(trim($_POST['s_dhcp_stop'][$j]));
-            $dhcp_fail = 0;
-            if (!isset($new['dhcp_start']) or $new['dhcp_start'] == 0) {
-                $dhcp_fail = 1;
-            }
-            if (!isset($new['dhcp_stop']) or $new['dhcp_stop'] == 0) {
-                $dhcp_fail = 1;
-            }
-            if (!$dhcp_fail and ($new['dhcp_start'] - $new['ip_int_stop'] >= 0)) {
-                $dhcp_fail = 1;
-            }
-            if (!$dhcp_fail and ($new['dhcp_start'] - $new['ip_int_start'] <= 0)) {
-                $dhcp_fail = 1;
-            }
-            if (!$dhcp_fail and ($new['dhcp_stop'] - $new['ip_int_stop'] >= 0)) {
-                $dhcp_fail = 1;
-            }
-            if (!$dhcp_fail and ($new['dhcp_stop'] - $new['ip_int_start'] <= 0)) {
-                $dhcp_fail = 1;
-            }
-            if (!$dhcp_fail and ($new['dhcp_start'] - $new['dhcp_stop'] >= 0)) {
-                $dhcp_fail = 1;
-            }
-            if ($dhcp_fail) {
-                $new['dhcp_start'] = ip2long($range[3]);
-                $new['dhcp_stop'] = ip2long($range[4]);
-            }
-            $gateway = ip2long(trim($_POST['s_gateway'][$j]));
-            if (!isset($gateway)) {
-                $gateway = $range[5];
-            }
-            $new['gateway'] = $gateway;
-            if ($new['hotspot']) {
-                $new['dhcp_update_hostname'] = 0;
-                $new['discovery'] = 0;
-                $new['vpn'] = 0;
-            }
-            if ($new['vpn']) {
-                $new['discovery'] = 0;
-                $new['dhcp'] = 0;
-            }
-            if ($new['office']) {
-                $new['free'] = 0;
-            }
-            if (!$new['office']) {
-                $new['discovery'] = 0;
-                $new['dhcp'] = 0;
-                $new['static'] = 0;
-                $new['dhcp_update_hostname'] = 0;
-                $new['gateway'] = 0;
-                $new['dhcp_start'] = 0;
-                $new['dhcp_stop'] = 0;
-            }
-            update_record($db_link, "subnets", "id='{$save_id}'", $new);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -146,11 +143,16 @@ print_control_submenu($page_url);
 <div id="cont">
     <br>
     <form name="def" action="control-subnets.php" method="post">
+    <div>
+        <?php print WEB_network_create . "&nbsp:<input type=\"text\" name='s_create_subnet' value=''>"; ?>
+        <input type="submit" name="s_create" value="<?php echo WEB_btn_add; ?>">
+        <button class="button_right" name='s_save' value='save'><?php print WEB_btn_save; ?></button>
+        <input type="submit" onclick="return confirm('<?php print WEB_btn_delete; ?>?')" name="s_remove" value="<?php print WEB_btn_remove; ?>">
+    </div>
         <b><?php echo WEB_network_org_title; ?></b> <br>
         <table class="data">
             <tr align="center">
                 <td></td>
-                <td width=30><b>id</b></td>
                 <td><b><?php echo WEB_network_subnet; ?></b></td>
                 <td><b><?php echo WEB_network_gateway; ?></b></td>
                 <td><b><?php echo WEB_network_use_dhcp; ?></b></td>
@@ -165,16 +167,14 @@ print_control_submenu($page_url);
                 <td><b><?php echo WEB_network_dyndns; ?></b></td>
                 <td><b><?php echo WEB_network_discovery; ?></b></td>
                 <td><b><?php echo WEB_cell_comment; ?></b></td>
-                <td><input type="submit" onclick="return confirm('<?php print WEB_btn_delete; ?>?')" name="s_remove" value="<?php print WEB_btn_remove; ?>"></td>
             </tr>
             <?php
             $t_subnets = get_records($db_link, 'subnets', 'True ORDER BY ip_int_start');
             foreach ($t_subnets as $row) {
                 print "<tr align=center>\n";
                 $cl = "data";
-                print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=s_id[] value='{$row['id']}'></td>\n";
-                print "<td class=\"$cl\"><input type=\"hidden\" name='n_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
-                print "<td class=\"$cl\"><input type=\"text\" name='s_subnet[]' value='{$row['subnet']}' size='18'></td>\n";
+                print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=s_id[] value='" . $row['id'] . "'></td>\n";
+                print "<td class=\"$cl\"><input type=\"text\" name='s_subnet[" . $row['id'] . "]' value='".$row['subnet']."' size='18'></td>\n";
                 $cell_disabled = '';
                 if ($row['office'] and !$row['vpn']) {
                     $default_range = cidrToRange($row['subnet']);
@@ -188,14 +188,14 @@ print_control_submenu($page_url);
                     $cell_disabled = 'readonly=true';
                     $cl = 'down';
                 }
-                print "<td class=\"$cl\"><input type=\"text\" name='s_gateway[]' value='" . long2ip($row['gateway']) . "'  size='15' $cell_disabled></td>\n";
+                print "<td class=\"$cl\"><input type=\"text\" name='s_gateway[" . $row['id'] . "]' value='" . long2ip($row['gateway']) . "'  size='15' $cell_disabled></td>\n";
                 if ($row['dhcp']) {
                     $cl = 'up';
                 } else {
                     $cl = 'data';
                 }
                 print "<td class=\"$cl\">";
-                print_qa_select("s_dhcp[]", $row['dhcp']);
+                print_qa_select("s_dhcp[" . $row['id'] . "]", $row['dhcp']);
                 print "</td>\n";
                 if ($row['static']) {
                     $cl = 'up';
@@ -203,12 +203,12 @@ print_control_submenu($page_url);
                     $cl = 'data';
                 }
                 print "<td class=\"$cl\">";
-                print_qa_select("s_static[]", $row['static']);
+                print_qa_select("s_static[" . $row['id'] . "]", $row['static']);
                 print "</td>\n";
                 $cl = 'data';
-                print "<td class=\"$cl\"><input type=\"text\" name='s_dhcp_start[]' value='" . long2ip($row['dhcp_start']) . "' size='15' $cell_disabled></td>\n";
-                print "<td class=\"$cl\"><input type=\"text\" name='s_dhcp_stop[]' value='" . long2ip($row['dhcp_stop']) . "' size='15' $cell_disabled></td>\n";
-                print "<td class=\"$cl\"><input type=\"text\" name='s_lease_time[]' value='" . $row['dhcp_lease_time'] . "'size='3' $cell_disabled></td>\n";
+                print "<td class=\"$cl\"><input type=\"text\" name='s_dhcp_start[" . $row['id'] . "]' value='" . long2ip($row['dhcp_start']) . "' size='15' $cell_disabled></td>\n";
+                print "<td class=\"$cl\"><input type=\"text\" name='s_dhcp_stop[" . $row['id'] . "]' value='" . long2ip($row['dhcp_stop']) . "' size='15' $cell_disabled></td>\n";
+                print "<td class=\"$cl\"><input type=\"text\" name='s_lease_time[" . $row['id'] . "]' value='" . $row['dhcp_lease_time'] . "'size='3' $cell_disabled></td>\n";
                 $row_cl = 'data';
                 if (!$row['office']) {
                     $row_cl = 'down';
@@ -219,7 +219,7 @@ print_control_submenu($page_url);
                     $cl = 'data';
                 }
                 print "<td class=\"$cl\">";
-                print_qa_select("s_office[]", $row['office']);
+                print_qa_select("s_office[" . $row['id'] . "]", $row['office']);
                 print "</td>\n";
                 if ($row_cl === 'data' and $row['hotspot']) {
                     $cl = 'up';
@@ -227,7 +227,7 @@ print_control_submenu($page_url);
                     $cl = $row_cl;
                 }
                 print "<td class=\"$cl\">";
-                print_qa_select_ext("s_hotspot[]", $row['hotspot'], !$row['office']);
+                print_qa_select_ext("s_hotspot[" . $row['id'] . "]", $row['hotspot'], !$row['office']);
                 print "</td>\n";
                 if ($row_cl === 'data' and $row['vpn']) {
                     $cl = 'up';
@@ -235,7 +235,7 @@ print_control_submenu($page_url);
                     $cl = $row_cl;
                 }
                 print "<td class=\"$cl\">";
-                print_qa_select_ext("s_vpn[]", $row['vpn'], !$row['office']);
+                print_qa_select_ext("s_vpn[" . $row['id'] . "]", $row['vpn'], !$row['office']);
                 print "</td>\n";
                 if ($row['free']) {
                     $cl = 'up';
@@ -243,7 +243,7 @@ print_control_submenu($page_url);
                     $cl = $row_cl;
                 }
                 print "<td class=\"$cl\">";
-                print_qa_select("s_free[]", $row['free']);
+                print_qa_select("s_free[" . $row['id'] . "]", $row['free']);
                 print "</td>\n";
                 if ($row_cl === 'data' and $row['dhcp_update_hostname']) {
                     $cl = 'up';
@@ -251,7 +251,7 @@ print_control_submenu($page_url);
                     $cl = $row_cl;
                 }
                 print "<td class=\"$cl\">";
-                print_qa_select_ext("s_dhcp_update[]", $row['dhcp_update_hostname'], !$row['office']);
+                print_qa_select_ext("s_dhcp_update[" . $row['id'] . "]", $row['dhcp_update_hostname'], !$row['office']);
                 print "</td>\n";
                 if ($row_cl === 'data' and $row['discovery']) {
                     $cl = 'up';
@@ -259,17 +259,12 @@ print_control_submenu($page_url);
                     $cl = $row_cl;
                 }
                 print "<td class=\"$cl\">";
-                print_qa_select_ext("s_discovery[]", $row['discovery'], !$row['office']);
+                print_qa_select_ext("s_discovery[" . $row['id'] . "]", $row['discovery'], !$row['office']);
                 print "</td>\n";
-                print "<td class=\"data\"><input type=\"text\" name='s_comment[]' value='{$row['comment']}'></td>\n";
-                print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>" . WEB_btn_save . "</button></td>\n";
+                print "<td class=\"data\"><input type=\"text\" name='s_comment[" . $row['id'] . "]' value='".$row['comment']."'></td>\n";
                 print "</tr>\n";
-            }
+                }
             ?>
-            <tr>
-                <td colspan=6><?php print WEB_network_create . "&nbsp:<input type=\"text\" name='s_create_subnet' value=''>"; ?></td>
-                <td><input type="submit" name="s_create" value="<?php echo WEB_btn_add; ?>"></td>
-            </tr>
         </table>
     </form>
     <?php require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.php"); ?>
