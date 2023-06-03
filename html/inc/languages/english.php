@@ -238,6 +238,7 @@ define("WEB_btn_recover","Restore");
 define("WEB_btn_transfom","Transform");
 define("WEB_btn_login","Enter");
 define("WEB_btn_apply_selected","Apply for selected");
+define("WEB_btn_save_filters","Save filters");
 
 /* control options */
 define("WEB_config_remove_option","Parameter removed");

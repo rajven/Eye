@@ -368,7 +368,6 @@ foreach my $row (@filterlist_ref) {
         $filters{$row->{id}}->{dst}=$row->{dst};
         $filters{$row->{id}}->{dstport}=$row->{dstport};
         $filters{$row->{id}}->{srcport}=$row->{srcport};
-        $filters{$row->{id}}->{action}=$row->{action};
         #set false for dns dst flag
         $filters{$row->{id}}->{dns_dst}=0;
         } else {
@@ -386,7 +385,6 @@ foreach my $row (@filterlist_ref) {
                 $filters{$dyn_filters_index}->{dst}=$resolved_ip;
                 $filters{$dyn_filters_index}->{dstport}=$row->{dstport};
                 $filters{$dyn_filters_index}->{srcport}=$row->{srcport};
-                $filters{$dyn_filters_index}->{action}=$row->{action};
                 $filters{$dyn_filters_index}->{dns_dst}=0;
                 #save new filter dns id for original filter id
                 push(@{$dyn_filters{$row->{id}}},$dyn_filters_index);
@@ -402,14 +400,15 @@ log_debug("DNS-filters status:". Dumper(\%dyn_filters));
 do_sql($dbh,"DELETE FROM Group_filters WHERE group_id NOT IN (SELECT id FROM Group_list)");
 do_sql($dbh,"DELETE FROM Group_filters WHERE filter_id NOT IN (SELECT id FROM Filter_list)");
 
-my @grouplist_ref = get_records_sql($dbh,"SELECT group_id,filter_id,Group_filters.order FROM Group_filters order by Group_filters.group_id,Group_filters.order");
+my @grouplist_ref = get_records_sql($dbh,"SELECT `group_id`,`filter_id`,`order`,`action` FROM Group_filters ORDER BY Group_filters.group_id,Group_filters.order");
 
 my %group_filters;
 my $index=0;
 foreach my $row (@grouplist_ref) {
     #if dst dns filter not found
     if (!$filters{$row->{filter_id}}->{dns_dst}) {
-        $group_filters{'group_'.$row->{group_id}}->{$index}=$row->{filter_id};
+        $group_filters{'group_'.$row->{group_id}}->{$index}->{filter_id}=$row->{filter_id};
+        $group_filters{'group_'.$row->{group_id}}->{$index}->{action}=$row->{action};
         $index++;
     } else {
         #if found dns dst filters - add
@@ -508,14 +507,14 @@ foreach my $group_name (keys %group_filters) {
 next if (!$group_name);
 next if (!exists($group_filters{$group_name}));
 foreach my $filter_index (sort keys %{$group_filters{$group_name}}) {
-    my $filter_id=$group_filters{$group_name}->{$filter_index};
+    my $filter_id=$group_filters{$group_name}->{$filter_index}->{filter_id};
     next if (!$filters{$filter_id});
     next if ($filters{$filter_id}->{dns_dst});
 
     my $src_rule='chain='.$group_name;
     my $dst_rule='chain='.$group_name;
 
-    if ($filters{$filter_id}->{action}) {
+    if ($group_filters{$group_name}->{$filter_index}->{action}) {
 	$src_rule=$src_rule." action=accept";
 	$dst_rule=$dst_rule." action=accept";
 	} else {

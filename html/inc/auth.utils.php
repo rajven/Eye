@@ -17,8 +17,8 @@ function logout()
     if (session_id()) {
         // Если есть активная сессия, удаляем куки сессии
         setcookie(session_name(), session_id(), time() - 60 * 60 * 24);
-        if (isset($_COOKIE["Auth"])) { 
-            unset($_COOKIE["Auth"]); 
+        if (isset($_COOKIE["Auth"])) {
+            unset($_COOKIE["Auth"]);
             setcookie("Auth", null, -1);
         }
         session_unset();
@@ -35,8 +35,8 @@ function qlogout()
     if (session_id()) {
         // Если есть активная сессия, удаляем куки сессии
         setcookie(session_name(), session_id(), time() - 60 * 60 * 24);
-        if (isset($_COOKIE["Auth"])) { 
-            unset($_COOKIE["Auth"]); 
+        if (isset($_COOKIE["Auth"])) {
+            unset($_COOKIE["Auth"]);
             setcookie("Auth", null, -1);
         }
         session_unset();

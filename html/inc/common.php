@@ -2968,7 +2968,7 @@ function update_record($db, $table, $filter, $newvalue)
     LOG_DEBUG($db, "Run sql: $new_sql");
     $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "SQL: $new_sql :".mysqli_error($db));
     if (!$sql_result) { LOG_ERROR($db, "UPDATE Request: $new_sql :".mysqli_error($db)); return; }
-    LOG_VERBOSE($db, "Change table $table WHERE $filter set $changed_log");
+    if ( $table !== "sessions" ) { LOG_VERBOSE($db, "Change table $table WHERE $filter set $changed_log"); }
 }
 
 function delete_record($db, $table, $filter)
@@ -3012,7 +3012,7 @@ function delete_record($db, $table, $filter)
         $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "SQL: $new_sql :".mysqli_error($db));
         if (!$sql_result) { LOG_ERROR($db, "DELETE Request: $new_sql : ".mysqli_error($db)); return; }
         }
-    LOG_VERBOSE($db, "Delete FROM table $table WHERE $filter $changed_log");
+    if ( $table !== "sessions" ) { LOG_VERBOSE($db, "Delete FROM table $table WHERE $filter $changed_log"); }
     return $changed_log;
 }
 
@@ -3052,8 +3052,8 @@ function insert_record($db, $table, $newvalue)
     $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "SQL: $new_sql :".mysqli_error($db));
     if (!$sql_result) { LOG_ERROR($db, "INSERT Request:".mysqli_error($db)); return; }
     $last_id = mysqli_insert_id($db);
-    LOG_VERBOSE($db, "Create record in table $table: $changed_log with id: $last_id");
-    if ($table === 'User_auth') { run_sql($db,"UPDATE User_auth SET changed=1 WHERE id=".$last_id); }
+    if ( $table !== "sessions" ) { LOG_VERBOSE($db, "Create record in table $table: $changed_log with id: $last_id"); }
+    if ( $table === 'User_auth') { run_sql($db,"UPDATE User_auth SET changed=1 WHERE id=".$last_id); }
     return $last_id;
 }
 

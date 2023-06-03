@@ -21,6 +21,7 @@ use IPTables::libiptc;
 use DBI;
 use utf8;
 use open ":encoding(utf8)";
+use Net::DNS;
 
 #exit;
 
@@ -66,49 +67,130 @@ if ($connected_users_only) {
 db_log_verbose($dbh,"Sync user state at router $router_name started.");
 
 #get userid list
-my $user_auth_sql="SELECT User_auth.ip, User_auth.filter_group_id
+my $user_auth_sql="SELECT User_auth.ip, User_auth.filter_group_id, User_auth.queue_id, User_auth.id
 FROM User_auth, User_list
 WHERE User_auth.user_id = User_list.id
 AND User_auth.deleted =0
 AND User_auth.enabled =1
 AND User_auth.blocked =0
 AND User_list.blocked =0
-AND User_auth.user_id <> $hotspot_user_id
+AND User_list.enabled =1
+AND User_auth.ou_id <> $default_hotspot_ou_id
 ORDER BY ip_int";
 
-my %users;
-
 my @authlist_ref = get_records_sql($dbh,$user_auth_sql);
-
-#print Dumper(\@authlist_ref);
-foreach my $row (@authlist_ref) {
-if ($connected_users_only) {
-    next if (!$connected_users->match_string($row->{ip}));
-    }
-$users{'group_'.$row->{filter_group_id}}->{ips}{$row->{ip}}=1;
-}
-
-#get filters
-my @filter_list = get_records_sql($dbh,"SELECT id,name,proto,dst,dstport,action FROM Filter_list where type=0");
-my %filters;
-foreach my $row (@filter_list) {
-$filters{$row->{id}}->{id}=$row->{id};
-$filters{$row->{id}}->{proto}=$row->{proto};
-$filters{$row->{id}}->{dst}=$row->{dst};
-$filters{$row->{id}}->{port}=$row->{dstport};
-$filters{$row->{id}}->{action}=$row->{action};
-}
-
-#get groups
-my @group_list = get_records_sql($dbh,"SELECT group_id,filter_id,Group_filters.order FROM Group_filters ORDER BY Group_filters.group_id,Group_filters.order" );
-my %group_filters;
+my %users;
 my %lists;
-my $index=0;
-foreach my $row (@group_list) {
-$group_filters{'group_'.$row->{group_id}}->{$index}=$row->{filter_id};
-$lists{'group_'.$row->{group_id}}=1;
-$index++;
+my %found_users;
+
+foreach my $row (@authlist_ref) {
+if ($connected_users_only) { next if (!$connected_users->match_string($row->{ip})); }
+#skip not office ip's
+next if (!$office_networks->match_string($row->{ip}));
+$found_users{$row->{'id'}}=$row->{ip};
+#filter group acl's
+$users{'group_'.$row->{filter_group_id}}->{$row->{ip}}=1;
+$users{'group_all'}->{$row->{ip}}=1;
+$lists{'group_'.$row->{filter_group_id}}=1;
+#queue acl's
+if ($row->{queue_id}) { $users{'queue_'.$row->{queue_id}}->{$row->{ip}}=1; }
 }
+
+log_debug("Users status:".Dumper(\%users));
+
+#full list
+$lists{'group_all'}=1;
+
+#get queue list
+my @queuelist_ref = get_records_sql($dbh,"SELECT * FROM Queue_list");
+
+my %queues;
+foreach my $row (@queuelist_ref) {
+$lists{'queue_'.$row->{id}}=1;
+next if ((!$row->{Download}) and !($row->{Upload}));
+$queues{'queue_'.$row->{id}}{id}=$row->{id};
+$queues{'queue_'.$row->{id}}{down}=$row->{Download};
+$queues{'queue_'.$row->{id}}{up}=$row->{Upload};
+}
+
+log_debug("Queues status:".Dumper(\%queues));
+
+my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM Filter_list where type=0");
+
+my %filters;
+my %dyn_filters;
+
+my $max_filter_rec = get_record_sql($dbh,"SELECT MAX(id) FROM Filter_list");
+my $max_filter_id = $max_filter_rec->{id};
+
+my $dyn_filters_base = $max_filter_id+1000;
+my $dyn_filters_index = $dyn_filters_base;
+
+foreach my $row (@filterlist_ref) {
+    #if dst - ip address
+    if (is_ip($row->{dst})) {
+        $filters{$row->{id}}->{id}=$row->{id};
+        $filters{$row->{id}}->{proto}=$row->{proto};
+        $filters{$row->{id}}->{dst}=$row->{dst};
+        $filters{$row->{id}}->{dstport}=$row->{dstport};
+        $filters{$row->{id}}->{srcport}=$row->{srcport};
+        #set false for dns dst flag
+        $filters{$row->{id}}->{dns_dst}=0;
+        } else {
+        #if dst not ip - check dns record
+        my @dns_record=ResolveNames($row->{dst},undef);
+        my $resolved_ips = (scalar @dns_record>0);
+        next if (!$resolved_ips);
+        foreach my $resolved_ip (sort @dns_record) {
+                next if (!$resolved_ip);
+                #enable dns dst filters
+                $filters{$row->{id}}->{dns_dst}=1;
+                #add dynamic dns filter
+                $filters{$dyn_filters_index}->{id}=$row->{id};
+                $filters{$dyn_filters_index}->{proto}=$row->{proto};
+                $filters{$dyn_filters_index}->{dst}=$resolved_ip;
+                $filters{$dyn_filters_index}->{dstport}=$row->{dstport};
+                $filters{$dyn_filters_index}->{srcport}=$row->{srcport};
+                $filters{$dyn_filters_index}->{dns_dst}=0;
+                #save new filter dns id for original filter id
+                push(@{$dyn_filters{$row->{id}}},$dyn_filters_index);
+                $dyn_filters_index++;
+            }
+        }
+}
+
+log_debug("Filters status:". Dumper(\%filters));
+log_debug("DNS-filters status:". Dumper(\%dyn_filters));
+
+#clean unused filter records
+do_sql($dbh,"DELETE FROM Group_filters WHERE group_id NOT IN (SELECT id FROM Group_list)");
+do_sql($dbh,"DELETE FROM Group_filters WHERE filter_id NOT IN (SELECT id FROM Filter_list)");
+
+my @grouplist_ref = get_records_sql($dbh,"SELECT `group_id`,`filter_id`,`order`,`action` FROM Group_filters ORDER BY Group_filters.group_id,Group_filters.order");
+
+my %group_filters;
+my $index=0;
+foreach my $row (@grouplist_ref) {
+    #if dst dns filter not found
+    if (!$filters{$row->{filter_id}}->{dns_dst}) {
+        $group_filters{'group_'.$row->{group_id}}->{$index}->{filter_id}=$row->{filter_id};
+        $group_filters{'group_'.$row->{group_id}}->{$index}->{action}=$row->{action};
+        $index++;
+    } else {
+        #if found dns dst filters - add
+	    if (exists $dyn_filters{$row->{filter_id}}) {
+	        my @dyn_ips = @{$dyn_filters{$row->{filter_id}}};
+	        if (scalar @dyn_ips >0) {
+		        for (my $i = 0; $i < scalar @dyn_ips; $i++) {
+        	        $group_filters{'group_'.$row->{group_id}}->{$index}=$dyn_ips[$i];
+        	        $index++;
+        	    }
+	        }
+        }
+    }
+}
+
+log_debug("Group filters: ".Dumper(\%group_filters));
 
 my %cur_users;
 
@@ -169,7 +251,7 @@ next if (!$group_name);
 next if (!exists($group_filters{$group_name}));
 push(@{$chain_rules{$group_name}},"-N $group_name");
 foreach my $filter_index (sort keys %{$group_filters{$group_name}}) {
-    my $filter_id=$group_filters{$group_name}->{$filter_index};
+    my $filter_id=$group_filters{$group_name}->{$filter_index}->{filter_id};
     next if (!$filters{$filter_id});
     my $src_rule='-A '.$group_name;
     my $dst_rule='-A '.$group_name;
@@ -190,7 +272,7 @@ foreach my $filter_index (sort keys %{$group_filters{$group_name}}) {
 	$src_rule=$src_rule.$module." --sport ".trim($filters{$filter_id}->{port});
 	$dst_rule=$dst_rule.$module." --dport ".trim($filters{$filter_id}->{port});
 	}
-    if ($filters{$filter_id}->{action}) {
+    if ($group_filters{$group_name}->{$filter_index}->{action}) {
 	$src_rule=$src_rule." -j ACCEPT";
 	$dst_rule=$dst_rule." -j ACCEPT";
 	} else {

@@ -238,6 +238,7 @@ define("WEB_btn_recover","Восстановить");
 define("WEB_btn_transfom","Преобразовать");
 define("WEB_btn_login","Войти");
 define("WEB_btn_apply_selected","Поменять у выделения");
+define("WEB_btn_save_filters","Сохранить фильтры");
 
 /* control options */
 define("WEB_config_remove_option","Удалён параметр");
