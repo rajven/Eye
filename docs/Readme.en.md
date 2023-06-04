@@ -1,120 +1,105 @@
-Installation steps for CentOS 8:
+Installation
 
-1. Enable repo:
+1. Install the packages
 
-для CentOS 8:
+apt install apache2 git fping perl mariadb-php server php-mysql php-bcmath php-intl\
+php-mbstring php-date php-mail php-snmp\
+libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl libnet-dns-perl libdatetime-perl\
+libnet-mask networks-perl libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl libdbi-perl \
+libdbd-mysql-perl libparallel-forkmanager-perl libproc-daemon-perl libdatetime-format-dateparse-perl\
+libnetwork-ipv4addr-perl libnet-openssh-perl libfile-tail-perl php-fpm pdo-mysql libapache2-mod-fcgid
 
-yum install dnf-plugins-core
-yum config-manager --set-enabled powertools
-yum config-manager --set-enabled extras
-dnf install epel-release elrepo-release
+2. Download the source code and spread it in catalogs:
 
-2. Install packages:
-
-Centos:
-
-dnf install httpd php php-common perl mariadb-server git fping net-snmp-utils \
-php-mysqlnd php-bcmath php-intl php-mbstring php-pear-Date php-pear-Mail php-snmp perl-Net-Patricia \
-perl-NetAddr-IP perl-Config-Tiny perl-Net-DNS perl-DateTime perl-Proc-Daemon perl-Net-Netmask \
-perl-Text-Iconv perl-DateTime-Format-DateParse perl-Net-SNMP perl-Net-Telnet perl-Net-IPv4Addr \
-perl-DBI perl-DBD-MySQL perl-Net-OpenSSH perl-Parallel-ForkManager -y
-
-Ubuntu:
-apt install apache2 git fping perl mariadb-server php php-mysql php-bcmath php-intl \
-php-mbstring php-date php-mail php-snmp \
-libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
-libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl libdbi-perl \
-libdbd-mysql-perl libparallel-forkmanager-perl libproc-daemon-perl libdatetime-format-dateparse-perl \
-libnetwork-ipv4addr-perl libnet-openssh-perl
-
-3. Download project:
-
-git clone https://github.com/rajven/statV2
+git clone https://github.com/rajven/Eye
 mkdir -p /opt/Eye/scripts
+mkdir -p /opt/Eye/scripts/cfg
+mkdir -p /opt/Eye/scripts/log
 cd statV2/
 cp -R scripts/ /opt/Eye/
-mkdir -p /opt/Eye/scripts/cfg
 cp docs/addons/cfg/config /opt/Eye/scripts/cfg/
-cp -R html/ /var/www
+cp -R html/ /opt/Eye/
 
-4. Download additional scripts (optional)
+3. You can download additional scripts (prettiness)
+
+mkdir -p /opt/Eye/html/js/jq
+mkdir -p /opt/Eye/html/js/select2
 
 download from https://jquery.com/download/ production jQuery to /opt/Eye/html/js/jq
-example: wget https://code.jquery.com/jquery-3.6.0.min.js
-rename jquery-3.6.0.min.js to jquery.min.js
+#wget https://code.jquery.com/jquery-1.12.4.min.js -O /opt/Eye/html/js/jq/jquery.min.js
+or
+#wget https://code.jquery.com/jquery-3.7.0.min.js -O /opt/Eye/html/js/jq/jquery.min.js
 
 download from https://github.com/select2/select2 release
-example: wget https://github.com/select2/select2/archive/4.0.12.tar.gz
-extract contents from directory dist archive to /opt/Eye/html/js/select2/
+#wget https://github.com/select2/select2/archive/4.0.12.tar.gz
+#tar -xzf 4.0.12.tar.gz -C /opt/Eye/html/js/select2/ --strip-components=2 select2-4.0.12/dist
 
 download jstree from  https://github.com/vakata/jstree/
-wget https://github.com/vakata/jstree/zipball/3.3.12 -O js.zip
-extract contents from directory dist archive to /opt/Eye/html/js/jstree
+#wget https://github.com/vakata/jstree/zipball/3.3.12 -O js.zip
+#unzip js.zip "vakata-jstree-7a03954/dist/*" -d "/opt/Eye/html/"
+#mv /opt/Eye/html/vakata-jstree-7a03954/dist/ /opt/Eye/html/js/jstree
 
-5. Configure mysql
+4. Setting up mysql 
 
 systemctl enable mariadb
 systemctl start mariadb
 
-mysql_secure_installation - configure root password!!!
+mysql_secure_installation - set password for root
 
 #mysql -u root -p
 
-MariaDB [(none)]> CREATE DATABASE `stat` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-MariaDB [(none)]> grant all privileges on stat.* to stat@localhost identified by 'password';
-MariaDB [(none)]> flush privileges;
-MariaDB [(none)]> quit
+Create user and database
 
-cat docs/mysql/mysql.sql | mysql -u root -p stat
+MariaDB [(none)]>
+CREATE DATABASE `stat` DEFAULT utf8mb4 CHARACTER SET MATCH utf8mb4_unicode_ci;
+grant all privileges to stat.* stat@localhost, identified with a "password";
+reset privileges;
+go out
 
-6. Save configuration for web and scripts:
+Import default tables
+documents cat/mysql/mysql.sql | mysql -u root -p stat
+
+5. Edit configs for web and scripts:
 
 cp html/inc/config.php.sample /opt/Eye/html/cfg/
 mv /opt/Eye/html/cfg/config.php.sample /opt/Eye/html/cfg/config.php
 
-edit: /opt/Eye/html/cfg/config.php & /opt/Eye/scripts/cfg/config
+edit: /opt/Eye/html/cfg/config.php
 
-set mysql database|user|password
+cp scripts/cfg/config.sample /opt/Eye/scripts/cfg/config
 
-7. Configure apache & php:
+edit: /opt/Eye/scripts/cfg/config
 
-Centos:
-sed -i 's/short_open_tag = Off/short_open_tag = On/' /etc/php.ini
-#set timezone
-sed -i 's/;date.timezone =/date.timezone = Europe\/Moscow/' /etc/php.ini
-#enable php
-sed -i 's/#LoadModule mpm_prefork_module/LoadModule mpm_prefork_module/' /etc/httpd/conf.modules.d/00-mpm.conf
-sed -i 's/LoadModule mpm_event_module/#LoadModule mpm_event_module/' /etc/httpd/conf.modules.d/00-mpm.conf
+You need to specify the password in mysql and the database!
 
-systemctl enable httpd
-systemctl start httpd
+6. Configuring apache and php:
 
-Ubuntu:
 sed -i 's/short_open_tag = Off/short_open_tag = On/' /etc/php/7.4/apache2/php.ini
-sed -i 's/;date.timezone =/date.timezone = Europe\/Moscow/' /etc/php/7.4/apache2/php.ini
+sed -i 's/;date.time zone =/date.time zone = Europe\/Moscow/' /etc/php/7.4/apache2/php.ini
 
 systemctl enable apache2
 systemctl start apache2
 
-cp docs/addons/sudoers.d/apache /etc/sudoers.d/apache
+cp docs/add-ons/sudoers.d/www-data /etc/sudoers.d/www-data
 
-8. Cron & logrotate
+7. Cron and logrotate
 
 cp docs/cron/stat /etc/cron.d/stat
 cp docs/logrotate/dnsmasq /etc/logrotate.d/dnsmasq
-cp docs/logrotate/scripts /etc/logrotate.d/scripts
+cp docs/logrotate/scripts/etc/logrotate.d/scripts
 
-uncomment needed scripts...
+Do not forget to uncomment the necessary scripts in the crown
 
-9. Minimal configuration done! login: http://[ip]/admin/ user: admin password: admin
+8. Minimal setup is ready! Log in: http://[ip]/admin/ user: admin password: admin, configure the user interface, user networks, etc.
 
-######################################### DHCP Server at Linux ###############################################################
+9. Change the administrator password and api key!!!
 
-if you need dhcp server:
+######################################### DHCP server on Linux ###############################################################
 
-dnf install dnsmasq -y
+You can use a dhcp server both on mirkotik and on a server with Linux. Imho, dnsmasq is preferable.
 
-cp docs/systemd/dnsmasq.service /etc/systemd/system
+apt install dnsmasq -y
+
 cp docs/systemd/dhcp-log.service /etc/systemd/system
 cp /etc/dnsmasq.conf /etc/dnsmasq.conf.default
 cat docs/addons/dnsmasq.conf >/etc/dnsmasq.conf
@@ -126,28 +111,53 @@ systemctl enable dhcp-log
 systemctl start dnsmasq
 systemctl start dhcp-log
 
-######################################### Netflow #####################################################################
+######################################### Additional ##################################################################
 
-dnf install nfdump -y
+1. (Not necessary. Is in the last database dump). To determine the vendor of equipment by mac, you need to import a database of macs:
+
+cp docs/mac-oids/download-macs.sh /opt/Eye/scripts/
+cp docs/mac-oids/update-mac-vendors.pl /opt/Eye/scripts/
+
+chmod +x /opt/Eye/scripts/download-macs.sh
+chmod +x /opt/Eye/scripts/update-mac-vendors.pl
+
+Escape:
+/opt/Eye/scripts/download-macs.sh
+/opt/Eye/scripts/update-mac-vendors.pl
+
+And delete the scripts after completing their work
+
+2. enable stat-sync service
+
+cp docs/systemd/stat-sync.service /etc/systemd/system
+
+systemctl enable stat-sync.service
+
+######################################### Network flow #####################################################################
+
+apt install nfdump -y
 
 cp docs/systemd/nfcapd@.service /etc/systemd/system/nfcapd@.service
 mkdir -p /etc/nfcapd
 cp docs/systemd/nfcapd/office.conf /etc/nfcapd/office.conf
 
-Change port, directory for netflow data and specify the id of the device that the netflow stream is coming from
+Set nfdump port, path for collected files and router id. Router id see in url for edit device:
+#http://[IP]/admin/devices/editdevice.php?id=1
 
 systemctl enable nfcapd@office
 systemctl start nfcapd@office
 
-enable netflow at mikrotik router:
+Enable netflow at mikrotik:
 /ip traffic-flow
 set enabled=yes
 /ip traffic-flow target
 add dst-address=[IP-SERVER] port=[PORT nfcapd]
 
-######################################### Remote syslog ###############################################################
+######################################### Remote System Log ###############################################################
 
-dnf install syslog-ng -y
+If you need to write logs from devices:
+
+apt install syslog-ng -y
 
 cp /etc/syslog-ng/syslog-ng.conf  /etc/syslog-ng/syslog-ng.conf.default
 cat docs/syslog-ng/syslog-ng.conf >/etc/syslog-ng/syslog-ng.conf
@@ -160,49 +170,36 @@ cp docs/systemd/syslog-stat.service /etc/systemd/system/syslog-stat.service
 systemctl enable syslog-stat
 systemctl start syslog-stat
 
-######################################### Mikrotik managment ##########################################################
+######################################### Mikrotik Management ##########################################################
 
-Configure mikrotik login|password|port for telnet service in http://[IP]/admin/customers/control-options.php
+configure ssh access parameters to the router in the admin panel (login | password | port) http://[IP]/admin/customers/control-options.php
 
-at device record (http://[IP]/admin/devices/) setup WAN & LAN intefaces for router, enable options acl,queue,connected-user-only
+we register in the router (http:// [IP]/admin/devices/), enter and disable servers, enable the use of servers, a dhcp server (not necessary if we use dnsmasq)
 
-at mikrotik add iptables filter rules:
+Adding rules to the firewall:
 
 /ip firewall filter
 
 add action=jump chain=forward comment="users set" in-interface-list=WAN jump-target=Users
 add action=jump chain=forward jump-target=Users out-interface-list=WAN
 
-#before this standart rules!!!
-add action=drop chain=forward comment="drop forward invalid" connection-state=invalid
-add action=accept chain=forward comment=related,established connection-state=established,related
+#the above rules should be put above these default ones:
+#add action=drop chain=forward comment="drop forward invalid" connection-state=invalid
+#add action=accept chain=forward comment=related,established connection-state=established,related
 
-#default deny forward rule - after standart rules!!!
-add action=reject chain=forward comment="deny default wan" in-interface-list=WAN reject-with=icmp-network-unreachable
-add action=reject chain=forward out-interface-list=WAN reject-with=icmp-network-unreachable
+#And these rules should be lower than the default ones
+add action=reject chain=forward comment="deny default wan" in-interface-list=WAN log=yes log-prefix=unk_wan: reject-with=icmp-network-unreachable 
+add action=drop chain=forward out-interface-list=WAN
 
+shaper:
 /queue tree
 add max-limit=[YOU BANDWIDTH] name=upload_root_[WAN_INTERFACE_NAME] parent=[WAN_INTERFACE_NAME] queue=pcq-upload-default
 add name=download_root_[LAN_INTERFACE_NAME] parent=[LAN_INTERFACE_NAME] queue=pcq-download-default
 
-run /opt/Eye/scripts/sync_mikrotik.pl
+launching /opt/Eye/scripts/sync_mikrotik.pl
+The script will create filtering and shaper rules
 
-#simple dhcp script
-/tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&password=<PASSWORD_HASH>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
-
-#show password hash - print-customers.pl
-
-#advanced dhcp script - create ip list for allow work only dhcp clients
-/tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&password=<PASSWORD_HASH>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
-:if ($leaseBound = 0) do={
-/log info ("Dhcp del: $leaseActIP list: dmz-dhcp")
-/ip firewall address-list remove [ find where list=dmz-dhcp and address=$leaseActIP ] 
-}
-:if ($leaseBound = 1) do={
-/log info ("Dhcp add: $leaseActIP list: dmz-dhcp")
-/ip firewall address-list add address=$leaseActIP list=dmz-dhcp timeout=4h
-/ip firewall address-list set [ find where list=dmz-dhcp and address=$leaseActIP ] timeout=4h
-}
-
+#dhcp script sampling
+/tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&api_key=<API_CUSTOMER_KEY>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
 
 #########################################################################################################################
