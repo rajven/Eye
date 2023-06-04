@@ -182,7 +182,8 @@ foreach my $row (@grouplist_ref) {
 	        my @dyn_ips = @{$dyn_filters{$row->{filter_id}}};
 	        if (scalar @dyn_ips >0) {
 		        for (my $i = 0; $i < scalar @dyn_ips; $i++) {
-        	        $group_filters{'group_'.$row->{group_id}}->{$index}=$dyn_ips[$i];
+        	        $group_filters{'group_'.$row->{group_id}}->{$index}->{filter_id}=$dyn_ips[$i];
+                    $group_filters{'group_'.$row->{group_id}}->{$index}->{action}=$row->{action};
         	        $index++;
         	    }
 	        }
