@@ -49,6 +49,18 @@ define("PETH_PSE_PORT_POE_CLASS",".1.3.6.1.2.1.105.1.1.1.10.1");
 //POE enable
 define("PETH_PSE_PORT_ADMIN_ENABLE",".1.3.6.1.2.1.105.1.1.1.3.1");
 
+//SNR
+// Class
+define("SNR_POE_CLASS",".1.3.6.1.4.1.40418.7.100.26.10.1.9");
+// Status
+define("SNR_POE_OID",".1.3.6.1.4.1.40418.7.100.26.10.1.2");
+// VOLTAGE
+define("SNR_POE_VOLT",".1.3.6.1.4.1.40418.7.100.26.10.1.7");
+// CURRENT
+define("SNR_POE_CURRENT",".1.3.6.1.4.1.40418.7.100.26.10.1.6");
+// POWER USAGE
+define("SNR_POE_USAGE",".1.3.6.1.4.1.40418.7.100.26.10.1.5");
+
 //Eltex
 define("ELTEX_POE_OID",".1.3.6.1.4.1.14988.1.1.15.1.1.3");
 // VOLTAGE

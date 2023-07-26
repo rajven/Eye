@@ -2256,6 +2256,10 @@ function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
         $poe_status = HUAWEI_POE_OID . "." . $port_snmp_index;
     }
 
+    if ($vendor_id == 6) {
+        $poe_status = SNR_POE_OID . "." . $port_snmp_index;
+    }
+
     if ($vendor_id == 8) {
         $poe_status = ALLIED_POE_OID . "." . $port_snmp_index;
     }
@@ -2350,6 +2354,14 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $communit
         $poe_power = ELTEX_POE_USAGE . '.' . $port_snmp_index;
         $poe_current = ELTEX_POE_CURRENT .'.' . $port_snmp_index;
         $poe_volt = ELTEX_POE_VOLT . '.' . $port_snmp_index;
+    }
+
+    // snr
+    if ($vendor_id == 2) {
+        $poe_class = SNR_POE_CLASS . '.' . $port_snmp_index;
+        $poe_power = SNR_POE_USAGE . '.' . $port_snmp_index;
+        $poe_current = SNR_POE_CURRENT .'.' . $port_snmp_index;
+        $poe_volt = SNR_POE_VOLT . '.' . $port_snmp_index;
     }
 
     // huawei
