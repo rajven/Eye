@@ -2356,19 +2356,19 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $communit
         $poe_volt = ELTEX_POE_VOLT . '.' . $port_snmp_index;
     }
 
+    // huawei
+    if ($vendor_id == 3) {
+        $poe_power = HUAWEI_POE_USAGE . '.' . $port_snmp_index;
+        $poe_current = HUAWEI_POE_CURRENT .'.' . $port_snmp_index;
+        $poe_volt = HUAWEI_POE_VOLT . '.' . $port_snmp_index;
+    }
+
     // snr
     if ($vendor_id == 6) {
         $poe_class = SNR_POE_CLASS . '.' . $port_snmp_index;
         $poe_power = SNR_POE_USAGE . '.' . $port_snmp_index;
         $poe_current = SNR_POE_CURRENT .'.' . $port_snmp_index;
         $poe_volt = SNR_POE_VOLT . '.' . $port_snmp_index;
-    }
-
-    // huawei
-    if ($vendor_id == 3) {
-        $poe_power = HUAWEI_POE_USAGE . '.' . $port_snmp_index;
-        $poe_current = HUAWEI_POE_CURRENT .'.' . $port_snmp_index;
-        $poe_volt = HUAWEI_POE_VOLT . '.' . $port_snmp_index;
     }
 
     // AT
