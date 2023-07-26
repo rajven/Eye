@@ -2357,7 +2357,7 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $communit
     }
 
     // snr
-    if ($vendor_id == 2) {
+    if ($vendor_id == 6) {
         $poe_class = SNR_POE_CLASS . '.' . $port_snmp_index;
         $poe_power = SNR_POE_USAGE . '.' . $port_snmp_index;
         $poe_current = SNR_POE_CURRENT .'.' . $port_snmp_index;
