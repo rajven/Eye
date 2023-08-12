@@ -1738,9 +1738,14 @@ function get_mac_port_table($ip, $port_index, $community, $version, $oid, $index
     $mac_table = walk_snmp($ip, $community, $version, $oid);
     if (isset($mac_table) and count($mac_table) > 0) {
         foreach ($mac_table as $key => $value) {
+            if (empty($value)) { continue; }
+            if (empty($key)) { continue; }
             $key = trim($key);
-            $value = intval(trim(str_replace('INTEGER:', '', $value)));
-            $value = $index_map[$value];
+            $value_raw = intval(trim(str_replace('INTEGER:', '', $value)));
+            if (empty($value_raw)) { continue; }
+            if (!empty($index_map)) {
+                if (empty($index_map[$value_raw])) { $value = $value_raw; } else { $value = $index_map[$value_raw]; }
+                } else { $value = $value_raw; }
             if ($value == $port_index) {
                 $pattern = '/\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/';
                 $result = preg_match($pattern, $key, $matches);
@@ -1813,18 +1818,13 @@ function get_fdb_port_table($ip, $port_index, $community, $version)
     }
 
     $ifindex_map = get_ifmib_index_table($ip,$community, $version);
-    $fdb1_port_table = get_mac_port_table($ip, $port_index, $community, $version, MAC_TABLE_OID2, $ifindex_map);
-    $fdb2_port_table = get_mac_port_table($ip, $port_index, $community, $version, MAC_TABLE_OID, $ifindex_map);
+    $fdb1_port_table = get_mac_port_table($ip, $port_index, $community, $version, MAC_TABLE_OID, $ifindex_map);
 
-    if (!empty($fdb1_port_table)) { $fdb_port_table = $fdb1_port_table; }
-    if (!empty($fdb2_port_table)) {
-        if (empty($fdb_port_table)) {
-            $fdb_port_table = $fdb2_port_table;
-            } else {
-            foreach ($fdb2_port_table as $mac => $port) {
-                if (empty($fdb_port_table[$mac])) { $fdb_port_table[$mac]=$port; }
-                }
-            }
+    if (!empty($fdb1_port_table)) { 
+        $fdb_port_table = $fdb1_port_table; 
+        } else {
+            $fdb2_port_table = get_mac_port_table($ip, $port_index, $community, $version, MAC_TABLE_OID2, NULL);
+            if (!empty($fdb2_port_table)) { $fdb_port_table = $fdb2_port_table; }
         }
 
     // maybe cisco?!
@@ -1841,9 +1841,9 @@ function get_fdb_port_table($ip, $port_index, $community, $version)
             if (!empty($result)) {
                 $vlan_id = preg_replace('/^\./', '', $matches[0]);
                 if ($vlan_id > 1000 and $vlan_id < 1009) { continue; }
-                $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community . '@' . $vlan_id, $version, MAC_TABLE_OID2,$ifindex_map);
+                $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community . '@' . $vlan_id, $version, MAC_TABLE_OID,$ifindex_map);
                 if (! isset($fdb_vlan_table) or ! $fdb_vlan_table or count($fdb_vlan_table) == 0) {
-                    $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community, $version, MAC_TABLE_OID,$ifindex_map);
+                    $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community, $version, MAC_TABLE_OID2,$ifindex_map);
                 }
                 foreach ($fdb_vlan_table as $mac => $port) {
                     if (! isset($mac)) { continue; }
@@ -1873,9 +1873,14 @@ function get_mac_table($ip, $community, $version, $oid, $index_map)
     $mac_table = walk_snmp($ip, $community, $version, $oid);
     if (isset($mac_table) and count($mac_table) > 0) {
         foreach ($mac_table as $key => $value) {
+            if (empty($value)) { continue; }
+            if (empty($key)) { continue; }
             $key = trim($key);
-            $value = intval(trim(str_replace('INTEGER:', '', $value)));
-            $value = $index_map[$value];
+            $value_raw = intval(trim(str_replace('INTEGER:', '', $value)));
+            if (empty($value_raw)) { continue; }
+            if (!empty($index_map)) {
+                if (empty($index_map[$value_raw])) { $value = $value_raw; } else { $value = $index_map[$value_raw]; }
+                } else { $value = $value_raw; }
             $pattern = '/\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/';
             $result = preg_match($pattern, $key, $matches);
             if (!empty($result)) {
@@ -1901,18 +1906,12 @@ function get_fdb_table($ip, $community, $version)
     }
 
     $ifindex_map = get_ifmib_index_table($ip,$community, $version);
-    $fdb1_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID2, $ifindex_map);
-    $fdb2_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID, $ifindex_map);
-
-    if (!empty($fdb1_table)) { $fdb_table = $fdb1_table; }
-    if (!empty($fdb2_table)) {
-        if (empty($fdb_table)) {
-            $fdb_table = $fdb2_table;
-            } else {
-            foreach ($fdb2_table as $mac => $port) {
-                if (empty($fdb_table[$mac])) { $fdb_table[$mac]=$port; }
-                }
-            }
+    $fdb1_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID, $ifindex_map);
+    if (!empty($fdb1_table)) {
+        $fdb_table = $fdb1_table;
+        } else {
+        $fdb2_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID2, NULL);
+        if (!empty($fdb2_table)) { $fdb_table = $fdb2_table; }
         }
 
     // maybe cisco?!
@@ -1928,9 +1927,9 @@ function get_fdb_table($ip, $community, $version)
             if (!empty($result)) {
                 $vlan_id = preg_replace('/^\./', '', $matches[0]);
                 if ($vlan_id > 1000 and $vlan_id < 1009) { continue; }
-                $fdb_vlan_table = get_mac_table($ip, $community.'@'.$vlan_id, $version, MAC_TABLE_OID2,$ifindex_map);
+                $fdb_vlan_table = get_mac_table($ip, $community.'@'.$vlan_id, $version, MAC_TABLE_OID,$ifindex_map);
                 if (! isset($fdb_vlan_table) or ! $fdb_vlan_table or count($fdb_vlan_table) == 0) {
-                    $fdb_vlan_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID,$ifindex_map);
+                    $fdb_vlan_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID2,$ifindex_map);
                 }
                 foreach ($fdb_vlan_table as $mac => $port) {
                     if (! isset($mac)) { continue; }

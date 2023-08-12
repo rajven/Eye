@@ -17,10 +17,8 @@ define("IFMIB_IFINDEX_MAP",".1.3.6.1.2.1.17.1.4.1.2");
 define("IFMIB_IFDESCR",".1.3.6.1.2.1.2.2.1.2");
 define("IFMIB_IFNAME",".1.3.6.1.2.1.31.1.1.1.1");
 
-define("MAC_TABLE_OID",".1.3.6.1.2.1.17.7.1.2.2.1.2");
-define("MAC_TABLE_OID2",".1.3.6.1.2.1.17.4.3.1.2");
-define("MAC_TABLE_STR_OID",".1.3.6.1.2.1.17.4.3.1.2");
-define("MAC_TABLE_STR_OID2","1.3.6.1.2.1.17.7.1.2.2.1.2");
+define("MAC_TABLE_OID",".1.3.6.1.2.1.17.4.3.1.2");
+define("MAC_TABLE_OID2",".1.3.6.1.2.1.17.7.1.2.2.1.2");
 
 define("ELTEX_SFP_STATUS",".1.3.6.1.4.1.89.90.1.2.1.3");
 define("ELTEX_SFP_VENDOR",".1.3.6.1.4.1.35265.1.23.53.1.1.1.5");

@@ -29,7 +29,6 @@ get_snmp_ifindex
 get_ifmib_index_table
 get_interfaces
 get_router_state
-get_bgp
 snmp_get_req
 snmp_get_oid
 snmp_walk_oid
@@ -39,8 +38,6 @@ $ifName
 $ifDescr
 $ifIndex
 $ifIndex_map
-$bgp_prefixes
-$bgp_aslist
 $arp_oid
 $ipNetToMediaPhysAddress
 $fdb_table_oid
@@ -61,15 +58,21 @@ our $ifDescr      ='.1.3.6.1.2.1.2.2.1.2';
 our $ifIndex      ='.1.3.6.1.2.1.2.2.1.1';
 our $ifIndex_map  ='.1.3.6.1.2.1.17.1.4.1.2';
 
-our $bgp_prefixes ='.1.3.6.1.4.1.9.9.187.1.2.4.1.1';
-our $bgp_aslist   ='.1.3.6.1.2.1.15.3.1.9';
+#RFC1213::atPhysAddress
 our $arp_oid      ='.1.3.6.1.2.1.3.1.1.2';
+#RFC1213::ipNetToMediaPhysAddress
 our $ipNetToMediaPhysAddress = '.1.3.6.1.2.1.4.22.1.2';
+#RFC1493::dot1dTpFdbTable
 our $fdb_table_oid ='.1.3.6.1.2.1.17.4.3.1.2';
+#Q-BRIDGE-MIB::dot1qTpFdbPort
 our $fdb_table_oid2='.1.3.6.1.2.1.17.7.1.2.2.1.2';
+#Q-BRIDGE-MIB::dot1qPortVlanEntry
 our $port_vlan_oid ='.1.3.6.1.2.1.17.7.1.4.5.1.1';
+#CISCO-ES-STACK-MIB::
 our $cisco_vlan_oid='.1.3.6.1.4.1.9.9.46.1.3.1.1.2';
+
 our $fdb_table;
+
 our $snmp_timeout = 15;
 
 #---------------------------------------------------------------------------------
@@ -179,17 +182,17 @@ sub get_mac_table {
     #need for callback
     $fdb_table=$oid;
     my $fdb_table1 = snmp_get_oid($host,$community,$oid,$version);
-    if (!$fdb_table1) { $fdb_table1=snmp_walk_oid($host,$community,$oid,$version); }
+    if (!$fdb_table1) { $fdb_table1=snmp_walk_oid($host,$community,$oid,$version,undef); }
     if ($fdb_table1) {
         foreach my $row (keys(%$fdb_table1)) {
 	    my $port_index = $fdb_table1->{$row};
-            next if (!$port_index);
+        next if (!$port_index);
 	    my $mac;
 	    if ($row=~/\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/) {
         	$mac=sprintf "%02x%02x%02x%02x%02x%02x",$1,$2,$3,$4,$5,$6;
         	}
-            next if (!$mac);
-            $port_index = $index_map->{$port_index};
+        next if (!$mac);
+        if ($index_map and exists $index_map->{$port_index}) { $port_index = $index_map->{$port_index}; }
 	    $fdb->{$mac}=$port_index;
 	    };
         return $fdb;
@@ -204,7 +207,7 @@ my $community = shift;
 my $version = shift;
 my $ifmib_map;
 my $index_table =  snmp_get_oid($ip, $community, $ifIndex_map, $version);
-if (!%$index_table) { $index_table =  snmp_walk_oid($ip, $community, $ifIndex_map, $version); }
+if (!$index_table) { $index_table =  snmp_walk_oid($ip, $community, $ifIndex_map, $version); }
 return if (!$index_table);
 my $is_mikrotik = snmp_get_request($ip, '.1.3.6.1.2.1.9999.1.1.1.1.0', $community, 161, $version);
 my $mk_ros_version = 6491;
@@ -219,21 +222,21 @@ if ($is_mikrotik=~/MikroTik/i) {
 
 if ($is_mikrotik=~/MikroTik/i and ($mk_ros_version > 6468)) {
             foreach my $row (keys(%$index_table)) {
-	        my $port_index = $index_table->{$row};
-	        next if (!$port_index);
-        	my $value;
+	            my $port_index = $index_table->{$row};
+	            next if (!$port_index);
+        	    my $value;
                 if ($row=~/\.([0-9]{1,10})$/) { $value = $1; }
-	        next if (!$value);
+	            next if (!$value);
     	        $ifmib_map->{$value}=$port_index;
         	}
         } else {
         if (%$index_table) {
             foreach my $row (keys(%$index_table)) {
-	        my $port_index = $index_table->{$row};
-	        next if (!$port_index);
-        	my $value;
+	            my $port_index = $index_table->{$row};
+	            next if (!$port_index);
+        	    my $value;
                 if ($row=~/\.([0-9]{1,10})$/) { $value = $1; }
-	        next if (!$value);
+	            next if (!$value);
     	        $ifmib_map->{$value}=$value;
                 };
             }
@@ -251,19 +254,12 @@ sub get_fdb_table {
     if (!$version) { $version='2'; }
 
     my $ifindex_map = get_ifmib_index_table($host,$community,$version);
-
     my $fdb1=get_mac_table($host,$community,$fdb_table_oid,$version,$ifindex_map);
-    my $fdb2=get_mac_table($host,$community,$fdb_table_oid2,$version,$ifindex_map);
 
     my $fdb;
-    if ($fdb1) { $fdb = $fdb1; }
-    if ($fdb2) {
-        if (!$fdb) { $fdb = $fdb2; }
-            else {
-            foreach my $mac (keys %$fdb2) {
-                if (!exists($fdb->{$mac})) { $fdb->{$mac}=$fdb2->{$mac}; }
-                }
-            }
+    if ($fdb1) { $fdb = $fdb1; } else {
+        my $fdb2=get_mac_table($host,$community,$fdb_table_oid2,$version);
+        if ($fdb2) { $fdb = $fdb2; }
         }
 
     #maybe cisco?!
@@ -398,31 +394,6 @@ sub get_router_state {
     $snmp_session->translate([-timeticks]);
     my $router_status = $snmp_session->get_table("1.3.6.1.4.1.10.1");
     return ($router_status);
-}
-
-#-------------------------------------------------------------------------------------
-
-sub get_bgp {
-    my ($host,$community,$snmp) = @_;
-    return if (!HostIsLive($host));
-    my $port = 161;
-    ### open SNMP session
-    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community, -version => $snmp, -timeout => $snmp_timeout );
-    return if (!defined($snmp_session));
-    $snmp_session->translate([-timeticks]);
-    #bgp annonce counter exists?
-    my $bgp_annonces;
-    $bgp_annonces = $snmp_session->get_table($bgp_prefixes);
-    return if (!$bgp_annonces);
-    my $bgp_status = $snmp_session->get_table($bgp_aslist);
-    return if (!$bgp_status);
-    my $as;
-    foreach my $row (keys(%$bgp_status)) {
-    my $as_ip=$row;
-    $as_ip=~s/1\.3\.6\.1\.2\.1\.15\.3\.1\.9\.//;
-    $as->{$as_ip}=$bgp_status->{$row};
-    }
-    return $as;
 }
 
 #-------------------------------------------------------------------------------------
