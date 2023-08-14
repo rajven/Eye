@@ -179,18 +179,31 @@ my $community = shift;
 my $version = shift;
 my $ifmib_map;
 
-my $index_map_table =  snmp_get_oid($ip, $community, $ifIndex_map, $version);
-if (!$index_map_table) { $index_map_table =  snmp_walk_oid($ip, $community, $ifIndex_map, $version); }
+my $is_mikrotik = snmp_get_request($ip, '.1.3.6.1.2.1.9999.1.1.1.1.0', $community, 161, $version);
+my $mk_ros_version = 0;
 
-if ($index_map_table) {
-    foreach my $row (keys(%$index_map_table)) {
-        my $port_index = $index_map_table->{$row};
-        next if (!$port_index);
-   	    my $value;
-        if ($row=~/\.([0-9]{1,10})$/) { $value = $1; }
-        next if (!$value);
-        $ifmib_map->{$value}=$port_index;
-       	}
+if ($is_mikrotik=~/MikroTik/i) {
+    my $mikrotik_version = snmp_get_request($ip, '.1.0.8802.1.1.2.1.3.4.0', $community, 161, $version);
+    $mk_ros_version = 6491;
+    #"MikroTik RouterOS 6.46.8 (long-term) CRS326-24S+2Q+"
+    if ($mikrotik_version =~/RouterOS\s+(\d)\.(\d{1,3})\.(\d{1,3})\s+/) {
+        $mk_ros_version = $1*1000 + $2*10 + $3;
+        }
+    }
+
+if (!$mk_ros_version or $mk_ros_version > 6468) {
+    my $index_map_table =  snmp_get_oid($ip, $community, $ifIndex_map, $version);
+    if (!$index_map_table) { $index_map_table =  snmp_walk_oid($ip, $community, $ifIndex_map, $version); }
+    if ($index_map_table) {
+        foreach my $row (keys(%$index_map_table)) {
+            my $port_index = $index_map_table->{$row};
+            next if (!$port_index);
+   	        my $value;
+            if ($row=~/\.([0-9]{1,10})$/) { $value = $1; }
+            next if (!$value);
+            $ifmib_map->{$value}=$port_index;
+       	    }
+        }
     }
 
 if (!$ifmib_map) {

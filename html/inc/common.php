@@ -1721,11 +1721,24 @@ function is_up($ip)
 function get_ifmib_index_table ($ip, $community, $version)
 {
 $ifmib_map = NULL;
-#fdb_index => snmp_index
-$index_map_table = walk_snmp($ip, $community, $version, IFMIB_IFINDEX_MAP);
 
-#get map snmp interfaces to fdb table
-if (isset($index_map_table) and count($index_map_table) > 0) {
+$is_mikrotik = walk_snmp($ip, $community, $version, MIKROTIK_DHCP_SERVER);
+$mk_ros_version = 0;
+
+if ($is_mikrotik) {
+    $mikrotik_version = walk_snmp($ip, $community, $version, MIKROTIK_ROS_VERSION);
+    $mk_ros_version = 6491;
+    $result = preg_match('/RouterOS\s+(\d)\.(\d{1,3})\.(\d{1,3})\s+/',$mikrotik_version[MIKROTIK_ROS_VERSION],$matches);
+    if ($result) {
+        $mk_ros_version = $matches[1]*1000 + $matches[2]*10 + $matches[3];
+        }
+    }
+
+if ($mk_ros_version == 0 or $mk_ros_version>6468) {
+    #fdb_index => snmp_index
+    $index_map_table = walk_snmp($ip, $community, $version, IFMIB_IFINDEX_MAP);
+    #get map snmp interfaces to fdb table
+    if (isset($index_map_table) and count($index_map_table) > 0) {
         foreach ($index_map_table as $key => $value) {
             $key = trim($key);
             $value = intval(trim(str_replace('INTEGER:', '', $value)));
@@ -1736,7 +1749,8 @@ if (isset($index_map_table) and count($index_map_table) > 0) {
                 }
             }
         }
-        
+    }    
+
 #return simple map snmp_port_index = snmp_port_index
 if (empty($ifmib_map)) {
     #ifindex
