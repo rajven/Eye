@@ -208,7 +208,7 @@ if (!$mk_ros_version or $mk_ros_version > 6468) {
 
 if (!$ifmib_map) {
     my $index_table =  snmp_get_oid($ip, $community, $ifIndex, $version);
-    if (!$index_table) { $index_map_table =  snmp_walk_oid($ip, $community, $ifIndex, $version); }
+    if (!$index_table) { $index_table =  snmp_walk_oid($ip, $community, $ifIndex, $version); }
     foreach my $row (keys(%$index_table)) {
 	    my $port_index = $index_table->{$row};
 	    next if (!$port_index);
