@@ -1718,143 +1718,45 @@ function is_up($ip)
     return $rval == 0;
 }
 
-function get_mac_port_table($ip, $port_index, $community, $version, $oid, $index_map)
-{
-    if (! isset($ip)) {
-        return;
-    }
-    if (! isset($port_index)) {
-        return;
-    }
-    if (! isset($oid)) {
-        return;
-    }
-    if (! isset($community)) {
-        $community = 'public';
-    }
-    if (! isset($version)) {
-        $version = '2';
-    }
-    $mac_table = walk_snmp($ip, $community, $version, $oid);
-    if (isset($mac_table) and count($mac_table) > 0) {
-        foreach ($mac_table as $key => $value) {
-            if (empty($value)) { continue; }
-            if (empty($key)) { continue; }
-            $key = trim($key);
-            $value_raw = intval(trim(str_replace('INTEGER:', '', $value)));
-            if (empty($value_raw)) { continue; }
-            if (!empty($index_map)) {
-                if (empty($index_map[$value_raw])) { $value = $value_raw; } else { $value = $index_map[$value_raw]; }
-                } else { $value = $value_raw; }
-            if ($value == $port_index) {
-                $pattern = '/\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/';
-                $result = preg_match($pattern, $key, $matches);
-                if ($result) {
-                    $mac_key = preg_replace('/^\./', '', $matches[0]);
-                    $fdb_port_table[$mac_key] = $value;
-                }
-            }
-        }
-    }
-    return $fdb_port_table;
-}
-
 function get_ifmib_index_table ($ip, $community, $version)
 {
 $ifmib_map = NULL;
-$index_table = walk_snmp($ip, $community, $version, IFMIB_IFINDEX_MAP);
-$is_mikrotik = walk_snmp($ip, $community, $version, MIKROTIK_DHCP_SERVER);
-$mk_ros_version = 6497;
+#fdb_index => snmp_index
+$index_map_table = walk_snmp($ip, $community, $version, IFMIB_IFINDEX_MAP);
 
-if ($is_mikrotik) {
-    $mikrotik_version = walk_snmp($ip, $community, $version, MIKROTIK_ROS_VERSION);
-    $result = preg_match('/RouterOS\s+(\d)\.(\d{1,3})\.(\d{1,3})\s+/',$mikrotik_version[MIKROTIK_ROS_VERSION],$matches);
-    if ($result) {
-        $mk_ros_version = $matches[1]*1000 + $matches[2]*10 + $matches[3];
-        }
-    }
-
-if (isset($index_table) and count($index_table) > 0 and ($is_mikrotik and $mk_ros_version>6468)) {
-        foreach ($index_table as $key => $value) {
+#get map snmp interfaces to fdb table
+if (isset($index_map_table) and count($index_map_table) > 0) {
+        foreach ($index_map_table as $key => $value) {
             $key = trim($key);
             $value = intval(trim(str_replace('INTEGER:', '', $value)));
             $result = preg_match('/\.(\d{1,10})$/',$key,$matches);
             if ($result) {
-                $int_index = preg_replace('/^\./', '', $matches[0]);
-                $ifmib_map[$int_index]=$value;
-                }
-            }
-        } else {
-#        $index_table =  walk_snmp($ip, $community, $version, IFMIB_IFINDEX);
-        if (isset($index_table) and count($index_table) > 0) {
-            foreach ($index_table as $key => $value) {
-                $key = trim($key);
-	        $value = intval(trim(str_replace('INTEGER:', '', $value)));
-    	        $result = preg_match('/\.(\d{1,10})$/',$key,$matches);
-        	if ($result) {
-            	        $int_index = preg_replace('/^\./', '', $matches[0]);
-            		$ifmib_map[$int_index]=$int_index;
-            		}
+                $fdb_index = preg_replace('/^\./', '', $matches[0]);
+                $ifmib_map[$fdb_index]=$value;
                 }
             }
         }
+        
+#return simple map snmp_port_index = snmp_port_index
+if (empty($ifmib_map)) {
+    #ifindex
+    $index_table = walk_snmp($ip, $community, $version, IFMIB_IFINDEX);
+    if (isset($index_table) and count($index_table) > 0) {
+        foreach ($index_table as $key => $value) {
+            $key = trim($key);
+	        $value = intval(trim(str_replace('INTEGER:', '', $value)));
+    	    $result = preg_match('/\.(\d{1,10})$/',$key,$matches);
+        	if ($result) {
+                    $fdb_index = preg_replace('/^\./', '', $matches[0]);
+            		$ifmib_map[$fdb_index]=$value;
+            		}
+            }
+        }
+    }
 return $ifmib_map;
 }
 
-function get_fdb_port_table($ip, $port_index, $community, $version)
-{
-
-    if (! isset($ip)) {
-        return;
-    }
-    if (! isset($port_index)) {
-        return;
-    }
-    if (! isset($community)) {
-        $community = 'public';
-    }
-    if (! isset($version)) {
-        $version = '2';
-    }
-
-    $ifindex_map = get_ifmib_index_table($ip,$community, $version);
-    $fdb1_port_table = get_mac_port_table($ip, $port_index, $community, $version, MAC_TABLE_OID, $ifindex_map);
-
-    if (!empty($fdb1_port_table)) { 
-        $fdb_port_table = $fdb1_port_table; 
-        } else {
-            $fdb2_port_table = get_mac_port_table($ip, $port_index, $community, $version, MAC_TABLE_OID2, NULL);
-            if (!empty($fdb2_port_table)) { $fdb_port_table = $fdb2_port_table; }
-        }
-
-    // maybe cisco?!
-    if (! isset($fdb_port_table) or ! $fdb_port_table or count($fdb_port_table) == 0) {
-        $vlan_table = walk_snmp($ip, $community, $version, CISCO_VLAN_OID);
-        if (! $vlan_table) {
-            return;
-        }
-        //fucking cisco!!!
-        foreach ($vlan_table as $vlan_oid => $value) {
-            if (! $vlan_oid) { continue; }
-            $pattern = '/\.(\d{1,4})$/';
-            $result = preg_match($pattern, $vlan_oid, $matches);
-            if (!empty($result)) {
-                $vlan_id = preg_replace('/^\./', '', $matches[0]);
-                if ($vlan_id > 1000 and $vlan_id < 1009) { continue; }
-                $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community . '@' . $vlan_id, $version, MAC_TABLE_OID,$ifindex_map);
-                if (! isset($fdb_vlan_table) or ! $fdb_vlan_table or count($fdb_vlan_table) == 0) {
-                    $fdb_vlan_table = get_mac_port_table($ip, $port_index, $community, $version, MAC_TABLE_OID2,$ifindex_map);
-                }
-                foreach ($fdb_vlan_table as $mac => $port) {
-                    if (! isset($mac)) { continue; }
-                    $fdb_port_table[$mac] = $port;
-                }
-            }
-        }
-    }
-    return $fdb_port_table;
-}
-
+#get mac table by selected snmp oid
 function get_mac_table($ip, $community, $version, $oid, $index_map)
 {
     if (! isset($ip)) {
@@ -1879,8 +1781,14 @@ function get_mac_table($ip, $community, $version, $oid, $index_map)
             $value_raw = intval(trim(str_replace('INTEGER:', '', $value)));
             if (empty($value_raw)) { continue; }
             if (!empty($index_map)) {
-                if (empty($index_map[$value_raw])) { $value = $value_raw; } else { $value = $index_map[$value_raw]; }
-                } else { $value = $value_raw; }
+                if (empty($index_map[$value_raw])) { 
+                        $value = $value_raw; 
+                    } else { 
+                        $value = $index_map[$value_raw]; 
+                    }
+                } else { 
+                    $value = $value_raw; 
+                }
             $pattern = '/\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/';
             $result = preg_match($pattern, $key, $matches);
             if (!empty($result)) {
@@ -1892,6 +1800,7 @@ function get_mac_table($ip, $community, $version, $oid, $index_map)
     return $fdb_table;
 }
 
+#get mac table by analyze all available tables
 function get_fdb_table($ip, $community, $version)
 {
 
@@ -1910,18 +1819,16 @@ function get_fdb_table($ip, $community, $version)
     if (!empty($fdb1_table)) {
         $fdb_table = $fdb1_table;
         } else {
-        $fdb2_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID2, NULL);
+        $fdb2_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID2, $ifindex_map);
         if (!empty($fdb2_table)) { $fdb_table = $fdb2_table; }
         }
 
     // maybe cisco?!
-    if (! isset($fdb_table) or ! $fdb_table or count($fdb_table) == 0) {
+    if (! isset($fdb_table) or empty($fdb_table) or count($fdb_table) == 0) {
         $vlan_table = walk_snmp($ip, $community, $version, CISCO_VLAN_OID);
-        if (! $vlan_table) {
-            return;
-        }
+        if (empty($vlan_table)) { return; }
         foreach ($vlan_table as $vlan_oid => $value) {
-            if (! $vlan_oid) { continue; }
+            if (empty($vlan_oid)) { continue; }
             $pattern = '/\.(\d{1,4})$/';
             $result = preg_match($pattern, $vlan_oid, $matches);
             if (!empty($result)) {
@@ -1930,14 +1837,14 @@ function get_fdb_table($ip, $community, $version)
                 $fdb_vlan_table = get_mac_table($ip, $community.'@'.$vlan_id, $version, MAC_TABLE_OID,$ifindex_map);
                 if (! isset($fdb_vlan_table) or ! $fdb_vlan_table or count($fdb_vlan_table) == 0) {
                     $fdb_vlan_table = get_mac_table($ip, $community, $version, MAC_TABLE_OID2,$ifindex_map);
-                }
+                    }
                 foreach ($fdb_vlan_table as $mac => $port) {
                     if (! isset($mac)) { continue; }
                     $fdb_table[$mac] = $port;
+                    }
                 }
             }
         }
-    }
     return $fdb_table;
 }
 
@@ -2059,8 +1966,6 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
     if (! isset($version)) {
         $version = '2';
     }
-    // if (!is_up($ip)) { return; }
-
 
     $status = '';
     // eltex
@@ -2158,7 +2063,6 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
     // huawei
     if ($vendor_id == 3) {
         
-        
         // get interface names
         $port_name = parse_snmp_value(get_snmp($ip, $community, $version, IFMIB_IFNAME . "." . $port));
         if (empty($port_name)) {
@@ -2218,7 +2122,7 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
     return;
 }
 
-function get_port_vlan($vendor, $port, $port_index, $ip, $community, $version, $fdb_by_snmp)
+function get_port_vlan($vendor, $port, $port_index, $ip, $community, $version)
 {
     if (! isset($port)) {
         return;
@@ -2232,11 +2136,9 @@ function get_port_vlan($vendor, $port, $port_index, $ip, $community, $version, $
     if (! isset($version)) {
         $version = '2';
     }
-    // if (!is_up($ip)) { return; }
-
-    if ($fdb_by_snmp == 1) { $port = $port_index; }
 
     if ($vendor == 69) { $port_oid = TPLINK_VLAN_PVID . "." . $port; } else { $port_oid = PORT_VLAN_OID . "." . $port; }
+
     $port_vlan = get_snmp($ip, $community, $version, $port_oid);
     $port_vlan = preg_replace('/.*\:/','',$port_vlan);
     $port_vlan = intval(trim($port_vlan));
@@ -2588,7 +2490,6 @@ function get_port_state_detail($port, $ip, $community, $version)
         $version = '2';
     }
     // if (!is_up($ip)) { return; }
-
 
     $oper = PORT_STATUS_OID . $port;
     $admin = PORT_ADMIN_STATUS_OID . $port;

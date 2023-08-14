@@ -260,7 +260,7 @@ foreach my $port_data (@device_ports) {
     my $fdb_port_index=$port_data->{port};
     my $port_id = $port_data->{id};
     if (!$port_data->{snmp_index}) { $port_data->{snmp_index} = $port_data->{port}; }
-    if ($device->{fdb_snmp_index}) { $fdb_port_index=$port_data->{snmp_index}; }
+    $fdb_port_index=$port_data->{snmp_index};
     my $current_vlan = $vlans->{$fdb_port_index};
     if (!$current_vlan) { $current_vlan=1; }
     if ($current_vlan != $vlan) {
@@ -292,11 +292,9 @@ foreach my $mac (keys %$fdb) {
     my $port = $fdb->{$mac};
     next if (!$port);
     #real port number
-    if ($device->{fdb_snmp_index}) {
-        #если mac-таблица привязана к snmp-индексам портов, номер порта ставим в snmp-индекс порта
-        if (!exists $port_snmp_index{$port}) { next; }
-        $port=$port_snmp_index{$port};
-        }
+    if (!exists $port_snmp_index{$port}) { next; }
+    #get real port number by snmp our snmp index
+    $port=$port_snmp_index{$port};
     if (!exists $port_index{$port}) { next; }
     #mikrotik patch - skip mikrotik device mac
     if ($sw_mac and $mac=~/^$sw_mac/i) { next; }

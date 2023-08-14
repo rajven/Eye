@@ -4,7 +4,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $port_id = $id;
-$sSQL = "SELECT DP.device_id, DP.port, DP.snmp_index, D.device_name, D.ip, D.snmp_version, D.community, D.fdb_snmp_index, D.vendor_id FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=$port_id";
+$sSQL = "SELECT DP.device_id, DP.port, DP.snmp_index, D.device_name, D.ip, D.snmp_version, D.community, D.vendor_id FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=$port_id";
 $port_info = get_record_sql($db_link, $sSQL);
 
 $device_id = $port_info["device_id"];
@@ -36,15 +36,17 @@ if ($port_info['vendor_id'] == 9) {
 if ($port_info['snmp_index'] > 0) {
     print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
     print "<tr><td colspan=2><b>".WEB_device_port_mac_table_show."</b></td></tr>\n";
-    if (! $port_info['fdb_snmp_index']) { $port_info['snmp_index'] = $port_info['port']; }
-    $fdb = get_fdb_port_table($port_info['ip'], $port_info['snmp_index'], $port_info['community'], $port_info['snmp_version']);
+    $fdb = get_fdb_table($port_info['ip'], $port_info['community'], $port_info['snmp_version']);
     foreach ($fdb as $a_mac => $a_port) {
-        $a_mac = dec_to_hex($a_mac);
-        if (!empty($sw_mac) and preg_match('/^'.$sw_mac.'/',mac_simplify($a_mac))) { continue; }
-        print "<tr>";
-        $auth = get_auth_by_mac($db_link, $a_mac);
-        print "<td class=\"data\">" .$auth['auth'] . "</td><td class=\"data\">". $auth['mac']."</td>\n";
-        print "</tr>";
+        if ($a_port == $port_info['snmp_index']) {
+            $a_mac = dec_to_hex($a_mac);
+            //mikrotik patch
+            if (!empty($sw_mac) and preg_match('/^'.$sw_mac.'/',mac_simplify($a_mac))) { continue; }
+            print "<tr>";
+            $auth = get_auth_by_mac($db_link, $a_mac);
+            print "<td class=\"data\">" .$auth['auth'] . "</td><td class=\"data\">". $auth['mac']."</td>\n";
+            print "</tr>";
+            }
         }
     print "</table>\n";
     }

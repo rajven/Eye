@@ -25,13 +25,12 @@ print "<td>User</td>\n";
 print "<td>Mac</td>\n";
 print "</tr>";
 foreach ($ports as $port) {
-    if (!$device['fdb_snmp_index']) { $port['snmp_index'] = $port['port']; }
     foreach ($fdb as $a_mac => $a_port) {
 	if ($a_port == $port['snmp_index']) {
 		print "<tr>";
 		print "<td class=\"data\">" . $port['port'] . "</td>\n";
-	        $auth = get_auth_by_mac($db_link, dec_to_hex($a_mac));
-                print "<td class=\"data\">" .$auth['auth'] . "</td><td class=\"data\">". $auth['mac']."</td>\n";
+	    $auth = get_auth_by_mac($db_link, dec_to_hex($a_mac));
+        print "<td class=\"data\">" .$auth['auth'] . "</td><td class=\"data\">". $auth['mac']."</td>\n";
 		print "</tr>";
 		}
     }

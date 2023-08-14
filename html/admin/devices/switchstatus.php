@@ -128,7 +128,7 @@ if ($device['snmp_version']>0) {
         //fix empty port names
         if (empty($row['port_name'])) { $row['port_name']=$row['port']; $new_info['port_name']=$row['port']; }
         if (isset($device['ip']) and ($device['ip'] != '') and $snmp_ok) {
-            $port_state_detail = get_port_state_detail($row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version'], $device['fdb_snmp_index']);
+            $port_state_detail = get_port_state_detail($row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
             list ($poper, $padmin, $pspeed, $perrors) = explode(';', $port_state_detail);
             if ($poper == 1 ) { $cl = "up";  }
             if ($poper >= 2 ) {
@@ -156,7 +156,7 @@ if ($device['snmp_version']>0) {
         $ifname= $row['ifName'];
 
         if ($snmp_ok) {
-            $vlan = get_port_vlan($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version'], $device['fdb_snmp_index']);
+            $vlan = get_port_vlan($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
             $ifname = get_snmp_ifname1($device['ip'], $device['community'], $device['snmp_version'], $row['snmp_index']);
             if (empty($ifname)) { $ifname = get_snmp_ifname2($device['ip'], $device['community'], $device['snmp_version'], $row['snmp_index']); }
             $sfp_status = get_sfp_status($device['vendor_id'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version'], $modules_oids);

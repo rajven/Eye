@@ -55,7 +55,6 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     if (isset($_POST["f_snmp3_user_ro"])) { $new['snmp3_user_ro'] = substr($_POST["f_snmp3_user_ro"], 0, 20); }
     if (isset($_POST["f_snmp3_user_rw_password"])) { $new['snmp3_user_rw_password'] = substr($_POST["f_snmp3_user_rw_password"], 0, 20); }
     if (isset($_POST["f_snmp3_user_ro_password"])) { $new['snmp3_user_ro_password'] = substr($_POST["f_snmp3_user_ro_password"], 0, 20); }
-    if (isset($_POST["f_fdb_snmp"])) { $new['fdb_snmp_index'] = $_POST["f_fdb_snmp"]; }
     if (isset($_POST["f_discovery"])) { $new['discovery'] = $_POST["f_discovery"]; }
     if (isset($_POST["f_dhcp"])) { $new['dhcp'] = $_POST["f_dhcp"] * 1; }
     if (isset($_POST["f_user_acl"])) { $new['user_acl'] = $_POST["f_user_acl"] * 1; }
@@ -135,9 +134,9 @@ if ($device['device_type']<=2) {
     print "<tr><td>".WEB_snmp_version."</td><td><p title='".WEB_device_snmp_hint."'>".WEB_device_mac_by_oid."</p></td>";
     print "<td>".WEB_network_discovery."</td><td>".WEB_nagios."</td></tr>";
     print "<tr><td class='data'>"; print_snmp_select('f_snmp_version', $device['snmp_version']); print "</td>\n";
-    print "<td class='data'>"; print_qa_select('f_fdb_snmp', $device['fdb_snmp_index']); print "</td>\n";
     print "<td class='data'>"; print_qa_select('f_discovery', $device['discovery']); print "</td>\n";
     print "<td class='data'>"; print_qa_select('f_nagios', $device['nagios']); print "</td>\n";
+    print "<td class='data'></td>\n";
     print "</tr>";
     if ($device['snmp_version'] ==3) {
         print "<tr><td>".WEB_snmp_v3_user_ro."</td><td>".WEB_snmp_v3_user_rw."</td><td>".WEB_snmp_v3_ro_password."</td><td>".WEB_snmp_v3_rw_password."</td><td></td>";
