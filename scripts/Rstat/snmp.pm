@@ -194,8 +194,8 @@ if ($index_map_table) {
     }
 
 if (!$ifmib_map) {
-    my $index_table =  snmp_get_oid($ip, $community, $if_index, $version);
-    if (!$index_table) { $index_map_table =  snmp_walk_oid($ip, $community, $if_index, $version); }
+    my $index_table =  snmp_get_oid($ip, $community, $ifIndex, $version);
+    if (!$index_table) { $index_map_table =  snmp_walk_oid($ip, $community, $ifIndex, $version); }
     foreach my $row (keys(%$index_table)) {
 	    my $port_index = $index_table->{$row};
 	    next if (!$port_index);

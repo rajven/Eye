@@ -2122,9 +2122,9 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
     return;
 }
 
-function get_port_vlan($vendor, $port, $port_index, $ip, $community, $version)
+function get_port_vlan($vendor, $port_index, $ip, $community, $version)
 {
-    if (! isset($port)) {
+    if (! isset($port_index)) {
         return;
     }
     if (! isset($ip)) {
@@ -2137,7 +2137,7 @@ function get_port_vlan($vendor, $port, $port_index, $ip, $community, $version)
         $version = '2';
     }
 
-    if ($vendor == 69) { $port_oid = TPLINK_VLAN_PVID . "." . $port; } else { $port_oid = PORT_VLAN_OID . "." . $port; }
+    if ($vendor == 69) { $port_oid = TPLINK_VLAN_PVID . "." . $port_index; } else { $port_oid = PORT_VLAN_OID . "." . $port_index; }
 
     $port_vlan = get_snmp($ip, $community, $version, $port_oid);
     $port_vlan = preg_replace('/.*\:/','',$port_vlan);
