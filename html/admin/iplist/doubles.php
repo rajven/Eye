@@ -10,7 +10,7 @@ if (isset($_POST["removeauth"])) {
                 run_sql($db_link, 'DELETE FROM connections WHERE auth_id='.$val);
                 run_sql($db_link, 'DELETE FROM User_auth_alias WHERE auth_id='.$val);
                 $changes=delete_record($db_link, "User_auth", "id=" . $val);
-                if (!empty($changes)) { LOG_WARNING($db_link,"Remove user ip: \r\n $changes"); }
+                if (!empty($changes)) { LOG_WARNING($db_link,"Remove user ip: $changes"); }
                 }
             }
     header("Location: " . $_SERVER["REQUEST_URI"]);
