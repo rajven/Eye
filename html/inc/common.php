@@ -1873,8 +1873,12 @@ function check_snmp_access($ip, $community, $version)
     if (! isset($version)) {
         $version = '2';
     }
+    #check host up
+    $status = exec(escapeshellcmd("ping -W 1 -i 1 -c 3 ".$ip));
+    if (empty($status)) { return; }
+    #check snmp
     $result = get_snmp($ip, $community, $version, SYS_DESCR_MIB);
-    if (!isset($result)) { return; }
+    if (empty($result)) { return; }
     return 1;
 }
 
