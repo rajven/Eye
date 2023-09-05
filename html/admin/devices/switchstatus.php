@@ -168,8 +168,8 @@ if ($device['snmp_version']>0) {
                     }
                 if ($poe_status == 2) { $poe_info="POE:Off"; }
                 }
-            if (!isset($vlan)) { $vlan = $row['vlan']; } else {
-                if ($row['vlan']!==$vlan) { $new_info['vlan']=$vlan; }
+            if (empty($vlan)) { $vlan = $row['vlan']; } else {
+                if ($vlan >=1 and $row['vlan']!==$vlan) { $new_info['vlan']=$vlan; }
                 }
             if (!isset($row['ifName']) or $row['ifName'] !== $ifname) { $new_info['ifName']=$ifname; }
             }
