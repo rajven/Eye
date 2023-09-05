@@ -17,24 +17,35 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 <?php
 $ports = get_records($db_link,'device_ports',"device_id=$id AND uplink=0 ORDER BY port");
 print "<b>".WEB_device_mac_table_show."&nbsp".$device['device_name']." (".$device['ip']."):</b>\n";
-$fdb = get_fdb_table($device['ip'], $device['community'], $device['snmp_version']);
-print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
-print "<tr>";
-print "<td>Port</td>\n";
-print "<td>User</td>\n";
-print "<td>Mac</td>\n";
-print "</tr>";
-foreach ($ports as $port) {
-    foreach ($fdb as $a_mac => $a_port) {
-	if ($a_port == $port['snmp_index']) {
-		print "<tr>";
-		print "<td class=\"data\">" . $port['port'] . "</td>\n";
-	    $auth = get_auth_by_mac($db_link, dec_to_hex($a_mac));
-        print "<td class=\"data\">" .$auth['auth'] . "</td><td class=\"data\">". $auth['mac']."</td>\n";
-		print "</tr>";
-		}
-    }
-}
-print "</table>\n";
+
+$snmp_ok = 0;
+if (!empty($device['ip']) and $device['snmp_version'] > 0) {
+	$snmp_ok = check_snmp_access($device['ip'], $device['community'], $device['snmp_version']);
+	}
+
+if ($snmp_ok) {
+	$fdb = get_fdb_table($device['ip'], $device['community'], $device['snmp_version']);
+	print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
+	print "<tr>";
+	print "<td>Port</td>\n";
+	print "<td>User</td>\n";
+	print "<td>Mac</td>\n";
+	print "</tr>";
+	foreach ($ports as $port) {
+    	foreach ($fdb as $a_mac => $a_port) {
+		if ($a_port == $port['snmp_index']) {
+			print "<tr>";
+			print "<td class=\"data\">" . $port['port'] . "</td>\n";
+	    	$auth = get_auth_by_mac($db_link, dec_to_hex($a_mac));
+        	print "<td class=\"data\">" .$auth['auth'] . "</td><td class=\"data\">". $auth['mac']."</td>\n";
+			print "</tr>";
+			}
+    	}
+	}
+	print "</table>\n";
+	} else {
+	print "No SNMP access!";
+	}
+
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

@@ -14,20 +14,29 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 
 <div id="contsubmenu">
 <?php
-$interfaces = get_snmp_interfaces($device['ip'], $device['community'], $device['snmp_version']);
-$dev_info = walk_snmp($device['ip'], $device['community'], $device['snmp_version'],SYSINFO_MIB);
-foreach ($dev_info as $key => $value) {
-list ($v_type,$v_data)=explode(':',$value);
-$v_clean = preg_replace('/\s/', '', $v_data);
-if (empty($v_clean)) { continue; }
-print "$v_data<br>";
-}
-print "<table  class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
-print "<tr><td><b>".WEB_snmp_interface_index."</div></b></td><td><b>".WEB_snmp_interface_name."</b></td></tr>\n";
-foreach ($interfaces as $key => $int) { 
-list ($v_type,$v_data)=explode(':',$int);
-print "<tr><td class=\"data\">$key</td><td class=\"data\"> $v_data</td></tr>"; 
-}
-print "</table>\n";
+
+$snmp_ok = 0;
+if (!empty($device['ip']) and $device['snmp_version'] > 0) {
+	$snmp_ok = check_snmp_access($device['ip'], $device['community'], $device['snmp_version']);
+	}
+
+if ($snmp_ok) {
+    $interfaces = get_snmp_interfaces($device['ip'], $device['community'], $device['snmp_version']);
+    $dev_info = walk_snmp($device['ip'], $device['community'], $device['snmp_version'],SYSINFO_MIB);
+    foreach ($dev_info as $key => $value) {
+        list ($v_type,$v_data)=explode(':',$value);
+        $v_clean = preg_replace('/\s/', '', $v_data);
+        if (empty($v_clean)) { continue; }
+        print "$v_data<br>";
+        }
+    print "<table  class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
+    print "<tr><td><b>".WEB_snmp_interface_index."</div></b></td><td><b>".WEB_snmp_interface_name."</b></td></tr>\n";
+    foreach ($interfaces as $key => $int) { 
+        list ($v_type,$v_data)=explode(':',$int);
+        print "<tr><td class=\"data\">$key</td><td class=\"data\"> $v_data</td></tr>"; 
+        }
+    print "</table>\n";
+    } else { print "No SNMP access!"; }
+
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

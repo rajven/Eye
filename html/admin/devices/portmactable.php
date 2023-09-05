@@ -33,7 +33,13 @@ if ($port_info['vendor_id'] == 9) {
     $sw_mac = preg_replace("/.{2}$/","",$sw_mac);
     }
 
-if ($port_info['snmp_index'] > 0) {
+$snmp_ok = 0;
+if (!empty($device['ip']) and $device['snmp_version'] > 0) {
+        $snmp_ok = check_snmp_access($device['ip'], $device['community'], $device['snmp_version']);
+    }
+    
+
+if ($snmp_ok and $port_info['snmp_index'] > 0) {
     print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
     print "<tr><td colspan=2><b>".WEB_device_port_mac_table_show."</b></td></tr>\n";
     $fdb = get_fdb_table($port_info['ip'], $port_info['community'], $port_info['snmp_version']);
@@ -49,7 +55,7 @@ if ($port_info['snmp_index'] > 0) {
             }
         }
     print "</table>\n";
-    }
+    } else { print "No SNMP access!"; }
 ?>
 <table class="data">
 <tr>
