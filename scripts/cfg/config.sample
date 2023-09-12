@@ -32,10 +32,6 @@ MYSQL=/usr/bin/mysql
 user=www-data
 group=www-data
 
-#access to switches
-sw_login=admin
-sw_password=password
-
 #nagios settings
 nagios_dir=/etc/nagios4
 nagios_cmd=/var/spool/nagios4/cmd/nagios.cmd

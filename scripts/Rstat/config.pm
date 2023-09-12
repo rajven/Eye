@@ -52,8 +52,6 @@ $winexe
 $fping
 $log_owner_user
 $log_owner_group
-$sw_login
-$sw_password
 $use_smsd
 $smsaero_wait
 $smsd_group
@@ -140,8 +138,7 @@ $config_ref{winexe}	= $Config->{_}->{winexe} || '/usr/bin/winexe';
 $config_ref{fping}	= $Config->{_}->{fping} || '/sbin/fping';
 $config_ref{log_owner_user}= $Config->{_}->{user} || 'nagios';
 $config_ref{log_owner_group}= $Config->{_}->{group} || 'nagios';
-$config_ref{sw_login}=$Config->{_}->{sw_login} || 'admin';
-$config_ref{sw_password}=$Config->{_}->{sw_password} || 'admin';
+
 $config_ref{nagios_dir}=$Config->{_}->{nagios_dir} || '/etc/nagios';
 $config_ref{nagios_dir}=~s/\/$//;
 $config_ref{nagios_cmd}=$Config->{_}->{nagios_cmd} || '/var/spool/nagios/cmd/nagios.cmd';
@@ -209,11 +206,6 @@ our $history_trafstat_day;
 
 our $log_owner_user	= $Config->{_}->{user} || 'nagios';
 our $log_owner_group	= $Config->{_}->{group} || 'nagios';
-
-############### Switch Access ##############
-
-our $sw_login=$Config->{_}->{sw_login} || 'admin';
-our $sw_password=$Config->{_}->{sw_password} || 'admin';
 
 ################################################################
 
