@@ -26,7 +26,6 @@ log_cmd3
 log_cmd4
 flush_telnet
 run_command
-netdev_set_auth
 netdev_login
 netdev_cmd
 netdev_backup
@@ -255,33 +254,10 @@ return 1;
 
 #---------------------------------------------------------------------------------
 
-sub netdev_set_auth {
-my $device = shift;
-#router
-if ($device->{device_type} eq '2') {
-    #mikrotik
-    if ($device->{vendor_id} eq '9') { $device->{port}=$config_ref{router_port}; }
-    $device->{login}=$config_ref{router_login};
-    $device->{password}=$config_ref{router_password};
-    }
-#switch
-if ($device->{device_type} eq '1' or $device->{vendor_id} eq '3') {
-    #mikrotik
-#    if ($device->{vendor_id} eq '9') { $device->{port}=$config_ref{router_port}; }
-    $device->{login}=$sw_login;
-    $device->{password}=$sw_password;
-    }
-return $device;
-}
-
-#---------------------------------------------------------------------------------
-
 sub netdev_login {
 my $device = shift;
 #skip unknown vendor
 if (!$switch_auth{$device->{vendor_id}}) { return; }
-if (!$switch_auth{$device->{vendor_id}}{proto}) { $switch_auth{$device->{vendor_id}}{proto} = 'telnet'; }
-if (!$device->{port} and $switch_auth{$device->{vendor_id}}{port}) { $device->{port} = $switch_auth{$device->{vendor_id}}{port}; }
 
 my $t;
 
@@ -289,10 +265,9 @@ my $t;
 #$Net::OpenSSH::debug_fh = $out;
 #$Net::OpenSSH::debug = -1;
 
-if ($switch_auth{$device->{vendor_id}}{proto} eq 'telnet') {
+if ($device->{proto} eq 'telnet') {
     if (!$device->{port}) { $device->{port} = '23'; }
     log_info("Try login to $device->{device_name} $device->{ip}:$device->{port} by telnet...");
-
     #zyxel patch
     if ($device->{vendor_id} eq '4') {
         eval {
@@ -319,7 +294,7 @@ if ($switch_auth{$device->{vendor_id}}{proto} eq 'telnet') {
         $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/");
         if (exists $switch_auth{$device->{vendor_id}}{enable}) {
             $t->print($switch_auth{$device->{vendor_id}}{enable});
-            $t->print($device->{enable_password});
+            $t->print($device->{enable_password}) if ($device->{enable_password});
             $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/");
             }
         if ($device->{vendor_id} eq '2') {
@@ -342,7 +317,7 @@ if ($switch_auth{$device->{vendor_id}}{proto} eq 'telnet') {
     if ($@) { log_error("Login to $device->{device_name} ip: $device->{ip} by telnet aborted: $@"); } else { log_info("Login to $device->{device_name} ip: $device->{ip} by telnet success!"); }
     }
 
-if ($switch_auth{$device->{vendor_id}}{proto} eq 'ssh') {
+if ($device->{proto} eq 'ssh') {
     if (!$device->{port}) { $device->{port} = '22'; }
     log_info("Try login to $device->{device_name} $device->{ip}:$device->{port} by ssh...");
 	$t = Net::OpenSSH->new($device->{ip},
@@ -401,8 +376,8 @@ my $session = shift;
 my $device = shift;
 return if (!exists $switch_auth{$device->{vendor_id}}{enable});
 my $cmd = $switch_auth{$device->{vendor_id}}{enable};
-netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,3);
-if ($device->{enable_password}) { netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$device->{enable_password},3); }
+netdev_cmd($device,$session,$device->{proto},$cmd,3);
+if ($device->{enable_password}) { netdev_cmd($device,$session,$device->{proto},$device->{enable_password},3); }
 }
 
 #---------------------------------------------------------------------------------

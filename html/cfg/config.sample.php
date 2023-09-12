@@ -26,4 +26,8 @@ define("SNMP_timeout","500000");
 #snmp retry after timeout
 define("SNMP_retry","1");
 
+#crypt config - CHANGE IT!!!
+define("ENCRYPTION_KEY","!!!CHANGE_ME!!!");
+define("ENCRYPTION_IV","123456782345");
+
 ?>

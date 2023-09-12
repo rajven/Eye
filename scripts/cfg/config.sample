@@ -40,3 +40,7 @@ sw_password=password
 nagios_dir=/etc/nagios4
 nagios_cmd=/var/spool/nagios4/cmd/nagios.cmd
 nagios_event_socket=/var/spool/nagios4/hoststate.socket
+
+#crypt config
+encryption_key="!!!CHANGE_ME!!!"
+encryption_iv="123456782345"

@@ -1,0 +1,17 @@
+ALTER TABLE `devices` ADD `login` VARCHAR(50) NOT NULL DEFAULT 'admin' AFTER `ip`, ADD `password` VARCHAR(250) DEFAULT NULL AFTER `login`, ADD `protocol` INT NOT NULL DEFAULT '0' AFTER `password`, ADD `control_port` INT NOT NULL DEFAULT '23' AFTER `protocol`;
+INSERT INTO `device_types` (`id`, `name`) VALUES ('6', 'Маршрутизатор');
+UPDATE `device_types` SET `id` = '0' WHERE `device_types`.`id` = 6;
+ALTER TABLE `device_types` CHANGE `name` `name.russian` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL;
+ALTER TABLE `device_types` ADD `name.english` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL AFTER `name.russian`;
+UPDATE `device_types` SET `name.english` = 'Router' WHERE `device_types`.`id` = 0;
+UPDATE `device_types` SET `name.english` = 'Switch' WHERE `device_types`.`id` = 1;
+UPDATE `device_types` SET `name.english` = 'Gateway' WHERE `device_types`.`id` = 2;
+UPDATE `device_types` SET `name.english` = 'Server' WHERE `device_types`.`id` = 3;
+UPDATE `device_types` SET `name.english` = 'WiFi Access Point' WHERE `device_types`.`id` = 4;
+UPDATE `device_types` SET `name.english` = 'Network device' WHERE `device_types`.`id` = 5;
+UPDATE `config_options` SET `description.russian` = 'Логин для входа на сетевые устройства по умолчанию' WHERE `config_options`.`id` = 28;
+UPDATE `config_options` SET `description.russian` = 'Пароль по умолчанию на сетевые устройства' WHERE `config_options`.`id` = 29;
+UPDATE `config_options` SET `description.russian` = 'Порт ssh по умолчанию' WHERE `config_options`.`id` = 30;
+UPDATE `config_options` SET `description.russian` = 'Default login for to network devices' WHERE `config_options`.`id` = 28;
+UPDATE `config_options` SET `description.russian` = 'Default password for network devices' WHERE `config_options`.`id` = 29;
+UPDATE `config_options` SET `description.russian` = 'SSH default port' WHERE `config_options`.`id` = 30;

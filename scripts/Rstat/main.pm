@@ -15,6 +15,8 @@ use Rstat::config;
 use Socket;
 use IO::Select;
 use IO::Handle;
+use Crypt::CBC;
+use MIME::Base64;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw(
@@ -50,6 +52,9 @@ is_integer
 is_float
 run_in_parallel
 translit
+crypt_string
+decrypt_string
+netdev_set_auth
 );
 
 BEGIN
@@ -483,6 +488,8 @@ while ($start<=$count-1) {
 return (@result);
 }
 
+#---------------------------------------------------------------------------------
+
 sub translit {
 my $textline=shift;
 return if (!$textline);
@@ -522,6 +529,63 @@ $textline =~ s/Ю/Yu/g;		$textline =~ s/ю/yu/g;
 $textline =~ s/Я/Ya/g;		$textline =~ s/я/ya/g;
 return $textline;
 }
+
+#---------------------------------------------------------------------------------
+
+sub netdev_set_auth {
+my $device = shift;
+$device->{login}=$config_ref{router_login} if (!$device->{login});
+$device->{password}=$config_ref{router_password} if (!$device->{password});
+$device->{password}=decrypt_string($device->{password});
+$device->{enable_password}='';
+#$device->{enable_password}=$device->{passowrd};
+$device->{proto} = 'ssh' if ($device->{protocol} eq '0');
+$device->{proto} = 'telnet' if ($device->{protocol} eq '1');
+$device->{port} = $device->{control_port} if ($device->{control_port});
+return $device;
+}
+
+#---------------------------------------------------------------------------------
+
+sub decrypt_string {
+    my $crypted_string = shift;
+    return if (!$crypted_string);
+    my $cipher_handle = Crypt::CBC->new(
+    {
+        'key'         => $config_ref{encryption_key},
+        'cipher'      => 'Cipher::AES',
+        'iv'          => $config_ref{encryption_iv},
+        'literal_key' => 1,
+        'header'      => 'none',
+        keysize       => 128 / 8
+    }
+    );
+
+my $result = $cipher_handle->decrypt(decode_base64($crypted_string));
+return $result;
+}
+
+#---------------------------------------------------------------------------------
+
+sub crypt_string {
+    my $simple_string = shift;
+    return if (!$simple_string);
+    my $cipher_handle = Crypt::CBC->new(
+    {
+        'key'         => $config_ref{encryption_key},
+        'cipher'      => 'Cipher::AES',
+        'iv'          => $config_ref{encryption_iv},
+        'literal_key' => 1,
+        'header'      => 'none',
+        keysize       => 128 / 8
+    }
+    );
+
+my $result = encode_base64($cipher_handle->encrypt($simple_string));
+return $result;
+}
+
+#---------------------------------------------------------------------------------
 
 #log_file($LOG_COMMON,"INFO:","----------------------------------------------------------------------------------------");
 #log_file($LOG_COMMON,"INFO:","Run script $0. Pid: $$ Pid file: $SPID.pid");

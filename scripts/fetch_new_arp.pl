@@ -65,7 +65,7 @@ if ($ARGV[0]) {
     run_in_parallel(@fping_cmd);
     }
 
-my @router_ref = get_records_sql($dbh,"SELECT * FROM devices WHERE deleted=0 AND device_type=2 AND discovery=1 AND snmp_version>0 ORDER by ip" );
+my @router_ref = get_records_sql($dbh,"SELECT * FROM devices WHERE deleted=0 AND (device_type=2 or device_type=0) AND discovery=1 AND snmp_version>0 ORDER by ip" );
 
 my @arp_array=();
 
