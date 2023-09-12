@@ -22,10 +22,16 @@ if (isset($_POST['save'])) {
         foreach ($fid as $option_id => $config_id) {
             $value = $_POST['f_config_value'][$config_id];
             $option = get_record_sql($db_link, "SELECT * FROM config_options WHERE id=" . $option_id);
-            if (isset($value) and $value !== '********') {
+            if (isset($value)) {
                 $new['value'] = $value;
             }
-            LOG_INFO($db_link, WEB_config_set_option . " id: " . $config_id . " name: " . $opttion["option_name"] . " = " . $value);
+            //crypt password
+            if ($option_id == 29) { 
+                $new['value']=crypt_string($value); 
+            } else {
+            //log event if changed option not password
+                LOG_INFO($db_link, WEB_config_set_option . " id: " . $config_id . " name: " . $opttion["option_name"] . " = " . $value);
+            }
             if (!empty($new)) {
                 update_record($db_link, "config", "id=" . $config_id, $new);
             }
