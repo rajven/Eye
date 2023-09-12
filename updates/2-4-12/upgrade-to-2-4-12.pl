@@ -42,6 +42,7 @@ $device->{password} = $crypted_password;
 #1 - telnet
 #2 - api
 $device->{protocol} = 1;
+$device->{control_port} = 23;
 if ($row->{device_type} eq '2') { 
     $device->{control_port} = $default_port;
     $device->{protocol} = 0;
