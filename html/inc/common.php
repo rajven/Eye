@@ -856,6 +856,16 @@ function print_qa_select_ext($qa_name, $qa_value, $readonly)
     print "</select>\n";
 }
 
+function print_control_proto_select($qa_name, $qa_value)
+{
+    print "<select name=\"$qa_name\">\n";
+    print_select_item('Disabled', -1, $qa_value);
+    print_select_item('Ssh', 0, $qa_value);
+    print_select_item('Telnet', 1, $qa_value);
+ //   print_select_item('Mikrotik rest api', 2, $qa_value);
+    print "</select>\n";
+}
+
 function print_snmp_select($qa_name, $qa_value)
 {
     print "<select name=\"$qa_name\">\n";

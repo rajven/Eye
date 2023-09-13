@@ -206,6 +206,9 @@ define("WEB_cell_created","Создан");
 define("WEB_cell_deleted","Удалён");
 define("WEB_cell_gateway","Шлюз");
 define("WEB_cell_rule","Правил");
+define("WEB_cell_password","Пароль");
+define("WEB_cell_control_proto","Протокол");
+define("WEB_cell_control_port","Порт");
 
 /* lists name */
 define("WEB_list_ou","Список групп");

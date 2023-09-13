@@ -40,27 +40,43 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     unset($new);
     if (isset($_POST["f_ip"])) { $new['ip'] = $_POST["f_ip"]; }
     $cur_device = get_record_sql($db_link,"SELECT * FROM devices WHERE id=".$id);
+    //main device info
     if (!empty($new['ip'])) { $cur_auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE deleted=0 AND ip='".$new['ip']."'"); }
-    if (isset($_POST["f_device_model_id"])) { $new['device_model_id'] = $_POST["f_device_model_id"]*1; }
+    if (isset($_POST["f_device_model_id"])) { 
+        $new['device_model_id'] = $_POST["f_device_model_id"]*1;
+        $new['vendor_id'] = get_device_model_vendor($db_link,$new['device_model_id']);
+        }
+    if (isset($_POST["f_port_count"])) { $new['port_count'] = $sw_ports; }
     if (isset($_POST["f_devtype_id"])) { $new['device_type'] = $_POST["f_devtype_id"]*1; }
     if (isset($_POST["f_comment"])) { $new['comment'] = $_POST["f_comment"]; }
     if (isset($_POST["f_SN"])) { $new['SN'] = $_POST["f_SN"]; }
     if (isset($_POST["f_firmware"])) { $new['firmware'] = $_POST["f_firmware"]; }
+    //snmp
     if (isset($_POST["f_snmp_version"])) { $new['snmp_version'] = $_POST["f_snmp_version"] * 1; }
     if (isset($_POST["f_community"])) { $new['community'] = substr($_POST["f_community"], 0, 50); }
     if (isset($_POST["f_rw_community"])) { $new['rw_community'] = substr($_POST["f_rw_community"], 0, 50); }
-    if (isset($_POST["f_queue_enabled"])) { $new['queue_enabled'] = $_POST["f_queue_enabled"] * 1; }
-    if (isset($_POST["f_connected_user_only"])) { $new['connected_user_only'] = $_POST["f_connected_user_only"] * 1; }
     if (isset($_POST["f_snmp3_user_rw"])) { $new['snmp3_user_rw'] = substr($_POST["f_snmp3_user_rw"], 0, 20); }
     if (isset($_POST["f_snmp3_user_ro"])) { $new['snmp3_user_ro'] = substr($_POST["f_snmp3_user_ro"], 0, 20); }
     if (isset($_POST["f_snmp3_user_rw_password"])) { $new['snmp3_user_rw_password'] = substr($_POST["f_snmp3_user_rw_password"], 0, 20); }
     if (isset($_POST["f_snmp3_user_ro_password"])) { $new['snmp3_user_ro_password'] = substr($_POST["f_snmp3_user_ro_password"], 0, 20); }
-    if (isset($_POST["f_discovery"])) { $new['discovery'] = $_POST["f_discovery"]; }
+    //acl & configuration options
+    if (isset($_POST["f_queue_enabled"])) { $new['queue_enabled'] = $_POST["f_queue_enabled"] * 1; }
+    if (isset($_POST["f_connected_user_only"])) { $new['connected_user_only'] = $_POST["f_connected_user_only"] * 1; }
     if (isset($_POST["f_dhcp"])) { $new['dhcp'] = $_POST["f_dhcp"] * 1; }
     if (isset($_POST["f_user_acl"])) { $new['user_acl'] = $_POST["f_user_acl"] * 1; }
+    //interfaces
     if (isset($_POST["f_wan"])) { $new['wan_int'] = $_POST["f_wan"]; }
     if (isset($_POST["f_lan"])) { $new['lan_int'] = $_POST["f_lan"]; }
+    //location
     if (isset($_POST["f_building_id"])) { $new['building_id'] = $_POST["f_building_id"] * 1; }
+    //access
+    if (isset($_POST["f_login"])) { $new['login'] = $_POST["f_login"]; }
+    if (isset($_POST["f_password"])) { $new['password'] = crypt_string($_POST["f_password"]); }
+    if (isset($_POST["f_protocol"])) { $new['protocol'] = $_POST["f_protocol"]*1; }
+    if (isset($_POST["f_control_port"])) { $new['control_port'] = $_POST["f_control_port"]*1; }
+    //discovery
+    if (isset($_POST["f_discovery"])) { $new['discovery'] = $_POST["f_discovery"]; }
+    //nagios
     if (isset($_POST["f_nagios"])) {
 	$new['nagios'] = $_POST["f_nagios"] * 1;
         if ($new['nagios'] ==0) { $new['nagios_status']='UP'; }
@@ -70,8 +86,6 @@ if (isset($_POST["editdevice"]) and isset($id)) {
 	    $new['nagios_status']=$cur_auth['nagios_status'];
 	    }
 	}
-    $new['vendor_id'] = get_device_model_vendor($db_link,$new['device_model_id']);
-    if (isset($_POST["f_port_count"])) { $new['port_count'] = $sw_ports; }
     update_record($db_link, "devices", "id='$id'", $new);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -89,6 +103,7 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 ?>
 <div id="contsubmenu">
 <form name="def" action="editdevice.php?id=<?php echo $id; ?>" method="post">
+<?php print $user_info['login']."&nbsp".$device['user_id']."&nbsp". get_device_model_name($db_link,$device['device_model_id']); ?>
 <table class="data">
 <tr>
 <td><?php echo WEB_cell_name; ?></td>
@@ -109,6 +124,8 @@ print "</tr>\n";
 <td><?php echo WEB_cell_host_firmware; ?></td>
 <td><?php echo WEB_cell_sn; ?></td>
 <?php
+
+//common information
 print "<tr>\n";
 print "<td class='data' colspan=2>"; print_device_model_select($db_link,'f_device_model_id',$device['device_model_id']); print "</td>\n";
 print "<td class='data' ><input type='text' name='f_firmware' value='".$device['firmware']."'></td>\n";
@@ -119,6 +136,8 @@ print "</tr><tr>";
 print "<td class='data'>"; print_building_select($db_link, 'f_building_id', $device['building_id']); print "</td>\n";
 print "<td class='data' colspan=3><input type='text' size=50 name='f_comment' value='".$device['comment']."'></td>\n";
 print "</tr>";
+
+//print gateway settings
 if ($device['device_type']==2) {
     print "<tr><td>".WEB_device_access_control."</td><td>".WEB_device_dhcp_server."</td><td>".WEB_device_queues_enabled."</td><td>".WEB_device_connected_only."</td></tr>";
     print "<tr>";
@@ -130,9 +149,30 @@ if ($device['device_type']==2) {
     print "<tr><td colspan=4>"; print_url(WEB_list_l3_interfaces,"/admin/devices/edit_l3int.php?id=$id"); print "</td></tr>";
     print "<tr><td colspan=4 class='data'>"; print get_l3_interfaces($db_link,$device['id']); print "</td></tr>";
     }
+
+//print router settings
+if ($device['device_type']==0) {
+    print "<tr><td>".WEB_device_dhcp_server."</td><td></td><td></td><td></td></tr>";
+    print "<tr>";
+    print "<td class='data'>"; print_qa_select('f_dhcp', $device['dhcp']); print "</td>\n";
+    print "</tr>\n";
+    print "<tr><td colspan=4>"; print_url(WEB_list_l3_interfaces,"/admin/devices/edit_l3int.php?id=$id"); print "</td></tr>";
+    print "<tr><td colspan=4 class='data'>"; print get_l3_interfaces($db_link,$device['id']); print "</td></tr>";
+    }
+
+//for all active network devices
 if ($device['device_type']<=2) {
-    print "<tr><td>".WEB_snmp_version."</td>";
-    print "<td>".WEB_network_discovery."</td><td>".WEB_nagios."</td><td></td></tr>";
+    //cli access settings
+    print "<tr><td>".WEB_cell_login."</td><td>".WEB_cell_password."</td><td>".WEB_cell_control_proto."</td><td>".WEB_cell_control_port."</td></tr>";
+    print "<tr>"; 
+    print "<td class='data'><input type='text' name='f_login' value=".$device['login']."></td>\n";
+    print "<td class='data'><input type='text' name='f_password' value='********'></td>\n";
+    print "<td class='data'>"; print_control_proto_select('f_protocol', $device['protocol']); print "</td>\n";
+    print "<td class='data'><input type='text' name='f_control_port' value=".$device['control_port']."></td>\n";
+    print "<td class='data'></td>\n";
+    print "</tr>";
+    //snmp settings & discovery & nagios
+    print "<tr><td>".WEB_snmp_version."</td><td>".WEB_network_discovery."</td><td>".WEB_nagios."</td><td></td></tr>";
     print "<tr><td class='data'>"; print_snmp_select('f_snmp_version', $device['snmp_version']); print "</td>\n";
     print "<td class='data'>"; print_qa_select('f_discovery', $device['discovery']); print "</td>\n";
     print "<td class='data'>"; print_qa_select('f_nagios', $device['nagios']); print "</td>\n";
@@ -156,6 +196,8 @@ if ($device['device_type']<=2) {
     print "<td></td>";
     print "</tr>";
     }
+
+//only snmp for other devices
 if ($device['device_type']>2) {
     print "<tr><td>".WEB_snmp_version."</td><td>".WEB_snmp_community_ro."</td><td>".WEB_snmp_community_rw."</td><td></td></tr>";
     print "<tr><td class='data'>"; print_snmp_select('f_snmp_version', $device['snmp_version']); print "</td>\n";
@@ -172,8 +214,9 @@ if ($device['device_type']>2) {
         print "<td></td></tr>\n";
 	    }
     }
-    print "<tr><td colspan=4 align=right><input type='submit' name='editdevice' value='".WEB_btn_save."'></td></tr>";
-    print "</table>\n";
+//save button
+print "<tr><td colspan=4 align=right><input type='submit' name='editdevice' value='".WEB_btn_save."'></td></tr>";
+print "</table>\n";
 ?>
 </form>
 <?php require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.small.php"); ?>

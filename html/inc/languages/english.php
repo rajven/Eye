@@ -206,6 +206,9 @@ define("WEB_cell_created","Created");
 define("WEB_cell_deleted","Deleted");
 define("WEB_cell_gateway","Gateway");
 define("WEB_cell_rule", "Rules");
+define("WEB_cell_password","Password");
+define("WEB_cell_control_proto","Protocol");
+define("WEB_cell_control_port","Port");
 
 /* lists name */
 define("WEB_list_ou","List of groups");
