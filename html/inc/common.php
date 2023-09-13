@@ -749,7 +749,7 @@ function print_devtypes_select($db, $devtype_name, $devtype_value, $mode)
     if (!empty($mode)) {
         $filter = "WHERE $mode";
     }
-    $t_devtype = mysqli_query($db, "SELECT id,name.".HTML_LANG." FROM device_types $filter ORDER BY name");
+    $t_devtype = mysqli_query($db, "SELECT id,`name.".HTML_LANG."` FROM device_types $filter ORDER BY `name.".HTML_LANG."`");
     while (list($f_devtype_id, $f_devtype_name) = mysqli_fetch_array($t_devtype)) {
         print_select_item($f_devtype_name, $f_devtype_id, $devtype_value);
     }
@@ -759,7 +759,7 @@ function print_devtypes_select($db, $devtype_name, $devtype_value, $mode)
 function print_devtype_select($db, $devtype_name, $devtype_value)
 {
     print "<select name=\"$devtype_name\">\n";
-    $t_devtype = mysqli_query($db, "SELECT id,name.".HTML_LANG." FROM device_types Order by name");
+    $t_devtype = mysqli_query($db, "SELECT id,`name.".HTML_LANG."` FROM device_types ORDER BY `name.".HTML_LANG."`");
     while (list($f_devtype_id, $f_devtype_name) = mysqli_fetch_array($t_devtype)) {
         print_select_item($f_devtype_name, $f_devtype_id, $devtype_value);
     }
@@ -774,7 +774,7 @@ function get_group($db, $group_value)
 
 function get_devtype_name($db, $device_type_id)
 {
-    list($type_name) = mysqli_fetch_array(mysqli_query($db, "SELECT name.".HTML_LANG." FROM device_types WHERE id=$device_type_id"));
+    list($type_name) = mysqli_fetch_array(mysqli_query($db, "SELECT `name.".HTML_LANG."` FROM device_types WHERE id=$device_type_id"));
     return $type_name;
 }
 

@@ -22,7 +22,7 @@ print "Stage 1: Migrate default password\n";
 my $current_password = get_option($dbh,29);
 my $crypted_password = crypt_string($current_password);
 
-do_sql($dbh,"UPDATE config set value='".$crypted_password."' WHERE id=29");
+do_sql($dbh,"UPDATE config set value='".$crypted_password."' WHERE option_id=29");
 
 print "Stage 2: Add default access settings for all netdevices\n";
 
