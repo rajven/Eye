@@ -98,7 +98,7 @@ unset($_POST);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
 print_device_submenu($page_url);
-print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login']."::".$device['ip']."::". get_device_model_name($db_link,$device['device_model_id']));
+print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login']);
 
 ?>
 <div id="contsubmenu">
@@ -214,7 +214,7 @@ if ($device['device_type']>2) {
 	    }
     }
 //save button
-print "<tr><td colspan=4 align=right><input type='submit' name='editdevice' value='".WEB_btn_save."'></td></tr>";
+print "<tr><td colspan=3>".$device['ip']."::". get_device_model_name($db_link,$device['device_model_id'])."</td><td align=right><input type='submit' name='editdevice' value='".WEB_btn_save."'></td></tr>";
 print "</table>\n";
 ?>
 </form>
