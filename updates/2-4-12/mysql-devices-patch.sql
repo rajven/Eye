@@ -15,9 +15,9 @@ UPDATE `device_types` SET `name.english` = 'Network device' WHERE `device_types`
 UPDATE `config_options` SET `description.russian` = 'Логин для входа на сетевые устройства по умолчанию' WHERE `config_options`.`id` = 28;
 UPDATE `config_options` SET `description.russian` = 'Пароль по умолчанию на сетевые устройства' WHERE `config_options`.`id` = 29;
 UPDATE `config_options` SET `description.russian` = 'Порт ssh по умолчанию' WHERE `config_options`.`id` = 30;
-UPDATE `config_options` SET `description.russian` = 'Default login for to network devices' WHERE `config_options`.`id` = 28;
-UPDATE `config_options` SET `description.russian` = 'Default password for network devices' WHERE `config_options`.`id` = 29;
-UPDATE `config_options` SET `description.russian` = 'SSH default port' WHERE `config_options`.`id` = 30;
+UPDATE `config_options` SET `description.english` = 'Default login for network devices' WHERE `config_options`.`id` = 28;
+UPDATE `config_options` SET `description.english` = 'Default password for network devices' WHERE `config_options`.`id` = 29;
+UPDATE `config_options` SET `description.english` = 'SSH default port' WHERE `config_options`.`id` = 30;
 DELETE FROM `config_options` WHERE `config_options`.`id` = 17;
 DELETE FROM `config_options` WHERE `config_options`.`id` = 19;
 DELETE FROM `config` WHERE `option_id` = 17;
