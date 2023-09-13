@@ -98,12 +98,11 @@ unset($_POST);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
 print_device_submenu($page_url);
-print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login']);
+print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login']."::".$device['ip']."::". get_device_model_name($db_link,$device['device_model_id']));
 
 ?>
 <div id="contsubmenu">
 <form name="def" action="editdevice.php?id=<?php echo $id; ?>" method="post">
-<?php print $user_info['login']."&nbsp".$device['user_id']."&nbsp". get_device_model_name($db_link,$device['device_model_id']); ?>
 <table class="data">
 <tr>
 <td><?php echo WEB_cell_name; ?></td>
