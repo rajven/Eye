@@ -52,7 +52,7 @@ if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field
 <?php
 $filter = '';
 if ($f_building_id > 0) { $filter .= ' and building_id=' . $f_building_id; }
-if ($f_devtype_id > 0) { $filter .= ' and device_type=' . $f_devtype_id; } else { $filter .= ' and device_type<=2'; }
+if ($f_devtype_id >= 0) { $filter .= ' and device_type=' . $f_devtype_id; } else { $filter .= ' and device_type<=2'; }
 
 $dSQL = 'SELECT * FROM devices WHERE deleted=0 '.$filter.' '.$sort_sql;
 $switches = get_records_sql($db_link,$dSQL);

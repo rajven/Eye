@@ -744,7 +744,7 @@ function print_building_select($db, $building_name, $building_value)
 function print_devtypes_select($db, $devtype_name, $devtype_value, $mode)
 {
     print "<select name=\"$devtype_name\">\n";
-    print_select_item(WEB_select_item_all, 0, $devtype_value);
+    print_select_item(WEB_select_item_all, -1, $devtype_value);
     $filter = '';
     if (!empty($mode)) {
         $filter = "WHERE $mode";
