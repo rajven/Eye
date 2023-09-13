@@ -3321,7 +3321,9 @@ function update_record($db, $table, $filter, $newvalue)
                 $network_changed = 1;
             }
         }
-        $changed_log = $changed_log . " $key => $value (old: $old[$key]),";
+        if (!preg_match('/password/i',$key)) {
+            $changed_log = $changed_log . " $key => $value (old: $old[$key]),";
+            }
         $run_sql = $run_sql . " `" . $key . "`='" . mysqli_real_escape_string($db, $value) . "',";
     }
     if (empty($run_sql)) {
@@ -3429,7 +3431,9 @@ function insert_record($db, $table, $newvalue)
         if (empty($value) and $value !== 0) {
             $value = '';
         }
-        $changed_log = $changed_log . " $key => $value,";
+        if (!preg_match('/password/i',$key)) {
+            $changed_log = $changed_log . " $key => $value,";
+            }
         $field_list = $field_list . "`" . $key . "`,";
         $value = trim($value);
         $value_list = $value_list . "'" . mysqli_real_escape_string($db, $value) . "',";

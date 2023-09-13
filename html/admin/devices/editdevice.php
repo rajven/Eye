@@ -77,7 +77,7 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     //access
     if (isset($_POST["f_login"])) { $new['login'] = $_POST["f_login"]; }
     if (!empty($_POST["f_password"])) {
-        if (!preg_match('/**/', $_POST["f_password"])) { 
+        if (!preg_match('/^\*+$/', $_POST["f_password"])) { 
             $new['password'] = crypt_string($_POST["f_password"]);  
             }
         }
