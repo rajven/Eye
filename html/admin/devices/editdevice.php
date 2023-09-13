@@ -64,6 +64,11 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     if (isset($_POST["f_connected_user_only"])) { $new['connected_user_only'] = $_POST["f_connected_user_only"] * 1; }
     if (isset($_POST["f_dhcp"])) { $new['dhcp'] = $_POST["f_dhcp"] * 1; }
     if (isset($_POST["f_user_acl"])) { $new['user_acl'] = $_POST["f_user_acl"] * 1; }
+    if ($new['device_type'] == 0 ) { 
+        $new['queue_enabled'] = 0;
+        $new['connected_user_only'] = 1;
+        $new['user_acl'] = 1;
+        }
     //interfaces
     if (isset($_POST["f_wan"])) { $new['wan_int'] = $_POST["f_wan"]; }
     if (isset($_POST["f_lan"])) { $new['lan_int'] = $_POST["f_lan"]; }
