@@ -15,7 +15,7 @@ use Rstat::net_utils;
 use strict;
 use warnings;
 
-if ($config_ref{encryption_key}=~/change_me/i)) { print "Set encryption key please!\n"; exit 100; }
+if ($config_ref{encryption_key}=~/change_me/i) { print "Set encryption key please!\n"; exit 100; }
 
 print "Stage 1: Migrate default password\n";
 

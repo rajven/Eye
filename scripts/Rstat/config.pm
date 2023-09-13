@@ -144,8 +144,8 @@ $config_ref{nagios_dir}=~s/\/$//;
 $config_ref{nagios_cmd}=$Config->{_}->{nagios_cmd} || '/var/spool/nagios/cmd/nagios.cmd';
 $config_ref{nagios_event_socket}=$Config->{_}->{nagios_event_socket} || '/var/spool/nagios/hoststate.socket';
 
-$config_ref{encryption_key}=Config->{_}->{encryption_key} || '!!!CHANGE_ME!!!';
-$config_ref{encryption_iv}=Config->{_}->{encryption_iv} || '123456782345';
+$config_ref{encryption_key}=$Config->{_}->{encryption_key} || '!!!CHANGE_ME!!!';
+$config_ref{encryption_iv}=$Config->{_}->{encryption_iv} || '123456782345';
 
 our $MY_NAME=$FN[-1];
 our $SPID="/var/run/".$FN[-1];

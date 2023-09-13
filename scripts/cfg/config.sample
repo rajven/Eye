@@ -37,6 +37,6 @@ nagios_dir=/etc/nagios4
 nagios_cmd=/var/spool/nagios4/cmd/nagios.cmd
 nagios_event_socket=/var/spool/nagios4/hoststate.socket
 
-#crypt config
-encryption_key="!!!CHANGE_ME!!!"
-encryption_iv="123456782345"
+#crypt config - 8/16/24 char and equal length
+encryption_key=!!!CHANGE_ME!!!!
+encryption_iv=0123456789012345
