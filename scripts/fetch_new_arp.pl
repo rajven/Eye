@@ -30,7 +30,7 @@ flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
 setpriority(0,0,19);
 
-if ($Config->{config_mode}) { log_info("System in configuration mode! Skip discovery."); exit; }
+if ($config_ref->{config_mode}) { log_info("System in configuration mode! Skip discovery."); exit; }
 
 my %mac_history;
 
