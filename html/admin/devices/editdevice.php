@@ -76,7 +76,11 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     if (isset($_POST["f_building_id"])) { $new['building_id'] = $_POST["f_building_id"] * 1; }
     //access
     if (isset($_POST["f_login"])) { $new['login'] = $_POST["f_login"]; }
-    if (isset($_POST["f_password"])) { $new['password'] = crypt_string($_POST["f_password"]); }
+    if (!empty($_POST["f_password"])) {
+        if (!preg_match('/**/', $_POST["f_password"])) { 
+            $new['password'] = crypt_string($_POST["f_password"]);  
+            }
+        }
     if (isset($_POST["f_protocol"])) { $new['protocol'] = $_POST["f_protocol"]*1; }
     if (isset($_POST["f_control_port"])) { $new['control_port'] = $_POST["f_control_port"]*1; }
     //discovery

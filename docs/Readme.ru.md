@@ -7,7 +7,8 @@ php-mbstring php-date php-mail php-snmp \
 libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
 libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl libdbi-perl \
 libdbd-mysql-perl libparallel-forkmanager-perl libproc-daemon-perl libdatetime-format-dateparse-perl \
-libnetwork-ipv4addr-perl libnet-openssh-perl libfile-tail-perl php-fpm pdo-mysql libapache2-mod-fcgid
+libnetwork-ipv4addr-perl libnet-openssh-perl libfile-tail-perl php-fpm pdo-mysql libapache2-mod-fcgid \
+libcrypt-cbc-perl
 
 2. Качаем исходники и раскидываем по каталогам:
 
