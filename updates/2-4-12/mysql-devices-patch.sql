@@ -18,3 +18,8 @@ UPDATE `config_options` SET `description.russian` = 'Порт ssh по умол�
 UPDATE `config_options` SET `description.russian` = 'Default login for to network devices' WHERE `config_options`.`id` = 28;
 UPDATE `config_options` SET `description.russian` = 'Default password for network devices' WHERE `config_options`.`id` = 29;
 UPDATE `config_options` SET `description.russian` = 'SSH default port' WHERE `config_options`.`id` = 30;
+DELETE FROM `config_options` WHERE `config_options`.`id` = 17;
+DELETE FROM `config_options` WHERE `config_options`.`id` = 19;
+DELETE FROM `config` WHERE `option_id` = 17;
+DELETE FROM `config` WHERE `option_id` = 19;
+INSERT INTO `config_options` (`id`, `option_name`, `description.russian`, `description.english`, `uniq`, `type`, `default_value`, `min_value`, `max_value`) VALUES (68, 'config_mode', 'Режим конфигурирования. Скрипт опроса устройств не выполняется.', 'Configuration mode. The device polling script is not running.', '1', 'bool', '0', '0', '1');

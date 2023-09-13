@@ -30,6 +30,8 @@ flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
 setpriority(0,0,19);
 
+if ($Config->{config_mode}) { log_info("System in configuration mode! Skip discovery."); exit; }
+
 my %mac_history;
 
 my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime(time());
@@ -43,10 +45,6 @@ my $fork_count = $cpu_count*5;
 
 my $now_str=sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
 my $now_day=sprintf "%04d-%02d-%02d",$year,$month,$day;
-
-if (!$arp_discovery) {
-    db_log_verbose($dbh,'Arp discovery disabled by config');
-    } else {
 
 db_log_verbose($dbh,'Arp discovery started.');
 
@@ -142,15 +140,6 @@ foreach my $arp_table (@arp_array) {
     }
 }
 
-db_log_verbose($dbh,'Arp discovery stopped.');
-}
-
-#MAC Discavery
-if (!$mac_discovery) {
-    db_log_verbose($dbh,'Mac discovery disabled by config');
-    } else {
-
-sleep(1);
 db_log_verbose($dbh,'Mac discovery started.');
 
 my %connections=();
@@ -161,8 +150,7 @@ foreach my $connection (@connections_list) {
     $connections{$connection->{auth_id}}{id}=$connection->{id};
     }
 
-my $auth_filter='';
-if ($arp_discovery) { $auth_filter=" AND last_found >='".$now_day."' "; }
+my $auth_filter=" AND last_found >='".$now_day."' ";
 my $auth_sql="SELECT id,mac FROM User_auth WHERE mac IS NOT NULL AND deleted=0 $auth_filter ORDER BY id ASC";
 
 my @auth_list=get_records_sql($dbh,$auth_sql);
@@ -396,8 +384,6 @@ foreach my $mac (keys %mac_address_table) {
                         }
                 }
     }
-}
-db_log_verbose($dbh,'Mac discovery stopped.');
 }
 
 foreach my $mac (keys %mac_history) {

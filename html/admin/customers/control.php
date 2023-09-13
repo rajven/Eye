@@ -3,6 +3,21 @@
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 
+if (isset($_POST["set_workmode_on"])) {
+    run_sql($db_link,"DELETE FROM config WHERE option_id=68");
+    $new['option_id'] = 68;
+    $new['value'] = 1;
+    insert_record($db_link, "config", $new);
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
+if (isset($_POST["set_workmode_off"])) {
+    run_sql($db_link,"DELETE FROM config WHERE option_id=68");
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
 if (isset($_POST["recheck_ip"]) and is_option($db_link, 37)) {
     $run_cmd = get_option($db_link, 37);
     $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
@@ -103,6 +118,12 @@ print_control_submenu($page_url);
 <form name="def" action="control.php" method="post">
 <table class="data">
 <?php
+        if (get_option($db_link, 68)) {
+            print "<tr><td align=right>".WEB_control_edit_mode."&nbsp<input type=submit name='set_workmode_off' value='".WEB_btn_off."' style='background-color:red'></td></tr>";
+            } else {
+            print "<tr><td align=right>".WEB_control_edit_mode."&nbsp<input type=submit name='set_workmode_on' value='".WEB_btn_on."'></td></tr>";
+        }
+
         if (is_option($db_link, 37)) {
             print "<tr><td align=right>".WEB_control_access."&nbsp<input type=submit name='recheck_ip' value='".WEB_btn_refresh."'></td></tr>";
         }

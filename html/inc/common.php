@@ -3866,7 +3866,6 @@ if ($config["debug"]) {
 $config["send_email"] = get_option($db_link, 51);
 $config["admin_email"] = get_option($db_link, 21);
 $config["sender_email"] = get_option($db_link, 52);
-$config["mac_discovery"] = get_option($db_link, 17);
 $config["snmp_default_version"] = get_option($db_link, 9);
 $config["snmp_default_community"] = get_option($db_link, 11);
 $config["auto_mac_rule"] = get_option($db_link, 64);

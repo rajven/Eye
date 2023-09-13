@@ -242,6 +242,8 @@ define("WEB_btn_transfom","Преобразовать");
 define("WEB_btn_login","Войти");
 define("WEB_btn_apply_selected","Поменять у выделения");
 define("WEB_btn_save_filters","Сохранить фильтры");
+define("WEB_btn_on","Включить");
+define("WEB_btn_off","Выключить");
 
 /* control options */
 define("WEB_config_remove_option","Удалён параметр");
@@ -292,6 +294,7 @@ define("WEB_control_log_traffic_on","Включить запись трафик�
 define("WEB_control_log_traffic_off","Выключить запись трафика у всех");
 define("WEB_control_clear_dns_cache","Сбросить кэш DNS");
 define("WEB_control_port_off","Управление портами");
+define("WEB_control_edit_mode","Режим конфигурирования");
 
 /* editcustom */
 define("WEB_custom_titles","Администратор");

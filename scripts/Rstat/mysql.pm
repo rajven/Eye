@@ -1005,8 +1005,6 @@ $config_ref{snmp_default_community}=get_option($db,11);
 $config_ref{KB}=get_option($db,1);
 if ($config_ref{KB} ==0) { $config_ref{KB}=1000; }
 if ($config_ref{KB} ==1) { $config_ref{KB}=1024; }
-$config_ref{mac_discovery}=get_option($db,17);
-$config_ref{arp_discovery}=get_option($db,19);
 $config_ref{admin_email}=get_option($db,21);
 $config_ref{sender_email}=get_option($db,52);
 $config_ref{send_email}=get_option($db,51);
@@ -1042,6 +1040,8 @@ $config_ref{stat_url} = get_option($db,62);
 $config_ref{wiki_path} = get_option($db,61);
 
 $config_ref{auto_mac_rule} = get_option($db,64);
+#network configuration mode
+$config_ref{config_mode}=get_option($db,68);
 
 #$save_detail = 1; id=23
 $save_detail=get_option($db,23);
@@ -1057,10 +1057,6 @@ $snmp_default_version=get_option($db,9);
 $snmp_default_community=get_option($db,11);
 #$KB=1024; id=1
 $KB=$config_ref{KB};
-#$mac_discovery; id=17
-$mac_discovery=get_option($db,17);
-#$arp_discovery; id=19
-$arp_discovery=get_option($db,19);
 #$admin_email; id=21
 $admin_email=get_option($db,21);
 #sender email

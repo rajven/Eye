@@ -242,6 +242,8 @@ define("WEB_btn_transfom","Transform");
 define("WEB_btn_login","Enter");
 define("WEB_btn_apply_selected","Apply for selected");
 define("WEB_btn_save_filters","Save filters");
+define("WEB_btn_on","On");
+define("WEB_btn_off","Off");
 
 /* control options */
 define("WEB_config_remove_option","Parameter removed");
@@ -292,6 +294,7 @@ define("WEB_control_log_traffic_on","Enable traffic logging for everyone");
 define("WEB_control_log_traffic_off","Turn off traffic logging for everyone");
 define("WEB_control_clear_dns_cache","Clear DNS Cache");
 define("WEB_control_port_off","Port Control");
+define("WEB_control_edit_mode","Configuration Mode");
 
 /* editcustom */
 define("WEB_custom_titles","Administrator");

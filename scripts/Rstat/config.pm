@@ -73,8 +73,6 @@ $all_networks
 @hotspot_network_list
 @all_network_list
 $dhcp_pool
-$mac_discovery
-$arp_discovery
 $history
 $history_dhcp
 $router_login
@@ -235,8 +233,6 @@ our $vpn_networks;
 our @free_network_list;
 our @vpn_network_list;
 our $dhcp_pool;
-our $mac_discovery;
-our $arp_discovery;
 our $default_user_ou_id;
 our $default_hotspot_ou_id;
 our $history;
