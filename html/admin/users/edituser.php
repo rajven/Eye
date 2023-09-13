@@ -94,6 +94,11 @@ if (isset($_POST["showDevice"])) {
         $new['ip']=$auth['ip'];
         $new['community'] = get_const('snmp_default_community');
         $new['snmp_version'] = get_const('snmp_default_version');
+        $new['login'] = get_option($db_link,28);
+        $new['password'] = get_option($db_link,29);
+        //default ssh
+        $new['protocol'] = 0;
+        $new['control_port'] = get_option($db_link,30);
         $new_id=insert_record($db_link, "devices", $new);
         unset($_POST);
         if (!empty($new_id)) {
