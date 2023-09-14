@@ -73,6 +73,10 @@ edit: /opt/Eye/scripts/cfg/config
 
 You need to specify the password in mysql and the database!
 
+Symmetric AES-128-CBC encryption is used to encrypt passwords to devices. It is necessary to generate a password and an initialization vector, enter in both configs:
+Password: pwgen 16
+Vector: tr -dc 0-9 </dev/urandom | head -c 16 ; echo ''
+
 6. Configuring apache and php:
 
 sed -i 's/short_open_tag = Off/short_open_tag = On/' /etc/php/7.4/apache2/php.ini

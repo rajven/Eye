@@ -73,6 +73,10 @@ edit: /opt/Eye/scripts/cfg/config
 
 Надо указать пароль в  mysql и базу данных!
 
+Для шифрования паролей на устройства используется симметричное ишфрование AES-128-CBC. Необходимо сгенерировать пароль и вектор инициализации, внести в оба конфига:
+Пароль: pwgen 16
+Вектор: tr -dc 0-9 </dev/urandom | head -c 16 ; echo ''
+
 6. Настраиваем апач и php:
 
 sed -i 's/short_open_tag = Off/short_open_tag = On/' /etc/php/7.4/apache2/php.ini
