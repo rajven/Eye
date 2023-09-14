@@ -31,6 +31,7 @@ if ($vendor->{name} =~/huawei/i) { $oxi_model = 'vrp'; }
 if ($vendor->{name} =~/eltex/i) { $oxi_model = 'eltex'; }
 if ($vendor->{name} =~/raisecom/i) { $oxi_model = 'raisecom'; }
 if ($vendor->{name} =~/mikrotik/i) { $oxi_model = 'routeros'; }
+if ($vendor->{name} =~/maipu/i) { $oxi_model = 'maipu'; }
 if ($vendor->{name} =~/d[\-*]link/i) { $oxi_model = 'dlink'; }
 if ($vendor->{name} =~/tp[\-*]link/i) { $oxi_model = 'tplink'; }
 if ($vendor->{name} =~/hp/i) { $oxi_model = 'comware'; }
@@ -39,7 +40,9 @@ if ($oxi_model =~/awplus/ and $model->{model_name}=~/AT-8000/i) { $oxi_model = '
 my $proto = 'telnet';
 if ($device->{protocol} eq '0') { $proto = 'ssh'; }
 my $location = $building->{name};
-print $device->{device_name}.":".$device->{ip}.":".$device->{login}.":".$device->{password}.":".$oxi_model.":".$device->{control_port}.":".$proto.":".$location."\n";
+my $enable_password = '';
+if ($vendor->{name} !~ /mikrotik/i) { $enable_password = $device->{password}; }
+print $device->{device_name}.":".$device->{ip}.":".$device->{login}.":".$device->{password}.":".$oxi_model.":".$device->{control_port}.":".$proto.":".$location.":".$enable_password."\n";
 }
 
 $dbh->disconnect;
