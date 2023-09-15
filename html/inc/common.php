@@ -1053,10 +1053,10 @@ function compact_port_name($port)
 function print_device_port_select($db, $field_name, $device_id, $target_id)
 {
     print "<select name=\"$field_name\" class=\"js-select-single\">\n";
-    if (!isset($target_id)) {
+    if (empty($target_id)) {
         $target_id = 0;
     }
-    if (!isset($device_id)) {
+    if (empty($device_id)) {
         $device_id = 0;
     }
     $d_sql = "SELECT D.device_name, DP.port, DP.device_id, DP.id, DP.ifName FROM devices AS D, device_ports AS DP WHERE D.deleted=0 and D.id = DP.device_id AND (DP.device_id<>$device_id or DP.id=$target_id) and (DP.id not in (select target_port_id FROM device_ports WHERE target_port_id>0 and target_port_id<>$target_id)) ORDER BY D.device_name,DP.port";
@@ -1066,7 +1066,7 @@ function print_device_port_select($db, $field_name, $device_id, $target_id)
         if (empty($f_ifname)) {
             $f_ifname = $f_port;
         }
-        print_select_item($f_name . "[" . compact_port_name($f_ifname) . "]", $f_target_id, $target_id);
+        print_select_item($f_name . "[" . $f_port."] - " . compact_port_name($f_ifname), $f_target_id, $target_id);
     }
     print "</select>\n";
 }
