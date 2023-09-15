@@ -1,6 +1,10 @@
 body                            { font-family: tahoma; font-size: 12pt; color: #181818; margin: 0; background-color: #ffffff; }
 img                             { border: 0; }
 
+.field                          { clear:both; text-align:right; line-height:25px; }
+label                           { float:left; padding-right:10px; }
+.main                           { float:left }
+
 table                           { font-family: tahoma; font-size: 12pt; border-spacing: 1px; }
 table.data                      { background-color: #cfcfcf; margin-bottom: 5px; }
 table.info                      { background-color: #f8f2aa; margin-bottom: 5px; }

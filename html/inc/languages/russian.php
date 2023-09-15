@@ -343,7 +343,7 @@ define("WEB_device_port_count","Портов");
 define("WEB_device_port_number","Порт N");
 define("WEB_device_port_name","Порт");
 define("WEB_device_port_snmp_index","Snmp индекс");
-define("WEB_device_port_uplink_device","Устройство");
+define("WEB_device_port_uplink_device","Подключено устройство");
 define("WEB_device_port_uplink","Uplink");
 define("WEB_device_port_allien","Не проверять");
 
