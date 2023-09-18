@@ -21,7 +21,7 @@ if (isset($_POST["RemoveUser"]) and (isset($_POST["f_deleted"]))) {
 					delete_record($db_link, "devices", "id=" . $device['id']);
 				}
 				run_sql($db_link, "DELETE FROM auth_rules WHERE user_id=$val");
-				run_sql($db_link, "UPDATE User_auth SET deleted=1 WHERE user_id=$val");
+				run_sql($db_link, "UPDATE User_auth SET deleted=1, changed=1, dhcp_changed=1 WHERE user_id=$val");
 				delete_record($db_link, "User_list", "id=$val");
 				LOG_WARNING($db_link, "Deleted user id: $val login: " . $login['login'] . "\r\n");
 			}
