@@ -745,7 +745,7 @@ function print_devmodels_select($db, $devmodel_name, $devmodel_value)
 {
     print "<select name=\"$devmodel_name\">\n";
     print_select_item(WEB_select_item_all, -1, $devmodel_value);
-    $t_devmodel = mysqli_query($db, "SELECT M.id,V.name,M.model_name FROM device_models M,vendors V WHERE M.vendor_id = V.id and M.id in (SELECT device_model_id FROM devices) ORDER BY V.name,M.model_name");
+    $t_devmodel = mysqli_query($db, "SELECT M.id,V.name,M.model_name FROM device_models M,vendors V WHERE M.vendor_id = V.id and M.id in (SELECT device_model_id FROM devices WHERE device_type<=2) ORDER BY V.name,M.model_name");
     while (list($f_devmodel_id, $f_devmodel_vendor, $f_devmodel_name) = mysqli_fetch_array($t_devmodel)) {
         print_select_item($f_devmodel_vendor." ".$f_devmodel_name, $f_devmodel_id, $devmodel_value);
     }
