@@ -103,7 +103,7 @@ if (!$pid) {
         	    do_sql($hdb,"UPDATE User_auth SET dhcp_changed=0");
                 log_info("Found changed dhcp variables in records: ".$changed->{'c_count'});
                 my $dhcp_exec=get_option($hdb,38);
-    	        my %result=do_exec_ref($HOME_DIR."/".$dhcp_exec);
+    	        my %result=do_exec_ref($dhcp_exec);
     	        if ($result{status} ne 0) { log_error("Error sync dhcp config"); }
     	    	}
             #acl & dhcp changed records 
@@ -111,7 +111,7 @@ if (!$pid) {
 	        if ($changed->{"c_count"}>0) {
                 log_info("Found changed records: ".$changed->{'c_count'});
                 my $acl_exec=get_option($hdb,37);
-    	        my %result=do_exec_ref($HOME_DIR."/".$acl_exec);
+    	        my %result=do_exec_ref($acl_exec);
     	        if ($result{status} ne 0) { log_error("Error sync status at gateways"); }
     	    	}
     	    }
