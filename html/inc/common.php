@@ -3060,7 +3060,7 @@ function expand_log_str($db, $msg)
     $result = preg_replace($auth_pattern, $auth_replace, $msg);
 
     $user_pattern = '/(user_id:|user|user id:|user id)\s+(\d+)\s+/i';
-    $user_replace = '<a href=/admin/users/edituser.php?id=${2}>user_id:${2}</a>';
+    $user_replace = '<a href=/admin/users/edituser.php?id=${2}>user_id:${2}</a> ';
     $result = preg_replace($user_pattern, $user_replace, $result);
 
     $mac_pattern = '/\s+\[(\w{12})\]\s+/i';
@@ -3091,7 +3091,7 @@ function expand_log_str($db, $msg)
         $device_name = $matches[1];
         $device_id = get_device_id($db, $device_name);
         if (isset($device_id) and $device_id > 0) {
-            $device_replace = 'at device <a href=/admin/devices/editdevice.php?id=' . $device_id . '>${1}</a>';
+            $device_replace = 'at device <a href=/admin/devices/editdevice.php?id=' . $device_id . '>${1}</a> ';
             $result = preg_replace($device_pattern, $device_replace, $result);
         }
     }

@@ -455,7 +455,7 @@ define("WEB_user_add_mac","Mac (необязательно)");
 define("WEB_user_list_apply","Применить к списку");
 define("WEB_new_user","Новый юзер");
 define("WEB_user_deleted","принадлежит несуществующему юзеру. Вероятно запись удалена");
-define("WEB_user_bind_mac","Привязать мак в юзеру");
+define("WEB_user_bind_mac","Привязать мак к юзеру");
 define("WEB_user_unbind_mac","Отвязать мак от юзера");
 
 /* public */

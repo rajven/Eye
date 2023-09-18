@@ -96,34 +96,31 @@ if (isset($_POST["ApplyForAll"])) {
 
             if (!empty($auth)) {
                 $ret = update_record($db_link, "User_auth", "id='" . $val . "'", $auth);
-                if (!$ret) {
-                    $all_ok = 0;
-                }
+                if (!$ret) { $all_ok = 0; }
+            }
 
             //bind mac rule
             if (isset($_POST["e_bind_mac"])) {
                 $first_auth = get_record_sql($db_link,"SELECT user_id,mac FROM User_auth WHERE id=".$val);
-                if ($a_bind_mac) {
-                    if (!empty($first_auth) and !empty($first_auth['mac'])) {
-                        $auth_rules = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=2 AND rule='".$first_auth['mac']."'");
-                        if (empty($auth_rules)) {
+                if (!empty($first_auth) and !empty($first_auth['mac'])) {
+                    if ($a_bind_mac) {
+                            $auth_rules = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=2 AND rule='".$first_auth['mac']."'");
+                            if (empty($auth_rules)) {
                                 $new['user_id']=$first_auth['user_id'];
                                 $new['type']=2;
                                 $new['rule']=$first_auth['mac'];
                                 insert_record($db_link,"auth_rules",$new);
                                 LOG_INFO($db_link,"Created auto rule for user_id: ".$first_auth['user_id']." and mac ".$first_auth['mac']);
-                            } else {
+                                } else {
                                 LOG_INFO($db_link,"Auto rule for user_id: ".$first_auth['user_id']." and mac ".$first_auth['mac']." already exists");
+                                }
+                            } else {
+                                run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=2");
+                                LOG_INFO($db_link,"Remove auto rule for user_id: ".$first_auth['user_id']." and mac ".$first_auth['mac']);
                             }
-                        }
                     } else {
-                        run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=2");
-                        LOG_INFO($db_link,"Remove auto rule for user_id: ".$first_auth['user_id']." and mac ".$first_auth['mac']);
+                        LOG_ERROR($db_link,"Auto rule for user_id: ".$first_auth['user_id']." not created. Record not found or empty mac.");
                     }
-                header("Location: " . $_SERVER["REQUEST_URI"]);
-                exit;
-                }
-
             }
         }
     }
