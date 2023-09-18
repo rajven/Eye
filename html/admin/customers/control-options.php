@@ -30,7 +30,7 @@ if (isset($_POST['save'])) {
                 $new['value']=crypt_string($value); 
             } else {
             //log event if changed option not password
-                LOG_INFO($db_link, WEB_config_set_option . " id: " . $config_id . " name: " . $opttion["option_name"] . " = " . $value);
+                LOG_INFO($db_link, WEB_config_set_option . " id: " . $config_id . " name: " . $option["option_name"] . " = " . $value);
             }
             if (!empty($new)) {
                 update_record($db_link, "config", "id=" . $config_id, $new);
