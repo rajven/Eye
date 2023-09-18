@@ -3305,6 +3305,7 @@ function update_record($db, $table, $filter, $newvalue)
     $changed_log = '';
     $run_sql = '';
     $network_changed = 0;
+    $dhcp_changed = 0;
 
     $acl_fields = [
         'ip' => '1',
@@ -3319,6 +3320,13 @@ function update_record($db, $table, $filter, $newvalue)
         'blocked' => '1',
     ];
 
+    $dhcp_fields = [
+        'ip' => '1',
+        'dhcp' => '1',
+        'deleted' => '1',
+        'mac' => '1',
+    ];
+
     foreach ($newvalue as $key => $value) {
         if (!isset($value)) {
             $value = '';
@@ -3330,6 +3338,9 @@ function update_record($db, $table, $filter, $newvalue)
         if ($table === "User_auth") {
             if (!empty($acl_fields["$key"])) {
                 $network_changed = 1;
+            }
+            if (!empty($dhcp_fields["$key"])) {
+                $dhcp_changed = 1;
             }
         }
         if (!preg_match('/password/i',$key)) {
@@ -3343,6 +3354,10 @@ function update_record($db, $table, $filter, $newvalue)
 
     if ($network_changed) {
         $run_sql = $run_sql . " `changed`='1',";
+    }
+
+    if ($dhcp_changed) {
+        $run_sql = $run_sql . " `dhcp_changed`='1',";
     }
 
     $changed_log = substr_replace($changed_log, "", -1);
@@ -3467,7 +3482,7 @@ function insert_record($db, $table, $newvalue)
         LOG_VERBOSE($db, "Create record in table $table: $changed_log with id: $last_id");
     }
     if ($table === 'User_auth') {
-        run_sql($db, "UPDATE User_auth SET changed=1 WHERE id=" . $last_id);
+        run_sql($db, "UPDATE User_auth SET changed=1, dhcp_changed=1 WHERE id=" . $last_id);
     }
     return $last_id;
 }

@@ -90,16 +90,28 @@ if (!$pid) {
         if ($urgent_sync) {
     	    #clean changed for dynamic clients or hotspot
     	    do_sql($hdb,"UPDATE User_auth SET changed=0 WHERE ou_id=".$default_user_ou_id." OR ou_id=".$default_hotspot_ou_id);
+    	    do_sql($hdb,"UPDATE User_auth SET dhcp_changed=0 WHERE ou_id=".$default_user_ou_id." OR ou_id=".$default_hotspot_ou_id);
     	    #clean unmanagment ip changed
-    	    my @all_changed = get_records_sql($hdb,"SELECT id, ip FROM User_auth WHERE changed = 1");
+    	    my @all_changed = get_records_sql($hdb,"SELECT id, ip FROM User_auth WHERE changed = 1 OR dhcp_changed = 1");
     	    foreach my $row(@all_changed) {
-    		next if ($office_networks->match_string($row->{ip}));
-    		do_sql($hdb,"UPDATE User_auth SET changed = 0 WHERE id=".$row->{id});
-    		}
-            my $changed = get_record_sql($hdb,"SELECT COUNT(*) as c_count from User_auth WHERE changed=1");
-	    if ($changed->{"c_count"}>0) {
+    		    next if ($office_networks->match_string($row->{ip}));
+    		    do_sql($hdb,"UPDATE User_auth SET changed = 0, dhcp_changed = 0 WHERE id=".$row->{id});
+    		    }
+            #dhcp changed records
+            my $changed = get_record_sql($hdb,"SELECT COUNT(*) as c_count from User_auth WHERE dhcp_changed=1");
+	        if ($changed->{"c_count"}>0) {
+        	    do_sql($hdb,"UPDATE User_auth SET dhcp_changed=0");
+                log_info("Found changed dhcp variables in records: ".$changed->{'c_count'});
+                my $dhcp_exec=get_option($hdb,38);
+    	        my %result=do_exec_ref($HOME_DIR."/".$dhcp_exec);
+    	        if ($result{status} ne 0) { log_error("Error sync dhcp config"); }
+    	    	}
+            #acl & dhcp changed records 
+            $changed = get_record_sql($hdb,"SELECT COUNT(*) as c_count from User_auth WHERE changed=1");
+	        if ($changed->{"c_count"}>0) {
                 log_info("Found changed records: ".$changed->{'c_count'});
-    	        my %result=do_exec_ref($HOME_DIR."/sync_mikrotik.pl");
+                my $acl_exec=get_option($hdb,37);
+    	        my %result=do_exec_ref($HOME_DIR."/".$acl_exec);
     	        if ($result{status} ne 0) { log_error("Error sync status at gateways"); }
     	    	}
     	    }

@@ -100,6 +100,13 @@ our %acl_fields = (
 'blocked'=>'1'
 );
 
+our %dhcp_fields = (
+'ip' => '1',
+'dhcp'=>'1',
+'deleted'=>'1',
+'mac'=>'1',
+);
+
 #---------------------------------------------------------------------------------------------------------------
 
 sub StrToIp{
@@ -386,8 +393,8 @@ my $auth_id = 0;
 if ($table eq "User_auth") {
     $auth_id = $old_record->{'id'};
     foreach my $field (keys %$record) {
-        next if (!exists $acl_fields{$field});
-        $record->{changed}="1";
+        if (exists $acl_fields{$field}) { $record->{changed}="1"; }
+        if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
         }
     }
 
@@ -432,8 +439,8 @@ my $new_str='';
 
 if ($table eq 'User_auth') {
     foreach my $field (keys %$record) {
-        next if (!exists $acl_fields{$field});
-        $record->{changed}="1";
+        if (exists $acl_fields{$field}) { $record->{changed}="1"; }
+        if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
         }
     }
 
