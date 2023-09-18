@@ -104,8 +104,9 @@ if (isset($_POST["ApplyForAll"])) {
                 $first_auth = get_record_sql($db_link,"SELECT user_id,mac FROM User_auth WHERE id=".$val);
                 if (!empty($first_auth) and !empty($first_auth['mac'])) {
                     if ($a_bind_mac) {
-                            $auth_rules = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=2");
-                            if (empty($auth_rules)) {
+                            $auth_rules_user = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=2");
+                            $auth_rules_mac = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE rule='".$first_auth['mac']."' AND type=2");
+                            if (empty($auth_rules_user) and empty($auth_rules_mac)) {
                                 $new['user_id']=$first_auth['user_id'];
                                 $new['type']=2;
                                 $new['rule']=$first_auth['mac'];
