@@ -321,6 +321,7 @@ define("WEB_public_month_traffic","per month, (In/Out)");
 
 /* device models */
 define("WEB_model_vendor","Vendor");
+define("WEB_models","Models");
 define("WEB_nagios_template","Nagios Template");
 
 /* edit_l3int */

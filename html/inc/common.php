@@ -741,6 +741,17 @@ function print_building_select($db, $building_name, $building_value)
     print "</select>\n";
 }
 
+function print_devmodels_select($db, $devmodel_name, $devmodel_value)
+{
+    print "<select name=\"$devmodel_name\">\n";
+    print_select_item(WEB_select_item_all, -1, $devmodel_value);
+    $t_devmodel = mysqli_query($db, "SELECT M.id,V.name,M.model_name FROM device_models M,vendors V WHERE M.vendor_id = V.id ORDER BY V.name,M.model_name");
+    while (list($f_devmodel_id, $f_devmodel_vendor, $f_devmodel_name) = mysqli_fetch_array($t_devmodel)) {
+        print_select_item($f_devmodel_vendor." ".$f_devmodel_name, $f_devmodel_id, $devmodel_value);
+    }
+    print "</select>\n";
+}
+
 function print_devtypes_select($db, $devtype_name, $devtype_value, $mode)
 {
     print "<select name=\"$devtype_name\">\n";

@@ -349,6 +349,7 @@ define("WEB_device_port_allien","Не проверять");
 
 /* devices: index-passive */
 define("WEB_device_type_show","Тип оборудования");
+define("WEB_models","Модели");
 define("WEB_device_hide_unknown","Скрыть неизвестные");
 define("WEB_device_show_location","Расположение оборудования");
 
