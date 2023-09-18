@@ -31,12 +31,18 @@ if (isset($_POST["ApplyForAll"])) {
         $_POST["n_link"] = 0;
     }
 
+    if (empty($_POST["a_bind_mac"])) {
+        $_POST["a_bind_mac"] = 0;
+    }
+
     $a_enabled  = $_POST["a_enabled"] * 1;
     $a_dhcp     = $_POST["a_dhcp"] * 1;
     $a_dhcp_acl = $_POST["a_dhcp_acl"];
     $a_queue    = $_POST["a_queue_id"] * 1;
     $a_group    = $_POST["a_group_id"] * 1;
     $a_traf     = $_POST["a_traf"] * 1;
+
+    $a_bind_mac = $_POST["a_bind_mac"]*1;
 
     $n_enabled = $_POST["n_enabled"] * 1;
     $n_link    = $_POST["n_link"] * 1;
@@ -93,6 +99,31 @@ if (isset($_POST["ApplyForAll"])) {
                 if (!$ret) {
                     $all_ok = 0;
                 }
+
+            //bind mac rule
+            if (isset($_POST["e_bind_mac"])) {
+                $first_auth = get_record_sql($db_link,"SELECT user_id,mac FROM User_auth WHERE id=".$val);
+                if ($a_bind_mac) {
+                    if (!empty($first_auth) and !empty($first_auth['mac'])) {
+                        $auth_rules = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=2 AND rule='".$first_auth['mac']."'");
+                        if (empty($auth_rules)) {
+                                $new['user_id']=$first_auth['user_id'];
+                                $new['type']=2;
+                                $new['rule']=$first_auth['mac'];
+                                insert_record($db_link,"auth_rules",$new);
+                                LOG_INFO($db_link,"Created auto rule for user_id: ".$first_auth['user_id']." and mac ".$first_auth['mac']);
+                            } else {
+                                LOG_INFO($db_link,"Auto rule for user_id: ".$first_auth['user_id']." and mac ".$first_auth['mac']." already exists");
+                            }
+                        }
+                    } else {
+                        run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=2");
+                        LOG_INFO($db_link,"Remove auto rule for user_id: ".$first_auth['user_id']." and mac ".$first_auth['mac']);
+                    }
+                header("Location: " . $_SERVER["REQUEST_URI"]);
+                exit;
+                }
+
             }
         }
     }

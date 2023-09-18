@@ -435,7 +435,6 @@ define("WEB_log_dhcp_add","Аренда адреса");
 define("WEB_log_dhcp_del","Освобождение адреса");
 define("WEB_log_dhcp_old","Обновление аренды");
 
-
 /* reports */
 define("WEB_report_user_traffic","Трафик пользователя");
 define("WEB_report_traffic_for_ip","для адреса");
@@ -456,6 +455,8 @@ define("WEB_user_add_mac","Mac (необязательно)");
 define("WEB_user_list_apply","Применить к списку");
 define("WEB_new_user","Новый юзер");
 define("WEB_user_deleted","принадлежит несуществующему юзеру. Вероятно запись удалена");
+define("WEB_user_bind_mac","Привязать мак в юзеру");
+define("WEB_user_unbind_mac","Отвязать мак от юзера");
 
 /* public */
 define("WEB_msg_access_login","Интернет (логин)");

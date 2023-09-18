@@ -455,6 +455,8 @@ define("WEB_user_add_mac","Mac (optional)");
 define("WEB_user_list_apply","Apply to list");
 define("WEB_new_user","New user");
 define("WEB_user_deleted","belongs to a non-existent user. Probably the record has been deleted");
+define("WEB_user_bind_mac","Bind mac for login");
+define("WEB_user_unbind_mac","Unbind mac for login");
 
 /* public */
 define("WEB_msg_access_login","Internet for login");
