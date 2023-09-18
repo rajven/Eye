@@ -94,7 +94,7 @@ if ($unknown and $f_vendor_select==0) { $u_filter=' AND V.id<>1 '; } else {
         }
     }
 
-$countSQL="SELECT Count(*) FROM User_auth A, User_list L, devices D, device_models M, vendors V.
+$countSQL="SELECT Count(*) FROM User_auth A, User_list L, devices D, device_models M, vendors V 
 WHERE D.user_id=L.id AND A.ip = D.ip AND D.device_model_id=M.id AND M.vendor_id=V.id AND A.deleted =0
 $u_filter $ip_list_filter $d_filter";
 
