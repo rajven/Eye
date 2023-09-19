@@ -314,6 +314,7 @@ foreach my $mac (keys %mac_address_table) {
 
     $mac_history{$simple_mac}{port_id}=$port_index{$port};
     $mac_history{$simple_mac}{dev_id}=$dev_id;
+
     if (!$mac_history{$simple_mac}{changed}) { $mac_history{$simple_mac}{changed}=0; }
 
     my $port_id=$port_index{$port};
@@ -332,7 +333,7 @@ foreach my $mac (keys %mac_address_table) {
                         if (exists $auth_table{oper_table}{$simple_mac}) {
                     	    my $auth_rec;
                     	    $auth_rec->{last_found}=$now_str;
-	                    update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
+	                        update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
                     	    }
                         next;
                         }
@@ -340,7 +341,7 @@ foreach my $mac (keys %mac_address_table) {
                     $connections{$auth_id}{port}=$port_id;
                     $mac_history{$simple_mac}{changed}=1;
                     $mac_history{$simple_mac}{auth_id}=$auth_id;
-                    db_log_info($dbh,"Found auth_id: $auth_id [$mac_splitted] at device $dev_name [$port]. Update connection",$auth_id);
+                    db_log_info($dbh,"Found auth_id: $auth_id ip: $mac_history{$simple_mac}{ip} [$mac_splitted] at device $dev_name [$port]. Update connection",$auth_id);
                     my $auth_rec;
                     $auth_rec->{last_found}=$now_str;
                     update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
@@ -352,7 +353,7 @@ foreach my $mac (keys %mac_address_table) {
                     $mac_history{$simple_mac}{changed}=1;
                     $mac_history{$simple_mac}{auth_id}=$auth_id;
                     $connections{$auth_id}{port}=$port_id;
-                    db_log_info($dbh,"Found auth_id: $auth_id [$mac_splitted] at device $dev_name [$port]. Create connection.",$auth_id);
+                    db_log_info($dbh,"Found auth_id: $auth_id ip: $mac_history{$simple_mac}{ip} [$mac_splitted] at device $dev_name [$port]. Create connection.",$auth_id);
                     my $auth_rec;
                     $auth_rec->{last_found}=$now_str;
                     update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
