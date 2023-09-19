@@ -3280,23 +3280,23 @@ function copy_auth($db, $id, $new_auth)
 function update_record($db, $table, $filter, $newvalue)
 {
     if (isRO($db, $table)) {
-        LOG_ERROR($db, "User does not have write permission");
+        LOG_WARNING($db, "User does not have write permission");
         return;
     }
     if (!isset($table)) {
-        LOG_ERROR($db, "Change record for unknown table! Skip command.");
+        LOG_WARNING($db, "Change record for unknown table! Skip command.");
         return;
     }
     if (!isset($filter)) {
-        LOG_ERROR($db, "Change record ($table) with empty filter! Skip command.");
+        LOG_WARNING($db, "Change record ($table) with empty filter! Skip command.");
         return;
     }
     if (preg_match('/=$/', $filter)) {
-        LOG_ERROR($db, "Change record ($table) with illegal filter $filter! Skip command.");
+        LOG_WARNING($db, "Change record ($table) with illegal filter $filter! Skip command.");
         return;
     }
     if (!isset($newvalue)) {
-        LOG_ERROR($db, "Change record ($table [ $filter ]) with empty data! Skip command.");
+        LOG_WARNING($db, "Change record ($table [ $filter ]) with empty data! Skip command.");
         return;
     }
     $old_sql = "SELECT * FROM $table WHERE $filter";
@@ -3383,19 +3383,19 @@ function update_record($db, $table, $filter, $newvalue)
 function delete_record($db, $table, $filter)
 {
     if (isRO($db, $table)) {
-        LOG_ERROR($db, "User does not have write permission");
+        LOG_WARNING($db, "User does not have write permission");
         return;
     }
     if (!isset($table)) {
-        LOG_ERROR($db, "Delete FROM unknown table! Skip command.");
+        LOG_WARNING($db, "Delete FROM unknown table! Skip command.");
         return;
     }
     if (!isset($filter)) {
-        LOG_ERROR($db, "Delete FROM table $table with empty filter! Skip command.");
+        LOG_WARNING($db, "Delete FROM table $table with empty filter! Skip command.");
         return;
     }
     if (preg_match('/=$/', $filter)) {
-        LOG_ERROR($db, "Change record ($table) with illegal filter $filter! Skip command.");
+        LOG_WARNING($db, "Change record ($table) with illegal filter $filter! Skip command.");
         return;
     }
     $old_sql = "SELECT * FROM $table WHERE $filter";
@@ -3438,15 +3438,15 @@ function delete_record($db, $table, $filter)
 function insert_record($db, $table, $newvalue)
 {
     if (isRO($db, $table)) {
-        LOG_ERROR($db, "User does not have write permission");
+        LOG_WARNING($db, "User does not have write permission");
         return;
     }
     if (!isset($table)) {
-        LOG_ERROR($db, "Create record for unknown table! Skip command.");
+        LOG_WARNING($db, "Create record for unknown table! Skip command.");
         return;
     }
     if (empty($newvalue)) {
-        LOG_ERROR($db, "Create record ($table) with empty data! Skip command.");
+        LOG_WARNING($db, "Create record ($table) with empty data! Skip command.");
         return;
     }
 
