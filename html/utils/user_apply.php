@@ -98,7 +98,7 @@ if (isset($_POST["ApplyForAll"])) {
 
             $auth_list = get_records_sql($db_link, "SELECT id, mac FROM User_auth WHERE deleted=0 AND user_id=" . $val);
             $b_mac = '';
-            if (!empty($auth)) {
+            if (!empty($auth_list)) {
                 foreach ($auth_list as $row) {
                     if (empty($row)) {
                         continue;
@@ -115,17 +115,19 @@ if (isset($_POST["ApplyForAll"])) {
 
             //bind mac rule
             if (isset($_POST["e_bind_mac"])) {
-                if ($a_bind_mac and !empty($b_mac)) {
-                    $auth_rules_user = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id=" . $val . " AND type=2");
-                    $auth_rules_mac = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule='" . $b_mac . "' AND type=2");
-                    if (empty($auth_rules_user) and empty($auth_rules_mac)) {
-                            $new['user_id'] = $val;
-                            $new['type'] = 2;
-                            $new['rule'] = $b_mac;
-                            insert_record($db_link, "auth_rules", $new);
-                            LOG_INFO($db_link, "Created auto rule for user_id: " . $val . " and mac " . $b_mac);
-                        } else {
-                            LOG_INFO($db_link, "Auto rule for user_id: " . $val . " and mac " . $mac . " already exists");
+                if ($a_bind_mac) {
+                    if (!empty($b_mac)) {
+                        $auth_rules_user = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id=" . $val . " AND type=2");
+                        $auth_rules_mac = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule='" . $b_mac . "' AND type=2");
+                        if (empty($auth_rules_user) and empty($auth_rules_mac)) {
+                                $new['user_id'] = $val;
+                                $new['type'] = 2;
+                                $new['rule'] = $b_mac;
+                                insert_record($db_link, "auth_rules", $new);
+                                LOG_INFO($db_link, "Created auto rule for user_id: " . $val . " and mac " . $b_mac);
+                            } else {
+                                LOG_INFO($db_link, "Auto rule for user_id: " . $val . " and mac " . $mac . " already exists");
+                            }
                         }
                     } else {
                         run_sql($db_link, "DELETE FROM auth_rules WHERE user_id=" . $val . " AND type=2");
