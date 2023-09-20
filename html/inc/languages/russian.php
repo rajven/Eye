@@ -457,6 +457,8 @@ define("WEB_new_user","Новый юзер");
 define("WEB_user_deleted","принадлежит несуществующему юзеру. Вероятно запись удалена");
 define("WEB_user_bind_mac","Привязать мак к юзеру");
 define("WEB_user_unbind_mac","Отвязать мак от юзера");
+define("WEB_user_bind_ip","Привязать IP-адрес к юзеру");
+define("WEB_user_unbind_ip","Отвязать IP-адрес от юзера");
 
 /* public */
 define("WEB_msg_access_login","Интернет (логин)");

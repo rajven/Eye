@@ -75,6 +75,7 @@ if ($msg_error) {
         <tr><td><input type=checkbox class="putField" name="e_month_q" value='1'></td><td><?php print WEB_cell_permonth."&nbsp"; ?><input type="text" name="a_month_q" value="0" size=5></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_new_ou" value='1'></td><td><?php print WEB_cell_ou."&nbsp";print_ou_select($db_link, 'a_new_ou', $rou); ?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_bind_mac" value='1'></td><td><?php print WEB_user_bind_mac."&nbsp";print_qa_select('a_bind_mac', 1);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_bind_ip" value='1'></td><td><?php print WEB_user_bind_ip."&nbsp";print_qa_select('a_bind_ip', 1);?></td></tr>
         </table>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>

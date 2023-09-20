@@ -78,6 +78,7 @@ print_ip_submenu($page_url);
 	<tr><td><input type=checkbox class="putField" name="e_dhcp_acl" value='1'></td><td><?php print "Dhcp-acl&nbsp";print_dhcp_acl_select('a_dhcp_acl','');?></td></tr>
 	<tr><td><input type=checkbox class="putField" name="e_traf" value='1'></td><td><?php print "Save traffic&nbsp"; print_qa_select('a_traf',1);?></td></tr>
 	<tr><td><input type=checkbox class="putField" name="e_bind_mac" value='1'></td><td><?php print WEB_user_bind_mac."&nbsp";print_qa_select('a_bind_mac', 1);?></td></tr>
+    <tr><td><input type=checkbox class="putField" name="e_bind_ip" value='1'></td><td><?php print WEB_user_bind_ip."&nbsp";print_qa_select('a_bind_ip', 1);?></td></tr>
 	</table>
 	<input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>

@@ -457,6 +457,8 @@ define("WEB_new_user","New user");
 define("WEB_user_deleted","belongs to a non-existent user. Probably the record has been deleted");
 define("WEB_user_bind_mac","Bind mac for login");
 define("WEB_user_unbind_mac","Unbind mac for login");
+define("WEB_user_bind_ip","Bind ip-address for login");
+define("WEB_user_unbind_ip","Unbind ip-address for login");
 
 /* public */
 define("WEB_msg_access_login","Internet for login");

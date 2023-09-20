@@ -35,6 +35,10 @@ if (isset($_POST["ApplyForAll"])) {
         $_POST["a_bind_mac"] = 0;
     }
 
+    if (empty($_POST["a_bind_ip"])) {
+        $_POST["a_bind_ip"] = 0;
+    }
+
     $a_enabled  = $_POST["a_enabled"] * 1;
     $a_dhcp     = $_POST["a_dhcp"] * 1;
     $a_dhcp_acl = $_POST["a_dhcp_acl"];
@@ -43,6 +47,7 @@ if (isset($_POST["ApplyForAll"])) {
     $a_traf     = $_POST["a_traf"] * 1;
 
     $a_bind_mac = $_POST["a_bind_mac"]*1;
+    $a_bind_ip  = $_POST["a_bind_ip"]*1;
 
     $n_enabled = $_POST["n_enabled"] * 1;
     $n_link    = $_POST["n_link"] * 1;
@@ -123,6 +128,32 @@ if (isset($_POST["ApplyForAll"])) {
                         LOG_ERROR($db_link,"Auto rule for user_id: ".$first_auth['user_id']." not created. Record not found or empty mac.");
                     }
             }
+
+            //bind ip rule
+            if (isset($_POST["e_bind_ip"])) {
+                $first_auth = get_record_sql($db_link,"SELECT user_id,ip FROM User_auth WHERE id=".$val);
+                if (!empty($first_auth) and !empty($first_auth['ip'])) {
+                    if ($a_bind_ip) {
+                            $auth_rules_user = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=1");
+                            $auth_rules_ip = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE rule='".$first_auth['ip']."' AND type=1");
+                            if (empty($auth_rules_user) and empty($auth_rules_ip)) {
+                                $new['user_id']=$first_auth['user_id'];
+                                $new['type']=1;
+                                $new['rule']=$first_auth['ip'];
+                                insert_record($db_link,"auth_rules",$new);
+                                LOG_INFO($db_link,"Created auto rule for user_id: ".$first_auth['user_id']." and ip ".$first_auth['ip']);
+                                } else {
+                                LOG_INFO($db_link,"Auto rule for user_id: ".$first_auth['user_id']." and ip ".$first_auth['ip']." already exists");
+                                }
+                            } else {
+                                run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=1");
+                                LOG_INFO($db_link,"Remove auto rule for user_id: ".$first_auth['user_id']." and ip ".$first_auth['ip']);
+                            }
+                    } else {
+                        LOG_ERROR($db_link,"Auto rule for user_id: ".$first_auth['user_id']." not created. Record not found or empty ip.");
+                    }
+            }
+
         }
     }
     if ($all_ok) {
