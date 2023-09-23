@@ -2529,14 +2529,22 @@ function get_port_vlan($vendor, $port, $port_index, $ip, $community, $version)
         $version = '2';
     }
 
-    $port_oid = PORT_VLAN_OID . "." . $port;
+    //default - default port index
+    $port_oid = PORT_VLAN_OID . "." . $port_index;
+
     //tplink
     if ($vendor == 69) {
         $port_oid = TPLINK_VLAN_PVID . "." . $port_index;
     } 
-    //eltex
-    if ($vendor == 2) {
-        $port_oid = PORT_VLAN_OID . "." . $port_index;
+
+    //huawei
+    if ($vendor == 3) {
+        $port_oid = PORT_VLAN_OID . "." . $port;
+    } 
+
+    //allied telesys
+    if ($vendor == 8) {
+        $port_oid = PORT_VLAN_OID . "." . $port;
     } 
 
     $port_vlan = get_snmp($ip, $community, $version, $port_oid);
