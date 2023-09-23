@@ -408,7 +408,7 @@ function cidrToRange($cidr)
 
 function crypt_string($simple_string)
 {
-    // Storingthe cipher method
+    // Storin gthe cipher method
     $ciphering = "aes-128-cbc";
     // Using OpenSSl Encryption method
     $iv_length = openssl_cipher_iv_length($ciphering);
@@ -419,7 +419,7 @@ function crypt_string($simple_string)
 
 function decrypt_string($crypted_string)
 {
-    // Storingthe cipher method
+    // Storin gthe cipher method
     $ciphering = "aes-128-cbc";
     // Using OpenSSl Encryption method
     $iv_length = openssl_cipher_iv_length($ciphering);
@@ -2514,7 +2514,7 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
     return;
 }
 
-function get_port_vlan($vendor, $port_index, $ip, $community, $version)
+function get_port_vlan($vendor, $port, $port_index, $ip, $community, $version)
 {
     if (!isset($port_index)) {
         return;
@@ -2529,11 +2529,15 @@ function get_port_vlan($vendor, $port_index, $ip, $community, $version)
         $version = '2';
     }
 
+    $port_oid = PORT_VLAN_OID . "." . $port;
+    //tplink
     if ($vendor == 69) {
         $port_oid = TPLINK_VLAN_PVID . "." . $port_index;
-    } else {
+    } 
+    //eltex
+    if ($vendor == 2) {
         $port_oid = PORT_VLAN_OID . "." . $port_index;
-    }
+    } 
 
     $port_vlan = get_snmp($ip, $community, $version, $port_oid);
     $port_vlan = preg_replace('/.*\:/', '', $port_vlan);

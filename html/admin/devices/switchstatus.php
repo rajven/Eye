@@ -169,7 +169,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             $ifname = $row['ifName'];
 
             if ($snmp_ok) {
-                $vlan = get_port_vlan($device['vendor_id'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
+                $vlan = get_port_vlan($device['vendor_id'],  $row['port'] , $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
                 $ifname = get_snmp_ifname1($device['ip'], $device['community'], $device['snmp_version'], $row['snmp_index']);
                 if (empty($ifname)) {
                     $ifname = get_snmp_ifname2($device['ip'], $device['community'], $device['snmp_version'], $row['snmp_index']);
