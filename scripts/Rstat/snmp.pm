@@ -43,7 +43,7 @@ $ipNetToMediaPhysAddress
 $fdb_table_oid
 $fdb_table_oid2
 $cisco_vlan_oid
-$port_vlan_oid
+$dot1qPortVlanEntry
 $fdb_table;
 $snmp_timeout
 );
@@ -67,7 +67,7 @@ our $fdb_table_oid ='.1.3.6.1.2.1.17.4.3.1.2';
 #Q-BRIDGE-MIB::dot1qTpFdbPort
 our $fdb_table_oid2='.1.3.6.1.2.1.17.7.1.2.2.1.2';
 #Q-BRIDGE-MIB::dot1qPortVlanEntry
-our $port_vlan_oid ='.1.3.6.1.2.1.17.7.1.4.5.1.1';
+our $dot1qPortVlanEntry ='.1.3.6.1.2.1.17.7.1.4.5.1.1';
 #CISCO-ES-STACK-MIB::
 our $cisco_vlan_oid='.1.3.6.1.4.1.9.9.46.1.3.1.1.2';
 
@@ -304,7 +304,7 @@ sub get_vlan_at_port {
     my $port = 161;
     my $timeout = 5;
     if (!$version) { $version='2'; }
-    my $vlan_oid=$port_vlan_oid.".".$port_index;
+    my $vlan_oid=$dot1qPortVlanEntry.".".$port_index;
 #    print "$host,$community,$vlan_oid,$version\n";
     my $vlan = snmp_get_req($host,$community,$vlan_oid,$version);
     return "1" if (!$vlan);
@@ -322,8 +322,8 @@ sub get_switch_vlans {
     if (!$version) { $version='2'; }
     my $result;
     #need for callback
-    my $vlan_table = snmp_get_oid($host,$community,$port_vlan_oid,$version);
-    if (!$vlan_table) { $vlan_table=snmp_walk_oid($host,$community,$port_vlan_oid,$version); }
+    my $vlan_table = snmp_get_oid($host,$community,$dot1qPortVlanEntry,$version);
+    if (!$vlan_table) { $vlan_table=snmp_walk_oid($host,$community,$dot1qPortVlanEntry,$version); }
     if ($vlan_table) {
         foreach my $vlan_oid (keys %$vlan_table) {
             if ($vlan_oid=~/\.([0-9]*)$/) { $result->{$1} = $vlan_table->{$vlan_oid}; }

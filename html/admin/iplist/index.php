@@ -5,7 +5,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $default_sort='ip_int';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/subnetfilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/enabledfilter.php");
@@ -18,9 +18,9 @@ $sort_url = "<a href=index.php?ou=" . $rou;
 
 if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and User_list.ou_id=$rou "; }
 
-if ($rsubnet == 0) { $subnet_filter = ''; } else {
-    $subnet_range = get_subnet_range($db_link,$rsubnet);
-    if (!empty($subnet_range)) { $subnet_filter = " and User_auth.ip_int>=".$subnet_range['start']." and User_auth.ip_int<=".$subnet_range['stop']; }
+if (empty($rcidr)) { $cidr_filter = ''; } else {
+    $cidr_range = cidrToRange($rcidr);
+    if (!empty($cidr_range)) { $cidr_filter = " and User_auth.ip_int>=".$cidr_range[0]." and User_auth.ip_int<=".$cidr_range[1]; }
     }
 
 $enabled_filter='';
@@ -40,7 +40,7 @@ if (!empty($f_ip)) {
     if (checkValidMac($f_ip)) { $ip_where = " and mac='" . mac_dotted($f_ip) . "'  "; }
     $ip_list_filter = $ip_where;
     } else {
-    $ip_list_filter = $ou_filter.$subnet_filter.$enabled_filter;
+    $ip_list_filter = $ou_filter.$cidr_filter.$enabled_filter;
     }
 
 print_ip_submenu($page_url);
@@ -53,7 +53,7 @@ print_ip_submenu($page_url);
 	<tr>
         <td>
         <b><?php print WEB_cell_ou; ?> - </b><?php print_ou_select($db_link, 'ou', $rou); ?>
-        <b><?php print WEB_network_subnet; ?> - </b><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?>
+        <b><?php print WEB_network_subnet; ?> - </b><?php print_subnet_select_office_splitted($db_link, 'cidr', $rcidr); ?>
         <b><?php echo WEB_ips_show_by_state; ?> - </b><?php print_enabled_select('enabled', $enabled); ?>
         <?php echo WEB_ips_search_host; ?>:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])|([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12})$"/>
         <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>

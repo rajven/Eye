@@ -480,6 +480,23 @@ function print_subnet_select_office($db, $subnet_name, $subnet_value)
     print "</select>\n";
 }
 
+function print_subnet_select_office_splitted($db, $subnet_name, $subnet_value)
+{
+    print "<select name=\"$subnet_name\" >\n";
+    $t_subnet = mysqli_query($db, "SELECT id,subnet,ip_int_start,ip_int_stop FROM subnets WHERE office=1 ORDER BY ip_int_start");
+    print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
+    while (list($f_subnet_id, $f_subnet_name,$f_start_ip,$f_stop_ip) = mysqli_fetch_array($t_subnet)) {
+        print_select_item($f_subnet_name, $f_subnet_name, $subnet_value);
+        if (!preg_match('/\/24$/',$subnet_value)) {
+            while ($f_start_ip<=$f_stop_ip) {
+                print_select_item("&nbsp&nbsp-&nbsp".$f_start_ip."/24", $f_start_ip."/24", $subnet_value);
+                $f_start_ip+=256;
+                }
+            }
+    }
+    print "</select>\n";
+}
+
 function print_loglevel_select($item_name, $value)
 {
     print "<select name=\"$item_name\">\n";
@@ -2530,21 +2547,21 @@ function get_port_vlan($vendor, $port, $port_index, $ip, $community, $version)
     }
 
     //default - default port index
-    $port_oid = PORT_VLAN_OID . "." . $port_index;
+    $port_oid = dot1qPortVlanEntry . "." . $port_index;
 
     //tplink
     if ($vendor == 69) {
-        $port_oid = TPLINK_VLAN_PVID . "." . $port_index;
+        $port_oid = TPLINK_dot1qPortVlanEntry . "." . $port_index;
     } 
 
     //huawei
     if ($vendor == 3) {
-        $port_oid = PORT_VLAN_OID . "." . $port;
+        $port_oid = dot1qPortVlanEntry . "." . $port;
     } 
 
     //allied telesys
     if ($vendor == 8) {
-        $port_oid = PORT_VLAN_OID . "." . $port;
+        $port_oid = dot1qPortVlanEntry . "." . $port;
     } 
 
     $port_vlan = get_snmp($ip, $community, $version, $port_oid);

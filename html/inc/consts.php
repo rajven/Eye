@@ -8,9 +8,14 @@ define("PORT_SPEED_OID",".1.3.6.1.2.1.2.2.1.5.");
 define("PORT_ERRORS_OID",".1.3.6.1.2.1.2.2.1.14.");
 
 //VLANS
-define("PORT_VLAN_OID",".1.3.6.1.2.1.17.7.1.4.5.1.1");
+define("dot1qVlanStaticName",".1.3.6.1.2.1.17.7.1.4.3.1.1");
+define("dot1qVlanStaticEgressPorts",".1.3.6.1.2.1.17.7.1.4.3.1.2");
+define("dot1qVlanForbiddenEgressPorts",".1.3.6.1.2.1.17.7.1.4.3.1.3");
+define("dot1qVlanStaticUntaggedPorts",".1.3.6.1.2.1.17.7.1.4.3.1.4");
+define("dot1qVlanStaticRowStatus",".1.3.6.1.2.1.17.7.1.4.3.1.5");
+define("dot1qPortVlanEntry",".1.3.6.1.2.1.17.7.1.4.5.1.1");
 //tp-link
-define("TPLINK_VLAN_PVID",".1.3.6.1.4.1.11863.6.14.1.1.1.1.2");
+define("TPLINK_dot1qPortVlanEntry",".1.3.6.1.4.1.11863.6.14.1.1.1.1.2");
 
 define("IFMIB_IFINDEX",".1.3.6.1.2.1.2.2.1.1");
 define("IFMIB_IFINDEX_MAP",".1.3.6.1.2.1.17.1.4.1.2");
