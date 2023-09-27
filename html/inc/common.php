@@ -489,7 +489,7 @@ function print_subnet_select_office_splitted($db, $subnet_name, $subnet_value)
         print_select_item($f_subnet_name, $f_subnet_name, $subnet_value);
         if (!preg_match('/\/24$/',$subnet_value)) {
             while ($f_start_ip<=$f_stop_ip) {
-                print_select_item("&nbsp&nbsp-&nbsp".$f_start_ip."/24", $f_start_ip."/24", $subnet_value);
+                print_select_item("&nbsp&nbsp-&nbsp".long2ip($f_start_ip)."/24", long2ip($f_start_ip)."/24", $subnet_value);
                 $f_start_ip+=256;
                 }
             }
