@@ -487,7 +487,8 @@ function print_subnet_select_office_splitted($db, $subnet_name, $subnet_value)
     print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
     while (list($f_subnet_id, $f_subnet_name,$f_start_ip,$f_stop_ip) = mysqli_fetch_array($t_subnet)) {
         print_select_item($f_subnet_name, $f_subnet_name, $subnet_value);
-        if (!preg_match('/\/24$/',$subnet_value)) {
+        $cidr = cidrToRange($f_subnet_name);
+        if ($cidr[2][1]<24) {
             while ($f_start_ip<=$f_stop_ip) {
                 print_select_item("&nbsp&nbsp-&nbsp".long2ip($f_start_ip)."/24", long2ip($f_start_ip)."/24", $subnet_value);
                 $f_start_ip+=256;

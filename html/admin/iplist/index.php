@@ -20,7 +20,7 @@ if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and User_list.ou_id=$r
 
 if (empty($rcidr)) { $cidr_filter = ''; } else {
     $cidr_range = cidrToRange($rcidr);
-    if (!empty($cidr_range)) { $cidr_filter = " and User_auth.ip_int>=".$cidr_range[0]." and User_auth.ip_int<=".$cidr_range[1]; }
+    if (!empty($cidr_range)) { $cidr_filter = " and User_auth.ip_int>=".ip2long($cidr_range[0])." and User_auth.ip_int<=".ip2long($cidr_range[1]); }
     }
 
 $enabled_filter='';
