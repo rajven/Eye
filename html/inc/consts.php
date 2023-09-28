@@ -14,6 +14,22 @@ define("dot1qVlanForbiddenEgressPorts",".1.3.6.1.2.1.17.7.1.4.3.1.3");
 define("dot1qVlanStaticUntaggedPorts",".1.3.6.1.2.1.17.7.1.4.3.1.4");
 define("dot1qVlanStaticRowStatus",".1.3.6.1.2.1.17.7.1.4.3.1.5");
 define("dot1qPortVlanEntry",".1.3.6.1.2.1.17.7.1.4.5.1.1");
+
+//fucking Cisco
+//vlan list
+define("vtpVlanName",".1.3.6.1.4.1.9.9.46.1.3.1.1.4.1");
+define("vtpVlanState",".1.3.6.1.4.1.9.9.46.1.3.1.1.2");
+//port vlan member - bit => port number
+define("vmMembershipSummaryMemberPorts",".1.3.6.1.4.1.9.9.68.1.2.1.1.2");
+//encapsulation type ( INTEGER {isl(1),dot10(2),lane(3),dot1Q(4),negotiate(5)})
+define("vlanTrunkPortEncapsulationType",".1.3.6.1.4.1.9.9.46.1.6.1.1.3");
+//trunk vlan - bit => vlan number
+define("vlanTrunkPortVlansEnabled",".1.3.6.1.4.1.9.9.46.1.6.1.1.4");
+//native vlan - all ports always exists
+define("vlanTrunkPortNativeVlan",".1.3.6.1.4.1.9.9.46.1.6.1.1.5");
+//pvid - if port exists => port mode access
+define("vmVlanPvid",".1.3.6.1.4.1.9.9.68.1.2.2.1.2");
+
 //tp-link
 define("TPLINK_dot1qPortVlanEntry",".1.3.6.1.4.1.11863.6.14.1.1.1.1.2");
 

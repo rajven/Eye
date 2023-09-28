@@ -87,7 +87,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
         print "<b>" . WEB_device_port_state_list . "&nbsp" . $device['device_name'] . " - " . $device['ip'] . "</b><br>\n";
 
         $snmp_ok = 0;
-
+        $vlan_list = [];
         if (!empty($device['ip']) and $device['snmp_version'] > 0) {
             $snmp_ok = check_snmp_access($device['ip'], $device['community'], $device['snmp_version']);
             $modules_oids = NULL;
@@ -98,6 +98,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 if ($device['snmp_version'] == 1) {
                     $modules_oids = snmprealwalk($device['ip'], $device['community'], CISCO_MODULES, SNMP_timeout, SNMP_retry);
                     }
+                $vlan_list = get_switch_vlans($device['vendor_id'],$device['ip'], $device['community'], $device['snmp_version']);
                 }
             } else {
             $snmp_ok = 0;
@@ -129,6 +130,13 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             print "<tr align=center>\n";
             $cl = "down";
             $new_info = NULL;
+            
+            $display_vlan= $row['vlan'];
+            if (!empty($row['untagged_vlan'])) { 
+                if ($row['untagged_vlan'] != $row['vlan']) { $display_vlan.=";U:".$row['untagged_vlan']; }
+                }
+            if (!empty($row['tagged_vlan'])) { $display_vlan.=";T:".$row['tagged_vlan']; }
+
             //fix empty port names
             if (empty($row['port_name'])) {
                 $row['port_name'] = $row['port'];
@@ -165,11 +173,9 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             print "<td class='" . $cl . "' >" . get_qa($row['skip']) . "</td>\n";
             $poe_info = "POE:None";
 
-            $vlan = $row['vlan'];
             $ifname = $row['ifName'];
 
             if ($snmp_ok) {
-                $vlan = get_port_vlan($device['vendor_id'],  $row['port'] , $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
                 $ifname = get_snmp_ifname1($device['ip'], $device['community'], $device['snmp_version'], $row['snmp_index']);
                 if (empty($ifname)) {
                     $ifname = get_snmp_ifname2($device['ip'], $device['community'], $device['snmp_version'], $row['snmp_index']);
@@ -189,12 +195,15 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                         $poe_info = "POE:Off";
                     }
                 }
-                if (empty($vlan)) {
-                    $vlan = $row['vlan'];
-                } else {
-                    if ($vlan >= 1 and $row['vlan'] !== $vlan) {
-                        $new_info['vlan'] = $vlan;
-                    }
+                if (!empty($vlan_list) and !empty($vlan_list[$row['snmp_index']])) {
+                    $new_info['vlan'] = $vlan_list[$row['snmp_index']]['pvid'];
+                    $new_info['tagged_vlan']=$vlan_list[$row['snmp_index']]['tagged'];
+                    $new_info['untagged_vlan']=$vlan_list[$row['snmp_index']]['untagged'];
+                    $display_vlan = $new_info['vlan'];
+                    if (!empty($new_info['untagged_vlan'])) { 
+                        if ($new_info['untagged_vlan'] != $new_info['vlan']) { $display_vlan.=";U:".$new_info['untagged_vlan']; }
+                        }
+                    if (!empty($new_info['tagged_vlan'])) { $display_vlan.=";T:".$new_info['tagged_vlan']; }
                 }
                 if (!isset($row['ifName']) or $row['ifName'] !== $ifname) {
                     $new_info['ifName'] = $ifname;
@@ -224,7 +233,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 }
             }
 
-            print "<td class='" . $cl . "'>" . $vlan . "</td>\n";
+            print "<td class='" . $cl . "'>" . $display_vlan . "</td>\n";
             print "<td class='" . $cl . "'>" . $snmp_url . "</td>\n";
 
             $speed = "0";

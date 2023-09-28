@@ -2532,19 +2532,223 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
     return;
 }
 
-function get_port_vlan($vendor, $port, $port_index, $ip, $community, $version)
+
+function get_switch_vlans($vendor,$ip,$community='public',$version='2') {
+
+    $switch_vlans = [];
+    $port_status  = [];
+    $vlan_status  = [];
+
+    //cisco...
+    if ($vendor == 16) {
+        //all vlan at switch
+        $vlan_list = walk_snmp($ip, $community, $version, vtpVlanName);
+        if (empty($vlan_list)) { return; }
+        foreach ($vlan_list as $key => $value) {
+            if (empty($value)) { $value = ''; }
+            $key = trim($key);
+            $value = parse_snmp_value($value);
+            $vlan_id = NULL;
+            if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { $vlan_id = preg_replace('/^\./', '', $matches[0]); }
+            //skip service vlan
+            if (preg_match('/(1002|1003|1004|1005)/',$vlan_id)) { continue; }
+            if (isset($vlan_id) and !empty($vlan_id)) { $switch_vlans[$vlan_id]=$value; }
+            }
+
+        //native vlan for port - get list of all ports
+        $pvid_list = walk_snmp($ip, $community, $version, vlanTrunkPortNativeVlan);
+        if (!empty($pvid_list)) {
+            foreach ($pvid_list as $key => $value) {
+                if (empty($value)) { $value = ''; }
+                $key = trim($key);
+                $value = parse_snmp_value($value);
+                $port = NULL;
+                if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { $port = preg_replace('/^\./', '', $matches[0]); }
+                if (isset($port) and !empty($port)) { $port_status[$port]['native']=$value; }
+                }
+            }
+
+        //pvid
+        $pvid_list = walk_snmp($ip, $community, $version, vmVlanPvid);
+        if (!empty($pvid_list)) {
+            foreach ($pvid_list as $key => $value) {
+                if (empty($value)) { $value = ''; }
+                $key = trim($key);
+                $value = parse_snmp_value($value);
+                $port = NULL;
+                if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { $port = preg_replace('/^\./', '', $matches[0]); }
+                if (isset($port) and !empty($port)) { $port_status[$port]['pvid']=$value; }
+                }
+            }
+
+        //init port config
+        foreach  ($port_status as &$port) {
+            if (!is_array($port)) { continue; }
+            if (!isset($port['pvid'])) { $port['pvid']=$port['native']; }
+            $port['untagged']='';
+            $port['tagged']='';
+            }
+        unset($port);
+
+        //get vlan list at ports
+        $egress_vlan = walk_snmp($ip,$community,$version,vlanTrunkPortVlansEnabled);
+        if (!empty($egress_vlan)) {
+            $j = 0;
+            foreach ($egress_vlan as $key => $value) {
+                $j++;
+                if (empty($value)) { $value = ''; }
+                $key = trim($key);
+                $value = parse_snmp_value($value);
+                if (preg_match('/\.(\d{1,10})$/', $key, $matches)) {
+                    $port = preg_replace('/^\./', '', $matches[0]);
+                    }
+                if (isset($port) and !empty($port)) {
+                    //skip access ports
+                    if (!is_array($port_status[$port]) or !isset($port_status[$port]['pvid']) or !isset($port_status[$port]['native'])) { continue; }
+                    if ($port_status[$port]['pvid'] != $port_status[$port]['native']) { continue; }
+                    //get vlan at port in hex
+                    $hex_value = preg_replace('/\s+/','',$value);
+                    $bin_value = strHexToBin($hex_value);
+                    //analyze switch vlans
+                    foreach ($switch_vlans as $vlan_id => $vlan_name) {
+                        if (isset($bin_value[$vlan_id]) and $bin_value[$vlan_id]=='1') {
+                        $port_status[$port]['tagged']=$port_status[$port]['tagged'].','.$vlan_id;
+                            }
+                        }
+                    }
+                }
+            }
+
+        //remove lliding ,
+        foreach ($port_status as &$port) {
+            if (!is_array($port)) { continue; }
+            $port['untagged']=preg_replace('/^,/', '',$port['untagged']);
+            $port['tagged']=preg_replace('/^,/', '',$port['tagged']);
+            }
+        unset($port);
+
+        return $port_status;
+        }
+
+    //standart switches
+
+    //tplink
+    if ($vendor == 69) {
+        //pvid for port
+        $pvid_list = walk_snmp($ip, $community, $version, TPLINK_dot1qPortVlanEntry);
+        if (!empty($pvid_list)) {
+            foreach ($pvid_list as $key => $value) {
+                if (empty($value)) { $value = ''; }
+                $key = trim($key);
+                $value = parse_snmp_value($value);
+                $port = NULL;
+                if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { $port = preg_replace('/^\./', '', $matches[0]); }
+                if (isset($port) and !empty($port)) { $port_status[$port]['pvid']=$value; }
+                }
+            }
+        return $port_status;
+        }
+
+    //default
+    //pvid for port
+    $pvid_list = walk_snmp($ip, $community, $version, dot1qPortVlanEntry);
+    if (!empty($pvid_list)) {
+            foreach ($pvid_list as $key => $value) {
+                if (empty($value)) { $value = ''; }
+                $key = trim($key);
+                $value = parse_snmp_value($value);
+                $port = NULL;
+                if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { $port = preg_replace('/^\./', '', $matches[0]); }
+                if (isset($port) and !empty($port)) { $port_status[$port]['pvid']=$value; }
+                }
+            }
+
+    //init port config
+    foreach  ($port_status as &$port) {
+            if (!is_array($port)) { continue; }
+            $port['native']=$port['pvid'];
+            $port['untagged']='';
+            $port['tagged']='';
+            }
+    unset($port);
+
+    //all vlan at switch
+    $vlan_list = walk_snmp($ip, $community, $version, dot1qVlanStaticName);
+    if (empty($vlan_list)) { return $port_status; }
+    foreach ($vlan_list as $key => $value) {
+            if (empty($value)) { $value = ''; }
+            $key = trim($key);
+            $value = parse_snmp_value($value);
+            $vlan_id = NULL;
+            if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { $vlan_id = preg_replace('/^\./', '', $matches[0]); }
+            if (isset($vlan_id) and !empty($vlan_id)) { $switch_vlans[$vlan_id]=$value; }
+        }
+
+    $untagged_vlan = walk_snmp($ip,$community,$version,dot1qVlanStaticUntaggedPorts);
+    if (!empty($untagged_vlan)) {
+            foreach ($untagged_vlan as $key => $value) {
+                if (empty($value)) { $value = ''; }
+                $key = trim($key);
+                $value = parse_snmp_value($value);
+                if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { $vlan_id = preg_replace('/^\./', '', $matches[0]); }
+                if (isset($vlan_id) and !empty($vlan_id)) {
+                    $hex_value = preg_replace('/\s+/','',$value);
+                    $hex_value = preg_replace('/0*$/','',$hex_value);
+                    $bin_value = strHexToBin($hex_value);
+                    for ($i=0; $i<strlen($bin_value); $i++) {
+                        $port = $i+1;
+                        $vlan_status['untagged_vlan'][$vlan_id][$port] = $bin_value[$i];
+                        if ($bin_value[$i]=='1') { $port_status[$port]['untagged'].=','.$vlan_id; }
+                        }
+                    }
+                }
+            }
+
+    $egress_vlan = walk_snmp($ip,$community,$version,dot1qVlanStaticEgressPorts);
+    if (!empty($egress_vlan)) {
+            foreach ($egress_vlan as $key => $value) {
+                if (empty($value)) { $value = ''; }
+                $key = trim($key);
+                $value = parse_snmp_value($value);
+                if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { $vlan_id = preg_replace('/^\./', '', $matches[0]); }
+                if (isset($vlan_id) and !empty($vlan_id)) {
+                    $hex_value = preg_replace('/\s+/','',$value);
+                    $hex_value = preg_replace('/0*$/','',$hex_value);
+                    $bin_value = strHexToBin($hex_value);
+                    for ($i=0; $i<strlen($bin_value); $i++) {
+                        $port = $i+1;
+                        $vlan_status['egress_vlan'][$vlan_id][$port] = $bin_value[$i];
+                        //analyze egress & untagged vlans
+                        if ($bin_value[$i]=='1') {
+                            if (!isset($vlan_status['untagged_vlan'][$vlan_id][$port]) or $vlan_status['untagged_vlan'][$vlan_id][$port]=='0') {
+                                $vlan_status['tagged_vlan'][$vlan_id][$port]='1';
+                                $port_status[$port]['tagged'].=','.$vlan_id;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+    foreach ($port_status as &$port) {
+        if (!is_array($port)) { continue; }
+        $port['untagged']=preg_replace('/^,/', '',$port['untagged']);
+        $port['tagged']=preg_replace('/^,/', '',$port['tagged']);
+        }
+    unset($port);
+
+    return $port_status;
+}
+
+
+function get_port_vlan($vendor, $port, $port_index, $ip, $community='public', $version='2')
 {
     if (!isset($port_index)) {
         return;
     }
+
     if (!isset($ip)) {
         return;
-    }
-    if (!isset($community)) {
-        $community = 'public';
-    }
-    if (!isset($version)) {
-        $version = '2';
     }
 
     //default - default port index
@@ -2983,14 +3187,25 @@ function get_port_state_detail($port, $ip, $community, $version)
 function parse_snmp_value($value)
 {
     if (empty($value)) {
-        return NULL;
+        return '';
     }
+    if (!preg_match('/:/',$value)) { return ''; }
     list($p_type, $p_value) = explode(':', $value);
+    if (empty($p_value)) { return ''; }
     $p_value = trim($p_value);
     $p_value = preg_replace('/^\"/', '', $p_value);
     $p_value = preg_replace('/\"$/', '', $p_value);
     $p_value = trim($p_value);
     return $p_value;
+}
+
+function strHexToBin ( $number )    {
+    $result = '';
+    for ( $i = 0; $i < strlen($number); $i++ ){
+        $conv = base_convert($number[$i], 16, 2);
+        $result .= str_pad($conv, 4, '0', STR_PAD_LEFT);
+    }
+    return $result;
 }
 
 function dec_to_hex($mac)
