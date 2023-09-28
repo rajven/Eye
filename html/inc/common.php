@@ -2684,6 +2684,27 @@ function get_switch_vlans($vendor,$ip,$community='public',$version='2') {
             if (isset($vlan_id) and !empty($vlan_id)) { $switch_vlans[$vlan_id]=$value; }
         }
 
+    $forbidden_vlan = walk_snmp($ip,$community,$version,dot1qVlanForbiddenEgressPorts);
+    if (!empty($forbidden_vlan)) {
+            foreach ($forbidden_vlan as $key => $value) {
+                if (empty($value)) { $value = ''; }
+                $key = trim($key);
+                $value = parse_snmp_value($value);
+                if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { $vlan_id = preg_replace('/^\./', '', $matches[0]); }
+                if (isset($vlan_id) and !empty($vlan_id)) {
+                        $hex_value = preg_replace('/\s+/','',$value);
+                        $hex_value = preg_replace('/0*$/','',$hex_value);
+                        $bin_value = strHexToBin($hex_value);
+                        for ($i=0; $i<strlen($bin_value); $i++) {
+                            $port = $i+1;
+                            $vlan_status['forbidden_vlan'][$vlan_id][$port] = $bin_value[$i];
+                            if ($bin_value[$i]=='1') { 
+                                $port_status[$port]['forbidden'].=','.$vlan_id;
+                                }
+                        }
+                }
+            }
+        }
     $untagged_vlan = walk_snmp($ip,$community,$version,dot1qVlanStaticUntaggedPorts);
     if (!empty($untagged_vlan)) {
             foreach ($untagged_vlan as $key => $value) {
@@ -2698,7 +2719,13 @@ function get_switch_vlans($vendor,$ip,$community='public',$version='2') {
                     for ($i=0; $i<strlen($bin_value); $i++) {
                         $port = $i+1;
                         $vlan_status['untagged_vlan'][$vlan_id][$port] = $bin_value[$i];
-                        if ($bin_value[$i]=='1') { $port_status[$port]['untagged'].=','.$vlan_id; }
+                        if ($bin_value[$i]=='1') { 
+                            if ($vlan_status['forbidden_vlan'][$vlan_id][$port]=='0') {
+                                $port_status[$port]['untagged'].=','.$vlan_id; 
+                                } else {
+                                $vlan_status['untagged_vlan'][$vlan_id][$port]='0';
+                                }
+                            }
                         }
                     }
                 }
@@ -2720,9 +2747,11 @@ function get_switch_vlans($vendor,$ip,$community='public',$version='2') {
                         $vlan_status['egress_vlan'][$vlan_id][$port] = $bin_value[$i];
                         //analyze egress & untagged vlans
                         if ($bin_value[$i]=='1') {
-                            if (!isset($vlan_status['untagged_vlan'][$vlan_id][$port]) or $vlan_status['untagged_vlan'][$vlan_id][$port]=='0') {
-                                $vlan_status['tagged_vlan'][$vlan_id][$port]='1';
-                                $port_status[$port]['tagged'].=','.$vlan_id;
+                            if (!isset($vlan_status['untagged_vlan'][$vlan_id][$port]) or $vlan_status['untagged_vlan'][$vlan_id][$port]=='0' ) {
+                                if (!isset($vlan_status['forbidden_vlan'][$vlan_id][$port]) or $vlan_status['forbidden_vlan'][$vlan_id][$port]=='0') {
+                                    $vlan_status['tagged_vlan'][$vlan_id][$port]='1';
+                                    $port_status[$port]['tagged'].=','.$vlan_id;
+                                    }
                                 }
                             }
                         }
