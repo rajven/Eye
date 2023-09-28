@@ -2748,7 +2748,7 @@ function get_switch_vlans($vendor,$ip,$community='public',$version='2') {
                         //analyze egress & untagged vlans
                         if ($bin_value[$i]=='1') {
                             if (!isset($vlan_status['untagged_vlan'][$vlan_id][$port]) or $vlan_status['untagged_vlan'][$vlan_id][$port]=='0' ) {
-                                if (!isset($vlan_status['forbidden_vlan'][$vlan_id][$port]) or $vlan_status['forbidden_vlan'][$vlan_id][$port]=='0') {
+                                if (!isset($vlan_status['forbidden_vlan'][$vlan_id][$port]) and $vlan_status['forbidden_vlan'][$vlan_id][$port]=='0') {
                                     $vlan_status['tagged_vlan'][$vlan_id][$port]='1';
                                     $port_status[$port]['tagged'].=','.$vlan_id;
                                     }
