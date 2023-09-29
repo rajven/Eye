@@ -3908,6 +3908,9 @@ function print_row_at_pages($name, $value)
 function print_navigation($url, $page, $displayed, $count_records, $total)
 {
     if ($total <= 1) {
+        print "<div align=left class=records >";
+        print "| Total records: $count_records";
+        print "</div>";
         return;
     }
     $v_char = "?";
