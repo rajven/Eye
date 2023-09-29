@@ -2,10 +2,10 @@
 
 if (!defined("CONFIG"))die("Not defined");
 
-define("PORT_STATUS_OID",".1.3.6.1.2.1.2.2.1.8.");
-define("PORT_ADMIN_STATUS_OID",".1.3.6.1.2.1.2.2.1.7.");
-define("PORT_SPEED_OID",".1.3.6.1.2.1.2.2.1.5.");
-define("PORT_ERRORS_OID",".1.3.6.1.2.1.2.2.1.14.");
+define("PORT_STATUS_OID",".1.3.6.1.2.1.2.2.1.8");
+define("PORT_ADMIN_STATUS_OID",".1.3.6.1.2.1.2.2.1.7");
+define("PORT_SPEED_OID",".1.3.6.1.2.1.2.2.1.5");
+define("PORT_ERRORS_OID",".1.3.6.1.2.1.2.2.1.14");
 
 //VLANS
 define("dot1qVlanStaticName",".1.3.6.1.2.1.17.7.1.4.3.1.1");

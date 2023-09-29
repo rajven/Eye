@@ -89,6 +89,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
         $snmp_ok = 0;
         $vlan_list = [];
         $vlan_at_port_by_snmp = 1;
+        $port_poe_by_snmp = 1;
         if (!empty($device['ip']) and $device['snmp_version'] > 0) {
             $snmp_ok = check_snmp_access($device['ip'], $device['community'], $device['snmp_version']);
             $modules_oids = NULL;
@@ -103,6 +104,12 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 //if port number 1 not exists - try detect by snmp interface index
                 if (isset($vlan_list['1'])) { $vlan_at_port_by_snmp = 0; }
                 $ifmib_list = get_snmp_interfaces($device['ip'], $device['community'], $device['snmp_version']);
+                $ports_state_detail = get_ports_state_detail($device['ip'], $device['community'], $device['snmp_version']);
+                $ports_poe_state = get_port_poe_state($device['vendor_id'], $device['ip'], $device['community'], $device['snmp_version']);
+                if (!empty($ports_poe_state)) {
+                    $ports_poe_detail = get_ports_poe_detail($device['vendor_id'], $device['ip'], $device['community'], $device['snmp_version']);
+                    if (isset($ports_poe_state['1'])) { $port_poe_by_snmp=0; }
+                    }
                 }
             } else {
             $snmp_ok = 0;
@@ -147,16 +154,16 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 $new_info['port_name'] = $row['port'];
             }
             if ($snmp_ok) {
-                $port_state_detail = get_port_state_detail($row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
-                list($poper, $padmin, $pspeed, $perrors) = explode(';', $port_state_detail);
-                if ($poper == 1) {
-                    $cl = "up";
-                }
-                if ($poper >= 2) {
-                    if ($padmin >= 2) {
-                        $cl = "shutdown";
-                    } else {
-                        $cl = "down";
+                if (!empty($ports_state_detail)) {
+                    if ($ports_state_detail[$row['snmp_index']]['status'] == 1) {
+                        $cl = "up";
+                    }
+                    if ($ports_state_detail[$row['snmp_index']]['status'] >= 2) {
+                        if ($ports_state_detail[$row['snmp_index']]['admin_status'] >= 2) {
+                            $cl = "shutdown";
+                            } else {
+                            $cl = "down";
+                            }
                     }
                 }
             }
@@ -180,21 +187,29 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             $ifname = $row['ifName'];
 
             if ($snmp_ok) {
+                //sfp information
                 $sfp_status = get_sfp_status($device['vendor_id'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version'], $modules_oids);
-                $poe_status = get_port_poe_state($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
-                if (isset($poe_status)) {
+                //poe information
+                if (isset($ports_poe_state)) {
+                    if ($port_poe_by_snmp) { 
+                            $poe_status = $ports_poe_state[$row['snmp_index']]; 
+                        } else { 
+                            $poe_status = $ports_poe_state[$row['port']]; 
+                        }
                     if ($poe_status == 1) {
-                        $port_poe_detail = get_port_poe_detail($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
-                        if (empty($port_poe_detail)) {
+                        if ($port_poe_by_snmp) { $port_poe_detail = $ports_poe_detail[$row['snmp_index']]; } else { $port_poe_detail = $ports_poe_detail[$row['port']]; }
+                        if (empty($port_poe_detail) or $port_poe_detail['power'] == 0) {
                             $poe_info = 'POE:on';
                         } else {
-                            $poe_info = $port_poe_detail;
+                            $poe_info = $port_poe_detail['volt_display'].';'.$port_poe_detail['current_display'].';'.$port_poe_detail['power_display'].';'.$port_poe_detail['class_display'];
                         }
                     }
                     if ($poe_status == 2) {
                         $poe_info = "POE:Off";
                     }
                 }
+
+                //vlans at port
                 if (!empty($vlan_list)) {
                     if ($vlan_at_port_by_snmp) {
                         if (!empty($vlan_list[$row['snmp_index']])) {
@@ -263,39 +278,43 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
 
             $speed = "0";
             $cl_speed = $cl;
-            if ($pspeed == 0) {
+
+            if (empty($ports_state_detail[$row['snmp_index']]['speed'])) { $ports_state_detail[$row['snmp_index']]['speed'] = 0; }
+
+            if ($ports_state_detail[$row['snmp_index']]['speed'] == 0) {
                 $speed = "";
             }
-            if ($pspeed == 10000000) {
+            if ($ports_state_detail[$row['snmp_index']]['speed'] == 10000000) {
                 $speed = "10M";
                 $cl_speed = "speed10M";
             }
-            if ($pspeed == 100000000) {
+            if ($ports_state_detail[$row['snmp_index']]['speed'] == 100000000) {
                 $speed = "100M";
                 $cl_speed = "speed100M";
             }
-            if ($pspeed == 1000000000) {
+            if ($ports_state_detail[$row['snmp_index']]['speed'] == 1000000000) {
                 $speed = "1G";
                 $cl_speed = "speed1G";
             }
-            if ($pspeed == 10000000000) {
+            if ($ports_state_detail[$row['snmp_index']]['speed'] == 10000000000) {
                 $speed = "10G";
                 $cl_speed = "speed10G";
             }
-            if ($pspeed == 4294967295) {
+            if ($ports_state_detail[$row['snmp_index']]['speed'] == 4294967295) {
                 $speed = "10G";
                 $cl_speed = "speed10G";
             }
-            if ($pspeed == 10) {
+            if ($ports_state_detail[$row['snmp_index']]['speed'] == 10) {
                 $speed = "10G";
                 $cl_speed = "speed10G";
             }
             print "<td class=\"$cl_speed\">" . $speed . "</td>\n";
+
             $cl_error = $cl;
-            if ($perrors > 0) {
+            if ($ports_state_detail[$row['snmp_index']]['errors'] > 0) {
                 $cl_error = "crc";
             }
-            print "<td class=\"$cl_error\">" . $perrors . "</td>\n";
+            print "<td class=\"$cl_error\">" . $ports_state_detail[$row['snmp_index']]['errors'] . "</td>\n";
             print "<td class='" . $cl . "' ><button name=\"write\" class=\"j-submit-report\" onclick=\"window.open('portmactable.php?id=" . $row['id'] . "')\">" . $row['last_mac_count'] . "</button></td>\n";
             print "<td class='" . $cl . "'>" . $sfp_status . " " . $poe_info . "</td>\n";
             if (isset($poe_status) and !$row['skip'] and !$device['is_router']) {
@@ -314,13 +333,13 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             } else {
                 print "<td>" . WEB_msg_unsupported . "</td>\n";
             }
-            if (isset($padmin) and !$row['uplink'] and !$row['skip'] and !$device['is_router']) {
+            if (isset($ports_state_detail[$row['snmp_index']]['admin_status']) and !$row['uplink'] and !$row['skip'] and !$device['is_router']) {
                 print "<td class=\"data\">";
                 if ($device['vendor_id'] != 9) {
-                    if ($padmin >= 2) {
+                    if ($ports_state_detail[$row['snmp_index']]['admin_status'] >= 2) {
                         print "<button name='port_on[]' value='{$row['snmp_index']}'>" . WEB_device_port_on . "</button>";
                     }
-                    if ($padmin == 1) {
+                    if ($ports_state_detail[$row['snmp_index']]['admin_status'] == 1) {
                         print "<button name='port_off[]' value='{$row['snmp_index']}'>" . WEB_device_port_off . "</button>";
                     }
                 } else {

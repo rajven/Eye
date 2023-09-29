@@ -35,7 +35,7 @@ print_ip_submenu($page_url);
     <td align=right><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="removeauth" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
-$sSQL = "SELECT U.id, U.ip, U.mac, S.subnet as net FROM User_auth U, subnets S WHERE (U.mac IS NOT NULL AND U.mac<>'') AND (U.ip_int BETWEEN S.ip_int_start AND S.ip_int_stop) AND S.office=1 AND deleted=0 ORDER BY net,mac,ip";
+$sSQL = "SELECT U.id, U.ip, U.mac, U.last_found, S.subnet as net FROM User_auth U, subnets S WHERE (U.mac IS NOT NULL AND U.mac<>'') AND (U.ip_int BETWEEN S.ip_int_start AND S.ip_int_stop) AND S.office=1 AND deleted=0 ORDER BY net,mac,last_found";
 $users = get_records_sql($db_link,$sSQL);
 $f_subnet=NULL;
 $f_mac=NULL;

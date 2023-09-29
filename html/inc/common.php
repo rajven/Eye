@@ -2252,7 +2252,7 @@ function get_port_state($port, $ip, $community, $version)
     if (!isset($version)) {
         $version = '2';
     }
-    $port_oid = PORT_STATUS_OID . $port;
+    $port_oid = PORT_STATUS_OID .'.'. $port;
     $port_state = get_snmp($ip, $community, $version, $port_oid);
     return $port_state;
 }
@@ -2341,7 +2341,7 @@ function get_snmp_module_id($modules_oids, $port_name)
     return;
 }
 
-function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_oids)
+function get_sfp_status($vendor_id, $port, $ip, $community='public', $version='2', $modules_oids)
 {
     if (!isset($vendor_id)) {
         return;
@@ -2351,12 +2351,6 @@ function get_sfp_status($vendor_id, $port, $ip, $community, $version, $modules_o
     }
     if (!isset($ip)) {
         return;
-    }
-    if (!isset($community)) {
-        $community = 'public';
-    }
-    if (!isset($version)) {
-        $version = '2';
     }
 
     $status = '';
@@ -2822,6 +2816,54 @@ function get_port_vlan($vendor, $port, $port_index, $ip, $community='public', $v
     return $port_vlan;
 }
 
+function get_ports_poe_state($vendor_id, $ip, $community = 'public', $version = '2')
+{
+    if (!isset($vendor_id)) {
+        return;
+    }
+    if (!isset($ip)) {
+        return;
+    }
+
+    // default poe oid
+    $poe_status = PETH_PSE_PORT_ADMIN_ENABLE;
+
+    if ($vendor_id == 3) { $poe_status = HUAWEI_POE_OID; }
+    if ($vendor_id == 6) { $poe_status = SNR_POE_OID; }
+    if ($vendor_id == 8) { $poe_status = ALLIED_POE_OID; }
+    if ($vendor_id == 9) { $poe_status = MIKROTIK_POE_OID; }
+    if ($vendor_id == 10) { $poe_status = NETGEAR_POE_OID; }
+    if ($vendor_id == 15) { $poe_status = HP_POE_OID; }
+    if ($vendor_id == 69) { $poe_status = TPLINK_POE_OID; }
+
+    $result = [];
+
+    $c_state = walk_snmp($ip, $community, $version, $poe_status);
+    if (!empty($c_state)) {
+        foreach ($c_state as $key => $value) {
+            if (empty($value)) { $value = ''; }
+            $key = trim($key);
+            $value = parse_snmp_value($value);
+            $port = NULL;
+            if (preg_match('/\.(\d{1,10})$/', $key, $matches)) {
+                $port = preg_replace('/^\./', '', $matches[0]);
+                $result[$port] = $value;
+                // patch for mikrotik
+                if ($vendor_id == 9) {
+                    if ($value == 1) { $result[$port]=2; }
+                    if ($value > 1) { $result[$port]=1; }
+                }
+                //patch for tplink
+                if ($vendor_id == 69) {
+                    if ($value == 0) { $result[$port]=2; }
+                    if ($value >= 1) { $result[$port]=1; }
+                }
+            }
+        }
+    }
+    return $result;
+}
+
 function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community = 'public', $version = '2')
 {
     if (!isset($port)) {
@@ -2940,6 +2982,205 @@ function set_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
         $c_state = set_snmp($ip, $community, $version, $poe_status, 'i', $poe_disable);
         return $c_state;
     }
+}
+
+
+function get_ports_poe_detail($vendor_id, $ip, $community='public', $version='2')
+{
+    if (!isset($vendor_id)) {
+        return;
+    }
+
+    if (!isset($ip)) {
+        return;
+    }
+
+    $result = [];
+
+    $poe_class = PETH_PSE_PORT_POE_CLASS;
+
+    // eltex
+    if ($vendor_id == 2) {
+        $poe_power = ELTEX_POE_USAGE;
+        $poe_current = ELTEX_POE_CURRENT;
+        $poe_volt = ELTEX_POE_VOLT;
+    }
+
+    // huawei
+    if ($vendor_id == 3) {
+        $poe_power = HUAWEI_POE_USAGE;
+        $poe_current = HUAWEI_POE_CURRENT;
+        $poe_volt = HUAWEI_POE_VOLT;
+    }
+
+    // snr
+    if ($vendor_id == 6) {
+        $poe_class = SNR_POE_CLASS;
+        $poe_power = SNR_POE_USAGE;
+        $poe_current = SNR_POE_CURRENT;
+        $poe_volt = SNR_POE_VOLT;
+    }
+
+    // AT
+    if ($vendor_id == 8) {
+        $poe_power = ALLIED_POE_USAGE;
+        $poe_current = ALLIED_POE_CURRENT;
+        $poe_volt = ALLIED_POE_VOLT;
+    }
+
+    // mikrotik
+    if ($vendor_id == 9) {
+        $poe_power = MIKROTIK_POE_USAGE;
+        $poe_current = MIKROTIK_POE_CURRENT;
+        $poe_volt = MIKROTIK_POE_VOLT;
+    }
+
+    // netgear
+    if ($vendor_id == 10) {
+        $poe_power = NETGEAR_POE_USAGE;
+        $poe_current = NETGEAR_POE_CURRENT;
+        $poe_volt = NETGEAR_POE_VOLT;
+    }
+
+    // HP
+    if ($vendor_id == 15) {
+        $poe_power = HP_POE_USAGE;
+        $poe_volt = HP_POE_VOLT;
+    }
+
+    // TP-Link
+    if ($vendor_id == 69) {
+        $poe_power = TPLINK_POE_USAGE;
+        $poe_current = TPLINK_POE_CURRENT;
+        $poe_volt = TPLINK_POE_VOLT;
+        $poe_class = TPLINK_POE_CLASS;
+    }
+
+    if (isset($poe_power)) {
+        $c_power = walk_snmp($ip, $community, $version, $poe_power);
+        if (isset($c_power)) {
+            foreach ($c_power as $key => $value) {
+                if (empty($value)) { $value = 'INT:0'; }
+                $key = trim($key);
+                $p_power = parse_snmp_value($value);
+                $port = NULL;
+                $result[$port]['power']=0;
+                if (preg_match('/\.(\d{1,10})$/', $key, $matches)) {
+                    $port = preg_replace('/^\./', '', $matches[0]);
+                    switch ($vendor_id) {
+                        case 9://mikrotik
+                            $p_power = round($p_power / 10, 2);
+                            break;
+                        case 69://tplink
+                            $p_power = round($p_power / 10, 2);
+                            break;
+                        default:
+                            $p_power = round($p_power / 1000, 2);
+                            break;
+                        }
+                    if ($p_power > 0) {
+                        $result[$port]['power'] = $p_power;
+                        $result[$port]['power_display'] = 'P: ' . $p_power . ' W';
+                        }
+                    }
+            }
+        }
+    }
+
+    if (isset($poe_current)) {
+        $c_current = walk_snmp($ip, $community, $version, $poe_current);
+        if (isset($c_current)) {
+            foreach ($c_current as $key => $value) {
+                if (empty($value)) { $value = 'INT:0'; }
+                $key = trim($key);
+                $p_current = parse_snmp_value($value);
+                $port = NULL;
+                $result[$port]['current']=0;
+                if (preg_match('/\.(\d{1,10})$/', $key, $matches)) {
+                    $port = preg_replace('/^\./', '', $matches[0]);
+                    if ($p_current > 0) { 
+                        $result[$port]['current'] = $p_current; 
+                        $result[$port]['current_display'] = 'C: ' . $p_current . ' mA'; 
+                        }
+                }
+            }
+        }
+    }
+
+    if (isset($poe_volt)) {
+        $c_volt = walk_snmp($ip, $community, $version, $poe_volt);
+        if (isset($c_volt)) {
+            foreach ($c_volt as $key => $value) {
+                if (empty($value)) { $value = 'INT:0'; }
+                $key = trim($key);
+                $p_volt = parse_snmp_value($value);
+                $port = NULL;
+                $result[$port]['volt'] = 0;
+                if (preg_match('/\.(\d{1,10})$/', $key, $matches)) {
+                    $port = preg_replace('/^\./', '', $matches[0]);
+                    switch ($vendor_id) {
+                        case 2:
+                        case 8:
+                            $p_volt = round($p_volt / 1000, 2);
+                            break;
+                        case 9:
+                        case 69:
+                            $p_volt = round($p_volt / 10, 2);
+                            break;
+                        case 15:
+                            $p_volt = round($p_volt / 100, 2);
+                            break;
+                    }
+                    if ($p_volt > 0 and $result[$port]['power'] > 0) {
+                        $result[$port]['volt'] = $p_volt;
+                        $result[$port]['volt_display'] = ' V: ' . $p_volt . " V";
+                    }
+                }
+            }
+        }
+    }
+
+    if (isset($poe_class)) {
+        $c_class = walk_snmp($ip, $community, $version, $poe_class);
+        if (isset($c_class)) {
+            foreach ($c_class as $key => $value) {
+                if (empty($value)) { $value = 'INT:0'; }
+                $key = trim($key);
+                $p_class = parse_snmp_value($value);
+                $port = NULL;
+                $result[$port]['class'] = 0;
+                if (preg_match('/\.(\d{1,10})$/', $key, $matches)) {
+                    $port = preg_replace('/^\./', '', $matches[0]);
+                    switch ($vendor_id) {
+                        case 69:
+                            if ($p_class > 0 and $result[$port]['power'] > 0) {
+                                if ($p_class == 7) { $p_class = 'class-not-defined'; }
+                                $result[$port]['class_display'] = 'Class: ' . $p_class;
+                                $result[$port]['class'] = $p_class;
+                                }
+                            break;
+                        default:
+                            if ($p_class > 0 and $result[$port]['power'] > 0) { 
+                                $result[$port]['class_display'] = 'Class: ' . ($p_class - 1);
+                                $result[$port]['class'] = $p_class-1;
+                                }
+                            break;
+                    }
+                }
+            }
+        }
+    }
+
+    foreach ($result as &$port) {
+        if (!isset($port['power'])) { $port['power'] = 0; }
+        if (!isset($port['current'])) { $port['current'] = 0; }
+        if (!isset($port['volt'])) { $port['volt'] = 0; }
+        if (!isset($port['class'])) { $port['class'] = 0; }
+    }
+    
+    unset($port);
+
+    return $result;
 }
 
 function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $community, $version)
@@ -3135,7 +3376,7 @@ function set_port_state($vendor_id, $port, $ip, $community, $version, $state)
     if (!isset($version)) {
         $version = '2';
     }
-    $port_status = PORT_ADMIN_STATUS_OID . $port;
+    $port_status = PORT_ADMIN_STATUS_OID .'.' . $port;
     if ($state == 1) {
         // enable port
         $c_state = set_snmp($ip, $community, $version, $port_status, 'i', 1);
@@ -3194,6 +3435,80 @@ function get_vendor($db, $mac)
     return $result;
 }
 
+function get_ports_state_detail($ip, $community='public', $version='2') {
+
+    if (!isset($ip)) {
+        return;
+    }
+
+    $result = [];
+
+    //post status
+    $p_state = walk_snmp($ip, $community, $version, PORT_STATUS_OID);
+    if (!empty($p_state)) {
+        foreach ($p_state as $key => $value) {
+            if (empty($value)) { $value = ''; }
+            $key = trim($key);
+            $value = parse_snmp_value($value);
+            $port = NULL;
+            if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { 
+                $port = preg_replace('/^\./', '', $matches[0]); 
+                $result[$port]['status']=$value;
+                $result[$port]['admin_status']=0;
+                $result[$port]['speed']=0;
+                $result[$port]['errors']=0;
+            }
+        }
+    }
+
+    //admin state
+    $p_admin = walk_snmp($ip, $community, $version, PORT_ADMIN_STATUS_OID);
+    if (!empty($p_admin)) {
+        foreach ($p_admin as $key => $value) {
+            if (empty($value)) { $value = ''; }
+            $key = trim($key);
+            $value = parse_snmp_value($value);
+            $port = NULL;
+            if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { 
+                $port = preg_replace('/^\./', '', $matches[0]); 
+                $result[$port]['admin_status']=$value;
+            }
+        }
+    }
+
+    //port speed
+    $p_speed = walk_snmp($ip,$community,$version,PORT_SPEED_OID);
+    if (!empty($p_speed)) {
+        foreach ($p_speed as $key => $value) {
+            if (empty($value)) { $value = 'INT:0'; }
+            $key = trim($key);
+            $value = parse_snmp_value($value);
+            $port = NULL;
+            if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { 
+                $port = preg_replace('/^\./', '', $matches[0]); 
+                $result[$port]['speed']=$value;
+            }
+        }
+    }
+
+    //errors at
+    $p_errors = walk_snmp($ip,$community,$version,PORT_ERRORS_OID);
+    if (!empty($p_errors)) {
+        foreach ($p_errors as $key => $value) {
+            if (empty($value)) { $value = 'INT:0'; }
+            $key = trim($key);
+            $value = parse_snmp_value($value);
+            $port = NULL;
+            if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { 
+                $port = preg_replace('/^\./', '', $matches[0]); 
+                $result[$port]['errors']=$value;
+            }
+        }
+    }
+
+    return $result;
+}
+
 function get_port_state_detail($port, $ip, $community, $version)
 {
     if (!isset($port)) {
@@ -3210,10 +3525,10 @@ function get_port_state_detail($port, $ip, $community, $version)
     }
     // if (!is_up($ip)) { return; }
 
-    $oper = PORT_STATUS_OID . $port;
-    $admin = PORT_ADMIN_STATUS_OID . $port;
-    $speed = PORT_SPEED_OID . $port;
-    $errors = PORT_ERRORS_OID . $port;
+    $oper = PORT_STATUS_OID .'.'. $port;
+    $admin = PORT_ADMIN_STATUS_OID .'.' . $port;
+    $speed = PORT_SPEED_OID .'.'. $port;
+    $errors = PORT_ERRORS_OID .'.'. $port;
     $result = '';
     $c_state = get_snmp($ip, $community, $version, $oper);
     $p_state = parse_snmp_value($c_state);
