@@ -196,15 +196,28 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                     //allied telesys, huawei
                     $vlan_by_portnum = array('8','3');
                     if (!in_array($device['vendor_id'],$vlan_by_portnum) and !empty($vlan_list[$row['snmp_index']])) {
-                            $new_info['vlan'] = $vlan_list[$row['snmp_index']]['pvid'];
-                            $new_info['tagged_vlan']=$vlan_list[$row['snmp_index']]['tagged'];
-                            $new_info['untagged_vlan']=$vlan_list[$row['snmp_index']]['untagged'];
+                            if (!empty($vlan_list[$row['snmp_index']]['pvid'])) { 
+                                if ($vlan_list[$row['snmp_index']]['pvid']>=1 and $vlan_list[$row['snmp_index']]['pvid']<=4094) { 
+                                    $new_info['vlan'] = $vlan_list[$row['snmp_index']]['pvid']; 
+                                    } else {
+                                    $new_info['vlan'] =1;
+                                    }
+                                }
+                            if (!empty($vlan_list[$row['snmp_index']]['tagged'])) { $new_info['tagged_vlan']=$vlan_list[$row['snmp_index']]['tagged']; }
+                            if (!empty($vlan_list[$row['snmp_index']]['untagged'])) { $new_info['untagged_vlan']=$vlan_list[$row['snmp_index']]['untagged']; }
                         } else {
-                            $new_info['vlan'] = $vlan_list[$row['port']]['pvid'];
-                            $new_info['tagged_vlan']=$vlan_list[$row['port']]['tagged'];
-                            $new_info['untagged_vlan']=$vlan_list[$row['port']]['untagged'];                          
+                            if (!empty($vlan_list[$row['port']]['pvid'])) { 
+                                if ($vlan_list[$row['port']]['pvid']>=1 and $vlan_list[$row['port']]['pvid']<=4094) {
+                                    $new_info['vlan'] = $vlan_list[$row['port']]['pvid']; 
+                                    } else {
+                                    $new_info['vlan'] =1;
+                                    }
+                                }
+                            if (!empty($vlan_list[$row['port']]['tagged'])) { $new_info['tagged_vlan']=$vlan_list[$row['port']]['tagged']; }
+                            if (!empty($vlan_list[$row['port']]['untagged'])) { $new_info['untagged_vlan']=$vlan_list[$row['port']]['untagged']; }
                         }
-                    $display_vlan = $new_info['vlan'];
+                    $display_vlan = '';
+                    if (!empty($new_info['vlan'])) { $display_vlan = $new_info['vlan']; }
                     if (!empty($new_info['untagged_vlan'])) { 
                         if ($new_info['untagged_vlan'] != $new_info['vlan']) { $display_vlan.=";U:".$new_info['untagged_vlan']; }
                         }
