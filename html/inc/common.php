@@ -2317,7 +2317,7 @@ function get_snmp_interfaces($ip, $community, $version)
 function walk_snmp($ip, $community, $version, $oid)
 {
     snmp_set_oid_output_format(SNMP_OID_OUTPUT_NUMERIC);
-
+    $result = NULL;
     if ($version == 2) {
         $result = snmp2_real_walk($ip, $community, $oid, SNMP_timeout, SNMP_retry);
     }
@@ -2734,7 +2734,7 @@ function get_switch_vlans($vendor,$ip,$community='public',$version='2') {
                         $port = $i+1;
                         $vlan_status['untagged_vlan'][$vlan_id][$port] = $bin_value[$i];
                         if ($bin_value[$i]=='1') { 
-                            if ($vlan_status['forbidden_vlan'][$vlan_id][$port]=='0') {
+                            if (isset($vlan_status['forbidden_vlan']) and $vlan_status['forbidden_vlan'][$vlan_id][$port]=='0') {
                                 $port_status[$port]['untagged'].=','.$vlan_id; 
                                 } else {
                                 $vlan_status['untagged_vlan'][$vlan_id][$port]='0';

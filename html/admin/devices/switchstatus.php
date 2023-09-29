@@ -88,6 +88,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
 
         $snmp_ok = 0;
         $vlan_list = [];
+        $vlan_at_port_by_snmp = 1;
         if (!empty($device['ip']) and $device['snmp_version'] > 0) {
             $snmp_ok = check_snmp_access($device['ip'], $device['community'], $device['snmp_version']);
             $modules_oids = NULL;
@@ -99,6 +100,8 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                     $modules_oids = snmprealwalk($device['ip'], $device['community'], CISCO_MODULES, SNMP_timeout, SNMP_retry);
                     }
                 $vlan_list = get_switch_vlans($device['vendor_id'],$device['ip'], $device['community'], $device['snmp_version']);
+                //if port number 1 not exists - try detect by snmp interface index
+                if (isset($vlan_list['1'])) { $vlan_at_port_by_snmp = 0; }
                 $ifmib_list = get_snmp_interfaces($device['ip'], $device['community'], $device['snmp_version']);
                 }
             } else {
@@ -193,9 +196,8 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                     }
                 }
                 if (!empty($vlan_list)) {
-                    //allied telesys, huawei
-                    $vlan_by_portnum = array('8','3');
-                    if (!in_array($device['vendor_id'],$vlan_by_portnum) and !empty($vlan_list[$row['snmp_index']])) {
+                    if ($vlan_at_port_by_snmp) {
+                        if (!empty($vlan_list[$row['snmp_index']])) {
                             if (!empty($vlan_list[$row['snmp_index']]['pvid'])) { 
                                 if ($vlan_list[$row['snmp_index']]['pvid']>=1 and $vlan_list[$row['snmp_index']]['pvid']<=4094) { 
                                     $new_info['vlan'] = $vlan_list[$row['snmp_index']]['pvid']; 
@@ -205,7 +207,9 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                                 }
                             if (!empty($vlan_list[$row['snmp_index']]['tagged'])) { $new_info['tagged_vlan']=$vlan_list[$row['snmp_index']]['tagged']; }
                             if (!empty($vlan_list[$row['snmp_index']]['untagged'])) { $new_info['untagged_vlan']=$vlan_list[$row['snmp_index']]['untagged']; }
+                            }
                         } else {
+                        if (!empty($vlan_list[$row['port']])) {
                             if (!empty($vlan_list[$row['port']]['pvid'])) { 
                                 if ($vlan_list[$row['port']]['pvid']>=1 and $vlan_list[$row['port']]['pvid']<=4094) {
                                     $new_info['vlan'] = $vlan_list[$row['port']]['pvid']; 
@@ -215,6 +219,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                                 }
                             if (!empty($vlan_list[$row['port']]['tagged'])) { $new_info['tagged_vlan']=$vlan_list[$row['port']]['tagged']; }
                             if (!empty($vlan_list[$row['port']]['untagged'])) { $new_info['untagged_vlan']=$vlan_list[$row['port']]['untagged']; }
+                            }
                         }
                     $display_vlan = '';
                     if (!empty($new_info['vlan'])) { $display_vlan = $new_info['vlan']; }
