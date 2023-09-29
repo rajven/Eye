@@ -99,6 +99,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                     $modules_oids = snmprealwalk($device['ip'], $device['community'], CISCO_MODULES, SNMP_timeout, SNMP_retry);
                     }
                 $vlan_list = get_switch_vlans($device['vendor_id'],$device['ip'], $device['community'], $device['snmp_version']);
+                $ifmib_list = get_snmp_interfaces($device['ip'], $device['community'], $device['snmp_version']);
                 }
             } else {
             $snmp_ok = 0;
@@ -176,10 +177,6 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             $ifname = $row['ifName'];
 
             if ($snmp_ok) {
-                $ifname = get_snmp_ifname1($device['ip'], $device['community'], $device['snmp_version'], $row['snmp_index']);
-                if (empty($ifname)) {
-                    $ifname = get_snmp_ifname2($device['ip'], $device['community'], $device['snmp_version'], $row['snmp_index']);
-                }
                 $sfp_status = get_sfp_status($device['vendor_id'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version'], $modules_oids);
                 $poe_status = get_port_poe_state($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
                 if (isset($poe_status)) {
@@ -205,6 +202,8 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                         }
                     if (!empty($new_info['tagged_vlan'])) { $display_vlan.=";T:".$new_info['tagged_vlan']; }
                 }
+                //interface name
+                if (!empty($ifmib_list[$row['snmp_index']])) { $ifname = $ifmib_list[$row['snmp_index']]; }
                 if (!isset($row['ifName']) or $row['ifName'] !== $ifname) {
                     $new_info['ifName'] = $ifname;
                 }

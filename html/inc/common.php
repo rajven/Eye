@@ -2293,9 +2293,23 @@ function get_snmp_ifname2($ip, $community, $version, $port)
 
 function get_snmp_interfaces($ip, $community, $version)
 {
-    $result = walk_snmp($ip, $community, $version, IFMIB_IFNAME);
-    if (empty($result)) {
-        $result = walk_snmp($ip, $community, $version, IFMIB_IFDESCR);
+    $result=[];
+    $ifmib_list = walk_snmp($ip, $community, $version, IFMIB_IFNAME);
+    if (empty($ifmib_list)) {
+        $ifmib_list = walk_snmp($ip, $community, $version, IFMIB_IFDESCR);
+    }
+    if (empty($ifmib_list)) {
+        $ifmib_list = walk_snmp($ip, $community, $version, IFMIB_IFALIAS);
+    }
+    if (!empty($ifmib_list)) {
+        foreach ($ifmib_list as $key => $value) {
+            $key = trim($key);
+            $value = parse_snmp_value($value);
+            if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { 
+                $int_index = preg_replace('/^\./', '', $matches[0]); 
+                $result[$int_index]=$value;
+            }
+        }
     }
     return $result;
 }

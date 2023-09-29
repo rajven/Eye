@@ -108,7 +108,11 @@ foreach ($ports as $row) {
         print "<td class='".$cl."' >" . get_qa($row['uplink']) . "</td>\n";
         print "<td class='".$cl."' >" . get_qa($row['nagios']) . "</td>\n";
         print "<td class='".$cl."' >" . get_qa($row['skip']) . "</td>\n";
-        $vlan = $row['vlan'];
+        $display_vlan= $row['vlan'];
+        if (!empty($row['untagged_vlan'])) { 
+            if ($row['untagged_vlan'] != $row['vlan']) { $display_vlan.=";U:".$row['untagged_vlan']; }
+            }
+        if (!empty($row['tagged_vlan'])) { $display_vlan.=";T:".$row['tagged_vlan']; }
         $ifname= compact_port_name($row['ifName']);
         $f_cacti_url = get_cacti_graph($device['ip'], $row['snmp_index']);
         if (empty(get_const('torrus_url')) and (empty($f_cacti_url))) {  $snmp_url=$ifname; }
@@ -123,7 +127,7 @@ foreach ($ports as $row) {
                     $snmp_url = "<a href='".$t_url."'>" . $ifname . "</a>";
                     }
                 }
-        print "<td class='".$cl."'>" . $vlan . "</td>\n";
+        print "<td class='".$cl."'>" . $display_vlan . "</td>\n";
         print "<td class='".$cl."'>" . $snmp_url . "</td>\n";
         print "<td class='".$cl."' ><button name='write' class='j-submit-report' onclick='window.open('portmactable.php?id=" . $row['id'] . "')'>" . $row['last_mac_count'] . "</button></td>\n";
 print "</tr>";

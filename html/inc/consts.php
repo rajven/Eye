@@ -37,6 +37,7 @@ define("IFMIB_IFINDEX",".1.3.6.1.2.1.2.2.1.1");
 define("IFMIB_IFINDEX_MAP",".1.3.6.1.2.1.17.1.4.1.2");
 define("IFMIB_IFDESCR",".1.3.6.1.2.1.2.2.1.2");
 define("IFMIB_IFNAME",".1.3.6.1.2.1.31.1.1.1.1");
+define("IFMIB_IFALIAS",".1.3.6.1.2.1.31.1.1.1.18");
 
 define("MAC_TABLE_OID",".1.3.6.1.2.1.17.4.3.1.2");
 define("MAC_TABLE_OID2",".1.3.6.1.2.1.17.7.1.2.2.1.2");
