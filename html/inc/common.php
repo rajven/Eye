@@ -2738,6 +2738,8 @@ function get_switch_vlans($vendor,$ip,$community='public',$version='2') {
                 $key = trim($key);
                 $value = parse_snmp_value($value);
                 if (preg_match('/\.(\d{1,10})$/', $key, $matches)) { $vlan_id = preg_replace('/^\./', '', $matches[0]); }
+                //exclude vlan 1 from tagged vlan
+                if ($vlan_id =='1') { continue; }
                 if (isset($vlan_id) and !empty($vlan_id)) {
                     $hex_value = preg_replace('/\s+/','',$value);
                     $hex_value = preg_replace('/0*$/','',$hex_value);
