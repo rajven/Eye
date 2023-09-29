@@ -340,7 +340,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             } else {
                 print "<td>" . WEB_msg_unsupported . "</td>\n";
             }
-            if (isset($ports_state_detail[$row['snmp_index']]['admin_status']) and !$row['uplink'] and !$row['skip'] and !$device['is_router']) {
+            if (isset($padmin) and !$row['uplink'] and !$row['skip'] and !$device['is_router']) {
                 print "<td class=\"data\">";
                 if ($device['vendor_id'] != 9) {
                     if ($padmin >= 2) {
