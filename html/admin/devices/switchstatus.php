@@ -189,6 +189,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             if ($snmp_ok) {
                 //sfp information
                 $sfp_status = get_sfp_status($device['vendor_id'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version'], $modules_oids);
+
                 //poe information
                 if (isset($ports_poe_state)) {
                     if ($port_poe_by_snmp) { 

@@ -3064,9 +3064,10 @@ function get_ports_poe_detail($vendor_id, $ip, $community='public', $version='2'
                 $key = trim($key);
                 $p_power = parse_snmp_value($value);
                 $port = NULL;
-                $result[$port]['power']=0;
                 if (preg_match('/\.(\d{1,10})$/', $key, $matches)) {
                     $port = preg_replace('/^\./', '', $matches[0]);
+                    $result[$port]['power']=0;
+                    $result[$port]['power_display']='';
                     switch ($vendor_id) {
                         case 9://mikrotik
                             $p_power = round($p_power / 10, 2);
@@ -3095,9 +3096,10 @@ function get_ports_poe_detail($vendor_id, $ip, $community='public', $version='2'
                 $key = trim($key);
                 $p_current = parse_snmp_value($value);
                 $port = NULL;
-                $result[$port]['current']=0;
                 if (preg_match('/\.(\d{1,10})$/', $key, $matches)) {
                     $port = preg_replace('/^\./', '', $matches[0]);
+                    $result[$port]['current']=0;
+                    $result[$port]['current_display']='';
                     if ($p_current > 0) { 
                         $result[$port]['current'] = $p_current; 
                         $result[$port]['current_display'] = 'C: ' . $p_current . ' mA'; 
@@ -3115,9 +3117,10 @@ function get_ports_poe_detail($vendor_id, $ip, $community='public', $version='2'
                 $key = trim($key);
                 $p_volt = parse_snmp_value($value);
                 $port = NULL;
-                $result[$port]['volt'] = 0;
                 if (preg_match('/\.(\d{1,10})$/', $key, $matches)) {
                     $port = preg_replace('/^\./', '', $matches[0]);
+                    $result[$port]['volt'] = 0;
+                    $result[$port]['volt_display'] ='';
                     switch ($vendor_id) {
                         case 2:
                         case 8:
@@ -3148,9 +3151,10 @@ function get_ports_poe_detail($vendor_id, $ip, $community='public', $version='2'
                 $key = trim($key);
                 $p_class = parse_snmp_value($value);
                 $port = NULL;
-                $result[$port]['class'] = 0;
                 if (preg_match('/\.(\d{1,10})$/', $key, $matches)) {
                     $port = preg_replace('/^\./', '', $matches[0]);
+                    $result[$port]['class'] = 0;
+                    $result[$port]['class_display']='';
                     switch ($vendor_id) {
                         case 69:
                             if ($p_class > 0 and $result[$port]['power'] > 0) {
@@ -3177,7 +3181,7 @@ function get_ports_poe_detail($vendor_id, $ip, $community='public', $version='2'
         if (!isset($port['volt'])) { $port['volt'] = 0; }
         if (!isset($port['class'])) { $port['class'] = 0; }
     }
-    
+
     unset($port);
 
     return $result;
