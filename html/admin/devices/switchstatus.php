@@ -193,10 +193,8 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                     }
                 }
                 if (!empty($vlan_list)) {
-                    //allied telesys
-                    $vlan_by_portnum[8] = 1;
-                    //huawei
-                    $vlan_by_portnum[3] = 1;
+                    //allied telesys, huawei
+                    $vlan_by_portnum = array('8','3');
                     if (in_array($device['vendor_id'],$vlan_by_portnum) and !empty($vlan_list[$row['snmp_index']])) {
                             $new_info['vlan'] = $vlan_list[$row['snmp_index']]['pvid'];
                             $new_info['tagged_vlan']=$vlan_list[$row['snmp_index']]['tagged'];
