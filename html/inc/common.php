@@ -2279,17 +2279,18 @@ function get_cisco_sensors($ip, $community, $version, $mkey)
     return $result;
 }
 
-function get_snmp_ifname1($ip, $community, $version, $port)
+function get_snmp_ifname($ip, $community, $version, $port)
 {
     $port_name = parse_snmp_value(get_snmp($ip, $community, $version, IFMIB_IFNAME . "." . $port));
+    if (empty($port_name)) {
+        $port_name = parse_snmp_value(get_snmp($ip, $community, $version, IFMIB_IFDESCR . "." . $port));
+    }
+    if (empty($port_name)) {
+        $port_name = parse_snmp_value(get_snmp($ip, $community, $version, IFMIB_IFALIAS . "." . $port));
+    }
     return $port_name;
 }
 
-function get_snmp_ifname2($ip, $community, $version, $port)
-{
-    $port_name = parse_snmp_value(get_snmp($ip, $community, $version, IFMIB_IFDESCR . "." . $port));
-    return $port_name;
-}
 
 function get_snmp_interfaces($ip, $community, $version)
 {
@@ -3553,11 +3554,11 @@ function get_port_state_detail($port, $ip, $community, $version)
 function parse_snmp_value($value)
 {
     if (empty($value)) {
-        return '';
+        return NULL;
     }
-    if (!preg_match('/:/',$value)) { return ''; }
+    if (!preg_match('/:/',$value)) { return NULL; }
     list($p_type, $p_value) = explode(':', $value);
-    if (empty($p_value)) { return ''; }
+    if (empty($p_value)) { return NULL; }
     $p_value = trim($p_value);
     $p_value = preg_replace('/^\"/', '', $p_value);
     $p_value = preg_replace('/\"$/', '', $p_value);
