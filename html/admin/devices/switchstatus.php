@@ -192,10 +192,20 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                         $poe_info = "POE:Off";
                     }
                 }
-                if (!empty($vlan_list) and !empty($vlan_list[$row['snmp_index']])) {
-                    $new_info['vlan'] = $vlan_list[$row['snmp_index']]['pvid'];
-                    $new_info['tagged_vlan']=$vlan_list[$row['snmp_index']]['tagged'];
-                    $new_info['untagged_vlan']=$vlan_list[$row['snmp_index']]['untagged'];
+                if (!empty($vlan_list)) {
+                    //allied telesys
+                    $vlan_by_portnum[8] = 1;
+                    //huawei
+                    $vlan_by_portnum[3] = 1;
+                    if (in_array($device['vendor_id'],$vlan_by_portnum) and !empty($vlan_list[$row['snmp_index']])) {
+                            $new_info['vlan'] = $vlan_list[$row['snmp_index']]['pvid'];
+                            $new_info['tagged_vlan']=$vlan_list[$row['snmp_index']]['tagged'];
+                            $new_info['untagged_vlan']=$vlan_list[$row['snmp_index']]['untagged'];
+                        } else {
+                            $new_info['vlan'] = $vlan_list[$row['port']]['pvid'];
+                            $new_info['tagged_vlan']=$vlan_list[$row['port']]['tagged'];
+                            $new_info['untagged_vlan']=$vlan_list[$row['port']]['untagged'];                          
+                        }
                     $display_vlan = $new_info['vlan'];
                     if (!empty($new_info['untagged_vlan'])) { 
                         if ($new_info['untagged_vlan'] != $new_info['vlan']) { $display_vlan.=";U:".$new_info['untagged_vlan']; }
