@@ -343,10 +343,10 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             if (isset($ports_state_detail[$row['snmp_index']]['admin_status']) and !$row['uplink'] and !$row['skip'] and !$device['is_router']) {
                 print "<td class=\"data\">";
                 if ($device['vendor_id'] != 9) {
-                    if ($ports_state_detail[$row['snmp_index']]['admin_status'] >= 2) {
+                    if ($padmin >= 2) {
                         print "<button name='port_on[]' value='{$row['snmp_index']}'>" . WEB_device_port_on . "</button>";
                     }
-                    if ($ports_state_detail[$row['snmp_index']]['admin_status'] == 1) {
+                    if ($padmin == 1) {
                         print "<button name='port_off[]' value='{$row['snmp_index']}'>" . WEB_device_port_off . "</button>";
                     }
                 } else {
