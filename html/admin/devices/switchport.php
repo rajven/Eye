@@ -110,9 +110,19 @@ foreach ($ports as $row) {
         print "<td class='".$cl."' >" . get_qa($row['skip']) . "</td>\n";
         $display_vlan= $row['vlan'];
         if (!empty($row['untagged_vlan'])) { 
-            if ($row['untagged_vlan'] != $row['vlan']) { $display_vlan.=";U:".$row['untagged_vlan']; }
+            if ($row['untagged_vlan'] != $row['vlan']) { 
+                $pattern = '/(\d+),(\d+),(\d+),(\d+),(\d+),/';
+                $replacement = '${1},${2},${3},${4},${5}<br>U:';
+                $display_untagged = preg_replace($pattern, $replacement, $row['untagged_vlan']);
+                $display_vlan.=";U:".$display_untagged; 
+                }
             }
-        if (!empty($row['tagged_vlan'])) { $display_vlan.=";T:".$row['tagged_vlan']; }
+        if (!empty($row['tagged_vlan'])) { 
+            $pattern = '/(\d+),(\d+),(\d+),(\d+),(\d+),/';
+            $replacement = '${1},${2},${3},${4},${5}<br>T:';
+            $display_tagged = preg_replace($pattern, $replacement, $row['tagged_vlan']);
+            $display_vlan.=";T:".$display_tagged; 
+            }
         $ifname= compact_port_name($row['ifName']);
         $f_cacti_url = get_cacti_graph($device['ip'], $row['snmp_index']);
         if (empty(get_const('torrus_url')) and (empty($f_cacti_url))) {  $snmp_url=$ifname; }
