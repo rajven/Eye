@@ -98,6 +98,20 @@ print_ip_submenu($page_url);
 </div>
 </div>
 
+<a class="exportButton" href="#modalExport"><?php print WEB_btn_export; ?></a>
+<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modal" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
+ <div class="remodalBorder">
+  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
+    <form id="formAuthExport">
+        <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
+        <input type="hidden" name="ExportAuth" value="MassChange">
+        <?php print WEB_msg_export_selected."&nbsp"; print_qa_select('a_selected', 1);?>
+        <br><br>
+	    <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_run; ?>">
+    </form>
+</div>
+</div>
+
 <form id="def" name="def">
 
 <?php

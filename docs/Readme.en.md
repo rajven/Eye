@@ -3,7 +3,7 @@ Installation
 1. Install the packages
 
 apt install apache2 git fping perl mariadb-server php php-mysql php-bcmath php-intl \
-php-mbstring php-date php-mail php-snmp \
+php-mbstring php-date php-mail php-snmp php-zip \
 libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
 libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl libdbi-perl \
 libdbd-mysql-perl libparallel-forkmanager-perl libproc-daemon-perl libdatetime-format-dateparse-perl \

@@ -16,6 +16,15 @@
   text-decoration: none;
 }
 
+.exportButton{
+  padding: 1px 5px;
+  background: #9df599;
+  border-radius: 15px;
+  box-shadow: 0 0 5px rgba(206, 57, 57, 0.5);
+  color: #fff;
+  text-decoration: none;
+}
+
 .success, .fail{
   color: #fff;
 }
@@ -67,6 +76,19 @@
 }
 
 .remodalDel {
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  width: 99.2%;
+  padding: .8%;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  color: black;
+  background: white;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.remodalExport {
   -webkit-box-sizing: border-box;
   box-sizing: border-box;
   width: 99.2%;

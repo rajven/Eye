@@ -46,6 +46,7 @@ define("WEB_msg_apply_selected","Apply to highlight");
 define("WEB_msg_login_hint","Please enter login");
 define("WEB_msg_password_hint","Please enter your password");
 define("WEB_msg_delete_selected","Delete selected?");
+define("WEB_msg_export_selected","Export only selected?");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");
@@ -234,6 +235,7 @@ define("WEB_btn_ip_del","-IP");
 define("WEB_btn_run","Execute");
 define("WEB_btn_refresh","Refresh");
 define("WEB_btn_delete","Delete");
+define("WEB_btn_export","Export");
 define("WEB_btn_apply","Apply");
 define("WEB_btn_show","Show");
 define("WEB_btn_reorder","Apply Order");

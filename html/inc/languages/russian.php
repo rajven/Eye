@@ -46,6 +46,7 @@ define("WEB_msg_apply_selected","Применить для выделения");
 define("WEB_msg_login_hint","Введите имя пользователя");
 define("WEB_msg_password_hint","Введите пароль");
 define("WEB_msg_delete_selected","Удалить выделенное?");
+define("WEB_msg_export_selected","Экспортировать только выделенное?");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");
@@ -234,6 +235,7 @@ define("WEB_btn_ip_del","-IP");
 define("WEB_btn_run","Выполнить");
 define("WEB_btn_refresh","Обновить");
 define("WEB_btn_delete","Удалить");
+define("WEB_btn_export","Export");
 define("WEB_btn_apply","Применить");
 define("WEB_btn_show","Показать");
 define("WEB_btn_reorder","Применить порядок");
