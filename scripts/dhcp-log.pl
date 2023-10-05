@@ -106,7 +106,7 @@ if (!$pid) {
             chomp($logline);
 
             log_verbose("GET CLIENT REQUEST: $logline");
-            my ($type,$mac,$ip,$hostname,$timestamp,$tags,$sup_hostname,$old_hostname) = split (/\;/, $logline);
+            my ($type,$mac,$ip,$hostname,$timestamp,$tags,$sup_hostname,$old_hostname,$circut_id,$remote_id) = split (/\;/, $logline);
             next if (!$type);
             next if ($type!~/(old|add|del)/i);
 
@@ -135,27 +135,31 @@ if (!$pid) {
             $mac=mac_splitted(isc_mac_simplify($mac));
 
             my $dhcp_record;
-            $dhcp_record->{mac}=$mac;
-            $dhcp_record->{ip}=$ip;
-            $dhcp_record->{ip_aton}=$ip_aton;
-            $dhcp_record->{hostname}=$client_hostname;
-            $dhcp_record->{tags}=$tags;
-            $dhcp_record->{network}=$auth_network;
-            $dhcp_record->{type}=$type;
-            $dhcp_record->{hostname_utf8}=$converter->convert($client_hostname);
-            $dhcp_record->{timestamp} = $timestamp;
-            $dhcp_record->{last_time} = time();
-            $dhcp_record->{hotspot}=is_hotspot($dbh,$dhcp_record->{ip});
+            $dhcp_record->{'mac'}=$mac;
+            $dhcp_record->{'ip'}=$ip;
+            $dhcp_record->{'ip_aton'}=$ip_aton;
+            $dhcp_record->{'hostname'}=$client_hostname;
+            $dhcp_record->{'tags'}=$tags;
+            $dhcp_record->{'network'}=$auth_network;
+            $dhcp_record->{'type'}=$type;
+            $dhcp_record->{'hostname_utf8'}=$converter->convert($client_hostname);
+            $dhcp_record->{'timestamp'} = $timestamp;
+            $dhcp_record->{'last_time'} = time();
+            $dhcp_record->{'circuit-id'} = $circut_id;
+            $dhcp_record->{'remote-id'} = $remote_id;
+            $dhcp_record->{'hotspot'}=is_hotspot($dbh,$dhcp_record->{ip});
             $leases{$ip}=$dhcp_record;
 
             log_debug(uc($type).">>");
-            log_debug("MAC:      ".$dhcp_record->{mac});
-            log_debug("IP:       ".$dhcp_record->{ip});
-            log_debug("TAGS:     ".$dhcp_record->{tags});
-            log_debug("HOSTNAME: ".$dhcp_record->{hostname});
-            log_debug("TYPE:     ".$dhcp_record->{type});
-            log_debug("TIME:     ".$dhcp_event_time);
-            log_debug("UTF8 HOSTNAME: ".$dhcp_record->{hostname_utf8});
+            log_debug("MAC:       ".$dhcp_record->{'mac'});
+            log_debug("IP:        ".$dhcp_record->{'ip'});
+            log_debug("TAGS:      ".$dhcp_record->{'tags'});
+            log_debug("CIRCUIT-ID:".$dhcp_record->{'circuit-id'});
+            log_debug("REMOTE-ID: ".$dhcp_record->{'remote-id'});
+            log_debug("HOSTNAME:  ".$dhcp_record->{'hostname'});
+            log_debug("TYPE:      ".$dhcp_record->{'type'});
+            log_debug("TIME:      ".$dhcp_event_time);
+            log_debug("UTF8 NAME: ".$dhcp_record->{'hostname_utf8'});
             log_debug("END GET");
 
             my $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
