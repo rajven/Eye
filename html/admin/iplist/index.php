@@ -49,6 +49,8 @@ print_ip_submenu($page_url);
 <div id="cont">
 
 <form name="filter" action="index.php" method="post">
+<input type="hidden" name="ip-filter" value="<?php print $ip_list_filter; ?>">
+<input type="hidden" name="ip-sort" value="<?php print $sort_table.".".$sort_field." ".$order; ?>">
 <table class="data">
 	<tr>
         <td>

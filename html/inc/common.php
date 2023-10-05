@@ -1360,6 +1360,19 @@ function get_connection($db, $auth_id)
     return $result;
 }
 
+function get_connection_string($db, $auth_id)
+{
+    $d_sql = "SELECT D.device_name, DP.port FROM devices AS D, device_ports AS DP, connections AS C WHERE D.deleted=0 and D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id=$auth_id";
+    $t_device = mysqli_query($db, $d_sql);
+    list($f_name, $f_port) = mysqli_fetch_array($t_device);
+    if (isset($f_name)) {
+        $result = $f_name . "[" . $f_port . "]";
+    } else {
+        $result = '';
+    }
+    return $result;
+}
+
 function get_port($db, $port_id)
 {
     $d_sql = "SELECT D.device_name, DP.port FROM devices AS D, device_ports AS DP WHERE D.deleted=0 and D.id = DP.device_id AND DP.id = $port_id";
