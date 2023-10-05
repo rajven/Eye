@@ -54,6 +54,7 @@ $(document).ready(function () {
 			});
 			return false;
 		}
+
 		if (formID == "formAuthExport") {
 			var hangoutButton = document.getElementById("btn_filter");
 			var formNm = $('#' + formID);
@@ -64,21 +65,25 @@ $(document).ready(function () {
 			post_data = formTm.serializeArray();
 			post_data = post_data.concat(formNm.serializeArray());
 			$.ajax({
-				type: "POST",
-				url: "/utils/auth_export.php",
-				data: post_data,
-				success: function (data) {
-					$(formNm).html(data);
-					location.href = cur_href.replace('#modalExport', '');
-					setTimeout(hangoutButton.click, 1000);
-				},
-				error: function (jqXHR, text, error) {
-					$(formNm).html(error);
-					location.href = cur_href.replace('#modalExport', '');
-					setTimeout(hangoutButton.click, 5000);
-				}
+					type: "POST",
+					url: "/utils/auth_export.php",
+					data: post_data,
+					success: function (result) {
+						function download_xlsx(content, filename, contentType) {
+							if(!contentType) contentType = 'application/octet-stream';
+							var a = document.createElement('a');
+							var blob = new Blob([content], {'type':contentType});
+							a.href = window.URL.createObjectURL(blob);
+							a.download = filename;
+							a.click();
+						}
+						download_xlsx(result, "all-ips.csv", "text/csv");
+						location.href = cur_href.replace('#modalExport', '');
+						setTimeout(hangoutButton.click, 1000);
+					},
 			});
 			return false;
 		}
+
 	});
 });

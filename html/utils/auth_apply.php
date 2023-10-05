@@ -27,6 +27,7 @@ if (isset($_POST["ApplyForAll"])) {
     if (empty($_POST["n_enabled"])) {
         $_POST["n_enabled"] = 0;
     }
+    
     if (empty($_POST["n_link"])) {
         $_POST["n_link"] = 0;
     }

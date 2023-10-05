@@ -33,7 +33,7 @@ if (! $ip_aton) { $ip_aton = 0; }
 
 $sSQL = "SELECT * FROM User_auth WHERE ip_int='".$ip_aton."' and deleted = 0";
 $auth = get_record_sql($db_link,$sSQL);
-if (! isset($auth) or empty($auth)) { print "<font color=red><b>".WEB_cell_ip."&nbsp". $auth_ip ."&bnsp - ".WEB_unknown."!</b><br></font>"; die; }
+if (! isset($auth) or empty($auth)) { print "<font color=red><b>".WEB_cell_ip."&nbsp". $auth_ip ."&nbsp - ".WEB_unknown."!</b><br></font>"; die; }
 
 $id = $auth['id'];
 $user_id = $auth['user_id'];
