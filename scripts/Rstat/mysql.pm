@@ -855,7 +855,7 @@ my $record=get_record_sql($db,'SELECT * FROM User_auth WHERE `deleted`=0 AND `ip
 
 my $new_record;
 $new_record->{last_found}=$timestamp;
-if ($client_id) { $new_record['client-id'] = $client_id; }
+if ($client_id) { $new_record->{'client-id'} = $client_id; }
 
 #auth found?
 if ($record->{user_id}) {
