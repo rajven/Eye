@@ -838,10 +838,11 @@ sub resurrection_auth {
 my $db = shift;
 my $ip_record = shift;
 
-my $ip = $ip_record->{ip};
-my $mac = $ip_record->{mac};
-my $action = $ip_record->{type};
-my $hostname = $ip_record->{hostname_utf8};
+my $ip = $ip_record->{'ip'};
+my $mac = $ip_record->{'mac'};
+my $action = $ip_record->{'type'};
+my $hostname = $ip_record->{'hostname_utf8'};
+my $client_id = $ip_record->{'client-id'};
 
 if (!exists $ip_record->{ip_aton}) { $ip_record->{ip_aton}=StrToIp($ip); }
 if (!exists $ip_record->{hotspot}) { $ip_record->{hotspot}=is_hotspot($db,$ip); }
@@ -854,6 +855,7 @@ my $record=get_record_sql($db,'SELECT * FROM User_auth WHERE `deleted`=0 AND `ip
 
 my $new_record;
 $new_record->{last_found}=$timestamp;
+if ($client_id) { $new_record['client-id'] = $client_id; }
 
 #auth found?
 if ($record->{user_id}) {
