@@ -106,7 +106,7 @@ if (!$pid) {
             chomp($logline);
 
             log_verbose("GET CLIENT REQUEST: $logline");
-            my ($type,$mac,$ip,$hostname,$timestamp,$tags,$sup_hostname,$old_hostname,$circut_id,$remote_id) = split (/\;/, $logline);
+            my ($type,$mac,$ip,$hostname,$timestamp,$tags,$sup_hostname,$old_hostname,$circut_id,$remote_id,$client_id) = split (/\;/, $logline);
             next if (!$type);
             next if ($type!~/(old|add|del)/i);
 
@@ -146,6 +146,7 @@ if (!$pid) {
             $dhcp_record->{'timestamp'} = $timestamp;
             $dhcp_record->{'last_time'} = time();
             $dhcp_record->{'circuit-id'} = $circut_id;
+            $dhcp_record->{'client-id'} = $client_id;
             $dhcp_record->{'remote-id'} = $remote_id;
             $dhcp_record->{'hotspot'}=is_hotspot($dbh,$dhcp_record->{ip});
             $leases{$ip}=$dhcp_record;
@@ -166,12 +167,31 @@ if (!$pid) {
 	        if (!$auth_record and $type eq 'old' ) { $type='add'; }
 
             if ($type eq 'add') {
-                my $res_id = resurrection_auth($hdb,$dhcp_record);
-                next if (!$res_id);
-                $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE id='.$res_id);
-                db_log_info($hdb,"Check for new auth. Found id: $res_id",$res_id);
-                } else { $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC'); }
+                    my $res_id = resurrection_auth($hdb,$dhcp_record);
+                    if (!$res_id) {
+                        db_log_error($hdb,"Error creating an ip address record for ip=".$dhcp_record->{ip}." and mac=".$mac."!");
+                        next;
+                        }
+                    $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE id='.$res_id);
+                    db_log_info($hdb,"Check for new auth. Found id: $res_id",$res_id);
+                } else {
+                    $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC'); 
+                }
 
+            #create new record for refresh dhcp packet
+            if (!$auth_record) {
+                db_log_warning($hdb,"Record for dhcp request type: ".$type." ip=".$dhcp_record->{ip}." and mac=".$mac." does not exists!");
+                if ($type eq 'old') {
+                    my $res_id = resurrection_auth($hdb,$dhcp_record);
+                    if (!$res_id) {
+                        db_log_error($hdb,"Error creating an ip address record for ip=".$dhcp_record->{ip}." and mac=".$mac."!");
+                        next;
+                        }
+                    $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE id='.$res_id);
+                    db_log_info($hdb,"Check for new auth. Found id: $res_id",$res_id);
+                    } else { next; }
+                }
+                
             my $auth_id = $auth_record->{id};
 	        my $auth_ou_id = $auth_record->{ou_id};
 
@@ -181,7 +201,7 @@ if (!$pid) {
                 my $auth_rec;
                 $auth_rec->{dhcp_hostname} = $dhcp_record->{hostname_utf8};
                 $auth_rec->{dhcp_time}=$dhcp_event_time;
-                db_log_verbose($hdb,"Add lease by dhcp event for dynamic clients id:$auth_id ip: $dhcp_record->{ip}",$auth_id);
+                db_log_verbose($hdb,"Add lease by dhcp event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
                 update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
                 }
 
@@ -193,7 +213,7 @@ if (!$pid) {
                     my $auth_rec;
                     $auth_rec->{dhcp_action}=$type;
                     $auth_rec->{dhcp_time}=$dhcp_event_time;
-                    db_log_verbose($hdb,"Update lease by dhcp event for dynamic clients id:$auth_id ip: $dhcp_record->{ip}",$auth_id);
+                    db_log_verbose($hdb,"Update lease by dhcp event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
                     update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
                 }
 
@@ -201,15 +221,15 @@ if (!$pid) {
                 if ($auth_record->{dhcp_time} =~ /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})/) {
                     my $d_time = mktime($6,$5,$4,$3,$2-1,$1-1900);
                     if (time()-$d_time>60 and ($auth_ou_id == $default_user_ou_id or $auth_ou_id==$default_hotspot_ou_id)) {
-                        db_log_info($hdb,"Remove user ip record by dhcp release event for dynamic clients id:$auth_id ip: $dhcp_record->{ip}",$auth_id);
+                        db_log_info($hdb,"Remove user ip record by dhcp release event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
                         my $auth_rec;
                         $auth_rec->{deleted}="1";
                         $auth_rec->{dhcp_action}=$type;
                         $auth_rec->{dhcp_time}=$dhcp_event_time;
                         update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
                         my $u_count=get_count_records($hdb,'User_auth','deleted=0 and user_id='.$auth_record->{'user_id'});
-		        if (!$u_count) {
-				delete_record($hdb,"User_list","id=".$auth_record->{'user_id'});
+		                if (!$u_count) {
+				            delete_record($hdb,"User_list","id=".$auth_record->{'user_id'});
 	                        db_log_info($hdb,"Remove dynamic user id: $auth_record->{'user_id'} by dhcp request",$auth_id);
 	                        }
                         }
@@ -218,12 +238,17 @@ if (!$pid) {
 
             my $dhcp_log;
             if (!$auth_id) { $auth_id=0; }
-            $dhcp_log->{auth_id} = $auth_id;
-            $dhcp_log->{ip} = $dhcp_record->{ip};
-            $dhcp_log->{ip_int} = $dhcp_record->{ip_aton};
-            $dhcp_log->{mac} = $dhcp_record->{mac};
-            $dhcp_log->{action} = $type;
-            $dhcp_log->{timestamp} = $dhcp_event_time;
+            $dhcp_log->{'auth_id'} = $auth_id;
+            $dhcp_log->{'ip'} = $dhcp_record->{'ip'};
+            $dhcp_log->{'ip_int'} = $dhcp_record->{'ip_aton'};
+            $dhcp_log->{'mac'} = $dhcp_record->{'mac'};
+            $dhcp_log->{'action'} = $type;
+            $dhcp_log->{'dhcp_hostname'} = $dhcp_record->{'hostname_utf8'};
+            $dhcp_log->{'timestamp'} = $dhcp_event_time;
+            $dhcp_log->{'circuit-id'} = $circut_id;
+            $dhcp_log->{'client-id'} = $client_id;
+            $dhcp_log->{'remote-id'} = $remote_id;
+
             insert_record($hdb,'dhcp_log',$dhcp_log);
             }
         };

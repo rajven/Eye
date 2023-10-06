@@ -841,7 +841,7 @@ my $ip_record = shift;
 my $ip = $ip_record->{ip};
 my $mac = $ip_record->{mac};
 my $action = $ip_record->{type};
-my $hostname = $ip_record->{hostname};
+my $hostname = $ip_record->{hostname_utf8};
 
 if (!exists $ip_record->{ip_aton}) { $ip_record->{ip_aton}=StrToIp($ip); }
 if (!exists $ip_record->{hotspot}) { $ip_record->{hotspot}=is_hotspot($db,$ip); }
@@ -859,13 +859,13 @@ $new_record->{last_found}=$timestamp;
 if ($record->{user_id}) {
     #update timestamp and return
     if ($action!~/arp/i) {
-	$new_record->{dhcp_action}=$action;
-	$new_record->{dhcp_time}=$timestamp;
-	if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
-	update_record($db,'User_auth',$new_record,"id=$record->{id}");
-	} else {
-	update_record($db,'User_auth',$new_record,"id=$record->{id}");
-	}
+	    $new_record->{dhcp_action}=$action;
+	    $new_record->{dhcp_time}=$timestamp;
+	    if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
+	    update_record($db,'User_auth',$new_record,"id=$record->{id}");
+	    } else {
+	    update_record($db,'User_auth',$new_record,"id=$record->{id}");
+	    }
     return $record->{id};
     }
 

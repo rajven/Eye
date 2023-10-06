@@ -2945,17 +2945,10 @@ function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
     return;
 }
 
-function set_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community, $version, $state)
+function set_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community='public', $version='2', $state)
 {
     if (!isset($ip)) {
         return;
-    }
-
-    if (!isset($community)) {
-        $community = 'public';
-    }
-    if (!isset($version)) {
-        $version = '2';
     }
 
     //default poe status
