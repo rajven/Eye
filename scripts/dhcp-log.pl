@@ -106,7 +106,7 @@ if (!$pid) {
             chomp($logline);
 
             log_verbose("GET CLIENT REQUEST: $logline");
-            my ($type,$mac,$ip,$hostname,$timestamp,$tags,$sup_hostname,$old_hostname,$circut_id,$remote_id,$client_id) = split (/\;/, $logline);
+            my ($type,$mac,$ip,$hostname,$timestamp,$tags,$sup_hostname,$old_hostname,$circut_id,$remote_id,$client_id,$decoded_circuit_id,$decoded_remote_id) = split (/\;/, $logline);
             next if (!$type);
             next if ($type!~/(old|add|del)/i);
 
@@ -129,10 +129,21 @@ if (!$pid) {
 
             if (!$timestamp) { $timestamp=time(); }
 
-            my $dhcp_event_time = GetNowTime($timestamp);
-
             my $ip_aton=StrToIp($ip);
             $mac=mac_splitted(isc_mac_simplify($mac));
+
+            #detect switch
+            if (!$decoded_remote_id) {
+                $decoded_remote_id=mac_splitted(isc_mac_simplify($decoded_remote_id));
+                my $device = get_record_sql($hdb,"SELECT D.device_name,D.ip,A.mac FROM `devices` AS D,`User_auth` AS A WHERE D.user_id=A.User_id AND D.ip=A.ip AND A.deleted=0 AND A.mac='".$decoded_remote_id."'");
+                if (!$device) { 
+                    $remote_id = $decoded_remote_id;
+                    $circut_id = $decoded_circuit_id;
+                    db_log_verbose($hdb,"Dhcp request type: ".$type." ip=".$dhcp_record->{ip}." and mac=".$mac." from ".$device->{'device_name'});
+                    }
+            }
+
+            my $dhcp_event_time = GetNowTime($timestamp);
 
             my $dhcp_record;
             $dhcp_record->{'mac'}=$mac;
@@ -180,8 +191,10 @@ if (!$pid) {
 
             #create new record for refresh dhcp packet
             if (!$auth_record) {
-                db_log_warning($hdb,"Record for dhcp request type: ".$type." ip=".$dhcp_record->{ip}." and mac=".$mac." does not exists!");
-                if ($type eq 'old') {
+                #don't create record by del request! 
+                #because when the host address is changed, the new address will be overwritten by the old one being released
+                if ($type=~/old/i) {
+                    db_log_warning($hdb,"Record for dhcp request type: ".$type." ip=".$dhcp_record->{ip}." and mac=".$mac." does not exists!");
                     my $res_id = resurrection_auth($hdb,$dhcp_record);
                     if (!$res_id) {
                         db_log_error($hdb,"Error creating an ip address record for ip=".$dhcp_record->{ip}." and mac=".$mac."!");
