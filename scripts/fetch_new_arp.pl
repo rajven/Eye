@@ -205,11 +205,9 @@ my $int_list = get_snmp_ifindex($device->{ip},$device->{community},$device->{snm
 if (!$int_list) { log_info("Host id: $device->{id} name: $device->{device_name} ip: $device->{ip} is down! Skip."); next; }
 $pm_fdb->start() and next FDB_LOOP;
 my $fdb=get_fdb_table($device->{ip},$device->{community},$device->{snmp_version});
-my $vlans = get_switch_vlans($device->{ip},$device->{community},$device->{snmp_version});
 my $result;
 $result->{id}=$device->{id};
 $result->{fdb} = $fdb;
-$result->{vlans} = $vlans;
 $pm_fdb->finish(0, \$result);
 }
 $pm_fdb->wait_all_children;
@@ -218,7 +216,6 @@ my %fdb_ref;
 foreach my $fdb_table (@fdb_array){
 next if (!$fdb_table);
 $fdb_ref{$fdb_table->{id}}{fdb}=$fdb_table->{fdb};
-$fdb_ref{$fdb_table->{id}}{vlans}=$fdb_table->{vlans};
 }
 
 ################################ end fork's ##############################
@@ -235,28 +232,17 @@ my %port_links=();
 my $dev_id = $device->{id};
 my $dev_name = $device->{device_name};
 my $fdb=$fdb_ref{$dev_id}{fdb};
-my $vlans=$fdb_ref{$dev_id}{vlans};
 
 next if (!$fdb);
 
 my @device_ports = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id=$dev_id");
 
-
 foreach my $port_data (@device_ports) {
-    my $vlan = $port_data->{vlan};
-    if (!$vlan) { $vlan=1; }
     my $fdb_port_index=$port_data->{port};
     my $port_id = $port_data->{id};
     if (!$port_data->{snmp_index}) { $port_data->{snmp_index} = $port_data->{port}; }
     $fdb_port_index=$port_data->{snmp_index};
-    my $current_vlan = $vlans->{$fdb_port_index};
-    if (!$current_vlan) { $current_vlan=1; }
-    if ($current_vlan != $vlan) {
 	my $dev_ports;
-	$dev_ports->{vlan}=$current_vlan;
-	update_record($dbh,'device_ports',$dev_ports,"id=$port_id");
-        db_log_verbose($dbh,"Vlan changed at device $dev_name [$port_data->{port}] id: $port_id old: $vlan current: $current_vlan");
-        }
     next if ($port_data->{skip});
     #snmp-индекс порта = номеру порта
     $port_snmp_index{$port_data->{snmp_index}}=$port_data->{port};
