@@ -134,6 +134,11 @@ if (!$pid) {
 
             #detect switch
             if (!$decoded_remote_id) {
+                if (length($decoded_remote_id)<12) {
+                    for (my $i = length($decoded_remote_id); $i <= 12; $i++) {
+                        $decoded_remote_id = $decoded_remote_id."0";
+                    }
+                }
                 $decoded_remote_id=mac_splitted(isc_mac_simplify($decoded_remote_id));
                 my $device = get_record_sql($hdb,"SELECT D.device_name,D.ip,A.mac FROM `devices` AS D,`User_auth` AS A WHERE D.user_id=A.User_id AND D.ip=A.ip AND A.deleted=0 AND A.mac='".$decoded_remote_id."'");
                 if (!$device) { 
