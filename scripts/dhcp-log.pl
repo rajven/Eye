@@ -139,7 +139,7 @@ if (!$pid) {
                 if (!$device) { 
                     $remote_id = $decoded_remote_id;
                     $circut_id = $decoded_circuit_id;
-                    db_log_verbose($hdb,"Dhcp request type: ".$type." ip=".$dhcp_record->{ip}." and mac=".$mac." from ".$device->{'device_name'});
+                    db_log_verbose($hdb,"Dhcp request type: ".$type." ip=".$ip." and mac=".$mac." from ".$device->{'device_name'});
                     }
             }
 
