@@ -23,6 +23,8 @@ use Net::Netmask;
 use Text::Iconv;
 use File::Tail;
 
+$debug = 1;
+
 my $pf = '/var/run/dhcp-log.pid';
 
 my $log_file='/var/log/dhcp.log';
@@ -99,6 +101,10 @@ if (!$pid) {
 
         #parse log
         my $dhcp_log=File::Tail->new(name=>$log_file,maxinterval=>5,interval=>1,ignore_nonexistant=>1) || die "$log_file not found!";
+
+        #truncate current log file
+        truncate $log_file, 0;
+
         while (my $logline=$dhcp_log->read) {
 
             next if (!$logline);
@@ -130,23 +136,8 @@ if (!$pid) {
             if (!$timestamp) { $timestamp=time(); }
 
             my $ip_aton=StrToIp($ip);
-            $mac=mac_splitted(isc_mac_simplify($mac));
 
-            #detect switch
-            if (!$decoded_remote_id) {
-                if (length($decoded_remote_id)<12) {
-                    for (my $i = length($decoded_remote_id); $i <= 12; $i++) {
-                        $decoded_remote_id = $decoded_remote_id."0";
-                    }
-                }
-                $decoded_remote_id=mac_splitted(isc_mac_simplify($decoded_remote_id));
-                my $device = get_record_sql($hdb,"SELECT D.device_name,D.ip,A.mac FROM `devices` AS D,`User_auth` AS A WHERE D.user_id=A.User_id AND D.ip=A.ip AND A.deleted=0 AND A.mac='".$decoded_remote_id."'");
-                if (!$device) { 
-                    $remote_id = $decoded_remote_id;
-                    $circut_id = $decoded_circuit_id;
-                    db_log_verbose($hdb,"Dhcp request type: ".$type." ip=".$ip." and mac=".$mac." from ".$device->{'device_name'});
-                    }
-            }
+            $mac=mac_splitted(isc_mac_simplify($mac));
 
             my $dhcp_event_time = GetNowTime($timestamp);
 
@@ -165,7 +156,43 @@ if (!$pid) {
             $dhcp_record->{'client-id'} = $client_id;
             $dhcp_record->{'remote-id'} = $remote_id;
             $dhcp_record->{'hotspot'}=is_hotspot($dbh,$dhcp_record->{ip});
+
             $leases{$ip}=$dhcp_record;
+
+            my $switch;
+
+            #detect switch
+            if ($decoded_remote_id) {
+                #fill '0' to remote-id for full mac lenght
+                if (length($decoded_remote_id)<12) {
+                    for (my $i = length($decoded_remote_id); $i < 12; $i++) {
+                        $decoded_remote_id = $decoded_remote_id."0";
+                    }
+                }
+                $decoded_remote_id=mac_splitted(isc_mac_simplify($decoded_remote_id));
+                my $devSQL = "SELECT D.device_name, D.ip, A.mac FROM `devices` AS D,`User_auth` AS A WHERE D.user_id=A.User_id AND D.ip=A.ip AND A.deleted=0 AND A.mac='".$decoded_remote_id."'";
+                log_debug($devSQL);
+                $switch = get_record_sql($hdb,$devSQL);
+                if ($switch) {
+                    $remote_id = $decoded_remote_id;
+                    $circut_id = $decoded_circuit_id;
+                    $dhcp_record->{'circuit-id'} = $circut_id;
+                    $dhcp_record->{'remote-id'} = $remote_id;
+                    }
+            }
+            #maybe string?
+            if (!$switch and $remote_id) {
+                my @id_words = split(/ /,$remote_id);
+                if ($id_words[0]) {
+                    my $devSQL = "SELECT D.device_name, D.ip, A.mac FROM `devices` AS D,`User_auth` AS A WHERE D.user_id=A.User_id AND D.ip=A.ip AND A.deleted=0 AND D.device_name like '".$id_words[0]."%'";
+                    log_debug($devSQL);
+                    $switch = get_record_sql($hdb,$devSQL);
+                    }
+                }
+
+            if ($switch) {
+                db_log_verbose($hdb,"Dhcp request type: ".$type." ip=".$ip." and mac=".$mac." from ".$switch->{'device_name'});
+                }
 
             log_debug(uc($type).">>");
             log_debug("MAC:       ".$dhcp_record->{'mac'});
@@ -177,10 +204,11 @@ if (!$pid) {
             log_debug("TYPE:      ".$dhcp_record->{'type'});
             log_debug("TIME:      ".$dhcp_event_time);
             log_debug("UTF8 NAME: ".$dhcp_record->{'hostname_utf8'});
+            log_debug("SWITCH:    ".$switch->{'device_name'}) if ($switch);
             log_debug("END GET");
 
             my $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
-	        if (!$auth_record and $type eq 'old' ) { $type='add'; }
+            if (!$auth_record and $type eq 'old' ) { $type='add'; }
 
             if ($type eq 'add') {
                     my $res_id = resurrection_auth($hdb,$dhcp_record);
@@ -191,12 +219,12 @@ if (!$pid) {
                     $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE id='.$res_id);
                     db_log_info($hdb,"Check for new auth. Found id: $res_id",$res_id);
                 } else {
-                    $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC'); 
+                    $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
                 }
 
             #create new record for refresh dhcp packet
             if (!$auth_record) {
-                #don't create record by del request! 
+                #don't create record by del request!
                 #because when the host address is changed, the new address will be overwritten by the old one being released
                 if ($type=~/old/i) {
                     db_log_warning($hdb,"Record for dhcp request type: ".$type." ip=".$dhcp_record->{ip}." and mac=".$mac." does not exists!");
@@ -209,9 +237,9 @@ if (!$pid) {
                     db_log_info($hdb,"Check for new auth. Found id: $res_id",$res_id);
                     } else { next; }
                 }
-                
+
             my $auth_id = $auth_record->{id};
-	        my $auth_ou_id = $auth_record->{ou_id};
+                my $auth_ou_id = $auth_record->{ou_id};
 
             update_dns_record($hdb,$dhcp_record,$auth_record);
 
@@ -246,10 +274,10 @@ if (!$pid) {
                         $auth_rec->{dhcp_time}=$dhcp_event_time;
                         update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
                         my $u_count=get_count_records($hdb,'User_auth','deleted=0 and user_id='.$auth_record->{'user_id'});
-		                if (!$u_count) {
-				            delete_record($hdb,"User_list","id=".$auth_record->{'user_id'});
-	                        db_log_info($hdb,"Remove dynamic user id: $auth_record->{'user_id'} by dhcp request",$auth_id);
-	                        }
+                                if (!$u_count) {
+                                            delete_record($hdb,"User_list","id=".$auth_record->{'user_id'});
+                                db_log_info($hdb,"Remove dynamic user id: $auth_record->{'user_id'} by dhcp request",$auth_id);
+                                }
                         }
                     }
                 }
