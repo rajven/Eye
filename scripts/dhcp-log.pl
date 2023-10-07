@@ -23,7 +23,7 @@ use Net::Netmask;
 use Text::Iconv;
 use File::Tail;
 
-$debug = 1;
+#$debug = 1;
 
 my $pf = '/var/run/dhcp-log.pid';
 
