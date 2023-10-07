@@ -198,11 +198,11 @@ if (!$mk_ros_version or $mk_ros_version > 6468) {
         foreach my $row (keys(%$index_map_table)) {
             my $port_index = $index_map_table->{$row};
             next if (!$port_index);
-   	        my $value;
+                my $value;
             if ($row=~/\.([0-9]{1,10})$/) { $value = $1; }
             next if (!$value);
             $ifmib_map->{$value}=$port_index;
-       	    }
+            }
         }
     }
 
@@ -210,12 +210,12 @@ if (!$ifmib_map) {
     my $index_table =  snmp_get_oid($ip, $community, $ifIndex, $version);
     if (!$index_table) { $index_table =  snmp_walk_oid($ip, $community, $ifIndex, $version); }
     foreach my $row (keys(%$index_table)) {
-	    my $port_index = $index_table->{$row};
-	    next if (!$port_index);
+            my $port_index = $index_table->{$row};
+            next if (!$port_index);
         my $value;
         if ($row=~/\.([0-9]{1,10})$/) { $value = $1; }
-	    next if (!$value);
-    	$ifmib_map->{$value}=$value;
+            next if (!$value);
+        $ifmib_map->{$value}=$value;
         };
     }
 return $ifmib_map;
@@ -235,24 +235,24 @@ sub get_mac_table {
     if (!$fdb_table1) { $fdb_table1=snmp_walk_oid($host,$community,$oid,$version,undef); }
     if ($fdb_table1) {
         foreach my $row (keys(%$fdb_table1)) {
-	        my $port_index = $fdb_table1->{$row};
+                my $port_index = $fdb_table1->{$row};
             next if (!$port_index);
-	        my $mac;
-	        if ($row=~/\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/) {
-        	    $mac=sprintf "%02x%02x%02x%02x%02x%02x",$1,$2,$3,$4,$5,$6;
-        	    }
+                my $mac;
+                if ($row=~/\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/) {
+                    $mac=sprintf "%02x%02x%02x%02x%02x%02x",$1,$2,$3,$4,$5,$6;
+                    }
             next if (!$mac);
             if ($index_map and exists $index_map->{$port_index}) { $port_index = $index_map->{$port_index}; }
-	        $fdb->{$mac}=$port_index;
-	        };
+                $fdb->{$mac}=$port_index;
+                };
         return $fdb;
-	    }
+            }
 }
 
 #-------------------------------------------------------------------------------------
 
 sub get_fdb_table {
-    my ($host,$community,$version) = @_;
+    my ($host,$community,$version,$iflist) = @_;
 #    return if (!HostIsLive($host));
     my $port = 161;
     my $timeout = 5;
@@ -260,40 +260,48 @@ sub get_fdb_table {
 
     my $ifindex_map = get_ifmib_index_table($host,$community,$version);
     my $fdb1=get_mac_table($host,$community,$fdb_table_oid,$version,$ifindex_map);
+    my $fdb2=get_mac_table($host,$community,$fdb_table_oid2,$version);
+
+    my $fdb3;
+
+    if ($fdb2 and $iflist) {
+        foreach my $mac (keys %$fdb2) {
+            if (exists $iflist->{$fdb2->{$mac}}) { $fdb3->{$mac}=$iflist->{$fdb2->{$mac}}; }
+            }
+        }
 
     my $fdb;
-    if ($fdb1) { $fdb = $fdb1; } else {
-        my $fdb2=get_mac_table($host,$community,$fdb_table_oid2,$version);
-        if ($fdb2) { $fdb = $fdb2; }
-        }
+    if ($fdb1 and !$fdb3) { $fdb = $fdb1; }
+    if (!$fdb1 and $fdb3) { $fdb = $fdb3; }
+    if ($fdb1 and $fdb3) { $fdb = { %$fdb1,%$fdb3 }; }
 
     #maybe cisco?!
     if (!$fdb) {
-	    my $vlan_table=snmp_get_oid($host,$community,$cisco_vlan_oid,$version);
+        my $vlan_table=snmp_get_oid($host,$community,$cisco_vlan_oid,$version);
         if (!$vlan_table) { $vlan_table=snmp_walk_oid($host,$community,$cisco_vlan_oid,$version); }
         #fuck!
         if (!$vlan_table) { return; }
         my %fdb_vlan;
-	    foreach my $vlan_oid (keys %$vlan_table) {
-	        next if (!$vlan_oid);
-	        my $vlan_id;
-	        if ($vlan_oid=~/\.([0-9]{1,4})$/) { $vlan_id=$1; }
-	        next if (!$vlan_id);
-	        next if ($vlan_id>1000 and $vlan_id<=1009);
-	        $fdb_vlan{$vlan_id}=get_mac_table($host,$community.'@'.$vlan_id,$fdb_table_oid,$version,$ifindex_map);
-	        if (!$fdb_vlan{$vlan_id}) { $fdb_vlan{$vlan_id}=get_mac_table($host,$community.'@'.$vlan_id,$fdb_table_oid2,$version,$ifindex_map); }
-	        }
-	    foreach my $vlan_id (keys %fdb_vlan) {
-	        next if (!exists $fdb_vlan{$vlan_id});
-	        if (defined $fdb_vlan{$vlan_id}) {
-		        my %tmp=%{$fdb_vlan{$vlan_id}};
-		        foreach my $mac (keys %tmp) {
-			        next if (!$mac);
-			        $fdb->{$mac}=$tmp{$mac};
-			        }
-		    }
-	    }
-	}
+            foreach my $vlan_oid (keys %$vlan_table) {
+                next if (!$vlan_oid);
+                my $vlan_id;
+                if ($vlan_oid=~/\.([0-9]{1,4})$/) { $vlan_id=$1; }
+                next if (!$vlan_id);
+                next if ($vlan_id>1000 and $vlan_id<=1009);
+                $fdb_vlan{$vlan_id}=get_mac_table($host,$community.'@'.$vlan_id,$fdb_table_oid,$version,$ifindex_map);
+                if (!$fdb_vlan{$vlan_id}) { $fdb_vlan{$vlan_id}=get_mac_table($host,$community.'@'.$vlan_id,$fdb_table_oid2,$version,$ifindex_map); }
+                }
+            foreach my $vlan_id (keys %fdb_vlan) {
+                next if (!exists $fdb_vlan{$vlan_id});
+                if (defined $fdb_vlan{$vlan_id}) {
+                        my %tmp=%{$fdb_vlan{$vlan_id}};
+                        foreach my $mac (keys %tmp) {
+                                next if (!$mac);
+                                $fdb->{$mac}=$tmp{$mac};
+                                }
+                    }
+            }
+        }
     return $fdb;
 }
 
@@ -502,4 +510,3 @@ return;
 
 1;
 }
-
