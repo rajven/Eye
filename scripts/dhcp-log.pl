@@ -23,8 +23,6 @@ use Net::Netmask;
 use Text::Iconv;
 use File::Tail;
 
-#$debug = 1;
-
 my $pf = '/var/run/dhcp-log.pid';
 
 my $log_file='/var/log/dhcp.log';
@@ -112,7 +110,7 @@ if (!$pid) {
             chomp($logline);
 
             log_verbose("GET CLIENT REQUEST: $logline");
-            my ($type,$mac,$ip,$hostname,$timestamp,$tags,$sup_hostname,$old_hostname,$circut_id,$remote_id,$client_id,$decoded_circuit_id,$decoded_remote_id) = split (/\;/, $logline);
+            my ($type,$mac,$ip,$hostname,$timestamp,$tags,$sup_hostname,$old_hostname,$circuit_id,$remote_id,$client_id,$decoded_circuit_id,$decoded_remote_id) = split (/\;/, $logline);
             next if (!$type);
             next if ($type!~/(old|add|del)/i);
 
@@ -152,7 +150,7 @@ if (!$pid) {
             $dhcp_record->{'hostname_utf8'}=$converter->convert($client_hostname);
             $dhcp_record->{'timestamp'} = $timestamp;
             $dhcp_record->{'last_time'} = time();
-            $dhcp_record->{'circuit-id'} = $circut_id;
+            $dhcp_record->{'circuit-id'} = $circuit_id;
             $dhcp_record->{'client-id'} = $client_id;
             $dhcp_record->{'remote-id'} = $remote_id;
             $dhcp_record->{'hotspot'}=is_hotspot($dbh,$dhcp_record->{ip});
@@ -175,11 +173,12 @@ if (!$pid) {
                 $switch = get_record_sql($hdb,$devSQL);
                 if ($switch) {
                     $remote_id = $decoded_remote_id;
-                    $circut_id = $decoded_circuit_id;
-                    $dhcp_record->{'circuit-id'} = $circut_id;
+                    $circuit_id = $decoded_circuit_id;
+                    $dhcp_record->{'circuit-id'} = $circuit_id;
                     $dhcp_record->{'remote-id'} = $remote_id;
                     }
             }
+
             #maybe string?
             if (!$switch and $remote_id) {
                 my @id_words = split(/ /,$remote_id);
@@ -187,6 +186,24 @@ if (!$pid) {
                     my $devSQL = "SELECT D.device_name, D.ip, A.mac FROM `devices` AS D,`User_auth` AS A WHERE D.user_id=A.User_id AND D.ip=A.ip AND A.deleted=0 AND D.device_name like '".$id_words[0]."%'";
                     log_debug($devSQL);
                     $switch = get_record_sql($hdb,$devSQL);
+                    }
+                }
+
+            #maybe mikrotik?!
+            if (!$switch and $circuit_id) {
+                my @id_words = split(/ /,$circuit_id);
+                if ($id_words[0]) {
+                    my $devSQL = "SELECT D.device_name, D.ip, A.mac FROM `devices` AS D,`User_auth` AS A WHERE D.user_id=A.User_id AND D.ip=A.ip AND A.deleted=0 AND D.device_name like '".$id_words[0]."%'";
+                    log_debug($devSQL);
+                    $switch = get_record_sql($hdb,$devSQL);
+                    #fucking mikrotik - swap variables
+                    if ($switch) {
+                        my $a = $remote_id;
+                        $remote_id = $circuit_id;
+                        $circuit_id = $a;
+                        $dhcp_record->{'circuit-id'} = $circuit_id;
+                        $dhcp_record->{'remote-id'} = $remote_id;
+                        }
                     }
                 }
 
@@ -291,7 +308,7 @@ if (!$pid) {
             $dhcp_log->{'action'} = $type;
             $dhcp_log->{'dhcp_hostname'} = $dhcp_record->{'hostname_utf8'};
             $dhcp_log->{'timestamp'} = $dhcp_event_time;
-            $dhcp_log->{'circuit-id'} = $circut_id;
+            $dhcp_log->{'circuit-id'} = $circuit_id;
             $dhcp_log->{'client-id'} = $client_id;
             $dhcp_log->{'remote-id'} = $remote_id;
 
