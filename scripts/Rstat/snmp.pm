@@ -273,6 +273,7 @@ sub get_fdb_table {
     my $fdb;
     if ($fdb1 and !$fdb3) { $fdb = $fdb1; }
     if (!$fdb1 and $fdb3) { $fdb = $fdb3; }
+    #join tables
     if ($fdb1 and $fdb3) { $fdb = { %$fdb1,%$fdb3 }; }
 
     #maybe cisco?!
