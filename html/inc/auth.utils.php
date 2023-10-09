@@ -220,14 +220,14 @@ function IsSilentAuthenticated($db)
             $_SESSION['session_id'] = session_id();
         }
         if (empty($_SESSION['user_id'])) {
-            LOG_INFO($db, "Silent login user [$login] from " . $_SESSION['IP'] . ": success.");
+            LOG_INFO($db, "Api login user [$login] from " . $_SESSION['IP'] . ": success.");
         }
         $_SESSION['user_id'] = $auth_record['id'];
         $_SESSION['login'] = $login;
         return true;
     }
 
-    LOG_INFO($db, "Silent login user $login from " . $_SESSION['IP'] . ": fail!");
+    LOG_INFO($db, "Api login user $login from " . $_SESSION['IP'] . ": fail!");
     logout();
     return false;
 }
