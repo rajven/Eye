@@ -269,14 +269,14 @@ if (!$pid) {
                 if ($switch) {
                     $t_circuit_id=~s/[\+\-\s]+/ /g;
                     #detect port by name
-                    my @device_ports = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id=2");
+                    my @device_ports = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id=".$switch->{id});
                     my %device_ports_h;
                     foreach my $port_data (@device_ports) {
                         if (!$port_data->{snmp_index}) { $port_data->{snmp_index} = $port_data->{port}; }
                         $device_ports_h{$port_data->{snmp_index}} = $port_data;
                         if ($t_circuit_id=~/\s*$port_data->{'ifName'}$/i or $t_circuit_id=~/^$port_data->{'ifName'}\s+/i ) { $switch_port = $port_data; last; }
                         }
-                        
+
                     #detect hex - get last 2 byte
                     if (!$switch_port) {
                         my $hex_port = substr($decoded_circuit_id, -4);
