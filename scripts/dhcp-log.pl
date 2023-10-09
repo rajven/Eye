@@ -155,31 +155,52 @@ if (!$pid) {
             $dhcp_record->{'remote-id'} = $remote_id;
             $dhcp_record->{'hotspot'}=is_hotspot($dbh,$dhcp_record->{ip});
 
+            #save record for mute
             $leases{$ip}=$dhcp_record;
 
             my $switch;
 
-            #detect switch
+            my $t_remote_id;
+            my $t_circuit_id = $circuit_id;
+
+            #detect switch by decoded remote-id
             if ($decoded_remote_id) {
+                $t_remote_id = $decoded_remote_id;
                 #fill '0' to remote-id for full mac lenght
-                if (length($decoded_remote_id)<12) {
-                    for (my $i = length($decoded_remote_id); $i < 12; $i++) {
-                        $decoded_remote_id = $decoded_remote_id."0";
-                    }
+                if (length($t_remote_id)<12) {
+                    for (my $i = length($decoded_remote_id); $i < 12; $i++) { $t_remote_id = $t_remote_id."0"; }
                 }
-                $decoded_remote_id=mac_splitted(isc_mac_simplify($decoded_remote_id));
-                my $devSQL = "SELECT D.device_name, D.ip, A.mac FROM `devices` AS D,`User_auth` AS A WHERE D.user_id=A.User_id AND D.ip=A.ip AND A.deleted=0 AND A.mac='".$decoded_remote_id."'";
+                $t_remote_id=mac_splitted(isc_mac_simplify($t_remote_id));
+                my $devSQL = "SELECT D.device_name, D.ip, A.mac FROM `devices` AS D,`User_auth` AS A WHERE D.user_id=A.User_id AND D.ip=A.ip AND A.deleted=0 AND A.mac='".$t_remote_id."'";
                 log_debug($devSQL);
                 $switch = get_record_sql($hdb,$devSQL);
                 if ($switch) {
-                    $remote_id = $decoded_remote_id;
+                    $remote_id = $t_remote_id;
                     $circuit_id = $decoded_circuit_id;
                     $dhcp_record->{'circuit-id'} = $circuit_id;
                     $dhcp_record->{'remote-id'} = $remote_id;
                     }
             }
 
-            #maybe string?
+            #detect switch by original remote-id
+            if (!$switch and $remote_id) {
+                $t_remote_id = $remote_id;
+                #fill '0' to remote-id for full mac lenght
+                if (length($t_remote_id)<12) {
+                    for (my $i = length($decoded_remote_id); $i < 12; $i++) { $t_remote_id = $t_remote_id."0"; }
+                }
+                $t_remote_id=mac_splitted(isc_mac_simplify($t_remote_id));
+                my $devSQL = "SELECT D.device_name, D.ip, A.mac FROM `devices` AS D,`User_auth` AS A WHERE D.user_id=A.User_id AND D.ip=A.ip AND A.deleted=0 AND A.mac='".$t_remote_id."'";
+                log_debug($devSQL);
+                $switch = get_record_sql($hdb,$devSQL);
+                if ($switch) {
+                    $remote_id = $t_remote_id;
+                    $dhcp_record->{'circuit-id'} = $circuit_id;
+                    $dhcp_record->{'remote-id'} = $remote_id;
+                    }
+            }
+
+            #maybe remote-id is string name device?
             if (!$switch and $remote_id) {
                 my @id_words = split(/ /,$remote_id);
                 if ($id_words[0]) {
@@ -198,9 +219,8 @@ if (!$pid) {
                     $switch = get_record_sql($hdb,$devSQL);
                     #fucking mikrotik - swap variables
                     if ($switch) {
-                        my $a = $remote_id;
-                        $remote_id = $circuit_id;
-                        $circuit_id = $a;
+                        $circuit_id = $remote_id;
+                        $remote_id = $t_circuit_id;
                         $dhcp_record->{'circuit-id'} = $circuit_id;
                         $dhcp_record->{'remote-id'} = $remote_id;
                         }
@@ -209,6 +229,7 @@ if (!$pid) {
 
             if ($switch) {
                 db_log_verbose($hdb,"Dhcp request type: ".$type." ip=".$ip." and mac=".$mac." from ".$switch->{'device_name'});
+                #detect port
                 }
 
             log_debug(uc($type).">>");
