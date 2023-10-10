@@ -100,6 +100,8 @@ if ($append) {
     open (LG,">$f_name") || die("Error open file $f_name!!! die...");
     }
 
+binmode(LG,':utf8');
+
 if (ref($cmd) eq 'ARRAY') {
     foreach my $row (@$cmd) {
 	next if (!$row);
