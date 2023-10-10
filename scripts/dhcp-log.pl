@@ -114,7 +114,7 @@ if (!$pid) {
             next if (!$type);
             next if ($type!~/(old|add|del)/i);
 
-            if (exists $leases{$ip} and $leases{$ip}{'type'} eq $type and time()-$leases{$ip}{last_time} <= $mute_time) { next; }
+            if (exists $leases{$ip} and $leases{$ip}{'type'} eq $type and time()-$leases{$ip}{'last_time'} <= $mute_time) { next; }
 
             if (time()-$last_refresh_config>=60) { init_option($hdb); }
 

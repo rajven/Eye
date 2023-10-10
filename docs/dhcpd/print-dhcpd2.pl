@@ -86,25 +86,12 @@ my $info = $office_networks->match_string($row->{ip});
 next if (!$info);
 my $zone_name = $info->{subnet};
 $zone_name=~s/(\/\d+)$//;
-#push(@{$dhcp_conf{$zone_name}},"host $row->{id} { hardware ethernet $row->{mac}; fixed-address $row->{ip}; }");
-
-my @u_mac_array;
-foreach my $octet (split(/:/,$row->{mac})){$octet=~s/0(\S:?)/$1/g;push(@u_mac_array,$octet);}
-my $u_mac=join(':',@u_mac_array);
-
-push(@{$dhcp_conf{$zone_name}->{conf}},"# Data for $row->{id}");
-push(@{$dhcp_conf{$zone_name}->{conf}},"class \"".$row->{id}."_fixed\" {");
-push(@{$dhcp_conf{$zone_name}->{conf}},"match if (");
-push(@{$dhcp_conf{$zone_name}->{conf}},"binary-to-ascii(16,8,\":\",substring(hardware,1,6))=\"".$u_mac.'"');
-if ($dhcp_conf{$zone_name}->{relay_ip}!~/direct/i) {
-    push(@{$dhcp_conf{$zone_name}->{conf}},"and binary-to-ascii(10,8,\".\",packet(24,4))=\"".$dhcp_conf{$zone_name}->{relay_ip}.'"');
+push(@{$dhcp_conf{$zone_name}->{conf}},"# Data for $row->{id} $row->{dns_name} $row->{comments}");
+if ($row->{dns_name}) {
+    push(@{$dhcp_conf{$zone_name}->{conf}},"host ".$row->{id}." { hardware ethernet ".$row->{mac}."; fixed-address ".$row->{ip}."; option host-name ".$row->{dns_name}."; }");
+    } else {
+    push(@{$dhcp_conf{$zone_name}->{conf}},"host ".$row->{id}." { hardware ethernet ".$row->{mac}."; fixed-address ".$row->{ip}."; }");
     }
-push(@{$dhcp_conf{$zone_name}->{conf}},");");
-push(@{$dhcp_conf{$zone_name}->{conf}},"}");
-push(@{$dhcp_conf{$zone_name}->{conf}},"pool {");
-push(@{$dhcp_conf{$zone_name}->{conf}},"range $row->{ip} $row->{ip};");
-push(@{$dhcp_conf{$zone_name}->{conf}},"allow members of \"".$row->{id}."_fixed\";");
-push(@{$dhcp_conf{$zone_name}->{conf}},"}");
 $dhcp_conf{$zone_name}->{pool}->{$row->{ip_int}} = 1;
 }
 
@@ -134,7 +121,6 @@ write_to_file($new_dir."/eye.conf","\tmax-lease-time ".$dhcp_conf{$zone}->{dhcp_
 write_to_file($new_dir."/eye.conf","\tdefault-lease-time ".$dhcp_conf{$zone}->{dhcp_lease_time}.';',1);
 write_to_file($new_dir."/eye.conf","\tauthoritative;",1);
 write_to_file($new_dir."/eye.conf","\tallow duplicates;",1);
-write_to_file($new_dir."/eye.conf","\tuse-host-decl-names on;",1);
 write_to_file($new_dir."/eye.conf","\t".'include "'.$full_zone_path.'";',1);
 if ($dhcp_conf{$zone}->{deny_unknown_clients}) { write_to_file($new_dir."/eye.conf","\tdeny unknown-clients;",1); }
 write_to_file($new_dir."/eye.conf","\t}",1);
