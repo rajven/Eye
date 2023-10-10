@@ -273,16 +273,16 @@ if (!$pid) {
                     my %device_ports_h;
                     foreach my $port_data (@device_ports) {
                         if (!$port_data->{snmp_index}) { $port_data->{snmp_index} = $port_data->{port}; }
-                        $device_ports_h{$port_data->{snmp_index}} = $port_data;
+                        $device_ports_h{$port_data->{port}} = $port_data;
                         if ($t_circuit_id=~/\s*$port_data->{'ifName'}$/i or $t_circuit_id=~/^$port_data->{'ifName'}\s+/i ) { $switch_port = $port_data; last; }
                         }
 
-                    #detect hex - get last 2 byte
+                    #detect hex - get last byte
                     if (!$switch_port) {
-                        my $hex_port = substr($decoded_circuit_id, -4);
+                        my $hex_port = substr($decoded_circuit_id, -2);
                         if ($hex_port) {
                             my $t_port = hex($hex_port);
-                            #try find port by snmp index
+                            #try find port by index
                             if (exists $device_ports_h{$t_port}) { $switch_port =$device_ports_h{$t_port}; }
                             }
                         }
