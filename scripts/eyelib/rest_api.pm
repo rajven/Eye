@@ -1,4 +1,4 @@
-package Rstat::rest_api;
+package eyelib::rest_api;
 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
@@ -15,7 +15,7 @@ use HTTP::Request::Common;
 use HTTP::Request;
 use LWP;
 use URI::Encode;
-use Rstat::main;
+use eyelib::main;
 use Data::Dumper;
 use IO::Socket::SSL;
 use JSON;

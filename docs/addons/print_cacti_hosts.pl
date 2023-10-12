@@ -9,8 +9,8 @@ use lib "$Bin/";
 use strict;
 use DBI;
 use Date::Parse;
-use Rstat::config;
-use Rstat::mysql;
+use eyelib::config;
+use eyelib::mysql;
 use encoding 'utf8';
 
 

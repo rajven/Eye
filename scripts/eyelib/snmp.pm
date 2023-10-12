@@ -1,4 +1,4 @@
-package Rstat::snmp;
+package eyelib::snmp;
 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
@@ -12,8 +12,8 @@ use lib "$Bin";
 use base 'Exporter';
 use vars qw(@EXPORT @ISA);
 use Data::Dumper;
-use Rstat::config;
-use Rstat::main;
+use eyelib::config;
+use eyelib::main;
 use Net::SNMP;
 
 @ISA = qw(Exporter);

@@ -12,9 +12,9 @@ use DBI;
 no if $] >= 5.018, warnings =>  "experimental::smartmatch";
 use Data::Dumper;
 use Socket;
-use Rstat::config;
-use Rstat::main;
-use Rstat::mysql;
+use eyelib::config;
+use eyelib::main;
+use eyelib::mysql;
 
 my @router_list = get_records_sql($dbh,"SELECT * FROM devices WHERE device_type<=2" );
 

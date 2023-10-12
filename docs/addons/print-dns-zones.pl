@@ -11,9 +11,9 @@ use DBI;
 use Time::Local;
 use Net::Patricia;
 use Data::Dumper;
-use Rstat::config;
-use Rstat::main;
-use Rstat::mysql;
+use eyelib::config;
+use eyelib::main;
+use eyelib::mysql;
 
 setpriority(0,0,19);
 

@@ -13,10 +13,10 @@ use Net::Patricia;
 use Data::Dumper;
 use Date::Parse;
 use Socket;
-use Rstat::config;
-use Rstat::main;
-use Rstat::net_utils;
-use Rstat::mysql;
+use eyelib::config;
+use eyelib::main;
+use eyelib::net_utils;
+use eyelib::mysql;
 use NetAddr::IP;
 
 setpriority(0,0,19);

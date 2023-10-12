@@ -12,10 +12,10 @@ use lib "$Bin/";
 use strict;
 use DBI;
 use Time::Local;
-use Rstat::config;
-use Rstat::main;
-use Rstat::mysql;
-use Rstat::net_utils;
+use eyelib::config;
+use eyelib::main;
+use eyelib::mysql;
+use eyelib::net_utils;
 
 my @devices=get_records_sql($dbh,'SELECT * FROM devices WHERE deleted=0 and (vendor_id=3 or vendor_id=8 or vendor_id=9) and device_type<=2 ORDER BY device_name');
 foreach my $device (@devices) {

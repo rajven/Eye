@@ -11,10 +11,10 @@ use DBI;
 use Time::Local;
 use Net::Patricia;
 use Data::Dumper;
-use Rstat::config;
-use Rstat::main;
-use Rstat::net_utils;
-use Rstat::mysql;
+use eyelib::config;
+use eyelib::main;
+use eyelib::net_utils;
+use eyelib::mysql;
 
 my $OU_ID=$ARGV[0];
 my $ou_filter=" and L.ou_id=$OU_ID ";

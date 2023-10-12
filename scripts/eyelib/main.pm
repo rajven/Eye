@@ -1,4 +1,4 @@
-package Rstat::main;
+package eyelib::main;
 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
@@ -11,7 +11,7 @@ use FindBin '$Bin';
 use lib "$Bin";
 use base 'Exporter';
 use vars qw(@EXPORT @ISA);
-use Rstat::config;
+use eyelib::config;
 use Socket;
 use IO::Select;
 use IO::Handle;

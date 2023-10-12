@@ -1,4 +1,4 @@
-package Rstat::cmd;
+package eyelib::cmd;
 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
@@ -13,8 +13,8 @@ use lib "$Bin";
 use base 'Exporter';
 use vars qw(@EXPORT @ISA);
 use Data::Dumper;
-use Rstat::config;
-use Rstat::main;
+use eyelib::config;
+use eyelib::main;
 use Net::Telnet;
 use Net::OpenSSH;
 

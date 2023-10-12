@@ -13,11 +13,11 @@ use strict;
 use Time::Local;
 use FileHandle;
 use Data::Dumper;
-use Rstat::config;
-use Rstat::main;
-use Rstat::mysql;
-use Rstat::net_utils;
-use Rstat::cmd;
+use eyelib::config;
+use eyelib::main;
+use eyelib::mysql;
+use eyelib::net_utils;
+use eyelib::cmd;
 use Fcntl qw(:flock);
 
 open(SELF,"<",$0) or die "Cannot open $0 - $!";

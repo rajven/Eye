@@ -1,4 +1,4 @@
-package Rstat::net_utils;
+package eyelib::net_utils;
 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
@@ -13,8 +13,8 @@ use base 'Exporter';
 use vars qw(@EXPORT @ISA);
 use FileHandle;
 use POSIX;
-use Rstat::config;
-use Rstat::main;
+use eyelib::config;
+use eyelib::main;
 use Net::Ping;
 use Net::Patricia;
 use NetAddr::IP;

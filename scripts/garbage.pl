@@ -12,9 +12,9 @@ use lib "$Bin/";
 use strict;
 use DBI;
 use Date::Parse;
-use Rstat::config;
-use Rstat::mysql;
-use Rstat::net_utils;
+use eyelib::config;
+use eyelib::mysql;
+use eyelib::net_utils;
 use DateTime;
 use Fcntl qw(:flock);
 

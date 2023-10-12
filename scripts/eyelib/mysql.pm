@@ -1,4 +1,4 @@
-package Rstat::mysql;
+package eyelib::mysql;
 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
@@ -11,10 +11,10 @@ use FindBin '$Bin';
 use lib "$Bin";
 use base 'Exporter';
 use vars qw(@EXPORT @ISA);
-use Rstat::config;
-use Rstat::main;
+use eyelib::config;
+use eyelib::main;
 use Net::Patricia;
-use Rstat::net_utils;
+use eyelib::net_utils;
 use Data::Dumper;
 use DateTime;
 use POSIX;
