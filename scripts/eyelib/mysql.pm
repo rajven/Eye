@@ -850,7 +850,7 @@ sub find_mac_in_subnet {
     my $ip = shift;
     my $mac = shift;
     if (!$ip or !$mac) { return; }
-    $ip_subnet = get_ip_subnet($db, $ip);
+    my $ip_subnet = get_ip_subnet($db, $ip);
     if (!$ip_subnet) { return; }
     my @t_auth = get_records_sql($db, "SELECT id,mac,user_id FROM User_auth WHERE ip_int>=" . $ip_subnet->{'ip_int_start'} . " and ip_int<=" . $ip_subnet->{'ip_int_stop'} . " and mac='" . $mac . "' and deleted=0 ORDER BY id");
     my $auth_count = 0;
