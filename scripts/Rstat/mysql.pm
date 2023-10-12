@@ -834,6 +834,40 @@ return $result;
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub get_ip_subnet {
+    my $db = shift;
+    my $ip = shift;
+    if (!$ip) { return; }
+    my $ip_aton = StrToIp($ip);
+    my $user_subnet = get_record_sql($db, "SELECT * FROM `subnets` WHERE hotspot=1 or office=1 and ( ".$ip_aton." >= ip_int_start and ".$ip_aton." <= ip_int_stop)");
+    return $user_subnet;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub find_mac_in_subnet {
+    my $db = shift;
+    my $ip = shift;
+    my $mac = shift;
+    if (!$ip or !$mac) { return; }
+    $ip_subnet = get_ip_subnet($db, $ip);
+    if (!$ip_subnet) { return; }
+    my @t_auth = get_records_sql($db, "SELECT id,mac,user_id FROM User_auth WHERE ip_int>=" . $ip_subnet->{'ip_int_start'} . " and ip_int<=" . $ip_subnet->{'ip_int_stop'} . " and mac='" . $mac . "' and deleted=0 ORDER BY id");
+    my $auth_count = 0;
+    my $result;
+    $result->{'count'} = 0;
+    foreach my $row (@t_auth) {
+        next if (!$row);
+        $auth_count++;
+        $result->{'count'} = $auth_count;
+        $result->{$auth_count} = $row->{'id'};
+        push(@{$result->{'users_id'}}, $row->{'user_id'});
+        }
+    return $result;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub resurrection_auth {
 my $db = shift;
 my $ip_record = shift;
@@ -873,7 +907,7 @@ if ($record->{user_id}) {
 
 my $user_subnet=$office_networks->match_string($ip);
 if ($user_subnet->{static}) {
-    db_log_warning($db,"Unknown ip+mac found in static subnet! Stop work for ip: $ip mac: [".$mac."]");
+    db_log_warning($db,"Unknown ip+mac found in static subnet! Abort create record for ip: $ip mac: [".$mac."]");
     return 0;
     }
 
@@ -907,6 +941,10 @@ my $new_user_info=get_new_user_id($db,$ip,$mac,$hostname);
 my $new_user_id;
 if ($new_user_info->{user_id}) { $new_user_id = $new_user_info->{user_id}; }
 if (!$new_user_id) { $new_user_id = new_user($db,$new_user_info); }
+
+my $mac_exists=find_mac_in_subnet($db,$ip,$mac);
+#disable dhcp for same mac in one ip subnet
+if ($mac_exists and $mac_exists->{'count'}) { $new_record->{dhcp}=0; }
 
 #seek old auth with same ip and mac
 my $auth_exists=get_count_records($db,'User_auth',"ip_int=".$ip_aton." and mac='".$mac."'");

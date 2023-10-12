@@ -277,7 +277,7 @@ if (!$pid) {
                         if ($t_circuit_id=~/\s*$port_data->{'ifName'}$/i or $t_circuit_id=~/^$port_data->{'ifName'}\s+/i ) { $switch_port = $port_data; last; }
                         }
 
-                    #detect hex - get last byte
+                    #detect hex - get last 2 byte
                     if (!$switch_port) {
                         my $hex_port = substr($decoded_circuit_id, -2);
                         if ($hex_port) {
