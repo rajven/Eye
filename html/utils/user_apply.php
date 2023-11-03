@@ -171,7 +171,7 @@ if (isset($_POST["ApplyForAll"])) {
                 if ($a_create_netdev) {
                     if (!empty($b_ip)) {
                         $device = get_record_sql($db_link,"SELECT * FROM devices WHERE user_id=".$val);
-                        $auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE user_id=".$val);
+                        $auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE user_id=".$val." ORDER BY last_found DESC");
                         if (empty($device) and !empty($auth)) {
                             $new['user_id']=$val;
                             $new['device_name'] = $login['login'];
