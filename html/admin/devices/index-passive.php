@@ -123,6 +123,8 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 ?>
 <br>
 
+<form name="datatable">
+
 <table class="data">
         <tr>
                 <td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
@@ -167,6 +169,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td class="warn"><?php echo WEB_color_user_disabled; ?></td>
 <td class="error"><?php echo WEB_color_user_blocked; ?></td>
 </table>
+</form>
 
 <script src="/js/remodal/remodal.min.js"></script>
 <script src="/js/remodal-devices.js"></script>
