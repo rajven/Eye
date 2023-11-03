@@ -76,6 +76,7 @@ if ($msg_error) {
         <tr><td><input type=checkbox class="putField" name="e_new_ou" value='1'></td><td><?php print WEB_cell_ou."&nbsp";print_ou_select($db_link, 'a_new_ou', $rou); ?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_bind_mac" value='1'></td><td><?php print WEB_user_bind_mac."&nbsp";print_qa_select('a_bind_mac', 1);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_bind_ip" value='1'></td><td><?php print WEB_user_bind_ip."&nbsp";print_qa_select('a_bind_ip', 1);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_create_netdev" value='1'></td><td><?php print WEB_user_create_netdev."&nbsp";print_qa_select('a_create_netdev', 1);?></td></tr>
         </table>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>

@@ -42,6 +42,10 @@ if (isset($_POST["ApplyForAll"])) {
         $_POST["a_bind_ip"] = 0;
     }
 
+    if (empty($_POST["a_create_netdev"])) {
+        $_POST["a_create_netdev"] = 0;
+    }
+
     $a_enabled  = $_POST["a_enabled"] * 1;
     $a_dhcp     = $_POST["a_dhcp"] * 1;
     $a_dhcp_acl = $_POST["a_dhcp_acl"];
@@ -165,6 +169,31 @@ if (isset($_POST["ApplyForAll"])) {
                         LOG_INFO($db_link, "Remove auto rule for user_id: " . $val . " and ip " . $b_ip);
                 }
             }
+
+            //create network devices
+            if (isset($_POST["e_create_netdev"])) {
+                if ($a_create_netdev) {
+                    if (!empty($b_ip)) {
+                        $device = get_record_sql($db_link,"SELECT * FROM devices WHERE user_id=".$val);
+                        $auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE user_id=".$val);
+                        if (empty($device) and !empty($auth)) {
+                            $new['user_id']=$val;
+                            $new['device_name'] = $login['login'];
+                            $new['device_type'] = 5;
+                            $new['ip']=$auth['ip'];
+                            $new['community'] = get_const('snmp_default_community');
+                            $new['snmp_version'] = get_const('snmp_default_version');
+                            $new['login'] = get_option($db_link,28);
+                            $new['password'] = get_option($db_link,29);
+                            //default ssh
+                            $new['protocol'] = 0;
+                            $new['control_port'] = get_option($db_link,30);
+                            $new_id=insert_record($db_link, "devices", $new);
+                        }
+                    }
+                }
+            }
+
         }
     }
     if ($all_ok) {
