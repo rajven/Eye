@@ -44,7 +44,7 @@ print_device_submenu($page_url);
 
 ?>
 <div id="cont">
-<form name="def" action="index-passive.php" method="post">
+<form name="filter" action="index-passive.php" method="post">
 <table class="data">
 <tr>
 <td class="info"> <?php echo WEB_device_type_show; ?>: </td>
@@ -123,7 +123,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 ?>
 <br>
 
-<form name="datatable">
+<form name="def">
 
 <table class="data">
         <tr>
