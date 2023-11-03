@@ -23,7 +23,7 @@ if ($sort_field == 'login') { $sort_table = 'L'; }
 if ($sort_field == 'fio') { $sort_table = 'L'; }
 if ($sort_field == 'model_name') { $sort_table = 'M'; }
 
-$sort_url = "<a href=index-passive.php?ou=" . $rou; 
+$sort_url = "<a href=index-passive.php?ou=" . $rou;
 
 if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and L.ou_id=$rou "; }
 
@@ -64,6 +64,7 @@ print_device_submenu($page_url);
 </td>
 </tr>
 </table>
+</form>
 
 <br>
 <a class="mainButton" href="#modal"><?php print WEB_btn_apply_selected; ?></a>
@@ -74,12 +75,12 @@ print_device_submenu($page_url);
         <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
-        <tr><td><input type=checkbox class="putField" name="e_set_type" value='1'></td><td><?php print WEB_cell_type."&nbsp";print_devtype_select($db_link,'a_dev_type',5);?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_set_model" value='1'></td><td><?php echo WEB_cell_host_model."&nbsp"; print_device_model_select($db_link,'a_device_model_id',0);?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_set_building" value='1'></td><td><?php echo WEB_location_name."&nbsp"; print_building_select($db_link, 'a_building_id', 0);?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_set_snmp_version" value='1'></td><td><?php echo WEB_snmp_version."&nbsp";print_snmp_select('a_snmp_version', get_const('snmp_default_version'));?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_set_ro_community" value='1'></td><td><?php echo WEB_snmp_community_ro."&nbsp"; ?><input type='text' name='a_ro_community' value="<?php print get_const('snmp_default_community'); ?>"></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_set_rw_community" value='1'></td><td><?php echo WEB_snmp_community_rw."&nbsp"; ?><input type='text' name='a_rw_community' value="private"></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_set_type" value='1'></td><td><?php print WEB_cell_type."</td><td>";print_devtype_select($db_link,'a_dev_type',5);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_set_model" value='1'></td><td><?php echo WEB_cell_host_model."</td><td>"; print_devmodels_select($db_link,'a_device_model_id',0,'device_type>2');?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_set_building" value='1'></td><td><?php echo WEB_location_name."</td><td>"; print_building_select($db_link, 'a_building_id', 0);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_set_snmp_version" value='1'></td><td><?php echo WEB_snmp_version."</td><td>";print_snmp_select('a_snmp_version', get_const('snmp_default_version'));?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_set_ro_community" value='1'></td><td><?php echo WEB_snmp_community_ro."</td><td>"; ?><input type='text' name='a_ro_community' value="<?php print get_const('snmp_default_community'); ?>"></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_set_rw_community" value='1'></td><td><?php echo WEB_snmp_community_rw."</td><td>"; ?><input type='text' name='a_rw_community' value="private"></td></tr>
         </table>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
@@ -108,7 +109,7 @@ if ($unknown and $f_vendor_select==0) { $u_filter=' AND V.id<>1 '; } else {
         }
     }
 
-$countSQL="SELECT Count(*) FROM User_auth A, User_list L, devices D, device_models M, vendors V 
+$countSQL="SELECT Count(*) FROM User_auth A, User_list L, devices D, device_models M, vendors V
 WHERE D.user_id=L.id AND A.ip = D.ip AND D.device_model_id=M.id AND M.vendor_id=V.id AND A.deleted =0
 $u_filter $ip_list_filter $d_filter";
 
@@ -117,26 +118,26 @@ $count_records = mysqli_fetch_array($res);
 $total=ceil($count_records[0]/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
-$start = ($page * $displayed) - $displayed; 
+$start = ($page * $displayed) - $displayed;
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 ?>
 <br>
 
 <table class="data">
-	<tr>
-		<td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
-		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=model_name&order=$new_order>".WEB_cell_host_model; ?></td>
-		<td align=Center><?php print WEB_cell_comment; ?></td>
-		<td align=Center><?php print WEB_cell_connection; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=last_found&order=$new_order>".WEB_cell_last_found."</a>"; ?></td>
-	</tr>
+        <tr>
+                <td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
+                <td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
+                <td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
+                <td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
+                <td align=Center><?php print $sort_url . "&sort=model_name&order=$new_order>".WEB_cell_host_model; ?></td>
+                <td align=Center><?php print WEB_cell_comment; ?></td>
+                <td align=Center><?php print WEB_cell_connection; ?></td>
+                <td align=Center><?php print $sort_url . "&sort=last_found&order=$new_order>".WEB_cell_last_found."</a>"; ?></td>
+        </tr>
 <?php
 
-$sSQL = "SELECT A.id, D.id as dev_id, D.device_type, A.ip, A.mac, A.user_id, L.login, D.comment, A.last_found, V.name, M.model_name 
-FROM User_auth A, User_list L, devices D, device_models M, vendors V 
+$sSQL = "SELECT A.id, D.id as dev_id, D.device_type, A.ip, A.mac, A.user_id, L.login, D.comment, A.last_found, V.name, M.model_name
+FROM User_auth A, User_list L, devices D, device_models M, vendors V
 WHERE D.user_id=L.id AND A.ip = D.ip AND D.device_model_id=M.id AND M.vendor_id=V.id AND A.deleted =0
 $u_filter $ip_list_filter $d_filter
 ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";

@@ -27,7 +27,7 @@ if (isset($_POST["ApplyForAll"])) {
 
     $all_ok = 1;
     foreach ($dev_id as $key => $val) {
-        if ($val) {
+        if (!empty($val)) {
             unset($device);
             if (isset($_POST["e_set_type"])) { $device['device_type'] = $a_dev_type; }
             if (isset($_POST["e_set_model"])) { 
