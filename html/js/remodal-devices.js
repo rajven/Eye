@@ -2,7 +2,7 @@ $(document).ready(function () {
 	$("form").submit(function () {
 		var formID = $(this).attr('id');
 
-		if (formID == "formUserApply") {
+		if (formID == "formNetDevApply") {
 			var hangoutButton = document.getElementById("btn_filter");
 			var formNm = $('#' + formID);
 			var formTID = $('#def').attr('id');
@@ -13,7 +13,7 @@ $(document).ready(function () {
 			post_data = post_data.concat(formNm.serializeArray());
 			$.ajax({
 				type: "POST",
-				url: "/utils/user_apply.php",
+				url: "/utils/devices_apply.php",
 				data: post_data,
 				success: function (data) {
 					$(formNm).html(data);
@@ -29,7 +29,7 @@ $(document).ready(function () {
 			return false;
 		}
 
-		if (formID == "formUserDel") {
+		if (formID == "formNetDevDel") {
 			var hangoutButton = document.getElementById("btn_filter");
 			var formNm = $('#' + formID);
 			var formTID = $('#def').attr('id');
@@ -40,7 +40,7 @@ $(document).ready(function () {
 			post_data = post_data.concat(formNm.serializeArray());
 			$.ajax({
 				type: "POST",
-				url: "/utils/user_remove.php",
+				url: "/utils/devices_remove.php",
 				data: post_data,
 				success: function (data) {
 					$(formNm).html(data);

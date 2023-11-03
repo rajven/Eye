@@ -11,25 +11,6 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/vendorfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/devtypesfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/buildingfilter.php");
 
-if (isset($_POST["removeauth"])) {
-    $dev_ids = $_POST["fid"];
-    foreach ($dev_ids as $key => $val) {
-        if ($val) {
-                $device= get_record($db_link,"devices","id='$val'");
-                if (!empty($device)) {
-                    unbind_ports($db_link, $val);
-	            run_sql($db_link, 'DELETE FROM connections WHERE device_id='.$val);
-	            run_sql($db_link, 'DELETE FROM device_l3_interfaces WHERE device_id='.$val);
-	            run_sql($db_link, 'DELETE FROM device_ports WHERE device_id='.$val);
-        	    delete_record($db_link, "devices", "id=".$val);
-        	    LOG_WARNING($db_link,"Removed device ".$device['device_name']." id: ".$val);
-        	    }
-                }
-            }
-    header("Location: " . $_SERVER["REQUEST_URI"]);
-    exit;
-    }
-
 $unknown=1;
 if (!isset($_POST['f_unknown']) and isset($_POST['OK'])) { $unknown=0; }
 if (isset($_POST['f_unknown'])) { $unknown=$_POST['f_unknown']*1; }
@@ -69,9 +50,8 @@ print_device_submenu($page_url);
 <td class="info"> <?php echo WEB_device_type_show; ?>: </td>
 <td class="info"> <?php print_devtypes_select($db_link, "devtypes", $f_devtype_id, "id>2"); ?>
 <td class="info"> <?php print WEB_device_show_location; ?></td>
-<td class="info"> <?php print_building_select($db_link, "building_id", $f_building_id); ?></td>
+<td class="info" colspan=2> <?php print_building_select($db_link, "building_id", $f_building_id); ?></td>
 <td class="info" colspan=2 align=right><input name="OK" type="submit" value="<?php echo WEB_btn_show; ?>"></td>
-<td align=right><input type="submit" onclick="return confirm('<?php print WEB_msg_delete; ?>?')" name="removeauth" value="<?php print WEB_btn_remove; ?>"></td>
 </tr>
 <tr>
 <td class="info"><?php print WEB_cell_ou."&nbsp"; ?> </td>
@@ -84,6 +64,40 @@ print_device_submenu($page_url);
 </td>
 </tr>
 </table>
+
+<br>
+<a class="mainButton" href="#modal"><?php print WEB_btn_apply_selected; ?></a>
+<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modal" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
+ <div class="remodalBorder">
+  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
+      <form id="formNetDevApply">
+        <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
+        <input type="hidden" name="ApplyForAll" value="MassChange">
+        <table class="data" align=center>
+        <tr><td><input type=checkbox class="putField" name="e_set_type" value='1'></td><td><?php print WEB_cell_type."&nbsp";print_devtype_select($db_link,'a_dev_type',5);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_set_model" value='1'></td><td><?php echo WEB_cell_host_model."&nbsp"; print_device_model_select($db_link,'a_device_model_id',0);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_set_building" value='1'></td><td><?php echo WEB_location_name."&nbsp"; print_building_select($db_link, 'a_building_id', 0);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_set_snmp_version" value='1'></td><td><?php echo WEB_snmp_version."&nbsp";print_snmp_select('a_snmp_version', get_const('snmp_default_version'));?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_set_ro_community" value='1'></td><td><?php echo WEB_snmp_community_ro."&nbsp"; ?><input type='text' name='a_ro_community' value="<?php print get_const('snmp_default_community'); ?>"></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_set_rw_community" value='1'></td><td><?php echo WEB_snmp_community_rw."&nbsp"; ?><input type='text' name='a_rw_community' value="private"></td></tr>
+        </table>
+        <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
+    </form>
+</div>
+</div>
+
+<a class="delButton" href="#modalDel"><?php print WEB_btn_delete; ?></a>
+<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modalDel" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
+ <div class="remodalBorder">
+  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
+    <form id="formNetDevDel">
+        <h2 id="modal1Title"><?php print WEB_msg_delete_selected; ?></h2>
+        <input type="hidden" name="RemoveDevice" value="MassChange">
+        <?php print_qa_select('f_deleted', 0);?><br><br>
+        <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
+    </form>
+</div>
+</div>
 
 <?php
 
@@ -152,6 +166,10 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td class="warn"><?php echo WEB_color_user_disabled; ?></td>
 <td class="error"><?php echo WEB_color_user_blocked; ?></td>
 </table>
+
+<script src="/js/remodal/remodal.min.js"></script>
+<script src="/js/remodal-devices.js"></script>
+
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

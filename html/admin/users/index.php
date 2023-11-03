@@ -96,7 +96,6 @@ if ($msg_error) {
 </div>
 </div>
 
-
 <?php
 
 $sort_table = 'U';
