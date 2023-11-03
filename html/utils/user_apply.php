@@ -46,18 +46,19 @@ if (isset($_POST["ApplyForAll"])) {
         $_POST["a_create_netdev"] = 0;
     }
 
-    $a_enabled  = $_POST["a_enabled"] * 1;
-    $a_dhcp     = $_POST["a_dhcp"] * 1;
-    $a_dhcp_acl = $_POST["a_dhcp_acl"];
-    $a_queue    = $_POST["a_queue_id"] * 1;
-    $a_group    = $_POST["a_group_id"] * 1;
-    $a_traf     = $_POST["a_traf"] * 1;
-    $a_day      = $_POST["a_day_q"] * 1;
-    $a_month    = $_POST["a_month_q"] * 1;
-    $a_ou_id    = $_POST["a_new_ou"] * 1;
+    $a_enabled       = $_POST["a_enabled"] * 1;
+    $a_dhcp          = $_POST["a_dhcp"] * 1;
+    $a_dhcp_acl      = $_POST["a_dhcp_acl"];
+    $a_queue         = $_POST["a_queue_id"] * 1;
+    $a_group         = $_POST["a_group_id"] * 1;
+    $a_traf          = $_POST["a_traf"] * 1;
+    $a_day           = $_POST["a_day_q"] * 1;
+    $a_month         = $_POST["a_month_q"] * 1;
+    $a_ou_id         = $_POST["a_new_ou"] * 1;
 
-    $a_bind_mac = $_POST["a_bind_mac"] * 1;
-    $a_bind_ip  = $_POST["a_bind_ip"] * 1;
+    $a_bind_mac      = $_POST["a_bind_mac"] * 1;
+    $a_bind_ip       = $_POST["a_bind_ip"] * 1;
+    $a_create_netdev = $_POST["a_create_netdev"] * 1;
 
     $msg = "Massive User change!";
     LOG_WARNING($db_link, $msg);
@@ -100,28 +101,23 @@ if (isset($_POST["ApplyForAll"])) {
             $login = get_record($db_link, "User_list", "id='$val'");
             $msg .= " For all ip user id: " . $val . " login: " . $login['login'] . " set: ";
             $msg .= get_diff_rec($db_link, "User_list", "id='$val'", $user, 1);
-            $ret = update_record($db_link, "User_list", "id='" . $val . "'", $user);
-            if (!$ret) {
-                $all_ok = 0;
-            }
+
+            if (!empty($user)) { 
+                $ret = update_record($db_link, "User_list", "id='" . $val . "'", $user);
+                if (!$ret) { $all_ok = 0; }
+                }
 
             $auth_list = get_records_sql($db_link, "SELECT id, mac, ip FROM User_auth WHERE deleted=0 AND user_id=" . $val);
             $b_mac = '';
             $b_ip = '';
             if (!empty($auth_list)) {
                 foreach ($auth_list as $row) {
-                    if (empty($row)) {
-                        continue;
-                    }
-                    if (empty($b_mac) and !empty($row["mac"])) {
-                        $b_mac = $row["mac"];
-                    }
-                    if (empty($b_ip) and !empty($row["ip"])) {
-                        $b_ip = $row["ip"];
-                    }
-                    $ret = update_record($db_link, "User_auth", "id='" . $row["id"] . "'", $auth);
-                    if (!$ret) {
-                        $all_ok = 0;
+                    if (empty($row)) { continue; }
+                    if (empty($b_mac) and !empty($row["mac"])) { $b_mac = $row["mac"]; }
+                    if (empty($b_ip) and !empty($row["ip"])) { $b_ip = $row["ip"]; }
+                    if (!empty($auth)) {
+                        $ret = update_record($db_link, "User_auth", "id='" . $row["id"] . "'", $auth);
+                        if (!$ret) { $all_ok = 0; }
                     }
                 }
             }
