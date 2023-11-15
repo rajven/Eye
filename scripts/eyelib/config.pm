@@ -124,7 +124,7 @@ our @FN=split("/",$0);
 
 $config_ref{my_name}=$FN[-1];
 $config_ref{pid_file}="/var/run/".$FN[-1];
-$config_ref{log_dir}=$Config->{_}->{log_dir} || '/var/log/scripts';
+$config_ref{log_dir}=$Config->{_}->{log_dir} || '/opt/Eye/scripts/log';
 $config_ref{log_common}=$config_ref{log_dir}."/$FN[-1].log";
 $config_ref{dhcpd_conf}=$Config->{_}->{dhcpd_conf} || "/etc/dnsmasq.d";
 $config_ref{DBHOST}	= $Config->{_}->{DBSERVER} || '127.0.0.1';
@@ -134,10 +134,12 @@ $config_ref{DBPASS}	= $Config->{_}->{DBPASS} || "rstat";
 $config_ref{domain_auth}= $Config->{_}->{domain_auth} || 'Administrator%password';
 $config_ref{winexe}	= $Config->{_}->{winexe} || '/usr/bin/winexe';
 $config_ref{fping}	= $Config->{_}->{fping} || '/sbin/fping';
-$config_ref{log_owner_user}= $Config->{_}->{user} || 'nagios';
-$config_ref{log_owner_group}= $Config->{_}->{group} || 'nagios';
+#$config_ref{log_owner_user}= $Config->{_}->{user} || 'nagios';
+$config_ref{log_owner_user}= $Config->{_}->{user} || 'tcpdump';
+#$config_ref{log_owner_group}= $Config->{_}->{group} || 'nagios';
+$config_ref{log_owner_group}= $Config->{_}->{group} || 'tcpdump';
 
-$config_ref{nagios_dir}=$Config->{_}->{nagios_dir} || '/etc/nagios';
+$config_ref{nagios_dir}=$Config->{_}->{nagios_dir} || '/etc/nagios4';
 $config_ref{nagios_dir}=~s/\/$//;
 $config_ref{nagios_cmd}=$Config->{_}->{nagios_cmd} || '/var/spool/nagios/cmd/nagios.cmd';
 $config_ref{nagios_event_socket}=$Config->{_}->{nagios_event_socket} || '/var/spool/nagios/hoststate.socket';

@@ -142,12 +142,23 @@ systemctl enable stat-sync.service
 
 apt install nfdump -y
 
-cp docs/systemd/nfcapd@.service /etc/systemd/system/nfcapd@.service
+for latest nfcapd 1.7:
+cp docs/systemd/nfcapd-1.7@.service /etc/systemd/system/nfcapd@.service
+
+for old nfcapd 1.6:
+cp docs/systemd/nfcapd-1.6@.service /etc/systemd/system/nfcapd@.service
+
 mkdir -p /etc/nfcapd
 cp docs/systemd/nfcapd/office.conf /etc/nfcapd/office.conf
 
 Set nfdump port, path for collected files and router id. Router id see in url for edit device:
 #http://[IP]/admin/devices/editdevice.php?id=1
+
+Set owner for nfcapd files to tcpdump:tcpdump:
+mkdir -p /var/spool/flow-tools
+chown tcpdump:tcpdump /var/spool/flow-tools
+
+Enable service:
 
 systemctl enable nfcapd@office
 systemctl start nfcapd@office

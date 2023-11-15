@@ -138,20 +138,32 @@ cp docs/systemd/stat-sync.service /etc/systemd/system
 
 systemctl enable stat-sync.service
 
-######################################### Netflow #####################################################################
+######################################### Network flow #####################################################################
 
 apt install nfdump -y
 
-cp docs/systemd/nfcapd@.service /etc/systemd/system/nfcapd@.service
+Для свежего nfcapd 1.7:
+cp docs/systemd/nfcapd-1.7@.service /etc/systemd/system/nfcapd@.service
+
+Для сторого nfcapd 1.6:
+cp docs/systemd/nfcapd-1.6@.service /etc/systemd/system/nfcapd@.service
+
 mkdir -p /etc/nfcapd
 cp docs/systemd/nfcapd/office.conf /etc/nfcapd/office.conf
 
-Указываем порт, место хранения статистики и id роутера, с которого снимается трафик
+Указываем порт коллектора, расположение файлов дампов, id роутера, с которого данные забираем. Посмотреть можно в строке адерса при редактировании роутера
+#http://[IP]/admin/devices/editdevice.php?id=1
+
+Ставим владельца на папку с дампами tcpdump:tcpdump:
+mkdir -p /var/spool/flow-tools
+chown tcpdump:tcpdump /var/spool/flow-tools
+
+И активируем коллектор:
 
 systemctl enable nfcapd@office
 systemctl start nfcapd@office
 
-Включаем netflow на микротике:
+Включаем netflow на роутере микротик:
 /ip traffic-flow
 set enabled=yes
 /ip traffic-flow target

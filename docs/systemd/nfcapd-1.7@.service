@@ -1,0 +1,20 @@
+[Unit]
+Description=Traffic collector nfcapd 1.7 for %I
+After=syslog.target network-online.target
+
+[Service]
+Type=forking
+EnvironmentFile=/etc/nfcapd/%i.conf
+ExecStart=/usr/bin/nfcapd -w ${DATA_DIR} -z -D -S 1 -t 600 -P /run/nfcapd/nfcapd.%i.pid -p ${LISTEN_PORT} -x ${EXT}
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_SETGID CAP_SETUID CAP_SETPCAP
+PermissionsStartOnly=true
+User=tcpdump
+Group=tcpdump
+RuntimeDirectory=nfcapd
+RuntimeDirectoryMode=0770
+PIDFile=/run/nfcapd/nfcapd.%i.pid
+RestartSec=30
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
