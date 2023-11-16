@@ -91,6 +91,7 @@ $subnet_info = get_record_sql($db_link, $sSQL);
         unset($_SESSION[$page_url]['msg']);
     }
     ?>
+<br>
 <form name="def" action="editsubnet.php?id=<?php echo $id; ?>" method="post">
 <input type="hidden" name="id" value=<?php echo $id; ?>>
 <table class="data">
@@ -102,7 +103,7 @@ print "<td class=\"$cl\"><input type=\"text\" name='s_subnet' value='".$subnet_i
 <td><button name='s_save' value='save'><?php print WEB_btn_save; ?></button></td></tr>
 
 <td><td><b><?php echo WEB_cell_comment; ?></b></td>
-<?php print "<td colspan=2 class=\"data\"><input type=\"text\" name='s_comment[" . $subnet_info['id'] . "]' value='".$subnet_info['comment']."'></td>\n"; ?></tr>
+<?php print "<td colspan=2 class=\"data\"><input type=\"text\" name='s_comment' value='".$subnet_info['comment']."'></td>\n"; ?></tr>
 
 <td><td><b><?php echo WEB_network_gateway; ?></b></td>
 <?php 
