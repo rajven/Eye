@@ -57,8 +57,7 @@ print_control_submenu($page_url);
     <div>
         <?php print WEB_network_create . "&nbsp:<input type=\"text\" name='s_create_subnet' value=''>"; ?>
         <input type="submit" name="s_create" value="<?php echo WEB_btn_add; ?>">
-        <button class="button_right" name='s_save' value='save'><?php print WEB_btn_save; ?></button>
-        <input type="submit" onclick="return confirm('<?php print WEB_btn_delete; ?>?')" name="s_remove" value="<?php print WEB_btn_remove; ?>">
+        <input class="button_right" type="submit" onclick="return confirm('<?php print WEB_btn_delete; ?>?')" name="s_remove" value="<?php print WEB_btn_remove; ?>">
     </div>
         <b><?php echo WEB_network_org_title; ?></b> <br>
         <table class="data">

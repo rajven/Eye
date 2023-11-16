@@ -97,9 +97,9 @@ $subnet_info = get_record_sql($db_link, $sSQL);
 <td><td><b><?php echo WEB_network_subnet; ?></b></td>
 <?php 
 $cl = "data";
-print "<td class=\"$cl\"><input type=\"text\" name='s_subnet' value='".$row['subnet']."' size='18'></td>\n";
+print "<td class=\"$cl\"><input type=\"text\" name='s_subnet' value='".$subnet_info['subnet']."' size='18'></td>\n";
 ?>
-<td><button class="button_right" name='s_save' value='save'><?php print WEB_btn_save; ?></button></td></tr>
+<td><button name='s_save' value='save'><?php print WEB_btn_save; ?></button></td></tr>
 
 <td><td><b><?php echo WEB_cell_comment; ?></b></td>
 <?php print "<td colspan=2 class=\"data\"><input type=\"text\" name='s_comment[" . $subnet_info['id'] . "]' value='".$subnet_info['comment']."'></td>\n"; ?></tr>
