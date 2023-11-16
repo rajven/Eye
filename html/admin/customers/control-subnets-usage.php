@@ -31,7 +31,7 @@ if (!empty($t_subnets)) {
 foreach ( $t_subnets as $row ) {
     print "<tr align=center>\n";
     $cl="data";
-    print "<td class=\"$cl\"><a href=/admin/iplist/index.php?ou=0&subnet=".$row['id'].">".$row['subnet']."</a></td>\n";
+    print "<td class=\"$cl\"><a href=/admin/iplist/index.php?ou=0&cidr=".$row['subnet'].">".$row['subnet']."</a></td>\n";
     $all_ips = $row['ip_int_stop']-$row['ip_int_start']-3;
     print "<td class=\"$cl\">".$all_ips."</td>\n";
 #used
