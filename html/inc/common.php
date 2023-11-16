@@ -572,7 +572,7 @@ function print_control_submenu($current_page)
 {
     print "<div id='submenu'>\n";
     print_submenu_url(WEB_submenu_control, '/admin/customers/control.php', $current_page, 0);
-    print_submenu_url(WEB_submenu_network, '/admin/customers/control-subnets.php', $current_page, 0);
+    print_submenu_url(WEB_submenu_network, '/admin/customers/index-subnets.php', $current_page, 0);
     print_submenu_url(WEB_submenu_network_stats, '/admin/customers/control-subnets-usage.php', $current_page, 0);
     print_submenu_url(WEB_submenu_options, '/admin/customers/control-options.php', $current_page, 0);
     print_submenu_url(WEB_submenu_customers, '/admin/customers/index.php', $current_page, 1);
@@ -883,6 +883,15 @@ function print_qa_select_ext($qa_name, $qa_value, $readonly)
     print_select_item_ext(WEB_select_item_yes, 1, $qa_value, $readonly);
     print_select_item_ext(WEB_select_item_no, 0, $qa_value, $readonly);
     print "</select>\n";
+}
+
+function print_td_yes_no($qa_value)
+{
+    $cl = 'down';
+    if ($qa_value==1) { $cl='up'; }
+    print "<td class=\"$cl\">";
+    if ($qa_value==1) { print WEB_select_item_yes; } else { print WEB_select_item_no; }
+    print "</td>\n";
 }
 
 function print_control_proto_select($qa_name, $qa_value)
