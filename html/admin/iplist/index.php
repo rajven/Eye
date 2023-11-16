@@ -38,9 +38,9 @@ $_SESSION[$page_url]['ip']=$f_ip;
 $ip_list_type_filter='';
 if ($ip_type>0) {
     //dhcp
-    if ($ip_type===2) { $ip_list_type_filter = " and (User_auth.dhcp_action NOT IN ('arp', 'netflow')"; }
+    if ($ip_type===2) { $ip_list_type_filter = " and (User_auth.dhcp_action NOT IN ('arp', 'netflow'))"; }
     //static
-    if ($ip_type===1) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('arp', 'netflow')"; }
+    if ($ip_type===1) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('arp', 'netflow'))"; }
     }
 
 $ip_where = '';
