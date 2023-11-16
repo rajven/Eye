@@ -91,6 +91,7 @@ define("WEB_select_item_lan","Internal");
 define("WEB_select_item_all_ips","All ip");
 define("WEB_select_item_static","Static IP");
 define("WEB_select_item_dhcp","Dhcp IP");
+define("WEB_select_item_suspicious","Suspicious IP");
 define("WEB_select_item_every","All");
 define("WEB_select_item_all","All");
 define("WEB_select_item_events","All events");

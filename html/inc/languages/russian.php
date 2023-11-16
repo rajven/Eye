@@ -91,6 +91,7 @@ define("WEB_select_item_lan","Внутренний");
 define("WEB_select_item_all_ips","Всe ip");
 define("WEB_select_item_static","Static IP");
 define("WEB_select_item_dhcp","Dhcp IP");
+define("WEB_select_item_suspicious","Возможно static");
 define("WEB_select_item_every","Все");
 define("WEB_select_item_all","Всё");
 define("WEB_select_item_events","Все события");

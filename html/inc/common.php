@@ -964,6 +964,7 @@ function print_ip_type_select($qa_name, $qa_value)
     print_select_item(WEB_select_item_every, 0, $qa_value);
     print_select_item(WEB_select_item_static, 1, $qa_value);
     print_select_item(WEB_select_item_dhcp, 2, $qa_value);
+    print_select_item(WEB_select_item_suspicious, 3, $qa_value);
     print "</select>\n";
 }
 
