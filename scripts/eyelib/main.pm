@@ -20,6 +20,7 @@ use MIME::Base64;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw(
+eye_version
 log_file
 write_to_file
 wrlog
@@ -59,6 +60,8 @@ netdev_set_auth
 
 BEGIN
 {
+
+our $eye_version = "2.4.13";
 
 #---------------------------------------------------------------------------------------------------------
 
