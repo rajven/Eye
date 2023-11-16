@@ -10,7 +10,6 @@ $zombi_days = get_option($db_link, 35);
 ?>
 <div id="cont">
 <br>
-<form name="def" action="control-subnets.php" method="post">
 <b><?php echo WEB_network_usage_title; ?></b> <br>
 <table class="data">
 <tr align="center">
@@ -57,5 +56,4 @@ foreach ( $t_subnets as $row ) {
 }
 ?>
 </table>
-</form>
 <?php require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php"); ?>
