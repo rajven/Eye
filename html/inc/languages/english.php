@@ -89,6 +89,8 @@ define("WEB_select_item_enabled","Enabled");
 define("WEB_select_item_wan","External");
 define("WEB_select_item_lan","Internal");
 define("WEB_select_item_all_ips","All ip");
+define("WEB_select_item_static","Static IP");
+define("WEB_select_item_dhcp","Dhcp IP");
 define("WEB_select_item_every","All");
 define("WEB_select_item_all","All");
 define("WEB_select_item_events","All events");
@@ -412,6 +414,7 @@ define("WEB_rules_target","User/Group");
 
 /* all ip list */
 define("WEB_ips_show_by_state","By activity");
+define("WEB_ips_show_by_ip_type","By ip type");
 define("WEB_ips_search_host","Search ip or mac");
 define("WEB_selection_title","Apply to Selection");
 define("WEB_ips_search_full","Search by comment/ip/mac/dhcp hostname");

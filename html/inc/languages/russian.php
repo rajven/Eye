@@ -89,6 +89,8 @@ define("WEB_select_item_enabled","Включенные");
 define("WEB_select_item_wan","Внешний");
 define("WEB_select_item_lan","Внутренний");
 define("WEB_select_item_all_ips","Всe ip");
+define("WEB_select_item_static","Static IP");
+define("WEB_select_item_dhcp","Dhcp IP");
 define("WEB_select_item_every","Все");
 define("WEB_select_item_all","Всё");
 define("WEB_select_item_events","Все события");
@@ -412,6 +414,7 @@ define("WEB_rules_target","Юзер/группа");
 
 /* all ip list */
 define("WEB_ips_show_by_state","По активности");
+define("WEB_ips_show_by_ip_type","По типу");
 define("WEB_ips_search_host","Поиск ip or mac");
 define("WEB_selection_title","Применить к выделению");
 define("WEB_ips_search_full","Поиск по комментарию/ip/mac/dhcp hostname");

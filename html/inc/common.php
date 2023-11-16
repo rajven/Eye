@@ -955,6 +955,18 @@ function print_enabled_select($qa_name, $qa_value)
     print "</select>\n";
 }
 
+function print_ip_type_select($qa_name, $qa_value)
+{
+    print "<select name=\"$qa_name\">\n";
+    if (!isset($qa_value) or strlen($qa_value) == 0) {
+        $qa_value = 0;
+    }
+    print_select_item(WEB_select_item_every, 0, $qa_value);
+    print_select_item(WEB_select_item_static, 1, $qa_value);
+    print_select_item(WEB_select_item_dhcp, 2, $qa_value);
+    print "</select>\n";
+}
+
 function print_vendor_select($db, $qa_name, $qa_value)
 {
     print "<select name=\"$qa_name\" class=\"js-select-single\">\n";

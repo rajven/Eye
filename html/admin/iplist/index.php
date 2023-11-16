@@ -9,6 +9,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/enabledfilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/iptypefilter.php");
 
 $sort_table = 'User_auth';
 if ($sort_field == 'login') { $sort_table = 'User_list'; }
@@ -34,13 +35,21 @@ if (!isset($f_ip) and isset($_SESSION[$page_url]['ip'])) { $f_ip=$_SESSION[$page
 if (!isset($f_ip)) { $f_ip=''; }
 $_SESSION[$page_url]['ip']=$f_ip;
 
+$ip_list_type_filter='';
+if ($ip_type>0) {
+    //dhcp
+    if ($ip_type===2) { $ip_list_type_filter = " and (User_auth.dhcp_action NOT IN ('arp', 'netflow')"; }
+    //static
+    if ($ip_type===1) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('arp', 'netflow')"; }
+    }
+
 $ip_where = '';
 if (!empty($f_ip)) {
     if (checkValidIp($f_ip)) { $ip_where = " and ip_int=inet_aton('" . $f_ip . "') "; }
     if (checkValidMac($f_ip)) { $ip_where = " and mac='" . mac_dotted($f_ip) . "'  "; }
     $ip_list_filter = $ip_where;
     } else {
-    $ip_list_filter = $ou_filter.$cidr_filter.$enabled_filter;
+    $ip_list_filter = $ou_filter.$cidr_filter.$enabled_filter.$ip_list_type_filter;
     }
 
 print_ip_submenu($page_url);
@@ -57,6 +66,7 @@ print_ip_submenu($page_url);
         <b><?php print WEB_cell_ou; ?> - </b><?php print_ou_select($db_link, 'ou', $rou); ?>
         <b><?php print WEB_network_subnet; ?> - </b><?php print_subnet_select_office_splitted($db_link, 'cidr', $rcidr); ?>
         <b><?php echo WEB_ips_show_by_state; ?> - </b><?php print_enabled_select('enabled', $enabled); ?>
+        <b><?php echo WEB_ips_show_by_ip_type; ?> - </b><?php print_ip_type_select('ip_type', $ip_type); ?>
         <?php echo WEB_ips_search_host; ?>:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])|([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12})$"/>
         <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
         <input id="btn_filter" name="btn_filter" type="submit" value="<?php echo WEB_btn_show; ?>">
