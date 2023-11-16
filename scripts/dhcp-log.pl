@@ -334,10 +334,6 @@ if (!$pid) {
                 update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
                 }
 
-            if ($dhcp_record->{hotspot} and $ignore_hotspot_dhcp_log) { next; }
-
-            if ($ignore_update_dhcp_event and $type=~/old/i) { next; }
-
             if ($type=~/old/i) {
                     my $auth_rec;
                     $auth_rec->{dhcp_action}=$type;
@@ -364,6 +360,10 @@ if (!$pid) {
                         }
                     }
                 }
+
+            if ($dhcp_record->{hotspot} and $ignore_hotspot_dhcp_log) { next; }
+
+            if ($ignore_update_dhcp_event and $type=~/old/i) { next; }
 
             my $dhcp_log;
             if (!$auth_id) { $auth_id=0; }
