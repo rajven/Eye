@@ -155,6 +155,7 @@ if (isset($_POST["addauth"])) {
             $fid = new_auth($db_link, $fip, $fmac, $id);
             if (!empty($fid)) {
                 $new['dhcp']=$f_dhcp;
+                $new["dhcp_action"]='manual';
                 update_record($db_link,"User_auth","id=".$fid,$new);
                 apply_auth_rule($db_link,$fid,$id);
                 LOG_WARNING($db_link,"Add ip for login: ".$user_info["login"].": ip => $fip, mac => $fmac",$fid);

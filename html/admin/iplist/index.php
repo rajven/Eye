@@ -38,11 +38,11 @@ $_SESSION[$page_url]['ip']=$f_ip;
 $ip_list_type_filter='';
 if ($ip_type>0) {
     //suspicious
-    if ($ip_type===3) { $ip_list_type_filter = " and (User_auth.dhcp_action NOT IN ('arp', 'netflow') and (ABS(User_auth.dhcp_time - User_auth.last_found)>259200))"; }
+    if ($ip_type===3) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('add', 'old', 'del') and (ABS(User_auth.dhcp_time - User_auth.last_found)>259200) and (UNIX_TIMESTAMP()-User_auth.last_found)<259200)"; }
     //dhcp
-    if ($ip_type===2) { $ip_list_type_filter = " and (User_auth.dhcp_action NOT IN ('arp', 'netflow'))"; }
+    if ($ip_type===2) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('add', 'old', 'del'))"; }
     //static
-    if ($ip_type===1) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('arp', 'netflow'))"; }
+    if ($ip_type===1) { $ip_list_type_filter = " and (User_auth.dhcp_action NOT IN ('add', 'old', 'del'))"; }
     }
 
 $ip_where = '';
