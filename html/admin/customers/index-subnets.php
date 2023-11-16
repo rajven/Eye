@@ -53,7 +53,7 @@ print_control_submenu($page_url);
 ?>
 <div id="cont">
     <br>
-    <form name="def" action="control-subnets.php" method="post">
+    <form name="def" action="index-subnets.php" method="post">
     <div>
         <?php print WEB_network_create . "&nbsp:<input type=\"text\" name='s_create_subnet' value=''>"; ?>
         <input type="submit" name="s_create" value="<?php echo WEB_btn_add; ?>">
