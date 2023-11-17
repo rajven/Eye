@@ -260,7 +260,7 @@ sub get_fdb_table {
 
     my $ifindex_map = get_ifmib_index_table($host,$community,$version);
     my $fdb1=get_mac_table($host,$community,$fdb_table_oid,$version,$ifindex_map);
-    my $fdb2=get_mac_table($host,$community,$fdb_table_oid2,$version);
+    my $fdb2=get_mac_table($host,$community,$fdb_table_oid2,$version,$ifindex_map);
 
     my $fdb3;
 
