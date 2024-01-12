@@ -16,13 +16,16 @@ if (isset($_POST["create"])) {
     if (!empty($login)) {
         $lcount = get_count_records($db_link,"User_list","LCase(login)=LCase('$login')");
         if ($lcount > 0) {
-            $msg_error = "WEB_cell_login $login $msg_exists!";
+            $msg_error = WEB_cell_login." ".$login." ".$msg_exists."!";
             unset($_POST);
         } else {
             $new['login'] = $login;
             $new['ou_id'] = $rou;
-            $ou_info = get_record_sql($db,"SELECT * FROM OU WHERE id=".$rou);
+            $ou_info = get_record_sql($db_link,"SELECT * FROM OU WHERE id=".$rou);
 	    if (!empty($ou_info)) {
+		if (empty($ou_info['enabled'])) { $ou_info['enabled'] = 0; }
+		if (empty($ou_info['queue_id'])) { $ou_info['queue_id'] = 0; }
+		if (empty($ou_info['filter_group_id'])) { $ou_info['filter_group_id'] = 0; }
 	        $new['enabled'] = $ou_info['enabled'];
 	        $new['queue_id'] = $ou_info['queue_id'];
 	        $new['filter_group_id'] = $ou_info['filter_group_id'];
