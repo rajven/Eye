@@ -5,6 +5,7 @@ $action='';
 $ip='';
 $mac='';
 $rec_id='';
+$ip_aton=NULL;
 
 //GET
 if (!empty($_GET['get'])) { $action = 'get_'.$_GET['get']; }
@@ -22,27 +23,37 @@ if (!empty($_POST['rec_id'])) { $rec_id = $_POST['id']; }
 
 if (!empty($action)) {
 
+      if (!empty($ip) and checkValidIp($ip))  { $ip_aton=ip2long($ip); }
+
       //return user auth record
       if ($action ==='get_user_auth') {
           $result=[];
           $sql='';
-          if (!empty($ip) and checkValidIp($ip)) {
-              $ip_aton=ip2long($ip);
-              $sql = "SELECT * FROM User_auth WHERE `ip_int`=".$ip_aton." AND deleted=0";
+          LOG_VERBOSE($db_link,"API: Get User Auth record with ip: $ip mac: $mac id: $rec_id");
+          if (!empty($mac) and !empty($ip_aton)) { 
+                $sql="SELECT * FROM User_auth WHERE `ip_int`=".$ip_aton." AND `mac`='".$mac."' AND deleted=0"; 
+              } else {
+              if (!empty($ip_aton)) { $sql = "SELECT * FROM User_auth WHERE `ip_int`=".$ip_aton." AND deleted=0"; }
+              if (!empty($mac)) { $sql="SELECT * FROM User_auth WHERE `mac`='".$mac."' AND deleted=0"; }
               }
-          if (!empty($mac)) { $sql="SELECT * FROM User_auth WHERE `mac`='".$mac."' AND deleted=0"; }
           if (!empty($rec_id)) { $sql="SELECT * FROM User_auth WHERE id=".$rec_id; }
           if (!empty($sql)) {
               $result=get_record_sql($db_link,$sql);
               if (!empty($result)) {
+                  LOG_VERBOSE($db_link,"API: Record found.");
                   try {
                     $json = json_encode($result, JSON_THROW_ON_ERROR);
                     echo $json;
                     }
                   catch (JsonException $exception) {
+                    LOG_ERROR($db_link,"API: Error decoding JSON. Error: ".$exception->getMessage());
                     exit($exception->getMessage());
                   }
+                } else {
+                  LOG_VERBOSE($db_link,"API: Not found.");
                 }
+             } else {
+              LOG_VERBOSE($db_link,"API: not enough parameters");
              }
           }
 
@@ -56,7 +67,7 @@ if (!empty($action)) {
               $dhcp_action = 'add';
               if ($faction == 1) { $dhcp_action = 'add'; }
               if ($faction == 0) { $dhcp_action = 'del'; }
-              LOG_VERBOSE($db_link, "external dhcp request for $ip [$mac] $dhcp_action");
+              LOG_VERBOSE($db_link, "API: external dhcp request for $ip [$mac] $dhcp_action");
               if (checkValidIp($ip) and is_our_network($db_link, $ip)) {
                     $run_cmd = "/opt/Eye/scripts/dnsmasq-hook.sh '".$dhcp_action."' '".$mac."' '".$ip."' '".$dhcp_hostname."'";
                     $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
@@ -64,6 +75,8 @@ if (!empty($action)) {
                     } else { LOG_ERROR($db_link, "$ip - wrong network!"); }
               }
           }
+      } else {
+        LOG_WARNING($db_link,"API: Unknown request");
       }
 
 unset($_GET);
