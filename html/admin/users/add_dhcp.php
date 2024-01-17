@@ -18,5 +18,4 @@ if (!empty($_GET["ip"]) and !empty($_GET["mac"])) {
         } else { LOG_ERROR($db_link, "$ip - wrong network!"); }
 	}
 unset($_GET);
-logout();
 ?>
