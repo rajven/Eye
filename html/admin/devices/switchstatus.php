@@ -324,7 +324,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             print "<td class=\"$cl_error\">" . $perrors . "</td>\n";
             print "<td class='" . $cl . "' ><button name=\"write\" class=\"j-submit-report\" onclick=\"window.open('portmactable.php?id=" . $row['id'] . "')\">" . $row['last_mac_count'] . "</button></td>\n";
             print "<td class='" . $cl . "'>" . $sfp_status . " " . $poe_info . "</td>\n";
-            if (isset($poe_status) and !$row['skip'] and !$device['is_router']) {
+            if (isset($poe_status) and !$row['skip']) {
                 print "<td class=\"data\">";
                 if ($device['vendor_id'] != 9) {
                     if ($poe_status == 2) {
@@ -340,7 +340,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             } else {
                 print "<td>" . WEB_msg_unsupported . "</td>\n";
             }
-            if (isset($padmin) and !$row['uplink'] and !$row['skip'] and !$device['is_router']) {
+            if (isset($padmin) and !$row['uplink'] and !$row['skip']) {
                 print "<td class=\"data\">";
                 if ($device['vendor_id'] != 9) {
                     if ($padmin >= 2) {

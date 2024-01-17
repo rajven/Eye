@@ -174,4 +174,8 @@ define("L_INFO",2);
 define("L_VERBOSE",3);
 define("L_DEBUG",255);
 
+//mysql field types
+define('MYSQL_FIELD_DIGIT', array(1,2,3,4,5,8,9,246));
+define('MYSQL_FIELD_STRING', array(252,253,254));
+
 ?>

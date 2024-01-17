@@ -4,7 +4,6 @@ if (!defined("CONFIG")) {
 }
 
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/class.simple.mail.php");
-
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/consts.php");
 
 #ValidIpAddressRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
@@ -2389,6 +2388,7 @@ function get_sfp_status($vendor_id, $port, $ip, $community='public', $version='2
         return;
     }
 
+    try {
     $status = '';
     // eltex
     if ($vendor_id == 2) {
@@ -2549,16 +2549,20 @@ function get_sfp_status($vendor_id, $port, $ip, $community='public', $version='2
                 }
                 if (!empty($tx)) {
                     $tx = preg_replace('/"/', '', $tx);
+		    try {
                     list($tx_dbm, $pattern) = explode('.', $tx);
-                    $tx_dbm = round(trim($tx_dbm) / 100, 2);
+                    $tx_dbm = round(floatval(trim($tx_dbm)) / 100, 2);
+		    } catch (Exception $e) { $tx_dbm = 0; }
                     if (abs($tx_dbm) > 0.1) {
                         $status .= ' Tx: ' . $tx_dbm . ' dBm';
                     }
                 }
                 if (!empty($rx)) {
                     $rx = preg_replace('/"/', '', $rx);
+		    try {
                     list($rx_dbm, $pattern) = explode('.', $rx);
-                    $rx_dbm = round(trim($rx_dbm) / 100, 2);
+                    $rx_dbm = round(floatval(trim($rx_dbm)) / 100, 2);
+		    } catch (Exception $e) { $rx_dbm=0; }
                     if (abs($rx_dbm) > 0.1) {
                         $status .= ' Rx: ' . $rx_dbm . ' dBm';
                     }
@@ -2573,7 +2577,9 @@ function get_sfp_status($vendor_id, $port, $ip, $community='public', $version='2
         }
         return $status;
     }
-    return;
+    } catch (Exception $e) {
+	return;
+    }
 }
 
 
@@ -3374,22 +3380,35 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $communit
 function get_snmp($ip, $community, $version, $oid)
 {
     snmp_set_oid_output_format(SNMP_OID_OUTPUT_NUMERIC);
+    $result = NULL;
+    try {
     if ($version == 2) {
         $result = snmp2_get($ip, $community, $oid, SNMP_timeout, SNMP_retry);
-    }
+	}
     if ($version == 1) {
         $result = snmpget($ip, $community, $oid, SNMP_timeout, SNMP_retry);
+	}
+    if (!$result) { $result = ''; }
+    } catch (Exception $e) {
+#	echo 'Caught exception: ',  $e->getMessage(), "\n";
+	$result = NULL;
     }
     return $result;
 }
 
 function set_snmp($ip, $community, $version, $oid, $field, $value)
 {
+    $result = false;
+    try {
     if ($version == 2) {
         $result = snmp2_set($ip, $community, $oid, $field, $value, SNMP_timeout, SNMP_retry);
-    }
+	}
     if ($version == 1) {
         $result = snmpset($ip, $community, $oid, $field, $value, SNMP_timeout, SNMP_retry);
+	}
+    } catch (Exception $e) {
+#	echo 'Caught exception: ',  $e->getMessage(), "\n";
+	$result = false;
     }
     return $result;
 }
@@ -3797,18 +3816,29 @@ function get_record($db, $table, $filter)
         LOG_ERROR($db, "Search record ($table) with illegal filter $filter! Skip command.");
         return;
     }
-    $old_sql = "SELECT * FROM $table WHERE $filter LIMIT 1";
-    $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "SQL: $old_sql :" . mysqli_error($db));
-    $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
+    $get_sql = "SELECT * FROM $table WHERE $filter LIMIT 1";
+    $get_record = mysqli_query($db, $get_sql);
+    if (!$get_record) {
+	LOG_ERROR($db, "SQL: $get_sql :" . mysqli_error($db));
+	return;
+	}
+    $fields = [];
+    while ($field = mysqli_fetch_field($get_record)) {
+	$f_table = $field->table;
+	$f_name = $field->name;
+	$fields[$f_table][$f_name]=$field;
+    }
+    $record = mysqli_fetch_array($get_record, MYSQLI_ASSOC);
     $result = NULL;
-    if (!empty($old)) {
-        foreach ($old as $key => $value) {
-            if (!isset($value) or $value === 'NULL') {
-                $value = '';
+    if (!empty($record)) {
+        foreach ($record as $key => $value) {
+            if (!isset($value) or $value === 'NULL' or $value == NULL) {
+		if (!empty($key) and !empty($fields[$table]) and !empty($fields[$table][$key])) {
+		    if (in_array($fields[$table][$key]->type,MYSQL_FIELD_DIGIT)) { $value = 0; }
+		    if (in_array($fields[$table][$key]->type,MYSQL_FIELD_STRING)) { $value = ''; }
+		}
             }
-            if (!empty($key)) {
-                $result[$key] = $value;
-            }
+            if (!empty($key)) { $result[$key] = $value; }
         }
     }
     return $result;
@@ -3828,15 +3858,28 @@ function get_records($db, $table, $filter)
     if (isset($filter)) {
         $s_filter = 'WHERE ' . $filter;
     }
-    $old_sql = "SELECT * FROM $table $s_filter";
-    $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "SQL: $old_sql :" . mysqli_error($db));
+    $get_sql = "SELECT * FROM $table $s_filter";
+    $get_record = mysqli_query($db, $get_sql);
+    if (!$get_record) {
+	LOG_ERROR($db, "SQL: $get_sql :" . mysqli_error($db));
+	return;
+	}
+    $fields = [];
+    while ($field = mysqli_fetch_field($get_record)) {
+	$f_table = $field->table;
+	$f_name = $field->name;
+	$fields[$f_table][$f_name]=$field;
+    }
     $result = NULL;
     $index = 0;
-    while ($old = mysqli_fetch_array($old_record, MYSQLI_ASSOC)) {
-        foreach ($old as $key => $value) {
-            if (!isset($value) or $value === 'NULL') {
-                $value = '';
-            }
+    while ($rec = mysqli_fetch_array($get_record, MYSQLI_ASSOC)) {
+        foreach ($rec as $key => $value) {
+            if (!isset($value) or $value === 'NULL' or $value == NULL) {
+		if (!empty($key) and !empty($fields[$table]) and !empty($fields[$table][$key])) {
+		    if (in_array($fields[$table][$key]->type,MYSQL_FIELD_DIGIT)) { $value = 0; }
+		    if (in_array($fields[$table][$key]->type,MYSQL_FIELD_STRING)) { $value = ''; }
+		    }
+		}
             $result[$index][$key] = $value;
         }
         $index++;
@@ -3846,21 +3889,32 @@ function get_records($db, $table, $filter)
 
 function get_records_sql($db, $sql)
 {
+    $result = NULL;
     if (empty($sql)) {
         LOG_ERROR($db, "Empty query! Skip command.");
-        return;
+        return $result;
     }
-    $record = mysqli_query($db, $sql) or LOG_ERROR($db, "SQL: $sql :" . mysqli_error($db));
+    $records = mysqli_query($db, $sql);
+    if (!$records) {
+	LOG_ERROR($db, "SQL: $sql :" . mysqli_error($db));
+	return $result;
+	}
+    $fields = [];
+    //we assume that fields with the same name have the same type
+    while ($field = mysqli_fetch_field($records)) {
+	$f_name = $field->name;
+	$fields[$f_name]=$field;
+    }
     $index = 0;
-    $result = NULL;
-    while ($rec = mysqli_fetch_array($record, MYSQLI_ASSOC)) {
+    while ($rec = mysqli_fetch_array($records, MYSQLI_ASSOC)) {
         foreach ($rec as $key => $value) {
-            if (!isset($value) or $value === 'NULL') {
-                $value = '';
-            }
-            if (!empty($key)) {
-                $result[$index][$key] = $value;
-            }
+            if (!isset($value) or $value === 'NULL' or $value == NULL) {
+		if (!empty($key) and !empty($fields[$key])) {
+		    if (in_array($fields[$key]->type,MYSQL_FIELD_DIGIT)) { $value = 0; }
+		    if (in_array($fields[$key]->type,MYSQL_FIELD_STRING)) { $value = ''; }
+		    }
+		}
+            if (!empty($key)) { $result[$index][$key] = $value; }
         }
         $index++;
     }
@@ -3874,17 +3928,27 @@ function get_record_sql($db, $sql)
         LOG_ERROR($db, "Empty query! Skip command.");
         return $result;
     }
-    $record = mysqli_query($db, $sql . " LIMIT 1") or LOG_ERROR($db, "SQL: $sql LIMIT 1: " . mysqli_error($db));
+    $record = mysqli_query($db, $sql . " LIMIT 1");
     if (!isset($record)) {
+	LOG_ERROR($db, "SQL: $sql LIMIT 1: " . mysqli_error($db));
         return $result;
+	}
+    $fields = [];
+    //we assume that fields with the same name have the same type
+    while ($field = mysqli_fetch_field($record)) {
+	$f_name = $field->name;
+	$fields[$f_name]=$field;
     }
     $rec = mysqli_fetch_array($record, MYSQLI_ASSOC);
     if (!empty($rec)) {
         foreach ($rec as $key => $value) {
-            if (!isset($value) or $value === 'NULL') {
-                $value = '';
-            }
-            $result[$key] = $value;
+            if (!isset($value) or $value === 'NULL' or $value == NULL) {
+		if (!empty($key) and !empty($fields[$key])) {
+		    if (in_array($fields[$key]->type,MYSQL_FIELD_DIGIT)) { $value = 0; }
+		    if (in_array($fields[$key]->type,MYSQL_FIELD_STRING)) { $value = ''; }
+		    }
+		}
+            if (!empty($key)) { $result[$key] = $value; }
         }
     }
     return $result;

@@ -17,6 +17,6 @@ if (!empty($_GET["ip"]) and !empty($_GET["mac"])) {
 		LOG_INFO($db_link, "Run command: $run_cmd ");
         } else { LOG_ERROR($db_link, "$ip - wrong network!"); }
 	}
-  
 unset($_GET);
+logout();
 ?>
