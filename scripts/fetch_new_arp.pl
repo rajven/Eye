@@ -65,6 +65,8 @@ if ($ARGV[0]) {
 
 my @router_ref = get_records_sql($dbh,"SELECT * FROM devices WHERE deleted=0 AND (device_type=2 or device_type=0) AND discovery=1 AND snmp_version>0 ORDER by ip" );
 
+$dbh->disconnect;
+
 my @arp_array=();
 
 my $pm_arp = Parallel::ForkManager->new($fork_count);
@@ -89,10 +91,12 @@ my $community=$router->{community};
 if (!HostIsLive($router_ip)) { log_info("Host id: $router->{id} name: $router->{device_name} ip: $router_ip is down! Skip."); next; }
 $pm_arp->start() and next DATA_LOOP;
 my $arp_table;
-if (apply_device_lock($dbh,$router->{id})) {
+my $tmp_dbh=init_db();
+if (apply_device_lock($tmp_dbh,$router->{id})) {
     $arp_table=get_arp_table($router_ip,$community,$snmp_version);
-    unset_lock_discovery($dbh,$router->{id});
+    unset_lock_discovery($tmp_dbh,$router->{id});
     }
+$tmp_dbh->disconnect;
 $pm_arp->finish(0, \$arp_table);
 }
 $pm_arp->wait_all_children;
@@ -213,18 +217,22 @@ foreach my $device (@device_list) {
     }
 }
 
+$dbh->disconnect;
+
 FDB_LOOP:
 foreach my $device (@device_list) {
 my $int_list = get_snmp_ifindex($device->{ip},$device->{community},$device->{snmp_version});
 if (!$int_list) { log_info("Host id: $device->{id} name: $device->{device_name} ip: $device->{ip} is down! Skip."); next; }
 $pm_fdb->start() and next FDB_LOOP;
 my $result;
-if (apply_device_lock($dbh,$device->{id})) {
+my $tmp_dbh = init_db();
+if (apply_device_lock($tmp_dbh,$device->{id})) {
     my $fdb=get_fdb_table($device->{ip},$device->{community},$device->{snmp_version},$dev_ifindex{$device->{id}});
-    unset_lock_discovery($dbh,$device->{id});
+    unset_lock_discovery($tmp_dbh,$device->{id});
     $result->{id}=$device->{id};
     $result->{fdb} = $fdb;
     }
+$tmp_dbh->disconnect;
 $pm_fdb->finish(0, \$result);
 }
 $pm_fdb->wait_all_children;
