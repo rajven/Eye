@@ -335,10 +335,17 @@ my @result;
 return @result if (!$db);
 return @result if (!$tsql);
 $tsql.=' LIMIT 1';
-my $list = $db->prepare($tsql) or die "Unable to prepare $tsql: " . $db->errstr;
-$list->execute() or die "Unable to execute $tsql: " . $db->errstr;
-my $row_ref = $list->fetchrow_hashref();
-$list->finish();
+my $row_ref;
+eval {
+    my $list = $db->prepare($tsql) or die "Unable to prepare $tsql: " . $db->errstr;
+    $list->execute() or die "Unable to execute $tsql: " . $db->errstr;
+    $row_ref = $list->fetchrow_hashref();
+    $list->finish();
+};
+if ($@) {
+    log_error("Error apply sql: $tsql err:".$@);
+    die "Error apply sql: $tsql";
+    }
 return $row_ref;
 }
 
@@ -425,6 +432,7 @@ if ($found_changed) {
     } else {
     db_log_debug($db,'Nothing change. Skip update.');
     }
+return 1;
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -749,7 +757,7 @@ sub apply_device_lock {
     #if timestamp undefined, set and return
     if (!$dev->{'locked_timestamp'}) { return set_lock_discovery($db,$device_id); }
     #wait for discovery
-    $wait_time = $dev->{'locked_timestamp'} + 30 - time();
+    my $wait_time = $dev->{'locked_timestamp'} + 30 - time();
     if ($wait_time<0) { return set_lock_discovery($db,$device_id); }
     sleep($wait_time);
     return apply_device_lock($db,$device_id,$iteration);
@@ -760,6 +768,7 @@ sub apply_device_lock {
 sub set_lock_discovery {
     my $db = shift;
     my $device_id = shift;
+    my $new;
     $new->{'discovery_locked'} = 1;
     $new->{'locked_timestamp'} = GetNowTime();
     if (update_record($db,'devices',$new,'id='.$device_id)) { return 1; } 
@@ -771,6 +780,7 @@ sub set_lock_discovery {
 sub unset_lock_discovery {
     my $db = shift;
     my $device_id = shift;
+    my $new;
     $new->{'discovery_locked'} = 0;
     $new->{'locked_timestamp'} = GetNowTime();
     if (update_record($db,'devices',$new,'id='.$device_id)) { return 1; } 

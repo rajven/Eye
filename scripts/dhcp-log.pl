@@ -160,6 +160,7 @@ if (!$pid) {
 
 
             my $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
+
             if (!$auth_record and $type eq 'old' ) { $type='add'; }
 
             if ($type eq 'add') {

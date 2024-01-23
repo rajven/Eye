@@ -10,6 +10,6 @@ routerid=$2
 [ ! -e "${fname}" ] && exit 101
 
 #renice +19 -p $$ >/dev/null 2>&1
-/usr/bin/nfdump -N -r ${fname} -q -o 'fmt:%tsr;%pr;%sa;%xda;%sp;%dp;%ipkt;%ibyt;%in;%out' | /opt/Eye/scripts/parse_flow.pl ${routerid} &
+/bin/nfdump -N -r ${fname} -q -o 'fmt:%tsr;%pr;%sa;%xda;%sp;%dp;%ipkt;%ibyt;%in;%out' | /opt/Eye/scripts/parse_flow.pl ${routerid} &
 
 exit 0
