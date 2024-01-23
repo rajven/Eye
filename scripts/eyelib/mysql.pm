@@ -743,13 +743,13 @@ sub apply_device_lock {
     my $iteration = shift || 0;
     $iteration++;
     if ($iteration>2) { return 0; }
-    my $dev = get_record_sql($db,"SELECT `discovery_locked`, `locked_timestamp` FROM devices WHERE id=".$device_id);
+    my $dev = get_record_sql($db,"SELECT `discovery_locked`, `locked_timestamp`, UNIX_TIMESTAMP(`locked_timestamp`) as u_locked_timestamp  FROM devices WHERE id=".$device_id);
     if (!$dev) { return 0; }
     if (!$dev->{'discovery_locked'}) { return set_lock_discovery($db,$device_id); }
     #if timestamp undefined, set and return
     if (!$dev->{'locked_timestamp'}) { return set_lock_discovery($db,$device_id); }
     #wait for discovery
-    $wait_time = $dev->{'locked_timestamp'} + 30 - now();
+    $wait_time = $dev->{'locked_timestamp'} + 30 - time();
     if ($wait_time<0) { return set_lock_discovery($db,$device_id); }
     sleep($wait_time);
     return apply_device_lock($db,$device_id,$iteration);

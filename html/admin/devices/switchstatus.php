@@ -70,7 +70,7 @@ if (isset($_POST['port_off']) and $device['snmp_version'] > 0) {
 unset($_POST);
 
 if (!apply_device_lock($db_link,$id)) {
-    header("Location: /admin/devices/editdevice.php&id=".$id."&status=locked");
+    header("Location: /admin/devices/editdevice.php?id=".$id."&status=locked");
     exit;
 }
 

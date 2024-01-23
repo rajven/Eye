@@ -2091,32 +2091,45 @@ function is_up($ip)
 function apply_device_lock ($db, $device_id, $iteration =0) {
     $iteration++;
     if ($iteration>2) { return false; }
-    $dev = get_record($db,'devices','id='.$device_id);
+    $dev = get_record_sql($db,'SELECT discovery_locked,UNIX_TIMESTAMP(locked_timestamp) as u_locked_timestamp FROM devices WHERE id='.$device_id);
     if (empty($dev)) { return true; }
-    if (!$dev['discovery_locked']) { return set_lock_discovery($db,$device_id); }
+    if ($dev['discovery_locked'] ===0) { 
+        LOG_DEBUG($db,"Snmp discovery lock not found. Set and discovery.");
+        return set_lock_discovery($db,$device_id); 
+        }
     //if timestamp undefined, set and return
-    if (empty($dev['locked_timestamp'])) { return set_lock_discovery($db,$device_id); }
+    if (empty($dev['u_locked_timestamp'])) { 
+        LOG_DEBUG($db,"Snmp discovery lock timestamp undefined. Set and discovery.");
+        return set_lock_discovery($db,$device_id); 
+        }
     //wait for discovery
-    $wait_time = ($dev['locked_timestamp'] + SNMP_LOCK_TIMEOUT) - time();
-    if ($wait_time<0) { return set_lock_discovery($db,$device_id); }
+    $now = time();
+    $wait_time = ($dev['u_locked_timestamp'] + SNMP_LOCK_TIMEOUT) - $now;
+    LOG_DEBUG($db,"Check snmp lock for device id: " . $device_id . ". Lock timestamp: ".$dev['u_locked_timestamp'].", now: ".$now);
+    if ($wait_time<0) {
+        LOG_DEBUG($db,"The lock is expired. Set new lock.");
+        return set_lock_discovery($db,$device_id); 
+        }
+    LOG_INFO($db,"Snmp discovery lock for device id: $device_id found! Need wait ".$wait_time." sec.");
     sleep($wait_time);
+    LOG_INFO($db,"Try set new lock and continue discovery for device id:".$device_id);
     return apply_device_lock($db,$device_id,$iteration);
 }
 
 function set_lock_discovery($db,$device_id) {
     $new['discovery_locked'] = 1;
-    $new['locked_timestamp'] = time();
+    $new['locked_timestamp'] = GetNowTimeString();
     if (update_record($db,'devices','id='.$device_id,$new)) { return true; } 
     return false;
 }
 
 function unset_lock_discovery($db,$device_id) {
     $new['discovery_locked'] = 0;
-    $new['locked_timestamp'] = time();
+    $new['locked_timestamp'] = GetNowTimeString();
     if (update_record($db,'devices','id='.$device_id,$new)) { return true; } 
     return false;
 }
-    
+
 function get_ifmib_index_table($ip, $community, $version)
 {
     $ifmib_map = NULL;
@@ -4111,6 +4124,7 @@ function update_record($db, $table, $filter, $newvalue)
     if ($table !== "sessions") {
         LOG_VERBOSE($db, "Change table $table WHERE $filter set $changed_log");
     }
+    return $sql_result;
 }
 
 function delete_record($db, $table, $filter)
