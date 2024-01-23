@@ -14,6 +14,11 @@ $user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
+if (!apply_device_lock($db_link,$device_id)) {
+    header("Location: /admin/devices/editdevice.php&id=".$id."&status=locked");
+    exit;
+}
+
 print_device_submenu($page_url);
 print_editdevice_submenu($page_url,$device_id,$device['device_type'],$user_info['login']);
 
@@ -56,6 +61,7 @@ if ($snmp_ok and $port_info['snmp_index'] > 0) {
         }
     print "</table>\n";
     } else { print "No SNMP access!"; }
+    unset_lock_discovery($db_link,$device_id);
 ?>
 <table class="data">
 <tr>
