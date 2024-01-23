@@ -22,6 +22,7 @@ define("WEB_nagios_host_unknown","Status unknown");
 define("WEB_auth_unknown","Client IP address is not set");
 define("WEB_msg_exists","already exists!");
 define("WEB_msg_ip_error","Address format is not correct!");
+define("WEB_device_locked","Device is busy, try again later");
 
 /* common message */
 define("WEB_msg_IP","IP address");

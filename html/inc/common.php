@@ -2088,6 +2088,35 @@ function is_up($ip)
     return $rval == 0;
 }
 
+function apply_device_lock ($db, $device_id, $iteration =0) {
+    $iteration++;
+    if ($iteration>2) { return false; }
+    $dev = get_record($db,'devices','id='.$device_id);
+    if (empty($dev)) { return true; }
+    if (!$dev['discovery_locked']) { return set_lock_discovery($db,$device_id); }
+    //if timestamp undefined, set and return
+    if (empty($dev['locked_timestamp'])) { return set_lock_discovery($db,$device_id); }
+    //wait for discovery
+    $wait_time = ($dev['locked_timestamp'] + SNMP_LOCK_TIMEOUT) - time();
+    if ($wait_time<0) { return set_lock_discovery($db,$device_id); }
+    sleep($wait_time);
+    return apply_device_lock($db,$device_id,$iteration);
+}
+
+function set_lock_discovery($db,$device_id) {
+    $new['discovery_locked'] = 1;
+    $new['locked_timestamp'] = time();
+    if (update_record($db,'devices','id='.$device_id,$new)) { return true; } 
+    return false;
+}
+
+function unset_lock_discovery($db,$device_id) {
+    $new['discovery_locked'] = 0;
+    $new['locked_timestamp'] = time();
+    if (update_record($db,'devices','id='.$device_id,$new)) { return true; } 
+    return false;
+}
+    
 function get_ifmib_index_table($ip, $community, $version)
 {
     $ifmib_map = NULL;

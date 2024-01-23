@@ -69,6 +69,11 @@ if (isset($_POST['port_off']) and $device['snmp_version'] > 0) {
 
 unset($_POST);
 
+if (!apply_device_lock($db_link,$id)) {
+    header("Location: /admin/devices/editdevice.php&id=".$id."&status=locked");
+    exit;
+}
+
 $user_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=" . $device['user_id']);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
@@ -379,5 +384,6 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
         print "<tr><td class=\"speed10M\">" . WEB_port_speed_10 . "</td><td class=\"speed100M\">" . WEB_port_speed_100 . "</td><td class=\"speed1G\">" . WEB_port_speed_1G . "</td><td class=\"speed10G\">" . WEB_port_speed_10G . "</td><tr>\n";
         print "</table>\n";
         print "</form>";
+        unset_lock_discovery($db_link,$id);
         require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.small.php");
         ?>

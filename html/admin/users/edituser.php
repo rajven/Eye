@@ -124,24 +124,27 @@ if (isset($_POST["showDevice"])) {
 
 if (isset($_POST["addauth"])) {
     $fip = substr(trim($_POST["newip"]), 0, 18);
+    $fmac = NULL;
     if (isset($_POST["newmac"])) { $fmac = mac_dotted(substr(trim($_POST["newmac"]), 0, 17)); }
     if ($fip) {
         if (checkValidIp($fip)) {
             $ip_aton = ip2long($fip);
-            //search mac
-            $mac_exists=find_mac_in_subnet($db_link,$fip,$fmac);
-            if (isset($mac_exists) and $mac_exists['count']>=1 and !in_array($id,$mac_exists['users_id'])) {
-                $dup_sql = "SELECT * FROM User_list WHERE id=".$mac_exists['users_id']['0'];
-                $dup_info = get_record_sql($db_link, $dup_sql);
-                $msg_error="Mac already exists at another user in this subnet! Skip creating $fip [$fmac].<br>Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
-                $_SESSION[$page_url]['msg'] = $msg_error;
-                LOG_ERROR($db_link, $msg_error);
-                header("Location: " . $_SERVER["REQUEST_URI"]);
-                exit;
-                }
-            //disable dhcp for secondary ip
             $f_dhcp = 1;
-            if (in_array($id,$mac_exists['users_id'])) { $f_dhcp = 0; }
+            //search mac
+            if (!empty($fmac)) {
+                $mac_exists=find_mac_in_subnet($db_link,$fip,$fmac);
+                if (isset($mac_exists) and $mac_exists['count']>=1 and !in_array($id,$mac_exists['users_id'])) {
+                    $dup_sql = "SELECT * FROM User_list WHERE id=".$mac_exists['users_id']['0'];
+                    $dup_info = get_record_sql($db_link, $dup_sql);
+                    $msg_error="Mac already exists at another user in this subnet! Skip creating $fip [$fmac].<br>Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
+                    $_SESSION[$page_url]['msg'] = $msg_error;
+                    LOG_ERROR($db_link, $msg_error);
+                    header("Location: " . $_SERVER["REQUEST_URI"]);
+                    exit;
+                    }
+                //disable dhcp for secondary ip
+                if (in_array($id,$mac_exists['users_id'])) { $f_dhcp = 0; }
+                }
             //search ip
             $dup_ip_record = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND user_id<>".$id." AND deleted=0");
             if (!empty($dup_ip_record)) {

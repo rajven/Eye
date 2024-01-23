@@ -111,6 +111,13 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 
 ?>
 <div id="contsubmenu">
+
+<?php
+    if (!empty($_GET['status'])) {
+        if ($_GET['status'] ==='locked') { print '<div id="msg">' . WEB_device_locked . '</div>'; }
+    }
+?>
+
 <form name="def" action="editdevice.php?id=<?php echo $id; ?>" method="post">
 <table class="data">
 <tr>
@@ -227,4 +234,5 @@ print "<tr><td colspan=3>".$device['ip']."::". get_device_model_name($db_link,$d
 print "</table>\n";
 ?>
 </form>
+
 <?php require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.small.php"); ?>

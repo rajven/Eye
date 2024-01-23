@@ -51,6 +51,9 @@ get_subnets_ref
 init_db
 init_option
 insert_record
+apply_device_lock
+set_lock_discovery
+unset_lock_discovery
 IpToStr
 unbind_ports
 resurrection_auth
@@ -730,6 +733,48 @@ if ($fqdn ne '' and !$dynamic_ok) {
             }
     }
 #end update dns block
+}
+
+#------------------------------------------------------------------------------------------------------------
+
+sub apply_device_lock {
+    my $db = shift;
+    my $device_id = shift;
+    my $iteration = shift || 0;
+    $iteration++;
+    if ($iteration>2) { return 0; }
+    my $dev = get_record_sql($db,"SELECT `discovery_locked`, `locked_timestamp` FROM devices WHERE id=".$device_id);
+    if (!$dev) { return 0; }
+    if (!$dev->{'discovery_locked'}) { return set_lock_discovery($db,$device_id); }
+    #if timestamp undefined, set and return
+    if (!$dev->{'locked_timestamp'}) { return set_lock_discovery($db,$device_id); }
+    #wait for discovery
+    $wait_time = $dev->{'locked_timestamp'} + 30 - now();
+    if ($wait_time<0) { return set_lock_discovery($db,$device_id); }
+    sleep($wait_time);
+    return apply_device_lock($db,$device_id,$iteration);
+}
+
+#------------------------------------------------------------------------------------------------------------
+
+sub set_lock_discovery {
+    my $db = shift;
+    my $device_id = shift;
+    $new->{'discovery_locked'} = 1;
+    $new->{'locked_timestamp'} = GetNowTime();
+    if (update_record($db,'devices',$new,'id='.$device_id)) { return 1; } 
+    return 0;
+}
+
+#------------------------------------------------------------------------------------------------------------
+
+sub unset_lock_discovery {
+    my $db = shift;
+    my $device_id = shift;
+    $new->{'discovery_locked'} = 0;
+    $new->{'locked_timestamp'} = GetNowTime();
+    if (update_record($db,'devices',$new,'id='.$device_id)) { return 1; } 
+    return 0;
 }
 
 #------------------------------------------------------------------------------------------------------------

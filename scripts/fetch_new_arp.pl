@@ -88,7 +88,11 @@ my $snmp_version=$router->{snmp_version};
 my $community=$router->{community};
 if (!HostIsLive($router_ip)) { log_info("Host id: $router->{id} name: $router->{device_name} ip: $router_ip is down! Skip."); next; }
 $pm_arp->start() and next DATA_LOOP;
-my $arp_table=get_arp_table($router_ip,$community,$snmp_version);
+my $arp_table;
+if (apply_device_lock($dbh,$router->{id})) {
+    $arp_table=get_arp_table($router_ip,$community,$snmp_version);
+    unset_lock_discovery($dbh,$router->{id});
+    }
 $pm_arp->finish(0, \$arp_table);
 }
 $pm_arp->wait_all_children;
@@ -162,7 +166,7 @@ foreach my $auth (@auth_list) {
     $auth_table{oper_table}{$auth_mac}=$auth->{id};
     }
 
-$auth_sql="SELECT id,mac FROM User_auth WHERE mac IS NOT NULL AND deleted=0 ORDER BY id DESC";
+$auth_sql="SELECT id,mac FROM User_auth WHERE mac IS NOT NULL AND deleted=0 ORDER BY last_found DESC";
 my @auth_full_list=get_records_sql($dbh,$auth_sql);
 foreach my $auth (@auth_full_list) {
     next if (!$auth);
@@ -214,10 +218,13 @@ foreach my $device (@device_list) {
 my $int_list = get_snmp_ifindex($device->{ip},$device->{community},$device->{snmp_version});
 if (!$int_list) { log_info("Host id: $device->{id} name: $device->{device_name} ip: $device->{ip} is down! Skip."); next; }
 $pm_fdb->start() and next FDB_LOOP;
-my $fdb=get_fdb_table($device->{ip},$device->{community},$device->{snmp_version},$dev_ifindex{$device->{id}});
 my $result;
-$result->{id}=$device->{id};
-$result->{fdb} = $fdb;
+if (apply_device_lock($dbh,$device->{id})) {
+    my $fdb=get_fdb_table($device->{ip},$device->{community},$device->{snmp_version},$dev_ifindex{$device->{id}});
+    unset_lock_discovery($dbh,$device->{id});
+    $result->{id}=$device->{id};
+    $result->{fdb} = $fdb;
+    }
 $pm_fdb->finish(0, \$result);
 }
 $pm_fdb->wait_all_children;

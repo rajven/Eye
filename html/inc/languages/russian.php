@@ -22,6 +22,7 @@ define("WEB_nagios_host_unknown","Состояние неизвестно");
 define("WEB_auth_unknown","IP-адрес клиента не установлен");
 define("WEB_msg_exists","уже существует!");
 define("WEB_msg_ip_error","Формат адреса не верен!");
+define("WEB_device_locked","Устройство занято. Попробуйте позже.");
 
 /* common message */
 define("WEB_msg_IP","IP-адрес");
