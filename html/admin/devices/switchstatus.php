@@ -139,7 +139,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             print "<tr align=center>\n";
             $cl = "down";
             $new_info = NULL;
-            
+
             $display_vlan= $row['vlan'];
             if (!empty($row['untagged_vlan'])) { 
                 if ($row['untagged_vlan'] != $row['vlan']) { 
@@ -167,12 +167,13 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 list($poper, $padmin, $pspeed, $perrors) = explode(';', $port_state_detail);
                 if ($poper == 1) { $cl = "up"; }
                 if ($poper >= 2) {
-                    if ($padmin >= 2) { $cl = "shutdown"; } else { $cl = "down"; }      
+                    if ($padmin >= 2) { $cl = "shutdown"; } else { $cl = "down"; }
                     }
                 }
 
             print "<td class='" . $cl . "' style='padding:0'><input type=checkbox name=d_port_index[] value=" . $row['snmp_index'] . " ></td>\n";
-            print "<td class='" . $cl . "'><a href=\"editport.php?id=" . $row['id'] . "\">" . $row['port'] . "</a></td>\n";
+
+            print "<td class='" . $cl . "'><a href=\"#\" onclick=\"".open_window_url("editport.php?id=".$row['id'])." return false;\">" . $row['port'] . "</a></td>\n";
             print "<td class='" . $cl . "' >" . $row['port_name'] . "</td>\n";
             print "<td class='" . $cl . "' >" . $row['snmp_index'] . "</td>\n";
             print "<td class='" . $cl . "'>";
@@ -275,7 +276,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 $snmp_url = $ifname;
             } else {
                 if (isset($f_cacti_url)) {
-                    $snmp_url = "<a href=\"$f_cacti_url\">" . $ifname . "</a>";
+                    $snmp_url = "<a href=\"#\" onclick=\"".open_window_url($f_cacti_url)."return false;\">" . $ifname . "</a>";
                 }
                 if (!empty(get_const('torrus_url'))) {
                     $normed_ifname = str_replace("/", "_", $ifname);
@@ -283,7 +284,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                     $normed_ifname = trim(str_replace(" ", "_", $normed_ifname));
                     $t_url = str_replace("HOST_IP", $device['ip'], get_const('torrus_url'));
                     $t_url = str_replace("IF_NAME", $normed_ifname, $t_url);
-                    $snmp_url = "<a href=\"$t_url\">" . $ifname . "</a>";
+                    $snmp_url = "<a href=\"#\" onclick=\"".open_window_url($t_url)."return false;\">" . $ifname . "</a>";
                 }
             }
 
@@ -327,7 +328,10 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             }
 
             print "<td class=\"$cl_error\">" . $perrors . "</td>\n";
-            print "<td class='" . $cl . "' ><button name=\"write\" class=\"j-submit-report\" onclick=\"window.open('portmactable.php?id=" . $row['id'] . "')\">" . $row['last_mac_count'] . "</button></td>\n";
+                    $snmp_url = "<a href=\"#\" onclick=\"".open_window_url($f_cacti_url)." return false;\">" . $ifname . "</a>";
+
+            print "<td class='" . $cl . "' ><button onclick=\"". open_window_url('portmactable.php?id='.$row['id'])." return false;\">" . $row['last_mac_count'] . "</button></td>\n";
+
             print "<td class='" . $cl . "'>" . $sfp_status . " " . $poe_info . "</td>\n";
             if (isset($poe_status) and !$row['skip']) {
                 print "<td class=\"data\">";

@@ -549,6 +549,21 @@ function print_submenu_url($display_name, $page, $current_page, $last)
     }
 }
 
+function print_submenu_nw($display_name, $page, $current_page, $last)
+{
+    $url_arr = explode('?', $page);
+    $fpage = $url_arr[0];
+    $new_url = reencodeurl($page);
+    if ($fpage === $current_page) {
+        print "<b>$display_name</b>";
+    } else {
+        print '<a href="" onclick="window.open(\''.$new_url."', '_tab').focus(); return false;\">". $display_name ."</a>";
+    }
+    if (!isset($last) or $last == 0) {
+        print " | ";
+    }
+}
+
 function print_url($display_name, $page)
 {
     print "<a href='" . reencodeurl($page) . "'> $display_name </a>";
@@ -614,6 +629,11 @@ function print_device_submenu($current_page)
     print_submenu_url(WEB_submenu_vendors, '/admin/devices/devvendors.php', $current_page, 0);
     print_submenu_url(WEB_submenu_ports_vlan, '/admin/devices/portsbyvlan.php', $current_page, 1);
     print "</div>\n";
+}
+
+function open_window_url ($url) 
+{
+return "window.open('".$url."', '_tab');";
 }
 
 function print_editdevice_submenu($current_page, $id, $dev_type, $dev_name = NULL)
@@ -1302,7 +1322,7 @@ function print_auth_port($db, $port_id)
         if (isset($f_dns) and $f_dns != '') {
             $name = $f_dns;
         }
-        print "<a href=\"/admin/users/editauth.php?id=$f_auth_id\">" . $name . " [" . $f_ip . "]</a><br>";
+        print "<a href=\"#\" onclick=\"".open_window_url("/admin/users/editauth.php?id=".$f_auth_id)." return false;\">" . $name . " [" . $f_ip . "]</a><br>";
     }
 }
 
