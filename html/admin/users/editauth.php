@@ -155,31 +155,18 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
         }
         $new['deleted'] = 0;
 
-        if (!empty($_POST["f_nagios"])) {
-            $a_nagios = $_POST["f_nagios"] * 1;
-        } else {
-            $a_nagios = 0;
-        }
-        if (!empty($_POST["f_link"])) {
-            $a_link = $_POST["f_link"] * 1;
-        } else {
-            $a_link = 0;
-        }
+        $parent_id = $old_auth_info['user_id'];
 
-        $new_parent = get_record_sql($db_link, "User_list", "id=" . $parent_id);
-        if (!empty($new_parent)) {
-            $new['user_id'] = $parent_id;
-            $new['ou_id'] = $new_parent['ou_id'];
-        } else {
+        $old_parent = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=".$parent_id);
+        if (empty($old_parent)) {
             $new_user_info = get_new_user_id($db_link, $ip, $mac, NULL);
-            if ($new_user_info['user_id']) {
-                $new_user_id = $new_user_info['user_id'];
-            }
-            if (empty($new_user_id)) {
-                $new_user_id = new_user($db_link, $new_user_info);
-            }
+            if ($new_user_info['user_id']) { $new_user_id = $new_user_info['user_id']; }
+            if (empty($new_user_id)) { $new_user_id = new_user($db_link, $new_user_info); }
             $new['user_id'] = $new_user_id;
-        }
+            }
+
+        //save comments
+        $new['comments']=$old_parent['comments'];
 
         if (get_const('default_user_ou_id') == $parent_ou_id or get_const('default_hotspot_ou_id') == $parent_ou_id) {
             $new['nagios_handler'] = '';
