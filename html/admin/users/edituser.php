@@ -25,10 +25,10 @@ if (isset($_POST["edituser"])) {
         $new["day_quota"] = 0;
         $new["month_quota"] = 0;
     } else {
-        $new["enabled"] = $_POST["f_enabled"] * 1;
-        $new["blocked"] = $_POST["f_blocked"] * 1;
-        $new["day_quota"] = trim($_POST["f_perday"]) * 1;
-        $new["month_quota"] = trim($_POST["f_permonth"]) * 1;
+        $new["enabled"] = get_int($_POST["f_enabled"]);
+        $new["blocked"] = get_int($_POST["f_blocked"]);
+        $new["day_quota"] = get_int(trim($_POST["f_perday"]));
+        $new["month_quota"] = get_int(trim($_POST["f_permonth"]));
     }
     $changes = get_diff_rec($db_link,"User_list","id='$id'", $new, 0);
     if (!empty($changes)) { LOG_WARNING($db_link,"Changed user id: $id login: ".$new["login"].". \r\Apply: $changes"); }

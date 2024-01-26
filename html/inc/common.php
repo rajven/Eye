@@ -884,6 +884,12 @@ function print_qa_rule_select($qa_name, $qa_value = 1)
     print "</select>\n";
 }
 
+function get_int($qa_value = 0)
+{
+    if (empty($qa_value)) { $qa_value = 0; } else { $qa_value = (int)$qa_value * 1; }
+    return $qa_value;
+}
+
 function print_qa_select($qa_name, $qa_value = 0)
 {
     print "<select name=\"$qa_name\">\n";

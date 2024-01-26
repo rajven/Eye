@@ -74,15 +74,15 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             $new['filter_group_id'] = 0;
         } else {
             $new['nagios_handler'] = $_POST["f_handler"];
-            $new['enabled'] = $_POST["f_enabled"] * 1;
-            $new['link_check'] = $_POST["f_link"] * 1;
-            $new['nagios'] = $_POST["f_nagios"] * 1;
+            $new['enabled'] = get_int($_POST["f_enabled"]);
+            $new['link_check'] = get_int($_POST["f_link"]);
+            $new['nagios'] = get_int($_POST["f_nagios"]);
             $new['dhcp'] = $f_dhcp;
-            $new['blocked'] = $_POST["f_blocked"] * 1;
-            $new['day_quota'] = $_POST["f_day_q"] * 1;
-            $new['month_quota'] = $_POST["f_month_q"] * 1;
-            $new['queue_id'] = $_POST["f_queue_id"] * 1;
-            $new['filter_group_id'] = $_POST["f_group_id"] * 1;
+            $new['blocked'] = get_int($_POST["f_blocked"]);
+            $new['day_quota'] = get_int($_POST["f_day_q"]);
+            $new['month_quota'] = get_int($_POST["f_month_q"]);
+            $new['queue_id'] = get_int($_POST["f_queue_id"]);
+            $new['filter_group_id'] = get_int($_POST["f_group_id"]);
         }
         if ($new['nagios'] == 0) {
             $new['nagios_status'] = 'UP';
@@ -180,15 +180,15 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
             $new['filter_group_id'] = 0;
         } else {
             $new['nagios_handler'] = $_POST["f_handler"];
-            $new['enabled'] = $_POST["f_enabled"] * 1;
-            $new['link_check'] = $a_link;
-            $new['nagios'] = $a_nagios;
-            $new['dhcp'] = $_POST["f_dhcp"] * 1;
-            $new['blocked'] = $_POST["f_blocked"] * 1;
-            $new['day_quota'] = $_POST["f_day_q"] * 1;
-            $new['month_quota'] = $_POST["f_month_q"] * 1;
-            $new['queue_id'] = $_POST["f_queue_id"] * 1;
-            $new['filter_group_id'] = $_POST["f_group_id"] * 1;
+            $new['enabled'] = get_int($_POST["f_enabled"]);
+            $new['link_check'] = get_int($_POST["f_link"]);
+            $new['nagios'] = get_int($_POST["f_nagios"]);
+            $new['dhcp'] = get_int($_POST["f_dhcp"]);
+            $new['blocked'] = get_int($_POST["f_blocked"]);
+            $new['day_quota'] = get_int($_POST["f_day_q"]);
+            $new['month_quota'] = get_int($_POST["f_month_q"]);
+            $new['queue_id'] = get_int($_POST["f_queue_id"]);
+            $new['filter_group_id'] = get_int($_POST["f_group_id"]);
         }
         $changes = get_diff_rec($db_link, "User_auth", "id='$id'", $new, 0);
         if (!empty($changes)) {
