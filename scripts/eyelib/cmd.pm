@@ -7,7 +7,6 @@ package eyelib::cmd;
 use utf8;
 use strict;
 use English;
-no if $] >= 5.018, warnings =>  "experimental::smartmatch";
 use FindBin '$Bin';
 use lib "$Bin";
 use base 'Exporter';
@@ -527,7 +526,7 @@ if ($device->{vendor_id} eq '7') {
     }
 
 #allied telesys x210,x610
-if ($device->{device_model_id} ~~ [50..53]) {
+if (in_array([50..53],$device->{device_model_id})) {
     eval {
         my $session = netdev_login($device);
 my $cmd = "copy running-config tftp

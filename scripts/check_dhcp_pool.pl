@@ -8,7 +8,6 @@ use utf8;
 use English;
 use base;
 use FindBin '$Bin';
-no if $] >= 5.018, warnings =>  "experimental::smartmatch";
 use lib "$Bin/";
 use strict;
 use DBI;
@@ -63,7 +62,7 @@ next if (!$dhcp_networks->match_string($row->{ip}));
 next if (!$row->{mac});
 next if (!$row->{ip});
 my $subnet_name = $dhcp_networks->match_string($row->{ip});
-if ($row->{ip_int}~~[$dhcp_conf{$subnet_name}->{first_ip_aton} .. $dhcp_conf{$subnet_name}->{last_ip_aton}]) { $dhcp_conf{$subnet_name}->{dhcp_pool_size}--; }
+if (in_array([$dhcp_conf{$subnet_name}->{first_ip_aton} .. $dhcp_conf{$subnet_name}->{last_ip_aton}],$row->{ip_int})) { $dhcp_conf{$subnet_name}->{dhcp_pool_size}--; }
 }
 
 my @warning=();

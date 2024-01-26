@@ -31,6 +31,7 @@ log_debug
 log_error
 log_verbose
 log_die
+in_array
 timestamp
 do_exec
 do_exec_ref
@@ -175,6 +176,17 @@ die ($_[0]);
 sub timestamp {
 my $worktime = time()-$BASETIME;
 log_info("TimeStamp: $worktime sec.");
+}
+
+#---------------------------------------------------------------------------------------------------------
+
+sub in_array {
+my $arr = shift;
+my @tmp = ();
+if (ref($arr)=~'ARRAY') { @tmp = @{$arr}; } else { push(@tmp,$arr); }
+my $value = shift;
+my %num = map { $_, 1 } @tmp;
+return $num{$value} || 0;
 }
 
 #---------------------------------------------------------------------------------------------------------.

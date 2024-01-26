@@ -21,8 +21,6 @@ use eyelib::snmp;
 use eyelib::cmd;
 use Net::SNMP qw(:snmp);
 use Fcntl qw(:flock);
-no if $] >= 5.018, warnings =>  "experimental::smartmatch";
-
 
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
@@ -94,7 +92,7 @@ foreach my $conn_id (keys %conn_info) {
 if (exists $port_info{$conn_info{$conn_id}{port_id}}{count}) {
     $port_info{$conn_info{$conn_id}{port_id}}{count}++;
     #OU: Switches, Routers, WiFi AP
-    if ($conn_info{$conn_id}{ou_id}~~[7,10,12] and $conn_info{$conn_id}{description}) {
+    if (in_array([7,10,12],$conn_info{$conn_id}{ou_id}) and $conn_info{$conn_id}{description}) {
         $port_info{$conn_info{$conn_id}{port_id}}{description} = $conn_info{$conn_id}{description};
         }
     next;
