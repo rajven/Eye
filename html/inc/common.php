@@ -1611,27 +1611,25 @@ function find_mac_in_subnet($db, $ip, $mac)
     return $result;
 }
 
-function apply_auth_rule($db, $auth_id, $user_id)
+function apply_auth_rule($db, $auth_record, $user_id)
 {
-    if (empty($auth_id)) {
-        return;
-    }
-    if (empty($user_id)) {
-        return;
-    }
+    if (empty($auth_record)) { return; }
+    if (empty($user_id)) { return $auth_record; }
+
     $user_rec = get_record($db, 'User_list', "id=" . $user_id);
-    if (empty($user_rec)) {
-        return;
-    }
+    if (empty($user_rec)) { return $auth_record; }
+
     //set filter and status by user
-    $set_auth['ou_id'] = $user_rec['ou_id'];
-    $set_auth['user_id'] = $user_rec['id'];
-    $set_auth['filter_group_id'] = $user_rec['filter_group_id'];
-    $set_auth['queue_id'] = $user_rec['queue_id'];
-    $set_auth['enabled'] = $user_rec['enabled'];
-    $set_auth['changed'] = 1;
-    update_record($db, "User_auth", "id=$auth_id", $set_auth);
-    return $set_auth;
+    $auth_record['ou_id'] = $user_rec['ou_id'];
+    $auth_record['user_id'] = $user_rec['id'];
+    $auth_record['filter_group_id'] = $user_rec['filter_group_id'];
+    $auth_record['queue_id'] = $user_rec['queue_id'];
+    $auth_record['enabled'] = $user_rec['enabled'];
+    $auth_record['changed'] = 1;
+    //maybe fill comments?
+    if (!empty($user_rec['fio']) and empty($auth_record['comments'])) { $auth_record['comments'] = $user_rec['fio']; }
+
+    return $auth_record;
 }
 
 function fix_auth_rules($db)
@@ -1709,7 +1707,7 @@ function new_auth($db, $ip, $mac, $user_id)
         }
     }
 
-    // default id
+    // save traffic detailization
     $save_traf = get_option($db, 23);
     $resurrection_id = NULL;
 
@@ -1735,7 +1733,8 @@ function new_auth($db, $ip, $mac, $user_id)
 
     //check rules, update filter and state for new record
     if (!empty($resurrection_id)) {
-        apply_auth_rule($db, $resurrection_id, $user_id);
+        $auth=apply_auth_rule($db, $auth, $user_id);
+        update_record($db, "User_auth", "id=$resurrection_id", $auth);
         if (!is_hotspot($db, $ip) and !empty($msg)) {
             LOG_WARNING($db, $msg);
         }
@@ -1854,8 +1853,9 @@ function resurrection_auth($db, $ip_record)
     }
     //check rules, update filter and state for new record
     if (!empty($resurrection_id)) {
-        $user_rec = apply_auth_rule($db, $resurrection_id, $new_user_id);
-        $msg .= "filter: " . $user_rec['filter_group_id'] . "\r\n queue_id: " . $user_rec['queue_id'] . "\r\n enabled: " . $user_rec['enabled'] . "\r\nid: $resurrection_id";
+        $auth = apply_auth_rule($db, $auth, $new_user_id);
+        update_record($db, "User_auth", "id=$resurrection_id", $auth);
+        $msg .= "filter: " . $auth['filter_group_id'] . "\r\n queue_id: " . $auth['queue_id'] . "\r\n enabled: " . $auth['enabled'] . "\r\nid: $resurrection_id";
         if (!$hotspot_found and !empty($msg)) {
             LOG_WARNING($db, $msg);
         }

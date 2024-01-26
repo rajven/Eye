@@ -1025,13 +1025,14 @@ if ($auth_exists) {
 #filter and status
 my $cur_auth_id=get_id_record($db,'User_auth',"ip='$ip' and mac='$mac' and deleted=0 ORDER BY last_found DESC");
 if ($cur_auth_id) {
-    $record=get_record_sql($db,"SELECT * FROM User_list WHERE id=".$new_user_id);
-    if ($record) {
-	    $new_record->{ou_id}=$record->{ou_id};
-	    $new_record->{filter_group_id}=$record->{filter_group_id};
-	    $new_record->{queue_id}=$record->{queue_id};
-	    $new_record->{enabled}="$record->{enabled}";
-        update_record($db,'User_auth',$new_record,"id=$cur_auth_id");
+    my $user_record=get_record_sql($db,"SELECT * FROM User_list WHERE id=".$new_user_id);
+    if ($user_record) {
+	    $new_record->{ou_id}=$user_record->{ou_id};
+	    $new_record->{comments}=$user_record->{fio};
+	    $new_record->{filter_group_id}=$user_record->{filter_group_id};
+	    $new_record->{queue_id}=$user_record->{queue_id};
+	    $new_record->{enabled}="$user_record->{enabled}";
+            update_record($db,'User_auth',$new_record,"id=$cur_auth_id");
 	    }
     } else { return; }
 return $cur_auth_id;
@@ -1063,6 +1064,7 @@ $new_record->{ou_id}=$user_record->{ou_id};
 $new_record->{filter_group_id}=$user_record->{filter_group_id};
 $new_record->{queue_id}=$user_record->{queue_id};
 $new_record->{enabled}="$user_record->{enabled}";
+$new_record->{comments}=$user_record->{fio};
 my $cur_auth_id=insert_record($db,'User_auth',$new_record);
 db_log_warning($db,"New ip created by netflow! ip: $ip") if ($cur_auth_id);
 return $cur_auth_id;

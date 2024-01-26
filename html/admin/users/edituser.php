@@ -160,7 +160,6 @@ if (isset($_POST["addauth"])) {
                 $new['dhcp']=$f_dhcp;
                 $new["dhcp_action"]='manual';
                 update_record($db_link,"User_auth","id=".$fid,$new);
-                apply_auth_rule($db_link,$fid,$id);
                 LOG_WARNING($db_link,"Add ip for login: ".$user_info["login"].": ip => $fip, mac => $fmac",$fid);
                 header("Location: /admin/users/editauth.php?id=".$fid);
                 exit;
@@ -195,7 +194,7 @@ if (isset($_POST["new_user"])) {
     $save_traf = get_option($db_link, 23) * 1;
     foreach ($auth_id as $key => $val) {
         if ($val) {
-	        $auth_info = get_record_sql($db_link,"SELECT ip, mac, comments, dns_name, dhcp_hostname FROM User_auth WHERE id=$val");
+	    $auth_info = get_record_sql($db_link,"SELECT ip, mac, comments, dns_name, dhcp_hostname FROM User_auth WHERE id=$val");
             $ou_id = $user_info["ou_id"];
             $login = NULL;
             if (!empty($auth_info["dns_name"])) { $login = $auth_info["dns_name"]; }
@@ -209,8 +208,8 @@ if (isset($_POST["new_user"])) {
                 $auth["user_id"] = $new_user["id"];
                 $auth["ou_id"] = $new_user["ou_id"];
                 $auth["save_traf"] = $save_traf;
+                $auth=apply_auth_rule($db_link,$auth,$l_id);
                 update_record($db_link, "User_auth", "id='" . $val . "'", $auth);
-                apply_auth_rule($db_link,$val,$l_id);
                 LOG_WARNING($db_link,"ip from id: $val moved to another user user_id: ".$new_user["id"], $val);
             } else {
                 $new["login"] = $login;

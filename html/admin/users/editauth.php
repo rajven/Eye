@@ -109,7 +109,9 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
 
 if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
     $new_parent_id = $_POST["f_new_parent"] * 1;
-    $changes = apply_auth_rule($db_link, $id, $new_parent_id);
+    $moved_auth = get_record_sql($db_link,"SELECT comments FROM User_auth WHERE id=".$id);
+    $changes = apply_auth_rule($db_link, $moved_auth, $new_parent_id);
+    update_record($db_link, "User_auth", "id='$id'", $changes);
     LOG_WARNING($db_link, "IP-address moved to another user! Applyed: " . get_rec_str($changes), $id);
     run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["mac"]."' AND type=2");
     run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["ip"]."' AND type=1");
@@ -205,8 +207,8 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
         if (!empty($changes)) {
             LOG_WARNING($db_link, "Recovered ip-address. Applyed: $changes", $id);
         }
+        $new = apply_auth_rule($db_link, $new, $new['user_id']);
         update_record($db_link, "User_auth", "id='$id'", $new);
-        apply_auth_rule($db_link, $id, $new['user_id']);
     } else {
         $msg_error = "$msg_ip_error xxx.xxx.xxx.xxx/xx";
         $_SESSION[$page_url]['msg'] = $msg_error;
