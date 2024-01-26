@@ -70,11 +70,14 @@ $dhcp_conf{$subnet_name}->{last_ip}=$subnet->{dhcp_stop};
 }
 
 if ($day==1) {
+    db_log_info($dbh,'Monthly amnesty started');
+    db_log_verbose($dbh,"Amnistuyemo all blocked user by traffic for a month");
     do_sql($dbh,"Update User_list set blocked=0");
     do_sql($dbh,"Update User_auth set blocked=0, changed=1  WHERE blocked=1 and deleted=0");
-    db_log_verbose($dbh,"Amnistuyemo all blocked user by traffic for a month");
+    db_log_info($dbh,'Monthly amnesty stopped');
     } else {
     #month stat
+    db_log_info($dbh,'Daily statistics started');
     my $month_sql="SELECT User_list.id, User_list.login, SUM( traf_all ) AS traf_sum, User_list.month_quota as uquota
     FROM ( SELECT User_stats.auth_id, SUM( byte_in + byte_out ) AS traf_all FROM User_stats 
     WHERE User_stats.`timestamp`>=$month_start AND User_stats.`timestamp`< $month_stop  
@@ -88,8 +91,10 @@ if ($day==1) {
         do_sql($dbh,"UPDATE User_list set blocked=0 WHERE id=$row->{id}");
         do_sql($dbh,"UPDATE User_auth set blocked=0, changed=1 WHERE user_id=$row->{id}");
         }
+    db_log_info($dbh,'Daily statistics stopped');
     }
 
+db_log_info($dbh,'Clean dhcp leases for dynamic hosts with overdue lease time');
 #clean temporary dhcp leases & connections only for dhcp pool ip
 my $users_sql = "SELECT * FROM User_auth WHERE deleted=0 AND (`ou_id`=".$default_user_ou_id." OR `ou_id`=".$default_hotspot_ou_id.")";
 my @users_auth = get_records_sql($dbh,$users_sql);
@@ -105,11 +110,12 @@ if ($dhcp_networks->match_string($row->{ip})) {
         my $u_count=get_count_records($dbh,'User_auth','deleted=0 and user_id='.$row->{user_id});
         if (!$u_count) {
 		delete_record($dbh,"User_list","id=".$row->{'user_id'});
-		db_log_verbose($dbh,"Remove dynamic user id: $row->{'user_id'} by dhcp lease timeout");
+		db_log_info($dbh,"Remove dynamic user id: $row->{'user_id'} by dhcp lease timeout");
 	        }
         }
     }
 }
+db_log_info($dbh,'Finished');
 
 $now = DateTime->now(time_zone=>'local');
 my $day_dur = DateTime::Duration->new( days => $history_dhcp );
@@ -117,10 +123,12 @@ my $clean_date = $now - $day_dur;
 my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
 
 #clean dhcp log
+db_log_info($dbh,'Clearing outdated records dhcp log');
 do_sql($dbh,"DELETE FROM dhcp_log WHERE `timestamp` < $clean_str" );
 db_log_verbose($dbh,"Clean dhcp leases for all older that ".$clean_str);
 
 ##### clean old connections ########
+db_log_info($dbh,'Clearing outdated connection records');
 $day_dur = DateTime::Duration->new( days => $connections_history );
 $clean_date = $now - $day_dur;
 $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
@@ -129,11 +137,12 @@ $users_sql = "SELECT id FROM User_auth WHERE `last_found` < $clean_str and last_
 db_log_debug($dbh,$users_sql) if ($debug);
 @users_auth=get_records_sql($dbh,$users_sql);
 foreach my $row (@users_auth) {
-db_log_debug($dbh,"Clear old connection for user_auth ".$row->{id}) if ($debug);
+db_log_debug($dbh,"Clear old connection for user_auth ".$row->{id});
 do_sql($dbh,"DELETE FROM connections WHERE auth_id='".$row->{id}."'");
 }
 
 ##### clean dup connections ########
+db_log_info($dbh,'Clearing duplicated connection records');
 my $conn_sql = "SELECT id,port_id,auth_id FROM connections order by port_id";
 my @conn_ref = get_records_sql($dbh,$conn_sql);
 my $old_port_id=0;
@@ -148,19 +157,20 @@ if ($old_port_id ==0 or $old_auth_id==0) { $old_port_id=$c_port_id; $old_auth_id
 if ($old_port_id >0 and $old_port_id != $c_port_id) { $old_port_id=$c_port_id; $old_auth_id=$c_auth_id; next; }
 if ($old_auth_id >0 and $old_auth_id != $c_auth_id) { $old_port_id=$c_port_id; $old_auth_id=$c_auth_id; next; }
 do_sql($dbh,"DELETE FROM connections WHERE id='".$c_id."'");
-db_log_verbose($dbh,"Remove dup connection $c_id: $c_port_id $c_auth_id");
+db_log_info($dbh,"Remove dup connection $c_id: $c_port_id $c_auth_id");
 }
 
-##### clean empty user account and corresponded devices ################
+##### clean empty user account and corresponded devices for dynamic users and hotspot ################
+db_log_info($dbh,'Clearing empty user account and corresponded devices for dynamic users and hotspot');
 my $u_sql = "SELECT * FROM User_list as U WHERE (U.ou_id=".$default_hotspot_ou_id." OR U.ou_id=".$default_user_ou_id.") AND (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0";
 my @u_ref = get_records_sql($dbh,$u_sql);
 foreach my $row (@u_ref) {
 do_sql($dbh,"DELETE FROM User_list WHERE id='".$row->{id}."'");
-db_log_verbose($dbh,"Remove empty user id: $row->{id} login: $row->{login}");
+db_log_info($dbh,"Remove empty dynamic user with id: $row->{id} login: $row->{login}");
 #delete binded device
 my $user_device = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=".$row->{id});
 if ($user_device) {
-    db_log_verbose($dbh,"Remove corresponded device id: $user_device->{id} name: $user_device->{device_name}");
+    db_log_info($dbh,"Remove corresponded device id: $user_device->{id} name: $user_device->{device_name}");
     unbind_ports($dbh, $user_device->{id});
     do_sql($dbh, "DELETE FROM connections WHERE device_id=".$user_device->{id});
     do_sql($dbh, "DELETE FROM device_l3_interfaces WHERE device_id=".$user_device->{id});
@@ -169,7 +179,29 @@ if ($user_device) {
     }
 }
 
+##### clean empty user account and corresponded devices if there are no rules for automatic linking ################
+if ($config_ref{clean_empty_user}) {
+    db_log_info($dbh,'Clearing empty user account and corresponded devices if there are no rules for automatic linking');
+    my $u_sql = "SELECT * FROM User_list as U WHERE (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id)=0";
+    my @u_ref = get_records_sql($dbh,$u_sql);
+    foreach my $row (@u_ref) {
+        do_sql($dbh,"DELETE FROM User_list WHERE id='".$row->{id}."'");
+        db_log_info($dbh,"Remove empty user with id: $row->{id} login: $row->{login}");
+        #delete binded device
+        my $user_device = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=".$row->{id});
+        if ($user_device) {
+            db_log_info($dbh,"Remove corresponded device id: $user_device->{id} name: $user_device->{device_name}");
+            unbind_ports($dbh, $user_device->{id});
+            do_sql($dbh, "DELETE FROM connections WHERE device_id=".$user_device->{id});
+            do_sql($dbh, "DELETE FROM device_l3_interfaces WHERE device_id=".$user_device->{id});
+            do_sql($dbh, "DELETE FROM device_ports WHERE device_id=".$user_device->{id});
+            delete_record($dbh, "devices", "id=".$user_device->{id});
+            }
+        }
+    }
+
 ##### unknown mac clean ############
+db_log_info($dbh,'Clearing unknown mac if it found in current User_auth table');
 $users_sql = "SELECT mac FROM User_auth WHERE deleted=0";
 @users_auth = get_records_sql($dbh,$users_sql);
 foreach my $row (@users_auth) {
@@ -183,7 +215,7 @@ $day_dur = DateTime::Duration->new( days => $history );
 $clean_date = $now - $day_dur;
 $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
 
-db_log_verbose($dbh,"Clean traffic detail older that ".$clean_str);
+db_log_info($dbh,"Clean traffic detail older that ".$clean_str);
 #clean old traffic detail
 do_sql($dbh,"DELETE FROM Traffic_detail WHERE `timestamp` < $clean_str" );
 
@@ -193,7 +225,7 @@ $day_dur = DateTime::Duration->new( days => $history_log_day );
 $clean_date = $now - $day_dur;
 $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
 
-db_log_verbose($dbh,"Clean worklog older that ".$clean_str);
+db_log_info($dbh,"Clean worklog older that ".$clean_str);
 do_sql($dbh,"DELETE FROM syslog WHERE `timestamp` < $clean_str" );
 
 #clean debug logs older than 2 days
@@ -201,7 +233,7 @@ $day_dur = DateTime::Duration->new( days => 2 );
 $clean_date = $now - $day_dur;
 $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
 
-db_log_verbose($dbh,"Clean debug worklog older that ".$clean_str);
+db_log_info($dbh,"Clean debug worklog older that ".$clean_str);
 do_sql($dbh,"DELETE FROM syslog WHERE level>3 AND `timestamp` < $clean_str" );
 
 ##### remote syslog  ######
@@ -210,7 +242,7 @@ $day_dur = DateTime::Duration->new( days => $history_syslog_day );
 $clean_date = $now - $day_dur;
 $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
 
-db_log_verbose($dbh,"Clean syslog older that ".$clean_str);
+db_log_info($dbh,"Clean syslog older that ".$clean_str);
 do_sql($dbh,"DELETE FROM remote_syslog WHERE `date` < $clean_str" );
 
 ##### Traffic stats  ######
@@ -219,7 +251,7 @@ $day_dur = DateTime::Duration->new( days => $history_trafstat_day );
 $clean_date = $now - $day_dur;
 $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
 
-db_log_verbose($dbh,"Clean traffic statistics older that ".$clean_str);
+db_log_info($dbh,"Clean traffic statistics older that ".$clean_str);
 do_sql($dbh,"DELETE FROM User_stats WHERE `timestamp` < $clean_str" );
 
 ##### Traffic stats full ######
@@ -230,7 +262,7 @@ $day_dur = DateTime::Duration->new( days => $iptraf_history );
 $clean_date = $now - $day_dur;
 $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
 
-db_log_verbose($dbh,"Clean traffic full statistics older that ".$clean_str);
+db_log_info($dbh,"Clean traffic full statistics older that ".$clean_str);
 do_sql($dbh,"DELETE FROM User_stats_full WHERE `timestamp` < $clean_str" );
 
 #### clean unknown user ip

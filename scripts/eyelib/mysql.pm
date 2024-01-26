@@ -1144,6 +1144,8 @@ $config_ref{wiki_path} = get_option($db,61);
 $config_ref{auto_mac_rule} = get_option($db,64);
 #network configuration mode
 $config_ref{config_mode}=get_option($db,68);
+#auto clean old user record
+$config_ref{clean_empty_user}=get_option($db,69);
 
 #$save_detail = 1; id=23
 $save_detail=get_option($db,23);

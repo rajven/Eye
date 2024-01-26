@@ -83,8 +83,7 @@ print_control_submenu($page_url);
 
             <?php
             $descr_field = "description." . HTML_LANG;
-            $t_config = mysqli_query($db_link, "SELECT `config`.`id`,`option_id`,`option_name`,`value`,`type`,`" . $descr_field . "`,`min_value`,`max_value` FROM `config`,`config_options` WHERE
- `config`.`option_id`=`config_options`.`id` ORDER BY `option_name`");
+            $t_config = mysqli_query($db_link, "SELECT `config`.`id`,`option_id`,`option_name`,`value`,`type`,`" . $descr_field . "`,`min_value`,`max_value` FROM `config`,`config_options` WHERE `config`.`option_id`=`config_options`.`id` ORDER BY `option_name`");
             while ($row = mysqli_fetch_array($t_config)) {
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[" . $row["option_id"] . "] value='" . $row['id'] . "'></td>\n";
@@ -122,8 +121,7 @@ print_control_submenu($page_url);
             }
             ?>
             <tr>
-                <td colspan=4 class="data"><?php print WEB_btn_add . " " . mb_strtolower(WEB_config_option) . ":&nbsp";
-                                            print_option_select($db_link, "f_new_option"); ?></td>
+                <td colspan=4 class="data"><?php print WEB_btn_add . " " . mb_strtolower(WEB_config_option) . ":&nbsp"; print_option_select($db_link, "f_new_option"); ?></td>
                 <td class="up" align="center"><input type="submit" name="create" value="<?php echo WEB_btn_add; ?>"></td>
                 <td colspan=2 class="data"></td>
             </tr>

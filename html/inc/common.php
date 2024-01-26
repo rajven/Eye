@@ -867,7 +867,7 @@ function get_queue($db, $queue_value)
     return $queue_name;
 }
 
-function print_qa_l3int_select($qa_name, $qa_value)
+function print_qa_l3int_select($qa_name, $qa_value = 0)
 {
     print "<select name=\"$qa_name\">\n";
     print_select_item(WEB_select_item_lan, 0, $qa_value);
@@ -875,7 +875,7 @@ function print_qa_l3int_select($qa_name, $qa_value)
     print "</select>\n";
 }
 
-function print_qa_rule_select($qa_name, $qa_value)
+function print_qa_rule_select($qa_name, $qa_value = 1)
 {
     print "<select name=\"$qa_name\">\n";
     print_select_item('Subnet', 1, $qa_value);
@@ -884,15 +884,16 @@ function print_qa_rule_select($qa_name, $qa_value)
     print "</select>\n";
 }
 
-function print_qa_select($qa_name, $qa_value)
+function print_qa_select($qa_name, $qa_value = 0)
 {
     print "<select name=\"$qa_name\">\n";
+    if (empty($qa_value)) { $qa_value = 0; } else { $qa_value = $qa_value*1; }
     print_select_item(WEB_select_item_yes, 1, $qa_value);
     print_select_item(WEB_select_item_no, 0, $qa_value);
     print "</select>\n";
 }
 
-function print_qa_select_ext($qa_name, $qa_value, $readonly)
+function print_qa_select_ext($qa_name, $qa_value = 0, $readonly = 1)
 {
     $state = '';
     if ($readonly) {
@@ -904,7 +905,7 @@ function print_qa_select_ext($qa_name, $qa_value, $readonly)
     print "</select>\n";
 }
 
-function print_td_yes_no($qa_value)
+function print_td_yes_no($qa_value = 0)
 {
     $cl = 'down';
     if ($qa_value==1) { $cl='up'; }
@@ -913,7 +914,7 @@ function print_td_yes_no($qa_value)
     print "</td>\n";
 }
 
-function print_control_proto_select($qa_name, $qa_value)
+function print_control_proto_select($qa_name, $qa_value = -1)
 {
     print "<select name=\"$qa_name\">\n";
     print_select_item('Disabled', -1, $qa_value);
@@ -923,7 +924,7 @@ function print_control_proto_select($qa_name, $qa_value)
     print "</select>\n";
 }
 
-function print_snmp_select($qa_name, $qa_value)
+function print_snmp_select($qa_name, $qa_value = 0)
 {
     print "<select name=\"$qa_name\">\n";
     print_select_item('Disabled', 0, $qa_value);
@@ -933,7 +934,7 @@ function print_snmp_select($qa_name, $qa_value)
     print "</select>\n";
 }
 
-function print_dhcp_select($qa_name, $qa_value)
+function print_dhcp_select($qa_name, $qa_value = 0)
 {
     print "<select name=\"$qa_name\">\n";
     if (!isset($qa_value) or strlen($qa_value) == 0) {
