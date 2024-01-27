@@ -17,14 +17,17 @@ use eyelib::mysql;
 
 setpriority(0,0,19);
 
-my $named_root='/var/named/chroot';
-my $named_db_fullpath=$named_root.'/var/named/master';
-my $named_db_path='/var/named/master';
+my $named_root='';
+my $named_db_fullpath=$named_root.'/etc/bind/masters';
+my $named_db_path='/etc/bind/masters';
 
 my $ns1 = 'ns1';
-my $DNS1=$ns1.'.'.$domain_name;
 
-my $named_conf=$named_root.'/etc/named.dynamic';
+my $DNS1=$config_ref{dns_server};
+
+exit if ($config_ref{dns_server_type!='bind');
+
+my $named_conf=$named_root.'/etc/bind/named.dynamic';
 
 # user auth list
 my @authlist_ref = get_records_sql($dbh,"SELECT id,ip,dns_name FROM User_auth WHERE `ip_int`>0 AND `deleted`=0 ORDER BY ip_int");
@@ -46,18 +49,24 @@ $default_name=~s/\./-/g;
 
 if ($dns_name) {
     $default_name=$dns_name;
+    $default_name =~s/$domain_name$//g;
+    $default_name =~s/\.$/-/g;
     $default_name =~s/_/-/g;
     $default_name =~s/[.]/-/g;
     $default_name =~s/ /-/g;
+    $default_name =~s/-$//g;
     $zones{$domain_name}{$default_name}=$ip;
     }
 
 my @dns_names=get_records_sql($dbh,"SELECT * FROM User_auth_alias WHERE auth_id=$row->{id} ORDER BY alias");
 foreach my $alias (@dns_names) {
         my $dns = $alias->{alias};
+        $dns =~s/$domain_name$//g;
+        $dns =~s/\.$/-/g;
         $dns =~s/_/-/g;
         $dns =~s/[.]/-/g;
         $dns =~s/ /-/g;
+        $dns =~s/-$//g;
         $zones{$domain_name}{$dns}=$ip;
         }
 
@@ -86,6 +95,8 @@ my $zone_name=$ZONE;
 
 if ($ZONE!~/$domain_name/) {
     $reverse=1;
+    #skip reverse dns zone
+    next;
     if ($ZONE=~/([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})/) {
         $zone_name=$3.".".$2.".".$1.".in-addr.arpa";
         } else {
@@ -97,8 +108,8 @@ if ($ZONE!~/$domain_name/) {
 print F2 "zone $zone_name \{\n";
 print F2 "type master;\n";
 print F2 "file \"$named_db_path"."/db.".$ZONE."\";\n";
-#print F2 "allow-update { key rndckey; };\n";
-print F2 "allow-transfer { second; };\n";
+print F2 "allow-update { key rndc-key; };\n";
+#print F2 "allow-transfer { second; };\n";
 print F2 "\};\n";
 print F2 "\n";
 

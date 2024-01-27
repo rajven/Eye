@@ -52,11 +52,11 @@ if ($h_name) {
     }
 
 db_log_info($dbh,"Manual create dns record $fqdn");
-update_ad_hostname($fqdn,$ip,$ad_zone,$ad_dns,$dbh);
+update_dns_hostname($fqdn,$ip,$ad_zone,$ad_dns,$dbh);
 
 if ($reverse) {
     db_log_info($dbh,"Manual create dns ptr-record $fqdn => $ip");
-    update_ad_ptr($fqdn,$ip,$ad_dns,$dbh);
+    update_dns_ptr($fqdn,$ip,$ad_dns,$dbh);
     }
 
 exit;

@@ -88,34 +88,46 @@ if (!$pid) {
         if ( !defined $hdb ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
         $urgent_sync=get_option($hdb,50);
         if ($urgent_sync) {
-    	    #clean changed for dynamic clients or hotspot
-    	    do_sql($hdb,"UPDATE User_auth SET changed=0 WHERE ou_id=".$default_user_ou_id." OR ou_id=".$default_hotspot_ou_id);
-    	    do_sql($hdb,"UPDATE User_auth SET dhcp_changed=0 WHERE ou_id=".$default_user_ou_id." OR ou_id=".$default_hotspot_ou_id);
-    	    #clean unmanagment ip changed
-    	    my @all_changed = get_records_sql($hdb,"SELECT id, ip FROM User_auth WHERE changed = 1 OR dhcp_changed = 1");
-    	    foreach my $row(@all_changed) {
-    		    next if ($office_networks->match_string($row->{ip}));
-    		    do_sql($hdb,"UPDATE User_auth SET changed = 0, dhcp_changed = 0 WHERE id=".$row->{id});
-    		    }
+	    #clean changed for dynamic clients or hotspot
+	    do_sql($hdb,"UPDATE User_auth SET changed=0 WHERE ou_id=".$default_user_ou_id." OR ou_id=".$default_hotspot_ou_id);
+	    do_sql($hdb,"UPDATE User_auth SET dhcp_changed=0 WHERE ou_id=".$default_user_ou_id." OR ou_id=".$default_hotspot_ou_id);
+	    do_sql($hdb,"UPDATE User_auth SET dns_changed=0 WHERE ou_id=".$default_user_ou_id." OR ou_id=".$default_hotspot_ou_id);
+	    #clean unmanagment ip changed
+	    my @all_changed = get_records_sql($hdb,"SELECT id, ip FROM User_auth WHERE changed = 1 OR dhcp_changed = 1 OR dns_changed = 1");
+	    foreach my $row(@all_changed) {
+		    next if ($office_networks->match_string($row->{ip}));
+		    do_sql($hdb,"UPDATE User_auth SET changed = 0, dhcp_changed = 0, dns_changed = 0  WHERE id=".$row->{id});
+		}
             #dhcp changed records
             my $changed = get_record_sql($hdb,"SELECT COUNT(*) as c_count from User_auth WHERE dhcp_changed=1");
-	        if ($changed->{"c_count"}>0) {
+            if ($changed->{"c_count"}>0) {
         	    do_sql($hdb,"UPDATE User_auth SET dhcp_changed=0");
-                log_info("Found changed dhcp variables in records: ".$changed->{'c_count'});
-                my $dhcp_exec=get_option($hdb,38);
-    	        my %result=do_exec_ref($dhcp_exec);
-    	        if ($result{status} ne 0) { log_error("Error sync dhcp config"); }
-    	    	}
+                    log_info("Found changed dhcp variables in records: ".$changed->{'c_count'});
+                    my $dhcp_exec=get_option($hdb,38);
+	            my %result=do_exec_ref($dhcp_exec);
+	            if ($result{status} ne 0) { log_error("Error sync dhcp config"); }
+	        }
+
+            #dns changed records
+            my @dns_changed = get_records_sql($hdb,"SELECT id,dns_name,ip from User_auth WHERE deleted=0 AND dns_changed=1");
+            if (@dns_changed and scalar @dns_changed) {
+                    foreach my $auth (@dns_changed) {
+                        update_dns_record($hdb,$auth);
+        	        do_sql($hdb,"UPDATE User_auth SET dns_changed=0 WHERE id=".$auth->{id});
+                        log_info("Clear changed dns for auth id: ".$auth->{id});
+                    }
+	        }
+
             #acl & dhcp changed records 
             $changed = get_record_sql($hdb,"SELECT COUNT(*) as c_count from User_auth WHERE changed=1");
-	        if ($changed->{"c_count"}>0) {
-                log_info("Found changed records: ".$changed->{'c_count'});
-                my $acl_exec=get_option($hdb,37);
-    	        my %result=do_exec_ref($acl_exec);
-    	        if ($result{status} ne 0) { log_error("Error sync status at gateways"); }
-    	    	}
-    	    }
-    	sleep(60);
+	    if ($changed->{"c_count"}>0) {
+                    log_info("Found changed records: ".$changed->{'c_count'});
+                    my $acl_exec=get_option($hdb,37);
+                    my %result=do_exec_ref($acl_exec);
+	            if ($result{status} ne 0) { log_error("Error sync status at gateways"); }
+		}
+	    }
+	sleep(60);
         };
         if ($@) { log_error("Exception found: $@"); sleep(300); }
         }

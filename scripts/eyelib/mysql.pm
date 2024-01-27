@@ -61,8 +61,9 @@ new_auth
 StrToIp
 get_first_line
 update_dns_record
-update_ad_hostname
-update_ad_ptr
+update_dns_record_by_dhcp
+update_dns_hostname
+update_dns_ptr
 update_record
 write_db_log
 set_changed
@@ -208,12 +209,15 @@ return if (!$db);
 return if (!$msg);
 $msg=~s/[\'\"]//g;
 my $db_log = 0;
-my $history_sql="INSERT INTO syslog(customer,message,level,auth_id) VALUES(".$db->quote($MY_NAME).",".$db->quote($msg).",$level,$auth_id)";
+if (!$db) { $db_log = 0; }
+
 if ($level eq $L_ERROR and $log_level >= $L_ERROR) { log_error($msg); $db_log = 1; }
 if ($level eq $L_WARNING and $log_level >= $L_WARNING) { log_warning($msg); $db_log = 1; }
 if ($level eq $L_INFO and $log_level >= $L_INFO) { log_info($msg); $db_log = 1; }
 if ($level eq $L_DEBUG and $log_level >= $L_DEBUG) { log_debug($msg); $db_log = 1; }
+
 if ($db_log) {
+    my $history_sql="INSERT INTO syslog(customer,message,level,auth_id) VALUES(".$db->quote($MY_NAME).",".$db->quote($msg).",$level,$auth_id)";
     my $history_rf=$db->prepare($history_sql) or die "Unable to prepare $history_sql:" . $db->errstr;
     $history_rf->execute() or die "Unable to execute $history_sql: " . $db->errstr;
     }
@@ -623,6 +627,74 @@ update_record($db,'User_auth',$update_record,"id=$id");
 sub update_dns_record {
 
 my $hdb = shift;
+my $auth_record = shift;
+
+if (!$auth_record->{dns_name}) { return 0; }
+
+my $ad_zone = get_option($hdb,33);
+
+#update dns block
+my $fqdn_static=lc($auth_record->{dns_name});
+$fqdn_static=~s/\.$ad_zone$//i;
+$fqdn_static=~s/\.$//;
+
+#skip update unknown domain
+if ($fqdn_static =~/\./) { return 0; }
+
+my $ad_dns = get_option($hdb,3);
+
+my $enable_ad_dns_update = ($ad_zone and $ad_dns and $config_ref{enable_dns_updates});
+
+log_debug("Auth record: ".Dumper($auth_record));
+log_debug("enable_ad_dns_update: ".$enable_ad_dns_update);
+log_debug("DNS update flags - zone: ".$ad_zone.", dns: ".$ad_dns.", enable_ad_dns_update: ".$enable_ad_dns_update);
+
+my $maybe_update_dns=( $enable_ad_dns_update and $office_networks->match_string($auth_record->{ip}) );
+if (!$maybe_update_dns) {
+    db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id}. DNS update don't needed.");
+    return 0;
+    }
+
+log_debug("DNS update enabled.");
+
+$fqdn_static=lc($fqdn_static.'.'.$ad_zone);
+
+db_log_info($hdb,"Update dns request for auth_id: $auth_record->{id} $fqdn_static => $auth_record->{ip}");
+
+#check exists static dns name
+my $static_exists = 0;
+my $static_ok = 0;
+my $static_ref = '';
+
+my @dns_record=ResolveNames($fqdn_static,$dns_server);
+$static_exists = (scalar @dns_record>0);
+if ($static_exists) {
+        $static_ref = join(' ',@dns_record);
+        foreach my $dns_a (@dns_record) {
+            if ($dns_a=~/^$auth_record->{ip}$/) { $static_ok = 1; }
+            }
+        }
+
+db_log_debug($hdb,"Dns record for static record $fqdn_static: $static_ok");
+
+if (!$static_ok) {
+        if (!$static_exists) {
+                db_log_info($hdb,"Static dns hostname defined but not found. Create it ($fqdn_static => $auth_record->{ip})!");
+                } else {
+                db_log_warning($hdb,"Static record mismatch! Expected $fqdn_static => $auth_record->{ip}, recivied: $static_ref");
+                }
+        update_dns_hostname($fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb);
+        update_dns_ptr($fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb);
+        } else {
+	db_log_debug($hdb,"Static record for $fqdn_static [$static_ok] correct.");
+        }
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub update_dns_record_by_dhcp {
+
+my $hdb = shift;
 my $dhcp_record = shift;
 my $auth_record = shift;
 
@@ -701,7 +773,7 @@ if ($fqdn_static ne '') {
         db_log_info($hdb,"Static record mismatch! Expected $fqdn_static => $dhcp_record->{ip}, recivied: $static_ref");
         if (!$static_exists) {
                 db_log_info($hdb,"Static dns hostname defined but not found. Create it ($fqdn_static => $dhcp_record->{ip})!");
-                update_ad_hostname($fqdn_static,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
+                update_dns_hostname($fqdn_static,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
                 }
         } else {
 	db_log_debug($hdb,"Static record for $fqdn_static [$static_ok] correct.");
@@ -730,11 +802,11 @@ if ($fqdn ne '' and !$dynamic_ok) {
             if ($fqdn_static and $fqdn_static ne '') {
                     if ($fqdn_static!~/$fqdn/) {
                         db_log_info($hdb,"Hostname from dhcp request $fqdn differs from static dns hostanme $fqdn_static. Ignore dynamic binding!");
-#                        update_ad_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
+#                        update_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
                         }
                     } else {
         	    db_log_info($hdb,"Static dns hostname not defined. Create dns record by dhcp request. $fqdn => $dhcp_record->{ip}");
-        	    update_ad_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
+        	    update_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
         	    }
 	    } else {
             db_log_error($hdb,"Found another record with some hostname id: $name_record->{id} ip: $name_record->{ip} hostname: $name_record->{dns_name}. Skip update.");
@@ -789,40 +861,57 @@ sub unset_lock_discovery {
 
 #------------------------------------------------------------------------------------------------------------
 
-sub update_ad_hostname {
+sub update_dns_hostname {
 my $fqdn = shift;
 my $ip = shift;
 my $zone = shift;
 my $server = shift;
 my $db = shift;
-if (!$db) { 
+#skip update domain controllers
+if ($fqdn=~/^dc[0-9]{1,2}\./i) { return; }
+if (!$db) {
     log_info("DNS-UPDATE: Zone $zone Server: $server A: $fqdn IP: $ip"); 
     } else {
     db_log_info($db,"DNS-UPDATE: Zone $zone Server: $server A: $fqdn IP: $ip");
     }
 my $ad_zone = get_option($db,33);
-my @add_dns=();
-push(@add_dns,"gsstsig");
-push(@add_dns,"server $server");
-push(@add_dns,"zone $zone");
-push(@add_dns,"update delete $fqdn A");
-push(@add_dns,"update add $fqdn 3600 A $ip");
-push(@add_dns,"send");
-my $nsupdate_file = "/tmp/".$fqdn.".nsupdate";
-write_to_file($nsupdate_file,\@add_dns);
-do_exec('/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"');
+my $nsupdate_file = "/tmp/".$fqdn."-nsupdate";
+my @add_dns;
+if ($config_ref{dns_server_type}=~/windows/i) {
+    push(@add_dns,"gsstsig");
+    push(@add_dns,"server $server");
+    push(@add_dns,"zone $zone");
+    push(@add_dns,"update delete $fqdn A");
+    push(@add_dns,"update add $fqdn 3600 A $ip");
+    push(@add_dns,"send");
+    write_to_file($nsupdate_file,\@add_dns);
+    do_exec('/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"');
+    }
+
+if ($config_ref{dns_server_type}=~/bind/i) {
+    push(@add_dns,"server $server");
+    push(@add_dns,"zone $zone");
+    push(@add_dns,"update delete $fqdn A");
+    push(@add_dns,"update add $fqdn 3600 A $ip");
+    push(@add_dns,"send");
+    write_to_file($nsupdate_file,\@add_dns);
+    do_exec('/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"');
+    }
+
 if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub update_ad_ptr {
+sub update_dns_ptr {
 my $fqdn = shift;
 my $ip = shift;
 my $server = shift;
 my $db = shift;
 my $radr;
 my $zone;
+#skip update domain controllers
+if ($fqdn=~/^dc[0-9]{1,2}\./i) { return; }
 if ($ip =~ /([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(\/[0-9]{1,2}){0,1}/) {
     return 0 if($1 > 255 || $2 > 255 || $3 > 255 || $4 > 255);
     $radr = "$4.$3.$2.$1.in-addr.arpa";
@@ -835,17 +924,31 @@ if (!$db) {
     db_log_info($db,"DNS-UPDATE: Zone $zone Server: $server A: $fqdn PTR: $ip");
     }
 my $ad_zone = get_option($db,33);
-my @add_dns=();
-push(@add_dns,"gsstsig");
-push(@add_dns,"server $server");
-push(@add_dns,"zone $zone");
-push(@add_dns,"update delete $radr PTR");
-push(@add_dns,"update add $radr 3600 PTR $fqdn.");
-push(@add_dns,"send");
-my $nsupdate_file = "/tmp/".$radr.".nsupdate";
-write_to_file($nsupdate_file,\@add_dns);
-my $run_cmd = '/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"';
-do_exec($run_cmd);
+my $nsupdate_file = "/tmp/".$radr."-nsupdate";
+my @add_dns;
+if ($config_ref{dns_server_type}=~/windows/i) {
+    push(@add_dns,"gsstsig");
+    push(@add_dns,"server $server");
+    push(@add_dns,"zone $zone");
+    push(@add_dns,"update delete $radr PTR");
+    push(@add_dns,"update add $radr 3600 PTR $fqdn.");
+    push(@add_dns,"send");
+    write_to_file($nsupdate_file,\@add_dns);
+    my $run_cmd = '/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"';
+    do_exec($run_cmd);
+    }
+
+if ($config_ref{dns_server_type}=~/bind/i) {
+    push(@add_dns,"server $server");
+    push(@add_dns,"zone $zone");
+    push(@add_dns,"update delete $radr PTR");
+    push(@add_dns,"update add $radr 3600 PTR $fqdn.");
+    push(@add_dns,"send");
+    write_to_file($nsupdate_file,\@add_dns);
+    my $run_cmd = '/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"';
+    do_exec($run_cmd);
+    }
+
 if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
 }
 
@@ -1081,11 +1184,9 @@ my $default_option = get_record_sql($db,'SELECT * FROM config_options WHERE id='
 my $config_options = get_record_sql($db,'SELECT * FROM config WHERE option_id='.$option_id);
 my $result;
 if (!$config_options) {
-    if ($default_option->{'type'}=~/int/i or $default_option->{'type'}=~/bool/i) {
-	$result = $default_option->{'default_value'}*1;
-	} else {
-	$result = $default_option->{'default_value'};
-	}
+    if ($default_option->{'type'}=~/^(int|bool)/i) { $result = $default_option->{'default_value'}*1; };
+    if ($default_option->{'type'}=~/^(string|text)/i) { $result = $default_option->{'default_value'}; }
+    if ($default_option->{'type'}=~/^list/i) { $result = $default_option->{'default_value'}; }
     return $result;
     }
 $result = $config_options->{'value'};
@@ -1102,7 +1203,6 @@ $last_refresh_config = time();
 $config_ref{dbh}=$db;
 $config_ref{save_detail}=get_option($db,23);
 $config_ref{add_unknown_user}=get_option($db,22);
-$config_ref{dns_server}=get_option($db,3);
 $config_ref{dhcp_server}=get_option($db,5);
 $config_ref{snmp_default_version}=get_option($db,9);
 $config_ref{snmp_default_community}=get_option($db,11);
@@ -1144,10 +1244,17 @@ $config_ref{stat_url} = get_option($db,62);
 $config_ref{wiki_path} = get_option($db,61);
 
 $config_ref{auto_mac_rule} = get_option($db,64);
+
 #network configuration mode
 $config_ref{config_mode}=get_option($db,68);
+
 #auto clean old user record
 $config_ref{clean_empty_user}=get_option($db,69);
+
+#dns_server_type
+$config_ref{dns_server}=get_option($db,3);
+$config_ref{dns_server_type}=get_option($db,70);
+$config_ref{enable_dns_updates}=get_option($db,71);
 
 #$save_detail = 1; id=23
 $save_detail=get_option($db,23);

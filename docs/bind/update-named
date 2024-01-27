@@ -2,16 +2,18 @@
 
 logger -t named "Refresh named config request"
 
+force=$1
+
 /opt/Eye/scripts/print-dns-zones.pl
 [ $? -ne 0 ] && exit 1
 
 RELOAD=
-ZONELIST=`ls -x -1 /var/named/chroot/var/named/master/db.*.new`
+ZONELIST=`ls -x -1 /etc/bind/masters/db.*.new`
 echo "${ZONELIST}" | while read NS2_DB; do
 NS1_DB=`echo "$NS2_DB" | sed 's/.new$//'`
 [ ! -e $NS1_DB ] && {
     cat $NS2_DB > $NS1_DB
-    chown named:named ${NS1_DB} >/dev/null
+    chown bind:bind ${NS1_DB} >/dev/null
     RELOAD=1
     continue
     }
@@ -30,28 +32,28 @@ echo "dns config $NS1_DB changed."
 cat $NS2_DB > $NS1_DB
 RELOAD=1
 rm -f "${NS2_DB}" >/dev/null
-chown named:named ${NS1_DB} >/dev/null
+chown bind:bind ${NS1_DB} >/dev/null
 done
 
-diff -aqbBfi /var/named/chroot/etc/named.dynamic.new /var/named/chroot/etc/named.dynamic >/dev/null
+diff -aqbBfi /etc/bind/named.dynamic.new /etc/bind/named.dynamic >/dev/null
 [ $? -ne 0 ] && {
     RELOAD=1
-    cat /var/named/chroot/etc/named.dynamic.new >/var/named/chroot/etc/named.dynamic
+    cat /etc/bind/named.dynamic.new >/etc/bind/named.dynamic
     }
 
-if [ -n "${RELOAD}" ]; then
+if [ -n "${RELOAD}" -o -n "${force}" ]; then
     logger -t named "Configuration changed. Check config"
-    /usr/sbin/named-checkconf -t /var/named/chroot/ -z >/dev/null
+    /usr/bin/named-checkconf -t / -z >/dev/null
     if [ $? -eq 0 ]; then
-	logger -t named "Config fine! Restart named"
-        /sbin/service named restart >/dev/null
+        logger -t named "Config fine! Restart named"
+        /usr/bin/systemctl restart named >/dev/null
         fi
     else
-	logger -t named "Config not changed! Skip restart"
+        logger -t named "Config not changed! Skip restart"
     fi
 
-rm -f /var/named/chroot/etc/named.dynamic.new 2>/dev/null
-rm -f /var/named/chroot/var/named/master/db.*.new 2>/dev/null
+rm -f /etc/bind/named.dynamic.new 2>/dev/null
+rm -f /etc/bind/masters/db.*.new 2>/dev/null
 
 logger -t named "done"
 

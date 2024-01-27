@@ -899,6 +899,16 @@ function print_qa_select($qa_name, $qa_value = 0)
     print "</select>\n";
 }
 
+function print_list_select($qa_name, $qa_value, $list)
+{
+    print "<select name=\"$qa_name\">\n";
+    if (empty($qa_value)) { $qa_value = ''; }
+    for($i = 0; $i < count($list); ++$i) {
+        print_select_item($list[$i], $list[$i], $qa_value);
+    }
+    print "</select>\n";
+}
+
 function print_qa_select_ext($qa_name, $qa_value = 0, $readonly = 1)
 {
     $state = '';
@@ -4079,6 +4089,7 @@ function update_record($db, $table, $filter, $newvalue)
     $run_sql = '';
     $network_changed = 0;
     $dhcp_changed = 0;
+    $dns_changed = 0;
 
     $acl_fields = [
         'ip' => '1',
@@ -4099,6 +4110,11 @@ function update_record($db, $table, $filter, $newvalue)
         'deleted' => '1',
         'mac' => '1',
     ];
+    
+    $dns_fields = [
+//        'dhcp_hostname' => '1',
+        'dns_name' => '1',
+    ];
 
     foreach ($newvalue as $key => $value) {
         if (!isset($value)) {
@@ -4114,6 +4130,9 @@ function update_record($db, $table, $filter, $newvalue)
             }
             if (!empty($dhcp_fields["$key"])) {
                 $dhcp_changed = 1;
+            }
+            if (!empty($dns_fields["$key"])) {
+                $dns_changed = 1;
             }
         }
         if (!preg_match('/password/i',$key)) {
@@ -4131,6 +4150,10 @@ function update_record($db, $table, $filter, $newvalue)
 
     if ($dhcp_changed) {
         $run_sql = $run_sql . " `dhcp_changed`='1',";
+    }
+
+    if ($dns_changed) {
+        $run_sql = $run_sql . " `dns_changed`='1',";
     }
 
     $changed_log = substr_replace($changed_log, "", -1);
@@ -4687,6 +4710,9 @@ $config["torrus_url"] = rtrim(get_option($db_link, 59), '/') . '?nodeid=if//HOST
 if (preg_match('/127.0.0.1/', $config["torrus_url"])) {
     $config["torrus_url"] = NULL;
 }
+
+$config["dns_server"]=get_option($db_link,3);
+$config["dns_server_type"]=get_option($db_link,70);
 
 $ou = get_record_sql($db_link, "SELECT id FROM OU WHERE default_users = 1");
 if (empty($ou)) {

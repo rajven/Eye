@@ -115,6 +115,11 @@ print_control_submenu($page_url);
                 if ($type == 'bool') {
                     print_qa_select("f_config_value[" . $row['id'] . "]", $option_value);
                 }
+                if (preg_match('/^list;/',$type)) {
+                     $value_list=explode(';',$type);
+                     array_splice($value_list,0,1);
+                     print_list_select("f_config_value[" . $row['id'] . "]", $option_value,$value_list);
+                }
                 print "</td>\n";
                 print "<td colspan=3 class=\"data\">" . $row[$descr_field] . "</td>\n";
                 print "</tr>\n";

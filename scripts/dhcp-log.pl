@@ -325,7 +325,7 @@ if (!$pid) {
             log_debug("SWITCH PORT:".$switch_port->{'ifName'}) if ($switch_port);
             log_debug("END GET");
 
-            update_dns_record($hdb,$dhcp_record,$auth_record);
+            update_dns_record_by_dhcp($hdb,$dhcp_record,$auth_record);
 
             if ($type=~/add/i and $dhcp_record->{hostname_utf8} and $dhcp_record->{hostname_utf8} !~/UNDEFINED/i) {
                 my $auth_rec;
