@@ -42,6 +42,7 @@ if (isset($_POST["s_create"])) {
     if (isset($new_alias)) {
         $new_rec['alias'] = trim($new_alias);
         $new_rec['auth_id'] = $id;
+        $new_rec['dns_changed'] = 1;
         LOG_INFO($db_link, "Create new alias $new_alias");
         insert_record($db_link, "User_auth_alias", $new_rec);
     }
