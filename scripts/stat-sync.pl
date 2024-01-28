@@ -109,7 +109,17 @@ if (!$pid) {
 	        }
 
             #dns changed records
-            my @dns_changed = get_records_sql($hdb,"SELECT id,dns_name,ip from User_auth WHERE deleted=0 AND dns_changed=1");
+            my @dns_changed = get_records_sql($hdb,"SELECT id,dns_name,ip,old_dns_name,deleted from User_auth WHERE dns_changed=1");
+            if (@dns_changed and scalar @dns_changed) {
+                    foreach my $auth (@dns_changed) {
+                        update_dns_record($hdb,$auth);
+        	        do_sql($hdb,"UPDATE User_auth SET dns_changed=0 WHERE id=".$auth->{id});
+                        log_info("Clear changed dns for auth id: ".$auth->{id});
+                    }
+	        }
+
+            #dns changed alias records
+            @dns_changed = get_records_sql($hdb,"SELECT id,dns_name,ip,old_dns_name,deleted FROM User_auth WHERE User_auth.id IN (SELECT auth_id FROM User_auth_alias WHERE dns_changed=1);");
             if (@dns_changed and scalar @dns_changed) {
                     foreach my $auth (@dns_changed) {
                         update_dns_record($hdb,$auth);

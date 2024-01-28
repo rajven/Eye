@@ -62,8 +62,12 @@ StrToIp
 get_first_line
 update_dns_record
 update_dns_record_by_dhcp
+update_dns_cname
+delete_dns_cname
 update_dns_hostname
+delete_dns_hostname
 update_dns_ptr
+delete_dns_ptr
 update_record
 write_db_log
 set_changed
@@ -629,18 +633,19 @@ sub update_dns_record {
 my $hdb = shift;
 my $auth_record = shift;
 
-if (!$auth_record->{dns_name}) { return 0; }
-
+#get domain
 my $ad_zone = get_option($hdb,33);
 
-#update dns block
+#get current and old dns name
 my $fqdn_static=lc($auth_record->{dns_name});
 $fqdn_static=~s/\.$ad_zone$//i;
 $fqdn_static=~s/\.$//;
 
-#skip update unknown domain
-if ($fqdn_static =~/\./) { return 0; }
+my $old_fqdn_static=lc($auth_record->{old_dns_name});
+$old_fqdn_static=~s/\.$ad_zone$//i;
+$old_fqdn_static=~s/\.$//;
 
+#get dns server
 my $ad_dns = get_option($hdb,3);
 
 my $enable_ad_dns_update = ($ad_zone and $ad_dns and $config_ref{enable_dns_updates});
@@ -649,15 +654,46 @@ log_debug("Auth record: ".Dumper($auth_record));
 log_debug("enable_ad_dns_update: ".$enable_ad_dns_update);
 log_debug("DNS update flags - zone: ".$ad_zone.", dns: ".$ad_dns.", enable_ad_dns_update: ".$enable_ad_dns_update);
 
+#dns update disabled?
 my $maybe_update_dns=( $enable_ad_dns_update and $office_networks->match_string($auth_record->{ip}) );
 if (!$maybe_update_dns) {
-    db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id}. DNS update don't needed.");
+        db_log_info($hdb,"FOUND Auth_id: $auth_record->{id}. DNS update disabled.");
+        do_sql($hdb,"UPDATE User_auth_alias SET old_alias='', dns_changed=0 WHERE auth_id=".$auth_record->{id});
+        do_sql($hdb,"DELETE FROM User_auth_alias WHERE deleted=1 AND auth_id=".$auth_record->{id});
+        do_sql($hdb,"UPDATE User_auth SET dns_changed=0 WHERE auth_id=".$auth_record->{id});
+        return 0;
+    }
+
+#skip update unknown domain
+if ($fqdn_static =~/\./) {
+        do_sql($hdb,"UPDATE User_auth_alias SET old_alias='', dns_changed=0 WHERE auth_id=".$auth_record->{id});
+        do_sql($hdb,"DELETE FROM User_auth_alias WHERE deleted=1 AND auth_id=".$auth_record->{id});
+        do_sql($hdb,"UPDATE User_auth SET dns_changed=0 WHERE auth_id=".$auth_record->{id});
+        return 0;
+    }
+
+if (!$auth_record->{dns_name} or $auth_record->{deleted}) { 
+    #remove dns records
+    #get and remove aliases
+    my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE auth_id=".$auth_record->{id});
+    if (@aliases and scalar @aliases) {
+        foreach my $alias (@aliases) {
+            delete_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
+            delete_dns_cname($fqdn_static,$alias->{old_alias},$ad_zone,$ad_dns,$hdb) if ($alias->{old_alias});
+            do_sql($hdb,"DELETE FROM User_auth_alias WHERE id=".$alias->{id});
+            }
+        }
+    delete_dns_hostname($fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb) if (!$fqdn_static);
+    delete_dns_hostname($old_fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb) if (!$old_fqdn_static);
+    delete_dns_ptr($fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb);
+    do_sql($hdb,"UPDATE User_auth SET old_dns_name='', dns_changed=0 WHERE auth_id=".$auth_record->{id});
     return 0;
     }
 
 log_debug("DNS update enabled.");
 
 $fqdn_static=lc($fqdn_static.'.'.$ad_zone);
+$old_fqdn_static=lc($old_fqdn_static.'.'.$ad_zone);
 
 db_log_info($hdb,"Update dns request for auth_id: $auth_record->{id} $fqdn_static => $auth_record->{ip}");
 
@@ -683,10 +719,46 @@ if (!$static_ok) {
                 } else {
                 db_log_warning($hdb,"Static record mismatch! Expected $fqdn_static => $auth_record->{ip}, recivied: $static_ref");
                 }
+        delete_dns_hostname($old_fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb) if ($old_fqdn_static);
+        #get and remove aliases
+        my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE auth_id=".$auth_record->{id});
+        if (@aliases and scalar @aliases) {
+            foreach my $alias (@aliases) {
+                delete_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
+                delete_dns_cname($fqdn_static,$alias->{old_alias},$ad_zone,$ad_dns,$hdb) if ($alias->{old_alias});
+                if ($alias->{deleted}) {
+                    do_sql($hdb,"DELETE FROM User_auth_alias WHERE id=".$alias->{id});
+                    }
+                }
+            }
         update_dns_hostname($fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb);
         update_dns_ptr($fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb);
+        do_sql($hdb,"UPDATE User_auth SET old_dns_name='', dns_changed=0 WHERE auth_id=".$auth_record->{id});
+        #get and remove aliases
+        my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE auth_id=".$auth_record->{id});
+        if (@aliases and scalar @aliases) {
+            foreach my $alias (@aliases) {
+                update_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
+                do_sql($hdb,"UPDATE User_auth_alias SET old_alias='', dns_changed=0 WHERE id=".$alias->{id});
+                }
+            }
         } else {
-	db_log_debug($hdb,"Static record for $fqdn_static [$static_ok] correct.");
+	db_log_debug($hdb,"Static record for $fqdn_static [$static_ok] correct. Checking aliases");
+        #get aliases
+        my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE dns_changed=1 AND auth_id=".$auth_record->{id});
+        if (@aliases and scalar @aliases) {
+            foreach my $alias (@aliases) {
+                if ($alias->{deleted}) {
+                    delete_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
+                    delete_dns_cname($fqdn_static,$alias->{old_alias},$ad_zone,$ad_dns,$hdb) if ($alias->{old_alias});
+                    do_sql($hdb,"DELETE FROM User_auth_alias WHERE id=".$alias->{id});
+                    } else {
+                    delete_dns_cname($fqdn_static,$alias->{old_alias},$ad_zone,$ad_dns,$hdb) if ($alias->{old_alias});
+                    update_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
+                    do_sql($hdb,"UPDATE User_auth_alias SET old_alias='', dns_changed=0 WHERE id=".$alias->{id});
+                    }
+                }
+            }
         }
 }
 
@@ -807,6 +879,16 @@ if ($fqdn ne '' and !$dynamic_ok) {
                     } else {
         	    db_log_info($hdb,"Static dns hostname not defined. Create dns record by dhcp request. $fqdn => $dhcp_record->{ip}");
         	    update_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
+        	    db_log_info($hdb,"Clear aliases if exists for $fqdn => $dhcp_record->{ip}");
+                    #get and remove aliases
+                    my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE auth_id=".$auth_record->{id});
+                    if (@aliases and scalar @aliases) {
+                            foreach my $alias (@aliases) {
+                                delete_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
+                                delete_dns_cname($fqdn_static,$alias->{old_alias},$ad_zone,$ad_dns,$hdb) if ($alias->{old_alias});
+                                do_sql($hdb,"DELETE FROM User_auth_alias WHERE id=".$alias->{id});
+                            }
+                        }
         	    }
 	    } else {
             db_log_error($hdb,"Found another record with some hostname id: $name_record->{id} ip: $name_record->{ip} hostname: $name_record->{dns_name}. Skip update.");
@@ -861,6 +943,85 @@ sub unset_lock_discovery {
 
 #------------------------------------------------------------------------------------------------------------
 
+sub update_dns_cname {
+my $fqdn = shift;
+my $alias = shift;
+my $zone = shift;
+my $server = shift;
+my $db = shift;
+#skip update domain controllers
+if (!$db) {
+    log_info("DNS-UPDATE: Zone $zone Server: $server CNAME: $alias for $fqdn"); 
+    } else {
+    db_log_info($db,"DNS-UPDATE: Zone $zone Server: $server CNAME: $alias for $fqdn ");
+    }
+my $ad_zone = get_option($db,33);
+my $nsupdate_file = "/tmp/".$fqdn."-nsupdate";
+my @add_dns;
+if ($config_ref{dns_server_type}=~/windows/i) {
+    push(@add_dns,"gsstsig");
+    push(@add_dns,"server $server");
+    push(@add_dns,"zone $zone");
+    push(@add_dns,"update delete $alias cname");
+    push(@add_dns,"update add $alias 3600 cname $fqdn.");
+    push(@add_dns,"send");
+    write_to_file($nsupdate_file,\@add_dns);
+    do_exec('/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"');
+    }
+
+if ($config_ref{dns_server_type}=~/bind/i) {
+    push(@add_dns,"server $server");
+    push(@add_dns,"zone $zone");
+    push(@add_dns,"update delete $alias cname");
+    push(@add_dns,"update add $alias 3600 cname $fqdn.");
+    push(@add_dns,"send");
+    write_to_file($nsupdate_file,\@add_dns);
+    do_exec('/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"');
+    }
+
+if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub delete_dns_cname {
+my $fqdn = shift;
+my $alias = shift;
+my $zone = shift;
+my $server = shift;
+my $db = shift;
+if (!$db) {
+    log_info("DNS-UPDATE: Delete => Zone $zone Server: $server CNAME: $alias for $fqdn ");
+    } else {
+    db_log_info($db,"DNS-UPDATE: Delete => Zone $zone Server: $server CNAME: $alias for $fqdn");
+    }
+my $ad_zone = get_option($db,33);
+my $nsupdate_file = "/tmp/".$fqdn."-nsupdate";
+my @add_dns;
+if ($config_ref{dns_server_type}=~/windows/i) {
+    push(@add_dns,"gsstsig");
+    push(@add_dns,"server $server");
+    push(@add_dns,"zone $zone");
+    push(@add_dns,"update delete $alias cname ");
+    push(@add_dns,"send");
+    write_to_file($nsupdate_file,\@add_dns);
+    do_exec('/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"');
+    }
+
+if ($config_ref{dns_server_type}=~/bind/i) {
+    push(@add_dns,"server $server");
+    push(@add_dns,"zone $zone");
+    push(@add_dns,"update delete $alias cname");
+    push(@add_dns,"send");
+    write_to_file($nsupdate_file,\@add_dns);
+    do_exec('/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"');
+    }
+
+if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
+}
+
+#------------------------------------------------------------------------------------------------------------
+
 sub update_dns_hostname {
 my $fqdn = shift;
 my $ip = shift;
@@ -893,6 +1054,46 @@ if ($config_ref{dns_server_type}=~/bind/i) {
     push(@add_dns,"zone $zone");
     push(@add_dns,"update delete $fqdn A");
     push(@add_dns,"update add $fqdn 3600 A $ip");
+    push(@add_dns,"send");
+    write_to_file($nsupdate_file,\@add_dns);
+    do_exec('/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"');
+    }
+
+if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub delete_dns_hostname {
+my $fqdn = shift;
+my $ip = shift;
+my $zone = shift;
+my $server = shift;
+my $db = shift;
+#skip update domain controllers
+if ($fqdn=~/^dc[0-9]{1,2}\./i) { return; }
+if (!$db) {
+    log_info("DNS-UPDATE: Delete => Zone $zone Server: $server A: $fqdn IP: $ip"); 
+    } else {
+    db_log_info($db,"DNS-UPDATE: Delete => Zone $zone Server: $server A: $fqdn IP: $ip");
+    }
+my $ad_zone = get_option($db,33);
+my $nsupdate_file = "/tmp/".$fqdn."-nsupdate";
+my @add_dns;
+if ($config_ref{dns_server_type}=~/windows/i) {
+    push(@add_dns,"gsstsig");
+    push(@add_dns,"server $server");
+    push(@add_dns,"zone $zone");
+    push(@add_dns,"update delete $fqdn A");
+    push(@add_dns,"send");
+    write_to_file($nsupdate_file,\@add_dns);
+    do_exec('/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"');
+    }
+
+if ($config_ref{dns_server_type}=~/bind/i) {
+    push(@add_dns,"server $server");
+    push(@add_dns,"zone $zone");
+    push(@add_dns,"update delete $fqdn A");
     push(@add_dns,"send");
     write_to_file($nsupdate_file,\@add_dns);
     do_exec('/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"');
@@ -943,6 +1144,55 @@ if ($config_ref{dns_server_type}=~/bind/i) {
     push(@add_dns,"zone $zone");
     push(@add_dns,"update delete $radr PTR");
     push(@add_dns,"update add $radr 3600 PTR $fqdn.");
+    push(@add_dns,"send");
+    write_to_file($nsupdate_file,\@add_dns);
+    my $run_cmd = '/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"';
+    do_exec($run_cmd);
+    }
+
+if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub delete_dns_ptr {
+my $fqdn = shift;
+my $ip = shift;
+my $server = shift;
+my $db = shift;
+my $radr;
+my $zone;
+#skip update domain controllers
+if ($fqdn=~/^dc[0-9]{1,2}\./i) { return; }
+if ($ip =~ /([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(\/[0-9]{1,2}){0,1}/) {
+    return 0 if($1 > 255 || $2 > 255 || $3 > 255 || $4 > 255);
+    $radr = "$4.$3.$2.$1.in-addr.arpa";
+    $zone = "$3.$2.$1.in-addr.arpa";
+    }
+if (!$radr or !$zone) { return 0; }
+if (!$db) { 
+    log_info("DNS-UPDATE: Delete => Zone $zone Server: $server A: $fqdn PTR: $ip"); 
+    } else {
+    db_log_info($db,"DNS-UPDATE: Delete => Zone $zone Server: $server A: $fqdn PTR: $ip");
+    }
+my $ad_zone = get_option($db,33);
+my $nsupdate_file = "/tmp/".$radr."-nsupdate";
+my @add_dns;
+if ($config_ref{dns_server_type}=~/windows/i) {
+    push(@add_dns,"gsstsig");
+    push(@add_dns,"server $server");
+    push(@add_dns,"zone $zone");
+    push(@add_dns,"update delete $radr PTR");
+    push(@add_dns,"send");
+    write_to_file($nsupdate_file,\@add_dns);
+    my $run_cmd = '/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"';
+    do_exec($run_cmd);
+    }
+
+if ($config_ref{dns_server_type}=~/bind/i) {
+    push(@add_dns,"server $server");
+    push(@add_dns,"zone $zone");
+    push(@add_dns,"update delete $radr PTR");
     push(@add_dns,"send");
     write_to_file($nsupdate_file,\@add_dns);
     my $run_cmd = '/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"';

@@ -4110,10 +4110,10 @@ function update_record($db, $table, $filter, $newvalue)
         'deleted' => '1',
         'mac' => '1',
     ];
-    
+
     $dns_fields = [
-//        'dhcp_hostname' => '1',
         'dns_name' => '1',
+        'alias' => '1',
     ];
 
     foreach ($newvalue as $key => $value) {
@@ -4133,6 +4133,13 @@ function update_record($db, $table, $filter, $newvalue)
             }
             if (!empty($dns_fields["$key"])) {
                 $dns_changed = 1;
+                $run_sql = $run_sql . " `old_dns_name`='" . mysqli_real_escape_string($db, trim($newvalue['dns_name'])) . "',";
+            }
+        }
+        if ($table === "User_auth_alias") {
+            if (!empty($dns_fields["$key"])) {
+                $dns_changed = 1;
+                $run_sql = $run_sql . " `old_alias`='" . mysqli_real_escape_string($db, trim($newvalue['alias'])) . "',";
             }
         }
         if (!preg_match('/password/i',$key)) {
@@ -4207,8 +4214,10 @@ function delete_record($db, $table, $filter)
             $changed_log = $changed_log . " $key => $value,";
         }
     }
-    //never delete user ip record
+    $delete_it = 1;
+    //never delete user ip record or dns alias record
     if ($table === 'User_auth') {
+        $delete_it = 0;
         $changed_time = GetNowTimeString();
         $new_sql = "UPDATE $table SET deleted=1, changed=1, `changed_time`='" . $changed_time . "' WHERE $filter";
         LOG_DEBUG($db, "Run sql: $new_sql");
@@ -4216,19 +4225,33 @@ function delete_record($db, $table, $filter)
         if (!$sql_result) {
             LOG_ERROR($db, "UPDATE Request (from delete): " . mysqli_error($db));
             return;
+            }
         }
-    } else {
+
+    if ($table === 'User_auth_alias') {
+        $delete_it = 0;
+        $new_sql = "UPDATE $table SET `deleted`=1, `old_alias` = `alias`, `dns_changed`=1 WHERE $filter";
+        LOG_DEBUG($db, "Run sql: $new_sql");
+        $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "SQL: $new_sql :" . mysqli_error($db));
+        if (!$sql_result) {
+            LOG_ERROR($db, "UPDATE Request (from delete): " . mysqli_error($db));
+            return;
+            }
+        }
+
+    if ($delete_it) {
         $new_sql = "DELETE FROM $table WHERE $filter";
         LOG_DEBUG($db, "Run sql: $new_sql");
         $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "SQL: $new_sql :" . mysqli_error($db));
         if (!$sql_result) {
             LOG_ERROR($db, "DELETE Request: $new_sql : " . mysqli_error($db));
             return;
+            }
         }
-    }
+
     if ($table !== "sessions") {
         LOG_VERBOSE($db, "Delete FROM table $table WHERE $filter $changed_log");
-    }
+        }
     return $changed_log;
 }
 

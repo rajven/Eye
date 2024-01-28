@@ -66,7 +66,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 	<td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="s_remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
-$t_User_auth_alias = get_records($db_link,'User_auth_alias',"auth_id=$id ORDER BY alias");
+$t_User_auth_alias = get_records($db_link,'User_auth_alias',"deleted=0 AND auth_id=$id ORDER BY alias");
 if (!empty($t_User_auth_alias)) {
 foreach ( $t_User_auth_alias as $row ) {
     print "<tr align=center>\n";
