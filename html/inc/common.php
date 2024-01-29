@@ -4060,6 +4060,13 @@ function copy_auth($db, $id, $new_auth)
     return $new_id;
 }
 
+function get_dns_name($db,$id)
+{
+    $auth_record = get_record_sql($db,"SELECT dns_name FROM User_auth WHERE id=".$id);
+    if (!empty($auth_record) and !empty($auth_record['dns_name'])) { return $auth_record['dns_name']; }
+    return '';
+}
+
 function update_record($db, $table, $filter, $newvalue)
 {
     if (isRO($db, $table)) {
@@ -4082,9 +4089,14 @@ function update_record($db, $table, $filter, $newvalue)
         LOG_WARNING($db, "Change record ($table [ $filter ]) with empty data! Skip command.");
         return;
     }
+
     $old_sql = "SELECT * FROM $table WHERE $filter";
     $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "SQL: $old_sql :" . mysqli_error($db));
     $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
+
+    $rec_id = NULL;
+    if (!empty($old['id'])) { $rec_id = $old['id']; }
+
     $changed_log = '';
     $run_sql = '';
     $network_changed = 0;
@@ -4112,6 +4124,7 @@ function update_record($db, $table, $filter, $newvalue)
     ];
 
     $dns_fields = [
+        'ip' => '1',
         'dns_name' => '1',
         'alias' => '1',
     ];
@@ -4133,20 +4146,63 @@ function update_record($db, $table, $filter, $newvalue)
             }
             if (!empty($dns_fields["$key"])) {
                 $dns_changed = 1;
-                $run_sql = $run_sql . " `old_dns_name`='" . mysqli_real_escape_string($db, trim($newvalue['dns_name'])) . "',";
             }
         }
         if ($table === "User_auth_alias") {
             if (!empty($dns_fields["$key"])) {
                 $dns_changed = 1;
-                $run_sql = $run_sql . " `old_alias`='" . mysqli_real_escape_string($db, trim($newvalue['alias'])) . "',";
             }
         }
         if (!preg_match('/password/i',$key)) {
             $changed_log = $changed_log . " $key => $value (old: $old[$key]),";
-            }
+        }
         $run_sql = $run_sql . " `" . $key . "`='" . mysqli_real_escape_string($db, $value) . "',";
     }
+
+    if ($table === "User_auth" and $dns_changed) {
+                if (!empty($old['dns_name']) and !empty($old['ip'])) {
+                    $del_dns['name_type']='A';
+                    $del_dns['name']=$old['dns_name'];
+                    $del_dns['value']=$old['ip'];
+                    $del_dns['type']='del';
+                    if (!empty($rec_id)) { $del_dns['auth_id']=$rec_id; }
+                    insert_record($db,'dns_queue',$del_dns);
+                    }
+                if (!empty($newvalue['dns_name']) and !empty($newvalue['ip'])) {
+                    $new_dns['name_type']='A';
+                    $new_dns['name']=$newvalue['dns_name'];
+                    $new_dns['value']=$newvalue['ip'];
+                    $new_dns['type']='add';
+                    if (!empty($rec_id)) { $new_dns['auth_id']=$rec_id; }
+                    insert_record($db,'dns_queue',$new_dns);
+                    }
+    }
+
+    if ($table === "User_auth_alias" and $dns_changed) {
+                $auth_id = NULL;
+                if ($old['auth_id']) { $auth_id = $old['auth_id']; }
+                if (!empty($old['alias'])) {
+                    $del_dns['name_type']='CNAME';
+                    $del_dns['name']=$old['alias'];
+                    $del_dns['type']='del';
+                    if (!empty($auth_id)) {
+                        $del_dns['auth_id']=$auth_id; 
+                        $del_dns['value']=get_dns_name($db,$auth_id);
+                        }
+                    insert_record($db,'dns_queue',$del_dns);
+                    }
+                if (!empty($newvalue['alias'])) {
+                    $new_dns['name_type']='CNAME';
+                    $new_dns['name']=$newvalue['alias'];
+                    $new_dns['type']='add';
+                    if (!empty($auth_id)) { 
+                        $new_dns['auth_id']=$auth_id; 
+                        $new_dns['value']=get_dns_name($db,$auth_id);
+                        }
+                    insert_record($db,'dns_queue',$new_dns);
+                    }
+    }
+
     if (empty($run_sql)) {
         return;
     }
@@ -4157,10 +4213,6 @@ function update_record($db, $table, $filter, $newvalue)
 
     if ($dhcp_changed) {
         $run_sql = $run_sql . " `dhcp_changed`='1',";
-    }
-
-    if ($dns_changed) {
-        $run_sql = $run_sql . " `dns_changed`='1',";
     }
 
     $changed_log = substr_replace($changed_log, "", -1);
@@ -4202,9 +4254,14 @@ function delete_record($db, $table, $filter)
         LOG_WARNING($db, "Change record ($table) with illegal filter $filter! Skip command.");
         return;
     }
+
     $old_sql = "SELECT * FROM $table WHERE $filter";
     $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "SQL: $old_sql :" . mysqli_error($db));
     $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
+
+    $rec_id = NULL;
+    if (!empty($old['id'])) { $rec_id = $old['id']; }
+
     $changed_log = 'record: ';
     if (!empty($old)) {
         foreach ($old as $key => $value) {
@@ -4214,7 +4271,9 @@ function delete_record($db, $table, $filter)
             $changed_log = $changed_log . " $key => $value,";
         }
     }
+
     $delete_it = 1;
+
     //never delete user ip record or dns alias record
     if ($table === 'User_auth') {
         $delete_it = 0;
@@ -4226,17 +4285,31 @@ function delete_record($db, $table, $filter)
             LOG_ERROR($db, "UPDATE Request (from delete): " . mysqli_error($db));
             return;
             }
+        //dns
+        if (!empty($old['dns_name']) and !empty($old['ip'])) {
+                    $del_dns['name_type']='A';
+                    $del_dns['name']=$old['dns_name'];
+                    $del_dns['value']=$old['ip'];
+                    $del_dns['type']='del';
+                    if (!empty($rec_id)) { $del_dns['auth_id']=$rec_id; }
+                    insert_record($db,'dns_queue',$del_dns);
+                    }
+
         }
 
     if ($table === 'User_auth_alias') {
-        $delete_it = 0;
-        $new_sql = "UPDATE $table SET `deleted`=1, `old_alias` = `alias`, `dns_changed`=1 WHERE $filter";
-        LOG_DEBUG($db, "Run sql: $new_sql");
-        $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "SQL: $new_sql :" . mysqli_error($db));
-        if (!$sql_result) {
-            LOG_ERROR($db, "UPDATE Request (from delete): " . mysqli_error($db));
-            return;
-            }
+        //dns
+        if (!empty($old['alias'])) {
+                    $del_dns['name_type']='CNAME';
+                    $del_dns['name']=$old['alias'];
+                    $del_dns['value']='';
+                    $del_dns['type']='del';
+                    if (!empty($old['auth_id'])) {
+                        $del_dns['auth_id']=$old['auth_id'];
+                        $del_dns['value']=get_dns_name($db,$old['auth_id']);
+                        }
+                    insert_record($db,'dns_queue',$del_dns);
+                    }
         }
 
     if ($delete_it) {
@@ -4287,6 +4360,7 @@ function insert_record($db, $table, $newvalue)
     if (empty($value_list)) {
         return;
     }
+
     $changed_log = substr_replace($changed_log, "", -1);
     $field_list = substr_replace($field_list, "", -1);
     $value_list = substr_replace($value_list, "", -1);
@@ -4304,6 +4378,31 @@ function insert_record($db, $table, $newvalue)
     if ($table === 'User_auth') {
         run_sql($db, "UPDATE User_auth SET changed=1, dhcp_changed=1 WHERE id=" . $last_id);
     }
+
+    if ($table === 'User_auth_alias') {
+        //dns
+        if (!empty($newvalue['alias'])) {
+                    $add_dns['name_type']='CNAME';
+                    $add_dns['name']=$newvalue['alias'];
+                    $add_dns['value']=get_dns_name($db,$last_id);
+                    $add_dns['type']='add';
+                    $add_dns['auth_id']=$newvalue['auth_id'];
+                    insert_record($db,'dns_queue',$add_dns);
+                    }
+        }
+
+    if ($table === 'User_auth') {
+        //dns
+        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip'])) {
+                    $add_dns['name_type']='A';
+                    $add_dns['name']=$newvalue['dns_name'];
+                    $add_dns['value']=$newvalue['ip'];
+                    $add_dns['type']='add';
+                    $add_dns['auth_id']=$last_id;
+                    insert_record($db,'dns_queue',$add_dns);
+                    }
+        }
+
     return $last_id;
 }
 

@@ -62,11 +62,11 @@ StrToIp
 get_first_line
 update_dns_record
 update_dns_record_by_dhcp
-update_dns_cname
+create_dns_cname
 delete_dns_cname
-update_dns_hostname
+create_dns_hostname
 delete_dns_hostname
-update_dns_ptr
+create_dns_ptr
 delete_dns_ptr
 update_record
 write_db_log
@@ -113,6 +113,12 @@ our %dhcp_fields = (
 'dhcp'=>'1',
 'deleted'=>'1',
 'mac'=>'1',
+);
+
+our %dns_fields = (
+'ip' => '1',
+'dns_name'=>'1',
+'alias'=>'1',
 );
 
 #---------------------------------------------------------------------------------------------------------------
@@ -394,25 +400,41 @@ return $result;
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub get_dns_name {
+my $db = shift;
+my $id = shift;
+my $auth_record = get_record_sql($db,"SELECT dns_name FROM User_auth WHERE id=".$id);
+if ($auth_record and $auth_record->{'dns_name'}) { return $auth_record->{'dns_name'}; }
+return;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub update_record {
 my $db = shift;
 my $table = shift;
 my $record = shift;
 my $filter = shift;
+
 return if (!$db);
 return if (!$table);
 return if (!$filter);
+
 my $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter");
 my $diff='';
 my $change_str='';
 my $found_changed=0;
-my $auth_id = 0;
+
+my $rec_id = 0;
+my $dns_changed = 0;
+
+$rec_id = $old_record->{'id'} if ($old_record->{'id'});
 
 if ($table eq "User_auth") {
-    $auth_id = $old_record->{'id'};
     foreach my $field (keys %$record) {
         if (exists $acl_fields{$field}) { $record->{changed}="1"; }
         if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
+        if (exists $dns_fields{$field}) { $dns_changed=1; }
         }
     }
 
@@ -433,9 +455,63 @@ foreach my $field (keys %$record) {
 if ($found_changed) {
     $change_str=~s/\,$//;
     $diff=~s/\,$//;
-    if ($table eq 'User_auth') { $change_str .= ", `changed_time`='".GetNowTime()."'"; }
+    if ($table eq 'User_auth') {
+        $change_str .= ", `changed_time`='".GetNowTime()."'"; 
+        if ($dns_changed) {
+                my $del_dns;
+                if ($old_record->{'dns_name'} and $old_record->{'ip'}) {
+                    $del_dns->{'name_type'}='A';
+                    $del_dns->{'name'}=$old_record->{'dns_name'};
+                    $del_dns->{'value'}=$old_record->{'ip'};
+                    $del_dns->{'type'}='del';
+                    if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
+                    insert_record($db,'dns_queue',$del_dns);
+                    }
+                my $new_dns;
+                my $dns_rec_ip = $old_record->{ip};
+                my $dns_rec_name = $old_record->{dns_name};
+                if ($record->{'dns_name'}) { $dns_rec_name = $record->{'dns_name'}; }
+                if ($record->{'ip'}) { $dns_rec_ip = $record->{'ip'}; }
+                if ($dns_rec_name and $dns_rec_ip) {
+                    $new_dns->{'name_type'}='A';
+                    $new_dns->{'name'}=$dns_rec_name;
+                    $new_dns->{'value'}=$dns_rec_ip;
+                    $new_dns->{'type'}='add';
+                    if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
+                    insert_record($db,'dns_queue',$new_dns);
+                    }
+                }
+        }
+    if ($table eq 'User_auth_alias') {
+        if ($dns_changed) {
+                my $del_dns;
+                if ($old_record->{'alias'}) {
+                    $del_dns->{'name_type'}='CNAME';
+                    $del_dns->{'name'}=$old_record->{'alias'};
+                    $del_dns->{'type'}='del';
+                    if ($rec_id) {
+                        $del_dns->{'value'}=get_dns_name($db,$rec_id);
+                        $del_dns->{'auth_id'}=$rec_id; 
+                        }
+                    insert_record($db,'dns_queue',$del_dns);
+                    }
+                my $new_dns;
+                my $dns_rec_name = $old_record->{alias};
+                if ($record->{'alias'}) { $dns_rec_name = $record->{'alias'}; }
+                if ($dns_rec_name) {
+                    $new_dns->{'name_type'}='CNAME';
+                    $new_dns->{'name'}=$dns_rec_name;
+                    $new_dns->{'type'}='add';
+                    if ($rec_id) {
+                        $new_dns->{'value'}=get_dns_name($db,$rec_id);
+                        $new_dns->{'auth_id'}=$rec_id; 
+                        }
+                    insert_record($db,'dns_queue',$new_dns);
+                    }
+                }
+        }
     my $sSQL = "UPDATE $table SET $change_str WHERE $filter";
-    db_log_debug($db,'Change table '.$table.' for '.$filter.' set: '.$diff,$auth_id);
+    db_log_debug($db,'Change table '.$table.' for '.$filter.' set: '.$diff, $rec_id);
     do_sql($db,$sSQL);
     } else {
     db_log_debug($db,'Nothing change. Skip update.');
@@ -456,10 +532,13 @@ my $fields='';
 my $values='';
 my $new_str='';
 
-if ($table eq 'User_auth') {
+my $dns_changed = 0;
+
+if ($table eq "User_auth") {
     foreach my $field (keys %$record) {
         if (exists $acl_fields{$field}) { $record->{changed}="1"; }
         if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
+        if (exists $dns_fields{$field}) { $dns_changed=1; }
         }
     }
 
@@ -468,16 +547,43 @@ foreach my $field (keys %$record) {
     my $new_value = $record->{$field};
     $new_value=~s/\'//g;
     $new_value=~s/\"//g;
+    $record->{$field} = $new_value;
     $fields = $fields."`$field`,";
-    $values = $values." ".$db->quote($new_value).",";
-    $new_str = $new_str." $field => $new_value,";
+    $values = $values." ".$db->quote($record->{$field}).",";
+    $new_str = $new_str." $field => $record->{$field},";
     }
+
 $fields=~s/,$//;
 $values=~s/,$//;
 $new_str=~s/,$//;
+
 my $sSQL = "INSERT INTO $table($fields) VALUES($values)";
 my $result = do_sql($db,$sSQL);
-if ($result) { $new_str='id: '.$result.' '.$new_str; }
+if ($result) {
+    $new_str='id: '.$result.' '.$new_str;
+    if ($table eq 'User_auth_alias' and $dns_changed) {
+        if ($record->{'alias'}) {
+                    my $add_dns;
+                    $add_dns->{'name_type'}='CNAME';
+                    $add_dns->{'name'}=$record->{'alias'};
+                    $add_dns->{'value'}=get_dns_name($db,$result);
+                    $add_dns->{'type'}='add';
+                    $add_dns->{'auth_id'}=$record->{'auth_id'};
+                    insert_record($db,'dns_queue',$add_dns);
+                    }
+        }
+    if ($table eq 'User_auth' and $dns_changed) {
+        if ($record->{'dns_name'} and $record->{'ip'} and $dns_changed) {
+                    my $add_dns;
+                    $add_dns->{'name_type'}='A';
+                    $add_dns->{'name'}=$record->{'dns_name'};
+                    $add_dns->{'value'}=$record->{'ip'};
+                    $add_dns->{'type'}='add';
+                    $add_dns->{'auth_id'}=$record->{'auth_id'};
+                    insert_record($db,'dns_queue',$add_dns);
+                    }
+        }
+    }
 db_log_debug($db,'Add record to table '.$table.' '.$new_str);
 return $result;
 }
@@ -491,7 +597,13 @@ my $filter = shift;
 return if (!$db);
 return if (!$table);
 return if (!$filter);
+
+my $rec_id = 0;
+
 my $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter");
+
+$rec_id = $old_record->{'id'} if ($old_record->{'id'});
+
 my $diff='';
 foreach my $field (keys %$old_record) {
     if (!$old_record->{$field}) { $old_record->{$field}=''; }
@@ -503,10 +615,31 @@ db_log_debug($db,'Delete record from table  '.$table.' value: '.$diff);
 if ($table eq 'User_auth') {
     my $sSQL = "UPDATE User_auth SET changed=1, deleted=1, changed_time='".GetNowTime()."' WHERE ".$filter;
     do_sql($db,$sSQL);
-    } else {
-    my $sSQL = "DELETE FROM ".$table." WHERE ".$filter;
-    do_sql($db,$sSQL);
+    if ($old_record->{'dns_name'} and $old_record->{'ip'}) {
+            my $del_dns;
+            $del_dns->{'name_type'}='A';
+            $del_dns->{'name'}=$old_record->{'dns_name'};
+            $del_dns->{'value'}=$old_record->{'ip'};
+            $del_dns->{'type'}='del';
+            if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
+            insert_record($db,'dns_queue',$del_dns);
+            }
     }
+
+if ($table eq 'User_auth_alias') {
+    if ($old_record->{'dns_name'} and $old_record->{'ip'}) {
+            my $del_dns;
+            $del_dns->{'name_type'}='CNAME';
+            $del_dns->{'name'}=$old_record->{'dns_name'};
+            $del_dns->{'value'}=$old_record->{'ip'};
+            $del_dns->{'type'}='del';
+            if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
+            insert_record($db,'dns_queue',$del_dns);
+            }
+    }
+
+my $sSQL = "DELETE FROM ".$table." WHERE ".$filter;
+return do_sql($db,$sSQL);
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -631,135 +764,111 @@ update_record($db,'User_auth',$update_record,"id=$id");
 sub update_dns_record {
 
 my $hdb = shift;
-my $auth_record = shift;
+my $auth_id = shift;
+
+return if (!$config_ref{enable_dns_updates});
 
 #get domain
 my $ad_zone = get_option($hdb,33);
-
-#get current and old dns name
-my $fqdn_static=lc($auth_record->{dns_name});
-$fqdn_static=~s/\.$ad_zone$//i;
-$fqdn_static=~s/\.$//;
-
-my $old_fqdn_static=lc($auth_record->{old_dns_name});
-$old_fqdn_static=~s/\.$ad_zone$//i;
-$old_fqdn_static=~s/\.$//;
 
 #get dns server
 my $ad_dns = get_option($hdb,3);
 
 my $enable_ad_dns_update = ($ad_zone and $ad_dns and $config_ref{enable_dns_updates});
 
-log_debug("Auth record: ".Dumper($auth_record));
+log_debug("Auth id: ".$auth_id);
 log_debug("enable_ad_dns_update: ".$enable_ad_dns_update);
 log_debug("DNS update flags - zone: ".$ad_zone.", dns: ".$ad_dns.", enable_ad_dns_update: ".$enable_ad_dns_update);
 
-#dns update disabled?
-my $maybe_update_dns=( $enable_ad_dns_update and $office_networks->match_string($auth_record->{ip}) );
-if (!$maybe_update_dns) {
-        db_log_info($hdb,"FOUND Auth_id: $auth_record->{id}. DNS update disabled.");
-        do_sql($hdb,"UPDATE User_auth_alias SET old_alias='', dns_changed=0 WHERE auth_id=".$auth_record->{id});
-        do_sql($hdb,"DELETE FROM User_auth_alias WHERE deleted=1 AND auth_id=".$auth_record->{id});
-        do_sql($hdb,"UPDATE User_auth SET dns_changed=0 WHERE auth_id=".$auth_record->{id});
-        return 0;
-    }
+my @dns_queue = get_records_sql($hdb,"SELECT * FROM dns_queue WHERE auth_id=".$auth_id." ORDER BY id ASC");
 
-#skip update unknown domain
-if ($fqdn_static =~/\./) {
-        do_sql($hdb,"UPDATE User_auth_alias SET old_alias='', dns_changed=0 WHERE auth_id=".$auth_record->{id});
-        do_sql($hdb,"DELETE FROM User_auth_alias WHERE deleted=1 AND auth_id=".$auth_record->{id});
-        do_sql($hdb,"UPDATE User_auth SET dns_changed=0 WHERE auth_id=".$auth_record->{id});
-        return 0;
-    }
+if (!@dns_queue or !scalar @dns_queue) { return; }
 
-if (!$auth_record->{dns_name} or $auth_record->{deleted}) { 
-    #remove dns records
-    #get and remove aliases
-    my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE auth_id=".$auth_record->{id});
-    if (@aliases and scalar @aliases) {
-        foreach my $alias (@aliases) {
-            delete_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
-            delete_dns_cname($fqdn_static,$alias->{old_alias},$ad_zone,$ad_dns,$hdb) if ($alias->{old_alias});
-            do_sql($hdb,"DELETE FROM User_auth_alias WHERE id=".$alias->{id});
-            }
-        }
-    delete_dns_hostname($fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb) if (!$fqdn_static);
-    delete_dns_hostname($old_fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb) if (!$old_fqdn_static);
-    delete_dns_ptr($fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb);
-    do_sql($hdb,"UPDATE User_auth SET old_dns_name='', dns_changed=0 WHERE auth_id=".$auth_record->{id});
-    return 0;
-    }
+foreach my $dns_cmd (@dns_queue) {
 
-log_debug("DNS update enabled.");
-
-$fqdn_static=lc($fqdn_static.'.'.$ad_zone);
-$old_fqdn_static=lc($old_fqdn_static.'.'.$ad_zone);
-
-db_log_info($hdb,"Update dns request for auth_id: $auth_record->{id} $fqdn_static => $auth_record->{ip}");
-
-#check exists static dns name
+my $fqdn = '';
+my $fqdn_ip = '';
+my $fqdn_parent = '';
 my $static_exists = 0;
-my $static_ok = 0;
 my $static_ref = '';
+my $static_ok = 0;
 
-my @dns_record=ResolveNames($fqdn_static,$dns_server);
-$static_exists = (scalar @dns_record>0);
-if ($static_exists) {
-        $static_ref = join(' ',@dns_record);
-        foreach my $dns_a (@dns_record) {
-            if ($dns_a=~/^$auth_record->{ip}$/) { $static_ok = 1; }
-            }
+eval {
+
+if ($dns_cmd->{name_type}=~/^cname$/i) {
+    $fqdn=lc($dns_cmd->{name});
+    $fqdn=~s/\.$ad_zone$//i;
+    $fqdn=~s/\.$//;
+    if ($dns_cmd->{value}) {
+        $fqdn_parent=lc($dns_cmd->{value});
+        $fqdn_parent=~s/\.$ad_zone$//i;
+        $fqdn_parent=~s/\.$//;
+        }
+    #skip update unknown domain
+    if ($fqdn =~/\./ or $fqdn_parent =~/\./) { next; }
+
+    $fqdn = $fqdn.".".$ad_zone;
+    $fqdn_parent = $fqdn_parent.".".$ad_zone;
+
+    #remove cname
+    if ($dns_cmd->{type} eq 'del') {
+        delete_dns_cname($fqdn_parent,$fqdn,$ad_zone,$ad_dns,$hdb);
+        }
+    #create cname
+    if ($dns_cmd->{type} eq 'add') {
+        create_dns_cname($fqdn_parent,$fqdn,$ad_zone,$ad_dns,$hdb);
+        }
+    }
+
+if ($dns_cmd->{name_type}=~/^a$/i) {
+    $fqdn=lc($dns_cmd->{name});
+    $fqdn=~s/\.$ad_zone$//i;
+    $fqdn=~s/\.$//;
+
+    if (!$dns_cmd->{value}) { next; }
+    $fqdn_ip=lc($dns_cmd->{value});
+    #skip update unknown domain
+    if ($fqdn =~/\./) { next; }
+
+    $fqdn = $fqdn.".".$ad_zone;
+
+    #dns update disabled?
+    my $maybe_update_dns=( $enable_ad_dns_update and $office_networks->match_string($fqdn_ip) );
+    if (!$maybe_update_dns) {
+        db_log_info($hdb,"FOUND Auth_id: $auth_id. DNS update disabled.");
+        next;
         }
 
-db_log_debug($hdb,"Dns record for static record $fqdn_static: $static_ok");
-
-if (!$static_ok) {
-        if (!$static_exists) {
-                db_log_info($hdb,"Static dns hostname defined but not found. Create it ($fqdn_static => $auth_record->{ip})!");
-                } else {
-                db_log_warning($hdb,"Static record mismatch! Expected $fqdn_static => $auth_record->{ip}, recivied: $static_ref");
-                }
-        delete_dns_hostname($old_fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb) if ($old_fqdn_static);
-        #get and remove aliases
-        my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE auth_id=".$auth_record->{id});
-        if (@aliases and scalar @aliases) {
-            foreach my $alias (@aliases) {
-                delete_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
-                delete_dns_cname($fqdn_static,$alias->{old_alias},$ad_zone,$ad_dns,$hdb) if ($alias->{old_alias});
-                if ($alias->{deleted}) {
-                    do_sql($hdb,"DELETE FROM User_auth_alias WHERE id=".$alias->{id});
-                    }
-                }
-            }
-        update_dns_hostname($fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb);
-        update_dns_ptr($fqdn_static,$auth_record->{ip},$ad_zone,$ad_dns,$hdb);
-        do_sql($hdb,"UPDATE User_auth SET old_dns_name='', dns_changed=0 WHERE auth_id=".$auth_record->{id});
-        #get and remove aliases
-        my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE auth_id=".$auth_record->{id});
-        if (@aliases and scalar @aliases) {
-            foreach my $alias (@aliases) {
-                update_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
-                do_sql($hdb,"UPDATE User_auth_alias SET old_alias='', dns_changed=0 WHERE id=".$alias->{id});
-                }
-            }
-        } else {
-	db_log_debug($hdb,"Static record for $fqdn_static [$static_ok] correct. Checking aliases");
-        #get aliases
-        my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE dns_changed=1 AND auth_id=".$auth_record->{id});
-        if (@aliases and scalar @aliases) {
-            foreach my $alias (@aliases) {
-                if ($alias->{deleted}) {
-                    delete_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
-                    delete_dns_cname($fqdn_static,$alias->{old_alias},$ad_zone,$ad_dns,$hdb) if ($alias->{old_alias});
-                    do_sql($hdb,"DELETE FROM User_auth_alias WHERE id=".$alias->{id});
-                    } else {
-                    delete_dns_cname($fqdn_static,$alias->{old_alias},$ad_zone,$ad_dns,$hdb) if ($alias->{old_alias});
-                    update_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
-                    do_sql($hdb,"UPDATE User_auth_alias SET old_alias='', dns_changed=0 WHERE id=".$alias->{id});
-                    }
-                }
-            }
+    #remove A & PTR
+    if ($dns_cmd->{type} eq 'del') {
+        delete_dns_hostname($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
+        delete_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
         }
+
+    #create A & PTR
+    if ($dns_cmd->{type} eq 'add') {
+        my @dns_record=ResolveNames($fqdn,$dns_server);
+        $static_exists = (scalar @dns_record>0);
+        if ($static_exists) {
+            $static_ref = join(' ',@dns_record);
+            foreach my $dns_a (@dns_record) {
+                if ($dns_a=~/^$fqdn_ip$/) { $static_ok = 1; }
+                }
+            db_log_debug($hdb,"Dns record for static record $fqdn: $static_ref");
+            }
+        #skip update if already exists
+        if ($static_ok) {
+            db_log_debug($hdb,"Static record for $fqdn [$static_ok] correct.");
+            next;
+            }
+        create_dns_hostname($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
+        create_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
+        }
+    }
+};
+if ($@) { log_error("Error dns commands: $@"); }
+}
+
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -769,6 +878,8 @@ sub update_dns_record_by_dhcp {
 my $hdb = shift;
 my $dhcp_record = shift;
 my $auth_record = shift;
+
+return if (!$config_ref{enable_dns_updates});
 
 my $ad_zone = get_option($hdb,33);
 my $ad_dns = get_option($hdb,3);
@@ -845,7 +956,7 @@ if ($fqdn_static ne '') {
         db_log_info($hdb,"Static record mismatch! Expected $fqdn_static => $dhcp_record->{ip}, recivied: $static_ref");
         if (!$static_exists) {
                 db_log_info($hdb,"Static dns hostname defined but not found. Create it ($fqdn_static => $dhcp_record->{ip})!");
-                update_dns_hostname($fqdn_static,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
+                create_dns_hostname($fqdn_static,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
                 }
         } else {
 	db_log_debug($hdb,"Static record for $fqdn_static [$static_ok] correct.");
@@ -874,19 +985,23 @@ if ($fqdn ne '' and !$dynamic_ok) {
             if ($fqdn_static and $fqdn_static ne '') {
                     if ($fqdn_static!~/$fqdn/) {
                         db_log_info($hdb,"Hostname from dhcp request $fqdn differs from static dns hostanme $fqdn_static. Ignore dynamic binding!");
-#                        update_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
+#                        delete_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
+#                        create_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
                         }
                     } else {
-        	    db_log_info($hdb,"Static dns hostname not defined. Create dns record by dhcp request. $fqdn => $dhcp_record->{ip}");
-        	    update_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
-        	    db_log_info($hdb,"Clear aliases if exists for $fqdn => $dhcp_record->{ip}");
+        	    db_log_info($hdb,"Rewrite aliases if exists for $fqdn => $dhcp_record->{ip}");
                     #get and remove aliases
                     my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE auth_id=".$auth_record->{id});
                     if (@aliases and scalar @aliases) {
                             foreach my $alias (@aliases) {
                                 delete_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
-                                delete_dns_cname($fqdn_static,$alias->{old_alias},$ad_zone,$ad_dns,$hdb) if ($alias->{old_alias});
-                                do_sql($hdb,"DELETE FROM User_auth_alias WHERE id=".$alias->{id});
+                            }
+                        }
+        	    db_log_info($hdb,"Static dns hostname not defined. Create dns record by dhcp request. $fqdn => $dhcp_record->{ip}");
+        	    update_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
+                    if (@aliases and scalar @aliases) {
+                            foreach my $alias (@aliases) {
+                                create_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
                             }
                         }
         	    }
@@ -943,7 +1058,7 @@ sub unset_lock_discovery {
 
 #------------------------------------------------------------------------------------------------------------
 
-sub update_dns_cname {
+sub create_dns_cname {
 my $fqdn = shift;
 my $alias = shift;
 my $zone = shift;
@@ -962,7 +1077,6 @@ if ($config_ref{dns_server_type}=~/windows/i) {
     push(@add_dns,"gsstsig");
     push(@add_dns,"server $server");
     push(@add_dns,"zone $zone");
-    push(@add_dns,"update delete $alias cname");
     push(@add_dns,"update add $alias 3600 cname $fqdn.");
     push(@add_dns,"send");
     write_to_file($nsupdate_file,\@add_dns);
@@ -972,7 +1086,6 @@ if ($config_ref{dns_server_type}=~/windows/i) {
 if ($config_ref{dns_server_type}=~/bind/i) {
     push(@add_dns,"server $server");
     push(@add_dns,"zone $zone");
-    push(@add_dns,"update delete $alias cname");
     push(@add_dns,"update add $alias 3600 cname $fqdn.");
     push(@add_dns,"send");
     write_to_file($nsupdate_file,\@add_dns);
@@ -1022,7 +1135,7 @@ if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
 
 #------------------------------------------------------------------------------------------------------------
 
-sub update_dns_hostname {
+sub create_dns_hostname {
 my $fqdn = shift;
 my $ip = shift;
 my $zone = shift;
@@ -1042,7 +1155,6 @@ if ($config_ref{dns_server_type}=~/windows/i) {
     push(@add_dns,"gsstsig");
     push(@add_dns,"server $server");
     push(@add_dns,"zone $zone");
-    push(@add_dns,"update delete $fqdn A");
     push(@add_dns,"update add $fqdn 3600 A $ip");
     push(@add_dns,"send");
     write_to_file($nsupdate_file,\@add_dns);
@@ -1052,7 +1164,6 @@ if ($config_ref{dns_server_type}=~/windows/i) {
 if ($config_ref{dns_server_type}=~/bind/i) {
     push(@add_dns,"server $server");
     push(@add_dns,"zone $zone");
-    push(@add_dns,"update delete $fqdn A");
     push(@add_dns,"update add $fqdn 3600 A $ip");
     push(@add_dns,"send");
     write_to_file($nsupdate_file,\@add_dns);
@@ -1104,13 +1215,16 @@ if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub update_dns_ptr {
+sub create_dns_ptr {
 my $fqdn = shift;
 my $ip = shift;
+my $ad_zone = shift;
 my $server = shift;
 my $db = shift;
+
 my $radr;
 my $zone;
+
 #skip update domain controllers
 if ($fqdn=~/^dc[0-9]{1,2}\./i) { return; }
 if ($ip =~ /([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(\/[0-9]{1,2}){0,1}/) {
@@ -1118,20 +1232,21 @@ if ($ip =~ /([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(\/[0-9]{1,2})
     $radr = "$4.$3.$2.$1.in-addr.arpa";
     $zone = "$3.$2.$1.in-addr.arpa";
     }
+
 if (!$radr or !$zone) { return 0; }
-if (!$db) { 
-    log_info("DNS-UPDATE: Zone $zone Server: $server A: $fqdn PTR: $ip"); 
-    } else {
-    db_log_info($db,"DNS-UPDATE: Zone $zone Server: $server A: $fqdn PTR: $ip");
-    }
-my $ad_zone = get_option($db,33);
+
+if (!$db) { return 0; }
+
+db_log_info($db,"DNS-UPDATE: Zone $zone Server: $server A: $fqdn PTR: $ip");
+
 my $nsupdate_file = "/tmp/".$radr."-nsupdate";
+
 my @add_dns;
+
 if ($config_ref{dns_server_type}=~/windows/i) {
     push(@add_dns,"gsstsig");
     push(@add_dns,"server $server");
     push(@add_dns,"zone $zone");
-    push(@add_dns,"update delete $radr PTR");
     push(@add_dns,"update add $radr 3600 PTR $fqdn.");
     push(@add_dns,"send");
     write_to_file($nsupdate_file,\@add_dns);
@@ -1142,7 +1257,6 @@ if ($config_ref{dns_server_type}=~/windows/i) {
 if ($config_ref{dns_server_type}=~/bind/i) {
     push(@add_dns,"server $server");
     push(@add_dns,"zone $zone");
-    push(@add_dns,"update delete $radr PTR");
     push(@add_dns,"update add $radr 3600 PTR $fqdn.");
     push(@add_dns,"send");
     write_to_file($nsupdate_file,\@add_dns);
@@ -1158,10 +1272,13 @@ if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
 sub delete_dns_ptr {
 my $fqdn = shift;
 my $ip = shift;
+my $ad_zone = shift;
 my $server = shift;
 my $db = shift;
+
 my $radr;
 my $zone;
+
 #skip update domain controllers
 if ($fqdn=~/^dc[0-9]{1,2}\./i) { return; }
 if ($ip =~ /([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(\/[0-9]{1,2}){0,1}/) {
@@ -1170,14 +1287,15 @@ if ($ip =~ /([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(\/[0-9]{1,2})
     $zone = "$3.$2.$1.in-addr.arpa";
     }
 if (!$radr or !$zone) { return 0; }
-if (!$db) { 
-    log_info("DNS-UPDATE: Delete => Zone $zone Server: $server A: $fqdn PTR: $ip"); 
-    } else {
-    db_log_info($db,"DNS-UPDATE: Delete => Zone $zone Server: $server A: $fqdn PTR: $ip");
-    }
-my $ad_zone = get_option($db,33);
+
+if (!$db) { return 0 ; }
+
+db_log_info($db,"DNS-UPDATE: Delete => Zone $zone Server: $server A: $fqdn PTR: $ip");
+
 my $nsupdate_file = "/tmp/".$radr."-nsupdate";
+
 my @add_dns;
+
 if ($config_ref{dns_server_type}=~/windows/i) {
     push(@add_dns,"gsstsig");
     push(@add_dns,"server $server");

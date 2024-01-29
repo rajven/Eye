@@ -91,13 +91,13 @@ if (!$pid) {
 	    #clean changed for dynamic clients or hotspot
 	    do_sql($hdb,"UPDATE User_auth SET changed=0 WHERE ou_id=".$default_user_ou_id." OR ou_id=".$default_hotspot_ou_id);
 	    do_sql($hdb,"UPDATE User_auth SET dhcp_changed=0 WHERE ou_id=".$default_user_ou_id." OR ou_id=".$default_hotspot_ou_id);
-	    do_sql($hdb,"UPDATE User_auth SET dns_changed=0 WHERE ou_id=".$default_user_ou_id." OR ou_id=".$default_hotspot_ou_id);
 	    #clean unmanagment ip changed
-	    my @all_changed = get_records_sql($hdb,"SELECT id, ip FROM User_auth WHERE changed = 1 OR dhcp_changed = 1 OR dns_changed = 1");
+	    my @all_changed = get_records_sql($hdb,"SELECT id, ip FROM User_auth WHERE changed = 1 OR dhcp_changed = 1");
 	    foreach my $row(@all_changed) {
 		    next if ($office_networks->match_string($row->{ip}));
-		    do_sql($hdb,"UPDATE User_auth SET changed = 0, dhcp_changed = 0, dns_changed = 0  WHERE id=".$row->{id});
+		    do_sql($hdb,"UPDATE User_auth SET changed = 0, dhcp_changed = 0  WHERE id=".$row->{id});
 		}
+
             #dhcp changed records
             my $changed = get_record_sql($hdb,"SELECT COUNT(*) as c_count from User_auth WHERE dhcp_changed=1");
             if ($changed->{"c_count"}>0) {
@@ -109,22 +109,12 @@ if (!$pid) {
 	        }
 
             #dns changed records
-            my @dns_changed = get_records_sql($hdb,"SELECT id,dns_name,ip,old_dns_name,deleted from User_auth WHERE dns_changed=1");
+            my @dns_changed = get_records_sql($hdb,"SELECT auth_id FROM `dns_queue` GROUP BY auth_id");
             if (@dns_changed and scalar @dns_changed) {
                     foreach my $auth (@dns_changed) {
-                        update_dns_record($hdb,$auth);
-        	        do_sql($hdb,"UPDATE User_auth SET dns_changed=0 WHERE id=".$auth->{id});
-                        log_info("Clear changed dns for auth id: ".$auth->{id});
-                    }
-	        }
-
-            #dns changed alias records
-            @dns_changed = get_records_sql($hdb,"SELECT id,dns_name,ip,old_dns_name,deleted FROM User_auth WHERE User_auth.id IN (SELECT auth_id FROM User_auth_alias WHERE dns_changed=1);");
-            if (@dns_changed and scalar @dns_changed) {
-                    foreach my $auth (@dns_changed) {
-                        update_dns_record($hdb,$auth);
-        	        do_sql($hdb,"UPDATE User_auth SET dns_changed=0 WHERE id=".$auth->{id});
-                        log_info("Clear changed dns for auth id: ".$auth->{id});
+                        update_dns_record($hdb,$auth->{auth_id});
+                        log_info("Clear changed dns for auth id: ".$auth->{auth_id});
+                        do_sql($hdb,"DELETE FROM `dns_queue` WHERE auth_id=".$auth->{auth_id});
                     }
 	        }
 
