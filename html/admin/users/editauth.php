@@ -178,6 +178,7 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
             }
 
         if (!empty($f_dnsname) and checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) {
+            run_sql($db_link,"UPDATE User_auth SET dns_name='' WHERE id=".$id);
             $new['dns_name'] = $f_dnsname;
             } else { $new['dns_name']=''; }
 
