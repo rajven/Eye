@@ -4421,7 +4421,7 @@ function insert_record($db, $table, $newvalue)
         if (!empty($newvalue['alias'])) {
                     $add_dns['name_type']='CNAME';
                     $add_dns['name']=$newvalue['alias'];
-                    $add_dns['value']=get_dns_name($db,$last_id);
+                    $add_dns['value']=get_dns_name($db,$newvalue['auth_id']);
                     $add_dns['type']='add';
                     $add_dns['auth_id']=$newvalue['auth_id'];
                     insert_record($db,'dns_queue',$add_dns);

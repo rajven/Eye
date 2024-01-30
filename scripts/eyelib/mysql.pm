@@ -489,10 +489,8 @@ if ($found_changed) {
                     $del_dns->{'name_type'}='CNAME';
                     $del_dns->{'name'}=$old_record->{'alias'};
                     $del_dns->{'type'}='del';
-                    if ($rec_id) {
-                        $del_dns->{'value'}=get_dns_name($db,$rec_id);
-                        $del_dns->{'auth_id'}=$rec_id; 
-                        }
+                    $del_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
+                    $del_dns->{'auth_id'}=$old_record->{auth_id};
                     insert_record($db,'dns_queue',$del_dns);
                     }
                 my $new_dns;
@@ -502,10 +500,8 @@ if ($found_changed) {
                     $new_dns->{'name_type'}='CNAME';
                     $new_dns->{'name'}=$dns_rec_name;
                     $new_dns->{'type'}='add';
-                    if ($rec_id) {
-                        $new_dns->{'value'}=get_dns_name($db,$rec_id);
-                        $new_dns->{'auth_id'}=$rec_id; 
-                        }
+                    $new_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
+                    $new_dns->{'auth_id'}=$rec_id; 
                     insert_record($db,'dns_queue',$new_dns);
                     }
                 }
@@ -566,7 +562,7 @@ if ($result) {
                     my $add_dns;
                     $add_dns->{'name_type'}='CNAME';
                     $add_dns->{'name'}=$record->{'alias'};
-                    $add_dns->{'value'}=get_dns_name($db,$result);
+                    $add_dns->{'value'}=get_dns_name($db,$record->{'auth_id'});
                     $add_dns->{'type'}='add';
                     $add_dns->{'auth_id'}=$record->{'auth_id'};
                     insert_record($db,'dns_queue',$add_dns);
@@ -579,7 +575,7 @@ if ($result) {
                     $add_dns->{'name'}=$record->{'dns_name'};
                     $add_dns->{'value'}=$record->{'ip'};
                     $add_dns->{'type'}='add';
-                    $add_dns->{'auth_id'}=$record->{'auth_id'};
+                    $add_dns->{'auth_id'}=$result;
                     insert_record($db,'dns_queue',$add_dns);
                     }
         }
@@ -598,11 +594,7 @@ return if (!$db);
 return if (!$table);
 return if (!$filter);
 
-my $rec_id = 0;
-
 my $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter");
-
-$rec_id = $old_record->{'id'} if ($old_record->{'id'});
 
 my $diff='';
 foreach my $field (keys %$old_record) {
@@ -621,19 +613,19 @@ if ($table eq 'User_auth') {
             $del_dns->{'name'}=$old_record->{'dns_name'};
             $del_dns->{'value'}=$old_record->{'ip'};
             $del_dns->{'type'}='del';
-            if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
+            $del_dns->{'auth_id'}=$old_record->{'id'};
             insert_record($db,'dns_queue',$del_dns);
             }
     }
 
 if ($table eq 'User_auth_alias') {
-    if ($old_record->{'dns_name'} and $old_record->{'ip'}) {
+    if ($old_record->{'alias'} and $old_record->{'auth_id'}) {
             my $del_dns;
             $del_dns->{'name_type'}='CNAME';
-            $del_dns->{'name'}=$old_record->{'dns_name'};
-            $del_dns->{'value'}=$old_record->{'ip'};
+            $del_dns->{'name'}=$old_record->{'alias'};
+            $del_dns->{'value'}=get_dns_name($db,$old_record->{'auth_id'});
             $del_dns->{'type'}='del';
-            if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
+            $del_dns->{'auth_id'}=$old_record->{'auth_id'};
             insert_record($db,'dns_queue',$del_dns);
             }
     }
