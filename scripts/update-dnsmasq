@@ -8,6 +8,7 @@ force=$1
 ret=$?
 
 if [ ${ret} -ne 0 ]; then
+    [ -e "/tmp/mac-all" ] && rm -f /tmp/mac-all
     logger -t dhcpd "Config generate error! Bye."
     exit
     fi
@@ -42,5 +43,8 @@ if [ -n "${CHANGES}" -o -n "${force}" ]; then
     fi
 
 logger -t dhcpd "done"
+
+[ -e "/tmp/mac-all" ] && rm -f /tmp/mac-all
+[ -e "/tmp/mac.old" ] && rm -f /tmp/mac.old
 
 exit
