@@ -177,12 +177,49 @@ function checkValidHostname($dnsname)
     return $result;
 }
 
+function searchHostname($db, $id, $hostname) 
+{
+    $result = '';
+    $domain_zone = get_option($db, 33);
+
+    $a_search_filter = 'SELECT * FROM User_auth WHERE deleted=0 and id !="' . $id . '" and (dns_name ="' . mysqli_real_escape_string($db, $hostname) . '" or dns_name ="' . mysqli_real_escape_string($db, $hostname.'.'.$domain_zone) . '")';
+#    LOG_DEBUG($db, "A search-filter: ".$a_search_filter);
+    $a_records = get_records_sql($db, $a_search_filter);
+    foreach ($a_records as $a_rec) {
+        $result.='auth_id:'.$a_rec['id'].' ip: '.$a_rec['ip'].'; ';
+    }
+    if (!empty($result)) { $result = 'A-record: '.$result; }
+
+    $result_cname = '';
+    $cname_search_filter = 'SELECT * FROM User_auth_alias WHERE auth_id !="' . $id . '" and (alias ="' . mysqli_real_escape_string($db, $hostname) . '" or alias ="' . mysqli_real_escape_string($db, $hostname.'.'.$domain_zone) . '")';
+#    LOG_DEBUG($db, "CNAME search-filter: ".$cname_search_filter);
+    $a_records = get_records_sql($db, $cname_search_filter);
+    foreach ($a_records as $a_rec) {
+        $result_cname.='auth_id:'.$a_rec['auth_id'].';';
+    }
+    if (!empty($result_cname)) { $result_cname = 'CNAME-record: '. $result_cname; }
+
+    $result = trim($result.' '.$result_cname);
+    return $result;
+}
+
 function checkUniqHostname($db, $id, $hostname)
 {
-    $count = get_count_records($db, 'User_auth', 'deleted=0 and id !="' . $id . '" and dns_name ="' . mysqli_real_escape_string($db, $hostname) . '"');
-    if ($count > 0) {
-        return FALSE;
-    }
+    $domain_zone = get_option($db, 33);
+
+    $check_A_filter = 'deleted=0 and id !="' . $id . '" and (dns_name ="' . mysqli_real_escape_string($db, $hostname) . '" or dns_name ="' . mysqli_real_escape_string($db, $hostname.'.'.$domain_zone) . '")';
+#    LOG_DEBUG($db, "CNAME filter: ".$check_A_filter);
+
+    $count = get_count_records($db, 'User_auth', $check_A_filter);
+    if ($count > 0) { return FALSE; }
+
+    $check_CNAME_filter = 'auth_id !="' . $id . '" and (alias ="' . mysqli_real_escape_string($db, $hostname) . '" or alias ="' . mysqli_real_escape_string($db, $hostname.'.'.$domain_zone) . '")';
+
+#    LOG_DEBUG($db, "CNAME filter: ".$check_CNAME_filter);
+
+    $count = get_count_records($db, 'User_auth_alias', $check_CNAME_filter);
+    if ($count > 0) { return FALSE; }
+
     return TRUE;
 }
 

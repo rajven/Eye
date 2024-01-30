@@ -21,11 +21,14 @@ my $named_root='';
 my $named_db_fullpath=$named_root.'/etc/bind/masters';
 my $named_db_path='/etc/bind/masters';
 
-my $ns1 = 'ns1';
-
 my $DNS1=$config_ref{dns_server};
 
-exit if ($config_ref{dns_server_type!='bind');
+my $dns_server_record = get_record_sql($dbh,"SELECT id,ip,dns_name FROM User_auth WHERE deleted=0 AND ip='".$DNS1."'");
+
+my $ns1 = 'ns1';
+if ($dns_server_record and $dns_server_record->{dns_name}) { $ns1=$dns_server_record->{dns_name}; }
+
+#exit if ($config_ref{dns_server_type!='bind');
 
 my $named_conf=$named_root.'/etc/bind/named.dynamic';
 
@@ -34,7 +37,7 @@ my @authlist_ref = get_records_sql($dbh,"SELECT id,ip,dns_name FROM User_auth WH
 
 my %zones;
 
-$zones{$domain_name}{$ns1}=$dns_server;
+$zones{$domain_name}->{A}->{$ns1}=$DNS1;
 
 foreach my $row (@authlist_ref) {
 next if (!$row);
@@ -50,12 +53,12 @@ $default_name=~s/\./-/g;
 if ($dns_name) {
     $default_name=$dns_name;
     $default_name =~s/$domain_name$//g;
-    $default_name =~s/\.$/-/g;
+    $default_name =~s/\.$//g;
     $default_name =~s/_/-/g;
-    $default_name =~s/[.]/-/g;
+    $default_name =~s/[\.]/-/g;
     $default_name =~s/ /-/g;
     $default_name =~s/-$//g;
-    $zones{$domain_name}{$default_name}=$ip;
+    $zones{$domain_name}{A}{$default_name}=$ip;
     }
 
 my @dns_names=get_records_sql($dbh,"SELECT * FROM User_auth_alias WHERE auth_id=$row->{id} ORDER BY alias");
@@ -67,13 +70,13 @@ foreach my $alias (@dns_names) {
         $dns =~s/[.]/-/g;
         $dns =~s/ /-/g;
         $dns =~s/-$//g;
-        $zones{$domain_name}{$dns}=$ip;
+        $zones{$domain_name}{CNAME}{$dns}=$default_name;
         }
 
 if ($ip=~/([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\.([0-9]{1,3})/) {
     my $zone_name=$1;
     my $ip_in_zone=$2;
-    $zones{$zone_name}{$ip_in_zone}=$default_name;
+    $zones{$zone_name}{PTR}{$ip_in_zone}=$default_name;
     }
 }
 
@@ -95,8 +98,6 @@ my $zone_name=$ZONE;
 
 if ($ZONE!~/$domain_name/) {
     $reverse=1;
-    #skip reverse dns zone
-    next;
     if ($ZONE=~/([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})/) {
         $zone_name=$3.".".$2.".".$1.".in-addr.arpa";
         } else {
@@ -118,14 +119,14 @@ flock(F1,2);
 
 print F1  "\$ORIGIN .\n";
 print F1  "\$TTL 3600\t; 1 hour\n";
-print F1  "$zone_name\t\t\t\tIN SOA\t\t$DNS1. root.$DNS1. (\n";
+print F1  "$zone_name\t\tIN SOA\t\t".$ns1.".".$domain_name.". root.".$ns1.".".$domain_name.". (\n";
 printf F1 "\t\t\t\t%04d%02d%02d%02d ; serial\n",$year,$mon,$mday,$hour;
 print F1  "\t\t\t\t900\t; refresh (15 minutes)\n";
 print F1  "\t\t\t\t600\t; retry (10 minutes)\n";
 print F1  "\t\t\t\t86400\t; expire (1 day)\n";
 print F1  "\t\t\t\t3600\t; minimum (1 hour)\n";
 print F1  "\t\t\t\t)\n";
-print F1  "\t\t\t\tNS\t $DNS1.\n";
+print F1  "\t\t\t\tNS\t $DNS1\n";
 if ($dns_server) {
 print F1  "\t\t\t\tA\t $dns_server\n";
 }
@@ -134,13 +135,18 @@ print F1  "\$TTL 3600\t; 1 hour\n";
 print F1  "; host list\n";
 print F1  "\$ORIGIN $zone_name.\n";
 
-foreach my $record (sort keys %{$zones{$ZONE}}) {
 if ($reverse) {
-    print  F1 "$record\t\t\tIN\tPTR\t$zones{$ZONE}->{$record}.$domain_name.\n";
+    foreach my $record (sort keys %{$zones{$ZONE}->{PTR}}) {
+        print  F1 "$record\t\t\tIN\tPTR\t$zones{$ZONE}->{PTR}->{$record}.$domain_name.\n";
+        }
     } else {
-    print  F1 "$record\t\t\t\tA\t$zones{$ZONE}->{$record}\n";
+    foreach my $record (sort keys %{$zones{$ZONE}->{A}}) {
+        print  F1 "$record\t\t\t\tA\t$zones{$ZONE}->{A}->{$record}\n";
+        };
+    foreach my $record (sort keys %{$zones{$ZONE}->{CNAME}}) {
+        print  F1 "$record\t\t\t\tCNAME\t$zones{$ZONE}->{CNAME}->{$record}.$domain_name.\n";
+        };
     }
-}
 }
 
 close(F1);

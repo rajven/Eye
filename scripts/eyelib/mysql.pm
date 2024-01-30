@@ -403,7 +403,7 @@ return $result;
 sub get_dns_name {
 my $db = shift;
 my $id = shift;
-my $auth_record = get_record_sql($db,"SELECT dns_name FROM User_auth WHERE id=".$id);
+my $auth_record = get_record_sql($db,"SELECT dns_name FROM User_auth WHERE deleted=0 AND id=".$id);
 if ($auth_record and $auth_record->{'dns_name'}) { return $auth_record->{'dns_name'}; }
 return;
 }
@@ -839,8 +839,19 @@ if ($dns_cmd->{name_type}=~/^a$/i) {
         next;
         }
 
+    #get aliases
+    my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE auth_id=".$auth_id);
+
     #remove A & PTR
     if ($dns_cmd->{type} eq 'del') {
+        #remove aliases
+        if (@aliases and scalar @aliases) {
+                foreach my $alias (@aliases) {
+                    delete_dns_cname($fqdn,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
+                    delete_dns_hostname($fqdn,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
+                }
+            }
+        #remove main record
         delete_dns_hostname($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
         delete_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
         }
@@ -861,8 +872,15 @@ if ($dns_cmd->{name_type}=~/^a$/i) {
             db_log_debug($hdb,"Static record for $fqdn [$static_ok] correct.");
             next;
             }
+        #create record
         create_dns_hostname($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
         create_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
+        #create aliases
+        if (@aliases and scalar @aliases) {
+                foreach my $alias (@aliases) {
+                    create_dns_cname($fqdn,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
+                }
+            }
         }
     }
 };

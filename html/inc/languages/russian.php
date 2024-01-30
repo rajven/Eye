@@ -190,6 +190,7 @@ define("WEB_cell_shaper","Шейпер");
 define("WEB_cell_connection","Подключен");
 define("WEB_cell_last_found","Последняя активность");
 define("WEB_cell_dns_name","Имя в dns");
+define("WEB_cell_aliases","Альясы");
 define("WEB_cell_host_model","Модель устройства");
 define("WEB_cell_nagios","Мониторинг");
 define("WEB_cell_nagios_handler","Реакция на событие");

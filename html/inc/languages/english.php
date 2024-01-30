@@ -190,6 +190,7 @@ define("WEB_cell_shaper","Shaper");
 define("WEB_cell_connection","Connected");
 define("WEB_cell_last_found","Last activity");
 define("WEB_cell_dns_name","Dns Name");
+define("WEB_cell_aliases","Aliases");
 define("WEB_cell_host_model","Device Model");
 define("WEB_cell_nagios","Monitoring");
 define("WEB_cell_nagios_handler","Event response");

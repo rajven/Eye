@@ -50,16 +50,29 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         $new['ip_int'] = $ip_aton;
         $new['mac'] = mac_dotted($_POST["f_mac"]);
         $new['comments'] = $_POST["f_comments"];
-        //        $new['firmware'] = $_POST["f_firmware"];
         $new['WikiName'] = $_POST["f_wiki"];
         $f_dnsname = trim($_POST["f_dns_name"]);
-        //        if (!empty($f_dnsname) and checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) { $new['dns_name'] = $f_dnsname; }
-        if (!empty($f_dnsname) and checkValidHostname($f_dnsname)) {
+        if (!empty($f_dnsname)) {
+            $domain_zone = get_option($db_link, 33);
+            $f_dnsname = preg_replace('/'.$domain_zone.'/','',$f_dnsname);
+            $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
+            $f_dnsname = preg_replace('/\s+/','-',$f_dnsname);
+            $f_dnsname = preg_replace('/\./','-',$f_dnsname);
+            }
+
+        if (!empty($f_dnsname) and checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) {
             $new['dns_name'] = $f_dnsname;
+        } else {
+            $msg_error = "DNS $f_dnsname already exists at: ".searchHostname($db_link,$id,$f_dnsname)." Discard changes!";
+            $_SESSION[$page_url]['msg'] = $msg_error;
+            LOG_ERROR($db_link, $msg_error);
+            header("Location: " . $_SERVER["REQUEST_URI"]);
+            exit;
         }
         if (empty($f_dnsname)) {
             $new['dns_name'] = '';
         }
+
         $new['save_traf'] = $_POST["f_save_traf"] * 1;
         $new['dhcp_acl'] = trim($_POST["f_acl"]);
         if (get_const('default_user_ou_id') == $parent_ou_id or get_const('default_hotspot_ou_id') == $parent_ou_id) {
@@ -155,6 +168,19 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
         }
         $new['deleted'] = 0;
 
+        $f_dnsname = trim($_POST["f_dns_name"]);
+        if (!empty($f_dnsname)) {
+            $domain_zone = get_option($db_link, 33);
+            $f_dnsname = preg_replace('/'.$domain_zone.'/','',$f_dnsname);
+            $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
+            $f_dnsname = preg_replace('/\s+/','-',$f_dnsname);
+            $f_dnsname = preg_replace('/\./','-',$f_dnsname);
+            }
+
+        if (!empty($f_dnsname) and checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) {
+            $new['dns_name'] = $f_dnsname;
+            } else { $new['dns_name']=''; }
+
         $parent_id = $old_auth_info['user_id'];
 
         $old_parent = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=".$parent_id);
@@ -229,13 +255,17 @@ if ($auth_info['last_found'] == '0000-00-00 00:00:00') {
         unset($_SESSION[$page_url]['msg']);
     }
     print "<b>" . WEB_user_title . "&nbsp<a href=/admin/users/edituser.php?id=" . $auth_info['user_id'] . ">" . $parent_name . "</a> </b>";
+
+    $alias_link = '';
+    if (!empty($auth_info['dns_name'])) { $alias_link="/admin/users/edit_alias.php?id=".$id; }
+
     ?>
     <form name="def" action="editauth.php?id=<?php echo $id; ?>" method="post">
         <input type="hidden" name="id" value=<?php echo $id; ?>>
         <table class="data">
             <tr>
                 <td width=200><?php print WEB_cell_dns_name . " &nbsp | &nbsp ";
-                                print_url("Альясы", "/admin/users/edit_alias.php?id=$id"); ?></td>
+                                print_url(WEB_cell_aliases, $alias_link); ?></td>
                 <td width=200><?php print WEB_cell_comment; ?></td>
                 <td width=70><?php print WEB_cell_enabled; ?></td>
                 <td><?php print WEB_cell_traf; ?></td>
