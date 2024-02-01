@@ -52,26 +52,23 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         $new['comments'] = $_POST["f_comments"];
         $new['WikiName'] = $_POST["f_wiki"];
         $f_dnsname = trim($_POST["f_dns_name"]);
+
         if (!empty($f_dnsname)) {
             $domain_zone = get_option($db_link, 33);
             $f_dnsname = preg_replace('/'.$domain_zone.'/','',$f_dnsname);
             $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
             $f_dnsname = preg_replace('/\s+/','-',$f_dnsname);
             $f_dnsname = preg_replace('/\./','-',$f_dnsname);
-            }
-
-        if (!empty($f_dnsname) and checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) {
-            $new['dns_name'] = $f_dnsname;
-        } else {
-            $msg_error = "DNS $f_dnsname already exists at: ".searchHostname($db_link,$id,$f_dnsname)." Discard changes!";
-            $_SESSION[$page_url]['msg'] = $msg_error;
-            LOG_ERROR($db_link, $msg_error);
-            header("Location: " . $_SERVER["REQUEST_URI"]);
-            exit;
-        }
-        if (empty($f_dnsname)) {
-            $new['dns_name'] = '';
-        }
+            if (checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) {
+                    $new['dns_name'] = $f_dnsname;
+                } else {
+                    $msg_error = "DNS $f_dnsname already exists at: ".searchHostname($db_link,$id,$f_dnsname)." Discard changes!";
+                    $_SESSION[$page_url]['msg'] = $msg_error;
+                    LOG_ERROR($db_link, $msg_error);
+                    header("Location: " . $_SERVER["REQUEST_URI"]);
+                    exit;
+                }
+            } else { $new['dns_name'] = ''; }
 
         $new['save_traf'] = $_POST["f_save_traf"] * 1;
         $new['dhcp_acl'] = trim($_POST["f_acl"]);

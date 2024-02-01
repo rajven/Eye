@@ -168,6 +168,8 @@ function checkValidMac($mac)
 
 function checkValidHostname($dnsname)
 {
+    if (empty($dnsname)) { return TRUE; }
+
     $host_pattern = "/^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/";
     if (!preg_match($host_pattern, $dnsname)) {
         $result = FALSE;
@@ -179,6 +181,8 @@ function checkValidHostname($dnsname)
 
 function searchHostname($db, $id, $hostname) 
 {
+    if (empty($hostname)) { return NULL; }
+
     $result = '';
     $domain_zone = get_option($db, 33);
 
@@ -205,6 +209,8 @@ function searchHostname($db, $id, $hostname)
 
 function checkUniqHostname($db, $id, $hostname)
 {
+    if (empty($hostname)) { return TRUE; }
+
     $domain_zone = get_option($db, 33);
 
     $check_A_filter = 'deleted=0 and id !="' . $id . '" and (dns_name ="' . mysqli_real_escape_string($db, $hostname) . '" or dns_name ="' . mysqli_real_escape_string($db, $hostname.'.'.$domain_zone) . '")';
