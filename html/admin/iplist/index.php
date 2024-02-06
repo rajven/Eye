@@ -14,6 +14,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/iptypefilter.php");
 $sort_table = 'User_auth';
 if ($sort_field == 'login') { $sort_table = 'User_list'; }
 if ($sort_field == 'fio') { $sort_table = 'User_list'; }
+if ($sort_field == 'UOU_name') { $sort_table = 'OU'; }
 
 $sort_url = "<a href=index.php?ou=" . $rou; 
 
@@ -149,7 +150,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <table class="data">
 	<tr>
         <td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
-		<td align=Center><?php print $sort_url . "&sort=OU_Name&order=$new_order>" . WEB_cell_ou . "</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=UOU_name&order=$new_order>" . WEB_cell_ou . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
@@ -165,7 +166,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 	</tr>
 <?php
 
-$sSQL = "SELECT User_auth.*, User_list.login, User_list.enabled as UEnabled, User_list.blocked as UBlocked, User_list.ou_id as UOU, OU.ou_name as UOU_name 
+$sSQL = "SELECT User_auth.*, User_list.login, User_list.enabled as UEnabled, User_list.blocked as UBlocked, OU.ou_name as UOU_name 
 FROM User_auth 
 LEFT JOIN User_list 
 ON User_auth.user_id = User_list.id 
@@ -188,7 +189,7 @@ foreach ($users as $user) {
     if ($user['blocked']) { $cl = "error"; }
     if (!$user['UEnabled'] or $user['UBlocked']) { $cl = "off"; }
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$user['id']."></td>\n";
-    print "<td class=\"$cl\" >".get_ou($db_link,$user['UOU'])."</td>\n";
+    print "<td class=\"$cl\" >".$user['UOU_name']."</td>\n";
     print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user['login'] . "</a></td>\n";
     print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
