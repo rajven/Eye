@@ -199,7 +199,6 @@ foreach ($users as $user) {
         print "<td class=\"$cl\" width=200 >".$user['comments']."</td>\n";
     }
     print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
-    print "<td class=\"$cl\" >" . get_qa($user['enabled']) . "</td>\n";
     print "<td class=\"$cl\" >" . get_group($db_link, $user['filter_group_id']) . "</td>\n";
     print "<td class=\"$cl\" >" . get_queue($db_link, $user['queue_id']) . "</td>\n";
     print "<td class=\"$cl\" >" . get_qa($user['save_traf']) . "</td>\n";
