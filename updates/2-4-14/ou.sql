@@ -1,0 +1,1 @@
+ALTER TABLE `OU` ADD FULLTEXT(`ou_name`);
