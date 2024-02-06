@@ -14,9 +14,9 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/iptypefilter.php");
 $sort_table = 'User_auth';
 if ($sort_field == 'login') { $sort_table = 'User_list'; }
 if ($sort_field == 'fio') { $sort_table = 'User_list'; }
-if ($sort_field == 'UOU_name') { $sort_table = 'OU'; }
+if ($sort_field == 'ou_name') { $sort_table = 'OU'; }
 
-$sort_url = "<a href=index.php?ou=" . $rou; 
+$sort_url = "<a href=index.php?ou=" . $rou;
 
 if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and User_list.ou_id=$rou "; }
 
@@ -64,7 +64,7 @@ print_ip_submenu($page_url);
 <input type="hidden" name="ip-filter" value="<?php print $ip_list_filter; ?>">
 <input type="hidden" name="ip-sort" value="<?php print $sort_table.".".$sort_field." ".$order; ?>">
 <table class="data">
-	<tr>
+        <tr>
         <td>
         <b><?php print WEB_cell_ou; ?> - </b><?php print_ou_select($db_link, 'ou', $rou); ?>
         <b><?php print WEB_network_subnet; ?> - </b><?php print_subnet_select_office_splitted($db_link, 'cidr', $rcidr); ?>
@@ -74,7 +74,7 @@ print_ip_submenu($page_url);
         <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
         <input id="btn_filter" name="btn_filter" type="submit" value="<?php echo WEB_btn_show; ?>">
         </td>
-	</tr>
+        </tr>
 </table>
 </form>
 
@@ -84,18 +84,18 @@ print_ip_submenu($page_url);
   <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
       <form id="formAuthApply">
         <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
-	<input type="hidden" name="ApplyForAll" value="MassChange">
-	<table class="data" align=center>
-	<tr><td><input type=checkbox class="putField" name="e_enabled" value='1'></td><td><?php print WEB_cell_enabled."&nbsp"; print_qa_select('a_enabled', 1);?></td></tr>
-	<tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td><?php print WEB_cell_filter."&nbsp";print_group_select($db_link, 'a_group_id', 0);?></td></tr>
-	<tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td><?php print WEB_cell_shaper."&nbsp";print_queue_select($db_link, 'a_queue_id', 0);?></td></tr>
-	<tr><td><input type=checkbox class="putField" name="e_dhcp" value='1'></td><td><?php print "Dhcp&nbsp"; print_qa_select('a_dhcp', 1);?></td></tr>
-	<tr><td><input type=checkbox class="putField" name="e_dhcp_acl" value='1'></td><td><?php print "Dhcp-acl&nbsp";print_dhcp_acl_select('a_dhcp_acl','');?></td></tr>
-	<tr><td><input type=checkbox class="putField" name="e_traf" value='1'></td><td><?php print "Save traffic&nbsp"; print_qa_select('a_traf',1);?></td></tr>
-	<tr><td><input type=checkbox class="putField" name="e_bind_mac" value='1'></td><td><?php print WEB_user_bind_mac."&nbsp";print_qa_select('a_bind_mac', 1);?></td></tr>
+        <input type="hidden" name="ApplyForAll" value="MassChange">
+        <table class="data" align=center>
+        <tr><td><input type=checkbox class="putField" name="e_enabled" value='1'></td><td><?php print WEB_cell_enabled."&nbsp"; print_qa_select('a_enabled', 1);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td><?php print WEB_cell_filter."&nbsp";print_group_select($db_link, 'a_group_id', 0);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td><?php print WEB_cell_shaper."&nbsp";print_queue_select($db_link, 'a_queue_id', 0);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_dhcp" value='1'></td><td><?php print "Dhcp&nbsp"; print_qa_select('a_dhcp', 1);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_dhcp_acl" value='1'></td><td><?php print "Dhcp-acl&nbsp";print_dhcp_acl_select('a_dhcp_acl','');?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_traf" value='1'></td><td><?php print "Save traffic&nbsp"; print_qa_select('a_traf',1);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_bind_mac" value='1'></td><td><?php print WEB_user_bind_mac."&nbsp";print_qa_select('a_bind_mac', 1);?></td></tr>
     <tr><td><input type=checkbox class="putField" name="e_bind_ip" value='1'></td><td><?php print WEB_user_bind_ip."&nbsp";print_qa_select('a_bind_ip', 1);?></td></tr>
-	</table>
-	<input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
+        </table>
+        <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
 </div>
 </div>
@@ -106,9 +106,9 @@ print_ip_submenu($page_url);
   <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
     <form id="formAuthDel">
         <h2 id="modal1Title"><?php print WEB_msg_delete_selected; ?></h2>
-	<input type="hidden" name="RemoveAuth" value="MassChange">
-	<?php print_qa_select('f_deleted', 0);?><br><br>
-	<input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
+        <input type="hidden" name="RemoveAuth" value="MassChange">
+        <?php print_qa_select('f_deleted', 0);?><br><br>
+        <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
 </div>
 </div>
@@ -122,7 +122,7 @@ print_ip_submenu($page_url);
         <input type="hidden" name="ExportAuth" value="MassChange">
         <?php print WEB_msg_export_selected."&nbsp"; print_qa_select('a_selected', 1);?>
         <br><br>
-	    <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_run; ?>">
+            <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_run; ?>">
     </form>
 </div>
 </div>
@@ -130,11 +130,11 @@ print_ip_submenu($page_url);
 <form id="def" name="def">
 
 <?php
-$countSQL="SELECT Count(*) FROM User_auth 
-LEFT JOIN User_list 
-ON User_auth.user_id = User_list.id 
-LEFT JOIN OU 
-ON OU.id=User_list.ou_id 
+$countSQL="SELECT Count(*) FROM User_auth
+LEFT JOIN User_list
+ON User_auth.user_id = User_list.id
+LEFT JOIN OU
+ON OU.id=User_list.ou_id
 WHERE User_auth.deleted =0 $ip_list_filter";
 
 $res = mysqli_query($db_link, $countSQL);
@@ -142,36 +142,36 @@ $count_records = mysqli_fetch_array($res);
 $total=ceil($count_records[0]/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
-$start = ($page * $displayed) - $displayed; 
+$start = ($page * $displayed) - $displayed;
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 ?>
 <br>
 
 <table class="data">
-	<tr>
+        <tr>
         <td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
-		<td align=Center><?php print $sort_url . "&sort=UOU_name&order=$new_order>" . WEB_cell_ou . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
-		<td align=Center><?php print WEB_cell_comment; ?></td>
-		<td align=Center><?php print WEB_cell_dns_name; ?></td>
-		<td align=Center><?php print WEB_cell_filter; ?></td>
-		<td align=Center><?php print WEB_cell_shaper; ?></td>
-		<td align=Center><?php print WEB_cell_traf; ?></td>
-		<td align=Center><?php print WEB_cell_dhcp; ?></td>
-		<td align=Center><?php print WEB_cell_acl; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=last_found&order=$new_order>Last</a>"; ?></td>
-		<td align=Center><?php print WEB_cell_connection; ?></td>
-	</tr>
+                <td align=Center><?php print $sort_url . "&sort=ou_name&order=$new_order>" . WEB_cell_ou . "</a>"; ?></td>
+                <td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
+                <td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
+                <td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
+                <td align=Center><?php print WEB_cell_comment; ?></td>
+                <td align=Center><?php print WEB_cell_dns_name; ?></td>
+                <td align=Center><?php print WEB_cell_filter; ?></td>
+                <td align=Center><?php print WEB_cell_shaper; ?></td>
+                <td align=Center><?php print WEB_cell_traf; ?></td>
+                <td align=Center><?php print WEB_cell_dhcp; ?></td>
+                <td align=Center><?php print WEB_cell_acl; ?></td>
+                <td align=Center><?php print $sort_url . "&sort=last_found&order=$new_order>Last</a>"; ?></td>
+                <td align=Center><?php print WEB_cell_connection; ?></td>
+        </tr>
 <?php
 
-$sSQL = "SELECT User_auth.*, User_list.login, User_list.enabled as UEnabled, User_list.blocked as UBlocked, OU.ou_name as UOU_name 
-FROM User_auth 
-LEFT JOIN User_list 
-ON User_auth.user_id = User_list.id 
-LEFT JOIN OU 
-ON OU.id=User_list.ou_id 
+$sSQL = "SELECT User_auth.*, User_list.login, User_list.enabled as UEnabled, User_list.blocked as UBlocked, OU.ou_name
+FROM User_auth
+LEFT JOIN User_list
+ON User_auth.user_id = User_list.id
+LEFT JOIN OU
+ON OU.id=User_list.ou_id
 WHERE User_auth.deleted =0 $ip_list_filter
 ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
 
@@ -189,7 +189,7 @@ foreach ($users as $user) {
     if ($user['blocked']) { $cl = "error"; }
     if (!$user['UEnabled'] or $user['UBlocked']) { $cl = "off"; }
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$user['id']."></td>\n";
-    print "<td class=\"$cl\" >".$user['UOU_name']."</td>\n";
+    print "<td class=\"$cl\" >".$user['ou_name']."</td>\n";
     print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user['login'] . "</a></td>\n";
     print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
