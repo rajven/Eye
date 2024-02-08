@@ -1341,11 +1341,9 @@ if ($user_info->{mac}) {
     } else {
     $user->{login}=$user_info->{ip};
     }
-if ($user_info->{dhcp_hostname}) {
-    $user->{fio}=$user_info->{ip}. '['.$user_info->{dhcp_hostname} .']';
-    } else {
-    $user->{fio}=$user_info->{ip};
-    }
+
+if ($user_info->{dhcp_hostname}) { $user->{fio}=$user_info->{dhcp_hostname}; } 
+if (!$user->{fio}) { $user->{fio}=$user_info->{ip}; }
 
 my $login_count = get_count_records($db,"User_list","(login LIKE '".$user->{login}."(%)') OR (login='".$user->{login}."')");
 if ($login_count) { $login_count++; $user->{login} .="(".$login_count.")"; }
@@ -1513,7 +1511,7 @@ if ($cur_auth_id) {
 	    $new_record->{filter_group_id}=$user_record->{filter_group_id};
 	    $new_record->{queue_id}=$user_record->{queue_id};
 	    $new_record->{enabled}="$user_record->{enabled}";
-            update_record($db,'User_auth',$new_record,"id=$cur_auth_id");
+        update_record($db,'User_auth',$new_record,"id=$cur_auth_id");
 	    }
     } else { return; }
 return $cur_auth_id;
@@ -1545,7 +1543,8 @@ $new_record->{ou_id}=$user_record->{ou_id};
 $new_record->{filter_group_id}=$user_record->{filter_group_id};
 $new_record->{queue_id}=$user_record->{queue_id};
 $new_record->{enabled}="$user_record->{enabled}";
-$new_record->{comments}=$user_record->{fio};
+if ($user_record->{fio}) { $new_record->{comments}=$user_record->{fio}; }
+
 my $cur_auth_id=insert_record($db,'User_auth',$new_record);
 db_log_warning($db,"New ip created by netflow! ip: $ip") if ($cur_auth_id);
 return $cur_auth_id;
