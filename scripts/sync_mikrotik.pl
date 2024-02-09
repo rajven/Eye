@@ -99,7 +99,7 @@ my @gw_subnets = get_records_sql($dbh,"SELECT gateway_subnets.*,subnets.subnet F
 
 if (@gw_subnets and scalar @gw_subnets) {
     foreach my $gw_subnet (@gw_subnets) {
-        if ($gw_subnet) { $connected_users->add_string($gw_subnet); }
+        if ($gw_subnet and $gw_subnet->{'subnet'}) { $connected_users->add_string($gw_subnet->{'subnet'}); }
     }
 }
 
