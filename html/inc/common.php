@@ -483,17 +483,18 @@ function print_ou_select($db, $ou_name, $ou_value)
 function get_subnet_description($db,$subnet_id)
 {
 if (empty($subnet_id)) { return '';}
-$result = get_record_sql($db,'SELECT * FROM subnets WHERE id='.$subnet_id);
-if (empty($result)) { return ''; }
+$subnet = get_record_sql($db,'SELECT * FROM subnets WHERE id='.$subnet_id);
+if (empty($subnet)) { return ''; }
+$result = $subnet['subnet'].'('.['description'].')';
 return $result;
 }
 
 function print_add_gw_subnets($db, $device_id, $gs_name)
 {
     print "<select name=\"$gs_name\" >\n";
-    $t_gs = mysqli_query($db, "SELECT id,subnet,comment FROM subnets WHERE subnets.id NOT IN (SELECT subnet_id FROM gateway_subnets WHERE gateway_subnets.id=".$device_id.") ORDER BY subnet");
+    $t_gs = mysqli_query($db, "SELECT id,subnet,comment FROM subnets WHERE subnets.free=0 AND subnets.id NOT IN (SELECT subnet_id FROM gateway_subnets WHERE gateway_subnets.device_id=".$device_id.") ORDER BY subnet");
     while (list($f_gs_id, $f_gs_name,$f_gs_comment) = mysqli_fetch_array($t_gs)) {
-        print_select_item($f_gs_name.'['.$f_gs_comment.']', $f_gs_id, 0);
+        print_select_item($f_gs_name.'('.$f_gs_comment.')', $f_gs_id, 0);
     }
     print "</select>\n";
 }

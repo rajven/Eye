@@ -161,9 +161,11 @@ if ($device['device_type']==2) {
     print "<td class='data'>"; print_qa_select('f_queue_enabled', $device['queue_enabled']); print "</td>\n";
     print "<td class='data'>"; print_qa_select('f_connected_user_only', $device['connected_user_only']); print "</td>\n";
     print "</tr>\n";
-    print "<tr><td colspan=4>"; print_url(WEB_list_l3_interfaces,"/admin/devices/edit_l3int.php?id=$id"); print "</td></tr>";
-    print "<tr><td colspan=4 class='data'>"; print get_l3_interfaces($db_link,$device['id']); print "</td></tr>";
-    }
+    print "<tr><td colspan=2>"; print_url(WEB_list_l3_interfaces,"/admin/devices/edit_l3int.php?id=$id"); print "</td>";
+    print "<td colspan=2>"; print_url(WEB_list_gateway_subnets,"/admin/devices/edit_gw_subnets.php?id=$id"); print "</td></tr>";
+    print "<tr><td colspan=2 class='data'>"; print get_l3_interfaces($db_link,$device['id']); print "</td>";
+    print "<td colspan=2 class='data'>"; print get_gw_subnets($db_link,$device['id']); print "</td></tr>";
+}
 
 //print router settings
 if ($device['device_type']==0) {
@@ -171,10 +173,6 @@ if ($device['device_type']==0) {
     print "<tr>";
     print "<td class='data'>"; print_qa_select('f_dhcp', $device['dhcp']); print "</td><td></td><td></td><td></td>\n";
     print "</tr>\n";
-    print "<tr><td colspan=2>"; print_url(WEB_list_l3_interfaces,"/admin/devices/edit_l3int.php?id=$id"); print "</td>";
-    print "<td colspan=2>"; print_url(WEB_list_gateway_subnets,"/admin/devices/edit_gw_subnets.php?id=$id"); print "</td></tr>";
-    print "<tr><td colspan=2 class='data'>"; print get_l3_interfaces($db_link,$device['id']); print "</td>";
-    print "<td colspan=2 class='data'>"; print get_gw_subnets($db_link,$device['id']); print "</td></tr>";
     }
 
 //for all active network devices
