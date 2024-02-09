@@ -485,7 +485,7 @@ function get_subnet_description($db,$subnet_id)
 if (empty($subnet_id)) { return '';}
 $subnet = get_record_sql($db,'SELECT * FROM subnets WHERE id='.$subnet_id);
 if (empty($subnet)) { return ''; }
-$result = $subnet['subnet'].'('.['description'].')';
+$result = $subnet['subnet'].'&nbsp('.$subnet['comment'].')';
 return $result;
 }
 

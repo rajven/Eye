@@ -95,6 +95,14 @@ if ($l3->{'interface_type'} eq '0') { push(@lan_int,$l3->{'name'}); }
 if ($l3->{'interface_type'} eq '1') { push(@wan_int,$l3->{'name'}); }
 }
 
+my @gw_subnets = get_records_sql($dbh,"SELECT gateway_subnets.*,subnets.subnet FROM gateway_subnets LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id WHERE gateway_subnets.device_id=".$gate->{'id'});
+
+if (@gw_subnets and scalar @gw_subnets) {
+    foreach my $gw_subnet (@gw_subnets) {
+        if ($gw_subnet) { $connected_users->add_string($gw_subnet); }
+    }
+}
+
 my @cmd_list=();
 
 $gate = netdev_set_auth($gate);
