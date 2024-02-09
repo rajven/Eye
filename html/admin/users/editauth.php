@@ -337,15 +337,16 @@ if ($auth_info['last_found'] == '0000-00-00 00:00:00') {
                 <td><input type="text" name="f_wiki" value="<?php echo $auth_info['WikiName']; ?>"></td>
                 <td><?php if (empty($device) or (!empty($device) and $device['device_type'] > 2)) {
                         print_qa_select('f_nagios', $auth_info['nagios']);
-                    } ?></td>
+                    } ?>
+                </td>
                 <td><?php if (empty($device) or (!empty($device) and $device['device_type'] > 2)) {
                         print_qa_select('f_link', $auth_info['link_check']);
-                    } ?></td>
+                    } ?>
+                </td>
                 <td></td>
             </tr>
             <tr>
-                <td colspan=2><input type="submit" name="moveauth" value=<?php print WEB_btn_move; ?>><?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?></td>
-                <td><a href=/admin/logs/authlog.php?auth_id=<?php print $id; ?>><?php print WEB_log; ?></a></td>
+                <td colspan=3><input type="submit" name="moveauth" value=<?php print WEB_btn_move; ?>><?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?></td>
                 <?php
                 if ($auth_info['deleted']) {
                     print "<td >" . WEB_deleted . ": " . $auth_info['changed_time'] . "</td>";
@@ -367,7 +368,7 @@ if ($auth_info['last_found'] == '0000-00-00 00:00:00') {
                 <td align=right><?php print "Dhcp event: " . $dhcp_str; ?></td>
             </tr>
             <tr>
-                <td><?php print WEB_cell_created . ": "; ?></td>
+                <td><a href=/admin/logs/authlog.php?auth_id=<?php print $id; ?>><?php print WEB_cell_created; ?></a></td>
                 <td><?php print $auth_info['timestamp']; ?></td>
                 <td align=right colspan=2><?php print_url(WEB_report_by_day, "/admin/reports/authday.php?id=$id"); ?></td>
             </tr>

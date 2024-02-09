@@ -480,6 +480,24 @@ function print_ou_select($db, $ou_name, $ou_value)
     print "</select>\n";
 }
 
+function get_subnet_description($db,$subnet_id)
+{
+if (empty($subnet_id)) { return '';}
+$result = get_record_sql($db,'SELECT * FROM subnets WHERE id='.$subnet_id);
+if (empty($result)) { return ''; }
+return $result;
+}
+
+function print_add_gw_subnets($db, $device_id, $gs_name)
+{
+    print "<select name=\"$gs_name\" >\n";
+    $t_gs = mysqli_query($db, "SELECT id,subnet,comment FROM subnets WHERE subnets.id NOT IN (SELECT subnet_id FROM gateway_subnets WHERE gateway_subnets.id=".$device_id.") ORDER BY subnet");
+    while (list($f_gs_id, $f_gs_name,$f_gs_comment) = mysqli_fetch_array($t_gs)) {
+        print_select_item($f_gs_name.'['.$f_gs_comment.']', $f_gs_id, 0);
+    }
+    print "</select>\n";
+}
+
 function print_ou_set($db, $ou_name, $ou_value)
 {
     print "<select name=\"$ou_name\">\n";
@@ -892,6 +910,19 @@ function get_l3_interfaces($db, $device_id)
         $result .= ' LAN: ' . $lan;
     }
     return trim($result);
+}
+
+function get_gw_subnets($db, $device_id)
+{
+$gw_subnets_sql='SELECT gateway_subnets.*,subnets.subnet,subnets.comment FROM gateway_subnets LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id WHERE gateway_subnets.device_id='.$device_id.' ORDER BY subnets.subnet ASC';
+$gw_subnets=get_records_sql($db,$gw_subnets_sql);
+$result='';
+foreach ($gw_subnets as $row) {
+    if (!empty($row)) {
+        $result.=' '.$row['subnet'].'<br>';
+        }
+}
+return trim($result);
 }
 
 function print_queue_select($db, $queue_name, $queue_value)
@@ -4172,6 +4203,14 @@ function update_record($db, $table, $filter, $newvalue)
         'alias' => '1',
     ];
 
+    if ($table === "User_auth") {
+        if (empty($newvalue["ip"])) { $newvalue["subnet_id"]=0; } else {
+            $newvalue['ip_int']=ip2long($newvalue["ip"]);
+            $auth_subnet=get_ip_subnet($db,$newvalue["ip"]);
+            if (empty($auth_subnet)) { $newvalue['subnet_id']=0; } else { $newvalue['subnet_id']=$auth_subnet['id']; }
+        }
+    }
+
     foreach ($newvalue as $key => $value) {
         if (!isset($value)) {
             $value = '';
@@ -4384,6 +4423,14 @@ function insert_record($db, $table, $newvalue)
     if (empty($newvalue)) {
         LOG_WARNING($db, "Create record ($table) with empty data! Skip command.");
         return;
+    }
+
+    if ($table === "User_auth") {
+        if (empty($newvalue["ip"])) { $newvalue["subnet_id"]=0; } else {
+            $newvalue['ip_int']=ip2long($newvalue["ip"]);
+            $auth_subnet=get_ip_subnet($db,$newvalue["ip"]);
+            if (empty($auth_subnet)) { $newvalue['subnet_id']=0; } else { $newvalue['subnet_id']=$auth_subnet['id']; }
+        }
     }
 
     $changed_log = '';

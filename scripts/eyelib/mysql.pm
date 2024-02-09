@@ -431,6 +431,13 @@ my $dns_changed = 0;
 $rec_id = $old_record->{'id'} if ($old_record->{'id'});
 
 if ($table eq "User_auth") {
+
+    if (!$record->{'ip'}) { $record->{'subnet_id'}=0; } else {
+            $record->{'ip_int'}=StrToIp($record->{'ip'});
+            my $auth_subnet=get_ip_subnet($db,$record->{'ip'});
+            if (!$auth_subnet) { $record->{'subnet_id'}=0; } else { $record->{'subnet_id'}=$auth_subnet->{'id'}; }
+        }
+
     foreach my $field (keys %$record) {
         if (exists $acl_fields{$field}) { $record->{changed}="1"; }
         if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
@@ -531,6 +538,12 @@ my $new_str='';
 my $dns_changed = 0;
 
 if ($table eq "User_auth") {
+    if (!$record->{'ip'}) { $record->{'subnet_id'}=0; } else {
+            $record->{'ip_int'}=StrToIp($record->{'ip'});
+            my $auth_subnet=get_ip_subnet($db,$record->{'ip'});
+            if (!$auth_subnet) { $record->{'subnet_id'}=0; } else { $record->{'subnet_id'}=$auth_subnet->{'id'}; }
+    }
+
     foreach my $field (keys %$record) {
         if (exists $acl_fields{$field}) { $record->{changed}="1"; }
         if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }

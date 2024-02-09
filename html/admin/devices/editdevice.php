@@ -146,7 +146,7 @@ print "<td class='data' colspan=2>"; print_device_model_select($db_link,'f_devic
 print "<td class='data' ><input type='text' name='f_firmware' value='".$device['firmware']."'></td>\n";
 print "<td class='data' ><input type='text' name='f_SN' value='".$device['SN']."'></td>\n";
 print "</tr>\n";
-print "<tr><td>".WEB_location_name."</td><td colspan=2>".WEB_cell_comment."</td><td><td>";
+print "<tr><td colspan=2>".WEB_location_name."</td><td colspan=2>".WEB_cell_comment."</td>";
 print "</tr><tr>";
 print "<td class='data'>"; print_building_select($db_link, 'f_building_id', $device['building_id']); print "</td>\n";
 print "<td class='data' colspan=3><input type='text' size=50 name='f_comment' value='".$device['comment']."'></td>\n";
@@ -169,10 +169,12 @@ if ($device['device_type']==2) {
 if ($device['device_type']==0) {
     print "<tr><td>".WEB_device_dhcp_server."</td><td></td><td></td><td></td></tr>";
     print "<tr>";
-    print "<td class='data'>"; print_qa_select('f_dhcp', $device['dhcp']); print "</td>\n";
+    print "<td class='data'>"; print_qa_select('f_dhcp', $device['dhcp']); print "</td><td></td><td></td><td></td>\n";
     print "</tr>\n";
-    print "<tr><td colspan=4>"; print_url(WEB_list_l3_interfaces,"/admin/devices/edit_l3int.php?id=$id"); print "</td></tr>";
-    print "<tr><td colspan=4 class='data'>"; print get_l3_interfaces($db_link,$device['id']); print "</td></tr>";
+    print "<tr><td colspan=2>"; print_url(WEB_list_l3_interfaces,"/admin/devices/edit_l3int.php?id=$id"); print "</td>";
+    print "<td colspan=2>"; print_url(WEB_list_gateway_subnets,"/admin/devices/edit_gw_subnets.php?id=$id"); print "</td></tr>";
+    print "<tr><td colspan=2 class='data'>"; print get_l3_interfaces($db_link,$device['id']); print "</td>";
+    print "<td colspan=2 class='data'>"; print get_gw_subnets($db_link,$device['id']); print "</td></tr>";
     }
 
 //for all active network devices
@@ -184,7 +186,6 @@ if ($device['device_type']<=2) {
     print "<td class='data'><input type='text' name='f_password' value='********'></td>\n";
     print "<td class='data'>"; print_control_proto_select('f_protocol', $device['protocol']); print "</td>\n";
     print "<td class='data'><input type='text' name='f_control_port' value=".$device['control_port']."></td>\n";
-    print "<td class='data'></td>\n";
     print "</tr>";
     //snmp settings & discovery & nagios
     print "<tr><td>".WEB_snmp_version."</td><td>".WEB_network_discovery."</td><td>".WEB_nagios."</td><td></td></tr>";
@@ -218,7 +219,7 @@ if ($device['device_type']>2) {
     print "<tr><td class='data'>"; print_snmp_select('f_snmp_version', $device['snmp_version']); print "</td>\n";
     print "<td class='data'><input type='text' name='f_community' value=".$device['community']."></td>\n";
     print "<td class='data'><input type='text' name='f_rw_community' value=".$device['rw_community']."></td>\n";
-    print "<dtd></td></tr>";
+    print "<td></td></tr>";
     if ($device['snmp_version'] ==3) {
         print "<tr><td>".WEB_snmp_v3_user_ro."</td><td>".WEB_snmp_v3_user_rw."</td><td>".WEB_snmp_v3_ro_password."</td><td>".WEB_snmp_v3_rw_password."</td><td></td>";
 	    print "</tr><tr>";
