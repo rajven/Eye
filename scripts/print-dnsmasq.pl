@@ -72,7 +72,6 @@ next if (!$dhcp_networks->match_string($row->{ip}));
 next if (!$row->{mac});
 next if (!$row->{ip});
 if (exists $static_hole{$row->{ip}}) { $static_hole{$row->{ip}}{skip}=1; }
-#print '#'.$row->{comments}."\n" if ($row->{comments});
 print '#Comment:'.$row->{comments}."\n" if ($row->{comments});
 print '#DNS:'.$row->{dns_name}."\n" if ($row->{dns_name});
 print 'dhcp-host='.$row->{mac}.', '.$row->{ip}."\n";
