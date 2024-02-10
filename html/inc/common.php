@@ -4204,14 +4204,6 @@ function update_record($db, $table, $filter, $newvalue)
         'alias' => '1',
     ];
 
-    if ($table === "User_auth") {
-        if (empty($newvalue["ip"])) { $newvalue["subnet_id"]=0; } else {
-            $newvalue['ip_int']=ip2long($newvalue["ip"]);
-            $auth_subnet=get_ip_subnet($db,$newvalue["ip"]);
-            if (empty($auth_subnet)) { $newvalue['subnet_id']=0; } else { $newvalue['subnet_id']=$auth_subnet['id']; }
-        }
-    }
-
     foreach ($newvalue as $key => $value) {
         if (!isset($value)) {
             $value = '';
@@ -4424,14 +4416,6 @@ function insert_record($db, $table, $newvalue)
     if (empty($newvalue)) {
         LOG_WARNING($db, "Create record ($table) with empty data! Skip command.");
         return;
-    }
-
-    if ($table === "User_auth") {
-        if (empty($newvalue["ip"])) { $newvalue["subnet_id"]=0; } else {
-            $newvalue['ip_int']=ip2long($newvalue["ip"]);
-            $auth_subnet=get_ip_subnet($db,$newvalue["ip"]);
-            if (empty($auth_subnet)) { $newvalue['subnet_id']=0; } else { $newvalue['subnet_id']=$auth_subnet['id']; }
-        }
     }
 
     $changed_log = '';
