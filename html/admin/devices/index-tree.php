@@ -42,8 +42,6 @@ $dev_id=$row['id'];
 $dev_hash[$dev_id]['id']=$dev_id;
 $dev_hash[$dev_id]['name']=$row['device_name'];
 $dev_hash[$dev_id]['type']=$row['device_type'];
-//gateway
-if ($row['user_acl'] and $row['device_type'] == 2) { $dev_hash[$dev_id]['type']=0; }
 $pSQL = 'SELECT * FROM device_ports WHERE uplink = 1 and device_id='.$dev_id;
 $uplink = get_record_sql($db_link,$pSQL);
 if (empty($uplink)) { continue; }
