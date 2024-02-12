@@ -81,7 +81,7 @@ print_control_submenu($page_url);
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=s_id[] value='" . $row['id'] . "'></td>\n";
                 print "<td class=\"data\" align=left><a href=editsubnet.php?id=".$row["id"].">" . $row["subnet"] . "</a></td>\n";
-                print "<td class=\"data\">" . $row['vlan'] . " </td>\n";
+                print "<td class=\"data\">" . $row['vlan_tag'] . " </td>\n";
                 print_td_yes_no($row['dhcp']);
                 print_td_yes_no($row['static']);
                 print_td_yes_no($row['office']);

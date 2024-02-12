@@ -7,8 +7,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 if (isset($_POST['s_save'])) {
 
         $new['subnet'] = trim($_POST['s_subnet']);
-        $new['vlan'] = trim($_POST['s_vlan'])*1;
-        if (empty($new['vlan']) or ($new['vlan']<1 or $new['vlan']>4096)) { $new['vlan'] =1; }
+        $new['vlan_tag'] = trim($_POST['s_vlan'])*1;
+        if (empty($new['vlan_tag']) or ($new['vlan_tag']<1 or $new['vlan_tag']>4096)) { $new['vlan_tag'] =1; }
         $new['office'] = $_POST['s_office'] * 1;
         $new['hotspot'] = $_POST['s_hotspot'] * 1;
         $new['vpn'] = $_POST['s_vpn'] * 1;
@@ -108,7 +108,7 @@ print "<td class=\"$cl\"><input type=\"text\" name='s_subnet' value='".$subnet_i
 <?php print "<td colspan=2 class=\"data\"><input type=\"text\" name='s_comment' value='".$subnet_info['comment']."'></td>\n"; ?></tr>
 
 <td><td><b><?php echo WEB_network_vlan; ?></b></td>
-<?php print "<td colspan=2 class=\"data\"><input type=\"text\" name='s_vlan' value='".$subnet_info['vlan']."' pattern='^(409[0-6]|(40[0-8]|[1-3]\d\d|[1-9]\d|[1-9])\d|[1-9])$'></td>\n"; ?></tr>
+<?php print "<td colspan=2 class=\"data\"><input type=\"text\" name='s_vlan' value='".$subnet_info['vlan_tag']."' pattern='^(409[0-6]|(40[0-8]|[1-3]\d\d|[1-9]\d|[1-9])\d|[1-9])$'></td>\n"; ?></tr>
 
 <td><td><b><?php echo WEB_network_gateway; ?></b></td>
 <?php 
