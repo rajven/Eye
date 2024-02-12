@@ -7,6 +7,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 if (isset($_POST['s_save'])) {
 
         $new['subnet'] = trim($_POST['s_subnet']);
+        $new['vlan'] = trim($_POST['s_vlan'])*1;
+        if (empty($new['vlan']) or ($new['vlan']<1 or $new['vlan']>4096)) { $new['vlan'] =1; }
         $new['office'] = $_POST['s_office'] * 1;
         $new['hotspot'] = $_POST['s_hotspot'] * 1;
         $new['vpn'] = $_POST['s_vpn'] * 1;
