@@ -4871,7 +4871,16 @@ function get_const($const_name)
     return NULL;
 }
 
+function get_eye_version ($db)
+{
+$v_table=get_record_sql($db,"SELECT version FROM version");
+if (!empty($v_table)) { return $v_table['version']; }
+return NULL;
+}
+
 $config["org_name"] = get_option($db_link, 32);
+
+$config["version"] = get_eye_version($db_link);
 
 $config["KB"] = get_option($db_link, 1);
 if ($config["KB"] == 0) {

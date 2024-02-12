@@ -64,6 +64,7 @@ print_control_submenu($page_url);
             <tr align="center">
                 <td></td>
                 <td><b><?php echo WEB_network_subnet; ?></b></td>
+                <td><b><?php echo WEB_network_vlan; ?></b></td>
                 <td><b><?php echo WEB_network_use_dhcp; ?></b></td>
                 <td><b><?php echo WEB_network_static; ?></b></td>
                 <td><b><?php echo WEB_network_office_subnet; ?></b></td>
@@ -80,6 +81,7 @@ print_control_submenu($page_url);
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=s_id[] value='" . $row['id'] . "'></td>\n";
                 print "<td class=\"data\" align=left><a href=editsubnet.php?id=".$row["id"].">" . $row["subnet"] . "</a></td>\n";
+                print "<td class=\"data\">" . $row['vlan'] . " </td>\n";
                 print_td_yes_no($row['dhcp']);
                 print_td_yes_no($row['static']);
                 print_td_yes_no($row['office']);

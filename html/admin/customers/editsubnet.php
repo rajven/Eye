@@ -105,6 +105,9 @@ print "<td class=\"$cl\"><input type=\"text\" name='s_subnet' value='".$subnet_i
 <td><td><b><?php echo WEB_cell_comment; ?></b></td>
 <?php print "<td colspan=2 class=\"data\"><input type=\"text\" name='s_comment' value='".$subnet_info['comment']."'></td>\n"; ?></tr>
 
+<td><td><b><?php echo WEB_network_vlan; ?></b></td>
+<?php print "<td colspan=2 class=\"data\"><input type=\"text\" name='s_vlan' value='".$subnet_info['vlan']."' pattern='^(409[0-6]|(40[0-8]|[1-3]\d\d|[1-9]\d|[1-9])\d|[1-9])$'></td>\n"; ?></tr>
+
 <td><td><b><?php echo WEB_network_gateway; ?></b></td>
 <?php 
 $cell_disabled = '';

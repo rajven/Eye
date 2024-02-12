@@ -263,6 +263,7 @@ define("WEB_config_value","Значение");
 /* control-subnets-usage */
 define("WEB_network_usage_title","Статистика использования сетей организации");
 define("WEB_network_subnet","Сеть");
+define("WEB_network_vlan","Vlan");
 define("WEB_network_all_ip","Всего<br>адресов");
 define("WEB_network_used_ip","Занято");
 define("WEB_network_free_ip","Свободно<br>(всего)");

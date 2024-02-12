@@ -18,6 +18,7 @@ if (isset($_POST["RemoveUser"]) and (isset($_POST["f_deleted"]))) {
 					run_sql($db_link, "DELETE FROM connections WHERE device_id=" . $device['id']);
 					run_sql($db_link, "DELETE FROM device_l3_interfaces WHERE device_id=" . $device['id']);
 					run_sql($db_link, "DELETE FROM device_ports WHERE device_id=" . $device['id']);
+					run_sql($db_link, "DELETE FROM device_subnets WHERE device_id=".$device['id']);
 					delete_record($db_link, "devices", "id=" . $device['id']);
 				}
 				run_sql($db_link, "DELETE FROM auth_rules WHERE user_id=$val");
