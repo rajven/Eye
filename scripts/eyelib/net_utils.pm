@@ -379,7 +379,8 @@ $mac=~s/\.//g;
 $mac=~s/://g;
 $mac=~s/-//g;
 $mac=~tr/[A-Z]/[a-z]/;
-return $mac;
+my $result=substr($mac,0,12);
+return $result;
 }
 
 #--------------------------------------------------------------------------------
@@ -427,7 +428,8 @@ my $mac=shift;
 return if (!$mac);
 my $ch=shift || ":";
 $mac=mac_simplify($mac);
-$mac=~s/(\S{2})(\S{2})(\S{2})(\S{2})(\S{2})(\S{2})/$1:$2:$3:$4:$5:$6/g;
+$mac=~s/(\S{2})(\S{2})?(\S{2})?(\S{2})?(\S{2})?(\S{2})?/$1:$2:$3:$4:$5:$6/g;
+$mac=~s/\:+$//g;
 if ($ch ne ":") { $mac=~s/\:/$ch/g; }
 return $mac;
 }

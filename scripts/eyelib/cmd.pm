@@ -630,6 +630,8 @@ my $descr = shift;
 my $cmd;
 my $telnet_cmd_mode = 4;
 
+return if (!$session);
+
 #eltex
 if ($device->{vendor_id} eq '2') {
     if (!$descr) { $descr = "no description"; } else { $descr = "description $descr"; }
@@ -653,7 +655,7 @@ quit";
 #zyxel
 if ($device->{vendor_id} eq '4') {
     $telnet_cmd_mode = 1;
-    if (!$descr) { $descr = "name "; } else { $descr = "name $descr"; }
+    if (!$descr) { $descr = "name ''"; } else { $descr = "name $descr"; }
 $cmd = "
 conf t
 interface port-channel $port_num
@@ -787,6 +789,8 @@ my $device = shift;
 my $cmd;
 my $telnet_cmd_mode = 4;
 
+return if (!$session);
+
 #eltex
 if ($device->{vendor_id} eq '2') {
 $cmd = "
@@ -902,6 +906,8 @@ my $device = shift;
 
 my $cmd;
 my $telnet_cmd_mode = 4;
+
+return if (!$session);
 
 #eltex
 if ($device->{vendor_id} eq '2') {

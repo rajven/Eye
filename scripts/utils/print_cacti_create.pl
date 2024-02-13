@@ -1,5 +1,4 @@
-#!/usr/bin/perl
-
+#!/usr/bin/perl -CS
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
@@ -10,7 +9,7 @@ use DBI;
 use Date::Parse;
 use eyelib::config;
 use eyelib::mysql;
-use encoding 'utf8';
+use utf8;
 
 
 ##### unknown mac clean ############

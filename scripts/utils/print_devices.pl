@@ -1,5 +1,4 @@
-#!/usr/bin/perl
-
+#!/usr/bin/perl -CS
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
@@ -20,7 +19,7 @@ use NetAddr::IP;
 
 setpriority(0,0,19);
 
-my $router_list = $dbh->prepare( "SELECT device_name,device_model,ip,snmp_version,community FROM devices ORDER by ip" );
+my $router_list = $dbh->prepare( "SELECT D.device_name,DM.model_name,D.ip,D.snmp_version,D.community FROM devices D, device_models DM WHERE D.device_model_id=DM.id  ORDER by ip" );
 if ( !defined $router_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
 $router_list->execute;
 my $router_ref = $router_list->fetchall_arrayref();
@@ -33,7 +32,7 @@ my $router_ip=$router->[2];
 my $snmp_version=$router->[3];
 my $community=$router->[4];
 
-print "Device $name $model $router_ip $snmp_version $community\n";
+print "$name $model $router_ip $snmp_version $community\n";
 }
 
 $dbh->disconnect;

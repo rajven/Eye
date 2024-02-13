@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -CS
 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
@@ -15,9 +15,11 @@ use eyelib::net_utils;
 use strict;
 use warnings;
 
+my $clean_run = $ARGV[0] || '';
+
 my @nSQL=read_file("manuf.csv");
 
-if ($ARGV[0] eq 'clean') {
+if ($clean_run eq 'clean') {
     do_sql($dbh,"TRUNCATE TABLE mac_vendors");
     }
 
@@ -26,10 +28,13 @@ my @fSQL=();
 foreach my $row (@nSQL) {
 my ($oui,$company,$address)=split(/;/,$row);
 if (!$address) { $address=''; }
-if ($ARGV[0] ne 'clean') {
+$oui =~ s/\/[0-9]+//;
+$oui = mac_splitted(trim($oui));
+if ($clean_run ne 'clean') {
     my $vendor = get_record_sql($dbh,"SELECT id FROM mac_vendors WHERE oui='".$oui."'");
     next if ($vendor);
     }
+print "Added: ".$row."\n";
 my $row_str = "INSERT INTO mac_vendors (oui,companyName,companyAddress) VALUES('".$oui."',".$dbh->quote($company).",".$dbh->quote($address).");";
 push(@fSQL,$row_str);
 }

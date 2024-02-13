@@ -22,8 +22,9 @@ use eyelib::net_utils;
 use File::Basename;
 use File::Path;
 
-my $auth_id = $ARGV[0];
+exit if (!$ARGV[0]);
 
+my $auth_id = $ARGV[0];
 update_dns_record($dbh,$auth->{auth_id});
 
 exit;

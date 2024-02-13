@@ -188,7 +188,7 @@ return if (!$sql);
 if ($sql!~/^select /i) { db_log_debug($db,$sql); }
 my $sql_prep = $db->prepare($sql) or die "Unable to prepare $sql: " . $db->errstr;
 my $sql_ref;
-$sql_prep->execute() or die "Unable to execute $sql: " . $db->errstr;
+my $rv = $sql_prep->execute() or die "Unable to execute $sql: " . $db->errstr;
 if ($sql=~/^insert/i) { $sql_ref = $sql_prep->{mysql_insertid}; }
 if ($sql=~/^select /i) { $sql_ref = $sql_prep->fetchall_arrayref() or die "Unable to select $sql: " . $db->errstr; };
 $sql_prep->finish();

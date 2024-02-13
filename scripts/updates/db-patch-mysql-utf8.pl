@@ -14,26 +14,45 @@ use eyelib::mysql;
 use strict;
 use warnings;
 
-my @tables = get_recrods_sql($dbh,"SHOW TABLES");
-
-print "Migrate tables to UTF8 format\n";
-for $table (@tables) {
-    print "Apply table $table\n";
-    do_sql($dbh,"SET foreign_key_checks = 0; ALTER TABLE `".$table."` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; SET foreign_key_checks = 1; ");
-    print "Done\n";
+my @tables = get_records_sql($dbh,"SHOW TABLES");
+my @db_tables=();
+foreach my $table_ref (@tables) {
+push(@db_tables,$table_ref->{Tables_in_stat});
 }
 
-print "Migrate database\n"
+print "Stage1: Migrate tables to UTF8 format\n";
+for my $table (@db_tables) {
+    print "Apply table $table\n";
+    $dbh->do("SET foreign_key_checks = 0;");
+    do_sql($dbh,"ALTER TABLE `".$table."` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+    $dbh->do("SET foreign_key_checks = 1;");
+}
+print "Done\n";
+
+print "Stage2: Migrate database\n";
 do_sql($dbh,"ALTER DATABASE ".$DBNAME." CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
 print "Done\n";
 
-print "Revert filed type to TEXT\n";
-for $table (@tables) {
-my $create_table = do_sql($dbh,"show create table $table");
-print Dumper($create_table);
-# | sed 's/\\n/\n/g' | egrep -i "[[:space:]]MEDIUMTEXT[[:space:]]" | awk '{ print $1 }' | while read c_field; do
- #   echo "ALTER TABLE $table MODIFY $c_field TEXT;" >>migration_utf8
+print "Stage3: Revert filed type to TEXT\n";
+for my $table (@db_tables) {
+    my $sql = "select * from $table LIMIT 1";
+    my $sth = $dbh->prepare( $sql );
+    $sth->execute();
+    print "\tStructure of $table \n\n";
+    my $num_fields = $sth->{NUM_OF_FIELDS};
+    for ( my $i=0; $i< $num_fields; $i++ ) {
+        my $field = $sth->{NAME}->[$i];
+        my $type = $sth->{TYPE}->[$i];
+        my $precision = $sth->{PRECISION}->[$i];
+        print "\t\tField: $field is of type: $type precision:  $precision\n";
+        if ($type == "-4" and $precision>262140) { 
+            print "\t\tMigrate field $field to type TEXT\n";
+            do_sql($dbh,"ALTER TABLE `".$table."` MODIFY `".$field."` TEXT"); 
+            }
+    }
+    $sth->finish();
 }
+
 print "Done!\n";
 
 exit;

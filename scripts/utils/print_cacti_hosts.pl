@@ -1,5 +1,4 @@
-#!/usr/bin/perl
-
+#!/usr/bin/perl -CS
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
@@ -11,10 +10,10 @@ use DBI;
 use Date::Parse;
 use eyelib::config;
 use eyelib::mysql;
-use encoding 'utf8';
-
+use utf8;
 
 ##### unknown mac clean ############
+
 my $db_sql = "Select device_name,ip,comment,snmp_version,community from devices";
 $dbh->do("set character set utf8");
 $dbh->do("set names utf8");
