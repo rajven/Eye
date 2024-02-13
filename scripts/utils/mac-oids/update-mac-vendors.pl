@@ -6,7 +6,7 @@
 
 use utf8;
 use FindBin '$Bin';
-use lib "$Bin/";
+use lib "/opt/Eye/scripts";
 use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
@@ -16,13 +16,20 @@ use strict;
 use warnings;
 
 my @nSQL=read_file("manuf.csv");
+
+if ($ARGV[0] eq 'clean') {
+    do_sql($dbh,"TRUNCATE TABLE mac_vendors");
+    }
+
 chomp(@nSQL);
 my @fSQL=();
 foreach my $row (@nSQL) {
 my ($oui,$company,$address)=split(/;/,$row);
 if (!$address) { $address=''; }
-my $vendor = get_record_sql($dbh,"SELECT id FROM mac_vendors WHERE oui='".$oui."'");
-next if ($vendor);
+if ($ARGV[0] ne 'clean') {
+    my $vendor = get_record_sql($dbh,"SELECT id FROM mac_vendors WHERE oui='".$oui."'");
+    next if ($vendor);
+    }
 my $row_str = "INSERT INTO mac_vendors (oui,companyName,companyAddress) VALUES('".$oui."',".$dbh->quote($company).",".$dbh->quote($address).");";
 push(@fSQL,$row_str);
 }

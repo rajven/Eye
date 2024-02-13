@@ -1577,6 +1577,10 @@ my $db=shift;
 
 $last_refresh_config = time();
 
+$config_ref{version}='';
+my $version_record = get_record_sql($db,"SELECT version FROM version WHERE version is NOT NULL");
+if ($version_record) { $config_ref{version}=$version_record->{version}; }
+
 $config_ref{dbh}=$db;
 $config_ref{save_detail}=get_option($db,23);
 $config_ref{add_unknown_user}=get_option($db,22);

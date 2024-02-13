@@ -3,9 +3,8 @@
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
-
 use FindBin '$Bin';
-use lib "$Bin/";
+use lib "/opt/Eye/scripts";
 use strict;
 use DBI;
 use Time::Local;

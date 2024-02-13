@@ -6,10 +6,9 @@
 
 use utf8;
 use FindBin '$Bin';
-use lib "$Bin/";
+use lib "/opt/Eye/scripts";
 use strict;
 use DBI;
-no if $] >= 5.018, warnings =>  "experimental::smartmatch";
 use Data::Dumper;
 use Socket;
 use eyelib::config;

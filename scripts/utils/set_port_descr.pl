@@ -8,7 +8,7 @@ use utf8;
 use English;
 use base;
 use FindBin '$Bin';
-use lib "$Bin/";
+use lib "/opt/Eye/scripts";
 use strict;
 use Time::Local;
 use FileHandle;
@@ -21,13 +21,11 @@ use eyelib::snmp;
 use eyelib::cmd;
 use Net::SNMP qw(:snmp);
 use Fcntl qw(:flock);
-no if $] >= 5.018, warnings =>  "experimental::smartmatch";
-
 
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
-my @auth_list = get_records_sql($dbh,"SELECT A.id,A.ip,A.mac,A.dns_name,A.comments,A.dhcp_hostname,A.WikiName,K.login,K.ou_id FROM User_auth as A, User_list as K WHERE K.id=A.user_id AND A.deleted=0 ORDER BY A.id");
+my @auth_list = get_records_sql($dbh,"SELECT A.id,A.user_id,A.ip,A.mac,A.dns_name,A.comments,A.dhcp_hostname,A.WikiName,K.login,K.ou_id FROM User_auth as A, User_list as K WHERE K.id=A.user_id AND A.deleted=0 ORDER BY A.id");
 
 my %auth_ref;
 foreach my $auth (@auth_list) {
@@ -40,6 +38,8 @@ $auth_ref{$auth->{id}}{comments}=$auth->{comments};
 $auth_ref{$auth->{id}}{dhcp_hostname}=$auth->{dhcp_hostname};
 $auth_ref{$auth->{id}}{WikiName}=$auth->{WikiName};
 $auth_ref{$auth->{id}}{login}=$auth->{login};
+my $a_netdev = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id = ".$auth->{user_id});
+$auth_ref{$auth->{id}}{device}=$a_netdev;
 if ($auth->{dns_name}) { $auth_ref{$auth->{id}}{description} = $auth->{dns_name}; }
 if (!$auth_ref{$auth->{id}}{description} and $auth->{WikiName}) { $auth_ref{$auth->{id}}{description} = $auth->{WikiName}; }
 if (!$auth_ref{$auth->{id}}{description} and $auth->{comments}) { $auth_ref{$auth->{id}}{description} = translit($auth->{comments}); }
@@ -94,8 +94,12 @@ foreach my $conn_id (keys %conn_info) {
 if (exists $port_info{$conn_info{$conn_id}{port_id}}{count}) {
     $port_info{$conn_info{$conn_id}{port_id}}{count}++;
     #OU: Switches, Routers, WiFi AP
-    if ($conn_info{$conn_id}{ou_id}~~[7,10,12] and $conn_info{$conn_id}{description}) {
-        $port_info{$conn_info{$conn_id}{port_id}}{description} = $conn_info{$conn_id}{description};
+    if ($conn_info{$conn_id}{device} and $conn_info{$conn_id}{description}) {
+        if ($conn_info{$conn_id}{device}{device_name}) {
+            $port_info{$conn_info{$conn_id}{port_id}}{description} = $conn_info{$conn_id}{device}{device_name};
+            } else {
+            $port_info{$conn_info{$conn_id}{port_id}}{description} = $conn_info{$conn_id}{description};
+            }
         }
     next;
     } else { $port_info{$conn_info{$conn_id}{port_id}}{count}=1; }
@@ -129,28 +133,51 @@ my $device = $devices{$device_name};
 #skip unknown vendor
 next if (!$switch_auth{$device->{vendor_id}});
 
+
 my $ip = $device->{ip};
 my $community = $device->{community};
 my $snmp_version = $device->{snmp_version};
 
-print "Device: $device_name IP: $ip community: $community version: $snmp_version\n";
+my $netdev = get_record_sql($dbh,"SELECT * FROM devices WHERE ip='".$ip."'");
 
+next if (!$netdev);
+
+print "Device: $device_name IP: $ip community: $community version: $snmp_version ";
+
+if (!HostIsLive($ip)) { print "... Down! Skip.\n"; next; }
+
+print "... Programming:\n";
+
+eval {
 #get interface names
 my $int = get_interfaces($ip,$community,$snmp_version,0);
 
-$device = netdev_set_auth($device);
+$netdev = netdev_set_auth($netdev);
+
+$device->{login}= $netdev->{login};
+$device->{password}= $netdev->{password};
+$device->{enable_password}='';
+$device->{proto} = $netdev->{proto};
+$device->{port} = $netdev->{port};
+
 my $session = netdev_login($device);
 
 if ($session) {
     netdev_set_hostname($session,$device);
     foreach my $port (sort  { $a <=> $b } keys %{$device->{ports}}) {
         my $descr = $device->{ports}{$port}{description};
+        next if ($descr =~ /^-port-$/);
         my $index = $device->{ports}{$port}{snmp_index};
         print "Port: $port index: $index Descr: $descr\n";
         netdev_set_port_descr($session,$device,$int->{$index}->{name},$port,$descr);
         }
     netdev_wr_mem($session,$device);
     }
+};
+if ($@) { print "Error! Apply failed!\n"; next; }
+
+print "Programming finished.\n";
+
 }
 
 exit;

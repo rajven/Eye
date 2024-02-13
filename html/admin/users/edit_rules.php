@@ -30,6 +30,9 @@ if (isset($_POST['s_save'])) {
             if (intval($_POST['n_id'][$j]) != $save_id) { continue; }
             $new['type'] = $_POST['s_type'][$j];
             $new['rule'] = trim($_POST['s_rule'][$j]);
+            if ($new['type'] ==2) { 
+                $new['rule'] = mac_dotted($new['rule']); 
+                }
             update_record($db_link, "auth_rules", "id='{$save_id}'", $new);
         }
     }

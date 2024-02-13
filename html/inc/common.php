@@ -3809,7 +3809,8 @@ function mac_dotted($mac)
         return;
     }
     $mac = mac_simplify($mac);
-    $mac = preg_replace('/(\S{2})(\S{2})(\S{2})(\S{2})(\S{2})(\S{2})/', '$1:$2:$3:$4:$5:$6', $mac);
+    $mac = preg_replace('/(\S{2})(\S{2})?(\S{2})?(\S{2})?(\S{2})?(\S{2})?/', '$1:$2:$3:$4:$5:$6', $mac);
+    $mac = preg_replace('/\:+$/','',$mac,5);
     return $mac;
 }
 

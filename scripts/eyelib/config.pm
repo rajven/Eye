@@ -108,7 +108,7 @@ $cpu_count
 BEGIN
 {
 
-our $HOME_DIR = dirname($0);
+our $HOME_DIR = '/opt/Eye/scripts';
 my $config_file = $HOME_DIR."/cfg/config";
 
 if (! -e "$config_file") { die "Config $config_file not found!"; }
