@@ -63,10 +63,10 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
             next if (!$patch or ! -e $patch);
             my @sql_cmd=read_file($patch);
             foreach my $sql (@sql_cmd) {
-                my $sql_prep = $dbh->prepare($sql) or die "Unable to prepare $sql: " . $dbh->errstr;
+                my $sql_prep = $dbh->prepare($sql) or die "Unable to prepare $sql: " . $dbh->errstr."\n";
                 my $sql_ref;
                 my $rv = $sql_prep->execute();
-                if (!$rv) { print "Unable to execute $sql: " . $dbh->errstr; }
+                if (!$rv) { print "Unable to execute $sql: " . $dbh->errstr."\n"; }
                 $sql_prep->finish();
             }
         }
