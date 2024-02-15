@@ -1417,7 +1417,7 @@ function print_auth_port($db, $port_id, $new_window = FALSE)
         if ($new_window) {
             print "<a href=\"#\" onclick=\"".open_window_url("/admin/users/editauth.php?id=".$f_auth_id)." return false;\">" . $name . " [" . $f_ip . "]</a><br>";
         } else {
-            print "<a href=/admin/users/editauth.php?id=".$f_auth_id."/>" . $name . " [" . $f_ip . "]</a><br>";
+            print "<a href=/admin/users/editauth.php?id=".$f_auth_id.">" . $name . " [" . $f_ip . "]</a><br>";
         }
     }
 }
