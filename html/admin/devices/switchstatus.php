@@ -180,7 +180,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             if (isset($row['target_port_id']) and $row['target_port_id'] > 0) {
                 print_device_port($db_link, $row['target_port_id']);
             } else {
-                print_auth_port($db_link, $row['id']);
+                print_auth_port($db_link, $row['id'], TRUE);
             }
             print "</td>\n";
             print "<td class='" . $cl . "'>" . $row['comment'] . "</td>\n";

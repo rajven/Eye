@@ -101,7 +101,7 @@ foreach ($ports as $row) {
         if (isset($row['target_port_id']) and $row['target_port_id'] > 0) {
             print_device_port($db_link, $row['target_port_id']);
         } else {
-            print_auth_port($db_link, $row['id']);
+            print_auth_port($db_link, $row['id'],FALSE);
         }
         print "</td>\n";
         print "<td class='".$cl."'>" . $row['comment'] . "</td>\n";

@@ -1405,7 +1405,7 @@ function get_device_by_auth($db, $id)
     return $f_dev['id'];
 }
 
-function print_auth_port($db, $port_id)
+function print_auth_port($db, $port_id, $new_window = FALSE)
 {
     $d_sql = "SELECT A.ip,A.ip_int,A.mac,A.id,A.dns_name FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
     $t_device = mysqli_query($db, $d_sql);
@@ -1414,7 +1414,11 @@ function print_auth_port($db, $port_id)
         if (isset($f_dns) and $f_dns != '') {
             $name = $f_dns;
         }
-        print "<a href=\"#\" onclick=\"".open_window_url("/admin/users/editauth.php?id=".$f_auth_id)." return false;\">" . $name . " [" . $f_ip . "]</a><br>";
+        if ($new_window) {
+            print "<a href=\"#\" onclick=\"".open_window_url("/admin/users/editauth.php?id=".$f_auth_id)." return false;\">" . $name . " [" . $f_ip . "]</a><br>";
+        } else {
+            print "<a href=/admin/users/editauth.php?id=".$f_auth_id."/>" . $name . " [" . $f_ip . "]</a><br>";
+        }
     }
 }
 
