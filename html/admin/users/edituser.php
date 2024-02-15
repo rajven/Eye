@@ -31,7 +31,7 @@ if (isset($_POST["edituser"])) {
         $new["month_quota"] = get_int(trim($_POST["f_permonth"]));
     }
     $changes = get_diff_rec($db_link,"User_list","id='$id'", $new, 0);
-    if (!empty($changes)) { LOG_WARNING($db_link,"Changed user id: $id login: ".$new["login"].". \r\Apply: $changes"); }
+    if (!empty($changes)) { LOG_WARNING($db_link,"Changed user id: $id login: ".$new["login"].". \r\nApply: $changes"); }
     update_record($db_link, "User_list", "id='$id'", $new);
     if (!$new["enabled"]) {
         run_sql($db_link, "UPDATE User_auth SET enabled=0, changed=1 WHERE user_id=".$id);
