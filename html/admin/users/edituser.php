@@ -131,9 +131,9 @@ if (isset($_POST["addauth"])) {
             $ip_aton = ip2long($fip);
             $f_dhcp = 1;
             //search mac
-            if (!empty($fmac)) {
+            if (!empty($fmac) and !empty($fip)) {
                 $mac_exists=find_mac_in_subnet($db_link,$fip,$fmac);
-                if (isset($mac_exists) and $mac_exists['count']>=1 and !in_array($id,$mac_exists['users_id'])) {
+                if (!empty($mac_exists) and $mac_exists['count']>=1 and !in_array($id,$mac_exists['users_id'])) {
                     $dup_sql = "SELECT * FROM User_list WHERE id=".$mac_exists['users_id']['0'];
                     $dup_info = get_record_sql($db_link, $dup_sql);
                     $msg_error="Mac already exists at another user in this subnet! Skip creating $fip [$fmac].<br>Old user id: ".$dup_info['id']." login: ".$dup_info['login'];
@@ -143,7 +143,9 @@ if (isset($_POST["addauth"])) {
                     exit;
                     }
                 //disable dhcp for secondary ip
-                if (in_array($id,$mac_exists['users_id'])) { $f_dhcp = 0; }
+                if (empty($mac_exists)) { $f_dhcp = 1; } else {
+                    if (in_array($id,$mac_exists['users_id'])) { $f_dhcp = 0; }
+                    }
                 }
             //search ip
             $dup_ip_record = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND user_id<>".$id." AND deleted=0");
