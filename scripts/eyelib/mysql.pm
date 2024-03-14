@@ -1008,7 +1008,7 @@ if ($fqdn ne '' and !$dynamic_ok) {
                             }
                         }
         	    db_log_info($hdb,"Static dns hostname not defined. Create dns record by dhcp request. $fqdn => $dhcp_record->{ip}");
-        	    update_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
+        	    create_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
                     if (@aliases and scalar @aliases) {
                             foreach my $alias (@aliases) {
                                 create_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
