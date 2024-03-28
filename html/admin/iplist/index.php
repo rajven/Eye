@@ -49,7 +49,7 @@ if ($ip_type>0) {
 $ip_where = '';
 if (!empty($f_ip)) {
     if (checkValidIp($f_ip)) { $ip_where = " and ip_int=inet_aton('" . $f_ip . "') "; }
-        else { $ip_where = " and mac like '" . mac_dotted($f_ip) . "%'  "; }
+    if (empty($ip_where)) { $ip_where =" and (mac like '" . mac_dotted($f_ip) . "%' or comments like '".$f_ip."%' or dns_name like '".$f_ip."%' or dhcp_hostname like '".$f_ip."%'"; }
     $ip_list_filter = $ip_where;
     } else {
     $ip_list_filter = $ou_filter.$cidr_filter.$enabled_filter.$ip_list_type_filter;
