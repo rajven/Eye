@@ -9,9 +9,9 @@ $port_info = get_record_sql($db_link, $sSQL);
 
 $device_id = $port_info["device_id"];
 
-$sSQL = "SELECT DP.port, DP.snmp_index FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.device_id=".$device_id;
+$sSQL = "SELECT port, snmp_index FROM `device_ports` WHERE device_id=".$device_id;
 $ports_info = get_records_sql($db_link, $sSQL);
-$port_by_snmp_index=NULL;
+$ports_by_snmp_index=NULL;
 foreach ($ports_info as &$row) { $ports_by_snmp_index[$row["snmp_index"]]=$row["port"]; }
 
 $device=get_record($db_link,'devices',"id=".$device_id);

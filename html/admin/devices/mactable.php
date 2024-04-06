@@ -11,6 +11,11 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 print_device_submenu($page_url);
 print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login']);
 
+$sSQL = "SELECT port, snmp_index FROM `device_ports` WHERE device_id=".$id;
+$ports_info = get_records_sql($db_link, $sSQL);
+$ports_by_snmp_index=NULL;
+foreach ($ports_info as &$row) { $ports_by_snmp_index[$row["snmp_index"]]=$row["port"]; }
+
 ?>
 
 <div id="contsubmenu">
@@ -25,6 +30,12 @@ if (!empty($device['ip']) and $device['snmp_version'] > 0) {
 
 if ($snmp_ok) {
 	$fdb = get_fdb_table($device['ip'], $device['community'], $device['snmp_version']);
+
+	$port_by_snmp = 0;
+   	foreach ($fdb as $a_mac => $a_port) {
+		if (!empty($ports_by_snmp_index[$a_port])) { $port_by_snmp=1; break; }
+	}
+
 	print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
 	print "<tr>";
 	print "<td>Port</td>\n";
@@ -33,13 +44,14 @@ if ($snmp_ok) {
 	print "</tr>";
 	foreach ($ports as $port) {
     	foreach ($fdb as $a_mac => $a_port) {
-		if ($a_port == $port['snmp_index']) {
-			print "<tr>";
-			print "<td class=\"data\">" . $port['port'] . "</td>\n";
-	    	$auth = get_auth_by_mac($db_link, dec_to_hex($a_mac));
-        	print "<td class=\"data\">" .$auth['auth'] . "</td><td class=\"data\">". $auth['mac']."</td>\n";
-			print "</tr>";
-			}
+			if ($port_by_snmp) { $f_port =$port['snmp_index']; } else { $f_port = $port['port']; }
+			if ($a_port == $f_port) {
+				print "<tr>";
+				print "<td class=\"data\">" . $port['port'] . "</td>\n";
+	    		$auth = get_auth_by_mac($db_link, dec_to_hex($a_mac));
+        		print "<td class=\"data\">" .$auth['auth'] . "</td><td class=\"data\">". $auth['mac']."</td>\n";
+				print "</tr>";
+				}
     	}
 	}
 	print "</table>\n";
