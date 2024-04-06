@@ -695,7 +695,7 @@ function print_device_submenu($current_page)
 
 function open_window_url ($url) 
 {
-return "window.open('".$url."', '_tab');";
+return "window.open('".$url."', '_blank');";
 }
 
 function print_editdevice_submenu($current_page, $id, $dev_type, $dev_name = NULL)
