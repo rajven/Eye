@@ -2315,7 +2315,7 @@ function get_mac_table($ip, $community, $version, $oid, $index_map)
     }
 
     $mac_table = walk_snmp($ip, $community, $version, $oid);
-    if (isset($mac_table) and count($mac_table) > 0) {
+    if (isset($mac_table) and gettype($mac_table) == 'array' and count($mac_table) > 0) {
         foreach ($mac_table as $key => $value) {
             if (empty($value)) {
                 continue;

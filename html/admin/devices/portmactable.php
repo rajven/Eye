@@ -9,13 +9,18 @@ $port_info = get_record_sql($db_link, $sSQL);
 
 $device_id = $port_info["device_id"];
 
+$sSQL = "SELECT DP.port, DP.snmp_index FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.device_id=".$device_id;
+$ports_info = get_records_sql($db_link, $sSQL);
+$port_by_snmp_index=NULL;
+foreach ($ports_info as &$row) { $ports_by_snmp_index[$row["snmp_index"]]=$row["port"]; }
+
 $device=get_record($db_link,'devices',"id=".$device_id);
 $user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
 if (!apply_device_lock($db_link,$device_id)) {
-    header("Location: /admin/devices/editdevice.php&id=".$id."&status=locked");
+    header("Location: /admin/devices/editdevice.php?id=".$device_id."&status=locked");
     exit;
 }
 
@@ -42,14 +47,19 @@ $snmp_ok = 0;
 if (!empty($device['ip']) and $device['snmp_version'] > 0) {
         $snmp_ok = check_snmp_access($device['ip'], $device['community'], $device['snmp_version']);
     }
-    
 
 if ($snmp_ok and $port_info['snmp_index'] > 0) {
     print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
     print "<tr><td colspan=2><b>".WEB_device_port_mac_table_show."</b></td></tr>\n";
     $fdb = get_fdb_table($port_info['ip'], $port_info['community'], $port_info['snmp_version']);
+    $f_port = $port_info['snmp_index'];
+    $port_by_snmp = 0;
     foreach ($fdb as $a_mac => $a_port) {
-        if ($a_port == $port_info['snmp_index']) {
+        if (!empty($ports_by_snmp_index[$a_port])) { $port_by_snmp=1; break; }
+    }
+    if (!$port_by_snmp) { $f_port = $port_info['port']; }
+    foreach ($fdb as $a_mac => $a_port) {
+        if ($a_port == $f_port) {
             $a_mac = dec_to_hex($a_mac);
             //mikrotik patch
             if (!empty($sw_mac) and preg_match('/^'.$sw_mac.'/',mac_simplify($a_mac))) { continue; }

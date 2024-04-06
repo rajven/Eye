@@ -290,9 +290,10 @@ foreach my $mac (keys %$fdb) {
     my $port = $fdb->{$mac};
     next if (!$port);
     #real port number
-    if (!exists $port_snmp_index{$port}) { next; }
-    #get real port number by snmp our snmp index
-    $port=$port_snmp_index{$port};
+    if (exists $port_snmp_index{$port}) {
+        #get real port number by snmp our snmp index
+        $port=$port_snmp_index{$port};
+        }
     if (!exists $port_index{$port}) { next; }
     #mikrotik patch - skip mikrotik device mac
     if ($sw_mac and $mac=~/^$sw_mac/i) { next; }

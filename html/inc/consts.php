@@ -52,7 +52,7 @@ define("CISCO_DESCR",".1.3.6.1.2.1.1.1.0");
 define("CISCO_MODULES",".1.3.6.1.2.1.47.1.1.1.1.7");
 define("CISCO_SFP_SENSORS",".1.3.6.1.4.1.9.9.91.1.1.1.1.4");
 define("CISCO_SFP_PRECISION",".1.3.6.1.4.1.9.9.91.1.1.1.1.3");
-define("CISCO_VLAN_OID",".1.3.6.1.4.1.9.9.9.46.1.3.1.1.2");
+define("CISCO_VLAN_OID",".1.3.6.1.4.1.9.9.46.1.3.1.1.2");
 
 define("HUAWEI_SFP_VENDOR",".1.3.6.1.4.1.2011.5.25.31.1.1.2.1.11");
 define("HUAWEI_SFP_SPEED",".1.3.6.1.4.1.2011.5.25.31.1.1.2.1.2");
