@@ -21,6 +21,21 @@ use Fcntl qw(:flock);
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
+my @db_tables =(
+'connections',
+'device_l3_interfaces',
+'device_ports',
+'User_list',
+'User_auth',
+'Unknown_mac',
+'User_stats',
+'User_stats_full',
+'dhcp_log',
+'syslog',
+'remote_syslog',
+'Traffic_detail',
+);
+
 db_log_info($dbh,'Garbage started.');
 
 sub is_dhcp_pool {
@@ -79,8 +94,8 @@ if ($day==1) {
     #month stat
     db_log_info($dbh,'Daily statistics started');
     my $month_sql="SELECT User_list.id, User_list.login, SUM( traf_all ) AS traf_sum, User_list.month_quota as uquota
-    FROM ( SELECT User_stats.auth_id, SUM( byte_in + byte_out ) AS traf_all FROM User_stats 
-    WHERE User_stats.`timestamp`>=$month_start AND User_stats.`timestamp`< $month_stop  
+    FROM ( SELECT User_stats.auth_id, SUM( byte_in + byte_out ) AS traf_all FROM User_stats
+    WHERE User_stats.`timestamp`>=$month_start AND User_stats.`timestamp`< $month_stop
     GROUP BY User_stats.auth_id ) AS V, User_auth, User_list
     WHERE V.auth_id = User_auth.id AND User_auth.user_id = User_list.id and User_list.blocked=1 GROUP BY login";
     my @month_stats = get_records_sql($dbh,$month_sql);
@@ -109,9 +124,9 @@ if ($dhcp_networks->match_string($row->{ip})) {
         do_sql($dbh,"UPDATE User_auth SET deleted=1 WHERE id='".$row->{id}."'");
         my $u_count=get_count_records($dbh,'User_auth','deleted=0 and user_id='.$row->{user_id});
         if (!$u_count) {
-		delete_record($dbh,"User_list","id=".$row->{'user_id'});
-		db_log_info($dbh,"Remove dynamic user id: $row->{'user_id'} by dhcp lease timeout");
-	        }
+                delete_record($dbh,"User_list","id=".$row->{'user_id'});
+                db_log_info($dbh,"Remove dynamic user id: $row->{'user_id'} by dhcp lease timeout");
+                }
         }
     }
 }
@@ -315,6 +330,17 @@ foreach my $auth (@auth_full_list) {
             db_log_info($dbh,"Auth id: $auth->{id} $auth_mac moved to another location device_id: $new->{device_id} port_id: $new->{port_id}");
             insert_record($dbh,"mac_history",$new);
             }
+}
+
+foreach my $table (@db_tables) {
+my $opt_sql = "optimize table ".$table;
+my $opt_rf=$dbh->prepare($opt_sql) or die "Unable to prepare $opt_sql:" . $dbh->errstr;
+my $opt_result = $opt_rf->execute();
+#CREATE TABLE `".$table.".new` LIKE $table;
+#INSERT INTO `".$table.".new` SELECT * FROM $table;
+#RENAME TABLE $table TO `".$table.".backup`;
+#RENAME TABLE `".$table.".new` TO $table;
+#DROP TABLE `".$table.".backup`;";
 }
 
 db_log_info($dbh,'Garbage stopped.');
