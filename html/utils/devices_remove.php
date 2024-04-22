@@ -14,7 +14,7 @@ if (isset($_POST["RemoveDevice"]) and (isset($_POST["f_deleted"]))) {
 					run_sql($db_link, "DELETE FROM connections WHERE device_id=".$val);
 					run_sql($db_link, "DELETE FROM device_l3_interfaces WHERE device_id=".$val);
 					run_sql($db_link, "DELETE FROM device_ports WHERE device_id=".$val);
-					run_sql($db_link, "DELETE FROM device_subnets WHERE device_id=".$val);
+					run_sql($db_link, "DELETE FROM gateway_subnets WHERE device_id=".$val);
 					delete_record($db_link, "devices", "id=".$val);
 					}
 				}
