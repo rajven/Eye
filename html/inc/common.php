@@ -2207,7 +2207,7 @@ function is_up($ip)
 function apply_device_lock ($db, $device_id, $iteration =0) {
     $iteration++;
     if ($iteration>2) { return false; }
-    $dev = get_record_sql($db,'SELECT discovery_locked,UNIX_TIMESTAMP(locked_timestamp) as u_locked_timestamp FROM devices WHERE id='.$device_id);
+    $dev = get_record_sql($db,'SELECT discovery_locked,UNIX_TIMESTAMP(locked_timestamp) as u_locked_timestamp FROM devices WHERE id='.$device_id.' AND discovery_locked > 0');
     if (empty($dev)) { return true; }
     if ($dev['discovery_locked'] ===0) { 
         LOG_DEBUG($db,"Snmp discovery lock not found. Set and discovery.");

@@ -70,8 +70,8 @@ if ($snmp_ok and $port_info['snmp_index'] > 0) {
             }
         }
     print "</table>\n";
-    } else { print "No SNMP access!"; }
-    unset_lock_discovery($db_link,$device_id);
+    } else { print "No SNMP access!"; }  
+unset_lock_discovery($db_link,$device_id);
 ?>
 <table class="data">
 <tr>
@@ -103,5 +103,6 @@ while (list ($fmac, $f_last) = mysqli_fetch_array($maclist)) {
     print "<td class=\"data\">$f_last</td>\n";
     print "</tr>";
 }
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
+
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.small.php");
 ?>

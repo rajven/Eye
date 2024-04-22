@@ -16,6 +16,11 @@ $ports_info = get_records_sql($db_link, $sSQL);
 $ports_by_snmp_index=NULL;
 foreach ($ports_info as &$row) { $ports_by_snmp_index[$row["snmp_index"]]=$row["port"]; }
 
+if (!apply_device_lock($db_link,$id)) {
+    header("Location: /admin/devices/editdevice.php?id=".$id."&status=locked");
+    exit;
+}
+
 ?>
 
 <div id="contsubmenu">
@@ -59,5 +64,6 @@ if ($snmp_ok) {
 	print "No SNMP access!";
 	}
 
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
+unset_lock_discovery($db_link,$id);
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.small.php");
 ?>

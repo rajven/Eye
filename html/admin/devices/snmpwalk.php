@@ -10,6 +10,11 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 print_device_submenu($page_url);
 print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login']);
 
+if (!apply_device_lock($db_link,$id)) {
+    header("Location: /admin/devices/editdevice.php?id=".$id."&status=locked");
+    exit;
+}
+
 ?>
 
 <div id="contsubmenu">
@@ -35,5 +40,6 @@ if ($snmp_ok) {
     print "</table>\n";
     } else { print "No SNMP access!"; }
 
+unset_lock_discovery($db_link,$id);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>
