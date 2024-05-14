@@ -335,6 +335,8 @@ define("WEB_nagios_template","Шаблон Нагиос");
 define("WEB_list_l3_interfaces","Список L3 интерфейсов");
 define("WEB_l3_interface_add","Добавить интерфейс");
 define("WEB_list_gateway_subnets","Список подсетей, работающих через шлюз");
+define("WEB_list_l3_networks","Список терминируемых сетей");
+
 /* editdevice */
 define("WEB_location_name","Расположение");
 define("WEB_device_access_control","Управление доступом");

@@ -41,7 +41,9 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 <div id="contsubmenu">
 <br>
 <?php print "<form name=def action='edit_gw_subnets.php?id=".$id."' method=post>"; ?>
-<?php print WEB_list_gateway_subnets."<b>"; print_url($device['device_name'],"/admin/devices/editdevice.php?id=$id"); ?>
+<?php 
+if ($device['device_type'] == 0) { print WEB_list_l3_networks; } else { print WEB_list_gateway_subnets."<b>"; }
+print_url($device['device_name'],"/admin/devices/editdevice.php?id=$id"); ?>
 </b> <br>
 <table class="data">
 <tr align="center">

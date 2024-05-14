@@ -171,7 +171,8 @@ if ($device['device_type']==2) {
 if ($device['device_type']==0) {
     print "<tr><td>".WEB_device_dhcp_server."</td><td></td><td></td><td></td></tr>";
     print "<tr>";
-    print "<td class='data'>"; print_qa_select('f_dhcp', $device['dhcp']); print "</td><td></td><td></td><td></td>\n";
+    print "<td class='data'>"; print_qa_select('f_dhcp', $device['dhcp']); 
+    print "<td class='data' colspan=4>"; print_url(WEB_list_l3_networks,"/admin/devices/edit_gw_subnets.php?id=$id");
     print "</tr>\n";
     }
 

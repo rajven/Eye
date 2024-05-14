@@ -110,6 +110,7 @@ my @authlist_ref = get_records_sql($dbh,"SELECT * FROM User_auth WHERE deleted=0
 
 my $users = new Net::Patricia;
 my %ip_list;
+my %oper_arp_list;
 
 foreach my $row (@authlist_ref) {
 $users->add_string($row->{ip},$row->{id});
@@ -142,9 +143,15 @@ foreach my $arp_table (@arp_array) {
         $arp_record->{ip_aton} = $ip_aton;
         $arp_record->{hotspot} = is_hotspot($dbh,$ip);
         my $cur_auth_id=resurrection_auth($dbh,$arp_record);
-        next if (!$cur_auth_id);
-        $mac_history{$simple_mac}{auth_id}=$cur_auth_id;
-        if ($auth_id ne $cur_auth_id) { $mac_history{$simple_mac}{changed}=1; }
+        if (!$cur_auth_id) { 
+	    db_log_warning($dbh,"Unknown record ".Dumper($arp_record));
+	    } else {
+            $mac_history{$simple_mac}{auth_id}=$cur_auth_id;
+	    $arp_record->{auth_id}=$cur_auth_id;
+	    $arp_record->{updated}=0;
+	    $oper_arp_list{$cur_auth_id}=$arp_record;
+	    if ($auth_id ne $cur_auth_id) { $mac_history{$simple_mac}{changed}=1; }
+	    }
     }
 }
 
@@ -344,7 +351,8 @@ foreach my $mac (keys %mac_address_table) {
                         if (exists $auth_table{oper_table}{$simple_mac}) {
                             my $auth_rec;
                             $auth_rec->{last_found}=$now_str;
-                                update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
+			    $oper_arp_list{$auth_id}{updated}=1;
+                            update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
                             }
                         next;
                         }
@@ -355,6 +363,7 @@ foreach my $mac (keys %mac_address_table) {
                     db_log_info($dbh,"Found auth_id: $auth_id ip: $mac_history{$simple_mac}{ip} [$mac_splitted] at device $dev_name [$port]. Update connection",$auth_id);
                     my $auth_rec;
                     $auth_rec->{last_found}=$now_str;
+		    $oper_arp_list{$auth_id}{updated}=1;
                     update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
                     my $conn_rec;
                     $conn_rec->{port_id}=$port_id;
@@ -367,6 +376,7 @@ foreach my $mac (keys %mac_address_table) {
                     db_log_info($dbh,"Found auth_id: $auth_id ip: $mac_history{$simple_mac}{ip} [$mac_splitted] at device $dev_name [$port]. Create connection.",$auth_id);
                     my $auth_rec;
                     $auth_rec->{last_found}=$now_str;
+		    $oper_arp_list{$auth_id}{updated}=1;
                     update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
                     my $conn_rec;
                     $conn_rec->{port_id}=$port_id;
@@ -398,15 +408,24 @@ foreach my $mac (keys %mac_address_table) {
     }
 }
 
+foreach my $auth_id (keys %oper_arp_list) {
+    next if ($oper_arp_list{$auth_id}->{updated});
+    my $auth_rec;
+    $auth_rec->{last_found}=$now_str;
+    update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
+    db_log_debug($dbh,"Update by arp at unknown connect place for: ".Dumper($oper_arp_list{$auth_id})) if ($debug);
+}
+
 foreach my $mac (keys %mac_history) {
 next if (!$mac);
 next if (!$mac_history{$mac}->{changed});
 my $h_dev_id='';
-$h_dev_id=$mac_history{$mac}->{dev_id} if ($mac_history{$mac}->{dev_id});
 my $h_port_id='';
-$h_port_id=$mac_history{$mac}->{port_id} if ($mac_history{$mac}->{port_id});
 my $h_ip='';
+$h_dev_id=$mac_history{$mac}->{dev_id} if ($mac_history{$mac}->{dev_id});
+$h_port_id=$mac_history{$mac}->{port_id} if ($mac_history{$mac}->{port_id});
 $h_ip=$mac_history{$mac}->{ip} if ($mac_history{$mac}->{ip});
+
 my $h_auth_id=$mac_history{$mac}->{auth_id} if ($mac_history{$mac}->{auth_id});
 if (!$h_auth_id) { $h_auth_id=0; }
 next if (!$h_dev_id);

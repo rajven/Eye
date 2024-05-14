@@ -336,6 +336,7 @@ define("WEB_nagios_template","Nagios Template");
 define("WEB_list_l3_interfaces","List of L3 interfaces");
 define("WEB_l3_interface_add","Add interface");
 define("WEB_list_gateway_subnets","List of subnets that work through the gateway");
+define("WEB_list_l3_networks","List of networks");
 
 /* editdevice */
 define("WEB_location_name","Location");
