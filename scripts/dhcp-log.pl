@@ -118,7 +118,7 @@ if (!$pid) {
 
             if (time()-$last_refresh_config>=60) { init_option($hdb); }
 
-            my $client_hostname='UNDEFINED';
+            my $client_hostname='';
             if ($hostname and $hostname ne "undef") { $client_hostname=$hostname; } else {
                 if ($sup_hostname) { $client_hostname=$sup_hostname; } else {
                     if ($old_hostname) { $client_hostname=$old_hostname; }
