@@ -1604,6 +1604,11 @@ function clean_dns_cache($db)
     run_sql($db, "DELETE FROM dns_cache WHERE `timestamp`<='" . $clean_date . "'");
 }
 
+function clean_unreferensed_rules($db)
+{
+    run_sql($db, "DELETE FROM `auth_rules` WHERE user_id NOT IN (SELECT id FROM User_list)");
+}
+
 function FormatDateStr($format = 'Y-m-d H:i:s', $date_str)
 {
     $date1 = GetDateTimeFromString($date_str);
@@ -2005,6 +2010,43 @@ function get_auth_mac($db, $current_auth)
     list($f_login, $f_mac) = mysqli_fetch_array($t_login);
     $result = $f_login . "[" . $f_mac . "]";
     return $result;
+}
+
+function add_auth_rule($db,$rule,$type,$user_id) 
+{
+$new['user_id']=$user_id;
+$new['type']=$type;
+$new['rule']=$rule;
+$rule_id=0;
+$auth_rules = get_record_sql($db,"SELECT * FROM auth_rules WHERE rule='".$rule."' AND type=".$type);
+if (empty($auth_rules)) {
+    $rule_id = insert_record($db,"auth_rules",$new);
+    LOG_INFO($db,"Create auto rule for user_id: ".$user_id." rule: ".$rule." type: ".$type);
+    } else {
+    if ($auth_rules['user_id'] === $user_id) {
+	$rule_id = update_record($db, "auth_rules", "id=".$auth_rules['id'], $new);
+        LOG_INFO($db,"Replaced auto rule for user_id: ".$user_id." rule: ".$rule." type: ".$type);
+	} else {
+        LOG_WARNING($db,"Create auto rule for user_id: ".$user_id." rule: ".$rule." type: ".$type." failed! Already exists at user_id: ".$auth_rules['user_id']);
+	$rule_id=0;
+	}
+    }
+return $rule_id;
+}
+
+function update_auth_rule($db,$rule,$type,$rule_id)
+{
+$new['type']=$type;
+$new['rule']=$rule;
+$rule_id=0;
+$auth_rules = get_record_sql($db,"SELECT * FROM auth_rules WHERE rule='".$rule."' AND type=".$type." AND id<>".$rule_id);
+if (empty($auth_rules)) {
+    $rule_id = update_record($db, "auth_rules", "id=".$rule_id, $new);
+    } else {
+    LOG_WARNING($db,"Create auto rule id: ".$rule_id." rule: ".$rule." type: ".$type." failed! Already exists at user_id: ".$auth_rules['user_id']);
+    $rule_id=0;
+    }
+return $rule_id;
 }
 
 function isRO($db, $table)
@@ -4948,6 +4990,7 @@ if (empty($ou)) {
 $config["init"] = 1;
 
 clean_dns_cache($db_link);
+clean_unreferensed_rules($db_link);
 
 snmp_set_valueretrieval(SNMP_VALUE_LIBRARY);
 snmp_set_enum_print(1);

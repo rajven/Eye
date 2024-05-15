@@ -12,6 +12,10 @@ $msg_error = "";
 $sSQL = "SELECT * FROM User_list WHERE id=$id";
 $user_info = get_record_sql($db_link, $sSQL);
 
+if (empty($user_info)) {
+    header("Location: /admin/");
+    }
+
 if (isset($_POST["edituser"])) {
     unset($new);
     $new["ou_id"] = $_POST["f_ou"] * 1;
@@ -46,16 +50,8 @@ if (isset($_POST["addMacRule"])) {
     unset($new);
     $first_auth = get_record_sql($db_link,"SELECT mac FROM User_auth WHERE user_id=".$id." AND deleted=0 AND LENGTH(mac)>0 ORDER BY id");
     if (!empty($first_auth) and !empty($first_auth['mac'])) {
-        $auth_rules_user = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE user_id=".$id." AND type=2");
-        $auth_rules_mac = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE rule='".$first_auth['mac']."' AND type=2");
-        if (empty($auth_rules_user) and empty($auth_rules_mac)) {
-            $new['user_id']=$id;
-            $new['type']=2;
-            $new['rule']=$first_auth['mac'];
-	        insert_record($db_link,"auth_rules",$new);
-	        LOG_INFO($db_link,"Create auto rule at id: ".$id." login: ".$user_info["login"]." for mac ".$first_auth['mac']);
-            }
-	    }
+	add_auth_rule($db_link,$first_auth['mac'],2,$id);
+        }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -71,16 +67,8 @@ if (isset($_POST["addIPRule"])) {
     unset($new);
     $first_auth = get_record_sql($db_link,"SELECT ip FROM User_auth WHERE user_id=".$id." AND deleted=0 AND LENGTH(ip)>0 ORDER BY id");
     if (!empty($first_auth) and !empty($first_auth['ip'])) {
-        $auth_rules_user = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE user_id=".$id." AND type=1");
-        $auth_rules_ip = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE rule='".$first_auth['ip']."' AND type=1");
-        if (empty($auth_rules_user) and empty($auth_rules_ip)) {
-            $new['user_id']=$id;
-            $new['type']=1;
-            $new['rule']=$first_auth['ip'];
-	        insert_record($db_link,"auth_rules",$new);
-	        LOG_INFO($db_link,"Create auto rule id: ".$id." login: ".$user_info["login"]." for ip ".$first_auth['ip']);
-            }
-	    }
+	add_auth_rule($db_link,$first_auth['ip'],1,$id);
+        }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }

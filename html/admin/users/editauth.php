@@ -6,6 +6,10 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 $msg_error = "";
 
 $old_auth_info = get_record_sql($db_link, "SELECT * FROM User_auth WHERE id=" . $id);
+if (empty($old_auth_info)) {
+    header("Location: /admin/");
+    }
+
 $parent_id = $old_auth_info['user_id'];
 
 $user_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=" . $parent_id);

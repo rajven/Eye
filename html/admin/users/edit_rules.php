@@ -30,10 +30,10 @@ if (isset($_POST['s_save'])) {
             if (intval($_POST['n_id'][$j]) != $save_id) { continue; }
             $new['type'] = $_POST['s_type'][$j];
             $new['rule'] = trim($_POST['s_rule'][$j]);
-            if ($new['type'] ==2) { 
-                $new['rule'] = mac_dotted($new['rule']); 
+            if ($new['type'] ==2) {
+                $new['rule'] = mac_dotted($new['rule']);
                 }
-            update_record($db_link, "auth_rules", "id='{$save_id}'", $new);
+	    update_auth_rule($db_link,$new['rule'],$new['type'],$save_id);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -43,12 +43,8 @@ if (isset($_POST['s_save'])) {
 if (isset($_POST["s_create"])) {
     $new_rule = $_POST["s_new_rule"];
     if (isset($new_rule)) {
-        $new['type'] = $_POST["s_new_type"];
-        $new['rule'] = $new_rule;
-        $new['user_id'] = $id;
-        LOG_INFO($db_link, "Create new rule $new_rule");
-        insert_record($db_link, "auth_rules", $new);
-    }
+	add_auth_rule($db_link,$new_rule,$_POST["s_new_type"],$id);
+	}
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }

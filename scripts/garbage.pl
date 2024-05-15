@@ -194,10 +194,11 @@ if ($user_device) {
     }
 }
 
-##### clean empty user account and corresponded devices if there are no rules for automatic linking ################
+##### clean empty user account and corresponded devices ################
 if ($config_ref{clean_empty_user}) {
-    db_log_info($dbh,'Clearing empty user account and corresponded devices if there are no rules for automatic linking');
-    my $u_sql = "SELECT * FROM User_list as U WHERE (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id)=0";
+    db_log_info($dbh,'Clearing empty user account and corresponded devices');
+#    my $u_sql = "SELECT * FROM User_list as U WHERE (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id)=0";
+    my $u_sql = "SELECT * FROM User_list as U WHERE (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0";
     my @u_ref = get_records_sql($dbh,$u_sql);
     foreach my $row (@u_ref) {
         do_sql($dbh,"DELETE FROM User_list WHERE id='".$row->{id}."'");
@@ -214,6 +215,9 @@ if ($config_ref{clean_empty_user}) {
             }
         }
     }
+
+##### Remove unreferensed auth rules
+do_sql($dbh, "DELETE FROM `auth_rules` WHERE user_id NOT IN (SELECT id FROM User_list)");
 
 ##### unknown mac clean ############
 db_log_info($dbh,'Clearing unknown mac if it found in current User_auth table');
