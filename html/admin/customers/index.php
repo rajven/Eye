@@ -15,6 +15,7 @@ if (isset($_POST["create"])) {
         } else {
             $new['Login'] = $login;
 	    $new['api_key'] = randomPassword(20);
+            $new['rights'] = 3;
             LOG_INFO($db_link, "Create new login: $login");
             $id = insert_record($db_link, "Customers", $new);
 	    if (!empty($id)) { header("Location: editcustom.php?id=$id"); exit; }
@@ -44,19 +45,22 @@ print_control_submenu($page_url);
 <div id="cont">
 <br>
 <form name="def" action="index.php" method="post">
-<b><?php echo WEB_custom_index_title; ?></b>
+<b><?php echo WEB_submenu_customers; ?></b>
 <table class="data">
 <tr align="center">
 <td width="30"><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b>Login</b></td>
+<td><b><?php echo WEB_customer_mode;?></b></td>
 </tr>
 <?php
 $users = get_records($db_link,'Customers','True ORDER BY Login');
 foreach ($users as $row) {
     $cl = "data";
+    $acl = get_record_sql($db_link,'SELECT * FROM acl WHERE id='.$row['rights']);
     print "<tr align=center>\n";
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
     print "<td class=\"$cl\" align=left width=200><a href=editcustom.php?id=".$row['id'].">" . $row['Login'] . "</a></td>\n";
+    print "<td class=\"$cl\" >". $acl['name']. "</a></td>\n";
 }
 ?>
 </table>

@@ -5,6 +5,7 @@
 #
 
 use utf8;
+use open ":encoding(utf8)";
 use English;
 use base;
 use FindBin '$Bin';
@@ -25,6 +26,6 @@ use File::Path;
 exit if (!$ARGV[0]);
 
 my $auth_id = $ARGV[0];
-update_dns_record($dbh,$auth->{auth_id});
+update_dns_record($dbh,$auth_id);
 
 exit;

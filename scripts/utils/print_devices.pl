@@ -2,6 +2,8 @@
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
+use utf8;
+use open ":encoding(utf8)";
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
 use strict;

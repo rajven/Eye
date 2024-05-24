@@ -108,7 +108,11 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             }
         if (is_auth_bind_changed($db_link, $id, $ip, $mac)) {
             $new_id = copy_auth($db_link, $id, $new);
-            header("Location: /admin/users/editauth.php?id=" . $new_id, TRUE, 302);
+            if (!empty($new_id)) {
+                header("Location: /admin/users/editauth.php?id=" . $new_id, TRUE, 302);
+                } else {
+                header("Location: " . $_SERVER["REQUEST_URI"]);
+                }
             exit;
             } else {
             update_record($db_link, "User_auth", "id='$id'", $new);

@@ -520,6 +520,16 @@ function print_subnet_select($db, $subnet_name, $subnet_value)
     print "</select>\n";
 }
 
+function print_acl_select($db, $acl_name, $acl_value)
+{
+    print "<select name=\"$acl_name\" >\n";
+    $t_acl = mysqli_query($db, "SELECT id,name FROM acl ORDER BY id");
+    while (list($f_acl_id, $f_acl_name) = mysqli_fetch_array($t_acl)) {
+        print_select_item($f_acl_name, $f_acl_id, $acl_value);
+    }
+    print "</select>\n";
+}
+
 function print_device_ip_select($db, $ip_name, $ip, $user_id)
 {
     print "<select name=\"$ip_name\">\n";
@@ -651,7 +661,10 @@ function print_control_submenu($current_page)
     print_submenu_url(WEB_submenu_network, '/admin/customers/index-subnets.php', $current_page, 0);
     print_submenu_url(WEB_submenu_network_stats, '/admin/customers/control-subnets-usage.php', $current_page, 0);
     print_submenu_url(WEB_submenu_options, '/admin/customers/control-options.php', $current_page, 0);
-    print_submenu_url(WEB_submenu_customers, '/admin/customers/index.php', $current_page, 1);
+    print_submenu_url(WEB_submenu_customers, '/admin/customers/index.php', $current_page, 0);
+    print_submenu_url(WEB_submenu_buildings, '/admin/customers/building.php', $current_page, 0);
+    print_submenu_url(WEB_submenu_device_models, '/admin/customers/devmodels.php', $current_page, 0);
+    print_submenu_url(WEB_submenu_vendors, '/admin/customers/devvendors.php', $current_page, 1);
     print "</div>\n";
 }
 
@@ -685,10 +698,7 @@ function print_device_submenu($current_page)
     print "<div id='submenu'>\n";
     print_submenu_url(WEB_submenu_net_devices, '/admin/devices/index.php', $current_page, 0);
     print_submenu_url(WEB_submenu_passive_net_devices, '/admin/devices/index-passive.php', $current_page, 0);
-    print_submenu_url(WEB_submenu_buildings, '/admin/devices/building.php', $current_page, 0);
     print_submenu_url(WEB_submenu_hierarchy, '/admin/devices/index-tree.php', $current_page, 0);
-    print_submenu_url(WEB_submenu_device_models, '/admin/devices/devmodels.php', $current_page, 0);
-    print_submenu_url(WEB_submenu_vendors, '/admin/devices/devvendors.php', $current_page, 0);
     print_submenu_url(WEB_submenu_ports_vlan, '/admin/devices/portsbyvlan.php', $current_page, 1);
     print "</div>\n";
 }
@@ -1539,6 +1549,33 @@ function print_option_select($db, $option_name)
 
 function run_sql($db, $query)
 {
+    if (preg_match('/^\s*(UPDATE|DELETE)/i', $query)) {
+        unset($matches);
+        preg_match('/FROM\s+(.*)\s+/i', $query, $matches);
+        if (!empty($matches[1])) {
+            if (!allow_update($matches[1],'del')) {
+                LOG_DEBUG($db, "Access denied: $query ");
+                return;
+                }
+            }
+        unset($matches);
+        preg_match('/INSERT\s+INTO\s+(.*)\s+/i', $query, $matches);
+        if (!empty($matches[1])) {
+            if (!allow_update($matches[1],'add')) {
+                LOG_DEBUG($db, "Access denied: $query ");
+                return;
+                }
+            }
+        unset($matches);
+        preg_match('/UPDATE\s+(.*)\s+/i', $query, $matches);
+        if (!empty($matches[1])) {
+            if (!allow_update($matches[1],'update')) {
+                LOG_DEBUG($db, "Access denied: $query ");
+                return;
+                }
+            }
+        unset($matches);
+        }
     $sql_result = mysqli_query($db, $query);
     if (!$sql_result) {
         LOG_ERROR($db, "At simple SQL: $query :" . mysqli_error($db));
@@ -2049,27 +2086,54 @@ if (empty($auth_rules)) {
 return $rule_id;
 }
 
-function isRO($db, $table)
+//action: add,update,del
+function allow_update($table, $action = 'update', $field = '')
 {
-    $result = 1;
+//always allow modification for tables
+    if (preg_match('/(variables|dns_cache|syslog|sessions|dns_queue|User_auth_alias)/i', $table)) { return 1; }
+
     if (isset($_SESSION['login'])) {
         $work_user = $_SESSION['login'];
     }
     if (isset($_SESSION['user_id'])) {
         $work_id = $_SESSION['user_id'];
     }
-    if (!isset($work_user) or !isset($work_id)) {
-        return $result;
+    if (isset($_SESSION['acl'])) {
+        $user_level = $_SESSION['acl'];
     }
-    if (preg_match('/^(variables|dns_cache|syslog)$/', $table)) {
-        return $result;
-    }
-    $t_login = mysqli_query($db, "SELECT readonly FROM Customers WHERE Login='" . $work_user . "' and id='" . $work_id . "'");
-    list($f_ro) = mysqli_fetch_array($t_login);
-    if (!isset($f_ro)) {
-        return $result;
-    }
-    return $f_ro;
+    if (!isset($work_user) or !isset($work_id) or empty($user_level)) { return 0; }
+
+//always allow Administrator
+    if ($user_level == 1) { return 1; }
+
+//always forbid ViewOnly
+    if ($user_level == 3) { return 0; }
+
+//allow tables for Operator
+    if ($action == 'update') {
+        $operator_acl = [
+            'User_auth'=> [
+                'comments'=>'1',
+                'dns_name'=>'1',
+                'firmware'=>'1',
+                'link_check'=>'1',
+                'nagios'=>'1',
+                'nagios_handler'=>'1',
+                'Wikiname'=>'1'
+            ],
+            'User_list'=> [
+                'fio'=>'1',
+                'login'=>'1',
+            ],
+        ];
+        if (!isset($operator_acl[$table])) { return 0; }
+        if (isset($operator_acl[$table]) and empty($field)) { return 1; }
+        if (!isset($operator_acl[$table][$field])) { return 0; }
+        if (empty($operator_acl[$table][$field]) or $operator_acl[$table][$field]=='0') { return 0; }
+        return 1;
+        }
+
+    return 0;
 }
 
 function LOG_INFO($db, $msg, $auth_id = 0)
@@ -4197,10 +4261,6 @@ function get_dns_name($db,$id)
 
 function update_record($db, $table, $filter, $newvalue)
 {
-    if (isRO($db, $table)) {
-        LOG_WARNING($db, "User does not have write permission");
-        return;
-    }
     if (!isset($table)) {
         LOG_WARNING($db, "Change record for unknown table! Skip command.");
         return;
@@ -4216,6 +4276,11 @@ function update_record($db, $table, $filter, $newvalue)
     if (!isset($newvalue)) {
         LOG_WARNING($db, "Change record ($table [ $filter ]) with empty data! Skip command.");
         return;
+    }
+
+    if (!allow_update($table,'update')) { 
+        LOG_WARNING($db,"Access denied: $table [ $filter ]");
+        return 1;
     }
 
     $old_sql = "SELECT * FROM $table WHERE $filter";
@@ -4258,6 +4323,9 @@ function update_record($db, $table, $filter, $newvalue)
     ];
 
     foreach ($newvalue as $key => $value) {
+
+        if (!allow_update($table,'update',$key)) { continue; }
+
         if (!isset($value)) {
             $value = '';
         }
@@ -4332,7 +4400,7 @@ function update_record($db, $table, $filter, $newvalue)
     }
 
     if (empty($run_sql)) {
-        return;
+        return 1;
     }
 
     if ($network_changed) {
@@ -4366,7 +4434,7 @@ function update_record($db, $table, $filter, $newvalue)
 
 function delete_record($db, $table, $filter)
 {
-    if (isRO($db, $table)) {
+    if (!allow_update($table,'del')) {
         LOG_WARNING($db, "User does not have write permission");
         return;
     }
@@ -4458,7 +4526,7 @@ function delete_record($db, $table, $filter)
 
 function insert_record($db, $table, $newvalue)
 {
-    if (isRO($db, $table)) {
+    if (!allow_update($table,'add')) {
         LOG_WARNING($db, "User does not have write permission");
         return;
     }
@@ -4990,7 +5058,7 @@ if (empty($ou)) {
 $config["init"] = 1;
 
 clean_dns_cache($db_link);
-clean_unreferensed_rules($db_link);
+//clean_unreferensed_rules($db_link);
 
 snmp_set_valueretrieval(SNMP_VALUE_LIBRARY);
 snmp_set_enum_print(1);

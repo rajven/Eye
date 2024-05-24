@@ -305,14 +305,14 @@ define("WEB_control_port_off","Port Control");
 define("WEB_control_edit_mode","Configuration Mode");
 
 /* editcustom */
-define("WEB_custom_titles","Administrator");
-define("WEB_custom_login","Login");
-define("WEB_custom_password","Password");
-define("WEB_custom_mode","View only");
-define("WEB_custom_api_key","API Key");
+define("WEB_customer_titles","Administrator");
+define("WEB_customer_login","Login");
+define("WEB_customer_password","Password");
+define("WEB_customer_mode","Access rights");
+define("WEB_customer_api_key","API Key");
 
 /* custom index */
-define("WEB_custom_index_title","Administrators");
+define("WEB_customer_index_title","Administrators");
 
 /* ipcam */
 define("WEB_control_group","For group");

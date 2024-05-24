@@ -5,10 +5,11 @@ package eyelib::mysql;
 #
 
 use utf8;
+use open ":encoding(utf8)";
 use strict;
 use English;
 use FindBin '$Bin';
-use lib "$Bin";
+use lib "/opt/Eye/scripts";
 use base 'Exporter';
 use vars qw(@EXPORT @ISA);
 use eyelib::config;
@@ -994,7 +995,7 @@ if ($fqdn ne '' and !$dynamic_ok) {
     if (!$another_hostname_exists) {
             if ($fqdn_static and $fqdn_static ne '') {
                     if ($fqdn_static!~/$fqdn/) {
-                        db_log_info($hdb,"Hostname from dhcp request $fqdn differs from static dns hostanme $fqdn_static. Ignore dynamic binding!");
+                        db_log_info($hdb,"Hostname from dhcp request $fqdn differs from static dns hostname $fqdn_static. Ignore dynamic binding!");
 #                        delete_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
 #                        create_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
                         }

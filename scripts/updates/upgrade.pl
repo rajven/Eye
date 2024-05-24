@@ -31,12 +31,13 @@ my @old_releases = (
 '2.4.14',
 '2.5.1',
 '2.5.2',
+'2.5.3',
 );
 
 my $r_index = 0;
 my %old_releases_h = map {$_ => $r_index++ } @old_releases;
 
-my $eye_release = '2.5.2';
+my $eye_release = '2.5.3';
 
 if (!$config_ref{version}) { $config_ref{version}='2.4.12'; }
 

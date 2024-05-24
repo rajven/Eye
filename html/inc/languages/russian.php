@@ -305,14 +305,14 @@ define("WEB_control_port_off","Управление портами");
 define("WEB_control_edit_mode","Режим конфигурирования");
 
 /* editcustom */
-define("WEB_custom_titles","Администратор");
-define("WEB_custom_login","Логин");
-define("WEB_custom_password","Пароль");
-define("WEB_custom_mode","Только просмотр");
-define("WEB_custom_api_key","Ключ API");
+define("WEB_customer_titles","Администратор");
+define("WEB_customer_login","Логин");
+define("WEB_customer_password","Пароль");
+define("WEB_customer_mode","Права доступа");
+define("WEB_customer_api_key","Ключ API");
 
 /* custom index */
-define("WEB_custom_index_title","Администраторы");
+define("WEB_customer_index_title","Администраторы");
 
 /* ipcam */
 define("WEB_control_group","Для группы");

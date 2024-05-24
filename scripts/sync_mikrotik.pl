@@ -5,10 +5,11 @@
 #
 
 use utf8;
+use open ":encoding(utf8)";
 use English;
 use base;
 use FindBin '$Bin';
-use lib "$Bin/";
+use lib "/opt/Eye/scripts";
 use strict;
 use Time::Local;
 use FileHandle;

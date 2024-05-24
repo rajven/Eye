@@ -203,14 +203,14 @@ CREATE TABLE `Customers` (
   `Login` varchar(20) DEFAULT 'NULL',
   `password` varchar(255) DEFAULT 'NULL',
   `api_key` varchar(255) DEFAULT NULL,
-  `readonly` tinyint(1) NOT NULL DEFAULT 0
+  `rights` tinyint(1) NOT NULL DEFAULT 3
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Дамп данных таблицы `Customers`
 --
 
-INSERT INTO `Customers` (`id`, `Login`, `password`, `api_key`, `readonly`) VALUES(1, 'admin', '$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG', 'c3284d0f94606de1fd2af172aba15bf31', 0);
+INSERT INTO `Customers` (`id`, `Login`, `password`, `api_key`, `rights`) VALUES(1, 'admin', '$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG', 'c3284d0f94606de1fd2af172aba15bf31', 1);
 
 -- --------------------------------------------------------
 
@@ -1010,9 +1010,36 @@ INSERT INTO `vendors` (`id`, `name`) VALUES(66, 'Trassir');
 INSERT INTO `vendors` (`id`, `name`) VALUES(67, 'Testo');
 INSERT INTO `vendors` (`id`, `name`) VALUES(68, 'Hw-group');
 
+-- --------------------------------------------------------
+
+--
+-- Структура таблицы `acl`
+--
+
+CREATE TABLE `acl` (
+  `id` int(11) NOT NULL,
+  `name` varchar(30) NOT NULL,
+  `description.english` varchar(250) NOT NULL,
+  `description.russian` varchar(250) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Дамп данных таблицы `acl`
+--
+
+INSERT INTO `acl` VALUES(1, 'Full access', 'Full access', 'Полный доступ');
+INSERT INTO `acl` VALUES(2, 'Operator', 'Editing parameters that are not related to access rights', 'Редактирование параметров, не связанных с правами доступа');
+INSERT INTO `acl` VALUES(3, 'View only', 'View only', 'Только просмотр');
+
 --
 -- Индексы сохранённых таблиц
 --
+
+--
+-- Индексы таблицы `acl`
+--
+ALTER TABLE `acl`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Индексы таблицы `version`
@@ -1455,6 +1482,12 @@ ALTER TABLE `User_stats_full`
 --
 ALTER TABLE `variables`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT для таблицы `acl`
+--
+ALTER TABLE `acl`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT для таблицы `vendors`

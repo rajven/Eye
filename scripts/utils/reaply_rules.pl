@@ -7,6 +7,7 @@
 #
 
 use utf8;
+use open ":encoding(utf8)";
 use English;
 use base;
 use FindBin '$Bin';

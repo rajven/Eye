@@ -75,6 +75,7 @@ function login($db)
                 $_SESSION['IP'] = $auth_ip;
                 $_SESSION['user_id'] = $auth_record['id'];
                 $_SESSION['login'] = $auth_record['Login'];
+                $_SESSION['acl'] = $auth_record['rights'];
             } else {
                 unset($_COOKIE["Auth"]);
                 setcookie("Auth", null, -1);
@@ -148,6 +149,7 @@ function IsAuthenticated($db)
                 LOG_INFO($db, "login user [$login] from " . $_SESSION['IP'] . ": success.");
             }
             $_SESSION['user_id'] = $auth_record['id'];
+            $_SESSION['acl'] = $auth_record['rights'];
             $_SESSION['login'] = $login;
             $session['session_id'] = $_SESSION['session_id'];
             $session['session_key'] = bin2hex(random_bytes(20));
@@ -223,6 +225,7 @@ function IsSilentAuthenticated($db)
             LOG_INFO($db, "Api login user [$login] from " . $_SESSION['IP'] . ": success.");
         }
         $_SESSION['user_id'] = $auth_record['id'];
+        $_SESSION['acl'] = $auth_record['rights'];
         $_SESSION['login'] = $login;
         return true;
     }

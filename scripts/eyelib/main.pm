@@ -5,10 +5,11 @@ package eyelib::main;
 #
 
 use utf8;
+use open ":encoding(utf8)";
 use strict;
 use English;
 use FindBin '$Bin';
-use lib "$Bin";
+use lib "/opt/Eye/scripts";
 use base 'Exporter';
 use vars qw(@EXPORT @ISA);
 use eyelib::config;

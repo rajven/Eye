@@ -5,10 +5,11 @@ package eyelib::rest_api;
 #
 
 use utf8;
+use open ":encoding(utf8)";
 use strict;
 use English;
 use FindBin qw($Bin);
-use lib "$Bin";
+use lib "/opt/Eye/scripts";
 use base 'Exporter';
 use vars qw(@EXPORT @ISA);
 use HTTP::Request::Common;
