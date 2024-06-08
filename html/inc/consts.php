@@ -63,11 +63,34 @@ define("HUAWEI_SFP_BIASCURRENT",".1.3.6.1.4.1.2011.5.25.31.1.1.3.1.31");
 define("HUAWEI_SFP_RX",".1.3.6.1.4.1.2011.5.25.31.1.1.3.1.8");
 define("HUAWEI_SFP_TX",".1.3.6.1.4.1.2011.5.25.31.1.1.3.1.9");
 
+//SNR NAGTECH
+define("SNR_SFP_VendorName",".1.3.6.1.4.1.57206.7.100.30.3.1.4");
+define("SNR_SFP_ModelName",".1.3.6.1.4.1.57206.7.100.30.3.1.5");
+define("SNR_SFP_TypeName",".1.3.6.1.4.1.57206.7.100.30.3.1.6");
+define("SNR_SFP_BitRate",".1.3.6.1.4.1.57206.7.100.30.3.1.7");
+define("SNR_SFP_WaveLength",".1.3.6.1.4.1.57206.7.100.30.3.1.8");
+define("SNR_SFP_VOLT",".1.3.6.1.4.1.57206.7.100.30.1.1.7");
+define("SNR_SFP_BIAS",".1.3.6.1.4.1.57206.7.100.30.1.1.12");
+define("SNR_SFP_RX",".1.3.6.1.4.1.57206.7.100.30.1.1.17");
+define("SNR_SFP_TX",".1.3.6.1.4.1.57206.7.100.30.1.1.22");
+
 //POE Default mib
 //POE class
 define("PETH_PSE_PORT_POE_CLASS",".1.3.6.1.2.1.105.1.1.1.10.1");
 //POE enable
 define("PETH_PSE_PORT_ADMIN_ENABLE",".1.3.6.1.2.1.105.1.1.1.3.1");
+
+//SNR NAGTECH
+// Class
+define("SNR_POE_CLASS",".1.3.6.1.4.1.57206.7.100.26.10.1.9");
+// Status
+define("SNR_POE_OID",".1.3.6.1.4.1.57206.7.100.26.10.1.2");
+// VOLTAGE
+define("SNR_POE_VOLT",".1.3.6.1.4.1.57206.7.100.26.10.1.7");
+// CURRENT
+define("SNR_POE_CURRENT",".1.3.6.1.4.1.57206.7.100.26.10.1.6");
+// POWER USAGE
+define("SNR_POE_USAGE",".1.3.6.1.4.1.57206.7.100.26.10.1.5");
 
 //SNR
 // Class

@@ -178,7 +178,7 @@ CREATE TABLE `version` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
-REPLACE INTO `version` (`version`) VALUES ('2.5.1');
+REPLACE INTO `version` (`version`) VALUES ('2.5.3');
 -- --------------------------------------------------------
 
 --
@@ -201,6 +201,7 @@ CREATE TABLE `connections` (
 CREATE TABLE `Customers` (
   `id` int(11) NOT NULL,
   `Login` varchar(20) DEFAULT 'NULL',
+  `comment` VARCHAR(100) DEFAULT 'NULL',
   `password` varchar(255) DEFAULT 'NULL',
   `api_key` varchar(255) DEFAULT NULL,
   `rights` tinyint(1) NOT NULL DEFAULT 3
@@ -210,7 +211,7 @@ CREATE TABLE `Customers` (
 -- Дамп данных таблицы `Customers`
 --
 
-INSERT INTO `Customers` (`id`, `Login`, `password`, `api_key`, `rights`) VALUES(1, 'admin', '$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG', 'c3284d0f94606de1fd2af172aba15bf31', 1);
+INSERT INTO `Customers` (`id`, `Login`, `comment`, `password`, `api_key`, `rights`) VALUES(1, 'admin', 'Administrator', '$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG', 'c3284d0f94606de1fd2af172aba15bf31', 1);
 
 -- --------------------------------------------------------
 

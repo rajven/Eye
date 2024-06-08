@@ -1417,17 +1417,20 @@ function get_device_by_auth($db, $id)
 
 function print_auth_port($db, $port_id, $new_window = FALSE)
 {
-    $d_sql = "SELECT A.ip,A.ip_int,A.mac,A.id,A.dns_name FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
+    $d_sql = "SELECT A.ip,A.ip_int,A.mac,A.id,A.dns_name,A.comments,A.user_id FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
     $t_device = mysqli_query($db, $d_sql);
-    while (list($f_ip, $f_int, $f_mac, $f_auth_id, $f_dns) = mysqli_fetch_array($t_device)) {
+    while (list($f_ip, $f_int, $f_mac, $f_auth_id, $f_dns, $f_comment, $f_user_id) = mysqli_fetch_array($t_device)) {
         $name = $f_ip;
         if (isset($f_dns) and $f_dns != '') {
             $name = $f_dns;
         }
+        $title=get_login($db,$f_user_id)." =>".$f_ip."[".$f_mac."]";
+        if (!empty($f_dns)) { $title.=" | ".$f_dns; }
+        if (!empty($f_comment)) { $title.=" | ".$f_comment; }
         if ($new_window) {
-            print "<a href=\"#\" onclick=\"".open_window_url("/admin/users/editauth.php?id=".$f_auth_id)." return false;\">" . $name . " [" . $f_ip . "]</a><br>";
+            print "<a href=\"\" title=\"" . $title . "\" onclick=\"".open_window_url("/admin/users/editauth.php?id=".$f_auth_id)." return false;\">" . $name . " [" . $f_ip . "]</a><br>";
         } else {
-            print "<a href=/admin/users/editauth.php?id=".$f_auth_id.">" . $name . " [" . $f_ip . "]</a><br>";
+            print "<a href=/admin/users/editauth.php?id=".$f_auth_id." title=\"" . $title . "\" >" . $name . " [" . $f_ip . "]</a><br>";
         }
     }
 }
@@ -2651,7 +2654,7 @@ function get_sfp_status($vendor_id, $port, $ip, $community='public', $version='2
     // eltex
     if ($vendor_id == 2) {
         $sfp_vendor = parse_snmp_value(get_snmp($ip, $community, $version, ELTEX_SFP_VENDOR . "." . $port));
-        if (isset($sfp_vendor)) {
+        if (!empty($sfp_vendor)) {
             $sfp_status_temp = ELTEX_SFP_STATUS . "." . $port . ".5";
             $sfp_status_volt = ELTEX_SFP_STATUS . "." . $port . ".6";
             $sfp_status_circut = ELTEX_SFP_STATUS . "." . $port . ".7";
@@ -2689,6 +2692,48 @@ function get_sfp_status($vendor_id, $port, $ip, $community='public', $version='2
         }
         return;
     }
+
+    // snr
+    if ($vendor_id == 6) {
+        $sfp_vendor = parse_snmp_value(get_snmp($ip, $community, $version, SNR_SFP_VendorName . "." . $port));
+        if (!empty($sfp_vendor) and $sfp_vendor != 'NULL') {
+            $oid_sfp_model_name = SNR_SFP_ModelName . "." . $port;
+            $oid_sfp_type_name = SNR_SFP_TypeName . "." . $port;
+            $oid_sfp_bitrate = SNR_SFP_BitRate . "." . $port;
+            $oid_sfp_status_volt = SNR_SFP_VOLT . "." . $port;
+            $oid_sfp_status_circut = SNR_SFP_BIAS . "." . $port;
+            $oid_sfp_status_tx = SNR_SFP_TX . "." . $port;
+            $oid_sfp_status_rx = SNR_SFP_RX . "." . $port;
+            $oid_sfp_length = SNR_SFP_WaveLength . "." . $port;
+
+            $volt = parse_snmp_value(get_snmp($ip, $community, $version, $oid_sfp_status_volt));
+            $circut = parse_snmp_value(get_snmp($ip, $community, $version, $oid_sfp_status_circut));
+            $tx = parse_snmp_value(get_snmp($ip, $community, $version, $oid_sfp_status_tx));
+            $rx = parse_snmp_value(get_snmp($ip, $community, $version, $oid_sfp_status_rx));
+            $sfp_model_name = parse_snmp_value(get_snmp($ip, $community, $version, $oid_sfp_model_name));
+            $sfp_type_name = parse_snmp_value(get_snmp($ip, $community, $version, $oid_sfp_type_name));
+            $sfp_freq = parse_snmp_value(get_snmp($ip, $community, $version, $oid_sfp_bitrate));
+            $sfp_length = parse_snmp_value(get_snmp($ip, $community, $version, $oid_sfp_length));
+
+            $status = 'Vendor: ' . $sfp_vendor . ' '. $sfp_model_name. ' '.$sfp_type_name. ' Speed: ' . $sfp_freq . ' Freq: ' . $sfp_length . '<br>';
+            if (!empty($sfp_status_volt) and $volt > 0.1) {
+                $status .= ' Volt: ' . round($volt / 1000000, 2) . ' V';
+            }
+            if (!empty($sfp_status_circut) and $circut > 0.1) {
+                $status .= ' Circut: ' . round($circut / 1000, 2) . ' mA';
+            }
+            if (!empty($sfp_status_tx) and $tx > 0.1) {
+                $status .= ' Tx: ' . round($tx / 1000, 2) . ' dBm';
+            }
+            if (!empty($sfp_status_rx) and $rx > 0.1) {
+                $status .= ' Rx: ' . round($rx / 1000, 2) . ' dBm';
+            }
+            $status .= '<br>';
+            return $status;
+        }
+        return;
+    }
+
     // cisco
     if ($vendor_id == 16) {
         // get interface names

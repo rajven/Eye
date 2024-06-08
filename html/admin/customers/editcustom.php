@@ -8,6 +8,7 @@ $msg_error = "";
 if (isset($_POST["edituser"])) {
     global $salt;
     $new['Login'] = substr(trim($_POST["login"]), 0, 20);
+    $new['comment'] = substr(trim($_POST["comment"]), 0, 100);
     if (isset($_POST["pass"]) and (strlen(trim($_POST["pass"])) > 0)) {
         $new['password'] = password_hash($_POST["pass"], PASSWORD_BCRYPT);
 	}
@@ -36,17 +37,27 @@ $customer=get_record($db_link,'Customers',"id=".$id);
 		<table class="data">
 			<tr>
 				<td><?php echo WEB_customer_login; ?></td>
-				<td><?php echo WEB_customer_password; ?></td>
-				<td><?php echo WEB_customer_api_key; ?></td>
-				<td><?php echo WEB_customer_mode; ?></td>
+				<td><input type="text" name="login" value="<?php print $customer['Login']; ?>" size=20></td>
 			</tr>
 			<tr>
-				<td><input type="text" name="login" value="<?php print $customer['Login']; ?>" size=20></td>
+				<td><?php echo WEB_cell_comment; ?></td>
+				<td><input type="text" name="comment" value="<?php print $customer['comment']; ?>" size=50></td>
+			</tr>
+			<tr>
+				<td><?php echo WEB_customer_password; ?></td>
 				<td><input type="password" name="pass" value="" size=20></td>
+			</tr>
+			<tr>
+				<td><?php echo WEB_customer_api_key; ?></td>
 				<td><input type="text" name="api_key" value="<?php print $customer['api_key']; ?>" size=50></td>
+			</tr>
+			<tr>
+				<td><?php echo WEB_customer_mode; ?></td>
 				<td><?php print_acl_select($db_link,'f_acl',$customer['rights']); ?></td>
 			</tr>
-			<td colspan=2><input type="submit" name="edituser" value="<?php echo WEB_btn_save; ?>"></td>
+                        <tr>
+        			<td colspan=2><input type="submit" name="edituser" value="<?php echo WEB_btn_save; ?>"></td>
+                        </tr>
 		</table>
 	</form>
 <?php require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php"); ?>

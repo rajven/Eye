@@ -139,7 +139,7 @@ foreach ($ports as $row) {
                 }
         print "<td class='".$cl."'>" . $display_vlan . "</td>\n";
         print "<td class='".$cl."'>" . $snmp_url . "</td>\n";
-        print "<td class='".$cl."' ><button name='write' class='j-submit-report' onclick='window.open('portmactable.php?id=" . $row['id'] . "')'>" . $row['last_mac_count'] . "</button></td>\n";
+        print "<td class='".$cl."' ><button onclick=\"". open_window_url('portmactable.php?id='.$row['id'])." return false;\">" . $row['last_mac_count'] . "</button></td>\n";
 print "</tr>";
 }
 print "<tr>\n";

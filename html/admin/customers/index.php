@@ -50,6 +50,7 @@ print_control_submenu($page_url);
 <tr align="center">
 <td width="30"><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b>Login</b></td>
+<td><b><?php echo WEB_cell_comment; ?></b></td>
 <td><b><?php echo WEB_customer_mode;?></b></td>
 </tr>
 <?php
@@ -60,6 +61,7 @@ foreach ($users as $row) {
     print "<tr align=center>\n";
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
     print "<td class=\"$cl\" align=left width=200><a href=editcustom.php?id=".$row['id'].">" . $row['Login'] . "</a></td>\n";
+    print "<td class=\"$cl\" >". $acl['comment']. "</a></td>\n";
     print "<td class=\"$cl\" >". $acl['name']. "</a></td>\n";
 }
 ?>
