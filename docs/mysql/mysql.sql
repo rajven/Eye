@@ -201,6 +201,7 @@ CREATE TABLE `connections` (
 CREATE TABLE `Customers` (
   `id` int(11) NOT NULL,
   `Login` varchar(20) DEFAULT 'NULL',
+  `comment` VARCHAR(100) DEFAULT 'NULL',
   `password` varchar(255) DEFAULT 'NULL',
   `api_key` varchar(255) DEFAULT NULL,
   `rights` tinyint(1) NOT NULL DEFAULT 3
