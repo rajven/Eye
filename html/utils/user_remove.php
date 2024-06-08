@@ -23,8 +23,8 @@ if (isset($_POST["RemoveUser"]) and (isset($_POST["f_deleted"]))) {
 				}
 				run_sql($db_link, "DELETE FROM auth_rules WHERE user_id=$val");
 				run_sql($db_link, "UPDATE User_auth SET deleted=1, changed=1, dhcp_changed=1 WHERE user_id=$val");
+				LOG_INFO($db_link, "Deleted user id: $val ".dump_record($db_link,'User_list','id='.$val));
 				delete_record($db_link, "User_list", "id=$val");
-				LOG_WARNING($db_link, "Deleted user id: $val ".dump_record($db_link,'User_list','id='.$val));
 			}
 		}
 		if ($all_ok) {
