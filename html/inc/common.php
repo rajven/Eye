@@ -2093,7 +2093,7 @@ return $rule_id;
 function allow_update($table, $action = 'update', $field = '')
 {
 //always allow modification for tables
-    if (preg_match('/(variables|dns_cache|syslog|sessions|dns_queue|User_auth_alias)/i', $table)) { return 1; }
+    if (preg_match('/(variables|dns_cache|worklog|sessions)/i', $table)) { return 1; }
 
     if (isset($_SESSION['login'])) {
         $work_user = $_SESSION['login'];
@@ -2113,6 +2113,8 @@ function allow_update($table, $action = 'update', $field = '')
     if ($user_level == 3) { return 0; }
 
 //allow tables for Operator
+    if (preg_match('/(dns_queue|User_auth_alias)/i', $table)) { return 1; }
+
     if ($action == 'update') {
         $operator_acl = [
             'User_auth'=> [
@@ -2239,7 +2241,7 @@ function write_log($db, $msg, $level, $auth_id = 0)
         $level = L_INFO;
     }
     $msg = str_replace("'", '', $msg);
-    $sSQL = "insert into syslog(customer,message,level,auth_id) values('$work_user','$msg',$level,$auth_id)";
+    $sSQL = "insert into worklog(customer,message,level,auth_id) values('$work_user','$msg',$level,$auth_id)";
     mysqli_query($db, $sSQL);
 }
 
@@ -2692,7 +2694,7 @@ function get_sfp_status($vendor_id, $port, $ip, $community='public', $version='2
         }
         return;
     }
-
+    
     // snr
     if ($vendor_id == 6) {
         $sfp_vendor = parse_snmp_value(get_snmp($ip, $community, $version, SNR_SFP_VendorName . "." . $port));
