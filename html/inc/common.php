@@ -2090,7 +2090,7 @@ return $rule_id;
 function allow_update($table, $action = 'update', $field = '')
 {
 //always allow modification for tables
-    if (preg_match('/(variables|dns_cache|syslog|sessions)/i', $table)) { return 1; }
+    if (preg_match('/(variables|dns_cache|syslog|sessions|dns_queue|User_auth_alias)/i', $table)) { return 1; }
 
     if (isset($_SESSION['login'])) {
         $work_user = $_SESSION['login'];
@@ -2110,8 +2110,6 @@ function allow_update($table, $action = 'update', $field = '')
     if ($user_level == 3) { return 0; }
 
 //allow tables for Operator
-    if (preg_match('/(dns_queue|User_auth_alias)/i', $table)) { return 1; }
-
     if ($action == 'update') {
         $operator_acl = [
             'User_auth'=> [
