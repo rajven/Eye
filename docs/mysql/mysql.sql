@@ -201,7 +201,6 @@ CREATE TABLE `connections` (
 CREATE TABLE `Customers` (
   `id` int(11) NOT NULL,
   `Login` varchar(20) DEFAULT 'NULL',
-  `comment` VARCHAR(100) DEFAULT 'NULL',
   `password` varchar(255) DEFAULT 'NULL',
   `api_key` varchar(255) DEFAULT NULL,
   `rights` tinyint(1) NOT NULL DEFAULT 3
@@ -211,7 +210,7 @@ CREATE TABLE `Customers` (
 -- Дамп данных таблицы `Customers`
 --
 
-INSERT INTO `Customers` (`id`, `Login`, `comment`, `password`, `api_key`, `rights`) VALUES(1, 'admin', 'Administrator', '$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG', 'c3284d0f94606de1fd2af172aba15bf31', 1);
+INSERT INTO `Customers` (`id`, `Login`, `password`, `api_key`, `rights`) VALUES(1, 'admin', '$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG', 'c3284d0f94606de1fd2af172aba15bf31', 1);
 
 -- --------------------------------------------------------
 
@@ -760,10 +759,10 @@ INSERT INTO `subnets` (`id`, `subnet`, `ip_int_start`, `ip_int_stop`, `dhcp_star
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `syslog`
+-- Структура таблицы `worklog`
 --
 
-CREATE TABLE `syslog` (
+CREATE TABLE `worklog` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
   `auth_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
@@ -1213,14 +1212,14 @@ ALTER TABLE `subnets`
   ADD KEY `dhcp` (`dhcp`,`office`,`hotspot`,`static`);
 
 --
--- Индексы таблицы `syslog`
+-- Индексы таблицы `worklog`
 --
-ALTER TABLE `syslog`
+ALTER TABLE `worklog`
   ADD PRIMARY KEY (`id`),
   ADD KEY `timestamp` (`timestamp`) USING BTREE,
   ADD KEY `level` (`level`),
   ADD KEY `auth_id` (`auth_id`);
-ALTER TABLE `syslog` ADD FULLTEXT KEY `customer` (`customer`);
+ALTER TABLE `worklog` ADD FULLTEXT KEY `customer` (`customer`);
 
 --
 -- Индексы таблицы `Traffic_detail`
@@ -1431,9 +1430,9 @@ ALTER TABLE `subnets`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
--- AUTO_INCREMENT для таблицы `syslog`
+-- AUTO_INCREMENT для таблицы `worklog`
 --
-ALTER TABLE `syslog`
+ALTER TABLE `worklog`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
