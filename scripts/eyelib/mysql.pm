@@ -228,7 +228,7 @@ if ($level eq $L_INFO and $log_level >= $L_INFO) { log_info($msg); $db_log = 1; 
 if ($level eq $L_DEBUG and $log_level >= $L_DEBUG) { log_debug($msg); $db_log = 1; }
 
 if ($db_log) {
-    my $history_sql="INSERT INTO syslog(customer,message,level,auth_id) VALUES(".$db->quote($MY_NAME).",".$db->quote($msg).",$level,$auth_id)";
+    my $history_sql="INSERT INTO worklog(customer,message,level,auth_id) VALUES(".$db->quote($MY_NAME).",".$db->quote($msg).",$level,$auth_id)";
     my $history_rf=$db->prepare($history_sql) or die "Unable to prepare $history_sql:" . $db->errstr;
     $history_rf->execute() or die "Unable to execute $history_sql: " . $db->errstr;
     }

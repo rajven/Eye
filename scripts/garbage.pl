@@ -32,7 +32,7 @@ my @db_tables =(
 'User_stats',
 'User_stats_full',
 'dhcp_log',
-'syslog',
+'worklog',
 'remote_syslog',
 'Traffic_detail',
 );
@@ -245,8 +245,8 @@ $day_dur = DateTime::Duration->new( days => $history_log_day );
 $clean_date = $now - $day_dur;
 $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
 
-db_log_info($dbh,"Clean worklog older that ".$clean_str);
-do_sql($dbh,"DELETE FROM syslog WHERE `timestamp` < $clean_str" );
+db_log_info($dbh,"Clean VERBOSE worklog older that ".$clean_str);
+do_sql($dbh,"DELETE FROM worklog WHERE level>$L_INFO AND `timestamp` < $clean_str" );
 
 #clean debug logs older than 2 days
 $day_dur = DateTime::Duration->new( days => 2 );
@@ -254,7 +254,7 @@ $clean_date = $now - $day_dur;
 $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
 
 db_log_info($dbh,"Clean debug worklog older that ".$clean_str);
-do_sql($dbh,"DELETE FROM syslog WHERE level>3 AND `timestamp` < $clean_str" );
+do_sql($dbh,"DELETE FROM worklog WHERE level>$L_DEBUG AND `timestamp` < $clean_str" );
 
 ##### remote syslog  ######
 

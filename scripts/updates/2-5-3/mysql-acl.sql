@@ -8,3 +8,4 @@ UPDATE `Customers` set rights=1 WHERE rights=0;
 ALTER TABLE `acl`  ADD PRIMARY KEY (`id`);
 ALTER TABLE `acl`  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 ALTER TABLE `Customers` ADD `comment` VARCHAR(100) NULL AFTER `Login`;
+RENAME TABLE `syslog` TO `worklog`;
