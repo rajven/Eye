@@ -355,8 +355,8 @@ if (!$pid) {
                         $auth_rec->{dhcp_time}=$dhcp_event_time;
                         update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
                         my $u_count=get_count_records($hdb,'User_auth','deleted=0 and user_id='.$auth_record->{'user_id'});
-                                if (!$u_count) {
-                                            delete_record($hdb,"User_list","id=".$auth_record->{'user_id'});
+                        if (!$u_count) {
+                                delete_record($hdb,"User_list","id=".$auth_record->{'user_id'});
                                 db_log_info($hdb,"Remove dynamic user id: $auth_record->{'user_id'} by dhcp request",$auth_id);
                                 }
                         }

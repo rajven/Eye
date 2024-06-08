@@ -6,7 +6,7 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["f_id"];
     foreach ($fid as $key => $val) {
         if (isset($val) and $val > 1) {
-            LOG_INFO($db_link,'Remove building id: '.$val);
+            LOG_INFO($db_link,'Remove building id: '. $val .' '. dump_record($db_link,'building','id='.$val));
             delete_record($db_link, "building", "id=" . $val);
         }
     }

@@ -125,14 +125,14 @@ function IsAuthenticated($db)
     }
 
     if (empty($login) or empty($pass)) {
-        LOG_INFO($db, "login [$login] or password [$pass] undefined from $auth_ip: fail!");
+        LOG_ERROR($db, "login [$login] or password [$pass] undefined from $auth_ip: fail!");
         logout();
         return false;
     }
 
     $login = htmlspecialchars(stripslashes($login));
     if (empty($login) or empty($pass)) {
-        LOG_INFO($db, "login [$login] or password [$pass] undefined from $auth_ip: fail!");
+        LOG_ERROR($db, "login [$login] or password [$pass] undefined from $auth_ip: fail!");
         logout();
         return false;
     }
@@ -159,12 +159,12 @@ function IsAuthenticated($db)
             setcookie("Auth", $auth_record['id'] . ":" . $session['session_id'] . ":" . md5($ret_id . ":" . $session['session_key'] . ":" . $_SESSION['IP']), time() + 60 * 60 * 24);
             return true;
         } else {
-            LOG_INFO($db, "login user [$login] from " . $_SESSION['IP'] . ": fail!");
+            LOG_ERROR($db, "login user [$login] from " . $_SESSION['IP'] . ": fail!");
             logout();
             return false;
         }
     }
-    LOG_INFO($db, "login user [$login] from " . $_SESSION['IP'] . ": fail!");
+    LOG_ERROR($db, "login user [$login] from " . $_SESSION['IP'] . ": fail!");
     logout();
     return false;
 }
@@ -201,7 +201,7 @@ function IsSilentAuthenticated($db)
     }
 
     if (empty($login) or empty($pass)) {
-        LOG_INFO($db, "login or password undefined from $auth_ip: fail!");
+        LOG_ERROR($db, "login or password undefined from $auth_ip: fail!");
         logout();
         return false;
     }
@@ -209,7 +209,7 @@ function IsSilentAuthenticated($db)
     $login = htmlspecialchars(stripslashes($login));
 
     if ($login == '' or $pass == '') {
-        LOG_INFO($db, "login or password undefined from $auth_ip: fail!");
+        LOG_ERROR($db, "login or password undefined from $auth_ip: fail!");
         logout();
         return false;
     }
@@ -230,7 +230,7 @@ function IsSilentAuthenticated($db)
         return true;
     }
 
-    LOG_INFO($db, "Api login user $login from " . $_SESSION['IP'] . ": fail!");
+    LOG_ERROR($db, "Api login user $login from " . $_SESSION['IP'] . ": fail!");
     logout();
     return false;
 }

@@ -11,7 +11,7 @@ if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
     foreach ($s_id as $key => $val) {
         if (isset($val)) {
-            LOG_INFO($db_link, "Remove l3_interface id: $val");
+            LOG_INFO($db_link, "Remove l3_interface id: $val ". dump_record($db_link,'device_l3_interfaces','id='.$val));
             delete_record($db_link, "device_l3_interfaces", "id=" . $val);
         }
     }

@@ -2331,9 +2331,9 @@ function apply_device_lock ($db, $device_id, $iteration =0) {
         LOG_DEBUG($db,"The lock is already expired. Set new lock.");
         return set_lock_discovery($db,$device_id);
         }
-    LOG_INFO($db,"Snmp discovery lock for device id: $device_id found! Need wait ".$wait_time." sec.");
+    LOG_VERBOSE($db,"Snmp discovery lock for device id: $device_id found! Need wait ".$wait_time." sec.");
     sleep($wait_time);
-    LOG_INFO($db,"Try set new lock and continue discovery for device id:".$device_id);
+    LOG_VERBOSE($db,"Try set new lock and continue discovery for device id:".$device_id);
     return apply_device_lock($db,$device_id,$iteration);
 }
 
@@ -3749,7 +3749,7 @@ function set_port_for_group($db, $group_id, $place_id, $state)
 {
     $authSQL = 'SELECT User_auth.id,User_auth.dns_name,User_auth.ip FROM User_auth, User_list WHERE User_auth.user_id = User_list.id AND User_auth.deleted=0 and User_list.ou_id=' . $group_id;
     $auth_list = mysqli_query($db, $authSQL);
-    LOG_INFO($db, 'Mass port state change started!');
+    LOG_VERBOSE($db, 'Mass port state change started!');
     // get auth list for group
     while (list($a_id, $a_name, $a_ip) = mysqli_fetch_array($auth_list)) {
         // get device and port for auth
@@ -3775,7 +3775,7 @@ function set_port_for_group($db, $group_id, $place_id, $state)
         set_port_state($d_vendor_id, $d_snmp_index, $d_ip, $d_community, $d_snmp, $state);
         set_port_poe_state($d_vendor_id, $d_port, $d_snmp_index, $d_ip, $d_community, $d_snmp, $state);
     }
-    LOG_INFO($db, 'Mass port state change stopped.');
+    LOG_VERBOSE($db, 'Mass port state change stopped.');
 }
 
 function get_vendor($db, $mac)
@@ -4647,6 +4647,15 @@ function insert_record($db, $table, $newvalue)
         }
 
     return $last_id;
+}
+
+function dump_record($db,$table,$filter)
+{
+    $result = '';
+    $old = get_record($db,$table,$filter);
+    if (empty($old)) { return $result; } 
+    $result = 'record: '. get_rec_str($old);
+    return $result;
 }
 
 function get_rec_str($array)

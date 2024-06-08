@@ -8,7 +8,7 @@ if (isset($_POST["s_remove"])) {
         $s_id = $_POST["s_id"];
         foreach ($s_id as $key => $net_id) {
             if (isset($net_id)) {
-                LOG_INFO($db_link, "Remove subnet id: $net_id");
+                LOG_INFO($db_link, "Remove subnet id: $net_id ". dump_record($db_link,'subnets','id='.$val));
                 delete_record($db_link, "subnets", "id=" . $net_id);
             }
         }

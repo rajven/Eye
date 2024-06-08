@@ -9,7 +9,7 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["f_id"];
     foreach ($fid as $key => $val) {
         if (isset($val) and $val != 1) {
-                LOG_INFO($db_link, "Remove connection id: $val");
+                LOG_VERBOSE($db_link, "Remove connection id: $val ".dump_record($db_link,'connections','id='.$val));
                 delete_record($db_link, "connections", "id=" . $val);
             }
         }

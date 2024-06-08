@@ -25,7 +25,7 @@ if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
     foreach ($s_id as $key => $val) {
         if (isset($val)) {
-            LOG_INFO($db_link, "Remove rule id: $val");
+            LOG_INFO($db_link, "Remove rule id: $val ".dump_record($db_link,'auth_rules','id='.$val));
             delete_record($db_link, "auth_rules", "id=" . $val);
         }
     }

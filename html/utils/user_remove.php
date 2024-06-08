@@ -13,7 +13,7 @@ if (isset($_POST["RemoveUser"]) and (isset($_POST["f_deleted"]))) {
 				$login = get_record($db_link, "User_list", "id='$val'");
 				$device = get_record($db_link, "devices", "user_id='$val'");
 				if (!empty($device)) {
-					LOG_INFO($db_link, "Delete device for user id: $val");
+					LOG_INFO($db_link, "Delete device for user id: $val ".dump_record($db_link,'devices','user_id='.$val));
 					unbind_ports($db_link, $device['id']);
 					run_sql($db_link, "DELETE FROM connections WHERE device_id=" . $device['id']);
 					run_sql($db_link, "DELETE FROM device_l3_interfaces WHERE device_id=" . $device['id']);
@@ -24,7 +24,7 @@ if (isset($_POST["RemoveUser"]) and (isset($_POST["f_deleted"]))) {
 				run_sql($db_link, "DELETE FROM auth_rules WHERE user_id=$val");
 				run_sql($db_link, "UPDATE User_auth SET deleted=1, changed=1, dhcp_changed=1 WHERE user_id=$val");
 				delete_record($db_link, "User_list", "id=$val");
-				LOG_WARNING($db_link, "Deleted user id: $val login: " . $login['login']);
+				LOG_WARNING($db_link, "Deleted user id: $val ".dump_record($db_link,'User_list','id='.$val));
 			}
 		}
 		if ($all_ok) {

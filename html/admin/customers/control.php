@@ -21,7 +21,7 @@ if (isset($_POST["set_workmode_off"])) {
 if (isset($_POST["recheck_ip"]) and is_option($db_link, 37)) {
     $run_cmd = get_option($db_link, 37);
     $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
-    LOG_INFO($db_link, "Run command: $run_cmd ");
+    LOG_VERBOSE($db_link, "Run command: $run_cmd ");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -29,7 +29,7 @@ if (isset($_POST["recheck_ip"]) and is_option($db_link, 37)) {
 if (isset($_POST["refresh_dhcp"]) and is_option($db_link, 38)) {
     $run_cmd = get_option($db_link, 38);
     $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
-    LOG_INFO($db_link, "Run command: $run_cmd ");
+    LOG_VERBOSE($db_link, "Run command: $run_cmd ");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -37,7 +37,7 @@ if (isset($_POST["refresh_dhcp"]) and is_option($db_link, 38)) {
 if (isset($_POST["refresh_nagios"]) and is_option($db_link, 40)) {
     $run_cmd = get_option($db_link, 40);
     $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
-    LOG_INFO($db_link, "Run command: $run_cmd ");
+    LOG_VERBOSE($db_link, "Run command: $run_cmd ");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -52,7 +52,7 @@ if (isset($_POST["up_nagios"])) {
 if (isset($_POST["refresh_dns"]) and is_option($db_link, 39)) {
     $run_cmd = get_option($db_link, 39);
     $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
-    LOG_INFO($db_link, "Run command: $run_cmd ");
+    LOG_VERBOSE($db_link, "Run command: $run_cmd ");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -60,7 +60,7 @@ if (isset($_POST["refresh_dns"]) and is_option($db_link, 39)) {
 if (isset($_POST["discovery"]) and is_option($db_link, 41)) {
     $run_cmd = get_option($db_link, 41);
     $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
-    LOG_INFO($db_link, "Run command: $run_cmd ");
+    LOG_VERBOSE($db_link, "Run command: $run_cmd ");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -68,7 +68,7 @@ if (isset($_POST["discovery"]) and is_option($db_link, 41)) {
 if (isset($_POST["discovery2"]) and is_option($db_link, 41)) {
     $run_cmd = get_option($db_link, 41);
     $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." force >/dev/null 2>/dev/null &");
-    LOG_INFO($db_link, "Run command: $run_cmd force");
+    LOG_VERBOSE($db_link, "Run command: $run_cmd force");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -91,7 +91,7 @@ if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
     foreach ($s_id as $key => $val) {
         if (isset($val)) {
-            LOG_INFO($db_link, "Remove subnet id: $val");
+            LOG_INFO($db_link, "Remove subnet id: $val ". dump_record($db_link,'subnets','id='.$val));
             delete_record($db_link, "subnets", "id=" . $val);
         }
     }
@@ -100,7 +100,7 @@ if (isset($_POST["s_remove"])) {
 }
 
 if (isset($_POST["clean_cache"])) {
-    LOG_INFO($db_link, "Clean dns cache");
+    LOG_VERBOSE($db_link, "Clean dns cache");
     run_sql($db_link,"DELETE FROM dns_cache");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;

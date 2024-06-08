@@ -71,7 +71,7 @@ if (!empty($action)) {
               if (checkValidIp($ip) and is_our_network($db_link, $ip)) {
                     $run_cmd = "/opt/Eye/scripts/dnsmasq-hook.sh '".$dhcp_action."' '".$mac."' '".$ip."' '".$dhcp_hostname."'";
                     $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
-                    LOG_INFO($db_link, "Run command: $run_cmd ");
+                    LOG_VERBOSE($db_link, "Run command: $run_cmd ");
                     } else { LOG_ERROR($db_link, "$ip - wrong network!"); }
               }
           }

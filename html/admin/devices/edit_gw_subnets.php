@@ -11,7 +11,7 @@ if (isset($_POST["s_remove"])) {
     $s_id = $_POST["gs_id"];
     foreach ($s_id as $key => $val) {
         if (isset($val)) {
-            LOG_INFO($db_link, "Remove subnet from gateway id: $val");
+            LOG_INFO($db_link, "Remove subnet from gateway id: $val ". dump_record($db_link,'gateway_subnets','id='.$val));
             delete_record($db_link, "gateway_subnets", "id=" . $val);
         }
     }

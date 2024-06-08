@@ -10,7 +10,7 @@ if (isset($_POST["create"])) {
 	$customer = get_record_sql($db_link,"Select * from Customers WHERE LCase(Login)=LCase('$login')");
         if (!empty($customer)) {
             $msg_error = "Login $login already exists!";
-            LOG_INFO($db_link, $msg_error);
+            LOG_ERROR($db_link, $msg_error);
             unset($_POST);
         } else {
             $new['Login'] = $login;
@@ -29,7 +29,7 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["fid"];
     foreach ($fid as $key => $val) {
         if ($val) {
-            LOG_INFO($db_link, "Remove login with id: $val");
+            LOG_INFO($db_link, "Remove login with id: $val ". dump_record($db_link,'Customers','id='.$val));
             delete_record($db_link, "Customers", "id=" . $val);
         }
     }
