@@ -186,7 +186,7 @@ my $db=shift;
 my $sql=shift;
 return if (!$db);
 return if (!$sql);
-if ($sql!~/^select /i) { db_log_debug($db,$sql); }
+if ($sql!~/^select /i) { log_debug($sql); }
 my $sql_prep = $db->prepare($sql) or die "Unable to prepare $sql: " . $db->errstr;
 my $sql_ref;
 my $rv = $sql_prep->execute() or die "Unable to execute $sql: " . $db->errstr;
