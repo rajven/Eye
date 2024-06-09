@@ -248,11 +248,11 @@ if ($history) {
 ##### log  ######
 
 if ($history_log_day) {
-    $day_dur = DateTime::Duration->new( days => $history_log_day );
-    $clean_date = $now - $day_dur;
-    $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+    my $day_dur = DateTime::Duration->new( days => $history_log_day );
+    my $clean_date = $now - $day_dur;
+    my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
     db_log_info($dbh,"Clean VERBOSE worklog older that ".$clean_str);
-    $ql($dbh,"DELETE FROM worklog WHERE level>$L_INFO AND `timestamp` < $clean_str" );
+    do_sql($dbh,"DELETE FROM worklog WHERE level>$L_INFO AND `timestamp` < $clean_str" );
 }
 
 #clean debug logs older than $debug_history days
