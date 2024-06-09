@@ -37,6 +37,8 @@ my @db_tables =(
 'Traffic_detail',
 );
 
+my $debug_history = 3;
+
 db_log_info($dbh,'Garbage started.');
 
 sub is_dhcp_pool {
@@ -134,27 +136,30 @@ if ($dhcp_networks->match_string($row->{ip})) {
 db_log_info($dbh,'Finished');
 
 $now = DateTime->now(time_zone=>'local');
-my $day_dur = DateTime::Duration->new( days => $history_dhcp );
-my $clean_date = $now - $day_dur;
-my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
 
 #clean dhcp log
-db_log_info($dbh,'Clearing outdated records dhcp log');
-do_sql($dbh,"DELETE FROM dhcp_log WHERE `timestamp` < $clean_str" );
-db_log_verbose($dbh,"Clean dhcp leases for all older that ".$clean_str);
+if ($history_dhcp) {
+    my $day_dur = DateTime::Duration->new( days => $history_dhcp );
+    my $clean_date = $now - $day_dur;
+    my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+    db_log_info($dbh,'Clearing outdated records dhcp log');
+    do_sql($dbh,"DELETE FROM dhcp_log WHERE `timestamp` < $clean_str" );
+    db_log_verbose($dbh,"Clean dhcp leases for all older that ".$clean_str);
+}
 
 ##### clean old connections ########
-db_log_info($dbh,'Clearing outdated connection records');
-$day_dur = DateTime::Duration->new( days => $connections_history );
-$clean_date = $now - $day_dur;
-$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
-
-$users_sql = "SELECT id FROM User_auth WHERE `last_found` < $clean_str and last_found>0";
-db_log_debug($dbh,$users_sql) if ($debug);
-@users_auth=get_records_sql($dbh,$users_sql);
-foreach my $row (@users_auth) {
-db_log_debug($dbh,"Clear old connection for user_auth ".$row->{id});
-do_sql($dbh,"DELETE FROM connections WHERE auth_id='".$row->{id}."'");
+if ($connections_history) {
+    db_log_info($dbh,'Clearing outdated connection records');
+    my $day_dur = DateTime::Duration->new( days => $connections_history );
+    my $clean_date = $now - $day_dur;
+    my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+    $users_sql = "SELECT id FROM User_auth WHERE `last_found` < $clean_str and last_found>0";
+    db_log_debug($dbh,$users_sql) if ($debug);
+    @users_auth=get_records_sql($dbh,$users_sql);
+    foreach my $row (@users_auth) {
+        db_log_debug($dbh,"Clear old connection for user_auth ".$row->{id});
+        do_sql($dbh,"DELETE FROM connections WHERE auth_id='".$row->{id}."'");
+    }
 }
 
 ##### clean dup connections ########
@@ -231,59 +236,63 @@ do_sql($dbh,"DELETE FROM Unknown_mac WHERE mac='".mac_simplify($row->{mac})."'")
 
 ##### traffic detail ######
 
-$day_dur = DateTime::Duration->new( days => $history );
-$clean_date = $now - $day_dur;
-$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
-
-db_log_info($dbh,"Clean traffic detail older that ".$clean_str);
-#clean old traffic detail
-do_sql($dbh,"DELETE FROM Traffic_detail WHERE `timestamp` < $clean_str" );
+if ($history) {
+    my $day_dur = DateTime::Duration->new( days => $history );
+    my $clean_date = $now - $day_dur;
+    my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+    db_log_info($dbh,"Clean traffic detail older that ".$clean_str);
+    #clean old traffic detail
+    do_sql($dbh,"DELETE FROM Traffic_detail WHERE `timestamp` < $clean_str" );
+}
 
 ##### log  ######
 
-$day_dur = DateTime::Duration->new( days => $history_log_day );
-$clean_date = $now - $day_dur;
-$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+if ($history_log_day) {
+    $day_dur = DateTime::Duration->new( days => $history_log_day );
+    $clean_date = $now - $day_dur;
+    $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+    db_log_info($dbh,"Clean VERBOSE worklog older that ".$clean_str);
+    $ql($dbh,"DELETE FROM worklog WHERE level>$L_INFO AND `timestamp` < $clean_str" );
+}
 
-db_log_info($dbh,"Clean VERBOSE worklog older that ".$clean_str);
-do_sql($dbh,"DELETE FROM worklog WHERE level>$L_INFO AND `timestamp` < $clean_str" );
-
-#clean debug logs older than 2 days
-$day_dur = DateTime::Duration->new( days => 2 );
-$clean_date = $now - $day_dur;
-$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
-
-db_log_info($dbh,"Clean debug worklog older that ".$clean_str);
-do_sql($dbh,"DELETE FROM worklog WHERE level>$L_DEBUG AND `timestamp` < $clean_str" );
+#clean debug logs older than $debug_history days
+if ($debug_history) {
+    my $day_dur = DateTime::Duration->new( days => 3 );
+    my $clean_date = $now - $day_dur;
+    my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+    db_log_info($dbh,"Clean debug worklog older that ".$clean_str);
+    do_sql($dbh,"DELETE FROM worklog WHERE level>$L_DEBUG AND `timestamp` < $clean_str" );
+}
 
 ##### remote syslog  ######
 
-$day_dur = DateTime::Duration->new( days => $history_syslog_day );
-$clean_date = $now - $day_dur;
-$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
-
-db_log_info($dbh,"Clean syslog older that ".$clean_str);
-do_sql($dbh,"DELETE FROM remote_syslog WHERE `date` < $clean_str" );
+if ($history_syslog_day) {
+    my $day_dur = DateTime::Duration->new( days => $history_syslog_day );
+    my $clean_date = $now - $day_dur;
+    my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+    db_log_info($dbh,"Clean syslog older that ".$clean_str);
+    do_sql($dbh,"DELETE FROM remote_syslog WHERE `date` < $clean_str" );
+}
 
 ##### Traffic stats  ######
 
-$day_dur = DateTime::Duration->new( days => $history_trafstat_day );
-$clean_date = $now - $day_dur;
-$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
-
-db_log_info($dbh,"Clean traffic statistics older that ".$clean_str);
-do_sql($dbh,"DELETE FROM User_stats WHERE `timestamp` < $clean_str" );
+if ($history_trafstat_day) {
+    my $day_dur = DateTime::Duration->new( days => $history_trafstat_day );
+    my $clean_date = $now - $day_dur;
+    my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+    db_log_info($dbh,"Clean traffic statistics older that ".$clean_str);
+    do_sql($dbh,"DELETE FROM User_stats WHERE `timestamp` < $clean_str" );
+}
 
 ##### Traffic stats full ######
-
-my $iptraf_history = $config_ref{traffic_ipstat_history} || 30;
-
-$day_dur = DateTime::Duration->new( days => $iptraf_history );
-$clean_date = $now - $day_dur;
-$clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
-
-db_log_info($dbh,"Clean traffic full statistics older that ".$clean_str);
-do_sql($dbh,"DELETE FROM User_stats_full WHERE `timestamp` < $clean_str" );
+my $iptraf_history = $config_ref{traffic_ipstat_history};
+if ($iptraf_history) {
+    my $day_dur = DateTime::Duration->new( days => $iptraf_history );
+    my $clean_date = $now - $day_dur;
+    my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+    db_log_info($dbh,"Clean traffic full statistics older that ".$clean_str);
+    do_sql($dbh,"DELETE FROM User_stats_full WHERE `timestamp` < $clean_str" );
+}
 
 #### clean unknown user ip
 do_sql($dbh,"DELETE FROM User_auth WHERE (mac is NULL or mac='') and deleted=1");

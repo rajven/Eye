@@ -1,3 +1,4 @@
+RENAME TABLE `syslog` TO `worklog`;
 CREATE TABLE `acl` (`id` int(11) NOT NULL,`name` varchar(30) NOT NULL,`description.english` varchar(250) NOT NULL,`description.russian` varchar(250) NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT INTO `acl` VALUES(1, 'Full access', 'Full access', 'Полный доступ');
 INSERT INTO `acl` VALUES(2, 'Operator', 'Editing parameters that are not related to access rights', 'Редактирование параметров, не связанных с правами доступа');
@@ -8,4 +9,9 @@ UPDATE `Customers` set rights=1 WHERE rights=0;
 ALTER TABLE `acl`  ADD PRIMARY KEY (`id`);
 ALTER TABLE `acl`  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 ALTER TABLE `Customers` ADD `comment` VARCHAR(100) NULL AFTER `Login`;
-RENAME TABLE `syslog` TO `worklog`;
+UPDATE `config_options` SET `description.russian` = 'Глубина хранения VERBOSE логов работы в интерфейсе администратора' WHERE `config_options`.`id` = 47;
+UPDATE `config_options` SET `description.english` = 'Depth of VERBOSE work logs storage in the admin interface' WHERE `config_options`.`id` = 47;
+UPDATE `config_options` SET `min_value` = '0' WHERE `config_options`.`id` = 47;
+UPDATE `config_options` SET `min_value` = '0' WHERE `config_options`.`id` = 48;
+UPDATE `config_options` SET `min_value` = '0' WHERE `config_options`.`id` = 49;
+UPDATE `config_options` SET `min_value` = '0' WHERE `config_options`.`id` = 56;

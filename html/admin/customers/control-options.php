@@ -83,7 +83,8 @@ print_control_submenu($page_url);
 
             <?php
             $descr_field = "description." . HTML_LANG;
-            $t_config = mysqli_query($db_link, "SELECT `config`.`id`,`option_id`,`option_name`,`value`,`type`,`" . $descr_field . "`,`min_value`,`max_value` FROM `config`,`config_options` WHERE `config`.`option_id`=`config_options`.`id` ORDER BY `option_name`");
+            $config_sql = "SELECT `config`.`id`,`option_id`,`option_name`,`value`,`type`,`" . $descr_field . "`,`min_value`,`max_value` FROM `config`,`config_options` WHERE `config`.`option_id`=`config_options`.`id` ORDER BY `option_name`";
+            $t_config = mysqli_query($db_link, $config_sql);
             while ($row = mysqli_fetch_array($t_config)) {
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[" . $row["option_id"] . "] value='" . $row['id'] . "'></td>\n";
@@ -101,7 +102,7 @@ print_control_submenu($page_url);
                 if ($type == 'int') {
                     $min = '';
                     $max = '';
-                    if (!empty($row['min_value']) or $row['min_value'] == 0) {
+                    if (!empty($row['min_value']) or $row['min_value']==0) {
                         $min = "min=" . $row['min_value'];
                     }
                     if (!empty($row['max_value'])) {
