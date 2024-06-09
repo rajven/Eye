@@ -64,6 +64,7 @@ define("WEB_snmp_interface_index","Interface index");
 define("WEB_color_description","Color coding");
 define("WEB_color_user_disabled","User disabled");
 define("WEB_color_auth_disabled","IP disabled");
+define("WEB_color_auth_enabled","IP enabled");
 define("WEB_color_user_blocked","Blocked by traffic");
 define("WEB_color_device_description","Device Status");
 define("WEB_color_user_empty","Login is empty");

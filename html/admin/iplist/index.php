@@ -215,6 +215,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <table class="data">
 <tr><td><?php echo WEB_color_description; ?></td></tr>
 <tr>
+<td class="data"><?php echo WEB_color_auth_enabled; ?></td>
 <td class="warn"><?php echo WEB_color_auth_disabled; ?></td>
 <td class="error"><?php echo WEB_color_user_blocked; ?></td>
 <td class="off"><?php echo WEB_color_user_disabled; ?></td>

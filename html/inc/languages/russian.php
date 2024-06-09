@@ -64,6 +64,7 @@ define("WEB_snmp_interface_index","Interface index");
 define("WEB_color_description","Цветовая маркировка");
 define("WEB_color_user_disabled","Пользователь выключен");
 define("WEB_color_auth_disabled","ip-адрес выключен");
+define("WEB_color_auth_enabled","ip-адрес включен");
 define("WEB_color_user_blocked","Блокировка по трафику");
 define("WEB_color_device_description","Состояние устройства");
 define("WEB_color_user_empty","Логин пуст");
