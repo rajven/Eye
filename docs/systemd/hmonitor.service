@@ -1,0 +1,19 @@
+[Unit]
+Description=Analyze nagios hoststate
+After=nagios4.service
+
+[Service]
+Type=forking
+User=nagios
+Group=nagios
+ExecStart=/opt/Eye/scripts/hmonitor.pl --start
+ExecStop=/opt/Eye/scripts/hmonitor.pl --stop
+RestartSec=30
+Restart=on-failure
+PIDFile=/run/hmonitor/hmonitor.pid
+RuntimeDirectory=hmonitor
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=restart
+
+[Install]
+WantedBy=multi-user.target
