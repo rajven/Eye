@@ -178,7 +178,7 @@ CREATE TABLE `version` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
-REPLACE INTO `version` (`version`) VALUES ('2.5.3');
+REPLACE INTO `version` (`version`) VALUES ('2.6.1');
 -- --------------------------------------------------------
 
 --
