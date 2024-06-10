@@ -357,7 +357,7 @@ if ($auth_info['last_found'] == '0000-00-00 00:00:00') {
                 <td colspan=3><input type="submit" name="moveauth" value=<?php print WEB_btn_move; ?>><?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?></td>
                 <?php
                 if ($auth_info['deleted']) {
-                    print "<td >" . WEB_deleted . ": " . $auth_info['changed_time'] . "</td>";
+                    print "<td ><font color=red>" . WEB_deleted . ": " . $auth_info['changed_time'] . "</font></td>";
                     print "<td align=right><input type=\"submit\" name=\"recovery\" value='" . WEB_btn_recover . "'></td>";
                 } else {
                     print "<td ></td>";
