@@ -1,1 +1,1 @@
-REPLACE INTO `version` (`version`) VALUES ('2.6.1');
+REPLACE INTO `version` (`version`) VALUES ('2.5.3');
