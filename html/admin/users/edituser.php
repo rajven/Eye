@@ -35,7 +35,7 @@ if (isset($_POST["edituser"])) {
         $new["month_quota"] = get_int(trim($_POST["f_permonth"]));
     }
     $changes = get_diff_rec($db_link,"User_list","id='$id'", $new, 0);
-    if (!empty($changes)) { LOG_WARNING($db_link,"Changed user id: $id login: ".$new["login"].". \r\nApply: $changes"); }
+    if (!empty($changes)) { LOG_INFO($db_link,"Changed user id: $id login: ".$new["login"].". \r\nApply: $changes"); }
     update_record($db_link, "User_list", "id='$id'", $new);
     if (!$new["enabled"]) {
         run_sql($db_link, "UPDATE User_auth SET enabled=0, changed=1 WHERE user_id=".$id);
@@ -50,7 +50,7 @@ if (isset($_POST["addMacRule"])) {
     unset($new);
     $first_auth = get_record_sql($db_link,"SELECT mac FROM User_auth WHERE user_id=".$id." AND deleted=0 AND LENGTH(mac)>0 ORDER BY id");
     if (!empty($first_auth) and !empty($first_auth['mac'])) {
-	add_auth_rule($db_link,$first_auth['mac'],2,$id);
+	    add_auth_rule($db_link,$first_auth['mac'],2,$id);
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -67,7 +67,7 @@ if (isset($_POST["addIPRule"])) {
     unset($new);
     $first_auth = get_record_sql($db_link,"SELECT ip FROM User_auth WHERE user_id=".$id." AND deleted=0 AND LENGTH(ip)>0 ORDER BY id");
     if (!empty($first_auth) and !empty($first_auth['ip'])) {
-	add_auth_rule($db_link,$first_auth['ip'],1,$id);
+	    add_auth_rule($db_link,$first_auth['ip'],1,$id);
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -150,7 +150,7 @@ if (isset($_POST["addauth"])) {
                 $new['dhcp']=$f_dhcp;
                 $new["dhcp_action"]='manual';
                 update_record($db_link,"User_auth","id=".$fid,$new);
-                LOG_WARNING($db_link,"Add ip for login: ".$user_info["login"].": ip => $fip, mac => $fmac",$fid);
+                LOG_INFO($db_link,"Add ip for login: ".$user_info["login"].": ip => $fip, mac => $fmac",$fid);
                 header("Location: /admin/users/editauth.php?id=".$fid);
                 exit;
                 }
@@ -172,7 +172,7 @@ if (isset($_POST["removeauth"])) {
             run_sql($db_link, 'DELETE FROM connections WHERE auth_id='.$val);
             run_sql($db_link, 'DELETE FROM User_auth_alias WHERE auth_id='.$val);
             $changes=delete_record($db_link, "User_auth", "id=" . $val);
-            if (!empty($changes)) { LOG_WARNING($db_link,"Remove user ".$user_info["login"]." ip: \r\n ".$changes); }
+            if (!empty($changes)) { LOG_INFO($db_link,"Remove user ".$user_info["login"]." ip: \r\n ".$changes); }
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
