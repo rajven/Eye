@@ -4326,7 +4326,7 @@ function update_record($db, $table, $filter, $newvalue)
     }
 
     if (!allow_update($table,'update')) { 
-        LOG_WARNING($db,"Access denied: $table [ $filter ]");
+        LOG_INFO($db,"Access denied: $table [ $filter ]");
         return 1;
     }
 
