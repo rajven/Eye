@@ -199,7 +199,6 @@ function IsSilentAuthenticated($db)
     }
 
     if (empty($login) or empty($pass)) {
-        LOG_ERROR($db, "login or password undefined from $auth_ip: fail!");
         logout();
         return false;
     }
@@ -207,7 +206,6 @@ function IsSilentAuthenticated($db)
     $login = htmlspecialchars(stripslashes($login));
 
     if ($login == '' or $pass == '') {
-        LOG_ERROR($db, "login or password undefined from $auth_ip: fail!");
         logout();
         return false;
     }
