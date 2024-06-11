@@ -125,14 +125,12 @@ function IsAuthenticated($db)
     }
 
     if (empty($login) or empty($pass)) {
-        LOG_ERROR($db, "login [$login] or password [$pass] undefined from $auth_ip: fail!");
         logout();
         return false;
     }
 
     $login = htmlspecialchars(stripslashes($login));
     if (empty($login) or empty($pass)) {
-        LOG_ERROR($db, "login [$login] or password [$pass] undefined from $auth_ip: fail!");
         logout();
         return false;
     }
