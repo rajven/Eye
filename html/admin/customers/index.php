@@ -61,7 +61,7 @@ foreach ($users as $row) {
     print "<tr align=center>\n";
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
     print "<td class=\"$cl\" align=left width=200><a href=editcustom.php?id=".$row['id'].">" . $row['Login'] . "</a></td>\n";
-    print "<td class=\"$cl\" >". $$row['comment']. "</a></td>\n";
+    print "<td class=\"$cl\" >". $row['comment']. "</a></td>\n";
     print "<td class=\"$cl\" >". $acl['name']. "</a></td>\n";
 }
 ?>
