@@ -210,6 +210,9 @@ launching /opt/Eye/scripts/sync_mikrotik.pl
 The script will create filtering and shaper rules
 
 #dhcp script sampling
+#ROS6
 /tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&api_key=<API_CUSTOMER_KEY>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
+#ROS7
+/tool fetch url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php?login=<LOGIN>&api_key=<API_CUSTOMER_KEY>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" mode=http keep-result=no
 
 #########################################################################################################################
