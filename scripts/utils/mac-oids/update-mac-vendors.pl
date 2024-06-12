@@ -17,7 +17,7 @@ use warnings;
 
 my $clean_run = $ARGV[0] || '';
 
-my @nSQL=read_file("manuf.csv");
+my @nSQL=read_file("/opt/Eye/scripts/utils/mac-oids/manuf.csv");
 
 if ($clean_run eq 'clean') {
     do_sql($dbh,"TRUNCATE TABLE mac_vendors");

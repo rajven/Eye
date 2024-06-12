@@ -7,7 +7,7 @@ php-mbstring php-date php-mail php-snmp php-zip xxd bsdmainutils \
 libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
 libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl libdbi-perl \
 libdbd-mysql-perl libparallel-forkmanager-perl libproc-daemon-perl libdatetime-format-dateparse-perl \
-libnetwork-ipv4addr-perl libnet-openssh-perl libfile-tail-perl php-fpm pdo-mysql libapache2-mod-fcgid \
+libnetwork-ipv4addr-perl libnet-openssh-perl libfile-tail-perl php-fpm php-db libapache2-mod-fcgid \
 libcrypt-cbc-perl libcryptx-perl
 
 2. Качаем исходники и раскидываем по каталогам:
@@ -16,9 +16,8 @@ git clone https://github.com/rajven/Eye
 mkdir -p /opt/Eye/scripts
 mkdir -p /opt/Eye/scripts/cfg
 mkdir -p /opt/Eye/scripts/log
-cd statV2/
+cd Eye/
 cp -R scripts/ /opt/Eye/
-cp docs/addons/cfg/config /opt/Eye/scripts/cfg/
 cp -R html/ /opt/Eye/
 
 3. Можно скачать дополнительные скрипты (красивости)
@@ -34,11 +33,14 @@ or
 download from https://github.com/select2/select2 release
 #wget https://github.com/select2/select2/archive/4.0.12.tar.gz
 #tar -xzf 4.0.12.tar.gz -C /opt/Eye/html/js/select2/ --strip-components=2 select2-4.0.12/dist
+#rm -f 4.0.12.tar.gz
 
 download jstree from  https://github.com/vakata/jstree/
 #wget https://github.com/vakata/jstree/zipball/3.3.12 -O js.zip
 #unzip js.zip "vakata-jstree-7a03954/dist/*" -d "/opt/Eye/html/"
 #mv /opt/Eye/html/vakata-jstree-7a03954/dist/ /opt/Eye/html/js/jstree
+#rm -d /opt/Eye/html/vakata-jstree-7a03954
+#rm -f js.zip
 
 4. Настраиваем mysql 
 
@@ -62,8 +64,8 @@ cat docs/mysql/mysql.sql | mysql -u root -p stat
 
 5. Настраиваем конфиги для вэба и скриптов:
 
-cp html/inc/config.php.sample /opt/Eye/html/cfg/
-mv /opt/Eye/html/cfg/config.php.sample /opt/Eye/html/cfg/config.php
+cp html/inc/config.sample.php /opt/Eye/html/cfg/
+mv /opt/Eye/html/cfg/config.sample.php /opt/Eye/html/cfg/config.php
 
 edit: /opt/Eye/html/cfg/config.php
 
@@ -81,11 +83,12 @@ edit: /opt/Eye/scripts/cfg/config
 
 sed -i 's/short_open_tag = Off/short_open_tag = On/' /etc/php/7.4/apache2/php.ini
 sed -i 's/;date.timezone =/date.timezone = Europe\/Moscow/' /etc/php/7.4/apache2/php.ini
+sed -i -E 's/DocumentRoot\s+\/var\/www\/html/DocumentRoot \/opt\/Eye\/html/' /etc/apache2/sites-available/000-default.conf
 
 systemctl enable apache2
 systemctl start apache2
 
-cp docs/add-ons/sudoers.d/www-data /etc/sudoers.d/www-data
+cp docs/sudoers.d/www-data /etc/sudoers.d/www-data
 
 7. Cron & logrotate
 
@@ -118,19 +121,10 @@ systemctl start dhcp-log
 
 ######################################### Additional ##################################################################
 
-1. (Не нужно. Есть в последнем дампе БД). Для определения вендора оборудования по маку, необходимо импортировать базу маков:
+1. Для определения вендора оборудования по маку, необходимо импортировать базу маков:
 
-cp docs/mac-oids/download-macs.sh /opt/Eye/scripts/
-cp docs/mac-oids/update-mac-vendors.pl /opt/Eye/scripts/
-
-chmod +x /opt/Eye/scripts/download-macs.sh
-chmod +x /opt/Eye/scripts/update-mac-vendors.pl
-
-Run:
-/opt/Eye/scripts/download-macs.sh
-/opt/Eye/scripts/update-mac-vendors.pl
-
-И удалите скрипты после завершения их работы
+scripts/utils/mac-oids/download-macs.sh
+scripts/utils/mac-oids/update-mac-vendors.pl
 
 2. Для изменения списков доступа на маршрутизаторе сразу после внесения изменений в вэб-интерфейсе необходимо включить сервис stat-sync
 
