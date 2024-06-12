@@ -53,8 +53,8 @@ mysql_secure_installation - утсановить пароль для root
 
 Создать юзера и базу данных
 
-MariaDB [(none)]> 
-CREATE DATABASE `stat` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+MariaDB [(none)]>
+CREATE DATABASE IF NOT EXISTS `stat` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 grant all privileges on stat.* to stat@localhost identified by 'password';
 flush privileges;
 quit

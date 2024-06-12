@@ -54,7 +54,7 @@ mysql_secure_installation - set password for root
 Create user and database
 
 MariaDB [(none)]>
-CREATE DATABASE `stat` DEFAULT utf8mb4 CHARACTER SET MATCH utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS `stat` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 grant all privileges to stat.* stat@localhost, identified with a "password";
 reset privileges;
 go out
