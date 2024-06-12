@@ -417,15 +417,15 @@ INSERT INTO `device_models` (`id`, `model_name`, `vendor_id`, `nagios_template`)
 
 CREATE TABLE `device_ports` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `device_id` int(11) NOT NULL DEFAULT 0,
-  `snmp_index` int(11) NOT NULL DEFAULT 0,
-  `port` int(11) NOT NULL DEFAULT 0,
+  `device_id` int(11) DEFAULT NULL,
+  `snmp_index` int(11) DEFAULT NULL,
+  `port` int(11) DEFAULT NULL,
   `ifName` varchar(40) DEFAULT NULL,
   `port_name` varchar(40) DEFAULT NULL,
-  `comment` varchar(50) DEFAULT '',
+  `comment` varchar(50) DEFAULT NULL,
   `target_port_id` int(11) NOT NULL DEFAULT 0,
   `auth_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `last_mac_count` int(11) NOT NULL DEFAULT 0,
+  `last_mac_count` int(11) DEFAULT 0,
   `uplink` tinyint(1) NOT NULL DEFAULT 0,
   `nagios` tinyint(1) NOT NULL DEFAULT 0,
   `skip` tinyint(1) NOT NULL DEFAULT 0,
@@ -734,6 +734,7 @@ CREATE TABLE `sessions` (
 CREATE TABLE `subnets` (
   `id` int(11) NOT NULL,
   `subnet` varchar(18) DEFAULT NULL,
+  `vlan_tag` int(11) NOT NULL DEFAULT 1,
   `ip_int_start` bigint(20) NOT NULL,
   `ip_int_stop` bigint(20) NOT NULL,
   `dhcp_start` bigint(20) NOT NULL DEFAULT 0,
@@ -824,7 +825,7 @@ CREATE TABLE `User_auth` (
   `filter_group_id` tinyint(1) NOT NULL DEFAULT 0,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `comments` varchar(250) DEFAULT NULL,
-  `dns_name` varchar(60) DEFAULT NULL,
+  `dns_name` varchar(100) DEFAULT NULL,
   `WikiName` varchar(250) DEFAULT NULL,
   `dhcp_acl` text DEFAULT NULL,
   `queue_id` int(11) NOT NULL DEFAULT 0,
@@ -851,10 +852,10 @@ CREATE TABLE `User_auth` (
 
 -- --------------------------------------------------------
 
-CREATE TABLE `gateway_subnets` ( 
-  `id` INT NOT NULL AUTO_INCREMENT , 
-  `device_id` INT NULL DEFAULT NULL , 
-  `subnet_id` INT NULL DEFAULT NULL , 
+CREATE TABLE `gateway_subnets` (
+  `id` INT NOT NULL AUTO_INCREMENT ,
+  `device_id` INT NULL DEFAULT NULL ,
+  `subnet_id` INT NULL DEFAULT NULL ,
   PRIMARY KEY (`id`)
 ) ENGINE = InnoDB;
 
