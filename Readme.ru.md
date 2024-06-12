@@ -210,6 +210,9 @@ add name=download_root_[LAN_INTERFACE_NAME] parent=[LAN_INTERFACE_NAME] queue=pc
 Скрипт создаст правила фильтрации и шейпера
 
 #dhcp script
+#ROS6
 /tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&api_key=<API_CUSTOMER_KEY>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
+#ROS7
+/tool fetch url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php?login=<LOGIN>&api_key=<API_CUSTOMER_KEY>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" mode=http keep-result=no
 
 #########################################################################################################################
