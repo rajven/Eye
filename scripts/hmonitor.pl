@@ -172,7 +172,7 @@ if ($hoststate ne $old_state) {
             db_log_info($hdb,"Event handler $nagios_handler for $hostname [$hostip] => $hoststate found!");
             if ($nagios_handler=~/restart-port/i) {
                     my $run_cmd = $HOME_DIR."/restart_port_snmp.pl $hostip & ";
-                    db_log_info($hdb,"Nagios eventhandler restart-port started for ip: $hostip");
+                    db_log_info($hdb,"Nagios eventhandler restart-port started for $hostname[".$hostip."]");
                     db_log_info($hdb,"Run handler: $run_cmd");
                     system($run_cmd);
                     }

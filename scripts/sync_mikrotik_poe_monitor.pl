@@ -40,12 +40,17 @@ my $switch_ip=$device->{ip};
 
 my @cmd_list=();
 
-my @auth_list = get_records_sql($dbh,"SELECT DP.port,AU.ip FROM `device_ports` AS DP, `User_auth` as AU, `connections` as C WHERE DP.id=C.port_id and C.auth_id=AU.id and AU.deleted=0 and AU.link_check=1 and AU.nagios=1 and C.device_id=".$device->{id}."");
+my @auth_list = get_records_sql($dbh,"SELECT DP.port,AU.ip,AU.dns_name FROM `device_ports` AS DP, `User_auth` as AU, `connections` as C WHERE DP.id=C.port_id and C.auth_id=AU.id and AU.deleted=0 and AU.nagios=1 and C.device_id=".$device->{id}."");
 
 my %work_list;
 foreach my $auth (@auth_list) {
 next if (!$auth);
-$work_list{'ether'.$auth->{port}}=$auth->{ip};
+$work_list{'ether'.$auth->{port}}{ip}=$auth->{ip};
+if ($auth->{dns_name}) {
+    $work_list{'ether'.$auth->{port}}{dns_name}=$auth->{dns_name};
+    } else {
+    $work_list{'ether'.$auth->{port}}{dns_name}=$auth->{ip};
+    }
 }
 
 $device = netdev_set_auth($device);
@@ -82,20 +87,23 @@ $current_list{$port_name}=$ping_address;
 
 foreach my $current_port (keys %current_list) {
 if (defined $work_list{$current_port}) {
-    if ($work_list{$current_port} ne $current_list{$current_port}) {
-        db_log_info($dbh,"Change settings poe monitor at $switch_name [$current_port] to ip: $work_list{$current_port}");
-	push(@cmd_list,'/interface ethernet set [ find default-name='.$current_port.' ] power-cycle-ping-address='.$work_list{$current_port}.' power-cycle-ping-enabled=yes power-cycle-ping-timeout=3m'); 
-	}
+    if ($work_list{$current_port}{ip} ne $current_list{$current_port}) {
+        db_log_info($dbh,"Change settings poe monitor at $switch_name [$current_port] to ip: $work_list{$current_port}{ip}");
+        push(@cmd_list,'/interface ethernet set [ find default-name='.$current_port.' ] power-cycle-ping-address='.$work_list{$current_port}{ip}.' power-cycle-ping-enabled=yes power-cycle-ping-timeout=5m'); 
+        push(@cmd_list,'/interface ethernet set [ find default-name='.$current_port.' ] comment='.$work_list{$current_port}{dns_name}); 
+        }
     } else {
     db_log_info($dbh,"Disable poe monitor at $switch_name [$current_port]");
     push(@cmd_list,'/interface ethernet set [ find default-name='.$current_port.' ] power-cycle-ping-enabled=no');
+    push(@cmd_list,'/interface ethernet set [ find default-name='.$current_port.' ] comment=""'); 
     }
 }
 
 foreach my $work_port (keys %work_list) {
 if (!defined $current_list{$work_port}) {
-    db_log_info($dbh,"Enable poe monitor at $switch_name [$work_port] for $work_list{$work_port}");
-    push(@cmd_list,'/interface ethernet set [ find default-name='.$work_port.' ] power-cycle-ping-address='.$work_list{$work_port}.' power-cycle-ping-enabled=yes power-cycle-ping-timeout=3m');
+    db_log_info($dbh,"Enable poe monitor at $switch_name [$work_port] for $work_list{$work_port}{ip}");
+    push(@cmd_list,'/interface ethernet set [ find default-name='.$work_port.' ] power-cycle-ping-address='.$work_list{$work_port}{ip}.' power-cycle-ping-enabled=yes power-cycle-ping-timeout=5m');
+    push(@cmd_list,'/interface ethernet set [ find default-name='.$work_port.' ] comment='.$work_list{$work_port}{dns_name});
     }
 }
 
@@ -112,3 +120,4 @@ $dbh->disconnect();
 if (IsMyPID($SPID)) { Remove_PID($SPID); };
 
 do_exit 0;
+
