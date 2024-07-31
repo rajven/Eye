@@ -26,7 +26,7 @@ use Fcntl qw(:flock);
 use Parallel::ForkManager;
 use Net::DNS;
 
-$debug = 1;
+#$debug = 1;
 
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
