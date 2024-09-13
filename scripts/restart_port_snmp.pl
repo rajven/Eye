@@ -38,15 +38,14 @@ my $HOST_IP = $ARGV[0];
 
 my $IP_ATON=StrToIp($HOST_IP);
 
-my $auth_id = get_id_record($dbh,'User_auth',"deleted=0 and ip_int='".$IP_ATON."'");
-if (!$auth_id) { db_log_error("Record with ip $HOST_IP not found! Bye."); exit; }
+my $auth_rec = get_record_sql($dbh,'SELECT * FROM User_auth WHERE deleted=0 and ip_int='.$IP_ATON);
+if (!$auth_rec) { db_log_error("Record with ip $HOST_IP not found! Bye."); exit; }
 
-my $ip;
-my $model;
-my $port;
-my $snmp_index;
-my $community;
-my $snmp_version;
+my $auth_id = $auth_rec->{id};
+my $auth_name = $auth_rec->{dns_name};
+
+my $auth_ident = $HOST_IP;
+if ($auth_name) { $auth_ident = $auth_name."[".$HOST_IP."]"; }
 
 my $d_sql="SELECT D.ip, D.device_name, D.vendor_id, D.device_model_id, DP.port, DP.snmp_index, D.rw_community, D.snmp_version  FROM devices AS D, device_ports AS DP, connections AS C WHERE D.snmp_version>0 and D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id=$auth_id AND DP.uplink=0";
 
@@ -55,7 +54,9 @@ my $dev_port = get_record_sql($dbh,$d_sql);
 if (!$dev_port) { db_log_error($dbh,"Connection for $HOST_IP not found! Bye."); exit; }
 
 my $ip=$dev_port->{ip};
-my $model=$dev_port->{device_model_id};
+my $model_id=$dev_port->{device_model_id};
+my $model_rec = get_record_sql($dbh,'SELECT model_name FROM device_models WHERE id='.$model_id);
+my $model = $model_rec->{model_name};
 my $port=$dev_port->{port};
 my $vendor_id = $dev_port->{vendor_id};
 my $snmp_index=$dev_port->{snmp_index};
@@ -63,7 +64,7 @@ my $community=$dev_port->{rw_community};
 my $snmp_version=$dev_port->{snmp_version};
 my $device_name = $dev_port->{device_name};
 
-db_log_warning($dbh,"Restart $HOST_IP at $device_name ($model $ip) [$port] request found. Try.");
+db_log_warning($dbh,"Restart $auth_ident at $device_name ($model $ip) [$port] request found. Try.");
 
 my $poe_oid;
 my $admin_oid;

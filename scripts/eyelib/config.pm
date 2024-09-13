@@ -180,7 +180,7 @@ chomp($HOSTNAME1);
 our $HOSTNAME=$HOSTNAME1;
 
 ### debug
-our $debug=1;
+our $debug=0;
 
 our $log_enable = 1;
 

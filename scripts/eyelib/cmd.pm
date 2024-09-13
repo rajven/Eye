@@ -257,7 +257,7 @@ return 1;
 sub netdev_login {
 my $device = shift;
 #skip unknown vendor
-if (!$switch_auth{$device->{vendor_id}}) { return; }
+if (!$switch_auth{$device->{vendor_id}}) { return 0; }
 
 my $t;
 
@@ -272,7 +272,7 @@ if ($device->{proto} eq 'telnet') {
     if ($device->{vendor_id} eq '4') {
         eval {
             my $t1 = new Net::Telnet (Timeout => 5, Port => $device->{port}, Max_buffer_length=>10240000, Prompt =>"/$switch_auth{$device->{vendor_id}}{prompt}/");
-            $t1->open($device->{ip}) or return;
+            $t1->open($device->{ip}) or return 0;
             if (exists $switch_auth{$device->{vendor_id}}{login}) { $t1->waitfor("/$switch_auth{$device->{vendor_id}}{login}/"); }
             $t1->print($device->{login});
             if (exists $switch_auth{$device->{vendor_id}}{password}) { $t1->waitfor("/$switch_auth{$device->{vendor_id}}{password}/"); }
@@ -314,7 +314,7 @@ if ($device->{proto} eq 'telnet') {
             log_cmd($t,"disable clipaging");
             }
         };
-    if ($@) { log_error("Login to $device->{device_name} ip: $device->{ip} by telnet aborted: $@"); } else { log_info("Login to $device->{device_name} ip: $device->{ip} by telnet success!"); }
+    if ($@) { log_error("Login to $device->{device_name} ip: $device->{ip} by telnet aborted: $@"); return 0; } else { log_info("Login to $device->{device_name} ip: $device->{ip} by telnet success!"); }
     }
 
 if ($device->{proto} eq 'ssh') {
@@ -335,7 +335,7 @@ if ($device->{proto} eq 'ssh') {
 	    ]
 	    );
 
-        if ($t->error) {  log_error("Login to $device->{device_name} ip: $device->{ip} by ssh aborted: ".$t->error); }
+        if ($t->error) {  log_error("Login to $device->{device_name} ip: $device->{ip} by ssh aborted: ".$t->error); return 0; }
 
         netdev_set_enable($t,$device);
 
@@ -349,9 +349,9 @@ if ($device->{proto} eq 'ssh') {
         if ($device->{vendor_id} eq '6') {
             $t->capture("terminal length 0");
             }
-        if ($device->{vendor_id} eq '9') {
-            $t->capture("/system note set show-at-login=no");
-            }
+#        if ($device->{vendor_id} eq '9') {
+#            $t->capture("/system note set show-at-login=no");
+#            }
         if ($device->{vendor_id} eq '16') {
             $t->capture("terminal width 0");
             }

@@ -79,6 +79,19 @@ next if (!$gate);
 $pm->start and next;
 $dbh = init_db();
 
+my @cmd_list=();
+
+$gate = netdev_set_auth($gate);
+$gate->{login}.='+ct400w';
+my $t = netdev_login($gate);
+
+if (!$t) {
+    log_error("Login to $gate->{device_name} [$gate->{ip}] failed! Skip gateway.");
+    $dbh->disconnect();
+    $pm->finish;
+    next;
+    }
+
 my $router_name=$gate->{device_name};
 my $router_ip=$gate->{ip};
 my $shaper_enabled = $gate->{queue_enabled};
@@ -103,12 +116,6 @@ if (@gw_subnets and scalar @gw_subnets) {
         if ($gw_subnet and $gw_subnet->{'subnet'}) { $connected_users->add_string($gw_subnet->{'subnet'}); }
     }
 }
-
-my @cmd_list=();
-
-$gate = netdev_set_auth($gate);
-$gate->{login}.='+ct400w';
-my $t = netdev_login($gate);
 
 foreach my $int (@lan_int) { #interface dhcp loop
 next if (!$int);
@@ -412,8 +419,18 @@ do_sql($dbh,"DELETE FROM Group_filters WHERE filter_id NOT IN (SELECT id FROM Fi
 my @grouplist_ref = get_records_sql($dbh,"SELECT `group_id`,`filter_id`,`order`,`action` FROM Group_filters ORDER BY Group_filters.group_id,Group_filters.order");
 
 my %group_filters;
-my $index=0;
+my $index = 0;
+my $cur_group;
+
 foreach my $row (@grouplist_ref) {
+
+    if (!$cur_group) { $cur_group = $row->{group_id}; }
+
+    if ($cur_group != $row->{group_id}) {
+        $index = 0;
+        $cur_group = $row->{group_id};
+        }
+
     #if dst dns filter not found
     if (!$filters{$row->{filter_id}}->{dns_dst}) {
         $group_filters{'group_'.$row->{group_id}}->{$index}->{filter_id}=$row->{filter_id};
@@ -421,16 +438,16 @@ foreach my $row (@grouplist_ref) {
         $index++;
     } else {
         #if found dns dst filters - add
-	    if (exists $dyn_filters{$row->{filter_id}}) {
+	if (exists $dyn_filters{$row->{filter_id}}) {
 	        my @dyn_ips = @{$dyn_filters{$row->{filter_id}}};
 	        if (scalar @dyn_ips >0) {
 		        for (my $i = 0; $i < scalar @dyn_ips; $i++) {
-        	        $group_filters{'group_'.$row->{group_id}}->{$index}->{filter_id}=$dyn_ips[$i];
-                    $group_filters{'group_'.$row->{group_id}}->{$index}->{action}=$row->{action};
-        	        $index++;
-        	    }
+                            $group_filters{'group_'.$row->{group_id}}->{$index}->{filter_id}=$dyn_ips[$i];
+                            $group_filters{'group_'.$row->{group_id}}->{$index}->{action}=$row->{action};
+                            $index++;
+        	        }
 	        }
-        }
+            }
     }
 }
 
@@ -513,18 +530,28 @@ foreach my $group_name (keys %group_filters) {
 }
 
 my %chain_rules;
-foreach my $group_name (keys %group_filters) {
+foreach my $group_name (sort keys %group_filters) {
+
 next if (!$group_name);
+
 next if (!exists($group_filters{$group_name}));
-foreach my $filter_index (sort keys %{$group_filters{$group_name}}) {
-    my $filter_id=$group_filters{$group_name}->{$filter_index}->{filter_id};
+
+my %group_filter = %{$group_filters{$group_name}};
+
+foreach my $filter_index (sort keys %group_filter) {
+
+    my $filter = $group_filter{$filter_index};
+
+    my $filter_id=$filter->{filter_id};
+
     next if (!$filters{$filter_id});
+
     next if ($filters{$filter_id}->{dns_dst});
 
     my $src_rule='chain='.$group_name;
     my $dst_rule='chain='.$group_name;
 
-    if ($group_filters{$group_name}->{$filter_index}->{action}) {
+    if ($filter->{action}) {
 	$src_rule=$src_rule." action=accept";
 	$dst_rule=$dst_rule." action=accept";
 	} else {
@@ -570,18 +597,13 @@ foreach my $filter_index (sort keys %{$group_filters{$group_name}}) {
     }
 }
 
-
 #chain filters
-foreach my $group_name (keys %group_filters) {
-
+foreach my $group_name (sort keys %group_filters) {
 next if (!$group_name);
-
 my @get_filter=netdev_cmd($gate,$t,$gate->{proto},'/ip firewall filter print terse without-paging where chain='.$group_name,1);
 chomp(@get_filter);
-
 my @cur_filter=();
 my $chain_ok=1;
-
 foreach (my $f_index=0; $f_index<scalar(@get_filter); $f_index++) {
     my $filter_str=trim($get_filter[$f_index]);
     next if (!$filter_str);
@@ -592,7 +614,6 @@ foreach (my $f_index=0; $f_index<scalar(@get_filter); $f_index++) {
     next if (!$filter_str);
     push(@cur_filter,$filter_str);
 }
-
 log_debug("Current filters:".Dumper(\@cur_filter));
 log_debug("New filters:".Dumper($chain_rules{$group_name}));
 
@@ -605,7 +626,6 @@ foreach (my $f_index=0; $f_index<scalar(@cur_filter); $f_index++) {
 	last;
 	}
     }
-
 #new rules
 if ($chain_ok and $chain_rules{$group_name} and scalar(@{$chain_rules{$group_name}})) {
     foreach (my $f_index=0; $f_index<scalar(@{$chain_rules{$group_name}}); $f_index++) {
@@ -851,7 +871,7 @@ if (scalar(@cmd_list)) {
     };
     if ($@) {
         $all_ok = 0;
-	    log_debug("Error programming gateway! Err: ".$@);
+	log_debug("Error programming gateway! Err: ".$@);
         }
     }
 
