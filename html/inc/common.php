@@ -3186,7 +3186,7 @@ function get_ports_poe_state($vendor_id, $ip, $community = 'public', $version = 
     $result = [];
 
     $c_state = walk_snmp($ip, $community, $version, $poe_status);
-    if (!empty($c_state)) {
+    if (isset($c_state) and !empty($c_state)) {
         foreach ($c_state as $key => $value) {
             if (empty($value)) { $value = ''; }
             $key = trim($key);
@@ -3219,7 +3219,6 @@ function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
     if (!isset($ip)) {
         return;
     }
-
     // default poe oid
     $poe_status = PETH_PSE_PORT_ADMIN_ENABLE . "." . $port_snmp_index;
 
@@ -3253,8 +3252,9 @@ function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
 
     $result = '';
     $c_state = get_snmp($ip, $community, $version, $poe_status);
-    if (!empty($c_state)) {
+    if (isset($c_state) and !empty($c_state)) {
         $p_state = parse_snmp_value($c_state);
+        if (empty($p_state)) { return NULL; }
         // patch for mikrotik
         if ($vendor_id == 9) {
             if ($p_state == 1) {
@@ -3275,7 +3275,7 @@ function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
         }
         return $p_state;
     }
-    return;
+    return 0;
 }
 
 function set_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community='public', $version='2', $state)
@@ -3693,7 +3693,7 @@ function get_snmp($ip, $community, $version, $oid)
     if ($version == 1) {
         $result = snmpget($ip, $community, $oid, SNMP_timeout, SNMP_retry);
 	}
-    if (!$result) { $result = ''; }
+    if (empty($result)) { $result = NULL; }
     } catch (Exception $e) {
 #	echo 'Caught exception: ',  $e->getMessage(), "\n";
 	$result = NULL;
