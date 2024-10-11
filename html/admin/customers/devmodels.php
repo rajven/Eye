@@ -36,7 +36,10 @@ if (isset($_POST['save'])) {
 	            $new['model_name'] = $_POST['f_name'][$j];
 	            $new['poe_in'] = $_POST['f_poe_in'][$j];
 	            $new['poe_out'] = $_POST['f_poe_out'][$j];
-	        }
+	        } else {
+	            $new['poe_in'] = $_POST['f_poe_in'][$j];
+	            $new['poe_out'] = $_POST['f_poe_out'][$j];      
+            }
             $new['nagios_template'] = $_POST['f_nagios'][$j];
             update_record($db_link, "device_models", "id='{$save_id}'", $new);
             }
