@@ -153,8 +153,8 @@ foreach ($t_ou as $row) {
     print "<td class=\"data\"><input type=\"hidden\" name='r_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\" width=150>"; print_vendor_set($db_link,'f_vendor[]',$row['vendor_id']); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_name[]' value='{$row['model_name']}'></td>\n";
-    print "<td class=\"data\">";print_qa_select("f_poe_in", $row['poe_in']); print "</td>\n";
-    print "<td class=\"data\">";print_qa_select("f_poe_out", $row['poe_out']); print "</td>\n";
+    print "<td class=\"data\">";print_qa_select("f_poe_in[]", $row['poe_in']); print "</td>\n";
+    print "<td class=\"data\">";print_qa_select("f_poe_out[]", $row['poe_out']); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_nagios[]' value='{$row['nagios_template']}'></td>\n";
     print "<td class=\"data\"></td>\n";
     print "<td class=\"data\"></td>\n";
