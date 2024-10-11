@@ -216,6 +216,8 @@ define("WEB_cell_rule", "Rules");
 define("WEB_cell_password","Password");
 define("WEB_cell_control_proto","Protocol");
 define("WEB_cell_control_port","Port");
+define("WEB_cell_poe_in","POE In");
+define("WEB_cell_poe_out","POE");
 
 /* lists name */
 define("WEB_list_ou","List of groups");

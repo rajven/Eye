@@ -4,6 +4,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php")
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 
 $device = get_record($db_link, 'devices', "id=" . $id);
+$device_model = get_record($db_link, 'device_models', "id=" . $device['device_model_id']);
 
 if (isset($_POST["regensnmp"])) {
     $snmp_index = $_POST["f_snmp_start"] * 1;
@@ -94,7 +95,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
         $snmp_ok = 0;
         $vlan_list = [];
         $vlan_at_port_by_snmp = 1;
-        $port_poe_by_snmp = 1;
+        
         if (!empty($device['ip']) and $device['snmp_version'] > 0) {
             $snmp_ok = check_snmp_access($device['ip'], $device['community'], $device['snmp_version']);
             $modules_oids = NULL;
@@ -130,7 +131,9 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
         print "<td>" . WEB_device_port_errors . "</td>\n";
         print "<td>" . WEB_cell_mac_count . "</td>\n";
         print "<td>" . WEB_msg_additional . "</td>\n";
-        print "<td>" . WEB_device_poe_control . "</td>\n";
+        if ($device_model['poe_out']) {
+            print "<td>" . WEB_device_poe_control . "</td>\n";
+            }
         print "<td>" . WEB_device_port_control . "</td>\n";
         print "</tr>\n";
         $sSQL = "SELECT * FROM device_ports WHERE device_ports.device_id=$id ORDER BY port";
@@ -199,18 +202,20 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 $ifname = get_snmp_ifname($device['ip'], $device['community'], $device['snmp_version'], $row['snmp_index']);
 
                 //poe information
-                $poe_status = get_port_poe_state($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
-                if (isset($poe_status)) {
-                    if ($poe_status == 1) {
-                        $port_poe_detail = get_port_poe_detail($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
-                        if (empty($port_poe_detail)) {
-                            $poe_info = 'POE:on';
-                        } else {
-                            $poe_info = $port_poe_detail;
+                if ($device_model['poe_out']) {
+                    $poe_status = get_port_poe_state($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
+                    if (isset($poe_status)) {
+                        if ($poe_status == 1) {
+                            $port_poe_detail = get_port_poe_detail($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $device['community'], $device['snmp_version']);
+                            if (empty($port_poe_detail)) {
+                                $poe_info = 'POE:on';
+                            } else {
+                                $poe_info = $port_poe_detail;
+                            }
                         }
-                    }
-                    if ($poe_status == 2) {
-                        $poe_info = "POE:Off";
+                        if ($poe_status == 2) {
+                            $poe_info = "POE:Off";
+                        }
                     }
                 }
 
@@ -333,7 +338,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             print "<td class='" . $cl . "' ><button onclick=\"". open_window_url('portmactable.php?id='.$row['id'])." return false;\">" . $row['last_mac_count'] . "</button></td>\n";
 
             print "<td class='" . $cl . "'>" . $sfp_status . " " . $poe_info . "</td>\n";
-            if (isset($poe_status) and !$row['skip']) {
+            if ($device_model['poe_out'] and isset($poe_status) and !$row['skip']) {
                 print "<td class=\"data\">";
                 if ($device['vendor_id'] != 9) {
                     if ($poe_status == 2) {

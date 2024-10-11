@@ -34,6 +34,8 @@ if (isset($_POST['save'])) {
             if ($save_id>=10000) {
                 $new['vendor_id'] = $_POST['f_vendor'][$j];
 	            $new['model_name'] = $_POST['f_name'][$j];
+	            $new['poe_in'] = $_POST['f_poe_in'][$j];
+	            $new['poe_out'] = $_POST['f_poe_out'][$j];
 	        }
             $new['nagios_template'] = $_POST['f_nagios'][$j];
             update_record($db_link, "device_models", "id='{$save_id}'", $new);
@@ -132,6 +134,8 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td><b>Id</b></td>
 <td><b><?php echo WEB_model_vendor; ?></b></td>
 <td><b><?php echo WEB_cell_name; ?></b></td>
+<td><b><?php echo WEB_cell_poe_in; ?></b></td>
+<td><b><?php echo WEB_cell_poe_out; ?></b></td>
 <td><b><?php echo WEB_nagios_template; ?></b></td>
 <td><input type="submit" name='save' value="<?php echo WEB_btn_save; ?>"></td>
 <td><input type="submit" name='remove' value="<?php echo WEB_btn_delete; ?>"></td>
@@ -144,6 +148,8 @@ foreach ($t_ou as $row) {
     print "<td class=\"data\"><input type=\"hidden\" name='r_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\" width=150>"; print_vendor_set($db_link,'f_vendor[]',$row['vendor_id']); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_name[]' value='{$row['model_name']}'></td>\n";
+    print "<td class=\"data\">";print_qa_select("f_poe_in", $row['poe_in']); print "</td>\n";
+    print "<td class=\"data\">";print_qa_select("f_poe_out", $row['poe_out']); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_nagios[]' value='{$row['nagios_template']}'></td>\n";
     print "<td class=\"data\"></td>\n";
     print "<td class=\"data\"></td>\n";
