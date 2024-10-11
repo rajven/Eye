@@ -3165,6 +3165,7 @@ function get_port_vlan($vendor, $port, $port_index, $ip, $community='public', $v
 
 function get_ports_poe_state($vendor_id, $ip, $community = 'public', $version = '2')
 {
+
     if (!isset($vendor_id)) {
         return;
     }
@@ -3252,6 +3253,7 @@ function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
 
     $result = '';
     $c_state = get_snmp($ip, $community, $version, $poe_status);
+
     if (isset($c_state) and !empty($c_state)) {
         $p_state = parse_snmp_value($c_state);
         if (empty($p_state)) { return NULL; }
@@ -3275,7 +3277,7 @@ function get_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community
         }
         return $p_state;
     }
-    return 0;
+    return NULL;
 }
 
 function set_port_poe_state($vendor_id, $port, $port_snmp_index, $ip, $community='public', $version='2', $state)
