@@ -40,6 +40,8 @@ if (isset($_POST['save'])) {
 	            $new['poe_in'] = $_POST['f_poe_in'][$j];
 	            $new['poe_out'] = $_POST['f_poe_out'][$j];      
             }
+            if (!isset($new['poe_in']) OR empty($new['poe_in'])) { $new['poe_in'] = 0; }
+            if (!isset($new['poe_out']) OR empty($new['poe_out'])) { $new['poe_out'] = 0; }
             $new['nagios_template'] = $_POST['f_nagios'][$j];
             update_record($db_link, "device_models", "id='{$save_id}'", $new);
             }
