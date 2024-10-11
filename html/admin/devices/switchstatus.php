@@ -338,21 +338,23 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             print "<td class='" . $cl . "' ><button onclick=\"". open_window_url('portmactable.php?id='.$row['id'])." return false;\">" . $row['last_mac_count'] . "</button></td>\n";
 
             print "<td class='" . $cl . "'>" . $sfp_status . " " . $poe_info . "</td>\n";
-            if ($device_model['poe_out'] and isset($poe_status) and !$row['skip']) {
-                print "<td class=\"data\">";
-                if ($device['vendor_id'] != 9) {
-                    if ($poe_status == 2) {
-                        print "<button name='poe_on[]' value='{$row['snmp_index']}'>" . WEB_device_poe_on . "</button>";
+            if ($device_model['poe_out']) {
+                if (isset($poe_status) and !$row['skip']) {
+                    print "<td class=\"data\">";
+                    if ($device['vendor_id'] != 9) {
+                        if ($poe_status == 2) {
+                            print "<button name='poe_on[]' value='{$row['snmp_index']}'>" . WEB_device_poe_on . "</button>";
+                        }
+                        if ($poe_status == 1) {
+                            print "<button name='poe_off[]' value='{$row['snmp_index']}'>" . WEB_device_poe_off . "</button>";
+                        }
+                    } else {
+                        print WEB_msg_unsupported;
                     }
-                    if ($poe_status == 1) {
-                        print "<button name='poe_off[]' value='{$row['snmp_index']}'>" . WEB_device_poe_off . "</button>";
-                    }
+                    print "</td>\n";
                 } else {
-                    print WEB_msg_unsupported;
+                    print "<td class=\"data\">"; print WEB_msg_unsupported; print "</td>\n";
                 }
-                print "</td>\n";
-            } else {
-                print "<td>" . WEB_msg_unsupported . "</td>\n";
             }
             if (isset($padmin) and !$row['uplink'] and !$row['skip']) {
                 print "<td class=\"data\">";
