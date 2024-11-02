@@ -230,8 +230,8 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                                     $new_info['vlan'] =1;
                                     }
                                 }
-                            if (!empty($vlan_list[$row['snmp_index']]['tagged'])) { $new_info['tagged_vlan']=$vlan_list[$row['snmp_index']]['tagged']; }
-                            if (!empty($vlan_list[$row['snmp_index']]['untagged'])) { $new_info['untagged_vlan']=$vlan_list[$row['snmp_index']]['untagged']; }
+                            if (!empty($vlan_list[$row['snmp_index']]['tagged'])) { $new_info['tagged_vlan']=$vlan_list[$row['snmp_index']]['tagged']; } else { $new_info['tagged_vlan'] = ''; }
+                            if (!empty($vlan_list[$row['snmp_index']]['untagged'])) { $new_info['untagged_vlan']=$vlan_list[$row['snmp_index']]['untagged']; } else { $new_info['untagged_vlan'] = ''; }
                             }
                         } else {
                         if (!empty($vlan_list[$row['port']])) {
@@ -242,8 +242,8 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                                     $new_info['vlan'] =1;
                                     }
                                 }
-                            if (!empty($vlan_list[$row['port']]['tagged'])) { $new_info['tagged_vlan']=$vlan_list[$row['port']]['tagged']; }
-                            if (!empty($vlan_list[$row['port']]['untagged'])) { $new_info['untagged_vlan']=$vlan_list[$row['port']]['untagged']; }
+                            if (!empty($vlan_list[$row['port']]['tagged'])) { $new_info['tagged_vlan']=$vlan_list[$row['port']]['tagged']; } else { $new_info['tagged_vlan'] = ''; }
+                            if (!empty($vlan_list[$row['port']]['untagged'])) { $new_info['untagged_vlan']=$vlan_list[$row['port']]['untagged']; } else { $new_info['untagged_vlan'] = ''; }
                             }
                         }
                     $display_vlan = '';
@@ -265,13 +265,11 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 }
                 //interface name
                 if (!empty($ifmib_list[$row['snmp_index']])) { $ifname = $ifmib_list[$row['snmp_index']]; }
-                if (!isset($row['ifName']) or $row['ifName'] !== $ifname) {
-                    $new_info['ifName'] = $ifname;
-                }
+                if (!isset($row['ifName']) or $row['ifName'] !== $ifname) { $new_info['ifName'] = $ifname; }
             }
 
             //fix port information
-            if (!empty($new_info)) {
+            if ($snmp_ok) {
                 update_record($db_link, "device_ports", "id=" . $row['id'], $new_info);
             }
 

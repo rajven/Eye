@@ -2981,7 +2981,7 @@ function get_switch_vlans($vendor,$ip,$community='public',$version='2') {
                     //analyze switch vlans
                     foreach ($switch_vlans as $vlan_id => $vlan_name) {
                         if (isset($bin_value[$vlan_id]) and $bin_value[$vlan_id]=='1') {
-                        $port_status[$port]['tagged']=$port_status[$port]['tagged'].','.$vlan_id;
+                            $port_status[$port]['tagged']=$port_status[$port]['tagged'].','.$vlan_id;
                             }
                         }
                     }
