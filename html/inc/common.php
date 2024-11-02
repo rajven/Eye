@@ -1417,16 +1417,14 @@ function get_device_by_auth($db, $id)
 
 function print_auth_port($db, $port_id, $new_window = FALSE)
 {
-    $d_sql = "SELECT A.ip,A.ip_int,A.mac,A.id,A.dns_name,A.comments,A.user_id FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
+    $d_sql = "SELECT A.ip, A.ip_int, A.mac, A.id, A.dns_name, A.user_id FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
     $t_auth = mysqli_query($db, $d_sql);
-    while (list($f_ip, $f_int, $f_mac, $f_auth_id, $f_dns, $f_comment, $f_user_id) = mysqli_fetch_array($t_auth)) {
+    while (list($f_ip, $f_int, $f_mac, $f_auth_id, $f_dns, $f_user_id) = mysqli_fetch_array($t_auth)) {
         $name = $f_ip;
-        if (isset($f_dns) and $f_dns != '') {
-            $name = $f_dns;
-        }
+        if (!empty($f_dns)) { $name = $f_dns; }
+        if (!empty($f_dns)) { $name = $f_dns; }
         $title=get_login($db,$f_user_id)." =>".$f_ip."[".$f_mac."]";
         if (!empty($f_dns)) { $title.=" | ".$f_dns; }
-        if (!empty($f_comment)) { $title.=" | ".$f_comment; }
         if ($new_window) {
             print "<a href=\"\" title=\"" . $title . "\" onclick=\"".open_window_url("/admin/users/editauth.php?id=".$f_auth_id)." return false;\">" . $name . " [" . $f_ip . "]</a><br>";
         } else {
@@ -1435,9 +1433,10 @@ function print_auth_port($db, $port_id, $new_window = FALSE)
     }
 }
 
-function get_port_comment($db, $port_id, $port_comment)
+function get_port_comment($db, $port_id, $port_comment = '')
+function get_port_comment($db, $port_id, $port_comment = '')
 {
-    $d_sql = "SELECT A.ip_int,A.comments FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
+    $d_sql = "SELECT A.ip_int, A.comments FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
     $t_auth = mysqli_query($db, $d_sql);
     $comment_found = 0;
     $result = '';
@@ -1446,6 +1445,8 @@ function get_port_comment($db, $port_id, $port_comment)
         $result .=$f_comment.'<br>';
     }
     if (!$comment_found) { return $port_comment; }
+    if (!empty($port_comment)) { $result .='('.$port_comment.')'; }
+    if (!empty($port_comment)) { $result .='('.$port_comment.')'; }
     return $result;
 }
 
