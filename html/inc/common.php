@@ -1418,8 +1418,8 @@ function get_device_by_auth($db, $id)
 function print_auth_port($db, $port_id, $new_window = FALSE)
 {
     $d_sql = "SELECT A.ip,A.ip_int,A.mac,A.id,A.dns_name,A.comments,A.user_id FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
-    $t_device = mysqli_query($db, $d_sql);
-    while (list($f_ip, $f_int, $f_mac, $f_auth_id, $f_dns, $f_comment, $f_user_id) = mysqli_fetch_array($t_device)) {
+    $t_auth = mysqli_query($db, $d_sql);
+    while (list($f_ip, $f_int, $f_mac, $f_auth_id, $f_dns, $f_comment, $f_user_id) = mysqli_fetch_array($t_auth)) {
         $name = $f_ip;
         if (isset($f_dns) and $f_dns != '') {
             $name = $f_dns;
@@ -1433,6 +1433,20 @@ function print_auth_port($db, $port_id, $new_window = FALSE)
             print "<a href=/admin/users/editauth.php?id=".$f_auth_id." title=\"" . $title . "\" >" . $name . " [" . $f_ip . "]</a><br>";
         }
     }
+}
+
+function get_port_comment($db, $port_id, $port_comment)
+{
+    $d_sql = "SELECT A.ip_int,A.comments FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
+    $t_auth = mysqli_query($db, $d_sql);
+    $comment_found = 0;
+    $result = '';
+    while (list($f_int, $f_comment) = mysqli_fetch_array($t_auth)) {
+        if (!empty($f_comment)) { $comment_found = 1; } else { $f_comment = ''; }
+        $result .=$f_comment.'<br>';
+    }
+    if (!$comment_found) { return $port_comment; }
+    return $result;
 }
 
 function print_auth_simple($db, $auth_id)

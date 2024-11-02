@@ -104,7 +104,7 @@ foreach ($ports as $row) {
             print_auth_port($db_link, $row['id'],FALSE);
         }
         print "</td>\n";
-        print "<td class='".$cl."'>" . $row['comment'] . "</td>\n";
+        print "<td class='".$cl."'>" . get_port_comment($db_link, $row['id'],$row['comment']) . "</td>\n";
         print "<td class='".$cl."' >" . get_qa($row['uplink']) . "</td>\n";
         print "<td class='".$cl."' >" . get_qa($row['nagios']) . "</td>\n";
         print "<td class='".$cl."' >" . get_qa($row['skip']) . "</td>\n";
