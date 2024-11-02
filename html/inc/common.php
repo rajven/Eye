@@ -1422,6 +1422,7 @@ function print_auth_port($db, $port_id, $new_window = FALSE)
     while (list($f_ip, $f_int, $f_mac, $f_auth_id, $f_dns, $f_user_id) = mysqli_fetch_array($t_auth)) {
         $name = $f_ip;
         if (!empty($f_dns)) { $name = $f_dns; }
+        if (!empty($f_dns)) { $name = $f_dns; }
         $title=get_login($db,$f_user_id)." =>".$f_ip."[".$f_mac."]";
         if (!empty($f_dns)) { $title.=" | ".$f_dns; }
         if ($new_window) {
@@ -1433,6 +1434,7 @@ function print_auth_port($db, $port_id, $new_window = FALSE)
 }
 
 function get_port_comment($db, $port_id, $port_comment = '')
+function get_port_comment($db, $port_id, $port_comment = '')
 {
     $d_sql = "SELECT A.ip_int, A.comments FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
     $t_auth = mysqli_query($db, $d_sql);
@@ -1443,6 +1445,7 @@ function get_port_comment($db, $port_id, $port_comment = '')
         $result .=$f_comment.'<br>';
     }
     if (!$comment_found) { return $port_comment; }
+    if (!empty($port_comment)) { $result .='('.$port_comment.')'; }
     if (!empty($port_comment)) { $result .='('.$port_comment.')'; }
     return $result;
 }
