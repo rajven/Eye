@@ -31,6 +31,7 @@ if (isset($_POST['save'])) {
         $len_all = is_array($_POST['r_id']) ? count($_POST['r_id']) : 0;
         for ($j = 0; $j < $len_all; $j ++) {
             if (intval($_POST['r_id'][$j]) != $save_id) { continue; }
+            $new = NULL;
             if ($save_id>=10000) {
                 $new['vendor_id'] = $_POST['f_vendor'][$j];
 	            $new['model_name'] = $_POST['f_name'][$j];
