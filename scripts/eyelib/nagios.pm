@@ -1,5 +1,6 @@
 package eyelib::nagios;
 
+#use v5.28;
 use utf8;
 use open ":encoding(utf8)";
 use strict;
@@ -82,18 +83,18 @@ my @custom_cfg=();
 if (-e $template_file) { @custom_cfg = read_file($template_file); } else { return; }
 if (@custom_cfg and scalar(@custom_cfg)) {
     foreach my $row (@custom_cfg) {
-        next if (!$row);
+	next if (!$row);
         $row=~s/\%HOSTNAME\%/$device->{name}/;
         $row=~s/\%HOST\%/$device->{name}/;
-        $row=~s/\%HOSTIP\%/$device->{ip}/;
-        $row=~s/\%HOST_IP\%/$device->{ip}/;
-        $row=~s/\%COMMUNITY\%/$device->{community}/ if ($device->{community});
-        $row=~s/\%RW_COMMUNITY\%/$device->{rw_community}/ if ($device->{rw_community});
-        $row=~s/\%SNMP_VERSION\%/$device->{snmp_version}/ if ($device->{snmp_version});
-        $row=~s/\%MODEL\%/$device->{device_model}->{model_name}/ if ($device->{device_model}->{model_name});
+	$row=~s/\%HOSTIP\%/$device->{ip}/;
+	$row=~s/\%HOST_IP\%/$device->{ip}/;
+	$row=~s/\%COMMUNITY\%/$device->{community}/ if ($device->{community});
+	$row=~s/\%RW_COMMUNITY\%/$device->{rw_community}/ if ($device->{rw_community});
+	$row=~s/\%SNMP_VERSION\%/$device->{snmp_version}/ if ($device->{snmp_version});
+	$row=~s/\%MODEL\%/$device->{device_model}->{model_name}/ if ($device->{device_model}->{model_name});
         push(@{$result->{template}},$row);
-        if ($row=~/\s+service_description\s+(.*)$/i) { $result->{services}->{$1}=1; }
-        }
+	if ($row=~/\s+service_description\s+(.*)$/i) { $result->{services}->{$1}=1; }
+	}
     }
 return $result;
 }
@@ -114,11 +115,11 @@ print(FH "       use                     $host_template\n");
 print(FH "       host_name               $device->{name}\n");
 print(FH "       alias                   $device->{name}\n");
 print(FH "       address                 $device->{ip}\n");
-print(FH "       _ID                     $device->{auth_id}\n");
-print(FH "       _TYPE                   user\n");
+print(FH "       _ID			 $device->{auth_id}\n"); 
+print(FH "       _TYPE			 user\n");
 if ($device->{device_model}) {
-        print(FH "       notes          $device->{device_model}->{model_name}\n");
-        }
+	print(FH "       notes		$device->{device_model}->{model_name}\n"); 
+	}
 if ($device->{parent_name}) {
         print(FH "       parents                    $device->{parent_name}\n");
         }
@@ -126,16 +127,16 @@ print(FH "       notes_url       ".$config_ref{stat_url}."/admin/users/editauth.
 print(FH "       }\n\n");
 
 if ($ping_enable) {
-        print(FH "define service{\n");
-        print(FH "       use                    ping-service\n");
-        print(FH "       host_name              $device->{name}\n");
-        print(FH "       service_description    ping $device->{name}\n");
-        print(FH "       check_command          check_ping!100.0,20%!500.0,60%\n");
-        print(FH "       }\n");
-        print(FH "\n");
+	print(FH "define service{\n");
+	print(FH "       use                    ping-service\n");
+	print(FH "       host_name              $device->{name}\n");
+	print(FH "       service_description    ping $device->{name}\n");
+	print(FH "       check_command          check_ping_icmp!100.0,20%!500.0,60%\n");
+	print(FH "       }\n");
+	print(FH "\n");
     }
 if ($device->{parent_name} and $device->{link_check} and $device->{parent_snmp_version}) {
-        #port status
+	#port status
         print(FH "define service{\n");
         print(FH "       use                        $default_service\n");
         print(FH "       host_name                  $device->{parent_name}\n");
@@ -176,17 +177,17 @@ if ($custom_cfg->{template}) {
     open(FH, "> $cfg_file");
     my @custom_cfg = @{$custom_cfg->{template}};
     if (@custom_cfg and scalar(@custom_cfg)) {
-        foreach my $row (@custom_cfg) {
-            next if (!$row);
+	foreach my $row (@custom_cfg) {
+	    next if (!$row);
             print(FH $row."\n");
-            }
-        }
+	    }
+	}
     close(FH);
     return;
     }
 
-#router | switch | gateway
-if (in_array([1,2],$device->{type})) {
+#switch | router
+if (in_array([0,1,2],$device->{type})) {
     open(FH, "> $cfg_file");
     my $device_template = 'switches';
     if ($device->{type} eq 2) {  $device_template='routers'; }
@@ -198,8 +199,8 @@ if (in_array([1,2],$device->{type})) {
     print(FH "       _ID                     $device->{device_id}\n");
     print(FH "       _TYPE                   device\n");
     if ($device->{device_model}) {
-        print(FH "       notes          $device->{device_model}->{model_name}\n");
-        }
+	print(FH "       notes		$device->{device_model}->{model_name}\n");
+	}
     if ($device->{parent_name}) {
         print(FH "       parents                    $device->{parent_name}\n");
         }
@@ -210,32 +211,32 @@ if (in_array([1,2],$device->{type})) {
     print(FH "        use                             ping-service         ; Name of service template to use\n");
     print(FH "        host_name                       $device->{name}\n");
     print(FH "        service_description             ping $device->{name}\n");
-    print(FH "        check_command                   check_ping!100.0,20%!500.0,60%\n");
+    print(FH "        check_command                   check_ping_icmp!100.0,20%!500.0,60%\n");
     print(FH "        }\n");
     #uptime
     if ($device->{snmp_version}) {
         print(FH "define service{\n");
-        print(FH "        use                             $default_service\n");
+	print(FH "        use                             $default_service\n");
         print(FH "        host_name                       $device->{name}\n");
-        print(FH "        service_description             Uptime\n");
+	print(FH "        service_description             Uptime\n");
         print(FH "        check_command                   check_snmp_uptime!$device->{community}!161!$device->{snmp_version}\n");
-        print(FH "        }\n");
+	print(FH "        }\n");
         print(FH "\n");
         #uplink
         if (exists $device->{uplink}) {
-            print(FH "define service{\n");
-            print(FH "       use                        service-snmp-crc\n");
+	    print(FH "define service{\n");
+    	    print(FH "       use                        service-snmp-crc\n");
             print(FH "       host_name                  $device->{name}\n");
             my $port_description = $device->{parent_name};
             my $conn = $device->{uplink};
             print(FH "       service_description port $conn->{port} - $port_description CRC Errors\n");
             print(FH "       check_command              check_snmp_switch_crc!$device->{community}!$conn->{snmp_index}\n");
             print(FH "       }\n\n");
-            }
-        foreach my $conn (@{$device->{downlinks}}) {
-            #id,port,snmp_index,comment
-            print(FH "define service{\n");
-            print(FH "       use                        $default_service\n");
+    	    }
+	foreach my $conn (@{$device->{downlinks}}) {
+	    #id,port,snmp_index,comment
+	    print(FH "define service{\n");
+    	    print(FH "       use                        $default_service\n");
             print(FH "       host_name                  $device->{name}\n");
             my $port_description=translit($conn->{comment});
             if ($conn->{target_port_id}) { $port_description = $conn->{downlink_name}; }
@@ -243,8 +244,8 @@ if (in_array([1,2],$device->{type})) {
             print(FH "       check_command              check_ifoperstatus!$conn->{snmp_index}!$device->{community}\n");
             print(FH "       }\n\n");
             #src
-            print(FH "define service{\n");
-            print(FH "       use                        service-snmp-crc\n");
+	    print(FH "define service{\n");
+    	    print(FH "       use                        service-snmp-crc\n");
             print(FH "       host_name                  $device->{name}\n");
             my $port_description=translit($conn->{comment});
             if ($conn->{target_port_id}) { $port_description = $conn->{downlink_name}; }
@@ -252,16 +253,16 @@ if (in_array([1,2],$device->{type})) {
             print(FH "       check_command              check_snmp_switch_crc!$device->{community}!$conn->{snmp_index}\n");
             print(FH "       }\n\n");
             #band
-            print(FH "define service{\n");
-            print(FH "       use                        service-snmp-bandwidth\n");
+	    print(FH "define service{\n");
+    	    print(FH "       use                        service-snmp-bandwidth\n");
             print(FH "       host_name                  $device->{name}\n");
             my $port_description=translit($conn->{comment});
             if ($conn->{target_port_id}) { $port_description = $conn->{downlink_name}; }
             print(FH "       service_description port $conn->{port} - $port_description bandwidth usage\n");
             print(FH "       check_command              check_snmp_bandwidth!$device->{community}!$conn->{snmp_index}\n");
             print(FH "       }\n\n");
-            }
-        }
+	    }
+	}
     close FH;
     }
 
@@ -272,13 +273,13 @@ if ($device->{type} eq 3) {
     my $dev_cfg;
     if ($device->{device_model} and $device->{device_model}->{nagios_template}) { $dev_cfg = read_host_template($device,$config_ref{nagios_dir}.'/gen_template/'.$device->{device_model}->{nagios_template}); }
     if ($dev_cfg and $dev_cfg->{template}) {
-            my @dev_cfg = @{$dev_cfg->{template}};
-            if (@dev_cfg and scalar(@dev_cfg)) {
-                foreach my $row (@dev_cfg) {
-                    next if (!$row);
-                    print(FH $row."\n");
-                    }
-                }
+	    my @dev_cfg = @{$dev_cfg->{template}};
+	    if (@dev_cfg and scalar(@dev_cfg)) {
+		foreach my $row (@dev_cfg) {
+		    next if (!$row);
+    		    print(FH $row."\n");
+		    }
+		}
         }
     close FH;
     }

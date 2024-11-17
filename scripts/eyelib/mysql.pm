@@ -225,6 +225,7 @@ if (!$db) { $db_log = 0; }
 if ($level eq $L_ERROR and $log_level >= $L_ERROR) { log_error($msg); $db_log = 1; }
 if ($level eq $L_WARNING and $log_level >= $L_WARNING) { log_warning($msg); $db_log = 1; }
 if ($level eq $L_INFO and $log_level >= $L_INFO) { log_info($msg); $db_log = 1; }
+if ($level eq $L_VERBOSE and $log_level >= $L_VERBOSE) { log_verbose($msg); $db_log = 1; }
 if ($level eq $L_DEBUG and $log_level >= $L_DEBUG) { log_debug($msg); $db_log = 1; }
 
 if ($db_log) {
