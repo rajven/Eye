@@ -36,7 +36,7 @@ if (isset($_POST["edituser"])) {
     }
     $changes = get_diff_rec($db_link, "User_list", "id='$id'", $new, 0);
     if (!empty($changes)) {
-        LOG_INFO($db_link, "Changed user id: $id login: " . $new["login"] . ". \r\nApply: $changes");
+        LOG_WARNING($db_link, "Changed user id: $id login: " . $new["login"] . ". \r\nApply: $changes");
     }
     update_record($db_link, "User_list", "id='$id'", $new);
     if (!$new["enabled"]) {
@@ -161,7 +161,7 @@ if (isset($_POST["addauth"])) {
                 $new['dhcp'] = $f_dhcp;
                 $new["dhcp_action"] = 'manual';
                 update_record($db_link, "User_auth", "id=" . $fid, $new);
-                LOG_INFO($db_link, "Add ip for login: " . $user_info["login"] . ": ip => $fip, mac => $fmac", $fid);
+                LOG_WARNING($db_link, "Add ip for login: " . $user_info["login"] . ": ip => $fip, mac => $fmac", $fid);
                 header("Location: /admin/users/editauth.php?id=" . $fid);
                 exit;
             }

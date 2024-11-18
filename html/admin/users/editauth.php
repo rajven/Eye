@@ -104,7 +104,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         if (!$user_enabled) { $new['enabled']=0; }
         $changes = get_diff_rec($db_link, "User_auth", "id='$id'", $new, 0);
         if (!empty($changes)) {
-            LOG_INFO($db_link, "Changed record for $ip! Log: " . $changes, $id);
+            LOG_WARNING($db_link, "Changed record for $ip! Log: " . $changes, $id);
             }
         if (is_auth_bind_changed($db_link, $id, $ip, $mac)) {
             $new_id = copy_auth($db_link, $id, $new);
@@ -130,7 +130,7 @@ if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
     $moved_auth = get_record_sql($db_link,"SELECT comments FROM User_auth WHERE id=".$id);
     $changes = apply_auth_rule($db_link, $moved_auth, $new_parent_id);
     update_record($db_link, "User_auth", "id='$id'", $changes);
-    LOG_INFO($db_link, "IP-address moved to another user! Applyed: " . get_rec_str($changes), $id);
+    LOG_WARNING($db_link, "IP-address moved to another user! Applyed: " . get_rec_str($changes), $id);
     run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["mac"]."' AND type=2");
     run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["ip"]."' AND type=1");
     LOG_INFO($db_link,"Autorules removed for user_id: ".$old_auth_info["user_id"]." login: ".$user_info["login"]." by mac and ip");

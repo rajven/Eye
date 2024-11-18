@@ -2210,58 +2210,67 @@ function LOG_DEBUG($db, $msg, $auth_id = 0)
     }
 }
 
+function truncateByWords($string, $length = 100) {
+    if (strlen($string) <= $length) {
+        return $string;
+    }
+    $wrapped = wordwrap($string, $length);
+    $shortened = substr($wrapped, 0, strpos($wrapped, "\n"));
+    return $shortened;
+}
+
 function get_first_line($msg)
 {
-    if (empty($msg)) {
-        return;
-    }
+    if (empty($msg)) { return; }
     preg_match('/(.*)(\n|\<br\>)/', $msg, $matches);
     if (!empty($matches[1])) {
         return $matches[1];
     }
-    return;
+    return truncateByWords($msg,80);
 }
 
 function email($level, $msg)
 {
-    if (!get_const('send_email')) {
-        return;
-    }
-    if (!($level === L_WARNING or $level === L_ERROR)) {
-        return;
-    }
+if (!get_const('send_email')) { return; }
+if (!($level === L_WARNING or $level === L_ERROR)) { return; }
 
-    $message  ='<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">'."\r\n";
-    $message .='<html xmlns="http://www.w3.org/1999/xhtml">'."\r\n";
+// Generate a boundary string
+$boundary = md5(time());
 
-    $subject = get_first_line($msg);
+// Headers
+$headers = array(
+    'From' => get_const('sender_email'),
+    'Reply-To' => get_const('sender_email'),
+    'X-Mailer' => 'PHP',
+    'MIME-Version' => '1.0',
+    'Content-Type' => 'multipart/mixed; boundary=' . $boundary
+);
 
-    if ($level === L_WARNING) {
-        $subject = "WARN: " . $subject . "...";
-        $message .="<head><title>$subject</title></head><body>\r\n";
-        $message .= 'WARNING! Manager: ' . $_SESSION['login'] . ' </br>';
-    }
-    if ($level === L_ERROR) {
-        $subject = "ERROR: " . $subject . "...";
-        $message .="<head><title>$subject</title></head><body>\r\n";
-        $message .= 'ERROR! Manager: ' . $_SESSION['login'] . ' </br>';
-    }
+$subject = get_first_line($msg);
 
-    $msg_lines = preg_replace("/\r\n/", "</br>", $msg);
-    $msg_lines = preg_replace("/\n/", "</br>", $msg_lines);
-    $message  .= $msg_lines.'</body></html>';
+if ($level === L_WARNING) {
+    $subject = "WARN: " . $subject . "...";
+    $message = 'WARNING! Manager: ' . $_SESSION['login'] . ' <br>' . $msg .'<br>';
+}
+if ($level === L_ERROR) {
+    $subject = "ERROR: " . $subject . "...";
+    $message = 'ERROR! Manager: ' . $_SESSION['login'] . ' <br>' . $msg .'<br>';
+}
 
-    // Base64 encode the message
-    $encoded_message = base64_encode($message);
+// HTML part
+$html_message = "<html><body><h1>$message</h1></body></html>";
+$html_encoded = chunk_split(base64_encode($html_message));
 
-    $to        = get_const('admin_email');
-    $headers  = 'From: '. get_const('sender_email') . "\r\n";
-    $headers .= "X-Mailer: PHP\r\n";
-    $headers .= "MIME-Version: 1.0\r\n";
-    $headers .= "Content-Type: text/plain; charset=utf-8\r\n";
-    $headers .= "Content-Transfer-Encoding: base64\r\n";
+// Create the message body
+$message = "";
+$message .= "--" . $boundary . "\r\n";
+$message .= "Content-Type: text/html; charset=UTF-8\r\n";
+$message .= "Content-Transfer-Encoding: base64\r\n\r\n";
+$message .= $html_encoded . "\r\n";
+$message .= "--" . $boundary . "--";
 
-    mail($to, $subject, chunk_split($message), $headers);
+// Send email
+mail(get_const('admin_email'), $subject, $message, $headers);
 }
 
 function write_log($db, $msg, $level, $auth_id = 0)
@@ -4576,10 +4585,14 @@ function delete_record($db, $table, $filter)
 
     $changed_log = 'record: ';
     if (!empty($old)) {
+        asort($old,SORT_STRING);
+        $old = array_reverse($old,1);
         foreach ($old as $key => $value) {
-            if (!isset($value)) {
-                $value = '';
-            }
+            if (empty($value)) { continue; }
+            if (preg_match('/action/',$key)) { continue; }
+            if (preg_match('/status/',$key)) { continue; }
+            if (preg_match('/time/',$key)) { continue; }
+            if (preg_match('/found/',$key)) { continue; }
             $changed_log = $changed_log . " $key => $value,";
         }
     }
