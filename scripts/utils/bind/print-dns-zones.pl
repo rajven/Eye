@@ -13,7 +13,7 @@ use Net::Patricia;
 use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
-use eyelib::mysql;
+use eyelib::database;
 
 setpriority(0,0,19);
 

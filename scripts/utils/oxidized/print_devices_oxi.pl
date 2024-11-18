@@ -13,7 +13,7 @@ use Data::Dumper;
 use Socket;
 use eyelib::config;
 use eyelib::main;
-use eyelib::mysql;
+use eyelib::database;
 
 my @router_list = get_records_sql($dbh,"SELECT * FROM devices WHERE device_type<=2" );
 

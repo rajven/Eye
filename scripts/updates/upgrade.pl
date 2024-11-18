@@ -9,7 +9,7 @@ use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
 use eyelib::config;
 use eyelib::main;
-use eyelib::mysql;
+use eyelib::database;
 use strict;
 use warnings;
 

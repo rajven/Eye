@@ -20,7 +20,7 @@ use Socket;
 use eyelib::config;
 use eyelib::main;
 use eyelib::net_utils;
-use eyelib::mysql;
+use eyelib::database;
 use Parallel::ForkManager;
 
 if (!$ARGV[0]) { exit 110; }

@@ -20,7 +20,7 @@ use NetAddr::IP;
 use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
-use eyelib::mysql;
+use eyelib::database;
 use eyelib::net_utils;
 use File::Basename;
 use File::Path;

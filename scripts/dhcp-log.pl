@@ -13,7 +13,7 @@ use lib "/opt/Eye/scripts";
 use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
-use eyelib::mysql;
+use eyelib::database;
 use eyelib::net_utils;
 use strict;
 use warnings;
@@ -95,8 +95,7 @@ if (!$pid) {
         my %leases;
 
         # Create new database handle. If we can't connect, die()
-        my $hdb = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS");
-        if ( !defined $hdb ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
+        my $hdb = init_db();
 
         #parse log
         my $dhcp_log=File::Tail->new(name=>$log_file,maxinterval=>5,interval=>1,ignore_nonexistant=>1) || die "$log_file not found!";

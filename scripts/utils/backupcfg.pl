@@ -16,7 +16,7 @@ use FileHandle;
 use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
-use eyelib::mysql;
+use eyelib::database;
 use eyelib::net_utils;
 use eyelib::cmd;
 use Fcntl qw(:flock);

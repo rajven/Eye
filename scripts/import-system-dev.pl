@@ -11,7 +11,7 @@ use lib "$Bin/";
 use Data::Dumper;
 use Rstat::config;
 use Rstat::main;
-use Rstat::mysql;
+use Rstat::database;
 use Rstat::net_utils;
 use strict;
 use warnings;

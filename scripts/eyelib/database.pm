@@ -1,4 +1,4 @@
-package eyelib::mysql;
+package eyelib::database;
 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
@@ -18,7 +18,7 @@ use Net::Patricia;
 use eyelib::net_utils;
 use Data::Dumper;
 use DateTime;
-use POSIX;
+use File::Temp qw(tempfile);
 use DBI;
 
 our @ISA = qw(Exporter);
@@ -26,6 +26,7 @@ our @ISA = qw(Exporter);
 our @EXPORT = qw(
 batch_db_sql
 batch_db_sql_cached
+batch_db_sql_csv
 db_log_warning
 db_log_debug
 db_log_error
@@ -160,11 +161,13 @@ $db->{AutoCommit} = 1;
 #---------------------------------------------------------------------------------------------------------------
 
 sub batch_db_sql_cached {
-my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 0 });
-if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
-$db->do('SET NAMES utf8mb4');
-$db->{'mysql_enable_utf8'} = 1;
-$db->{'mysql_auto_reconnect'} = 1;
+my $db = DBI->connect("dbi:$config_ref{DBTYPE}:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 0 });
+if ( !defined $db ) { die "Cannot connect to $config_ref{DBTYPE} server: $DBI::errstr\n"; }
+if ($config_ref{DBTYPE} eq 'mysql') {
+    $db->do('SET NAMES utf8mb4');
+    $db->{'mysql_enable_utf8'} = 1;
+    $db->{'mysql_auto_reconnect'} = 1;
+    }
 my $table= shift;
 my $batch_sql=shift;
 return if (!$db);
@@ -181,6 +184,47 @@ $db->disconnect();
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub batch_db_sql_csv {
+my $db;
+if ($config_ref{DBTYPE} eq 'mysql') {
+    $db = DBI->connect("dbi:$config_ref{DBTYPE}:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 1, mysql_local_infile=> 1 });
+    } else {
+    $db = DBI->connect("dbi:$config_ref{DBTYPE}:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 1 });
+    }
+if ( !defined $db ) { die "Cannot connect to $config_ref{DBTYPE} server: $DBI::errstr\n"; }
+
+return if (!$db);
+
+if ($config_ref{DBTYPE} eq 'mysql') {
+    $db->do('SET NAMES utf8mb4');
+    $db->{'mysql_enable_utf8'} = 1;
+    $db->{'mysql_auto_reconnect'} = 1;
+    }
+
+my $table= shift;
+my $data = shift;
+my $fh = File::Temp->new(UNLINK=>0);
+my $fname = $fh->filename;
+binmode($fh,':utf8');
+foreach my $row (@$data) {
+    next if (!$row);
+    my @tmp = @$row;
+    my $values = 'NULL';
+    for (my $i = 0; $i <@tmp ; $i++) {
+	$values.=',"'.$tmp[$i].'"';
+	}
+    $values =~s/,$//;
+    print $fh $values."\r\n";
+    }
+close $fh;
+my $query = qq{ LOAD DATA LOCAL INFILE '$fname' INTO TABLE $table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n'; };
+$db->do($query);
+$db->disconnect;
+#File::Temp::cleanup();
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub do_sql {
 my $db=shift;
 my $sql=shift;
@@ -190,7 +234,13 @@ if ($sql!~/^select /i) { log_debug($sql); }
 my $sql_prep = $db->prepare($sql) or die "Unable to prepare $sql: " . $db->errstr;
 my $sql_ref;
 my $rv = $sql_prep->execute() or die "Unable to execute $sql: " . $db->errstr;
-if ($sql=~/^insert/i) { $sql_ref = $sql_prep->{mysql_insertid}; }
+if ($sql=~/^insert/i) {
+    if ($config_ref{DBTYPE} eq 'mysql') {
+        $sql_ref = $sql_prep->{mysql_insertid};
+	} else {
+        ($sql_ref) = $db->selectrow_array("SELECT lastval()");
+	}
+    }
 if ($sql=~/^select /i) { $sql_ref = $sql_prep->fetchall_arrayref() or die "Unable to select $sql: " . $db->errstr; };
 $sql_prep->finish();
 return $sql_ref;
@@ -289,11 +339,13 @@ if ($log_level >= $L_WARNING) {
 
 sub init_db {
 # Create new database handle. If we can't connect, die()
-my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 1 });
+my $db = DBI->connect("dbi:$config_ref{DBTYPE}:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 1 });
 if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
-$db->do('SET NAMES utf8mb4');
-$db->{'mysql_enable_utf8'} = 1;
-$db->{'mysql_auto_reconnect'} = 1;
+if ($config_ref{DBTYPE} eq 'mysql') {
+    $db->do('SET NAMES utf8mb4');
+    $db->{'mysql_enable_utf8'} = 1;
+    $db->{'mysql_auto_reconnect'} = 1;
+    }
 return $db;
 }
 

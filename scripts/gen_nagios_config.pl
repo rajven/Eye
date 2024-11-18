@@ -19,7 +19,7 @@ use Net::Ping;
 use eyelib::config;
 use eyelib::main;
 use eyelib::nagios;
-use eyelib::mysql;
+use eyelib::database;
 use Fcntl qw(:flock);
 
 open(SELF,"<",$0) or die "Cannot open $0 - $!";

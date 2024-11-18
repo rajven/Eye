@@ -128,6 +128,7 @@ $config_ref{pid_file}="/var/run/".$FN[-1];
 $config_ref{log_dir}=$Config->{_}->{log_dir} || '/opt/Eye/scripts/log';
 $config_ref{log_common}=$config_ref{log_dir}."/$FN[-1].log";
 $config_ref{dhcpd_conf}=$Config->{_}->{dhcpd_conf} || "/etc/dnsmasq.d";
+$config_ref{DBTYPE}	= $Config->{_}->{DBTYPE} || 'mysql';
 $config_ref{DBHOST}	= $Config->{_}->{DBSERVER} || '127.0.0.1';
 $config_ref{DBNAME}	= $Config->{_}->{DBNAME} || "stat";
 $config_ref{DBUSER}	= $Config->{_}->{DBUSER} || "rstat";

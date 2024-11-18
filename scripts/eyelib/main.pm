@@ -176,6 +176,7 @@ die ($_[0]);
 
 sub timestamp {
 my $worktime = time()-$BASETIME;
+print "TimeStamp: $worktime sec.\n";
 log_info("TimeStamp: $worktime sec.");
 }
 

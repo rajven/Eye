@@ -13,7 +13,7 @@ use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
 use eyelib::net_utils;
-use eyelib::mysql;
+use eyelib::database;
 
 my $time_shift=$ARGV[0];
 

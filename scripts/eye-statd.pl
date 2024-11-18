@@ -16,12 +16,11 @@ use DateTime;
 use eyelib::config;
 use eyelib::main;
 use eyelib::net_utils;
-use eyelib::mysql;
+use eyelib::database;
 use Socket qw(AF_INET6 inet_ntop);
 use IO::Socket;
 use Data::Dumper;
-
-$debug = 1;
+use threads;
 
 my @router_ref = ();
 my @interfaces = ();
@@ -32,17 +31,16 @@ my %wan_dev;
 my %lan_dev;
 
 my @traffic = ();
+my $saving = 0;
 
 #user statistics for cached data
 my %user_stats;
 
 my $MAXREAD = 9216;
 
-my $childrunning = 0;
-
-my $fork_count = $cpu_count*10;
-
 my $timeshift = get_option($dbh,55)*60;
+
+my $thread_count = $cpu_count;
 
 #save traffic to DB
 my $traf_lastflush = time();
@@ -62,7 +60,7 @@ $SIG{HUP} = \&INIT;
 
 sub REAPER {
 	wait;
-	$childrunning = 0;
+	$saving = 0;
 	$SIG{CHLD} = \&REAPER;
 }
 
@@ -76,14 +74,13 @@ sub TERM {
 sub INIT {
 
 # Create new database handle. If we can't connect, die()
-my $hdb = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS");
-if ( !defined $hdb ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
+my $hdb = init_db();
 
 InitSubnets();
 
 init_option($hdb);
 
-$timeshift = get_option($dbh,55)*60;
+$timeshift = get_option($hdb,55)*60;
 
 @router_ref = get_records_sql($hdb,"SELECT * FROM devices WHERE deleted=0 AND device_type=2 AND snmp_version>0 ORDER by ip" );
 @interfaces = get_records_sql($hdb,"SELECT * FROM `device_l3_interfaces` ORDER by device_id" );
@@ -103,7 +100,7 @@ foreach my $row (@interfaces) {
     }
 
 #get userid list
-my @auth_list_ref = get_records_sql($dbh,"SELECT id,ip,save_traf FROM User_auth where deleted=0 ORDER by id");
+my @auth_list_ref = get_records_sql($hdb,"SELECT id,ip,save_traf FROM User_auth where deleted=0 ORDER by id");
 
 foreach my $row (@auth_list_ref) {
     $user_stats{$row->{ip}}{auth_id}=$row->{id};
@@ -402,13 +399,14 @@ sub flush_traffic {
 
 my $force = shift || 0;
 
-if (!$force && ($childrunning || ((time - $traf_lastflush) < $timeshift))) { return; }
+if (!$force && ($saving || ((time - $traf_lastflush) < $timeshift))) { return; }
 
-$childrunning = 1;
+$saving++;
+
 my $pid = fork();
 
 if (!defined $pid) {
-    $childrunning = 0;
+    $saving = 0;
     print "cannot fork! Save traffic and exit...\n";
     } elsif ($pid != 0) {
         # in parent
@@ -419,7 +417,15 @@ if (!defined $pid) {
     }
 
 #create oper-cache
-my @flush_table = @traffic;
+my @flush_table = ();
+
+push(@flush_table,@traffic);
+
+#clean main cache
+INIT();
+
+print "Start save";
+timestamp();
 
 my $hdb=init_db();
 
@@ -505,11 +511,11 @@ my @detail_array = ($user_stats{$user_ip}->{auth_id},$router_id,$full_time,$traf
 push(@detail_traffic,\@detail_array);
 }
 
-if (scalar(@detail_traffic)) {
-    db_log_debug($hdb,"Start write traffic detail to DB. ".scalar @detail_traffic." lines count") if ($debug);
-    batch_db_sql_cached("INSERT INTO Traffic_detail (auth_id,router_id,timestamp,proto,src_ip,dst_ip,src_port,dst_port,bytes,pkt) VALUES(?,?,?,?,?,?,?,?,?,?)",\@detail_traffic);
-    db_log_debug($hdb,"Write traffic detail to DB stopped") if ($debug);
-    }
+@flush_table=();
+
+print "Stop calc stats";
+timestamp();
+
 
 #save statistics
 
@@ -572,16 +578,57 @@ foreach my $user_ip (keys %user_stats) {
 	}
     }
 
+print "Stop generate statistics";
+timestamp();
+
 #print Dumper(\@batch_sql_traf) if ($debug);
 
 #update statistics in DB
 batch_db_sql($hdb,\@batch_sql_traf);
+
+print "Stop write statistics";
+timestamp();
+
 db_log_debug($hdb,"Recalc quotes started");
 foreach my $router_id (keys %routers_found) { recalc_quotes($hdb,$router_id); }
 db_log_debug($hdb,"Recalc quotes stopped");
 
+print "Stop recalc quotes";
+timestamp();
+
+if (scalar(@detail_traffic)) {
+    db_log_debug($hdb,"Start write traffic detail to DB. ".scalar @detail_traffic." lines count") if ($debug);
+    if ($config_ref{DBTYPE} eq 'mysql') {
+		batch_db_sql_csv("Traffic_detail", \@detail_traffic);
+	} else {
+        my $index = 0;
+	my @tmp=();
+        my $item_per_thread = int(scalar @detail_traffic / $thread_count);
+        my @threads=();
+	foreach my $row (@detail_traffic) {
+    	    push(@tmp,$row);
+            $index++;
+	    if ($index<=$item_per_thread) { next; }
+    	    my @tmp1=();
+            push(@tmp1,@tmp);
+	    @tmp=();
+	    push(@threads, threads->create(\&batch_db_sql_csv, "Traffic_detail", \@tmp1));
+    	    }
+        if (scalar(@tmp)) {
+		push(@threads, threads->create(\&batch_db_sql_csv, "Traffic_detail", \@tmp));
+    	    }
+	    foreach my $t (@threads) { $t->join(); }
+	    @tmp=();
+	}
+    @detail_traffic = ();
+    print "Stop insert detalization ";
+    timestamp();
+    db_log_debug($hdb,"Write traffic detail to DB stopped") if ($debug);
+    }
+
 $hdb->disconnect();
 
-exit;
+$saving = 0;
 
+exit;
 }

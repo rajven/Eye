@@ -15,7 +15,7 @@ use Time::Local;
 use FileHandle;
 use eyelib::config;
 use eyelib::main;
-use eyelib::mysql;
+use eyelib::database;
 use Data::Dumper;
 use DBI;
 use Time::Local;
@@ -126,8 +126,7 @@ my %warning_patterns = (
 
 while (1) {
 eval {
-    my $db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS");
-    if ( !defined $dbh ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
+    my $db = init_db();
     open(SYSLOG,$socket_path) || die("Error open fifo socket $socket_path: $!");
     while (my $logline = <SYSLOG>) {
         next unless defined $logline;

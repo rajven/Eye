@@ -17,7 +17,7 @@ use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
 use eyelib::net_utils;
-use eyelib::mysql;
+use eyelib::database;
 use eyelib::snmp;
 use eyelib::cmd;
 use Net::SNMP qw(:snmp);

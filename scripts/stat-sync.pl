@@ -13,7 +13,7 @@ use lib "/opt/Eye/scripts";
 use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
-use eyelib::mysql;
+use eyelib::database;
 use eyelib::net_utils;
 use strict;
 use warnings;
@@ -84,9 +84,8 @@ if (!$pid) {
     while (1) {
         eval {
         # Create new database handle. If we can't connect, die()
-        my $hdb = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS");
+        my $hdb = init_db();
         if (time()-$last_refresh_config>=60) { init_option($hdb); }
-        if ( !defined $hdb ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
         $urgent_sync=get_option($hdb,50);
         if ($urgent_sync) {
 	    #clean changed for dynamic clients or hotspot

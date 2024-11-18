@@ -12,7 +12,7 @@ use strict;
 use Time::Local;
 use FileHandle;
 use eyelib::config;
-use eyelib::mysql;
+use eyelib::database;
 use eyelib::main;
 use eyelib::nagios;
 use Data::Dumper;
@@ -85,8 +85,7 @@ setpriority(0,0,19);
 while(1) {
 eval {
 
-my $hdb = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS");
-if ( !defined $hdb ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
+my $hdb = init_db();
 
 #parse log
 my $nagios_log=File::Tail->new(name=>$config_ref{nagios_event_socket},maxinterval=>5,interval=>1,ignore_nonexistant=>1) || die "$config_ref{nagios_event_socket} not found!";

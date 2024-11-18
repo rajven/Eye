@@ -10,7 +10,7 @@ use lib "/opt/Eye/scripts";
 use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
-use eyelib::mysql;
+use eyelib::database;
 use strict;
 use warnings;
 

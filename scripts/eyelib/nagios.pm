@@ -11,7 +11,7 @@ use base 'Exporter';
 use vars qw(@EXPORT @ISA);
 use eyelib::config;
 use eyelib::main;
-use eyelib::mysql;
+use eyelib::database;
 use Time::Local;
 use Data::Dumper;
 

@@ -8,7 +8,7 @@ use strict;
 use DBI;
 use Date::Parse;
 use eyelib::config;
-use eyelib::mysql;
+use eyelib::database;
 use utf8;
 
 

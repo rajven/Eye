@@ -20,7 +20,7 @@ use eyelib::cmd;
 use Net::Patricia;
 use Date::Parse;
 use eyelib::net_utils;
-use eyelib::mysql;
+use eyelib::database;
 use DBI;
 use Fcntl qw(:flock);
 use Parallel::ForkManager;
