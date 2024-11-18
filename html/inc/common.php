@@ -4828,9 +4828,9 @@ function get_cacti_graph($host_ip, $port_index)
 function print_select_item($description, $value, $current)
 {
     if ((string)$value === (string)$current) {
-        print "<option value=$value selected>$description</option>";
+        print "<option value='".$value."' selected>$description</option>";
     } else {
-        print "<option value=$value>$description</option>";
+        print "<option value='".$value."'>$description</option>";
     }
 }
 
