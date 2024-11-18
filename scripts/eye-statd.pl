@@ -246,7 +246,7 @@ sub parse_netflow_v9_template_flowset {
 
 		last if (!defined($template_id) || !defined($fldcount));
 
-		print "Updated template ID $template_id (source ID $source_id, from " . inet_ntoa($ipaddr) . ")\n" if ($debug);
+#		print "Updated template ID $template_id (source ID $source_id, from " . inet_ntoa($ipaddr) . ")\n" if ($debug);
 		my $template = [@template_ints[($i+2) .. ($i+2+$fldcount*2-1)]];
 		$netflow9_templates->{$ipaddr}->{$source_id}->{$template_id}->{'template'} = $template;
 		
@@ -270,7 +270,7 @@ sub parse_netflow_v9_data_flowset {
 	
 	my $template = $netflow9_templates->{$ipaddr}->{$source_id}->{$flowsetid}->{'template'};
 	if (!defined($template)) {
-		print "Template ID $flowsetid from $source_id/" . inet_ntoa($ipaddr) . " does not (yet) exist\n" if ($debug);
+#		print "Template ID $flowsetid from $source_id/" . inet_ntoa($ipaddr) . " does not (yet) exist\n" if ($debug);
 		return;
 		}
 
@@ -424,9 +424,6 @@ push(@flush_table,@traffic);
 #clean main cache
 INIT();
 
-print "Start save";
-timestamp();
-
 my $hdb=init_db();
 
 #saved packet by users
@@ -513,10 +510,6 @@ push(@detail_traffic,\@detail_array);
 
 @flush_table=();
 
-print "Stop calc stats";
-timestamp();
-
-
 #save statistics
 
 #start hour
@@ -578,23 +571,12 @@ foreach my $user_ip (keys %user_stats) {
 	}
     }
 
-print "Stop generate statistics";
-timestamp();
-
-#print Dumper(\@batch_sql_traf) if ($debug);
-
 #update statistics in DB
 batch_db_sql($hdb,\@batch_sql_traf);
-
-print "Stop write statistics";
-timestamp();
 
 db_log_debug($hdb,"Recalc quotes started");
 foreach my $router_id (keys %routers_found) { recalc_quotes($hdb,$router_id); }
 db_log_debug($hdb,"Recalc quotes stopped");
-
-print "Stop recalc quotes";
-timestamp();
 
 if (scalar(@detail_traffic)) {
     db_log_debug($hdb,"Start write traffic detail to DB. ".scalar @detail_traffic." lines count") if ($debug);
@@ -621,8 +603,6 @@ if (scalar(@detail_traffic)) {
 	    @tmp=();
 	}
     @detail_traffic = ();
-    print "Stop insert detalization ";
-    timestamp();
     db_log_debug($hdb,"Write traffic detail to DB stopped") if ($debug);
     }
 
