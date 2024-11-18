@@ -3,7 +3,6 @@ if (!defined("CONFIG")) {
     die("Not defined");
 }
 
-require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/class.simple.mail.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/consts.php");
 
 #ValidIpAddressRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
@@ -2225,7 +2224,6 @@ function get_first_line($msg)
 
 function email($level, $msg)
 {
-
     if (!get_const('send_email')) {
         return;
     }
@@ -2233,28 +2231,28 @@ function email($level, $msg)
         return;
     }
 
+    $message = '<html>';
     $subject = get_first_line($msg);
 
     if ($level === L_WARNING) {
         $subject = "WARN: " . $subject . "...";
-        $message = 'WARNING! Manager: ' . $_SESSION['login'] . ' </br>';
+        $message .= 'WARNING! Manager: ' . $_SESSION['login'] . ' </br>';
     }
     if ($level === L_ERROR) {
         $subject = "ERROR: " . $subject . "...";
-        $message = 'ERROR! Manager: ' . $_SESSION['login'] . ' </br>';
+        $message .= 'ERROR! Manager: ' . $_SESSION['login'] . ' </br>';
     }
 
     $msg_lines = preg_replace("/\r\n/", "</br>", $msg);
-    $message .= $msg_lines;
+    $msg_lines = preg_replace("/\n/", "</br>", $msg_lines);
+    $message  .= $msg_lines.'</html>';
 
-    $send = SimpleMail::make()
-        ->setTo(get_const('admin_email'), 'Administrator')
-        ->setFrom(get_const('sender_email'), 'Stat')
-        ->setSubject($subject)
-        ->setMessage($message)
-        ->setHtml()
-        ->setWrap(80)
-        ->send();
+    $to        = get_const('admin_email');
+    $headers = 'From: '. get_const('sender_email') . "\r\n" .
+               'X-Mailer: PHP'."\r\n".
+               'Content-Type: text/html; charset="utf-8"'."\r\n";
+
+    mail($to, $subject, $message, $headers);
 }
 
 function write_log($db, $msg, $level, $auth_id = 0)

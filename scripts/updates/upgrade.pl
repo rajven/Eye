@@ -7,7 +7,6 @@
 use utf8;
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
-use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
 use eyelib::mysql;
@@ -40,8 +39,7 @@ my @old_releases = (
 
 my $r_index = 0;
 my %old_releases_h = map {$_ => $r_index++ } @old_releases;
-
-my $eye_release = pop @old_releases;
+my $eye_release = $old_releases[@old_releases - 1];
 
 if (!$config_ref{version}) { $config_ref{version}='2.4.12'; }
 
@@ -57,6 +55,7 @@ print 'Current version: '.$config_ref{version}.' upgrade to: '.$eye_release."\n"
 
 my $old_version_index = $old_releases_h{$config_ref{version}} + 1;
 my $stage = 1;
+
 for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
     print "Stage $stage. Upgrade to $old_releases[$i]\n";
     $stage++;
