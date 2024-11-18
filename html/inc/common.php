@@ -499,6 +499,23 @@ function print_add_gw_subnets($db, $device_id, $gs_name)
     print "</select>\n";
 }
 
+function print_add_dev_interface($db, $device_id, $int_list, $int_name)
+{
+    print "&nbsp<select name=\"$int_name\" >\n";
+    $t_int = get_records_sql($db, "SELECT * FROM device_l3_interfaces WHERE device_id=".$device_id);
+    $int_exists=[];
+    foreach ($t_int as $interface) { $int_exists[$interface['snmpin']]=$interface; }
+    foreach ($int_list as $interface) {
+        if (!empty($int_exists[$interface['index']])) { continue; }
+        $value = $interface['name'].';'.$interface['index'].';'.$interface['type'];
+        if ($interface['type']==1) { $interface['type']=WEB_select_item_wan; }
+        if ($interface['type']==0) { $interface['type']=WEB_select_item_lan; }
+        $display_str = $interface['name'].'&nbsp|'.$interface['ip'].'|'.$interface['type'];
+        print_select_item($display_str, $value, 0);
+        }
+    print "</select>\n";
+}
+
 function print_ou_set($db, $ou_name, $ou_value)
 {
     print "<select name=\"$ou_name\">\n";
@@ -2396,7 +2413,7 @@ function get_ifmib_index_table($ip, $community, $version)
         }
     }
 
-    #return simple map snmp_port_index = snmp_port_index
+#return simple map snmp_port_index = snmp_port_index
     if (empty($ifmib_map)) {
         #ifindex
         $index_table = walk_snmp($ip, $community, $version, IFMIB_IFINDEX);
@@ -2463,6 +2480,37 @@ function get_mac_table($ip, $community, $version, $oid, $index_map)
         }
     }
     return $fdb_table;
+}
+
+#get ip interfaces
+function getIpAdEntIfIndex($db, $ip, $community = 'public', $version = '2')
+{
+if (!isset($ip)) { return; }
+#oid+ip = index
+$ip_table = walk_snmp($ip, $community, $version, ipAdEntIfIndex);
+#oid+index=name
+$int_table = walk_snmp($ip, $community, $version, ifDescr);
+$result = [];
+if (isset($ip_table) and gettype($ip_table) == 'array' and count($ip_table) > 0) {
+        foreach ($ip_table as $key => $value) {
+            if (empty($value)) { continue; }
+            if (empty($key)) { continue; }
+            $key = trim($key);
+            $interface_index = intval(trim(str_replace('INTEGER:', '', $value)));
+            if (empty($value)) { continue; }
+            $interface_name = $int_table[ifDescr . '.' .$interface_index];
+            $interface_name = trim(str_replace('STRING:', '', $interface_name));
+            $interface_ip = trim(str_replace(ipAdEntIfIndex.'.','',$key));
+            if (empty($interface_name)) { continue; }
+            $result[$interface_index]['ip']=$interface_ip;
+            $result[$interface_index]['index']=$interface_index;
+            $result[$interface_index]['name']=$interface_name;
+            //type: 0 - local, 1 - WAN
+            $result[$interface_index]['type'] = 1;
+            if (is_our_network($db,$interface_ip)) { $result[$interface_index]['type']=0; }
+        }
+    }
+return $result;
 }
 
 #get mac table by analyze all available tables
@@ -4604,7 +4652,7 @@ function insert_record($db, $table, $newvalue)
     $field_list = '';
     $value_list = '';
     foreach ($newvalue as $key => $value) {
-        if (empty($value) and $value !== 0) {
+        if (empty($value) and $value != '0') {
             $value = '';
         }
         if (!preg_match('/password/i',$key)) {
@@ -5001,6 +5049,22 @@ function get_subnet_range($db, $subnet_id)
     $subnet['start'] = $t_option['ip_int_start'];
     $subnet['stop'] = $t_option['ip_int_stop'];
     return $subnet;
+}
+
+function int_between($value, $start, $end) {
+    return in_array($value, range($start, $end));
+}
+
+function is_gray_network($ip)
+{
+if (empty($ip)) { return 0; }
+$ip_aton = ip2long($ip);
+$gray_nets = array('10.0.0.0/8','192.168.0.0/16','172.16.0.0/12','100.64.0.0/10');
+foreach ($gray_nets as &$net) {
+    $net_cidr = cidrToRange($net);
+    if (int_between($ip_aton,ip2long($net_cidr[0]),ip2long($net_cidr[1]))) { return $net; }
+    }
+return 0;
 }
 
 function is_hotspot($db, $ip)

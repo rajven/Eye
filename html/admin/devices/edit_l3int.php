@@ -4,8 +4,9 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-$device=get_record($db_link,'devices',"id=".$id);
+$device = get_record($db_link,'devices',"id=".$id);
 $user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
+$int_list = getIpAdEntIfIndex($db_link,$device['ip'],$device['community'],$device['snmp_version']);
 
 if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
@@ -26,7 +27,6 @@ if (isset($_POST['s_save'])) {
         $len_all = is_array($_POST['n_id']) ? count($_POST['n_id']) : 0;
         for ($j = 0; $j < $len_all; $j ++) {
             if (intval($_POST['n_id'][$j]) != $save_id) { continue; }
-            $new['name'] = trim($_POST['s_name'][$j]);
             $new['interface_type'] = $_POST['s_type'][$j]*1;
             update_record($db_link, "device_l3_interfaces", "id='{$save_id}'", $new);
         }
@@ -37,10 +37,10 @@ if (isset($_POST['s_save'])) {
 
 if (isset($_POST["s_create"])) {
     if (!empty($_POST["s_create_name"])) {
-        $new['name'] = trim($_POST["s_create_name"]);
+        $new = NULL;
+        list($new['name'],$new['snmpin'],$new['interface_type']) = explode(";", trim($_POST["s_create_name"]));
         $new['device_id'] = $id;
-        $new['interface_type'] = 0;
-        LOG_INFO($db_link, "Create new l3_interface ".$new['name']." as local");
+        LOG_INFO($db_link, "Create new l3_interface ".$new['name']);
         insert_record($db_link, "device_l3_interfaces", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -72,18 +72,51 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 </tr>
 <?php
 $t_l3_interface = get_records($db_link,'device_l3_interfaces',"device_id=$id ORDER BY name");
+
+$int_by_name = [];
+foreach ($int_list as $row) { $int_by_name[$row['name']]=$row; }
+$fixed = 0;
+
+//fixing snmp index if not exists by interface name
+foreach ( $t_l3_interface as $row ) {
+    $fix = NULL;
+    if (empty($row['snmpin']) and !empty($int_by_name[$row['name']])) {
+        $fix['snmpin']=$int_by_name[$row['name']]['index'];
+        if (!empty($fix)) {
+            update_record($db_link,'device_l3_interfaces','id='.$row['id'],$fix);
+            }
+        $fixed = 1;
+        }
+    }
+
+//updating interface name by snmp index
+foreach ( $t_l3_interface as $row ) {
+    $fix = NULL;
+    if (!empty($int_list[$row['snmpin']]) and $int_list[$row['snmpin']]['name'] !== $row['name']) {
+        $fix['name']=$int_list[$row['snmpin']]['name'];
+        if (!empty($fix)) {
+            update_record($db_link,'device_l3_interfaces','id='.$row['id'],$fix);
+            }
+        $fixed = 1;
+        }
+    }
+
+if ($fixed) {
+    $t_l3_interface = get_records($db_link,'device_l3_interfaces',"device_id=$id ORDER BY name");
+    }
+
 foreach ( $t_l3_interface as $row ) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=s_id[] value='{$row['id']}'></td>\n";
-    print "<td class=\"data\"><input type=\"hidden\" name='n_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
-    print "<td class=\"data\"><input type=\"text\" name='s_name[]' value='{$row['name']}'></td>\n";
+    print "<td class=\"data\"><input type=\"hidden\" name='n_id[]' value='{$row['id']}'>{$row['snmpin']}</td>\n";
+    print "<td class=\"data\">".$row['name'].'/'.$int_list[$row['snmpin']]['ip']."</td>\n";
     print "<td class=\"data\">"; print_qa_l3int_select('s_type[]',$row['interface_type']); print "</td>\n";
     print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
     print "</tr>\n";
     }
 ?>
 <tr>
-<td colspan=4><?php print WEB_l3_interface_add; print "&nbsp:<input type=\"text\" name='s_create_name' value=''";?>
+<td colspan=4><?php print WEB_l3_interface_add; print_add_dev_interface($db_link, $id, $int_list, 's_create_name');?>
 </td>
 <td>
 <input type="submit" name="s_create" value="<?php echo WEB_btn_add; ?>">
