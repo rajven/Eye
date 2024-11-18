@@ -323,7 +323,7 @@ if (!$hour_stat->{byte_in}) { $hour_stat->{byte_in}=0; }
 if (!$hour_stat->{byte_out}) { $hour_stat->{byte_out}=0; }
 $hour_stat->{byte_in} += $user_stats{$user_ip}{in};
 $hour_stat->{byte_out} += $user_stats{$user_ip}{out};
-$tSQL="UPDATE User_stats SET byte_in='".$hour_stat->{byte_in}."', byte_out='".$hour_stat->{byte_out}."' WHERE id=".$auth_id;
+$tSQL="UPDATE User_stats SET byte_in='".$hour_stat->{byte_in}."', byte_out='".$hour_stat->{byte_out}."' WHERE id='".$auth_id."' AND router_id='".$router_id."'";
 push (@batch_sql_traf,$tSQL);
 }
 
