@@ -2231,28 +2231,37 @@ function email($level, $msg)
         return;
     }
 
-    $message = '<html>';
+    $message  ='<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">'."\r\n";
+    $message .='<html xmlns="http://www.w3.org/1999/xhtml">'."\r\n";
+
     $subject = get_first_line($msg);
 
     if ($level === L_WARNING) {
         $subject = "WARN: " . $subject . "...";
+        $message .="<head><title>$subject</title></head><body>\r\n";
         $message .= 'WARNING! Manager: ' . $_SESSION['login'] . ' </br>';
     }
     if ($level === L_ERROR) {
         $subject = "ERROR: " . $subject . "...";
+        $message .="<head><title>$subject</title></head><body>\r\n";
         $message .= 'ERROR! Manager: ' . $_SESSION['login'] . ' </br>';
     }
 
     $msg_lines = preg_replace("/\r\n/", "</br>", $msg);
     $msg_lines = preg_replace("/\n/", "</br>", $msg_lines);
-    $message  .= $msg_lines.'</html>';
+    $message  .= $msg_lines.'</body></html>';
+
+    // Base64 encode the message
+    $encoded_message = base64_encode($message);
 
     $to        = get_const('admin_email');
-    $headers = 'From: '. get_const('sender_email') . "\r\n" .
-               'X-Mailer: PHP'."\r\n".
-               'Content-Type: text/html; charset="utf-8"'."\r\n";
+    $headers  = 'From: '. get_const('sender_email') . "\r\n";
+    $headers .= "X-Mailer: PHP\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/plain; charset=utf-8\r\n";
+    $headers .= "Content-Transfer-Encoding: base64\r\n";
 
-    mail($to, $subject, $message, $headers);
+    mail($to, $subject, chunk_split($message), $headers);
 }
 
 function write_log($db, $msg, $level, $auth_id = 0)
