@@ -203,7 +203,7 @@ if ($config_ref{DBTYPE} eq 'mysql') {
 
 my $table= shift;
 my $data = shift;
-my $fh = File::Temp->new(UNLINK=>0);
+my $fh = File::Temp->new(UNLINK=>1);
 my $fname = $fh->filename;
 binmode($fh,':utf8');
 foreach my $row (@$data) {
@@ -220,7 +220,7 @@ close $fh;
 my $query = qq{ LOAD DATA LOCAL INFILE '$fname' INTO TABLE $table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n'; };
 $db->do($query);
 $db->disconnect;
-#File::Temp::cleanup();
+File::Temp::cleanup();
 }
 
 #---------------------------------------------------------------------------------------------------------------
