@@ -8,7 +8,7 @@ libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl libnet-dns-perl libd
 libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl libdbi-perl \
 libdbd-mysql-perl libparallel-forkmanager-perl libproc-daemon-perl libdatetime-format-dateparse-perl \
 libnetwork-ipv4addr-perl libnet-openssh-perl libfile-tail-perl php-fpm php-db libapache2-mod-fcgid \
-libcrypt-cbc-perl libcryptx-perl php-pgsql libdbd-pg-perl
+libcrypt-cbc-perl libcryptx-perl php-pgsql libdbd-pg-perl libfile-path-tiny-perl
 
 2. Download the source code and spread it in catalogs:
 

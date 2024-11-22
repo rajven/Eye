@@ -20,6 +20,7 @@ use eyelib::database;
 use Socket qw(AF_INET6 inet_ntop);
 use IO::Socket;
 use Data::Dumper;
+use File::Path::Tiny;
 use threads;
 
 my @router_ref = ();
@@ -39,6 +40,7 @@ my %user_stats;
 my $MAXREAD = 9216;
 
 my $timeshift = get_option($dbh,55)*60;
+my $save_path =  get_option($dbh,72);
 
 my $thread_count = $cpu_count;
 
@@ -80,6 +82,8 @@ InitSubnets();
 
 init_option($hdb);
 
+$save_path = get_option($dbh,72);
+
 $timeshift = get_option($hdb,55)*60;
 
 @router_ref = get_records_sql($hdb,"SELECT * FROM devices WHERE deleted=0 AND device_type=2 AND snmp_version>0 ORDER by ip" );
@@ -90,7 +94,8 @@ foreach my $row (@router_ref) {
     $routers{$row->{id}}=$row;
     my @auth_list = get_records_sql($hdb,"SELECT ip FROM User_auth WHERE deleted=0 AND user_id=".$row->{user_id});
     foreach my $auth (@auth_list) {
-	$router_svi{$auth->{ip}}=$row->{id};
+	$router_svi{$auth->{ip}}{id}=$row->{id};
+	$router_svi{$auth->{ip}}{save}=$row->{netflow_save};
 	}
     }
 
@@ -379,9 +384,10 @@ sub save_flow {
 	my $router_id;
 	#skip unknown router
 	if (exists $router_svi{$router_ip}) { 
-		$router_id = $router_svi{$router_ip};
+		$router_id = $router_svi{$router_ip}{id};
 		$flow->{router_ip} = $router_ip;
 		$flow->{device_id} = $router_id;
+		$flow->{save} = $router_svi{$router_ip}{save};
 		} else { return; }
 	#skip input traffic for router
 	if (exists $wan_dev{$router_id}->{$flow->{snmp_out}} and exists $wan_dev{$router_id}->{$flow->{snmp_in}}) { return; }
@@ -428,6 +434,7 @@ my $hdb=init_db();
 
 #saved packet by users
 my @detail_traffic = ();
+my @saved_netflow = ();
 
 my %routers_found;
 
@@ -439,6 +446,10 @@ foreach my $traf_record (@flush_table) {
 my ($auth_id,$l_src_ip,$l_dst_ip,$user_ip,$router_id);
 
 $router_id = $traf_record->{device_id};
+
+if ($traf_record->{save}) {
+    push(@saved_netflow,join(';',$traf_record->{starttime},$traf_record->{device_id},$traf_record->{proto},$traf_record->{snmp_in},$traf_record->{snmp_out},$traf_record->{src_ip},$traf_record->{dst_ip},$traf_record->{xsrc_ip},$traf_record->{xdst_ip},$traf_record->{src_port},$traf_record->{dst_port},$traf_record->{octets},$traf_record->{pkts}));
+    }
 
 $routers_found{$router_id} = 1;
 
@@ -510,10 +521,27 @@ push(@detail_traffic,\@detail_array);
 
 @flush_table=();
 
-#save statistics
-
 #start hour
-my ($min,$hour,$day,$month,$year) = (localtime($last_time))[1,2,3,4,5];
+my ($sec,$min,$hour,$day,$month,$year) = (localtime($last_time))[0,1,2,3,4,5];
+
+#save netflow
+$save_path=~s/\/$//;
+my $netflow_file_path = $save_path.'/'.sprintf "%04d/%02d/%02d/%02d/",$year+1900,$month+1,$day,$hour;
+my $netflow_file_name = $netflow_file_path.sprintf "%04d%02d%02d-%02d%02d%02d.csv",$year+1900,$month+1,$day,$hour,$min,$sec;
+if (scalar @saved_netflow) {
+    File::Path::Tiny::::mk($netflow_file_path);
+    open (ND,">$netflow_file_name") || die("Error open file $netflow_file_name!!! die...");
+    binmode(ND,':utf8');
+    print ND join(';',"time","device_id","proto","snmp_in","snmp_out","src_ip","dst_ip","xsrc_ip","xdst_ip","src_port","dst_port","octets","pkts")."\n";
+    foreach my $row (@saved_netflow) {
+        next if (!$row);
+        print ND $row."\n";
+        }
+    close ND;
+    @saved_netflow=();
+    }
+
+#save statistics
 
 #start stat time
 my $hour_date1 = $hdb->quote(sprintf "%04d-%02d-%02d %02d:00:00",$year+1900,$month+1,$day,$hour);

@@ -62,6 +62,7 @@ resurrection_auth
 new_auth
 StrToIp
 get_first_line
+is_ad_computer
 update_dns_record
 update_dns_record_by_dhcp
 create_dns_cname
@@ -203,7 +204,7 @@ if ($config_ref{DBTYPE} eq 'mysql') {
 
 my $table= shift;
 my $data = shift;
-my $fh = File::Temp->new(UNLINK=>1);
+my $fh = File::Temp->new(UNLINK=>0);
 my $fname = $fh->filename;
 binmode($fh,':utf8');
 foreach my $row (@$data) {
@@ -220,7 +221,7 @@ close $fh;
 my $query = qq{ LOAD DATA LOCAL INFILE '$fname' INTO TABLE $table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n'; };
 $db->do($query);
 $db->disconnect;
-File::Temp::cleanup();
+#File::Temp::cleanup();
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -936,6 +937,37 @@ if ($@) { log_error("Error dns commands: $@"); }
 }
 
 #---------------------------------------------------------------------------------------------------------------
+sub is_ad_computer {
+
+my $hdb = shift;
+my $computer_name = shift;
+
+my $ad_check = get_option($hdb,73);
+if (!$ad_check) { return 1; }
+
+my $ad_zone = get_option($hdb,33);
+
+if ($computer_name =~/\./) {
+    if ($computer_name!~/\.$ad_zone$/i) { return 0; }
+    }
+
+if ($computer_name =~/^(.+)\./) {
+    $computer_name = $1;
+    }
+
+my $ad_computer_name = trim($computer_name).'$';
+
+my $name_in_cache = get_record_sql($hdb,"SELECT * FROM ad_comp_cache WHERE name='".$computer_name."'");
+if ($name_in_cache) { return 1; }
+
+my $name_found=do_exec('/usr/bin/getent passwd '.$ad_computer_name);
+if (!$name_found) { return 0; }
+
+do_sql($hdb,"INSERT INTO ad_comp_cache(name) VALUES('".$computer_name."') ON DUPLICATE KEY UPDATE name='".$computer_name."';");
+return 1;
+}
+
+#---------------------------------------------------------------------------------------------------------------
 
 sub update_dns_record_by_dhcp {
 
@@ -957,7 +989,7 @@ log_debug("Subnets: ".Dumper($subnets_dhcp->{$dhcp_record->{network}->{subnet}})
 log_debug("enable_ad_dns_update: ".$enable_ad_dns_update);
 log_debug("DNS update flags - zone: ".$ad_zone.",dns: ".$ad_dns.", update_hostname_from_dhcp: ".$update_hostname_from_dhcp.", enable_ad_dns_update: ".$enable_ad_dns_update);
 
-my $maybe_update_dns=(($dhcp_record->{type}=~/add/i or $dhcp_record->{type}=~/old/i) and $dhcp_record->{hostname_utf8} and $dhcp_record->{hostname_utf8} !~/UNDEFINED/i and $enable_ad_dns_update and $subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname});
+my $maybe_update_dns=(is_ad_computer($hdb,$dhcp_record->{hostname_utf8}) and ($dhcp_record->{type}=~/add/i or $dhcp_record->{type}=~/old/i) and $dhcp_record->{hostname_utf8} and $dhcp_record->{hostname_utf8} !~/UNDEFINED/i and $enable_ad_dns_update and $subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname});
 if (!$maybe_update_dns) {
     db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id}. DNS update don't needed.");
     return 0;
@@ -2013,6 +2045,13 @@ $year += 1900;
 my $now_str=sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
 my $clean_variables_date=$db->quote($now_str);
 do_sql($db,"DELETE FROM `variables` WHERE clear_time<=$clean_variables_date");
+
+#clean old AD computer cache
+my $now = DateTime->now(time_zone=>'local');
+my $day_dur = DateTime::Duration->new( days => 1 );
+my $clean_date = $now - $day_dur;
+my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+do_sql($db,"DELETE FROM `ad_comp_cache` WHERE last_found<=$clean_str");
 }
 
 #---------------------------------------------------------------------------------------------------------------
