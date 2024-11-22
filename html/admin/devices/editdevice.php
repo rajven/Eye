@@ -83,6 +83,7 @@ if (isset($_POST["editdevice"]) and isset($id)) {
         }
     if (isset($_POST["f_protocol"])) { $new['protocol'] = $_POST["f_protocol"]*1; }
     if (isset($_POST["f_control_port"])) { $new['control_port'] = $_POST["f_control_port"]*1; }
+    if (isset($_POST["f_save_netflow"])) { $new['netflow_save'] = $_POST["f_save_netflow"]*1; }
     //discovery
     if (isset($_POST["f_discovery"])) { $new['discovery'] = $_POST["f_discovery"]; }
     //nagios
@@ -187,11 +188,11 @@ if ($device['device_type']<=2) {
     print "<td class='data'><input type='text' name='f_control_port' value=".$device['control_port']."></td>\n";
     print "</tr>";
     //snmp settings & discovery & nagios
-    print "<tr><td>".WEB_snmp_version."</td><td>".WEB_network_discovery."</td><td>".WEB_nagios."</td><td></td></tr>";
+    print "<tr><td>".WEB_snmp_version."</td><td>".WEB_network_discovery."</td><td>".WEB_nagios."</td><td>".WEB_device_save_netflow."</td></tr>";
     print "<tr><td class='data'>"; print_snmp_select('f_snmp_version', $device['snmp_version']); print "</td>\n";
     print "<td class='data'>"; print_qa_select('f_discovery', $device['discovery']); print "</td>\n";
     print "<td class='data'>"; print_qa_select('f_nagios', $device['nagios']); print "</td>\n";
-    print "<td class='data'></td>\n";
+    print "<td class='data'>"; print_qa_select('f_save_netflow', $device['netflow_save']); print "</td>\n";
     print "</tr>";
     if ($device['snmp_version'] ==3) {
         print "<tr><td>".WEB_snmp_v3_user_ro."</td><td>".WEB_snmp_v3_user_rw."</td><td>".WEB_snmp_v3_ro_password."</td><td>".WEB_snmp_v3_rw_password."</td><td></td>";

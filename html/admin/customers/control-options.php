@@ -83,7 +83,7 @@ print_control_submenu($page_url);
 
             <?php
             $descr_field = "description." . HTML_LANG;
-            $config_sql = "SELECT `config`.`id`,`option_id`,`option_name`,`value`,`type`,`" . $descr_field . "`,`min_value`,`max_value` FROM `config`,`config_options` WHERE `config`.`option_id`=`config_options`.`id` ORDER BY `option_name`";
+            $config_sql = "SELECT `config`.`id`,`option_id`,`option_name`,`value`,`type`,`" . $descr_field . "`,`min_value`,`max_value` FROM `config`,`config_options` WHERE `config`.`option_id`=`config_options`.`id` AND `config_options`.`draft`=0 ORDER BY `option_name`";
             $t_config = mysqli_query($db_link, $config_sql);
             while ($row = mysqli_fetch_array($t_config)) {
                 print "<tr align=center>\n";

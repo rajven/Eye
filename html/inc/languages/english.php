@@ -352,6 +352,7 @@ define("WEB_device_mac_by_oid","Mac by snmp");
 define("WEB_device_mac_table","Show mac table");
 define("WEB_device_walk_port_list","Port Walk");
 define("WEB_device_port_count","Ports");
+define("WEB_device_save_netflow","Save Netflow");
 
 /* editport */
 define("WEB_device_port_number","Port N");

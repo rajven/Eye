@@ -1567,11 +1567,11 @@ function get_port($db, $port_id)
 function print_option_select($db, $option_name)
 {
     print "<select name=\"$option_name\">\n";
-    $t_option = mysqli_query($db, "SELECT id,option_name FROM config_options WHERE uniq=0 order by option_name");
+    $t_option = mysqli_query($db, "SELECT id,option_name FROM config_options WHERE uniq=0 AND draft=0 order by option_name");
     while (list($f_id, $f_name) = mysqli_fetch_array($t_option)) {
         print "<option value=$f_id>$f_name</option>";
     }
-    $t_option = mysqli_query($db, "SELECT id,option_name FROM config_options WHERE uniq=1 and id not in (select option_id FROM config) order by option_name");
+    $t_option = mysqli_query($db, "SELECT id,option_name FROM config_options WHERE draft=0 AND uniq=1 AND id NOT IN (select option_id FROM config where draft=0) order by option_name");
     while (list($f_id, $f_name) = mysqli_fetch_array($t_option)) {
         print "<option value=$f_id>$f_name</option>";
     }
