@@ -20,7 +20,6 @@ use eyelib::database;
 use Socket qw(AF_INET6 inet_ntop);
 use IO::Socket;
 use Data::Dumper;
-use File::Path::Tiny;
 use threads;
 
 my @router_ref = ();
@@ -527,12 +526,19 @@ my ($sec,$min,$hour,$day,$month,$year) = (localtime($last_time))[0,1,2,3,4,5];
 #save netflow
 $save_path=~s/\/$//;
 my $netflow_file_path = $save_path.'/'.sprintf "%04d/%02d/%02d/%02d/",$year+1900,$month+1,$day,$hour;
-my $netflow_file_name = $netflow_file_path.sprintf "%04d%02d%02d-%02d%02d%02d.csv",$year+1900,$month+1,$day,$hour,$min,$sec;
+my $nmin = int($min/10)*10;
+my $netflow_file_name = $netflow_file_path.sprintf "%04d%02d%02d-%02d%02d.csv",$year+1900,$month+1,$day,$hour,$nmin;
 if (scalar @saved_netflow) {
-    File::Path::Tiny::::mk($netflow_file_path);
-    open (ND,">$netflow_file_name") || die("Error open file $netflow_file_name!!! die...");
-    binmode(ND,':utf8');
-    print ND join(';',"time","device_id","proto","snmp_in","snmp_out","src_ip","dst_ip","xsrc_ip","xdst_ip","src_port","dst_port","octets","pkts")."\n";
+    use File::Path::Tiny;
+    File::Path::Tiny::mk($netflow_file_path);
+    if ( -e $netflow_file_name) {
+        open (ND,">>$netflow_file_name") || die("Error open file $netflow_file_name!!! die...");
+        binmode(ND,':utf8');
+        } else {
+        open (ND,">$netflow_file_name") || die("Error open file $netflow_file_name!!! die...");
+        binmode(ND,':utf8');
+        print ND join(';',"time","device_id","proto","snmp_in","snmp_out","src_ip","dst_ip","xsrc_ip","xdst_ip","src_port","dst_port","octets","pkts")."\n";
+        }
     foreach my $row (@saved_netflow) {
         next if (!$row);
         print ND $row."\n";
