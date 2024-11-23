@@ -2,13 +2,25 @@ Installation
 
 1. Install the packages
 
-apt install apache2 git fping perl mariadb-server php php-mysql php-bcmath php-intl \
-php-mbstring php-date php-mail php-snmp php-zip xxd bsdmainutils \
-libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
+#common
+apt install git xxd bsdmainutils
+
+#for database server
+apt install mariadb-server
+
+#for web
+apt install apache2 libapache2-mod-fcgid \
+php php-mysql php-bcmath php-intl php-mbstring php-date php-mail php-snmp php-zip php-fpm php-db php-pgsql
+
+#for backend
+apt install perl libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
 libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl libdbi-perl \
 libdbd-mysql-perl libparallel-forkmanager-perl libproc-daemon-perl libdatetime-format-dateparse-perl \
-libnetwork-ipv4addr-perl libnet-openssh-perl libfile-tail-perl php-fpm php-db libapache2-mod-fcgid \
-libcrypt-cbc-perl libcryptx-perl php-pgsql libdbd-pg-perl libfile-path-tiny-perl
+libnetwork-ipv4addr-perl libnet-openssh-perl libfile-tail-perl  \
+libcrypt-cbc-perl libcryptx-perl libdbd-pg-perl libfile-path-tiny-perl
+
+#additional packages 
+apt install dnsmasq syslong-ng bind9 bind9-utils bind9-host
 
 2. Download the source code and spread it in catalogs:
 
@@ -134,34 +146,11 @@ systemctl enable stat-sync.service
 
 ######################################### Network flow #####################################################################
 
-apt install nfdump -y
-
-for latest nfcapd 1.7:
-cp docs/systemd/nfcapd-1.7@.service /etc/systemd/system/nfcapd@.service
-
-for old nfcapd 1.6:
-cp docs/systemd/nfcapd-1.6@.service /etc/systemd/system/nfcapd@.service
-
-mkdir -p /etc/nfcapd
-cp docs/systemd/nfcapd/office.conf /etc/nfcapd/office.conf
-
-Set nfdump port, path for collected files and router id. Router id see in url for edit device:
-#http://[IP]/admin/devices/editdevice.php?id=1
-
-Set owner for nfcapd files to tcpdump:tcpdump:
-mkdir -p /var/spool/flow-tools
-chown tcpdump:tcpdump /var/spool/flow-tools
-
-Enable service:
-
-systemctl enable nfcapd@office
-systemctl start nfcapd@office
-
 Enable netflow at mikrotik:
 /ip traffic-flow
 set enabled=yes
 /ip traffic-flow target
-add dst-address=[IP-SERVER] port=[PORT nfcapd]
+add dst-address=[IP-SERVER] port=2055
 
 ######################################### Remote System Log ###############################################################
 
