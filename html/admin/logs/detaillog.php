@@ -98,9 +98,9 @@ while (list ($uid, $auth_id, $udata, $urouter, $uproto, $sip, $sport,$dip, $dpor
     print "<td class=\"data\">"; print_auth_simple($db_link,$auth_id); print "</td>\n";
     print "<td class=\"data\">$udata</td>\n";
     print "<td class=\"data\">$gateway_list[$urouter]</td>\n";
-    if ($uproto==='6') { $uproto = 'tcp'; }
-    if ($uproto==='17') { $uproto = 'udp'; }
-    print "<td class=\"data\">" . $uproto . "</td>\n";
+    $proto_name = getprotobynumber($uproto);
+    if (!$proto_name) { $proto_name=$uproto; }
+    print "<td class=\"data\">" . $proto_name . "</td>\n";
     print "<td class=\"data\" align=left>" . long2ip($sip) . "</td>\n";
     $ip_name = '-';
     if ($rdns) { $ip_name = ResolveIP($db_link,$sip); }
