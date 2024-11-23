@@ -433,7 +433,7 @@ my $hdb=init_db();
 
 #saved packet by users
 my @detail_traffic = ();
-my @saved_netflow = ();
+my %saved_netflow = ();
 
 my %routers_found;
 
@@ -447,7 +447,7 @@ my ($auth_id,$l_src_ip,$l_dst_ip,$user_ip,$router_id);
 $router_id = $traf_record->{device_id};
 
 if ($traf_record->{save}) {
-    push(@saved_netflow,join(';',$traf_record->{starttime},$traf_record->{device_id},$traf_record->{proto},$traf_record->{snmp_in},$traf_record->{snmp_out},$traf_record->{src_ip},$traf_record->{dst_ip},$traf_record->{xsrc_ip},$traf_record->{xdst_ip},$traf_record->{src_port},$traf_record->{dst_port},$traf_record->{octets},$traf_record->{pkts}));
+    push(@{$saved_netflow{$traf_record->{device_id}}},join(';',$traf_record->{starttime},$traf_record->{proto},$traf_record->{snmp_in},$traf_record->{snmp_out},$traf_record->{src_ip},$traf_record->{dst_ip},$traf_record->{xsrc_ip},$traf_record->{xdst_ip},$traf_record->{src_port},$traf_record->{dst_port},$traf_record->{octets},$traf_record->{pkts}));
     }
 
 $routers_found{$router_id} = 1;
@@ -525,12 +525,13 @@ my ($sec,$min,$hour,$day,$month,$year) = (localtime($last_time))[0,1,2,3,4,5];
 
 #save netflow
 $save_path=~s/\/$//;
-my $netflow_file_path = $save_path.'/'.sprintf "%04d/%02d/%02d/%02d/",$year+1900,$month+1,$day,$hour;
+foreach my $dev_id (keys %saved_netflow) {
+my $netflow_file_path = $save_path.'/'.$dev_id.'/'.sprintf "%04d/%02d/%02d/%02d/",$year+1900,$month+1,$day,$hour;
 my $nmin = int($min/10)*10;
 my $netflow_file_name = $netflow_file_path.sprintf "%04d%02d%02d-%02d%02d.csv",$year+1900,$month+1,$day,$hour,$nmin;
-if (scalar @saved_netflow) {
-    use File::Path::Tiny;
-    File::Path::Tiny::mk($netflow_file_path);
+if ($saved_netflow{$dev_id} and scalar @{$saved_netflow{$dev_id}}) {
+    use File::Path;
+    make_path($netflow_file_path);
     if ( -e $netflow_file_name) {
         open (ND,">>$netflow_file_name") || die("Error open file $netflow_file_name!!! die...");
         binmode(ND,':utf8');
@@ -539,13 +540,15 @@ if (scalar @saved_netflow) {
         binmode(ND,':utf8');
         print ND join(';',"time","device_id","proto","snmp_in","snmp_out","src_ip","dst_ip","xsrc_ip","xdst_ip","src_port","dst_port","octets","pkts")."\n";
         }
-    foreach my $row (@saved_netflow) {
+    foreach my $row (@{$saved_netflow{$dev_id}}) {
         next if (!$row);
         print ND $row."\n";
         }
     close ND;
-    @saved_netflow=();
+    @{$saved_netflow{$dev_id}}=();
     }
+}
+undef %saved_netflow;
 
 #save statistics
 

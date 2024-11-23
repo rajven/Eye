@@ -105,6 +105,7 @@ my @wan_int=();
 
 my @l3_int = get_records_sql($dbh,'SELECT * FROM device_l3_interfaces WHERE device_id='.$gate->{'id'});
 foreach my $l3 (@l3_int) {
+$l3->{'name'}=~s/\"//g;
 if ($l3->{'interface_type'} eq '0') { push(@lan_int,$l3->{'name'}); }
 if ($l3->{'interface_type'} eq '1') { push(@wan_int,$l3->{'name'}); }
 }

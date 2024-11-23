@@ -40,6 +40,7 @@ if (isset($_POST["s_create"])) {
         $new = NULL;
         list($new['name'],$new['snmpin'],$new['interface_type']) = explode(";", trim($_POST["s_create_name"]));
         $new['device_id'] = $id;
+        $new['name']=preg_replace('/\"/','',$new['name']);
         LOG_INFO($db_link, "Create new l3_interface ".$new['name']);
         insert_record($db_link, "device_l3_interfaces", $new);
     }
@@ -74,7 +75,10 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 $t_l3_interface = get_records($db_link,'device_l3_interfaces',"device_id=$id ORDER BY name");
 
 $int_by_name = [];
-foreach ($int_list as $row) { $int_by_name[$row['name']]=$row; }
+foreach ($int_list as $row) { 
+    $row['name'] = preg_replace('/\"/','',$row['name']);
+    $int_by_name[$row['name']]=$row;
+}
 $fixed = 0;
 
 //fixing snmp index if not exists by interface name

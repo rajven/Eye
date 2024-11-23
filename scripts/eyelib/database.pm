@@ -2064,10 +2064,13 @@ do_sql($db,"DELETE FROM `ad_comp_cache` WHERE last_found<=$clean_str");
 
 #---------------------------------------------------------------------------------------------------------------
 
-$dbh=init_db();
-init_option($dbh);
-clean_variables($dbh);
-Set_Variable($dbh);
+#skip init for upgrade
+if ($MY_NAME!~/upgrade.pl/) {
+    $dbh=init_db();
+    init_option($dbh);
+    clean_variables($dbh);
+    Set_Variable($dbh);
+    }
 
 1;
 }

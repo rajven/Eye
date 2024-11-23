@@ -41,6 +41,9 @@ my $r_index = 0;
 my %old_releases_h = map {$_ => $r_index++ } @old_releases;
 my $eye_release = $old_releases[@old_releases - 1];
 
+$dbh=init_db();
+init_option($dbh);
+
 if (!$config_ref{version}) { $config_ref{version}='2.4.12'; }
 
 if ($ARGV[0]) {
