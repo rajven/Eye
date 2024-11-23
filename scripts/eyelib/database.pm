@@ -942,13 +942,18 @@ sub is_ad_computer {
 my $hdb = shift;
 my $computer_name = shift;
 
+if (!$computer_name or $computer_name =~/UNDEFINED/i) { return 0; }
+
 my $ad_check = get_option($hdb,73);
 if (!$ad_check) { return 1; }
 
 my $ad_zone = get_option($hdb,33);
 
 if ($computer_name =~/\./) {
-    if ($computer_name!~/\.$ad_zone$/i) { return 0; }
+    if ($computer_name!~/\.$ad_zone$/i) { 
+        db_log_verbose($hdb,"The domain of the computer $computer_name does not match the domain of the organization $ad_zone. Skip update.");
+        return 0;
+        }
     }
 
 if ($computer_name =~/^(.+)\./) {
@@ -960,8 +965,11 @@ my $ad_computer_name = trim($computer_name).'$';
 my $name_in_cache = get_record_sql($hdb,"SELECT * FROM ad_comp_cache WHERE name='".$computer_name."'");
 if ($name_in_cache) { return 1; }
 
-my $name_found=do_exec('/usr/bin/getent passwd '.$ad_computer_name);
-if (!$name_found) { return 0; }
+my %name_found=do_exec_ref('/usr/bin/getent passwd '.$ad_computer_name);
+if (!$name_found{output} or $name_found{status} ne 0) {
+    db_log_verbose($hdb,"The computer ".uc($ad_computer_name)." was not found in the domain $ad_zone. Skip update.");
+    return 0;
+    }
 
 do_sql($hdb,"INSERT INTO ad_comp_cache(name) VALUES('".$computer_name."') ON DUPLICATE KEY UPDATE name='".$computer_name."';");
 return 1;
@@ -989,7 +997,7 @@ log_debug("Subnets: ".Dumper($subnets_dhcp->{$dhcp_record->{network}->{subnet}})
 log_debug("enable_ad_dns_update: ".$enable_ad_dns_update);
 log_debug("DNS update flags - zone: ".$ad_zone.",dns: ".$ad_dns.", update_hostname_from_dhcp: ".$update_hostname_from_dhcp.", enable_ad_dns_update: ".$enable_ad_dns_update);
 
-my $maybe_update_dns=(is_ad_computer($hdb,$dhcp_record->{hostname_utf8}) and ($dhcp_record->{type}=~/add/i or $dhcp_record->{type}=~/old/i) and $dhcp_record->{hostname_utf8} and $dhcp_record->{hostname_utf8} !~/UNDEFINED/i and $enable_ad_dns_update and $subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname});
+my $maybe_update_dns=(is_ad_computer($hdb,$dhcp_record->{hostname_utf8}) and ($dhcp_record->{type}=~/add/i or $dhcp_record->{type}=~/old/i) and $enable_ad_dns_update and $subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname});
 if (!$maybe_update_dns) {
     db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id}. DNS update don't needed.");
     return 0;
