@@ -12,8 +12,9 @@ define("WEB_status","Состояние");
 define ("WEB_unknown","В списках не значится");
 
 define("WEB_page_speed","Страница сгенерирована за ");
-define("WEB_rows_at_page","Записей на страницу");
+define("WEB_rows_at_page","Строк");
 define("WEB_nagios","Nagios");
+define("WEB_search","Искать");
 define("WEB_nagios_host_up","Хост активен");
 define("WEB_nagios_host_down","Хост не доступен");
 define("WEB_nagios_host_unknown","Состояние неизвестно");

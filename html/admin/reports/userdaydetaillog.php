@@ -9,6 +9,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 $default_sort='id';
 $sort_table = 'A';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/search.php");
 $rdns = 0;
 if (isset($_POST['dns'])) { $rdns=$_POST['dns']*1; }
 $_SESSION[$page_url]['dns']=$rdns;
@@ -31,6 +32,7 @@ print_trafdetail_submenu($page_url,"id=$id&date_start='$date1'&date_stop='$date2
 <?php echo WEB_log_stop_date; ?>:&nbsp<input type="datetime-local" name="date_stop" value="<?php echo $date2; ?>" />
 <?php echo WEB_cell_gateway; ?>:&nbsp <?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
 DNS:&nbsp <input type=checkbox name=dns value="1" <?php print $dns_checked; ?>>
+<?php echo WEB_search; ?>:&nbsp<input type="text" minlength="7" maxlength="15" size="15" pattern="^(?>(\d|[1-9]\d{2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(?1)$"  name="search" value="<?php echo $search; ?>" />
 <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
 <input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
@@ -42,6 +44,7 @@ $sort_url = "<a href='userdaydetaillog.php?id=".$id.'&date_start="'.$date1.'"&da
 
 $gateway_filter='';
 if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) AND"; }
+if (!empty($search)) { $gateway_filter.=' (src_ip='.ip2long($search).' OR dst_ip='.ip2long($search).') AND'; }
 
 $countSQL="SELECT Count(*) FROM Traffic_detail as A WHERE $gateway_filter (auth_id='$id') and `timestamp`>='$date1' and `timestamp`<'$date2'";
 $res = mysqli_query($db_link, $countSQL);

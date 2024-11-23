@@ -12,8 +12,9 @@ define("WEB_status","Status");
 define ("WEB_unknown","No data available");
 
 define("WEB_page_speed","Page generated for ");
-define("WEB_rows_at_page","Entries per page");
+define("WEB_rows_at_page","Lines");
 define("WEB_nagios","Nagios");
+define("WEB_search","Search");
 define("WEB_nagios_host_up","Host is active");
 define("WEB_nagios_host_down","Host is not available");
 define("WEB_nagios_host_unknown","Status unknown");
