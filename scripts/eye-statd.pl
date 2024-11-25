@@ -558,6 +558,8 @@ if ($traf_record->{direction}) {
         if (exists $routers_by_ip{$traf_record->{src_ip}}) { next; }
         $user_ip = $traf_record->{src_ip};
 	$auth_id = new_auth($hdb,$user_ip);
+	$l_src_ip = $traf_record->{src_ip};
+	$l_dst_ip = $traf_record->{dst_ip};
 	$user_stats{$user_ip}{auth_id}=$auth_id;
 	$user_stats{$user_ip}{$router_id}{in}=0;
 	$user_stats{$user_ip}{$router_id}{out}=$traf_record->{octets};
