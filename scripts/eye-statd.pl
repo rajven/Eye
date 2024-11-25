@@ -682,7 +682,7 @@ foreach my $router_id (keys %wan_stats) {
 	#skip empty stats
         if ($wan_stats{$router_id}{$int_id}{in} + $wan_stats{$router_id}{$int_id}{out} + $wan_stats{$router_id}{$int_id}{forward_in} + $wan_stats{$router_id}{$int_id}{forward_out} ==0) { next; }
 	#current stats
-	my $tSQL="INSERT INTO Wan_stats (time,router_id,interface_id,in,out,forward_in,forward_out) VALUES($flow_date,'$router_id',$wan_stats{$router_id}{$int_id}{in},$wan_stats{$router_id}{$int_id}{out},$wan_stats{$router_id}{$int_id}{forward_in},$wan_stats{$router_id}{$int_id}{forward_out})";
+	my $tSQL="INSERT INTO Wan_stats (`time`,`router_id`,`interface_id`,`in`,`out`,`forward_in`,`forward_out`) VALUES($flow_date,'$router_id','$int_id','$wan_stats{$router_id}{$int_id}{in}','$wan_stats{$router_id}{$int_id}{out}','$wan_stats{$router_id}{$int_id}{forward_in}','$wan_stats{$router_id}{$int_id}{forward_out}')";
 	push (@batch_sql_traf,$tSQL);
 	}
     }
