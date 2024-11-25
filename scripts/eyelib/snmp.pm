@@ -28,6 +28,7 @@ get_vlan_at_port
 get_switch_vlans
 get_snmp_ifindex
 get_ifmib_index_table
+getIpAdEntIfIndex
 get_interfaces
 get_router_state
 snmp_get_req
@@ -41,6 +42,7 @@ $ifIndex
 $ifIndex_map
 $arp_oid
 $ipNetToMediaPhysAddress
+$ipAdEntIfIndex
 $fdb_table_oid
 $fdb_table_oid2
 $cisco_vlan_oid
@@ -53,11 +55,12 @@ $snmp_timeout
 BEGIN
 {
 
-our $ifAlias      ='.1.3.6.1.2.1.31.1.1.1.18';
-our $ifName       ='.1.3.6.1.2.1.31.1.1.1.1';
-our $ifDescr      ='.1.3.6.1.2.1.2.2.1.2';
-our $ifIndex      ='.1.3.6.1.2.1.2.2.1.1';
-our $ifIndex_map  ='.1.3.6.1.2.1.17.1.4.1.2';
+our $ifAlias        ='.1.3.6.1.2.1.31.1.1.1.18';
+our $ifName         ='.1.3.6.1.2.1.31.1.1.1.1';
+our $ifDescr        ='.1.3.6.1.2.1.2.2.1.2';
+our $ifIndex        ='.1.3.6.1.2.1.2.2.1.1';
+our $ifIndex_map    ='.1.3.6.1.2.1.17.1.4.1.2';
+our $ipAdEntIfIndex ='.1.3.6.1.2.1.4.20.1.2';
 
 #RFC1213::atPhysAddress
 our $arp_oid      ='.1.3.6.1.2.1.3.1.1.2';
@@ -357,6 +360,26 @@ sub get_snmp_ifindex {
         $result->{$row}=$value;
         };
     return $result;
+}
+
+#-------------------------------------------------------------------------------------
+
+#get ip interfaces
+sub getIpAdEntIfIndex {
+    my ($host,$community,$snmp) = @_;
+    my $port = 161;
+    ### open SNMP session
+    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community, -version => $snmp, -timeout => $snmp_timeout );
+    return if (!defined($snmp_session));
+    $snmp_session->translate([-timeticks]);
+    my $if_ipaddr = $snmp_session->get_table($ipAdEntIfIndex);
+    my $l3_list;
+    foreach my $row (keys(%$if_ipaddr)) {
+        my $ipaddr = $row;
+        $ipaddr=~s/$ipAdEntIfIndex\.//;
+        $l3_list->{$ipaddr}=$if_ipaddr->{$row};
+    }
+    return $l3_list;
 }
 
 #-------------------------------------------------------------------------------------
