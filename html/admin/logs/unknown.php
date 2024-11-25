@@ -49,7 +49,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 $sSQL = "SELECT U.mac, U.timestamp, DP.port, D.device_name FROM Unknown_mac AS U, devices AS D, device_ports AS DP  WHERE D.device_type<=2 and U.device_id = D.id  AND U.port_id = DP.id AND U.timestamp>='$date1' AND U.timestamp<'$date2' $where_dev ORDER BY U.mac LIMIT $start,$displayed";
 $maclog = get_records_sql($db_link, $sSQL);
 foreach ($maclog as $row) {
-    print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['device_name'] . "</td>\n";
     print "<td class=\"data\">" . $row['port'] . "</td>\n";
     print "<td class=\"data\"><a href=/admin/logs/mac.php?mac=" . mac_simplify($row['mac']) . ">" . mac_dotted($row['mac']) . "</a></td>\n";

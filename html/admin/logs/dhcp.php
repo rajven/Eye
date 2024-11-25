@@ -76,7 +76,7 @@ foreach ($userlog as $row) {
     if ($row['action'] == "add") { $row['action'] = WEB_log_dhcp_add.": "; }
     if ($row['action'] == "del") { $row['action'] = WEB_log_dhcp_del.": "; }
     $l_msg = $row['action'] . " " . $row['mac'] . " " . $row['ip'];
-    print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
     print "<td class=\"data\">" . $row['action'] . "</td>\n";
     print "<td class=\"data\">" . $row['mac'] . "</td>\n";

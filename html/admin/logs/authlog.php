@@ -58,7 +58,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 $sSQL = "SELECT timestamp,customer,message,level FROM worklog as S JOIN (SELECT id FROM worklog WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $log_filter ORDER BY id DESC LIMIT $start,$displayed) AS I ON S.id = I.id";
 $userlog = get_records_sql($db_link, $sSQL);
 foreach ($userlog as $row) {
-    print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
     print "<td class=\"data\">" . $row['customer'] . "</td>\n";
     $msg_level = 'INFO';

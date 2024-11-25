@@ -58,7 +58,7 @@ $sSQL = "SELECT `timestamp`,customer,message,level FROM worklog as S JOIN (SELEC
 
 $userlog = get_records_sql($db_link, $sSQL);
 foreach ($userlog as $row) {
-    print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
     print "<td class=\"data\">" . $row['customer'] . "</td>\n";
     $msg_level = 'INFO';

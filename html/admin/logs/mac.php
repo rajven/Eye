@@ -53,7 +53,7 @@ $sSQL = "SELECT * FROM mac_history WHERE `timestamp`>='$date1' AND `timestamp`<'
 $maclog = get_records_sql($db_link, $sSQL);
 
 foreach ($maclog as $row) {
-    print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
     print "<td class=\"data\">" . expand_mac($db_link,mac_dotted($row['mac'])) . "</td>\n";
     print "<td class=\"data\">" . get_port($db_link, $row['port_id']) . "</td>\n";

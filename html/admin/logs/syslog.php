@@ -76,7 +76,7 @@ ON R.id = I.id";
 $syslog = get_records_sql($db_link, $sSQL);
 if (!empty($syslog)) {
     foreach ($syslog as $row) {
-        print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+        print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
         print "<td class=\"data\">" . $row['date'] . "</td>\n";
         print "<td class=\"data\">" . $row['ip'] . "</td>\n";
         print "<td class=\"data\">" . $row['message'] . "</td>\n";

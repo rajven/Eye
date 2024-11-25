@@ -60,7 +60,7 @@ $sSQL = "SELECT * FROM User_auth WHERE `timestamp`>='$date1' AND `timestamp`<'$d
 
 $iplog = get_records_sql($db_link, $sSQL);
 foreach ($iplog as $row) {
-    print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['id'] . "</td>\n";
     print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
     print "<td class=\"data\">" . $row['last_found'] . "</td>\n";

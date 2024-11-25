@@ -93,7 +93,7 @@ $fsql = "SELECT A.id, A.auth_id, A.`timestamp`, A.router_id, A.proto, A.src_ip, 
         ORDER BY `timestamp` ASC LIMIT $start,$displayed) as T ON A.id = T.id ORDER BY $sort_table.$sort_field $order";
 $userdata = mysqli_query($db_link, $fsql);
 while (list ($uid, $auth_id, $udata, $urouter, $uproto, $sip, $sport,$dip, $dport, $ubytes, $upkt) = mysqli_fetch_array($userdata)) {
-    print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">$uid</td>\n";
     print "<td class=\"data\">"; print_auth_simple($db_link,$auth_id); print "</td>\n";
     print "<td class=\"data\">$udata</td>\n";
