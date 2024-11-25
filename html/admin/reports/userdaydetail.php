@@ -51,7 +51,7 @@ $fsql = "SELECT A.proto, A.src_ip, A.src_port, SUM(A.bytes) as tin FROM Traffic_
             GROUP BY A.src_ip, A.src_port, A.proto ORDER BY tin DESC LIMIT 0,10";
 $userdata = mysqli_query($db_link, $fsql);
 while (list ($uproto, $uip, $uport, $ubytes) = mysqli_fetch_array($userdata)) {
-    print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     $proto_name = getprotobynumber($uproto);
     if (!$proto_name) { $proto_name=$uproto; }
     print "<td class=\"data\">" . $proto_name . "</td>\n";
@@ -80,7 +80,7 @@ $fsql = "SELECT A.proto, A.dst_ip, A.dst_port, SUM(A.bytes) as tout FROM Traffic
         GROUP BY A.dst_ip, A.dst_port, A.proto ORDER BY tout DESC LIMIT 0,10";
 $userdata = mysqli_query($db_link, $fsql);
 while (list ($uproto, $uip, $uport, $ubytes) = mysqli_fetch_array($userdata)) {
-    print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     $proto_name = getprotobynumber($uproto);
     if (!$proto_name) { $proto_name=$uproto; }
     print "<td class=\"data\">" . $proto_name . "</td>\n";

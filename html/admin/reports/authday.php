@@ -42,7 +42,7 @@ $gateway_list = get_gateways($db_link);
 $gateway_filter='';
 if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) AND"; }
 
-print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
 print "<td class=\"data\" colspan=2>".$auth['comments']."</td>\n";
 print "<td class=\"data\" colspan=2><a href=/admin/reports/userdaydetail.php?id=$id&date_start=$date1&date_stop=$date2>TOP 10</a></td>\n";
 print "<td class=\"data\" colspan=2><a href=/admin/reports/userdaydetaillog.php?id=$id&date_start=$date1&date_stop=$date2>".WEB_report_detail."</a></td>\n";
@@ -67,7 +67,7 @@ $userdata = mysqli_query($db_link, $sSQL);
 $sum_in = 0;
 $sum_out = 0;
 while (list ($u_router_id, $udata, $uin, $uout, $pin, $pout) = mysqli_fetch_array($userdata)) {
-    print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">$gateway_list[$u_router_id]</td>\n";
     print "<td class=\"data\">" . $udata . "</td>\n";
     print "<td class=\"data\">" . fbytes($uin) . "</td>\n";
@@ -78,7 +78,7 @@ while (list ($u_router_id, $udata, $uin, $uout, $pin, $pout) = mysqli_fetch_arra
     $sum_in += $uin;
     $sum_out += $uout;
 }
-print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
 print "<td class=\"data\"><b>" . WEB_title_itog . "</b></td>\n";
 print "<td class=\"data\"><b> </b></td>\n";
 print "<td class=\"data\"><b>" . fbytes($sum_in) . "</b></td>\n";

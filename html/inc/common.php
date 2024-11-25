@@ -696,7 +696,8 @@ function print_reports_submenu($current_page)
 {
     print "<div id='submenu'>\n";
     print_submenu_url(WEB_submenu_traffic_ip_report, '/admin/reports/index-full.php', $current_page, 0);
-    print_submenu_url(WEB_submenu_traffic_login_report, '/admin/reports/index.php', $current_page, 1);
+    print_submenu_url(WEB_submenu_traffic_login_report, '/admin/reports/index.php', $current_page, 0);
+    print_submenu_url(WEB_submenu_traffic_wan_report, '/admin/reports/wan.php', $current_page, 1);
     print "</div>\n";
 }
 
@@ -937,6 +938,13 @@ function get_l3_interfaces($db, $device_id)
         $result .= ' LAN: ' . $lan;
     }
     return trim($result);
+}
+
+function get_wan_interfaces($db, $device_id)
+{
+    $l3_wan_sql = "SELECT id,name,snmpin FROM device_l3_interfaces WHERE device_id='".$device_id."' and interface_type=1 ORDER BY name";
+    $t_l3int = get_records_sql($db, $l3_wan_sql);
+    return $t_l3int;
 }
 
 function get_gw_subnets($db, $device_id)

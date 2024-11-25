@@ -79,7 +79,7 @@ while (list ($s_login,$s_ou_id,$u_id,$s_auth_id, $s_router_id, $traf_day_in, $tr
     print "<td class=\"$cl\">" . fbytes($traf_day_out) . "</td>\n";
     print "</tr>\n";
 }
-print "<tr align=center align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
 print "<td class=\"data\" colspan=2><b>".WEB_title_itog."</b></td>\n";
 print "<td class=\"data\"><b>" . fbytes($total_in) . "</b></td>\n";
 print "<td class=\"data\"><b>" . fbytes($total_out) . "</b></td>\n";
