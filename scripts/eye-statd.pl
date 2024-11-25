@@ -624,7 +624,7 @@ if ($saved_netflow{$dev_id} and scalar @{$saved_netflow{$dev_id}}) {
         } else {
         open (ND,">$netflow_file_name") || die("Error open file $netflow_file_name!!! die...");
         binmode(ND,':utf8');
-        print ND join(';',"time","device_id","proto","snmp_in","snmp_out","src_ip","dst_ip","xsrc_ip","xdst_ip","src_port","dst_port","octets","pkts")."\n";
+        print ND join(';',"time","proto","snmp_in","snmp_out","src_ip","dst_ip","xsrc_ip","xdst_ip","src_port","dst_port","octets","pkts")."\n";
         }
     foreach my $row (@{$saved_netflow{$dev_id}}) {
         next if (!$row);
