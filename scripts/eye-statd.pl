@@ -324,7 +324,7 @@ sub parse_netflow_v9_data_flowset {
 		    my $value = substr($flowsetdata, $offset, $field_length);
 		    $offset += $field_length;
 			# IN_BYTES
-		    if ($field_type == 1) {
+			if ($field_type == 1) {
 				if ($field_length == 4) {
 				    $flow{octets} = unpack("N", $value);
 				    } elsif ($field_length == 8) {
@@ -379,7 +379,7 @@ sub parse_netflow_v9_data_flowset {
 		$flow{snmp_out} = 0 if (!$flow{snmp_out});
 		$flow{octets} = 0 if (!$flow{octets});
 		$flow{pkts} = 0 if (!$flow{pkts});
-		if (%flow and $flow{snmp_in} and $flow{snmp_out}) { save_flow($ipaddr, \%flow); }
+		if (%flow) { save_flow($ipaddr, \%flow); }
 	}
 }
 
@@ -466,8 +466,34 @@ if (!$start_time) { $start_time = $traf_record->{starttime}; }
 
 #--- router statistics
 
+#input traffic and traffic originated from router
+if (!$traf_record->{snmp_out} or !$traf_record->{snmp_in}) {
+    #input
+    if (!$traf_record->{snmp_out} and exists $routers_svi{$router_id}{$traf_record->{snmp_in}}{$traf_record->{dst_ip}}) {
+        #input
+        if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}) {
+            $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}+=$traf_record->{octets};
+            } else {
+            $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}=$traf_record->{octets};
+            }
+        next;
+	}
+    #output
+    if (!$traf_record->{snmp_in} and exists $routers_svi{$router_id}{$traf_record->{snmp_out}}{$traf_record->{src_ip}}) {
+        #output
+        if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}) {
+            $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}+=$traf_record->{octets};
+            } else {
+            $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}=$traf_record->{octets};
+            }
+        next;
+        }
+    #unknown packet
+    next;
+    }
+
+#simple output traffic from router
 if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{$router_id}->{$traf_record->{snmp_in}}) {
-    #input or output
     if (exists $routers_svi{$router_id}{$traf_record->{snmp_out}}{$traf_record->{src_ip}}) {
         #output
         if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}) {
@@ -477,6 +503,7 @@ if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{
             }
         next;
         }
+    #It is unlikely that it will ever work out
     if (exists $routers_svi{$router_id}{$traf_record->{snmp_in}}{$traf_record->{dst_ip}}) {
         #input
         if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}) {
@@ -527,6 +554,8 @@ if ($traf_record->{direction}) {
 		}
 	}
     if (!$user_ip and $config_ref{add_unknown_user}) {
+        #skip create router interface as user
+        if (exists $routers_by_ip{$traf_record->{src_ip}}) { next; }
         $user_ip = $traf_record->{src_ip};
 	$auth_id = new_auth($hdb,$user_ip);
 	$user_stats{$user_ip}{auth_id}=$auth_id;
@@ -595,7 +624,7 @@ if ($saved_netflow{$dev_id} and scalar @{$saved_netflow{$dev_id}}) {
         } else {
         open (ND,">$netflow_file_name") || die("Error open file $netflow_file_name!!! die...");
         binmode(ND,':utf8');
-        print ND join(';',"time","proto","snmp_in","snmp_out","src_ip","dst_ip","xsrc_ip","xdst_ip","src_port","dst_port","octets","pkts")."\n";
+        print ND join(';',"time","device_id","proto","snmp_in","snmp_out","src_ip","dst_ip","xsrc_ip","xdst_ip","src_port","dst_port","octets","pkts")."\n";
         }
     foreach my $row (@{$saved_netflow{$dev_id}}) {
         next if (!$row);
