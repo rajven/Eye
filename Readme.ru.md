@@ -2,27 +2,36 @@
 
 1. Ставим пакеты
 
-#common
+#общая часть
 apt install git xxd bsdmainutils
 
-#for database server
+#для сервера с БД
 apt install mariadb-server
 
-#for web
+#для сервера с вэбом
 apt install apache2 libapache2-mod-fcgid \
 php php-mysql php-bcmath php-intl php-mbstring php-date php-mail php-snmp php-zip php-fpm php-db php-pgsql
 
-#for backend
+#для ядра
 apt install perl libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
 libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl libdbi-perl \
 libdbd-mysql-perl libparallel-forkmanager-perl libproc-daemon-perl libdatetime-format-dateparse-perl \
 libnetwork-ipv4addr-perl libnet-openssh-perl libfile-tail-perl  \
-libcrypt-cbc-perl libcryptx-perl libdbd-pg-perl libfile-path-tiny-perl
+libcrypt-cbc-perl libcryptx-perl libdbd-pg-perl libfile-path-tiny-perl libexpect-perl
 
-#additional packages
+#дополнительно
 apt install dnsmasq syslong-ng bind9 bind9-utils bind9-host
 
-2. Качаем исходники и раскидываем по каталогам:
+2. Create user and group
+
+addgroup --system eye
+adduser --system  --disabled-password --disabled-login --ingroup eye --home=/opt/Eye eye
+chmod 770 /opt/Eye
+
+2.1 Если нужна работа с nagios
+usermod -a -G eye nagios
+
+3. Качаем исходники и раскидываем по каталогам:
 
 git clone https://github.com/rajven/Eye
 mkdir -p /opt/Eye/scripts
@@ -32,7 +41,7 @@ cd Eye/
 cp -R scripts/ /opt/Eye/
 cp -R html/ /opt/Eye/
 
-3. Можно скачать дополнительные скрипты (красивости)
+4. Можно скачать дополнительные скрипты (красивости)
 
 mkdir -p /opt/Eye/html/js/jq
 mkdir -p /opt/Eye/html/js/select2
@@ -54,7 +63,7 @@ download jstree from  https://github.com/vakata/jstree/
 #rm -d /opt/Eye/html/vakata-jstree-7a03954
 #rm -f js.zip
 
-4. Настраиваем mysql 
+5. Настраиваем mysql 
 
 systemctl enable mariadb
 systemctl start mariadb
@@ -74,7 +83,7 @@ quit
 Импортировать дефалтные таблицы
 cat docs/mysql/mysql.sql | mysql -u root -p stat
 
-5. Настраиваем конфиги для вэба и скриптов:
+6. Настраиваем конфиги для вэба и скриптов:
 
 cp html/inc/config.sample.php /opt/Eye/html/cfg/
 mv /opt/Eye/html/cfg/config.sample.php /opt/Eye/html/cfg/config.php
@@ -91,7 +100,7 @@ edit: /opt/Eye/scripts/cfg/config
 Пароль: pwgen 16
 Вектор: tr -dc 0-9 </dev/urandom | head -c 16 ; echo ''
 
-6. Настраиваем апач и php:
+7. Настраиваем апач и php:
 
 sed -i 's/short_open_tag = Off/short_open_tag = On/' /etc/php/7.4/apache2/php.ini
 sed -i 's/;date.timezone =/date.timezone = Europe\/Moscow/' /etc/php/7.4/apache2/php.ini
@@ -102,7 +111,7 @@ systemctl start apache2
 
 cp docs/sudoers.d/www-data /etc/sudoers.d/www-data
 
-7. Cron & logrotate
+8. Cron & logrotate
 
 cp docs/cron/stat /etc/cron.d/stat
 cp docs/logrotate/dnsmasq /etc/logrotate.d/dnsmasq
@@ -110,9 +119,9 @@ cp docs/logrotate/scripts /etc/logrotate.d/scripts
 
 Не забудьте раскомментировать в кроне неоходимые скрипты
 
-8. Минимальная настройка готова! Заходим: http://[ip]/admin/ user: admin password: admin, настраиваем список устройств, используемые сети и т.д.
+9. Минимальная настройка готова! Заходим: http://[ip]/admin/ user: admin password: admin, настраиваем список устройств, используемые сети и т.д.
 
-9. Change admin password and api key!!!
+10. Change admin password and api key!!!
 
 ######################################### DHCP Server at Linux ###############################################################
 
@@ -147,8 +156,11 @@ systemctl enable stat-sync.service
 ######################################### Network flow #####################################################################
 
 Включаем netflow на роутере микротик:
-/ip traffic-flow
+#for ROS 6
 set enabled=yes
+#for ROS 7
+set enabled=yes  interfaces=WAN
+
 /ip traffic-flow target
 add dst-address=[IP-SERVER] port=2055
 

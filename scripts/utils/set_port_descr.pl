@@ -44,8 +44,7 @@ $auth_ref{$auth->{id}}{device}=$a_netdev;
 if ($auth->{dns_name}) { $auth_ref{$auth->{id}}{description} = $auth->{dns_name}; }
 if (!$auth_ref{$auth->{id}}{description} and $auth->{WikiName}) { $auth_ref{$auth->{id}}{description} = $auth->{WikiName}; }
 if (!$auth_ref{$auth->{id}}{description} and $auth->{comments}) { $auth_ref{$auth->{id}}{description} = translit($auth->{comments}); }
-if (!$auth_ref{$auth->{id}}{description} and $auth->{dhcp_hostname}) { $auth_ref{$auth->{id}}{description} = $auth->{dhcp_hostname}; }
-if (!$auth_ref{$auth->{id}}{description}) { $auth_ref{$auth->{id}}{description} = translit($auth->{login})."_".$auth->{ip}; }
+if (!$auth_ref{$auth->{id}}{description}) { $auth_ref{$auth->{id}}{description} = $auth->{ip}; }
 $auth_ref{$auth->{id}}{description}=~s/\./-/g;
 $auth_ref{$auth->{id}}{description}=~s/\(/_/g;
 $auth_ref{$auth->{id}}{description}=~s/\)/_/g;
@@ -55,14 +54,14 @@ my %port_info;
 
 my $d_sql="SELECT DP.id, D.ip, D.device_name, D.device_model_id, DP.port, DP.snmp_index, DP.comment, D.community, D.snmp_version, DP.target_port_id, D.vendor_id, D.device_type
 FROM devices AS D, device_ports AS DP
-WHERE D.snmp_version>0 and D.id = DP.device_id AND D.community IS NOT NULL AND (D.device_type = 1 OR D.device_type=2) AND D.deleted=0
+WHERE D.snmp_version>0 and D.id = DP.device_id AND D.community IS NOT NULL AND (D.device_type <=1) AND D.deleted=0
 ORDER BY D.device_name,DP.port";
 
 my @port_list = get_records_sql($dbh,$d_sql);
 
 foreach my $port (@port_list) {
 $port_info{$port->{id}}{id}=$port->{id};
-$port_info{$port->{id}}{device_name}=$port->{device_name};
+$port_info{$port->{id}}{device_name}=lc($port->{device_name});
 $port_info{$port->{id}}{ip}=$port->{ip};
 $port_info{$port->{id}}{device_model_id}=$port->{device_model_id};
 $port_info{$port->{id}}{port}=$port->{port};
@@ -85,7 +84,7 @@ $conn_info{$conn->{id}}{id}=$conn->{id};
 $conn_info{$conn->{id}}{port_id}=$conn->{port_id};
 if ($conn->{auth_id}) {
     $conn_info{$conn->{id}}{auth_id}=$conn->{auth_id};
-    $conn_info{$conn->{id}}{description}=$auth_ref{$conn->{auth_id}}->{description}."==ID:".$conn->{auth_id};
+    $conn_info{$conn->{id}}{description}=$auth_ref{$conn->{auth_id}}->{description};
     $conn_info{$conn->{id}}{ou_id}=$auth_ref{$conn->{auth_id}}->{ou_id};
     }
 }
@@ -114,7 +113,7 @@ my %devices;
 
 foreach my $port_id (keys %port_info) {
 if ($port_info{$port_id}{target_port_id}) {
-    $port_info{$port_id}{description}=$port_info{$port_info{$port_id}{target_port_id}}{device_name}."-port-".$port_info{$port_info{$port_id}{target_port_id}}{port};
+    $port_info{$port_id}{description}=$port_info{$port_info{$port_id}{target_port_id}}{device_name}." [".$port_info{$port_info{$port_id}{target_port_id}}{port}.']';
     }
 if (!$port_info{$port_id}{description} and $port_info{$port_id}{comment}) { $port_info{$port_id}{description}=translit($port_info{$port_id}{comment}); }
 $devices{$port_info{$port_id}{device_name}}{ports}{$port_info{$port_id}{port}}{description}=$port_info{$port_id}{description};
@@ -128,7 +127,10 @@ $devices{$port_info{$port_id}{device_name}}{community}=$port_info{$port_id}{comm
 $devices{$port_info{$port_id}{device_name}}{snmp_version}=$port_info{$port_id}{snmp_version};
 }
 
-foreach my $device_name (keys %devices) {
+
+$Net::OpenSSH::debug=-1;
+
+foreach my $device_name (sort keys %devices) {
 my $device = $devices{$device_name};
 
 #skip unknown vendor
@@ -168,17 +170,17 @@ if ($session) {
     foreach my $port (sort  { $a <=> $b } keys %{$device->{ports}}) {
         my $descr = $device->{ports}{$port}{description};
         next if ($descr =~ /^-port-$/);
+        next if ($descr =~ /^\s+\[\]$/);
         my $index = $device->{ports}{$port}{snmp_index};
         print "Port: $port index: $index Descr: $descr\n";
         netdev_set_port_descr($session,$device,$int->{$index}->{name},$port,$descr);
         }
     netdev_wr_mem($session,$device);
-    }
+    } else { print "Login error!\n"; next; }
 };
 if ($@) { print "Error! Apply failed!\n"; next; }
 
 print "Programming finished.\n";
-
 }
 
 exit;

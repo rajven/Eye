@@ -560,9 +560,20 @@ $device->{password}=$config_ref{router_password} if (!$device->{password});
 $device->{password}=decrypt_string($device->{password});
 $device->{enable_password}='';
 #$device->{enable_password}=$device->{passowrd};
-$device->{proto} = 'ssh' if ($device->{protocol} eq '0');
+$device->{proto} = 'ssh';
 $device->{proto} = 'telnet' if ($device->{protocol} eq '1');
+#patch for ssh
+if ($device->{proto} == 'ssh' and exists $switch_auth{$device->{vendor_id}}{proto}) {
+	#set specified ssh type
+	if ($switch_auth{$device->{vendor_id}}{proto} =~/ssh/i) {
+		$device->{proto} = $switch_auth{$device->{vendor_id}}{proto};
+		}
+	}
 $device->{port} = $device->{control_port} if ($device->{control_port});
+$device->{prompt} = qr/[\$#>]\s?$/;
+if (exists $switch_auth{$device->{vendor_id}}) {
+    $device->{prompt} = $switch_auth{$device->{vendor_id}}{prompt} if ($switch_auth{$device->{vendor_id}}{prompt});
+    }
 return $device;
 }
 

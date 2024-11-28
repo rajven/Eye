@@ -17,7 +17,7 @@ apt install perl libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl lib
 libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl libdbi-perl \
 libdbd-mysql-perl libparallel-forkmanager-perl libproc-daemon-perl libdatetime-format-dateparse-perl \
 libnetwork-ipv4addr-perl libnet-openssh-perl libfile-tail-perl  \
-libcrypt-cbc-perl libcryptx-perl libdbd-pg-perl libfile-path-tiny-perl
+libcrypt-cbc-perl libcryptx-perl libdbd-pg-perl libfile-path-tiny-perl libexpect-perl
 
 #additional packages 
 apt install dnsmasq syslong-ng bind9 bind9-utils bind9-host
@@ -28,6 +28,8 @@ addgroup --system eye
 adduser --system  --disabled-password --disabled-login --ingroup eye --home=/opt/Eye eye
 chmod 770 /opt/Eye
 
+2.1 For nagios
+usermod -a -G eye nagios
 
 3. Download the source code and spread it in catalogs:
 

@@ -17,6 +17,7 @@ use eyelib::config;
 use eyelib::main;
 use Net::Telnet;
 use Net::OpenSSH;
+use Expect;
 
 @ISA = qw(Exporter);
 @EXPORT = qw(
@@ -256,6 +257,7 @@ return 1;
 
 sub netdev_login {
 my $device = shift;
+
 #skip unknown vendor
 if (!$switch_auth{$device->{vendor_id}}) { return 0; }
 
@@ -292,39 +294,19 @@ if ($device->{proto} eq 'telnet') {
         if (exists $switch_auth{$device->{vendor_id}}{password}) { $t->waitfor("/$switch_auth{$device->{vendor_id}}{password}/"); }
         $t->print($device->{password});
         $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/");
-        if (exists $switch_auth{$device->{vendor_id}}{enable}) {
-            $t->print($switch_auth{$device->{vendor_id}}{enable});
-            $t->print($device->{enable_password}) if ($device->{enable_password});
-            $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/");
-            }
-        if ($device->{vendor_id} eq '2') {
-            log_cmd($t,"terminal datadump");
-            log_cmd($t,"no logging console");
-            }
-        if ($device->{vendor_id} eq '5') { log_cmd($t,"terminal page-break disable"); }
-        if ($device->{vendor_id} eq '6') { log_cmd($t,"terminal length 0"); }
-        if ($device->{vendor_id} eq '9') { log_cmd4($t,"/system note set show-at-login=no"); }
-        if ($device->{vendor_id} eq '16') { log_cmd($t,"terminal width 0"); }
-        if ($device->{vendor_id} eq '17') {
-            log_cmd($t,"more displine 50");
-            log_cmd($t,"more off");
-            }
-        if ($device->{vendor_id} eq '38') {
-            log_cmd($t,"disable cli prompting");
-            log_cmd($t,"disable clipaging");
-            }
         };
     if ($@) { log_error("Login to $device->{device_name} ip: $device->{ip} by telnet aborted: $@"); return 0; } else { log_info("Login to $device->{device_name} ip: $device->{ip} by telnet success!"); }
     }
 
 if ($device->{proto} eq 'ssh') {
     if (!$device->{port}) { $device->{port} = '22'; }
-    log_info("Try login to $device->{device_name} $device->{ip}:$device->{port} by ssh...");
+    log_info("Try login to $device->{device_name} $device->{ip}:$device->{port} by OpenSSH...");
 	$t = Net::OpenSSH->new($device->{ip},
 	    user=>$device->{login},
 	    password=>$device->{password},
 	    port=>$device->{port},
 	    timeout=>30,
+	    strict_mode=>0,
 	    master_opts => [ 
 	    -o => "StrictHostKeyChecking=no", 
 	    -o => "PubkeyAcceptedKeyTypes=+ssh-dss", 
@@ -336,35 +318,65 @@ if ($device->{proto} eq 'ssh') {
 	    );
 
         if ($t->error) {  log_error("Login to $device->{device_name} ip: $device->{ip} by ssh aborted: ".$t->error); return 0; }
-
-        netdev_set_enable($t,$device);
-
-        if ($device->{vendor_id} eq '2') {
-            $t->capture("terminal datadump");
-            $t->capture("no logging console");
-            }
-        if ($device->{vendor_id} eq '5') {
-            $t->capture("terminal page-break disable");
-            }
-        if ($device->{vendor_id} eq '6') {
-            $t->capture("terminal length 0");
-            }
-#        if ($device->{vendor_id} eq '9') {
-#            $t->capture("/system note set show-at-login=no");
-#            }
-        if ($device->{vendor_id} eq '16') {
-            $t->capture("terminal width 0");
-            }
-        if ($device->{vendor_id} eq '17') {
-            $t->capture("more displine 50");
-            $t->capture("more off");
-            }
-        if ($device->{vendor_id} eq '38') {
-            $t->capture("disable cli prompting");
-            $t->capture("disable clipaging");
-            }
-    log_info("Login to $device->{device_name} ip: $device->{ip} by ssh success!");
     }
+
+if ($device->{proto} eq 'essh') {
+	if (!$device->{port}) { $device->{port} = '22'; }
+	log_info("Try login to $device->{device_name} $device->{ip}:$device->{port} by ssh::expect...");
+
+	$t = Expect->spawn("ssh -o StrictHostKeyChecking=no -o PubkeyAcceptedKeyTypes=+ssh-dss -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-dss -o LogLevel=quiet -o UserKnownHostsFile=/dev/null $device->{login}\@$device->{ip}");
+	$t->log_stdout(0);  # Disable logging to stdout
+
+	$t->expect(30,
+	[ qr/(?i)password:/ => sub {
+    	    my $exp = shift;
+    	    $exp->send("$device->{password}\n");
+    	    exp_continue;
+	}],
+	[ qr/(?i)yes\/no/ => sub {
+        my $exp = shift;
+        $exp->send("yes\n");
+        exp_continue;
+	}]
+	);
+    }
+
+if ($t) {
+    log_info("Login to $device->{device_name} ip: $device->{ip} by ssh success!");
+    } else {
+    log_error("Login to $device->{device_name} ip: $device->{ip} by ssh failed!");
+    return 0;
+    }
+
+netdev_set_enable($t,$device);
+
+my @init_cmd=();
+
+if ($device->{vendor_id} eq '2') {
+        push(@init_cmd,"terminal datadump");
+        push(@init_cmd,"no logging console");
+        }
+if ($device->{vendor_id} eq '5') {
+        push(@init_cmd,"terminal page-break disable");
+        }
+if ($device->{vendor_id} eq '6') {
+        push(@init_cmd,"terminal length 0");
+        }
+if ($device->{vendor_id} eq '9') {
+        push(@init_cmd,"/system note set show-at-login=no");
+        }
+if ($device->{vendor_id} eq '16') {
+        push(@init_cmd,"terminal width 0");
+        }
+if ($device->{vendor_id} eq '17') {
+        push(@init_cmd,"more displine 50");
+        push(@init_cmd,"more off");
+        }
+if ($device->{vendor_id} eq '38') {
+        push(@init_cmd,"disable cli prompting");
+        push(@init_cmd,"disable clipaging");
+        }
+netdev_cmd($device,$t,\@init_cmd,3);
 
 return $t;
 }
@@ -376,18 +388,19 @@ my $session = shift;
 my $device = shift;
 return if (!exists $switch_auth{$device->{vendor_id}}{enable});
 my $cmd = $switch_auth{$device->{vendor_id}}{enable};
-netdev_cmd($device,$session,$device->{proto},$cmd,3);
-if ($device->{enable_password}) { netdev_cmd($device,$session,$device->{proto},$device->{enable_password},3); }
+netdev_cmd($device,$session,$cmd,3);
+if ($device->{enable_password}) { netdev_cmd($device,$session,$device->{enable_password},3); }
 }
 
 #---------------------------------------------------------------------------------
 
 sub netdev_cmd {
-my ($device,$session,$proto,$cmd,$telnet_version)=@_;
+my ($device,$session,$cmd,$telnet_version)=@_;
 my @result=();
 my @tmp=();
 if (ref($cmd) eq 'ARRAY') { @tmp = @{$cmd}; } else { @tmp = split(/\n/,$cmd); }
-if ($proto eq 'ssh') {
+
+if ($device->{proto} eq 'ssh') {
     eval {
     foreach my $run_cmd (@tmp) {
         next if (!$run_cmd);
@@ -396,57 +409,40 @@ if ($proto eq 'ssh') {
             next;
             }
         log_session('Send:'.$run_cmd);
-        my @row = $session->capture($run_cmd);
+        select(undef, undef, undef, 0.25);
+        my @row = $session->capture($run_cmd."\r\n");
 	chomp(@row);
         push(@result,@row);
-        select(undef, undef, undef, 0.25);
+#	my ($output, $errput) = $session->capture2({timeout => 5}, $run_cmd);
+#	$session->error and die "ssh failed: " . $session->error;
+#	chomp($output);
+#        push(@result,$output);
         }
     log_session('Get:'.Dumper(\@result));
     };
     if ($@) { log_error("Abort: $@"); return 0; };
     }
-if ($proto eq 'tssh') {
-    my $t = Net::OpenSSH->new($device->{ip},
-	    user=>$device->{login},
-	    password=>$device->{password},
-	    port=>$device->{port},
-	    timeout=>30,
-	    master_opts => [ 
-	    -o => "StrictHostKeyChecking=no", 
-	    -o => "PubkeyAcceptedKeyTypes=+ssh-dss", 
-	    -o => "KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1",
-	    -o => "HostKeyAlgorithms=+ssh-dss",
-	    -o => "LogLevel=quiet",
-	    -o => "UserKnownHostsFile=/dev/null"
-	    ]
-	    );
-    if ($t->error) {  log_error("Login to $device->{device_name} ip: $device->{ip} by ssh aborted: ".$t->error); }
-    my ($pty, $pid) = $t->open2pty({stderr_to_stdout => 1}) or die "unable to start remote shell: " . $t->error;
-    my $telnet = Net::Telnet->new(-fhopen => $pty, -prompt => "/$switch_auth{$device->{vendor_id}}{prompt}/", -telnetmode => 0,-cmd_remove_mode => 1,-output_record_separator => "\r");
-    $telnet->waitfor(-match => $telnet->prompt, -errmode => "return") or die "login failed: " . $telnet->lastline;
-    if (exists $switch_auth{$device->{vendor_id}}{enable}) {
-            $telnet->print($switch_auth{$device->{vendor_id}}{enable});
-            $telnet->print($device->{enable_password});
-            $telnet->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/");
-            }
-    if (!$telnet_version) { $telnet_version = 1; }
+
+if ($device->{proto} eq 'essh') {
     eval {
     foreach my $run_cmd (@tmp) {
         next if (!$run_cmd);
-        my @ret=();
-        @ret=log_cmd($telnet,$run_cmd) if ($telnet_version == 1);
-        @ret=log_cmd2($telnet,$run_cmd) if ($telnet_version == 2);
-        @ret=log_cmd3($telnet,$run_cmd) if ($telnet_version == 3);
-        @ret=log_cmd4($telnet,$run_cmd) if ($telnet_version == 4);
-        if (scalar @ret) { push(@result,@ret); }
+        if ($run_cmd =~ /SLEEP/i) {
+            if ($run_cmd =~ /SLEEP\s+(\d+)/i) { log_session('WAIT:'." $1 sec."); sleep($1); } else { log_session('WAIT:'." 10 sec."); sleep(10); };
+            next;
+            }
+        log_session('Send:'.$run_cmd);
+        $session->send("$run_cmd\n");
         select(undef, undef, undef, 0.25);
+        $session->expect(10, -re => qr/$device->{prompt}/);
+	push(@result,$session->before());
         }
+    log_session('Get:'.Dumper(\@result));
     };
-    $telnet->close;
-    waitpid($pid, 0);
     if ($@) { log_error("Abort: $@"); return 0; };
     }
-if ($proto eq 'telnet') {
+
+if ($device->{proto} eq 'telnet') {
     if (!$telnet_version) { $telnet_version = 1; }
     eval {
     foreach my $run_cmd (@tmp) {
@@ -476,7 +472,7 @@ if ($device->{vendor_id} eq '2') {
     eval {
         my $session = netdev_login($device);
         my $cmd = "upload startup-config tftp $tftp_ip $device->{device_name}.cfg";
-        netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,1);
+        netdev_cmd($device,$session,$cmd,1);
         };
     }
 
@@ -484,7 +480,7 @@ if ($device->{vendor_id} eq '2') {
 if ($device->{vendor_id} eq '3') {
     eval {
         my $cmd = "quit\ntftp $tftp_ip put vrpcfg.zip $device->{device_name}.zip\nSLEEP 5\n";
-        netdev_cmd($device,undef,$switch_auth{$device->{vendor_id}}{proto},$cmd,3);
+        netdev_cmd($device,undef,$cmd,3);
         };
     }
 
@@ -493,7 +489,7 @@ if ($device->{vendor_id} eq '4') {
     eval {
         my $session = netdev_login($device);
         my $cmd = "copy running-config tftp $tftp_ip $device->{device_name}.cfg";
-        netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,1);
+        netdev_cmd($device,$session,$cmd,1);
         };
     }
 
@@ -502,7 +498,7 @@ if ($device->{vendor_id} eq '5') {
     eval {
         my $session = netdev_login($device);
         my $cmd = "upload startup-config tftp $tftp_ip $device->{device_name}.cfg";
-        netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,1);
+        netdev_cmd($device,$session,$cmd,1);
         };
     }
 
@@ -513,7 +509,7 @@ if ($device->{vendor_id} eq '6') {
 my $cmd = "copy running-config tftp://$tftp_ip/$device->{device_name}.cfg
 Y
 ";
-        netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,3);
+        netdev_cmd($device,$session,$cmd,3);
         };
     }
 
@@ -522,7 +518,7 @@ if ($device->{vendor_id} eq '7') {
     eval {
         my $session = netdev_login($device);
         my $cmd = "upload cfg_toTFTP $tftp_ip dest_file $device->{device_name}.cfg src_file config.cfg";
-        netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,1);
+        netdev_cmd($device,$session,$cmd,1);
         };
     }
 
@@ -537,7 +533,7 @@ SLEEP 2
 $device->{device_name}.cfg
 SLEEP 5
 ";
-    netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,2);
+    netdev_cmd($device,$session,$cmd,2);
     };
     }
 #allied telesys 8000
@@ -545,7 +541,7 @@ if ($device->{device_model_id} eq '3') {
     eval {
         my $session = netdev_login($device);
         my $cmd = "copy running-config tftp://$tftp_ip/$device->{device_name}.cfg";
-        netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,2);
+        netdev_cmd($device,$session,$cmd,2);
         };
     }
 #allied telesys 8100
@@ -553,7 +549,7 @@ if ($device->{device_model_id} eq '4') {
     eval {
         my $session = netdev_login($device);
         my $cmd = "copy flash tftp $tftp_ip boot.cfg";
-        netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,2);
+        netdev_cmd($device,$session,$cmd,2);
         rename $tftp_dir."/boot.cfg",$tftp_dir."/$device->{device_name}".".cfg";
         };
     }
@@ -564,7 +560,7 @@ if ($device->{vendor_id} eq '9') {
         my $session = netdev_login($device);
         log_cmd($session,"/system note set show-at-login=no",1,$session->prompt);
         my $cmd = "/export";
-        my @netdev_cfg = netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,4);
+        my @netdev_cfg = netdev_cmd($device,$session,$cmd,4);
         write_to_file($tftp_dir."/$device->{device_name}.cfg","Config for $device->{device_name}",0);
         foreach my $row (@netdev_cfg) { write_to_file($tftp_dir."/$device->{device_name}.cfg",$row,1); }
         };
@@ -582,7 +578,7 @@ SLEEP 2
 $device->{device_name}.cfg
 SLEEP 5
 ";
-    netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,2);
+    netdev_cmd($device,$session,$cmd,2);
     };
     }
 
@@ -596,7 +592,7 @@ copy running-config tftp $tftp_ip $device->{device_name}.cfg
 SLEEP 5
 exit
 ";
-    netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,1);
+    netdev_cmd($device,$session,$cmd,1);
     };
     }
 
@@ -605,7 +601,7 @@ if ($device->{vendor_id} eq '38') {
     eval {
         my $session = netdev_login($device);
         my $cmd = "upload configuration tftp $tftp_ip $device->{device_name}.cfg";
-        netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,1);
+        netdev_cmd($device,$session,$cmd,1);
         };
     }
 
@@ -614,7 +610,7 @@ if ($device->{vendor_id} eq '39') {
     eval {
         my $session = netdev_login($device);
         my $cmd = "upload configuration $tftp_ip $device->{device_name}.cfg vr \"VR-Default\"";
-        netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,1);
+        netdev_cmd($device,$session,$cmd,1);
         };
     }
 }
@@ -678,7 +674,7 @@ exit";
 
 #SNR
 if ($device->{vendor_id} eq '6') {
-$telnet_cmd_mode = 1;
+    $telnet_cmd_mode = 1;
     if (!$descr) { $descr = "no description"; } else { $descr = "description $descr"; }
 $cmd = "
 conf t
@@ -778,7 +774,7 @@ if ($device->{vendor_id} eq '39') {
         }
     }
 
-netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,$telnet_cmd_mode);
+netdev_cmd($device,$session,$cmd,$telnet_cmd_mode);
 }
 
 #---------------------------------------------------------------------------------
@@ -896,7 +892,7 @@ if ($device->{vendor_id} eq '39') {
     $cmd = "configure snmp sysName $device->{device_name}";
     }
 
-netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,$telnet_cmd_mode);
+netdev_cmd($device,$session,$cmd,$telnet_cmd_mode);
 }
 
 #---------------------------------------------------------------------------------
@@ -977,7 +973,7 @@ Y
 #Extreme
 if ($device->{vendor_id} eq '39') { $cmd="save configuration primary"; }
 
-netdev_cmd($device,$session,$switch_auth{$device->{vendor_id}}{proto},$cmd,$telnet_cmd_mode);
+netdev_cmd($device,$session,$cmd,$telnet_cmd_mode);
 }
 
 #---------------------------------------------------------------------------------

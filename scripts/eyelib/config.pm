@@ -124,22 +124,28 @@ our @FN=split("/",$0);
 ### script pid file name
 
 $config_ref{my_name}=$FN[-1];
-$config_ref{pid_file}="/var/run/".$FN[-1];
-$config_ref{log_dir}=$Config->{_}->{log_dir} || '/opt/Eye/scripts/log';
-$config_ref{log_common}=$config_ref{log_dir}."/$FN[-1].log";
-$config_ref{dhcpd_conf}=$Config->{_}->{dhcpd_conf} || "/etc/dnsmasq.d";
-$config_ref{DBTYPE}	= $Config->{_}->{DBTYPE} || 'mysql';
-$config_ref{DBHOST}	= $Config->{_}->{DBSERVER} || '127.0.0.1';
-$config_ref{DBNAME}	= $Config->{_}->{DBNAME} || "stat";
-$config_ref{DBUSER}	= $Config->{_}->{DBUSER} || "rstat";
-$config_ref{DBPASS}	= $Config->{_}->{DBPASS} || "rstat";
-$config_ref{domain_auth}= $Config->{_}->{domain_auth} || 'Administrator%password';
-$config_ref{winexe}	= $Config->{_}->{winexe} || '/usr/bin/winexe';
-$config_ref{fping}	= $Config->{_}->{fping} || '/sbin/fping';
-#$config_ref{log_owner_user}= $Config->{_}->{user} || 'nagios';
-$config_ref{log_owner_user}= $Config->{_}->{user} || 'tcpdump';
-#$config_ref{log_owner_group}= $Config->{_}->{group} || 'nagios';
-$config_ref{log_owner_group}= $Config->{_}->{group} || 'tcpdump';
+
+$config_ref{pid_dir} ='/run';
+
+#for run as root - use /run dir for pid files
+if ($> > 0) {
+    $config_ref{pid_dir}=$HOME_DIR.'/run';
+    }
+
+$config_ref{pid_file}       = $config_ref{pid_dir}."/".$FN[-1];
+$config_ref{log_dir}        = $Config->{_}->{log_dir} || $HOME_DIR.'/log';
+$config_ref{log_common}     = $config_ref{log_dir}."/$FN[-1].log";
+$config_ref{dhcpd_conf}     = $Config->{_}->{dhcpd_conf} || "/etc/dnsmasq.d";
+$config_ref{DBTYPE}	    = $Config->{_}->{DBTYPE} || 'mysql';
+$config_ref{DBHOST}	    = $Config->{_}->{DBSERVER} || '127.0.0.1';
+$config_ref{DBNAME}	    = $Config->{_}->{DBNAME} || "stat";
+$config_ref{DBUSER}	    = $Config->{_}->{DBUSER} || "rstat";
+$config_ref{DBPASS}	    = $Config->{_}->{DBPASS} || "rstat";
+$config_ref{domain_auth}    = $Config->{_}->{domain_auth} || 'Administrator%password';
+$config_ref{winexe}	    = $Config->{_}->{winexe} || '/usr/bin/winexe';
+$config_ref{fping}	    = $Config->{_}->{fping} || '/sbin/fping';
+$config_ref{log_owner_user} = $Config->{_}->{user} || 'eye';
+$config_ref{log_owner_group}= $Config->{_}->{group} || 'eye';
 
 $config_ref{nagios_dir}=$Config->{_}->{nagios_dir} || '/etc/nagios4';
 $config_ref{nagios_dir}=~s/\/$//;
@@ -150,10 +156,10 @@ $config_ref{encryption_key}=$Config->{_}->{encryption_key} || '!!!CHANGE_ME!!!';
 $config_ref{encryption_iv}=$Config->{_}->{encryption_iv} || '123456782345';
 
 our $MY_NAME=$FN[-1];
-our $SPID="/var/run/".$FN[-1];
+our $SPID=$config_ref{pid_file};
 
 #iptables log
-our $LOG_DIR            = $Config->{_}->{log_dir} || '/var/log/scripts';
+our $LOG_DIR            = $config_ref{log_dir};
 our $LOG_COMMON         = "$LOG_DIR/$FN[-1].log";
 
 our $LOG                = $LOG_COMMON;
@@ -191,14 +197,14 @@ our $W_INFO = 0;
 our $W_ERROR = 1;
 our $W_DEBUG = 2;
 
-our $DBHOST 		= $Config->{_}->{DBSERVER} || '127.0.0.1';
-our $DBNAME 		= $Config->{_}->{DBNAME} || "stat";
-our $DBUSER 		= $Config->{_}->{DBUSER} || "rstat";
-our $DBPASS 		= $Config->{_}->{DBPASS} || "rstat";
+our $DBHOST 		= $config_ref{DBHOST};
+our $DBNAME 		= $config_ref{DBNAME};
+our $DBUSER 		= $config_ref{DBUSER};
+our $DBPASS 		= $config_ref{DBPASS};
 
-our $domain_auth	= $Config->{_}->{domain_auth} || 'Administrator%password';
-our $winexe		    = $Config->{_}->{winexe} || '/usr/bin/winexe';
-our $fping		    = $Config->{_}->{fping} || '/sbin/fping';
+our $domain_auth	= $config_ref{domain_auth};
+our $winexe		= $config_ref{winexe};
+our $fping		= $config_ref{fping};
 
 our @subnets=();
 
@@ -206,8 +212,8 @@ our $history_log_day;
 our $history_syslog_day;
 our $history_trafstat_day;
 
-our $log_owner_user	= $Config->{_}->{user} || 'nagios';
-our $log_owner_group	= $Config->{_}->{group} || 'nagios';
+our $log_owner_user	= $config_ref{log_owner_user};
+our $log_owner_group	= $config_ref{log_owner_group};
 
 ################################################################
 
@@ -255,9 +261,9 @@ our $tftp_server=$Config->{_}->{tftp_server} || '';
 our $last_refresh_config = time();
 
 our %switch_auth = (
-'8'=>{'vendor'=>'Allied Telesis','enable'=>'en','proto'=>'telnet','port'=>'23','login'=> '(login|User Name):','password'=>'Password:','prompt'=>qr/(\010\013){0,5}(([-\w]+|[-\w(config)+])\#|[-\w]+\>)/},
-'3'=>{'vendor'=>'Huawei','proto'=>'tssh','port'=>'22','enable'=>'system-view','login'=> 'login as:','password'=>'Password: ','prompt'=>qr/(\<.*\>|\[.*\])/},
-'16'=>{'vendor'=>'Cisco','proto'=>'telnet','port'=>'23','enable'=>'en','login'=> 'Username:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
+'8'=>{'vendor'=>'Allied Telesis','enable'=>'en','proto'=>'essh','port'=>'22','login'=> '(login|User Name):','password'=>'Password:','prompt'=>qr/(\010\013){0,5}(([-\w]+|[-\w(config)+])\#|[-\w]+\>)/},
+'3'=>{'vendor'=>'Huawei','proto'=>'essh','port'=>'22','enable'=>'system-view','login'=> 'login as:','password'=>'Password: ','prompt'=>qr/(\<.*\>|\[.*\])/},
+'16'=>{'vendor'=>'Cisco','proto'=>'ssh','port'=>'22','enable'=>'en','login'=> 'Username:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
 '5'=>{'vendor'=>'Raisecom','proto'=>'telnet','port'=>'23','enable'=>'en','login'=> 'Login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
 '6'=>{'vendor'=>'SNR','proto'=>'telnet','port'=>'23','login'=> 'login:','password'=>'Password:','prompt'=>qr/([-\w]+|[-\w(config)+])\#/},
 '7'=>{'vendor'=>'Dlink','proto'=>'telnet','port'=>'23','login'=> 'UserName:','password'=>'PassWord:','prompt'=>qr/[-\w]+\#$/},
@@ -271,6 +277,7 @@ our %switch_auth = (
 );
 
 mkdir $LOG_DIR unless (-d $LOG_DIR);
+mkdir $config_ref{pid_dir} unless (-d $config_ref{pid_dir});
 
 my @cpu_list = `grep ^processor /proc/cpuinfo`;
 $cpu_count = scalar @cpu_list;
