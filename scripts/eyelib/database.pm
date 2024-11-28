@@ -18,6 +18,7 @@ use Net::Patricia;
 use eyelib::net_utils;
 use Data::Dumper;
 use DateTime;
+use POSIX qw(mktime ctime strftime);
 use File::Temp qw(tempfile);
 use DBI;
 

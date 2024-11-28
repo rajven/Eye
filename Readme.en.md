@@ -22,7 +22,14 @@ libcrypt-cbc-perl libcryptx-perl libdbd-pg-perl libfile-path-tiny-perl
 #additional packages 
 apt install dnsmasq syslong-ng bind9 bind9-utils bind9-host
 
-2. Download the source code and spread it in catalogs:
+2. Create user and group
+
+addgroup --system eye
+adduser --system  --disabled-password --disabled-login --ingroup eye --home=/opt/Eye eye
+chmod 770 /opt/Eye
+
+
+3. Download the source code and spread it in catalogs:
 
 git clone https://github.com/rajven/Eye
 mkdir -p /opt/Eye/scripts
@@ -32,7 +39,7 @@ cd Eye/
 cp -R scripts/ /opt/Eye/
 cp -R html/ /opt/Eye/
 
-3. You can download additional scripts (prettiness)
+4. You can download additional scripts (prettiness)
 
 mkdir -p /opt/Eye/html/js/jq
 mkdir -p /opt/Eye/html/js/select2
@@ -54,7 +61,7 @@ download jstree from  https://github.com/vakata/jstree/
 #rm -d /opt/Eye/html/vakata-jstree-7a03954
 #rm -f js.zip
 
-4. Setting up mysql 
+5. Setting up mysql 
 
 systemctl enable mariadb
 systemctl start mariadb
@@ -74,7 +81,7 @@ go out
 Import default tables
 documents cat/mysql/mysql.sql | mysql -u root -p stat
 
-5. Edit configs for web and scripts:
+6. Edit configs for web and scripts:
 
 cp html/cfg/config.sample.php /opt/Eye/html/cfg/
 mv /opt/Eye/html/cfg/config.sample.php /opt/Eye/html/cfg/config.php
@@ -91,7 +98,7 @@ Symmetric AES-128-CBC encryption is used to encrypt passwords to devices. It is 
 Password: pwgen 16
 Vector: tr -dc 0-9 </dev/urandom | head -c 16 ; echo ''
 
-6. Configuring apache and php:
+7. Configuring apache and php:
 
 sed -i 's/short_open_tag = Off/short_open_tag = On/' /etc/php/7.4/apache2/php.ini
 sed -i 's/;date.time zone =/date.time zone = Europe\/Moscow/' /etc/php/7.4/apache2/php.ini
@@ -102,7 +109,7 @@ systemctl start apache2
 
 cp docs/sudoers.d/www-data /etc/sudoers.d/www-data
 
-7. Cron and logrotate
+8. Cron and logrotate
 
 cp docs/cron/stat /etc/cron.d/stat
 cp docs/logrotate/dnsmasq /etc/logrotate.d/dnsmasq
@@ -110,9 +117,9 @@ cp docs/logrotate/scripts/etc/logrotate.d/scripts
 
 Do not forget to uncomment the necessary scripts in the crown
 
-8. Minimal setup is ready! Log in: http://[ip]/admin/ user: admin password: admin, configure the user interface, user networks, etc.
+9. Minimal setup is ready! Log in: http://[ip]/admin/ user: admin password: admin, configure the user interface, user networks, etc.
 
-9. Change the administrator password and api key!!!
+10. Change the administrator password and api key!!!
 
 ######################################### DHCP server on Linux ###############################################################
 
@@ -148,9 +155,12 @@ systemctl enable stat-sync.service
 
 Enable netflow at mikrotik:
 /ip traffic-flow
+#for ROS 6
 set enabled=yes
+#for ROS 7
+set enabled=yes  interfaces=WAN
 /ip traffic-flow target
-add dst-address=[IP-SERVER] port=2055
+add dst-address=[IP-NETFLOW-SERVER] port=2055
 
 ######################################### Remote System Log ###############################################################
 
