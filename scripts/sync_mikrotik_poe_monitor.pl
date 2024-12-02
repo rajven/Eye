@@ -65,7 +65,7 @@ my $t = netdev_login($device);
 #/interface ethernet set [ find default-name=ether2 ] loop-protect=on speed=100Mbps
 
 #fetch current
-my @current_monitor=netdev_cmd($device,$t,'ssh','/interface ethernet export terse',1);
+my @current_monitor=netdev_cmd($device,$t,'/interface ethernet export terse',1);
 @current_monitor=grep(/power/,@current_monitor);
 
 my %current_list;
@@ -108,7 +108,7 @@ if (!defined $current_list{$work_port}) {
 }
 
 if (scalar(@cmd_list)) {
-    netdev_cmd($device,$t,'ssh',\@cmd_list,1);
+    netdev_cmd($device,$t,\@cmd_list,1);
     if ($debug) { foreach my $cmd (@cmd_list) { db_log_debug($dbh,"$cmd"); } }
     }
 

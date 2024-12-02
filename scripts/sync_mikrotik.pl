@@ -123,7 +123,7 @@ next if (!$int);
 $int=trim($int);
 
 #get ip addr at interface
-my @int_addr=netdev_cmd($gate,$t,$gate->{proto},'/ip address print terse without-paging where interface='.$int,1);
+my @int_addr=netdev_cmd($gate,$t,'/ip address print terse without-paging where interface='.$int,1);
 
 log_debug("Get interfaces: ".Dumper(\@int_addr));
 
@@ -152,7 +152,7 @@ db_log_verbose($dbh,"Analyze interface $int. Found: ".Dumper($dhcp_conf{$found_s
 if ($gate->{dhcp}) {
 
 #fetch current dhcp records
-my @ret_static_leases=netdev_cmd($gate,$t,$gate->{proto},'/ip dhcp-server lease print terse without-paging where server=dhcp-'.$int,1);
+my @ret_static_leases=netdev_cmd($gate,$t,'/ip dhcp-server lease print terse without-paging where server=dhcp-'.$int,1);
 
 log_debug("Get dhcp leases:".Dumper(\@ret_static_leases));
 
@@ -457,7 +457,7 @@ log_debug("Group filters: ".Dumper(\%group_filters));
 my %cur_users;
 
 foreach my $group_name (keys %lists) {
-my @address_lists=netdev_cmd($gate,$t,$gate->{proto},'/ip firewall address-list print terse without-paging where list='.$group_name,1);
+my @address_lists=netdev_cmd($gate,$t,'/ip firewall address-list print terse without-paging where list='.$group_name,1);
 
 log_debug("Get address lists:".Dumper(\@address_lists));
 
@@ -496,7 +496,7 @@ timestamp;
 #sync firewall rules
 
 #sync group chains
-my @chain_list=netdev_cmd($gate,$t,$gate->{proto},'/ip firewall filter  print terse without-paging where chain=Users and action=jump',1);
+my @chain_list=netdev_cmd($gate,$t,'/ip firewall filter  print terse without-paging where chain=Users and action=jump',1);
 
 log_debug("Get firewall chains:".Dumper(\@chain_list));
 
@@ -601,7 +601,7 @@ foreach my $filter_index (sort keys %group_filter) {
 #chain filters
 foreach my $group_name (sort keys %group_filters) {
 next if (!$group_name);
-my @get_filter=netdev_cmd($gate,$t,$gate->{proto},'/ip firewall filter print terse without-paging where chain='.$group_name,1);
+my @get_filter=netdev_cmd($gate,$t,'/ip firewall filter print terse without-paging where chain='.$group_name,1);
 chomp(@get_filter);
 my @cur_filter=();
 my $chain_ok=1;
@@ -661,7 +661,7 @@ my %get_queue_type=();
 my %get_queue_tree=();
 my %get_filter_mangle=();
 
-my @tmp=netdev_cmd($gate,$t,$gate->{proto},'/queue type print terse without-paging where name~"pcq_(down|up)load"',1);
+my @tmp=netdev_cmd($gate,$t,'/queue type print terse without-paging where name~"pcq_(down|up)load"',1);
 
 log_debug("Get queues: ".Dumper(\@tmp));
 
@@ -691,7 +691,7 @@ if ($row=~/name=pcq_(down|up)load_(\d){1,3}\s+/i) {
 }
 
 @tmp=();
-@tmp=netdev_cmd($gate,$t,$gate->{proto},'/queue tree print terse without-paging where parent~"(download|upload)_root"',1);
+@tmp=netdev_cmd($gate,$t,'/queue tree print terse without-paging where parent~"(download|upload)_root"',1);
 log_debug("Get root queues: ".Dumper(\@tmp));
 
 #print Dumper(\@tmp);
@@ -729,7 +729,7 @@ if ($row=~/queue=pcq_(down|up)load_(\d){1,3}/i) {
 
 @tmp=();
 
-@tmp=netdev_cmd($gate,$t,$gate->{proto},'/ip firewall mangle print terse without-paging where action=mark-packet and new-packet-mark~"(upload|download)_[0-9]{1,3}"',1);
+@tmp=netdev_cmd($gate,$t,'/ip firewall mangle print terse without-paging where action=mark-packet and new-packet-mark~"(upload|download)_[0-9]{1,3}"',1);
 log_debug("Get firewall mangle rules for queues:".Dumper(\@tmp));
 
 # 0    chain=forward action=mark-packet new-packet-mark=upload_0 passthrough=yes src-address-list=queue_0 out-interface=sfp-sfpplus1-wan log=no log-prefix=""
@@ -868,7 +868,7 @@ if (scalar(@cmd_list)) {
     log_debug("Apply:");
     if ($debug) { foreach my $cmd (@cmd_list) { log_debug("$cmd"); } }
     eval {
-        netdev_cmd($gate,$t,$gate->{proto},\@cmd_list,1);
+        netdev_cmd($gate,$t,\@cmd_list,1);
     };
     if ($@) {
         $all_ok = 0;
