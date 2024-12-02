@@ -563,7 +563,7 @@ $device->{enable_password}='';
 $device->{proto} = 'ssh';
 $device->{proto} = 'telnet' if ($device->{protocol} eq '1');
 #patch for ssh
-if ($device->{proto} == 'ssh' and exists $switch_auth{$device->{vendor_id}}{proto}) {
+if ($device->{proto} eq 'ssh' and exists $switch_auth{$device->{vendor_id}}{proto}) {
 	#set specified ssh type
 	if ($switch_auth{$device->{vendor_id}}{proto} =~/ssh/i) {
 		$device->{proto} = $switch_auth{$device->{vendor_id}}{proto};
