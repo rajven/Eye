@@ -222,7 +222,7 @@ close $fh;
 my $query = qq{ LOAD DATA LOCAL INFILE '$fname' INTO TABLE $table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n'; };
 $db->do($query);
 $db->disconnect;
-#File::Temp::cleanup();
+File::Temp::cleanup();
 }
 
 #---------------------------------------------------------------------------------------------------------------

@@ -17,8 +17,8 @@ server {
 
 	location ~ \.php$ {
 		include snippets/fastcgi-php.conf;
-		fastcgi_pass unix:/run/php/php7.4-fpm.sock;
-	#	fastcgi_pass 127.0.0.1:9000;
+#		fastcgi_pass unix:/run/php/php8.1-fpm.sock;
+		fastcgi_pass 127.0.0.1:9002;
 	}
 
 	location ~ /cfg {
@@ -26,6 +26,18 @@ server {
 	}
 
 	location ~ /inc {
+		deny all;
+	}
+
+	location ~ /log {
+		deny all;
+	}
+
+	location ~ /tmp {
+		deny all;
+	}
+
+	location ~ /sessions {
 		deny all;
 	}
 
