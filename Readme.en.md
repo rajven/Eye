@@ -68,20 +68,23 @@ download jstree from  https://github.com/vakata/jstree/
 systemctl enable mariadb
 systemctl start mariadb
 
-mysql_secure_installation - set password for root
+set password for root
+#mysql_secure_installation
 
-#mysql -u root -p
+Create database
+#cat docs/mysql/create_db.sql | mysql -u root -p stat
+
+Import default tables
+#cat docs/mysql/latest-mysql.sql | mysql -u root -p stat
 
 Create user and database
 
-MariaDB [(none)]>
-CREATE DATABASE IF NOT EXISTS `stat` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-grant all privileges to stat.* stat@localhost, identified with a "password";
-reset privileges;
-go out
+#mysql -u root -p
 
-Import default tables
-documents cat/mysql/mysql.sql | mysql -u root -p stat
+MariaDB [(none)]>
+grant all privileges to stat.* stat@localhost, identified with a "password";
+flush privileges;
+exit
 
 6. Edit configs for web and scripts:
 

@@ -65,23 +65,23 @@ download jstree from  https://github.com/vakata/jstree/
 
 5. Настраиваем mysql 
 
-systemctl enable mariadb
-systemctl start mariadb
+set password for root
+#mysql_secure_installation
 
-mysql_secure_installation - утсановить пароль для root
+Создаём базу данных
+#cat docs/mysql/create_db.sql | mysql -u root -p
+
+Импортируем таблицы
+#cat docs/mysql/latest-mysql.sql | mysql -u root -p stat
+
+Create user and database
 
 #mysql -u root -p
 
-Создать юзера и базу данных
-
 MariaDB [(none)]>
-CREATE DATABASE IF NOT EXISTS `stat` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-grant all privileges on stat.* to stat@localhost identified by 'password';
+grant all privileges to stat.* stat@localhost, identified with a "password";
 flush privileges;
-quit
-
-Импортировать дефалтные таблицы
-cat docs/mysql/mysql.sql | mysql -u root -p stat
+exit
 
 6. Настраиваем конфиги для вэба и скриптов:
 

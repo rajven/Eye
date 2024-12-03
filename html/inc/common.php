@@ -944,6 +944,13 @@ function get_wan_interfaces($db, $device_id)
 {
     $l3_wan_sql = "SELECT id,name,snmpin FROM device_l3_interfaces WHERE device_id='".$device_id."' and interface_type=1 ORDER BY name";
     $t_l3int = get_records_sql($db, $l3_wan_sql);
+    for($i = 0; $i < count($t_l3int); ++$i) {
+        $t_l3int[$i]['comment']='';
+        if (empty($t_l3int[$i]['snmpin'])) { continue; }
+        $con_sql = "SELECT * FROM `device_ports` WHERE device_id='".$device_id."' AND snmp_index='".$t_l3int[$i]['snmpin']."'";
+        $conn = get_record_sql($db,$con_sql);
+        if (isset($conn) and !empty($conn['comment'])) { $t_l3int[$i]['comment']=$conn['comment']; }
+        }
     return $t_l3int;
 }
 

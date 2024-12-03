@@ -205,7 +205,7 @@ if ($config_ref{DBTYPE} eq 'mysql') {
 
 my $table= shift;
 my $data = shift;
-my $fh = File::Temp->new(UNLINK=>0);
+my $fh = File::Temp->new(UNLINK=>1);
 my $fname = $fh->filename;
 binmode($fh,':utf8');
 foreach my $row (@$data) {

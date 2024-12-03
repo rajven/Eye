@@ -33,7 +33,11 @@ $global_int_f_out = 0;
 print "<tr ><td class=\"info\" colspan=5><b>".$device_name."</b></td></tr>\n";
 
 foreach ($l3_interfaces as $row) {
-    print "<tr ><td class=\"data\" colspan=5><b>".$row['name']."</b></td></tr>\n";
+    if (!empty($row['comment'])) {
+        print "<tr ><td class=\"data\" colspan=5><b>".$row['name']." (".$row['comment'].")</b></td></tr>\n";
+        } else {
+        print "<tr ><td class=\"data\" colspan=5><b>".$row['name']."</b></td></tr>\n";
+        }
     print "<tr class=\"info\">\n";
     print "<td >".WEB_date."</td>\n";
     print "<td >".WEB_title_input."</td>\n";
