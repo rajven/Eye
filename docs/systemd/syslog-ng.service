@@ -4,7 +4,7 @@ Documentation=man:syslog-ng(8)
 
 [Service]
 Type=notify
-ExecStart=/usr/sbin/syslog-ng -F -p /var/run/syslogd-ng.pid
+ExecStart=/usr/sbin/syslog-ng -F -p /run/syslogd-ng.pid
 ExecReload=/bin/kill -HUP $MAINPID
 StandardOutput=null
 RestartSec=30

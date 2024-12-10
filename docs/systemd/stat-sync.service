@@ -4,8 +4,10 @@ After=network.target mariadb.service
 
 [Service]
 Type=forking
+User=eye
+Group=eye
 ExecStart=/opt/Eye/scripts/stat-sync.pl --start
-PIDFile=/var/run/stat-sync.pid
+PIDFile=/run/stat-sync.pid
 RestartSec=30
 Restart=on-failure
 

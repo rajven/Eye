@@ -26,8 +26,8 @@ use Proc::Daemon;
 use Cwd;
 
 
-my $pf = '/var/run/syslog-stat.pid';
-my $socket_path='/var/run/syslog-ng.socket';
+my $pf = '/run/syslog-stat.pid';
+my $socket_path='/run/syslog-ng.socket';
 
 my $daemon = Proc::Daemon->new(
         pid_file => $pf,

@@ -42,7 +42,7 @@ return 0
 }
 
 start_ipset() {
-[ ! -e "/var/run/ipstate" ] && ln -s /usr/local/ipstate /var/run/ipstate
+[ ! -e "/run/ipstate" ] && ln -s /usr/local/ipstate /run/ipstate
 if [ -d "${config_dir}" ] ; then
         CONFS=`ls ${config_dir}/*.save 2>/dev/null`
         [ -z "${CONFS}" ] && exit 6

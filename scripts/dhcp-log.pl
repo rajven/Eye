@@ -24,7 +24,7 @@ use Net::Netmask;
 use Text::Iconv;
 use File::Tail;
 
-my $pf = '/var/run/dhcp-log.pid';
+my $pf = '/run/dhcp-log.pid';
 
 my $log_file='/var/log/dhcp.log';
 

@@ -22,7 +22,7 @@ use Proc::Daemon;
 use Cwd;
 use Net::Netmask;
 
-my $pf = '/var/run/stat-sync.pid';
+my $pf = '/run/stat-sync.pid';
 
 my $daemon = Proc::Daemon->new(
         pid_file => $pf,

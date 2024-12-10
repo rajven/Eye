@@ -18,7 +18,7 @@ if [ ! -e "${WORKDIR}/cfg/config" ]; then
 LOG1="${log_dir}/$BN.log"
 
 #lock file for working process
-LOCK1="/var/run/$BN.pid"
+LOCK1="/run/$BN.pid"
 
 #debug
 DEBUG=0

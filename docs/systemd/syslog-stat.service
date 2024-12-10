@@ -6,7 +6,7 @@ PartOf=syslog-ng.service
 [Service]
 Type=forking
 ExecStart=/opt/Eye/scripts/syslog-stat.pl --start
-PIDFile=/var/run/syslog-stat.pid
+PIDFile=/run/syslog-stat.pid
 RestartSec=30
 Restart=on-failure
 
