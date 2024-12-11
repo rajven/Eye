@@ -58,6 +58,6 @@ a:hover                         { color: #ed8b0d; text-decoration: none; }
 
 html                            { margin:0; padding:0; font-size:62.5%; }
 h1                              { font-size:1.8em; }
-.tree                           { overflow:auto; border:0px; }
+.tree                           { overflow: hidden; border:0px; }
 
 .button_right                   { position:absolute; right:0; }
