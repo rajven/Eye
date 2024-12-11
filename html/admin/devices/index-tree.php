@@ -28,13 +28,13 @@ foreach ($hash as $device) {
     if ($device['type'] == 2) { $dev_icon = '/img/gateway.png'; }
     if ($device['type'] == 3) { $dev_icon = '/img/server.png'; }
     if ($device['type'] == 4) { $dev_icon = '/img/ap.png'; }
-    print '{ "text" : "'; print $device['parent_port'].'->'.$device['uplink'].'&nbsp'.$device['name']; print '", "icon" : "'.$dev_icon.'", "id" : "'.$device['id'].'","state" : { "opened" : true },';
+    print '{ "text" : "'; print $device['parent_port'].'->'.$device['uplink'].'&nbsp'.$device['name'].'&nbsp::&nbsp<small><i>['.$device['model_name'].']</i></small>'; print '", "icon" : "'.$dev_icon.'", "id" : "'.$device['id'].'","state" : { "opened" : true },';
     print '"a_attr" : { "href": "'.reencodeurl('/admin/devices/editdevice.php?id='.$device['id']).'"},';
     print '"children" : ['; print_child($device['id'],$hash); print ']';print "},\n";
     }
 }
 
-$dSQL = 'SELECT * FROM devices WHERE deleted=0 and device_type<=2';
+$dSQL = 'SELECT D.*,DM.model_name FROM devices as D,device_models as DM WHERE D.device_model_id=DM.id AND (deleted=0 and device_type<=2)';
 $switches = get_records_sql($db_link,$dSQL);
 $dev_hash = NULL;
 foreach ($switches as $row) {
@@ -42,6 +42,7 @@ $dev_id=$row['id'];
 $dev_hash[$dev_id]['id']=$dev_id;
 $dev_hash[$dev_id]['name']=$row['device_name'];
 $dev_hash[$dev_id]['type']=$row['device_type'];
+$dev_hash[$dev_id]['model_name']=$row['model_name'];
 $pSQL = 'SELECT * FROM device_ports WHERE uplink = 1 and device_id='.$dev_id;
 $uplink = get_record_sql($db_link,$pSQL);
 if (empty($uplink)) { continue; }
