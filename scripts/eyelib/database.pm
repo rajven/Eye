@@ -1911,7 +1911,7 @@ my $value = shift || $$;
 my $timeshift = shift || 60;
 
 Del_Variable($db,$name);
-my $clean_variables = time() + $timeshift;
+my $clean_variables = time() + $timeshift*60;
 my $clean_str=GetTimeStrByUnixTime($clean_variables);
 my $clean_variables_date=$db->quote($clean_str);
 do_sql($db,"INSERT INTO variables(name,value,clear_time) VALUES('".$name."','".$value."',".$clean_variables_date.");");
