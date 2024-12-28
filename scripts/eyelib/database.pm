@@ -1911,8 +1911,11 @@ my $value = shift || $$;
 my $timeshift = shift || 60;
 
 Del_Variable($db,$name);
-my $clean_variables = time() + $timeshift*60;
-my $clean_str=GetTimeStrByUnixTime($clean_variables);
+my $clean_variables = time() + $timeshift;
+my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_variables);
+$month++;
+$year += 1900;
+my $clean_str=sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
 my $clean_variables_date=$db->quote($clean_str);
 do_sql($db,"INSERT INTO variables(name,value,clear_time) VALUES('".$name."','".$value."',".$clean_variables_date.");");
 }
@@ -1950,7 +1953,7 @@ return if (Get_Variable($db,'RECALC'));
 
 my $timeshift = get_option($db,55);
 
-Set_Variable($db,'RECALC',$calc_id,$timeshift);
+Set_Variable($db,'RECALC',$calc_id,time()+$timeshift*60);
 
 my $now = DateTime->now(time_zone=>'local');
 my $day_start = $db->quote($now->ymd("-")." 00:00:00");
