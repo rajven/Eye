@@ -28,7 +28,7 @@ if (isset($_POST['s_save'])) {
         $len_all = is_array($_POST['n_id']) ? count($_POST['n_id']) : 0;
         for ($j = 0; $j < $len_all; $j ++) {
             if (intval($_POST['n_id'][$j]) != $save_id) { continue; }
-            $new['type'] = $_POST['s_type'][$j];
+            $new['type'] = $_POST['s_type'][$j]*1;
             $new['rule'] = trim($_POST['s_rule'][$j]);
             if ($new['type'] ==2) {
                 $new['rule'] = mac_dotted($new['rule']);

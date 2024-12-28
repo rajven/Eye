@@ -2117,11 +2117,10 @@ if (empty($auth_rules)) {
 return $rule_id;
 }
 
-function update_auth_rule($db,$rule,$type,$rule_id)
+function update_auth_rule($db,$rule,$type,$rule_id = 0)
 {
 $new['type']=$type;
 $new['rule']=$rule;
-$rule_id=0;
 $auth_rules = get_record_sql($db,"SELECT * FROM auth_rules WHERE rule='".$rule."' AND type=".$type." AND id<>".$rule_id);
 if (empty($auth_rules)) {
     $rule_id = update_record($db, "auth_rules", "id=".$rule_id, $new);
