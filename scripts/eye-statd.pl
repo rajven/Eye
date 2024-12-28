@@ -10,7 +10,7 @@ use strict;
 use DBI;
 use Time::Local;
 use Net::Patricia;
-use Data::Dumper;
+#use Data::Dumper;
 use Date::Parse;
 use DateTime;
 use eyelib::config;
@@ -20,7 +20,6 @@ use eyelib::database;
 use eyelib::snmp;
 use Socket qw(AF_INET6 inet_ntop);
 use IO::Socket;
-use Data::Dumper;
 use threads;
 
 my @router_ref = ();
@@ -85,8 +84,10 @@ InitSubnets();
 
 init_option($hdb);
 
+#a directory for storing traffic details in text form
 $save_path = get_option($dbh,72);
 
+#the period for resetting statistics from netflow to billing
 $timeshift = get_option($hdb,55)*60;
 
 @router_ref = get_records_sql($hdb,"SELECT * FROM devices WHERE deleted=0 AND device_type=2 AND snmp_version>0 ORDER by ip" );
@@ -103,7 +104,9 @@ foreach my $row (@router_ref) {
     #create hash by all ip-addresses for router
     foreach my $router_ip (keys %$l3_list) {
         $routers_by_ip{$router_ip}->{id}=$row->{id};
-        $routers_by_ip{$router_ip}->{save}=$row->{netflow_save};
+        if ($config_ref{save_detail}) { 
+            $routers_by_ip{$router_ip}->{save}=$row->{netflow_save};
+            } else { $routers_by_ip{$router_ip}->{save}=0; }
         }
     }
 
@@ -117,7 +120,11 @@ my @auth_list_ref = get_records_sql($hdb,"SELECT id,ip,save_traf FROM User_auth 
 
 foreach my $row (@auth_list_ref) {
     $user_stats{$row->{ip}}{auth_id}=$row->{id};
-    $user_stats{$row->{ip}}{save_traf}=$row->{save_traf};
+    if ($config_ref{save_detail}) {
+        $user_stats{$row->{ip}}{save_traf}=$row->{save_traf};
+        } else {
+        $user_stats{$row->{ip}}{save_traf}=0;
+        }
     }
 $hdb->disconnect();
 }
@@ -386,6 +393,7 @@ sub parse_netflow_v9_data_flowset {
 sub save_flow {
 	my $router_ip = shift;
 	my $flow = shift;
+
 	$router_ip = inet_ntoa($router_ip);
 	#direction for user, 0 - in, 1 - out
 	$flow->{direction} = '0';
@@ -452,6 +460,8 @@ my $start_time;
 foreach my $traf_record (@flush_table) {
 
 my ($auth_id,$l_src_ip,$l_dst_ip,$user_ip,$router_id);
+
+#print Dumper($traf_record) if ($debug);
 
 $router_id = $traf_record->{device_id};
 
@@ -612,30 +622,32 @@ push(@detail_traffic,\@detail_array);
 my ($sec,$min,$hour,$day,$month,$year) = (localtime($last_time))[0,1,2,3,4,5];
 
 #save netflow
-$save_path=~s/\/$//;
-foreach my $dev_id (keys %saved_netflow) {
-my $netflow_file_path = $save_path.'/'.$dev_id.'/'.sprintf "%04d/%02d/%02d/%02d/",$year+1900,$month+1,$day,$hour;
-my $nmin = int($min/10)*10;
-my $netflow_file_name = $netflow_file_path.sprintf "%04d%02d%02d-%02d%02d.csv",$year+1900,$month+1,$day,$hour,$nmin;
-if ($saved_netflow{$dev_id} and scalar @{$saved_netflow{$dev_id}}) {
-    use File::Path;
-    File::Path::make_path($netflow_file_path);
-    if ( -e $netflow_file_name) {
-        open (ND,">>$netflow_file_name") || die("Error open file $netflow_file_name!!! die...");
-        binmode(ND,':utf8');
-        } else {
-        open (ND,">$netflow_file_name") || die("Error open file $netflow_file_name!!! die...");
-        binmode(ND,':utf8');
-        print ND join(';',"time","proto","snmp_in","snmp_out","src_ip","dst_ip","xsrc_ip","xdst_ip","src_port","dst_port","octets","pkts")."\n";
+if ($config_ref{save_detail}) {
+    $save_path=~s/\/$//;
+    foreach my $dev_id (keys %saved_netflow) {
+        my $netflow_file_path = $save_path.'/'.$dev_id.'/'.sprintf "%04d/%02d/%02d/%02d/",$year+1900,$month+1,$day,$hour;
+        my $nmin = int($min/10)*10;
+        my $netflow_file_name = $netflow_file_path.sprintf "%04d%02d%02d-%02d%02d.csv",$year+1900,$month+1,$day,$hour,$nmin;
+        if ($saved_netflow{$dev_id} and scalar @{$saved_netflow{$dev_id}}) {
+            use File::Path;
+            File::Path::make_path($netflow_file_path);
+            if ( -e $netflow_file_name) {
+                open (ND,">>$netflow_file_name") || die("Error open file $netflow_file_name!!! die...");
+                binmode(ND,':utf8');
+                } else {
+                open (ND,">$netflow_file_name") || die("Error open file $netflow_file_name!!! die...");
+                binmode(ND,':utf8');
+                print ND join(';',"time","proto","snmp_in","snmp_out","src_ip","dst_ip","xsrc_ip","xdst_ip","src_port","dst_port","octets","pkts")."\n";
+                }
+            foreach my $row (@{$saved_netflow{$dev_id}}) {
+                next if (!$row);
+                print ND $row."\n";
+                }
+            close ND;
+            @{$saved_netflow{$dev_id}}=();
+            }
         }
-    foreach my $row (@{$saved_netflow{$dev_id}}) {
-        next if (!$row);
-        print ND $row."\n";
-        }
-    close ND;
-    @{$saved_netflow{$dev_id}}=();
     }
-}
 undef %saved_netflow;
 
 #save statistics
@@ -721,12 +733,15 @@ foreach my $router_id (keys %wan_stats) {
 #update statistics in DB
 batch_db_sql($hdb,\@batch_sql_traf);
 
-db_log_debug($hdb,"Recalc quotes started");
-foreach my $router_id (keys %routers_found) { recalc_quotes($hdb,$router_id); }
-db_log_debug($hdb,"Recalc quotes stopped");
+if ($config_ref{enable_quotes}) {
+    db_log_debug($hdb,"Recalc quotes started");
+    foreach my $router_id (keys %routers_found) { recalc_quotes($hdb,$router_id); }
+    db_log_debug($hdb,"Recalc quotes stopped");
+    }
 
 if (scalar(@detail_traffic)) {
     db_log_debug($hdb,"Start write traffic detail to DB. ".scalar @detail_traffic." lines count") if ($debug);
+    #mysql dont work at parallel table lock
     if ($config_ref{DBTYPE} eq 'mysql') {
 		batch_db_sql_csv("Traffic_detail", \@detail_traffic);
 	} else {
