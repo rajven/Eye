@@ -1339,6 +1339,13 @@ ALTER TABLE `worklog`
   ADD KEY `auth_id` (`auth_id`);
 ALTER TABLE `worklog` ADD FULLTEXT KEY `customer` (`customer`);
 
+
+--
+-- Индексы таблицы `dns_queue`
+--
+ALTER TABLE `dns_queue`
+  ADD PRIMARY KEY (`id`);
+
 --
 -- AUTO_INCREMENT для сохранённых таблиц
 --
@@ -1432,6 +1439,12 @@ ALTER TABLE `dhcp_log`
 --
 ALTER TABLE `dns_cache`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT для таблицы `dns_queue`
+--
+ALTER TABLE `dns_queue`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `Filter_list`
@@ -1558,6 +1571,7 @@ ALTER TABLE `vendors`
 --
 ALTER TABLE `Wan_stats`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
 
 --
 -- AUTO_INCREMENT для таблицы `worklog`
