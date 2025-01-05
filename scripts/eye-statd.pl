@@ -563,9 +563,14 @@ if ($traf_record->{direction}) {
 		$user_stats{$user_ip}{$router_id}{pkt_out}=$traf_record->{pkts};
 		}
 	}
+    #a new user is created only by the presence of outgoing traffic
     if (!$user_ip and $config_ref{add_unknown_user}) {
         #skip create router interface as user
         if (exists $routers_by_ip{$traf_record->{src_ip}}) { next; }
+	if (!$office_networks->match_string($traf_record->{src_ip})) {
+	    db_log_warning($hdb,"Unknown src network at router $router_id:: proto=>$traf_record->{proto} src: $traf_record->{src_ip}:$traf_record->{src_port} dst: $traf_record->{dst_ip}:$traf_record->{dst_port}");
+	    next;
+	    }
         $user_ip = $traf_record->{src_ip};
 	$auth_id = new_auth($hdb,$user_ip);
 	$l_src_ip = $traf_record->{src_ip};
@@ -593,6 +598,9 @@ if ($traf_record->{direction}) {
 		} else {
 		$user_stats{$user_ip}{$router_id}{pkt_in}=$traf_record->{pkts};
 		}
+	}
+    if (!$user_ip) {
+	log_warning("Unknown dst user ip at router $router_id:: proto=>$traf_record->{proto} src: $traf_record->{src_ip}:$traf_record->{src_port} dst: $traf_record->{xdst_ip}:$traf_record->{dst_port}");
 	}
     }
 
