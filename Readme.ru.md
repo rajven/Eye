@@ -41,6 +41,10 @@ cd Eye/
 cp -R scripts/ /opt/Eye/
 cp -R html/ /opt/Eye/
 
+patch perl snmp for support SHA512
+
+#cp -f docs/patches/USM.pm /usr/share/perl5/Net/SNMP/Security/USM.pm
+
 4. Можно скачать дополнительные скрипты (красивости)
 
 mkdir -p /opt/Eye/html/js/jq

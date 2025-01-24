@@ -1000,6 +1000,26 @@ function print_qa_rule_select($qa_name, $qa_value = 1)
     print "</select>\n";
 }
 
+function print_snmp_auth_proto_select($qa_name, $qa_value = 'sha512')
+{
+    print "<select name=\"$qa_name\">\n";
+    print_select_item('sha512', 'sha512', $qa_value);
+    print_select_item('sha256', 'sha256', $qa_value);
+    print_select_item('sha128', 'sha128', $qa_value);
+    print_select_item('sha1', 'sha1', $qa_value);
+    print_select_item('md5', 'md5', $qa_value);
+    print "</select>\n";
+}
+
+function print_snmp_priv_proto_select($qa_name, $qa_value = 'aes128')
+{
+    print "<select name=\"$qa_name\">\n";
+    print_select_item('aes128', 'aes128', $qa_value);
+    print_select_item('aes', 'aes', $qa_value);
+    print_select_item('des', 'des', $qa_value);
+    print "</select>\n";
+}
+
 function get_int($qa_value = 0)
 {
     if (empty($qa_value)) { $qa_value = 0; } else { $qa_value = (int)$qa_value * 1; }
@@ -2706,6 +2726,7 @@ function walk_snmp($ip, $community, $version, $oid)
 {
     snmp_set_oid_output_format(SNMP_OID_OUTPUT_NUMERIC);
     $result = NULL;
+
     if ($version == 2) {
         $result = snmp2_real_walk($ip, $community, $oid, SNMP_timeout, SNMP_retry);
     }
@@ -2713,6 +2734,22 @@ function walk_snmp($ip, $community, $version, $oid)
         $result = snmprealwalk($ip, $community, $oid, SNMP_timeout, SNMP_retry);
     }
     return $result;
+}
+
+function getSnmpAccess($device) {
+$result['port']         = 161;
+$result['timeout']      = 5;
+$result['version']      = $device['snmp_version'];
+$result['ro-community'] = $device['community'];
+$result['rw-community'] = $device['rw_community'];
+#snmpv3
+$result['auth-proto']   = $device['snmp3_auth_proto'];
+$result['priv-proto']   = $device['snmp3_priv_proto'];
+$result['ro-user']      = $device['snmp3_user_ro'];
+$result['rw-user']      = $device['snmp3_user_rw'];
+$result['ro-password']  = $device['snmp3_user_ro_password'];
+$result['rw-password']  = $device['snmp3_user_rw_password'];
+return $result;
 }
 
 function get_snmp_module_id($modules_oids, $port_name)

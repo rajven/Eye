@@ -47,11 +47,17 @@ my $auth_name = $auth_rec->{dns_name};
 my $auth_ident = $HOST_IP;
 if ($auth_name) { $auth_ident = $auth_name."[".$HOST_IP."]"; }
 
-my $d_sql="SELECT D.ip, D.device_name, D.vendor_id, D.device_model_id, DP.port, DP.snmp_index, D.rw_community, D.snmp_version  FROM devices AS D, device_ports AS DP, connections AS C WHERE D.snmp_version>0 and D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id=$auth_id AND DP.uplink=0";
+my $d_sql="SELECT D.id, D.ip, D.device_name, D.vendor_id, D.device_model_id, DP.port, DP.snmp_index  FROM devices AS D, device_ports AS DP, connections AS C WHERE D.snmp_version>0 and D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id=$auth_id AND DP.uplink=0";
 
 my $dev_port = get_record_sql($dbh,$d_sql);
 
 if (!$dev_port) { db_log_error($dbh,"Connection for $HOST_IP not found! Bye."); exit; }
+
+my $switch = get_record_sql($dbh,'SELECT * FROM devices WHERE id='.$dev_port->{id});
+
+if (!$switch) { db_log_error($dbh,"Switch for $HOST_IP not found! Bye."); exit; }
+
+setCommunity($switch);
 
 my $ip=$dev_port->{ip};
 my $model_id=$dev_port->{device_model_id};
@@ -60,8 +66,6 @@ my $model = $model_rec->{model_name};
 my $port=$dev_port->{port};
 my $vendor_id = $dev_port->{vendor_id};
 my $snmp_index=$dev_port->{snmp_index};
-my $community=$dev_port->{rw_community};
-my $snmp_version=$dev_port->{snmp_version};
 my $device_name = $dev_port->{device_name};
 
 db_log_warning($dbh,"Restart $auth_ident at $device_name ($model $ip) [$port] request found. Try.");
@@ -100,13 +104,13 @@ db_log_debug($dbh,"POE oid: $poe_oid");
 db_log_debug($dbh,"Admin oid: $admin_oid");
 
 if ($poe_oid) {
-    $ret=snmp_set_int($ip,$poe_oid,$poe_disabled_value,$community,161,$snmp_version);
+    $ret=snmp_set_int($ip,$poe_oid,$poe_disabled_value,$switch->{snmp});
     db_log_info($dbh,"Try disable POE at port $port.");
     db_log_debug($dbh,"Send to oid: $poe_oid value: $poe_disabled_value");
     }
 
 if ($admin_oid) {
-    $ret=snmp_set_int($ip,$admin_oid,$poe_disabled_value,$community,161,$snmp_version); 
+    $ret=snmp_set_int($ip,$admin_oid,$poe_disabled_value,$switch->{snmp});
     db_log_info($dbh,"Try shutdown port $port.");
     db_log_debug($dbh,"Send to oid: $admin_oid value: $poe_disabled_value");
     }
@@ -114,13 +118,13 @@ if ($admin_oid) {
 sleep($sleep_time);
 
 if ($admin_oid) {
-    $ret=snmp_set_int($ip,$admin_oid,$poe_enabled_value,$community,161,$snmp_version);
+    $ret=snmp_set_int($ip,$admin_oid,$poe_enabled_value,$switch->{snmp});
     db_log_info($dbh,"Enable POE at port $port.");
     db_log_debug($dbh,"Send to oid: $admin_oid value: $poe_enabled_value");
     }
 
 if ($poe_oid) {
-    $ret=snmp_set_int($ip,$poe_oid,$poe_enabled_value,$community,161,$snmp_version); 
+    $ret=snmp_set_int($ip,$poe_oid,$poe_enabled_value,$switch->{snmp});
     db_log_info($dbh,"Up port $port.");
     db_log_debug($dbh,"Send to oid: $poe_oid value: $poe_enabled_value");
     }

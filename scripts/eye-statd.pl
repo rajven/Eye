@@ -95,8 +95,9 @@ $timeshift = get_option($hdb,55)*60;
 
 #router device_id by known device ip
 foreach my $row (@router_ref) {
+    setCommunity($row);
     $routers{$row->{id}}=$row;
-    my $l3_list = getIpAdEntIfIndex($row->{ip},$row->{community},$row->{snmp_version});
+    my $l3_list = getIpAdEntIfIndex($row->{ip},$row->{snmp});
 
     #create hash for interface snmp index => ip-address at interface =1;
     foreach my $router_ip (keys %$l3_list) { $routers_svi{$row->{id}}{$l3_list->{$router_ip}}{$router_ip}=1; }

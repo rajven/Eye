@@ -54,6 +54,8 @@ define("WEB_msg_export_selected","Export only selected?");
 define("WEB_snmp_version","SNMP version");
 define("WEB_snmp_v3_user_ro","Snmpv3 RO user");
 define("WEB_snmp_v3_user_rw","Snmpv3 RW user");
+define("WEB_snmp_v3_auth_proto","Auth Proto");
+define("WEB_snmp_v3_priv_proto","Priv Proto");
 define("WEB_snmp_v3_ro_password","Snmpv3 RO password");
 define("WEB_snmp_v3_rw_password","Snmpv3 RW password");
 define("WEB_snmp_community_ro","Snmp RO Community");

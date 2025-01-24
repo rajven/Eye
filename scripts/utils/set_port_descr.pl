@@ -52,9 +52,9 @@ $auth_ref{$auth->{id}}{description}=~s/\)/_/g;
 
 my %port_info;
 
-my $d_sql="SELECT DP.id, D.ip, D.device_name, D.device_model_id, DP.port, DP.snmp_index, DP.comment, D.community, D.snmp_version, DP.target_port_id, D.vendor_id, D.device_type
+my $d_sql="SELECT DP.id, D.ip, D.device_name, D.device_model_id, DP.port, DP.snmp_index, DP.comment, DP.target_port_id, D.vendor_id, D.device_type
 FROM devices AS D, device_ports AS DP
-WHERE D.snmp_version>0 and D.id = DP.device_id AND D.community IS NOT NULL AND (D.device_type <=1) AND D.deleted=0
+WHERE D.id = DP.device_id AND (D.device_type <=1) AND D.deleted=0
 ORDER BY D.device_name,DP.port";
 
 my @port_list = get_records_sql($dbh,$d_sql);
@@ -66,9 +66,7 @@ $port_info{$port->{id}}{ip}=$port->{ip};
 $port_info{$port->{id}}{device_model_id}=$port->{device_model_id};
 $port_info{$port->{id}}{port}=$port->{port};
 $port_info{$port->{id}}{snmp_index}=$port->{snmp_index};
-$port_info{$port->{id}}{community}=$port->{community};
 $port_info{$port->{id}}{comment}=$port->{comment};
-$port_info{$port->{id}}{snmp_version}=$port->{snmp_version};
 $port_info{$port->{id}}{target_port_id}=$port->{target_port_id};
 $port_info{$port->{id}}{vendor_id}=$port->{vendor_id};
 $port_info{$port->{id}}{device_type}=$port->{device_type};
@@ -123,12 +121,10 @@ $devices{$port_info{$port_id}{device_name}}{ip}=$port_info{$port_id}{ip};
 $devices{$port_info{$port_id}{device_name}}{device_model_id}=$port_info{$port_id}{device_model_id};
 $devices{$port_info{$port_id}{device_name}}{vendor_id}=$port_info{$port_id}{vendor_id};
 $devices{$port_info{$port_id}{device_name}}{device_type}=$port_info{$port_id}{device_type};
-$devices{$port_info{$port_id}{device_name}}{community}=$port_info{$port_id}{community};
-$devices{$port_info{$port_id}{device_name}}{snmp_version}=$port_info{$port_id}{snmp_version};
 }
 
 
-$Net::OpenSSH::debug=-1;
+#$Net::OpenSSH::debug=-1;
 
 foreach my $device_name (sort keys %devices) {
 my $device = $devices{$device_name};
@@ -138,22 +134,22 @@ next if (!$switch_auth{$device->{vendor_id}});
 
 
 my $ip = $device->{ip};
-my $community = $device->{community};
-my $snmp_version = $device->{snmp_version};
 
 my $netdev = get_record_sql($dbh,"SELECT * FROM devices WHERE ip='".$ip."'");
 
 next if (!$netdev);
 
-print "Device: $device_name IP: $ip community: $community version: $snmp_version ";
+print "Device: $device_name IP: $ip ";
 
 if (!HostIsLive($ip)) { print "... Down! Skip.\n"; next; }
 
 print "... Programming:\n";
 
+setCommunity($netdev);
+
 eval {
 #get interface names
-my $int = get_interfaces($ip,$community,$snmp_version,0);
+my $int = get_interfaces($ip,$netdev->{snmp},0);
 
 $netdev = netdev_set_auth($netdev);
 

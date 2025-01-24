@@ -49,6 +49,8 @@ $cisco_vlan_oid
 $dot1qPortVlanEntry
 $fdb_table;
 $snmp_timeout
+setCommunity
+init_snmp
 );
 
 
@@ -84,17 +86,11 @@ our $snmp_timeout = 15;
 sub snmp_get_request {
 my $ip = shift;
 my $oid = shift;
-my $community = shift || $snmp_default_community;
-my $port = shift || '161';
-my $snmp_version = shift || '2';
-my ($session, $error) = Net::SNMP->session(
-   -hostname  => $ip,
-   -community => $community,
-   -port      => $port,
-   -version   => $snmp_version,
-   -timeout   => 5
-);
-return if (!defined($session));
+my $snmp = shift;
+
+my $session = init_snmp ($ip,$snmp);
+return if (!defined($session) or !$session);
+
 my $result = $session->get_request( -varbindlist => [$oid]);
 $session->close;
 return if (!$result->{$oid});
@@ -107,18 +103,11 @@ sub snmp_set_int {
 my $ip = shift;
 my $oid = shift;
 my $value = shift;
-my $community = shift || $snmp_default_community;
-my $port = shift || '161';
-my $snmp_version = shift || '2';
+my $snmp = shift;
 
-my ($session, $error) = Net::SNMP->session(
-   -hostname  => $ip,
-   -community => $community,
-   -port      => $port,
-   -version   => $snmp_version,
-   -timeout   => $snmp_timeout
-);
-return if (!defined($session));
+my $session = init_snmp ($ip,$snmp,1);
+return if (!defined($session) or !$session);
+
 my $result = $session->set_request( -varbindlist => [$oid,INTEGER,$value]);
 $session->close;
 return $result->{$oid};
@@ -127,20 +116,17 @@ return $result->{$oid};
 #-------------------------------------------------------------------------------------
 
 sub get_arp_table {
-    my ($host,$community,$version) = @_;
-#    return if (!HostIsLive($host));
-    my $port = 161;
-    my $timeout = 5;
-    if (!$version) { $version='2'; }
+    my ($host,$snmp) = @_;
 
-    ### open SNMP session
-    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community , -version=>$version, -timeout   => $snmp_timeout);
-    return if (!defined($snmp_session));
-    $snmp_session->translate([-all]);
+    my $session = init_snmp ($host,$snmp,0);
+    return if (!defined($session) or !$session);
+
+    $session->translate([-all]);
 
     my $arp;
-    my $arp_table1 = $snmp_session->get_table($arp_oid);
-    my $arp_table2 = $snmp_session->get_table($ipNetToMediaPhysAddress);
+    my $arp_table1 = $session->get_table($arp_oid);
+    my $arp_table2 = $session->get_table($ipNetToMediaPhysAddress);
+    $session->close();
 
     if ($arp_table1) {
         foreach my $row (keys(%$arp_table1)) {
@@ -179,15 +165,14 @@ sub get_arp_table {
 
 sub get_ifmib_index_table {
 my $ip = shift;
-my $community = shift;
-my $version = shift;
+my $snmp = shift;
 my $ifmib_map;
 
-my $is_mikrotik = snmp_get_request($ip, '.1.3.6.1.2.1.9999.1.1.1.1.0', $community, 161, $version);
+my $is_mikrotik = snmp_get_request($ip, '.1.3.6.1.2.1.9999.1.1.1.1.0', $snmp);
 my $mk_ros_version = 0;
 
 if ($is_mikrotik=~/MikroTik/i) {
-    my $mikrotik_version = snmp_get_request($ip, '.1.0.8802.1.1.2.1.3.4.0', $community, 161, $version);
+    my $mikrotik_version = snmp_get_request($ip, '.1.0.8802.1.1.2.1.3.4.0', $snmp);
     $mk_ros_version = 6491;
     #"MikroTik RouterOS 6.46.8 (long-term) CRS326-24S+2Q+"
     if ($mikrotik_version =~/RouterOS\s+(\d)\.(\d{1,3})\.(\d{1,3})\s+/) {
@@ -196,8 +181,8 @@ if ($is_mikrotik=~/MikroTik/i) {
     }
 
 if (!$mk_ros_version or $mk_ros_version > 6468) {
-    my $index_map_table =  snmp_get_oid($ip, $community, $ifIndex_map, $version);
-    if (!$index_map_table) { $index_map_table =  snmp_walk_oid($ip, $community, $ifIndex_map, $version); }
+    my $index_map_table =  snmp_get_oid($ip, $snmp, $ifIndex_map);
+    if (!$index_map_table) { $index_map_table =  snmp_walk_oid($ip, $snmp, $ifIndex_map); }
     if ($index_map_table) {
         foreach my $row (keys(%$index_map_table)) {
             my $port_index = $index_map_table->{$row};
@@ -211,8 +196,8 @@ if (!$mk_ros_version or $mk_ros_version > 6468) {
     }
 
 if (!$ifmib_map) {
-    my $index_table =  snmp_get_oid($ip, $community, $ifIndex, $version);
-    if (!$index_table) { $index_table =  snmp_walk_oid($ip, $community, $ifIndex, $version); }
+    my $index_table =  snmp_get_oid($ip, $snmp, $ifIndex);
+    if (!$index_table) { $index_table =  snmp_walk_oid($ip, $snmp, $ifIndex); }
     foreach my $row (keys(%$index_table)) {
             my $port_index = $index_table->{$row};
             next if (!$port_index);
@@ -228,15 +213,12 @@ return $ifmib_map;
 #-------------------------------------------------------------------------------------
 
 sub get_mac_table {
-    my ($host,$community,$oid,$version,$index_map) = @_;
-    my $port = 161;
-    my $timeout = 5;
-    if (!$version) { $version='2'; }
+    my ($host,$snmp,$oid,$index_map) = @_;
     my $fdb;
     #need for callback
     $fdb_table=$oid;
-    my $fdb_table1 = snmp_get_oid($host,$community,$oid,$version);
-    if (!$fdb_table1) { $fdb_table1=snmp_walk_oid($host,$community,$oid,$version,undef); }
+    my $fdb_table1 = snmp_get_oid($host,$snmp,$oid);
+    if (!$fdb_table1) { $fdb_table1=snmp_walk_oid($host,$snmp,$oid,undef); }
     if ($fdb_table1) {
         foreach my $row (keys(%$fdb_table1)) {
                 my $port_index = $fdb_table1->{$row};
@@ -256,15 +238,11 @@ sub get_mac_table {
 #-------------------------------------------------------------------------------------
 
 sub get_fdb_table {
-    my ($host,$community,$version,$iflist) = @_;
-#    return if (!HostIsLive($host));
-    my $port = 161;
-    my $timeout = 5;
-    if (!$version) { $version='2'; }
+    my ($host,$snmp,$iflist) = @_;
 
-    my $ifindex_map = get_ifmib_index_table($host,$community,$version);
-    my $fdb1=get_mac_table($host,$community,$fdb_table_oid,$version,$ifindex_map);
-    my $fdb2=get_mac_table($host,$community,$fdb_table_oid2,$version,$ifindex_map);
+    my $ifindex_map = get_ifmib_index_table($host,$snmp);
+    my $fdb1=get_mac_table($host,$snmp,$fdb_table_oid,$ifindex_map);
+    my $fdb2=get_mac_table($host,$snmp,$fdb_table_oid2,$ifindex_map);
 
     my $fdb3;
 
@@ -282,8 +260,8 @@ sub get_fdb_table {
 
     #maybe cisco?!
     if (!$fdb) {
-        my $vlan_table=snmp_get_oid($host,$community,$cisco_vlan_oid,$version);
-        if (!$vlan_table) { $vlan_table=snmp_walk_oid($host,$community,$cisco_vlan_oid,$version); }
+        my $vlan_table=snmp_get_oid($host,$snmp,$cisco_vlan_oid);
+        if (!$vlan_table) { $vlan_table=snmp_walk_oid($host,$snmp,$cisco_vlan_oid); }
         #fuck!
         if (!$vlan_table) { return; }
         my %fdb_vlan;
@@ -293,8 +271,8 @@ sub get_fdb_table {
                 if ($vlan_oid=~/\.([0-9]{1,4})$/) { $vlan_id=$1; }
                 next if (!$vlan_id);
                 next if ($vlan_id>1000 and $vlan_id<=1009);
-                $fdb_vlan{$vlan_id}=get_mac_table($host,$community.'@'.$vlan_id,$fdb_table_oid,$version,$ifindex_map);
-                if (!$fdb_vlan{$vlan_id}) { $fdb_vlan{$vlan_id}=get_mac_table($host,$community.'@'.$vlan_id,$fdb_table_oid2,$version,$ifindex_map); }
+                $fdb_vlan{$vlan_id}=get_mac_table($host,$snmp.'@'.$vlan_id,$fdb_table_oid,$ifindex_map);
+                if (!$fdb_vlan{$vlan_id}) { $fdb_vlan{$vlan_id}=get_mac_table($host,$snmp.'@'.$vlan_id,$fdb_table_oid2,$ifindex_map); }
                 }
             foreach my $vlan_id (keys %fdb_vlan) {
                 next if (!exists $fdb_vlan{$vlan_id});
@@ -313,13 +291,9 @@ sub get_fdb_table {
 #-------------------------------------------------------------------------------------
 
 sub get_vlan_at_port {
-    my ($host,$community,$version,$port_index) = @_;
-    my $port = 161;
-    my $timeout = 5;
-    if (!$version) { $version='2'; }
+    my ($host,$snmp,$port_index) = @_;
     my $vlan_oid=$dot1qPortVlanEntry.".".$port_index;
-#    print "$host,$community,$vlan_oid,$version\n";
-    my $vlan = snmp_get_req($host,$community,$vlan_oid,$version);
+    my $vlan = snmp_get_req($host,$snmp,$vlan_oid);
     return "1" if (!$vlan);
     return "1" if ($vlan=~/noSuchObject/i);
     return "1" if ($vlan=~/noSuchInstance/i);
@@ -329,14 +303,11 @@ sub get_vlan_at_port {
 #-------------------------------------------------------------------------------------
 
 sub get_switch_vlans {
-    my ($host,$community,$version) = @_;
-    my $port = 161;
-    my $timeout = 5;
-    if (!$version) { $version='2'; }
+    my ($host,$snmp) = @_;
     my $result;
     #need for callback
-    my $vlan_table = snmp_get_oid($host,$community,$dot1qPortVlanEntry,$version);
-    if (!$vlan_table) { $vlan_table=snmp_walk_oid($host,$community,$dot1qPortVlanEntry,$version); }
+    my $vlan_table = snmp_get_oid($host,$snmp,$dot1qPortVlanEntry);
+    if (!$vlan_table) { $vlan_table=snmp_walk_oid($host,$snmp,$dot1qPortVlanEntry); }
     if ($vlan_table) {
         foreach my $vlan_oid (keys %$vlan_table) {
             if ($vlan_oid=~/\.([0-9]*)$/) { $result->{$1} = $vlan_table->{$vlan_oid}; }
@@ -348,17 +319,18 @@ sub get_switch_vlans {
 #-------------------------------------------------------------------------------------
 
 sub get_snmp_ifindex {
-    my ($host,$community,$snmp) = @_;
-    ### open SNMP session
-    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community, -version => $snmp, -timeout => 5);
-    return if (!defined($snmp_session));
-    my $if_index = $snmp_session->get_table($ifIndex);
+    my ($host,$snmp) = @_;
+    my $session = init_snmp($host,$snmp,0);
+    return if (!defined($session) or !$session);
+
+    my $if_index = $session->get_table($ifIndex);
     my $result;
     foreach my $row (keys(%$if_index)) {
         my $value = $if_index->{$row};
         $row=~s/^$ifIndex\.//;
         $result->{$row}=$value;
         };
+    $session->close();
     return $result;
 }
 
@@ -366,36 +338,36 @@ sub get_snmp_ifindex {
 
 #get ip interfaces
 sub getIpAdEntIfIndex {
-    my ($host,$community,$snmp) = @_;
-    my $port = 161;
-    ### open SNMP session
-    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community, -version => $snmp, -timeout => $snmp_timeout );
-    return if (!defined($snmp_session));
-    $snmp_session->translate([-timeticks]);
-    my $if_ipaddr = $snmp_session->get_table($ipAdEntIfIndex);
+    my ($host,$snmp) = @_;
+    my $session = init_snmp ($host,$snmp,0);
+    return if (!defined($session) or !$session);
+
+    $session->translate([-timeticks]);
+    my $if_ipaddr = $session->get_table($ipAdEntIfIndex);
     my $l3_list;
     foreach my $row (keys(%$if_ipaddr)) {
         my $ipaddr = $row;
         $ipaddr=~s/$ipAdEntIfIndex\.//;
         $l3_list->{$ipaddr}=$if_ipaddr->{$row};
     }
+    $session->close();
     return $l3_list;
 }
 
 #-------------------------------------------------------------------------------------
 
 sub get_interfaces {
-    my ($host,$community,$snmp,$skip_empty) = @_;
-#    return if (!HostIsLive($host));
-    my $port = 161;
-    ### open SNMP session
-    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community, -version => $snmp, -timeout => $snmp_timeout );
-    return if (!defined($snmp_session));
-    $snmp_session->translate([-timeticks]);
-    my $if_name = $snmp_session->get_table($ifName);
-    my $if_alias = $snmp_session->get_table($ifAlias);
-    my $if_descr = $snmp_session->get_table($ifDescr);
-    my $if_index = $snmp_session->get_table($ifIndex);
+    my ($host,$snmp,$skip_empty) = @_;
+
+    my $session = init_snmp ($host,$snmp,0);
+    return if (!defined($session) or !$session);
+
+    $session->translate([-timeticks]);
+    my $if_name = $session->get_table($ifName);
+    my $if_alias = $session->get_table($ifAlias);
+    my $if_descr = $session->get_table($ifDescr);
+    my $if_index = $session->get_table($ifIndex);
+    $session->close();
     my $dev_cap;
 
     foreach my $row (keys(%$if_index)) {
@@ -423,44 +395,37 @@ sub get_interfaces {
 #-------------------------------------------------------------------------------------
 
 sub get_router_state {
-    my ($host,$community,$snmp,$skip_empty) = @_;
-#    return if (!HostIsLive($host));
-    my $port = 161;
-    ### open SNMP session
-    my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community, -version => $snmp, -timeout => $snmp_timeout );
-    return if (!defined($snmp_session));
-    $snmp_session->translate([-timeticks]);
-    my $router_status = $snmp_session->get_table("1.3.6.1.4.1.10.1");
+    my ($host,$snmp,$skip_empty) = @_;
+    my $session = init_snmp ($host,$snmp,0);
+    return if (!defined($session) or !$session);
+    $session->translate([-timeticks]);
+    my $router_status = $session->get_table("1.3.6.1.4.1.10.1");
+    $session->close();
     return ($router_status);
 }
 
 #-------------------------------------------------------------------------------------
 
 sub snmp_get_req {
-my ($host,$community,$oid,$version) = @_;
-#return if (!HostIsLive($host));
-if (!$version) { $version='2'; }
-### open SNMP session
-my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community , -version=>$version, -timeout => $snmp_timeout );
-return if (!defined($snmp_session));
-$snmp_session->translate([-timeticks]);
-my $result = $snmp_session->get_request(-varbindlist => [$oid]) or return;
-$snmp_session->close();
+my ($host,$snmp,$oid) = @_;
+my $session = init_snmp ($host,$snmp,0);
+return if (!defined($session) or !$session);
+$session->translate([-timeticks]);
+my $result = $session->get_request(-varbindlist => [$oid]) or return;
+$session->close();
 return $result->{$oid};
 }
 
 #-------------------------------------------------------------------------------------
 
 sub snmp_get_oid {
-my ($host,$community,$oid,$version) = @_;
-#return if (!HostIsLive($host));
-if (!$version) { $version='2'; }
-### open SNMP session
-my ($snmp_session, $error) = Net::SNMP->session( -hostname  => $host, -community => $community , -version=>$version , -timeout     => $snmp_timeout, );
-return if (!defined($snmp_session));
-$snmp_session->translate([-timeticks]);
-my $table = $snmp_session->get_table($oid);
-$snmp_session->close();
+my ($host,$snmp,$oid) = @_;
+my $port = 161;
+my $session = init_snmp ($host,$snmp,0);
+return if (!defined($session) or !$session);
+$session->translate([-timeticks]);
+my $table = $session->get_table($oid);
+$session->close();
 return $table;
 }
 
@@ -469,25 +434,40 @@ return $table;
 sub snmp_walk_oid {
 
 my $host = shift;
-my $community = shift;
+my $snmp = shift;
 my $oid = shift;
-my $version = shift || '2c';
+my $rw = 'ro';
 
-#return if (!HostIsLive($host));
+### open SNMP session
+my ($session, $error);
 
-my ($session, $error) = Net::SNMP->session(
-      -hostname    => $host,
-      -community   => $community,
-      -nonblocking => 1,
-      -translate   => [-octetstring => 0],
-      -version     => $version,
-      -timeout     => $snmp_timeout,
-   );
+if ($snmp->{version} <= 2) {
+        ($session, $error) = Net::SNMP->session(
+		-hostname  => $host,
+		-community => $snmp->{'ro-community'} ,
+		-version   => $snmp->{version},
+		-port      => $snmp->{port},
+		-timeout   => $snmp->{timeout},
+		-nonblocking => 1,
+		-translate   => [-octetstring => 0],
+		);
+	} else {
+	($session, $error) = Net::SNMP->session(
+		-hostname     => $host,
+		-version      => 'snmpv3',
+		-username     => $snmp->{$rw.'-user'},
+		-authprotocol => $snmp->{'auth-proto'},
+		-privprotocol => $snmp->{'priv-proto'},
+		-authpassword => $snmp->{$rw.'-password'},
+		-privpassword => $snmp->{$rw.'-password'},
+		-port         => $snmp->{port},
+		-timeout      => $snmp->{timeout},
+		-nonblocking  => 1,
+		-translate    => [-octetstring => 0],
+		);
+	}
 
-if (!defined $session) {
-      printf "ERROR: %s.\n", $error;
-      return;
-}
+return if (!defined($session) or !$session);
 
 my %table; # Hash to store the results
 
@@ -529,6 +509,68 @@ if (!defined $result) {
      printf "ERROR: %s.\n", $session->error();
     }
 return;
+}
+
+
+#-------------------------------------------------------------------------------------
+
+sub init_snmp {
+
+    my ($host,$snmp,$rw) = @_;
+
+    return if (!$host);
+
+    my $community = $snmp->{'ro-community'};
+    if (!$rw) { $rw = 'ro' }
+	    else {
+	    $rw = 'rw';
+	    $community = $snmp->{'rw-community'};
+	    }
+
+    ### open SNMP session
+    my ($session, $error);
+
+    if ($snmp->{version} <=2) {
+        ($session, $error) = Net::SNMP->session(
+		-hostname  => $host,
+		-community => $community ,
+		-version   => $snmp->{'version'},
+		-port      => $snmp->{port},
+		-timeout   => $snmp->{timeout},
+		);
+	} else {
+	($session, $error) = Net::SNMP->session(
+		-hostname     => $host,
+		-version      => 'snmpv3',
+		-username     => $snmp->{$rw.'-user'},
+		-authprotocol => $snmp->{'auth-proto'},
+		-privprotocol => $snmp->{'priv-proto'},
+		-authpassword => $snmp->{$rw.'-password'},
+		-privpassword => $snmp->{$rw.'-password'},
+		-port         => $snmp->{port},
+		-timeout      => $snmp->{timeout},
+		);
+	}
+    return if (!defined($session) or !$session);
+    return $session;
+}
+
+#-------------------------------------------------------------------------------------
+
+sub setCommunity {
+my $device = shift;
+$device->{snmp}->{'port'}         = 161;
+$device->{snmp}->{'timeout'}      = $snmp_timeout;
+$device->{snmp}->{'version'}      = $device->{snmp_version} || '2';
+$device->{snmp}->{'ro-community'} = $device->{community} || $snmp_default_community;
+$device->{snmp}->{'rw-community'} = $device->{rw_community} || $snmp_default_community;
+#snmpv3
+$device->{snmp}->{'auth-proto'}   = $device->{snmp3_auth_proto} || 'sha512';
+$device->{snmp}->{'priv-proto'}   = $device->{snmp3_priv_proto} || 'aes128';
+$device->{snmp}->{'ro-user'}      = $device->{snmp3_user_ro} || '';
+$device->{snmp}->{'rw-user'}      = $device->{snmp3_user_rw} || '';
+$device->{snmp}->{'ro-password'}  = $device->{snmp3_user_ro_password} || $snmp_default_community;
+$device->{snmp}->{'rw-password'}  = $device->{snmp3_user_rw_password} || $snmp_default_community;
 }
 
 #-------------------------------------------------------------------------------------

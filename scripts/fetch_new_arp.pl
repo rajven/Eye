@@ -87,14 +87,13 @@ sub {
 DATA_LOOP:
 foreach my $router (@router_ref) {
 my $router_ip=$router->{ip};
-my $snmp_version=$router->{snmp_version};
-my $community=$router->{community};
+setCommunity($router);
 if (!HostIsLive($router_ip)) { log_info("Host id: $router->{id} name: $router->{device_name} ip: $router_ip is down! Skip."); next; }
 $pm_arp->start() and next DATA_LOOP;
 my $arp_table;
 my $tmp_dbh=init_db();
 if (apply_device_lock($tmp_dbh,$router->{id})) {
-    $arp_table=get_arp_table($router_ip,$community,$snmp_version);
+    $arp_table=get_arp_table($router_ip,$router->{snmp});
     unset_lock_discovery($tmp_dbh,$router->{id});
     }
 $tmp_dbh->disconnect;
@@ -229,13 +228,14 @@ $dbh->disconnect;
 
 FDB_LOOP:
 foreach my $device (@device_list) {
-my $int_list = get_snmp_ifindex($device->{ip},$device->{community},$device->{snmp_version});
+setCommunity($device);
+my $int_list = get_snmp_ifindex($device->{ip},$device->{snmp});
 if (!$int_list) { log_info("Host id: $device->{id} name: $device->{device_name} ip: $device->{ip} is down! Skip."); next; }
 $pm_fdb->start() and next FDB_LOOP;
 my $result;
 my $tmp_dbh = init_db();
 if (apply_device_lock($tmp_dbh,$device->{id})) {
-    my $fdb=get_fdb_table($device->{ip},$device->{community},$device->{snmp_version},$dev_ifindex{$device->{id}});
+    my $fdb=get_fdb_table($device->{ip},$device->{snmp},$dev_ifindex{$device->{id}});
     unset_lock_discovery($tmp_dbh,$device->{id});
     $result->{id}=$device->{id};
     $result->{fdb} = $fdb;
