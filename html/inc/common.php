@@ -2543,12 +2543,17 @@ function set_port_for_group($db, $group_id, $place_id, $state)
         } else {
             $place_filter = 'D.building_id=' . $place_id . ' and ';
         }
-        $devSQL = 'SELECT D.id, D.device_name, D.vendor_id, D.device_model, D.ip, D.snmp_version, D.rw_community, DP.port, DP.snmp_index  FROM devices AS D, device_ports AS DP, connections AS C WHERE ' . $place_filter . ' D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id=' . $a_id . ' LIMIT 1';
+        $devSQL = 'SELECT D.id, D.device_name, D.vendor_id, D.device_model, D.ip, DP.port, DP.snmp_index  FROM devices AS D, device_ports AS DP, connections AS C WHERE ' . $place_filter . ' D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id=' . $a_id . ' LIMIT 1';
         $dev_info = mysqli_query($db, $devSQL);
-        list($d_id, $d_name, $d_vendor_id, $d_model, $d_ip, $d_snmp, $d_community, $d_port, $d_snmp_index) = mysqli_fetch_array($dev_info);
+        list($d_id, $d_name, $d_vendor_id, $d_model, $d_ip, $d_port, $d_snmp_index) = mysqli_fetch_array($dev_info);
+        
         if (!isset($d_id)) {
             continue;
         }
+        
+        $device=get_record($db,'devices',"id=".$d_id);
+        $snmp = getSnmpAccess($device);
+
         if ($state == 1) {
             $mode = 'enable';
             run_sql($db, "Update User_auth set nagios_handler='restart-port' WHERE id=$a_id and nagios_handler='manual-mode'");
@@ -2557,8 +2562,8 @@ function set_port_for_group($db, $group_id, $place_id, $state)
             run_sql($db, "Update User_auth set nagios_handler='manual-mode' WHERE id=$a_id and nagios_handler='restart-port'");
         }
         LOG_INFO($db, "At device $d_name [$d_ip] $mode port $d_port for auth_id: $a_id ($a_ip [$a_name])");
-        set_port_state($d_vendor_id, $d_snmp_index, $d_ip, $d_community, $d_snmp, $state);
-        set_port_poe_state($d_vendor_id, $d_port, $d_snmp_index, $d_ip, $d_community, $d_snmp, $state);
+        set_port_state($d_vendor_id, $d_snmp_index, $d_ip, $snmp, $state);
+        set_port_poe_state($d_vendor_id, $d_port, $d_snmp_index, $d_ip, $snmp, $state);
     }
     LOG_VERBOSE($db, 'Mass port state change stopped.');
 }
