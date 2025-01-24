@@ -319,9 +319,6 @@ function getSnmpAccess($device)
     $result['rw-user']      = $device['snmp3_user_rw'];
     $result['ro-password']  = $device['snmp3_user_ro_password'];
     $result['rw-password']  = $device['snmp3_user_rw_password'];
-    if ($result['auth-proto'] === 'sha1') {
-        $result['auth-proto'] = 'sha';
-    }
     return $result;
 }
 
