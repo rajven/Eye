@@ -317,9 +317,9 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 print "<tr><td>" . WEB_snmp_v3_user_ro . "</td><td>" . WEB_snmp_v3_ro_password . "</td><td>" . WEB_snmp_v3_user_rw . "</td><td>" . WEB_snmp_v3_rw_password . "</td><td></td>";
                 print "</tr><tr>";
                 print "<td class='data'><input type='text' name='f_snmp3_user_ro' value=" . $device['snmp3_user_ro'] . "></td>\n";
-                print "<td class='data'><input type='text' name='f_snmp3_user_ro_password' value=" . $device['snmp3_user_ro_password'] . "></td>\n";
+                print "<td class='data'><input type='text' name='f_snmp3_user_ro_password' minlength='8' value=" . $device['snmp3_user_ro_password'] . "></td>\n";
                 print "<td class='data'><input type='text' name='f_snmp3_user_rw' value=" . $device['snmp3_user_rw'] . "></td>\n";
-                print "<td class='data'><input type='text' name='f_snmp3_user_rw_password' value=" . $device['snmp3_user_rw_password'] . "></td>\n";
+                print "<td class='data'><input type='text' name='f_snmp3_user_rw_password' minlength='8' value=" . $device['snmp3_user_rw_password'] . "></td>\n";
                 print "</tr>\n";
             } else {
                 print "<tr><td>" . WEB_snmp_version . "</td><td></td><td></td><td></td></tr>";
