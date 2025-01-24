@@ -4,6 +4,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $device=get_record($db_link,'devices',"id=".$id);
+$snmp = getSnmpAccess($device);
 $user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
@@ -30,11 +31,11 @@ print "<b>".WEB_device_mac_table_show."&nbsp".$device['device_name']." (".$devic
 
 $snmp_ok = 0;
 if (!empty($device['ip']) and $device['snmp_version'] > 0) {
-	$snmp_ok = check_snmp_access($device['ip'], $device['community'], $device['snmp_version']);
+	$snmp_ok = check_snmp_access($device['ip'], $snmp);
 	}
 
 if ($snmp_ok) {
-	$fdb = get_fdb_table($device['ip'], $device['community'], $device['snmp_version']);
+	$fdb = get_fdb_table($device['ip'], $snmp);
 
 	$port_by_snmp = 0;
    	foreach ($fdb as $a_mac => $a_port) {

@@ -4,7 +4,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $port_id = $id;
-$sSQL = "SELECT DP.device_id, DP.port, DP.snmp_index, D.device_name, D.ip, D.snmp_version, D.community, D.vendor_id FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=$port_id";
+$sSQL = "SELECT DP.device_id, DP.port, DP.snmp_index, D.device_name, D.ip, D.vendor_id FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=$port_id";
 $port_info = get_record_sql($db_link, $sSQL);
 
 $device_id = $port_info["device_id"];
@@ -15,6 +15,7 @@ $ports_by_snmp_index=NULL;
 foreach ($ports_info as &$row) { $ports_by_snmp_index[$row["snmp_index"]]=$row["port"]; }
 
 $device=get_record($db_link,'devices',"id=".$device_id);
+$snmp = getSnmpAccess($device);
 $user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
@@ -45,13 +46,13 @@ if ($port_info['vendor_id'] == 9) {
 
 $snmp_ok = 0;
 if (!empty($device['ip']) and $device['snmp_version'] > 0) {
-        $snmp_ok = check_snmp_access($device['ip'], $device['community'], $device['snmp_version']);
+        $snmp_ok = check_snmp_access($device['ip'], $snmp);
     }
 
 if ($snmp_ok and $port_info['snmp_index'] > 0) {
     print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
     print "<tr><td colspan=2><b>".WEB_device_port_mac_table_show."</b></td></tr>\n";
-    $fdb = get_fdb_table($port_info['ip'], $port_info['community'], $port_info['snmp_version']);
+    $fdb = get_fdb_table($port_info['ip'], $snmp);
     $f_port = $port_info['snmp_index'];
     $port_by_snmp = 0;
     foreach ($fdb as $a_mac => $a_port) {

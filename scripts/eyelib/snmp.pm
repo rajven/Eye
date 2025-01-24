@@ -258,6 +258,8 @@ sub get_fdb_table {
     #join tables
     if ($fdb1 and $fdb3) { $fdb = { %$fdb1,%$fdb3 }; }
 
+    my $snmp_cisco = $snmp;
+
     #maybe cisco?!
     if (!$fdb) {
         my $vlan_table=snmp_get_oid($host,$snmp,$cisco_vlan_oid);
@@ -271,9 +273,10 @@ sub get_fdb_table {
                 if ($vlan_oid=~/\.([0-9]{1,4})$/) { $vlan_id=$1; }
                 next if (!$vlan_id);
                 next if ($vlan_id>1000 and $vlan_id<=1009);
-                $fdb_vlan{$vlan_id}=get_mac_table($host,$snmp.'@'.$vlan_id,$fdb_table_oid,$ifindex_map);
-                if (!$fdb_vlan{$vlan_id}) { $fdb_vlan{$vlan_id}=get_mac_table($host,$snmp.'@'.$vlan_id,$fdb_table_oid2,$ifindex_map); }
-                }
+                $snmp_cisco->{'ro-community'} = $snmp->{'ro-community'}.'@'.$vlan_id;
+                $fdb_vlan{$vlan_id}=get_mac_table($host,$snmp_cisco,$fdb_table_oid,$ifindex_map);
+                if (!$fdb_vlan{$vlan_id}) { $fdb_vlan{$vlan_id}=get_mac_table($host,$snmp_cisco,$fdb_table_oid2,$ifindex_map); }
+            }
             foreach my $vlan_id (keys %fdb_vlan) {
                 next if (!exists $fdb_vlan{$vlan_id});
                 if (defined $fdb_vlan{$vlan_id}) {
