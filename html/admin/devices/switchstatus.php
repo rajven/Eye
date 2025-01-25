@@ -28,7 +28,7 @@ if (isset($_POST['poe_on']) and $device['snmp_version'] > 0) {
         $sSQL = "SELECT port from device_ports WHERE device_id=" . $id . " and snmp_index=" . $port_index;
         $port = get_record_sql($db_link, $sSQL);
         LOG_DEBUG($db_link, "Device id: " . $id . " enable poe at port " . $port['port'] . " snmp index " . $port_index);
-        set_port_poe_state($device['vendor_id'], $port['port'], $port_index, $device['ip'], $device['rw_community'], $device['snmp_version'], 1);
+        set_port_poe_state($device['vendor_id'], $port['port'], $port_index, $device['ip'], $snmp, 1);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -41,7 +41,7 @@ if (isset($_POST['poe_off']) and $device['snmp_version'] > 0) {
         $sSQL = "SELECT port from device_ports WHERE device_id=" . $id . " and snmp_index=" . $port_index;
         $port = get_record_sql($db_link, $sSQL);
         LOG_DEBUG($db_link, "Device id: " . $id . " disable poe at port " . $port['port'] . " snmp index " . $port_index);
-        set_port_poe_state($device['vendor_id'], $port['port'], $port_index, $device['ip'], $device['rw_community'], $device['snmp_version'], 0);
+        set_port_poe_state($device['vendor_id'], $port['port'], $port_index, $device['ip'], $snmp, 0);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -52,7 +52,7 @@ if (isset($_POST['port_on']) and $device['snmp_version'] > 0) {
     for ($i = 0; $i < $len; $i++) {
         $port_index = intval($_POST['port_on'][$i]);
         LOG_DEBUG($db_link, "Device id: $id enable port with snmp index $port_index");
-        set_port_state($device['vendor_id'], $port_index, $device['ip'], $device['rw_community'], $device['snmp_version'], 1);
+        set_port_state($device['vendor_id'], $port_index, $device['ip'], $snmp, 1);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -63,7 +63,7 @@ if (isset($_POST['port_off']) and $device['snmp_version'] > 0) {
     for ($i = 0; $i < $len; $i++) {
         $port_index = intval($_POST['port_off'][$i]);
         LOG_DEBUG($db_link, "Device id: $id disable port with snmp index $port_index");
-        set_port_state($device['vendor_id'], $port_index, $device['ip'], $device['rw_community'], $device['snmp_version'], 0);
+        set_port_state($device['vendor_id'], $port_index, $device['ip'], $snmp, 0);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
