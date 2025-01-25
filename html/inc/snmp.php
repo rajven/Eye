@@ -1535,13 +1535,13 @@ function set_snmp($ip, $snmp, $oid, $field, $value)
     try {
         $version = $snmp["version"];
         if ($version == 3) {
-            $result = snmp3_set($ip, $snmp["ro-user"], 'authPriv', $snmp['auth-proto'], $snmp['ro-password'], $snmp["priv-proto"], $snmp["ro-password"], $oid, $field, $value, SNMP_timeout, SNMP_retry);
+            $result = snmp3_set($ip, $snmp["rw-user"], 'authPriv', $snmp['auth-proto'], $snmp['rw-password'], $snmp["priv-proto"], $snmp["rw-password"], $oid, $field, $value, SNMP_timeout, SNMP_retry);
         }
         if ($version == 2) {
-            $result = snmp2_set($ip, $snmp["ro-community"], $oid, $field, $value, SNMP_timeout, SNMP_retry);
+            $result = snmp2_set($ip, $snmp["rw-community"], $oid, $field, $value, SNMP_timeout, SNMP_retry);
         }
         if ($version == 1) {
-            $result = snmpset($ip, $snmp["ro-community"], $oid, $field, $value, SNMP_timeout, SNMP_retry);
+            $result = snmpset($ip, $snmp["rw-community"], $oid, $field, $value, SNMP_timeout, SNMP_retry);
         }
     } catch (Exception $e) {
         #	echo 'Caught exception: ',  $e->getMessage(), "\n";
