@@ -866,7 +866,7 @@ if (!$queue_ok) {
 #upload queue
 foreach my $int (@wan_int) {
 $queue_tree{$q_id}{$int}{up}="name=queue_".$q_id."_".$int."_out parent=upload_root_".$int." packet-mark=upload_".$q_id."_".$int." limit-at=0 queue=pcq_upload_".$q_id." priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1";
-$filter_mangle{$q_id}{$int}{up}="chain=forward action=mark-packet new-packet-mark=upload_".$q_id."_".$int." passthrough=yes src-address-list=queue_".$q_id." out-interface=".$int." log=no log-prefix=\"\"";
+$filter_mangle{$q_id}{$int}{up}="chain=forward action=mark-packet new-packet-mark=upload_".$q_id."_".$int." passthrough=yes src-address-list=queue_".$q_id." out-interface=".$int." in-interface-list=WAN log=no log-prefix=\"\"";
 
 $queue_ok=1;
 if (!$get_queue_tree{$q_id}{$int}{up}) { $queue_ok=0; }
