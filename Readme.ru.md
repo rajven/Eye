@@ -216,8 +216,8 @@ add name=download_root_[LAN_INTERFACE_NAME] parent=[LAN_INTERFACE_NAME] queue=pc
 
 #dhcp script
 #ROS6
-/tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php\?login=<LOGIN>&api_key=<API_CUSTOMER_KEY>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
+/tool fetch mode=http keep-result=no url="http://<STAT_IP_OR_HOSTNAME>/api.php\?login=<LOGIN>&api_key=<API_CUSTOMER_KEY>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname""
 #ROS7
-/tool fetch url="http://<STAT_IP_OR_HOSTNAME>/admin/users/add_dhcp.php?login=<LOGIN>&api_key=<API_CUSTOMER_KEY>&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" mode=http keep-result=no
+/tool fetch url="http://<STAT_IP_OR_HOSTNAME>/api.php?login=<LOGIN>&api_key=<API_CUSTOMER_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" mode=http keep-result=no
 
 #########################################################################################################################

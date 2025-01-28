@@ -49,23 +49,26 @@ if ($ARGV[0]) {
     @gateways = get_records_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9');
     }
 
+#все сети организации, работающие по dhcp
 my $dhcp_networks = new Net::Patricia;
 my %dhcp_conf;
 
 my @subnets=get_records_sql($dbh,'SELECT * FROM subnets WHERE dhcp=1 and office=1 and vpn=0 ORDER BY ip_int_start');
 foreach my $subnet (@subnets) {
 next if (!$subnet->{gateway});
-my $subnet_name = $subnet->{subnet};
-$subnet_name=~s/\/\d+$//g;
-$dhcp_networks->add_string($subnet->{subnet},$subnet_name);
-$dhcp_conf{$subnet_name}->{first_pool_ip}=IpToStr($subnet->{dhcp_start});
-$dhcp_conf{$subnet_name}->{last_pool_ip}=IpToStr($subnet->{dhcp_stop});
-$dhcp_conf{$subnet_name}->{relay_ip}=IpToStr($subnet->{gateway});
 my $dhcp_info=GetDhcpRange($subnet->{subnet});
-$dhcp_conf{$subnet_name}->{first_ip} = $dhcp_info->{first_ip};
-$dhcp_conf{$subnet_name}->{last_ip} = $dhcp_info->{last_ip};
-$dhcp_conf{$subnet_name}->{first_ip_aton}=StrToIp($dhcp_info->{first_ip});
-$dhcp_conf{$subnet_name}->{last_ip_aton}=StrToIp($dhcp_info->{last_ip});
+$dhcp_networks->add_string($subnet->{subnet},$subnet->{subnet});
+$dhcp_conf{$subnet->{subnet}}->{first_pool_ip}=IpToStr($subnet->{dhcp_start});
+$dhcp_conf{$subnet->{subnet}}->{last_pool_ip}=IpToStr($subnet->{dhcp_stop});
+$dhcp_conf{$subnet->{subnet}}->{relay_ip}=IpToStr($subnet->{gateway});
+$dhcp_conf{$subnet->{subnet}}->{gateway}=IpToStr($subnet->{gateway});
+#раскрываем подсеть
+$dhcp_conf{$subnet->{subnet}}->{network} = $dhcp_info->{network};
+$dhcp_conf{$subnet->{subnet}}->{masklen} = $dhcp_info->{masklen};
+$dhcp_conf{$subnet->{subnet}}->{first_ip} = $dhcp_info->{first_ip};
+$dhcp_conf{$subnet->{subnet}}->{last_ip} = $dhcp_info->{last_ip};
+$dhcp_conf{$subnet->{subnet}}->{first_ip_aton}=StrToIp($dhcp_info->{first_ip});
+$dhcp_conf{$subnet->{subnet}}->{last_ip_aton}=StrToIp($dhcp_info->{last_ip});
 }
 
 my $pm = Parallel::ForkManager->new($fork_count);
@@ -96,9 +99,13 @@ my $router_name=$gate->{device_name};
 my $router_ip=$gate->{ip};
 my $shaper_enabled = $gate->{queue_enabled};
 my $connected_users_only = $gate->{connected_user_only};
-my $connected_users = new Net::Patricia;
 
 my @changed_ref=();
+
+#все сети роутера, которые к нему подключены по информации из БД - Patricia Object
+my $connected_users = new Net::Patricia;
+#сети, которые должен отдавать роутер по dhcp - simple hash
+my %connected_nets_hash;
 
 my @lan_int=();
 my @wan_int=();
@@ -110,46 +117,92 @@ if ($l3->{'interface_type'} eq '0') { push(@lan_int,$l3->{'name'}); }
 if ($l3->{'interface_type'} eq '1') { push(@wan_int,$l3->{'name'}); }
 }
 
+#формируем список подключенных к роутеру сетей
 my @gw_subnets = get_records_sql($dbh,"SELECT gateway_subnets.*,subnets.subnet FROM gateway_subnets LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id WHERE gateway_subnets.device_id=".$gate->{'id'});
-
 if (@gw_subnets and scalar @gw_subnets) {
     foreach my $gw_subnet (@gw_subnets) {
-        if ($gw_subnet and $gw_subnet->{'subnet'}) { $connected_users->add_string($gw_subnet->{'subnet'}); }
+        if ($gw_subnet and $gw_subnet->{'subnet'}) {
+            $connected_users->add_string($gw_subnet->{'subnet'});
+            $connected_nets_hash{$gw_subnet->{'subnet'}} = $gw_subnet;
+            }
     }
 }
-
-foreach my $int (@lan_int) { #interface dhcp loop
-next if (!$int);
-$int=trim($int);
-
-#get ip addr at interface
-my @int_addr=netdev_cmd($gate,$t,'/ip address print terse without-paging where interface='.$int,1);
-
-log_debug("Get interfaces: ".Dumper(\@int_addr));
-
-my $found_subnet;
-foreach my $int_str(@int_addr) {
-$int_str=trim($int_str);
-next if (!$int_str);
-if ($int_str=~/\s+address=(\S*)\s+/i) {
-    my $gate_interface=$1;
-    if ($gate_interface) {
-        my $gate_ip=$gate_interface;
-        $gate_ip=~s/\/.*$//;
-        #search for first match
-        if (!$found_subnet) { $found_subnet=$dhcp_networks->match_string($gate_ip); }
-        #all subnets match
-        if ($connected_users_only) { $connected_users->add_string($gate_interface); }
-        }
-    }
-}
-
-if (!$found_subnet) {  db_log_verbose($dbh,"DHCP subnet for interface $int not found! Skip interface.");  next; }
-
-db_log_verbose($dbh,"Analyze interface $int. Found: ".Dumper($dhcp_conf{$found_subnet}));
 
 #dhcp config
 if ($gate->{dhcp}) {
+
+#все сети роутера, которые к нему подключены напрямую фактически  - Patricia Object
+my $fact_connected_nets = new Net::Patricia;
+
+#интерфейсы, которые будут использоваться для конфигурирования dhcp-сервера
+my @work_int=();
+
+#dhcp-сервер, обрабатывающий запросы от dhcp-relay
+my @relayed_dhcp = netdev_cmd($gate,$t,"/ip dhcp-server print terse without-paging where relay=255.255.255.255",1);
+my $relayed_dhcp_server;
+my $relayed_dhcp_interface;
+if (@relayed_dhcp and scalar @relayed_dhcp) {
+    my $dhcp_server = $relayed_dhcp[0];
+    if ($dhcp_server and $dhcp_server=~/name=(\S+)\s+/i) { $relayed_dhcp_server = $1; }
+    if ($dhcp_server and $dhcp_server=~/interface=(\S+)\s+/i) { $relayed_dhcp_interface= $1; }
+    }
+
+#ищем интерфейсы, на которых поднята необходимая для dhcp сервера сеть
+foreach my $int (@lan_int) { #interface loop
+    next if (!$int);
+    $int=trim($int);
+    #get ip addr at interface
+    my @int_addr=netdev_cmd($gate,$t,'/ip address print terse without-paging where interface='.$int,1);
+    log_debug("Get interfaces: ".Dumper(\@int_addr));
+    my $found_subnet;
+    foreach my $int_str(@int_addr) {
+        $int_str=trim($int_str);
+        next if (!$int_str);
+        if ($int_str=~/\s+address=(\S*)\s+/i) {
+                my $gate_interface=$1;
+                if ($gate_interface) {
+                        my $gate_ip=$gate_interface;
+                        my $gate_net = GetDhcpRange($gate_interface);
+                        $fact_connected_nets->add_string($gate_net->{network}."/".$gate_net->{masklen});
+                        $gate_ip=~s/\/.*$//;
+                        #search for first match
+                        $found_subnet=$dhcp_networks->match_string($gate_ip);
+                        last;
+                        }
+                }
+        }
+
+    if (!$found_subnet) {  db_log_verbose($dbh,"DHCP subnet for interface $int not found! Skip interface.");  next; }
+    my $dhcp_state;
+    $dhcp_state->{subnet}=$found_subnet;
+    $dhcp_state->{interface}=$int;
+    #формируем список локальных интерфейсов, на котором есть dhcp-сеть
+    push(@work_int,$dhcp_state);
+}
+
+#формируем список сетей, не подключенных к роутеру непосредтственно
+my @relayed_subnets=();
+foreach my $gw_subnet (keys %connected_nets_hash ) {
+next if (!$gw_subnet);
+next if ($fact_connected_nets->match_string($gw_subnet));
+push(@relayed_subnets,$gw_subnet);
+}
+
+if (scalar @relayed_subnets) {
+    my $dhcp_state;
+    $dhcp_state->{interface} = $relayed_dhcp_interface;
+    $dhcp_state->{subnet} = join(",",@relayed_subnets);
+    push(@work_int,$dhcp_state);
+    }
+
+#interface dhcp loop
+foreach my $dhcpd_int (@work_int) {
+
+my $found_subnet=$dhcpd_int->{subnet};
+my @dhcp_subnets = split(/\,/,$found_subnet);
+my $int=$dhcpd_int->{interface};
+
+db_log_verbose($dbh,"Analyze interface $int. Found: ".Dumper($dhcp_conf{$found_subnet}));
 
 #fetch current dhcp records
 my @ret_static_leases=netdev_cmd($gate,$t,'/ip dhcp-server lease print terse without-paging where server=dhcp-'.$int,1);
@@ -168,13 +221,21 @@ if ($str=~/^\d/) {
 
 #select users for this interface
 
-my @auth_records=get_records_sql($dbh,"SELECT * from User_auth WHERE dhcp=1 and `ip_int`>=".$dhcp_conf{$found_subnet}->{first_ip_aton}." and `ip_int`<=".$dhcp_conf{$found_subnet}->{last_ip_aton}." and deleted=0 and ou_id !=".$default_user_ou_id." and ou_id !=".$default_hotspot_ou_id." ORDER BY ip_int");
+my @auth_records=();
+foreach my $dhcp_subnet (@dhcp_subnets) {
+    next if (!$dhcp_subnet);
+    my @tmp1=get_records_sql($dbh,"SELECT * from User_auth WHERE dhcp=1 and `ip_int`>=".$dhcp_conf{$dhcp_subnet}->{first_ip_aton}." and `ip_int`<=".$dhcp_conf{$dhcp_subnet}->{last_ip_aton}." and deleted=0 and ou_id !=".$default_user_ou_id." and ou_id !=".$default_hotspot_ou_id." ORDER BY ip_int");
+    push(@auth_records,@tmp1);
+    undef @tmp1;
+}
 
 my %leases;
 foreach my $lease (@auth_records) {
 next if (!$lease);
 next if (!$lease->{mac});
 next if (!$lease->{ip});
+my $found_subnet = $dhcp_networks->match_string($lease->{ip});
+next if (!$found_subnet);
 next if ($lease->{ip} eq $dhcp_conf{$found_subnet}->{relay_ip});
 $leases{$lease->{ip}}{ip}=$lease->{ip};
 $leases{$lease->{ip}}{comment}=$lease->{id};
@@ -310,6 +371,7 @@ if ($leases{$ip}{acl}!~/$active_leases{$ip}{acl}/) {
 }
 
 }#end interface dhcp loop
+
 }#end dhcp config
 
 #access lists config
@@ -439,15 +501,15 @@ foreach my $row (@grouplist_ref) {
         $index++;
     } else {
         #if found dns dst filters - add
-	if (exists $dyn_filters{$row->{filter_id}}) {
-	        my @dyn_ips = @{$dyn_filters{$row->{filter_id}}};
-	        if (scalar @dyn_ips >0) {
-		        for (my $i = 0; $i < scalar @dyn_ips; $i++) {
+        if (exists $dyn_filters{$row->{filter_id}}) {
+                my @dyn_ips = @{$dyn_filters{$row->{filter_id}}};
+                if (scalar @dyn_ips >0) {
+                        for (my $i = 0; $i < scalar @dyn_ips; $i++) {
                             $group_filters{'group_'.$row->{group_id}}->{$index}->{filter_id}=$dyn_ips[$i];
                             $group_filters{'group_'.$row->{group_id}}->{$index}->{action}=$row->{action};
                             $index++;
-        	        }
-	        }
+                        }
+                }
             }
     }
 }
@@ -466,8 +528,8 @@ foreach my $row (@address_lists) {
     next if (!$row);
     my @address=split(' ',$row);
     foreach my $row (@address) {
-	if ($row=~/address\=(.*)/i) { $cur_users{$group_name}{$1}=1; }
-	}
+        if ($row=~/address\=(.*)/i) { $cur_users{$group_name}{$1}=1; }
+        }
     }
 }
 
@@ -475,9 +537,9 @@ foreach my $row (@address_lists) {
 foreach my $group_name (keys %users) {
     foreach my $user_ip (keys %{$users{$group_name}}) {
     if (!exists($cur_users{$group_name}{$user_ip})) {
-	db_log_verbose($dbh,"Add user with ip: $user_ip to access-list $group_name");
-	push(@cmd_list,"/ip firewall address-list add address=".$user_ip." list=".$group_name);
-	}
+        db_log_verbose($dbh,"Add user with ip: $user_ip to access-list $group_name");
+        push(@cmd_list,"/ip firewall address-list add address=".$user_ip." list=".$group_name);
+        }
     }
 }
 
@@ -485,9 +547,9 @@ foreach my $group_name (keys %users) {
 foreach my $group_name (keys %cur_users) {
     foreach my $user_ip (keys %{$cur_users{$group_name}}) {
     if (!exists($users{$group_name}{$user_ip})) {
-	db_log_verbose($dbh,"Remove user with ip: $user_ip from access-list $group_name");
+        db_log_verbose($dbh,"Remove user with ip: $user_ip from access-list $group_name");
         push(@cmd_list,":foreach i in [/ip firewall address-list find where address=".$user_ip." and list=".$group_name."] do={/ip firewall address-list remove \$i};");
-	}
+        }
     }
 }
 
@@ -512,22 +574,22 @@ if ($jump_list=~/jump-target=(\S*)\s+/i) {
 #old chains
 foreach my $group_name (keys %cur_chain) {
     if (!exists($group_filters{$group_name})) {
-	push (@cmd_list,":foreach i in [/ip firewall filter find where chain=Users and action=jump and jump-target=".$group_name."] do={/ip firewall filter remove \$i};");
-	} else {
-	if ($cur_chain{$group_name} != 2) {
-	    push (@cmd_list,":foreach i in [/ip firewall filter find where chain=Users and action=jump and jump-target=".$group_name."] do={/ip firewall filter remove \$i};");
-	    push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." src-address-list=".$group_name);
-	    push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." dst-address-list=".$group_name);
-	    }
-	}
+        push (@cmd_list,":foreach i in [/ip firewall filter find where chain=Users and action=jump and jump-target=".$group_name."] do={/ip firewall filter remove \$i};");
+        } else {
+        if ($cur_chain{$group_name} != 2) {
+            push (@cmd_list,":foreach i in [/ip firewall filter find where chain=Users and action=jump and jump-target=".$group_name."] do={/ip firewall filter remove \$i};");
+            push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." src-address-list=".$group_name);
+            push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." dst-address-list=".$group_name);
+            }
+        }
 }
 
 #new chains
 foreach my $group_name (keys %group_filters) {
     if (!exists($cur_chain{$group_name})) {
-	push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." src-address-list=".$group_name);
-	push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." dst-address-list=".$group_name);
-	}
+        push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." src-address-list=".$group_name);
+        push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." dst-address-list=".$group_name);
+        }
 }
 
 my %chain_rules;
@@ -553,41 +615,41 @@ foreach my $filter_index (sort keys %group_filter) {
     my $dst_rule='chain='.$group_name;
 
     if ($filter->{action}) {
-	$src_rule=$src_rule." action=accept";
-	$dst_rule=$dst_rule." action=accept";
-	} else {
-	$src_rule=$src_rule." action=reject";
-	$dst_rule=$dst_rule." action=reject";
-	}
+        $src_rule=$src_rule." action=accept";
+        $dst_rule=$dst_rule." action=accept";
+        } else {
+        $src_rule=$src_rule." action=reject";
+        $dst_rule=$dst_rule." action=reject";
+        }
 
     if ($filters{$filter_id}->{proto} and ($filters{$filter_id}->{proto}!~/all/i)) {
-	$src_rule=$src_rule." protocol=".$filters{$filter_id}->{proto};
-	$dst_rule=$dst_rule." protocol=".$filters{$filter_id}->{proto};
-	}
+        $src_rule=$src_rule." protocol=".$filters{$filter_id}->{proto};
+        $dst_rule=$dst_rule." protocol=".$filters{$filter_id}->{proto};
+        }
 
     if ($filters{$filter_id}->{dst} and $filters{$filter_id}->{dst} ne '0/0') {
-	$src_rule=$src_rule." src-address=".trim($filters{$filter_id}->{dst});
-	$dst_rule=$dst_rule." dst-address=".trim($filters{$filter_id}->{dst});
-	}
+        $src_rule=$src_rule." src-address=".trim($filters{$filter_id}->{dst});
+        $dst_rule=$dst_rule." dst-address=".trim($filters{$filter_id}->{dst});
+        }
 
     #dstport and srcport
     if (!$filters{$filter_id}->{dstport}) { $filters{$filter_id}->{dstport}=0; }
     if (!$filters{$filter_id}->{srcport}) { $filters{$filter_id}->{srcport}=0; }
 
     if ($filters{$filter_id}->{dstport} ne '0' and $filters{$filter_id}->{srcport} ne '0') {
-		$src_rule=$src_rule." dst-port=".trim($filters{$filter_id}->{srcport})." src-port=".trim($filters{$filter_id}->{dstport});
-		$dst_rule=$dst_rule." src-port=".trim($filters{$filter_id}->{srcport})." dst-port=".trim($filters{$filter_id}->{dstport});
-		}
+                $src_rule=$src_rule." dst-port=".trim($filters{$filter_id}->{srcport})." src-port=".trim($filters{$filter_id}->{dstport});
+                $dst_rule=$dst_rule." src-port=".trim($filters{$filter_id}->{srcport})." dst-port=".trim($filters{$filter_id}->{dstport});
+                }
 
     if ($filters{$filter_id}->{dstport} eq '0' and $filters{$filter_id}->{srcport} ne '0') {
-		$src_rule=$src_rule." dst-port=".trim($filters{$filter_id}->{srcport});
-		$dst_rule=$dst_rule." src-port=".trim($filters{$filter_id}->{srcport});
-		}
+                $src_rule=$src_rule." dst-port=".trim($filters{$filter_id}->{srcport});
+                $dst_rule=$dst_rule." src-port=".trim($filters{$filter_id}->{srcport});
+                }
 
     if ($filters{$filter_id}->{dstport} ne '0' and $filters{$filter_id}->{srcport} eq '0') {
-		$src_rule=$src_rule." src-port=".trim($filters{$filter_id}->{dstport});
-		$dst_rule=$dst_rule." dst-port=".trim($filters{$filter_id}->{dstport});
-		}
+                $src_rule=$src_rule." src-port=".trim($filters{$filter_id}->{dstport});
+                $dst_rule=$dst_rule." dst-port=".trim($filters{$filter_id}->{dstport});
+                }
 
     if ($src_rule ne $dst_rule) {
         push(@{$chain_rules{$group_name}},$src_rule);
@@ -622,35 +684,35 @@ log_debug("New filters:".Dumper($chain_rules{$group_name}));
 foreach (my $f_index=0; $f_index<scalar(@cur_filter); $f_index++) {
     my $filter_str=trim($cur_filter[$f_index]);
     if (!$chain_rules{$group_name}[$f_index] or $filter_str!~/$chain_rules{$group_name}[$f_index]/i) {
-	print "Check chain $group_name error! $filter_str not found in new config. Recreate chain.\n";
-	$chain_ok=0;
-	last;
-	}
+        print "Check chain $group_name error! $filter_str not found in new config. Recreate chain.\n";
+        $chain_ok=0;
+        last;
+        }
     }
 #new rules
 if ($chain_ok and $chain_rules{$group_name} and scalar(@{$chain_rules{$group_name}})) {
     foreach (my $f_index=0; $f_index<scalar(@{$chain_rules{$group_name}}); $f_index++) {
-	my $filter_str=trim($cur_filter[$f_index]);
+        my $filter_str=trim($cur_filter[$f_index]);
         if (!$filter_str) {
-		print "Check chain $group_name error! Not found: $chain_rules{$group_name}[$f_index]. Recreate chain.\n";
-		$chain_ok=0;
-		last;
-	}
+                print "Check chain $group_name error! Not found: $chain_rules{$group_name}[$f_index]. Recreate chain.\n";
+                $chain_ok=0;
+                last;
+        }
         $filter_str=~s/^\d//;
-	$filter_str=trim($filter_str);
+        $filter_str=trim($filter_str);
         if ($filter_str!~/$chain_rules{$group_name}[$f_index]/i) {
-		print "Check chain $group_name error! Expected: $chain_rules{$group_name}[$f_index] Found: $filter_str. Recreate chain.\n";
-		$chain_ok=0;
-		last;
-	}
+                print "Check chain $group_name error! Expected: $chain_rules{$group_name}[$f_index] Found: $filter_str. Recreate chain.\n";
+                $chain_ok=0;
+                last;
+        }
     }
 }
 
 if (!$chain_ok) {
     push(@cmd_list,":foreach i in [/ip firewall filter find where chain=".$group_name." ] do={/ip firewall filter remove \$i};");
     foreach my $filter_str (@{$chain_rules{$group_name}}) {
-	push(@cmd_list,'/ip firewall filter add '.$filter_str);
-	}
+        push(@cmd_list,'/ip firewall filter add '.$filter_str);
+        }
     }
 }
 
@@ -665,7 +727,7 @@ my @tmp=netdev_cmd($gate,$t,'/queue type print terse without-paging where name~"
 
 log_debug("Get queues: ".Dumper(\@tmp));
 
-# 0   name=pcq_upload_3 kind=pcq pcq-rate=102401k pcq-limit=500KiB pcq-classifier=src-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s 
+# 0   name=pcq_upload_3 kind=pcq pcq-rate=102401k pcq-limit=500KiB pcq-classifier=src-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s
 #pcq-src-address-mask=32 pcq-dst-address-mask=32 pcq-src-address6-mask=64 pcq-dst-address6-mask=64
 foreach my $row (@tmp) {
 next if (!$row);
@@ -680,10 +742,10 @@ if ($row=~/name=pcq_(down|up)load_(\d){1,3}\s+/i) {
     my $index = $2;
     $get_queue_type{$index}{$direct}=$row;
     if ($row=~/pcq-rate=(\S*)\s+\S/i) {
-	    my $rate = $1;
-	    if ($rate=~/k$/i) { $rate =~s/k$//i; }
-	    $get_queue_type{$index}{$direct."-rate"}=$rate;
-	    }
+            my $rate = $1;
+            if ($rate=~/k$/i) { $rate =~s/k$//i; }
+            $get_queue_type{$index}{$direct."-rate"}=$rate;
+            }
     if ($row=~/pcq-classifier=(\S*)\s+\S/i) { $get_queue_type{$index}{$direct."-classifier"}=$1; }
     if ($row=~/pcq-src-address-mask=(\S*)\s+\S/i) { $get_queue_type{$index}{$direct."-src-address-mask"}=$1; }
     if ($row=~/pcq-dst-address-mask=(\S*)\s+\S/i) { $get_queue_type{$index}{$direct."-dst-address-mask"}=$1; }
@@ -705,7 +767,7 @@ $row=~s/^(\d*)\s+//;
 next if (!$row);
 if ($row=~/queue=pcq_(down|up)load_(\d){1,3}/i) {
     if ($row=~/name=queue_(\d){1,3}_(\S*)_out\s+/i) {
-	next if (!$1);
+        next if (!$1);
         next if (!$2);
         my $index = $1;
         my $int_name = $2;
@@ -713,17 +775,17 @@ if ($row=~/queue=pcq_(down|up)load_(\d){1,3}/i) {
         if ($row=~/parent=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'up-parent'}=$1; }
         if ($row=~/packet-mark=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'up-mark'}=$1; }
         if ($row=~/queue=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'up-queue'}=$1; }
-	}
+        }
     if ($row=~/name=queue_(\d){1,3}_(\S*)_in\s+/i) {
-	next if (!$1);
+        next if (!$1);
         next if (!$2);
         my $index = $1;
         my $int_name = $2;
-	$get_queue_tree{$index}{$int_name}{down}=$row;
+        $get_queue_tree{$index}{$int_name}{down}=$row;
         if ($row=~/parent=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'down-parent'}=$1; }
         if ($row=~/packet-mark=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'down-mark'}=$1; }
         if ($row=~/queue=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'down-queue'}=$1; }
-	}
+        }
     }
 }
 
@@ -872,7 +934,7 @@ if (scalar(@cmd_list)) {
     };
     if ($@) {
         $all_ok = 0;
-	log_debug("Error programming gateway! Err: ".$@);
+        log_debug("Error programming gateway! Err: ".$@);
         }
     }
 
