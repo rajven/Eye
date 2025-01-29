@@ -224,6 +224,10 @@ define("WEB_cell_control_proto","Protocol");
 define("WEB_cell_control_port","Port");
 define("WEB_cell_poe_in","POE In");
 define("WEB_cell_poe_out","POE");
+define("WEB_cell_dynamic","Dynamic");
+define("WEB_cell_temporary","Temporary record");
+define("WEB_cell_eof","EOF time");
+define("WEB_cell_life_hours","Life duration,hours");
 
 /* lists name */
 define("WEB_list_ou","List of groups");

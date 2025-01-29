@@ -38,6 +38,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 <td><b>Id</b></td>
 <td><b><?php echo WEB_cell_flags; ?></b></td>
 <td><b><?php echo WEB_cell_name; ?></b></td>
+<td><b><?php echo WEB_cell_dynamic; ?></b></td>
 <td>
 <input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>">
 </td>
@@ -53,6 +54,7 @@ foreach ($t_ou as $row) {
     if ($row['default_hotspot'] == 1) { $flag='H'; }
     print "<td class=\"data\">$flag</td>\n";
     print "<td class=\"data\">"; print_url($row['ou_name'],"/admin/groups/edit_group.php?id=".$row['id']); print "</td>\n";
+    print_yes_no($row['dynamic'],'custom','data');
     print "<td class=\"data\"></td>\n";
     print "</tr>\n";
 }

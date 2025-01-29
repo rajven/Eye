@@ -14,6 +14,8 @@ if (isset($_POST['save'])) {
         $new['queue_id']= $_POST['f_queue_id']*1;
         $new['filter_group_id']= $_POST['f_filter_group_id']*1;
         $new['enabled']= $_POST['f_enabled']*1;
+        $new['dynamic']= $_POST['f_dynamic']*1;
+        if ($new['dynamic']) { $new['life_duration']= $_POST['f_life_duration']*1; } else { $new['life_duration']=0; }
         if ($new['default_users'] == TRUE) { run_sql($db_link,"UPDATE OU set default_users=0 WHERE id!='{$id}'"); }
         if ($new['default_hotspot'] == TRUE) { run_sql($db_link,"UPDATE OU set default_hotspot=0 WHERE id!='{$id}'"); }
         update_record($db_link, "OU", "id='{$id}'", $new);
@@ -75,35 +77,42 @@ fix_auth_rules($db_link);
 <tr align="center">
 <td colspan=2><b><?php echo WEB_cell_name; ?></b></td>
 <td><b>Default</b></td>
-<td><b>Hotspot</b></td>
+<td width=100><b>Hotspot</b></td>
+<td><b><?php print WEB_cell_dynamic; ?></b></td>
 </tr>
 <?php
 $ou_info = get_record_sql($db_link,'SELECT * FROM OU WHERE id='.$id);
+if ($ou_info['life_duration']<1) { $ou_info['life_duration']=1; }
 print "<tr align=center>\n";
 print "<td colspan=2 class=\"data\"><input type=\"text\" name='f_group_name' value='{$ou_info['ou_name']}' style=\"width:95%;\"></td>\n";
 if ($ou_info['default_users']) { $cl = "up"; } else { $cl="data"; }
 print "<td class=\"$cl\">";  print_qa_select("f_default",$ou_info['default_users']); print "</td>\n";
 if ($ou_info['default_hotspot']) { $cl = "up"; } else { $cl="data"; }
 print "<td class=\"$cl\">";  print_qa_select("f_default_hotspot",$ou_info['default_hotspot']); print "</td>\n";
+print "<td class=\"data\">";  print_qa_select("f_dynamic",$ou_info['dynamic']); print "</td>\n";
 ?>
 <tr>
 <td><b>Nagios directory</b></td>
 <td><b>Host template</b></td>
 <td><b>Ping</b></td>
 <td><b>Host service</b></td>
+<td></td>
 </tr>
 <?php
 print "<td class=\"data\"><input type=\"text\" name='f_nagios' value='{$ou_info['nagios_dir']}'></td>\n";
 print "<td class=\"data\"><input type=\"text\" name='f_nagios_host' value='{$ou_info['nagios_host_use']}'></td>\n";
 print "<td class=\"data\">"; print_qa_select("f_nagios_ping",$ou_info['nagios_ping']); print "</td>\n";
 print "<td class=\"data\"><input type=\"text\" name='f_nagios_service' value='{$ou_info['nagios_default_service']}'></td>\n";
+print "<td class=\"data\"></td>\n";
 ?>
 </tr>
 <tr><td colspan=4><?php echo WEB_ou_autoclient_rules; ?></td></tr>
 <tr>
+<td class="data"><?php print WEB_cell_enabled."&nbsp"; print_qa_select('f_enabled', $ou_info['enabled']); ?></td>
 <td class="data"><?php print WEB_cell_filter."&nbsp"; print_group_select($db_link, 'f_filter_group_id', $ou_info['filter_group_id']); ?></td>
 <td class="data"><?php print WEB_cell_shaper."&nbsp"; print_queue_select($db_link, 'f_queue_id', $ou_info['queue_id']); ?></td>
-<td class="data"><?php print WEB_cell_enabled."&nbsp"; print_qa_select('f_enabled', $ou_info['enabled']); ?></td>
+<td class="data" align=right><?php print WEB_cell_life_hours."&nbsp"; print "<input  type=\"number\" min=1 name='f_life_duration' value='{$ou_info['life_duration']}'";
+if (!$ou_info['dynamic']) { print "disabled"; }; print " style=\"width:35%;\" ></td>\n"; ?>
 <?php print "<td align=right class=\"data\"><button name='save' value='{$ou_info['id']}'>".WEB_btn_save."</button></td>\n"; ?>
 </tr>
 </table>

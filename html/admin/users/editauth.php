@@ -76,6 +76,8 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
 
         $new['save_traf'] = $_POST["f_save_traf"] * 1;
         $new['dhcp_acl'] = trim($_POST["f_acl"]);
+        $new['dynamic'] = trim($_POST["f_dynamic"]);
+        if ($new['dynamic']) { $new['eof'] =  trim($_POST["f_eof"]); }
         if (get_const('default_user_ou_id') == $parent_ou_id or get_const('default_hotspot_ou_id') == $parent_ou_id) {
             $new['nagios_handler'] = '';
             $new['enabled'] = 0;
@@ -172,6 +174,8 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
             exit;
         }
         $new['deleted'] = 0;
+        $new['dynamic'] = 0;
+        $new['eol'] = '';
 
         $f_dnsname = trim($_POST["f_dns_name"]);
         if (!empty($f_dnsname)) {
@@ -250,10 +254,19 @@ if ($auth_info['dhcp_time'] == '0000-00-00 00:00:00') {
 } else {
     $dhcp_str = $auth_info['dhcp_time'] . " (" . $auth_info['dhcp_action'] . ")";
 }
-if ($auth_info['last_found'] == '0000-00-00 00:00:00') {
-    $auth_info['last_found'] = '';
-}
+if ($auth_info['last_found'] == '0000-00-00 00:00:00') { $auth_info['last_found'] = ''; }
+
+$now = DateTime::createFromFormat("Y-m-d H:i:s",date('Y-m-d H:i:s'));
+$created = DateTime::createFromFormat("Y-m-d H:i:s",$auth_info['timestamp']);
+
+if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') { 
+    $now->modify('+1 day');
+    $auth_info['eof'] = $now->format('Y-m-d H:i:s');
+    }
+
 ?>
+
+
 <div id="cont">
     <?php
     if (!empty($_SESSION[$page_url]['msg'])) {
@@ -264,8 +277,8 @@ if ($auth_info['last_found'] == '0000-00-00 00:00:00') {
 
     $alias_link = '';
     if (!empty($auth_info['dns_name'])) { $alias_link="/admin/users/edit_alias.php?id=".$id; }
-
     ?>
+
     <form name="def" action="editauth.php?id=<?php echo $id; ?>" method="post">
         <input type="hidden" name="id" value=<?php echo $id; ?>>
         <table class="data">
@@ -292,7 +305,7 @@ if ($auth_info['last_found'] == '0000-00-00 00:00:00') {
                 <td></td>
             <tr>
                 <td><input type="text" name="f_ip" value="<?php echo $auth_info['ip']; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"></td>
-                <td><input type="text" name="f_mac" value="<?php echo $auth_info['mac']; ?>" pattern="^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12}$"></td>
+                <td><input type="text" name="f_mac" value="<?php echo $auth_info['mac']; ?>" pattern="^(([0-9A-Fa-f]{2}[\.\:\-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\.\-][0-9a-fA-F]{4}[\.\-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12})$"></td>
                 <td><?php print_qa_select('f_dhcp', $auth_info['dhcp']); ?></td>
                 <td colspan=2><input type="text" name="f_acl" value="<?php echo $auth_info['dhcp_acl']; ?>"></td>
             </tr>
@@ -354,6 +367,22 @@ if ($auth_info['last_found'] == '0000-00-00 00:00:00') {
                 <td></td>
             </tr>
             <tr>
+                <td><?php print WEB_cell_temporary; ?></td>
+                <td><?php print WEB_cell_eof; ?></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td><?php print_qa_select('f_dynamic',$auth_info['dynamic']); ?></td>
+                <td><input type="datetime-local" id="f_eof" name="f_eof" min="<?php print $created->format('Y-m-d H:i:s'); ?>" value="<?php print $auth_info['eof']; ?>" 
+                <?php if (!$auth_info['dynamic']) { print "disabled"; } ?>
+                step=1 ></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
                 <td colspan=3><input type="submit" name="moveauth" value=<?php print WEB_btn_move; ?>><?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?></td>
                 <?php
                 if ($auth_info['deleted']) {
@@ -392,6 +421,21 @@ if ($auth_info['last_found'] == '0000-00-00 00:00:00') {
             print "<div id='msg'><b>$msg_error</b></div><br>\n";
         }
         ?>
-    </form>
-    <br>
-    <?php require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.php"); ?>
+
+
+</form>
+<br>
+
+<script>
+document.getElementById('f_dynamic').addEventListener('change', function() {
+  const selectValue = this.value;
+  const inputField = document.getElementById('f_eof');
+  if (selectValue === '1') {
+    inputField.disabled = false;
+  } else {
+    inputField.disabled = true;
+  }
+});
+</script>
+
+<?php require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.simple.php"); ?>

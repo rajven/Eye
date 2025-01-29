@@ -1062,7 +1062,7 @@ function get_int($qa_value = 0)
 
 function print_qa_select($qa_name, $qa_value = 0)
 {
-    print "<select name=\"$qa_name\">\n";
+    print "<select name=\"$qa_name\" id=\"$qa_name\">\n";
     if (empty($qa_value)) {
         $qa_value = 0;
     } else {
@@ -1103,6 +1103,18 @@ function print_td_yes_no($qa_value = 0)
     if ($qa_value == 1) {
         $cl = 'up';
     }
+    print "<td class=\"$cl\">";
+    if ($qa_value == 1) {
+        print WEB_select_item_yes;
+    } else {
+        print WEB_select_item_no;
+    }
+    print "</td>\n";
+}
+
+function print_yes_no($qa_value = 0, $yes_style = 'data', $no_style='data')
+{
+    if ($qa_value) { $cl = $yes_style; } else { $cl = $no_style; }
     print "<td class=\"$cl\">";
     if ($qa_value == 1) {
         print WEB_select_item_yes;

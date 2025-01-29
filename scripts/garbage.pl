@@ -124,7 +124,7 @@ if ($dhcp_networks->match_string($row->{ip})) {
     if (time() - $clean_dhcp_time>0) {
         db_log_verbose($dbh,"Clean overdue dhcp leases for ip: $row->{ip} id: $row->{id} last dhcp: $row->{dhcp_time} clean time: ".GetTimeStrByUnixTime($clean_dhcp_time)." now: ".GetNowTime());
 #        do_sql($dbh,"DELETE FROM connections WHERE auth_id='".$row->{id}."'");
-        do_sql($dbh,"UPDATE User_auth SET deleted=1 WHERE id='".$row->{id}."'");
+        delete_record($dbh,"User_auth","id='".$row->{id}."'");
         my $u_count=get_count_records($dbh,'User_auth','deleted=0 and user_id='.$row->{user_id});
         if (!$u_count) {
                 delete_record($dbh,"User_list","id=".$row->{'user_id'});

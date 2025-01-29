@@ -224,6 +224,10 @@ define("WEB_cell_control_proto","Протокол");
 define("WEB_cell_control_port","Порт");
 define("WEB_cell_poe_in","Питается по POE");
 define("WEB_cell_poe_out","POE");
+define("WEB_cell_dynamic","Динамическая");
+define("WEB_cell_temporary","Временная запись");
+define("WEB_cell_eof","Дата ликвидация");
+define("WEB_cell_life_hours","Часов жизни");
 
 /* lists name */
 define("WEB_list_ou","Список групп");

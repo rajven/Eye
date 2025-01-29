@@ -358,10 +358,8 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                 <td class="data"><?php print WEB_cell_filter; ?></td>
                 <td class="data"><?php print WEB_cell_shaper; ?></td>
                 <td class="data"><?php print WEB_cell_perday . "/<br>" . WEB_cell_permonth . ", Mb"; ?></td>
-                <td class="data"><?php print WEB_cell_connection; ?></td>
-                <td class="data"><?php print $sort_url . "&sort=timestamp&order=$new_order>" . WEB_cell_created . "</a>"; ?></td>
-                <td class="data">Last DHCP/ARP Event</td>
                 <td class="data"><?php print $sort_url . "&sort=last_found&order=$new_order>" . WEB_cell_last_found . "</a>"; ?></td>
+                <td class="data"><?php print WEB_cell_temporary; ?></td>
                 <td class="data"><?php print "<input type=\"submit\" onclick=\"return confirm('" . WEB_msg_apply_selected . "?')\" name=\"removeauth\" value=" . WEB_btn_remove . ">"; ?></td>
             </tr>
 
@@ -397,11 +395,10 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     print "<td class=\"data\" >" . get_group($db_link, $row["filter_group_id"]) . "</td>\n";
                     print "<td class=\"data\" >" . get_queue($db_link, $row["queue_id"]) . "</td>\n";
                     print "<td class=\"data\" >" . $row["day_quota"] . "/" . $row["month_quota"] . "</td>\n";
-                    print "<td class=\"data\" >" . get_connection($db_link, $row["id"]) . "</td>\n";
-                    print "<td class=\"data\" >" . FormatDateStr('Y.m.d', $row["timestamp"]) . "</td>\n";
-                    print "<td class=\"data\" >" . $dhcp_str . "</td>\n";
-                    print "<td class=\"data\" >" . FormatDateStr('Y.m.d H:i', $row["last_found"]) . "</td>\n";
-                    print "<td class=\"data\" ></td></tr>";
+                    print "<td class=\"data\" ><div>dhcp:&nbsp$dhcp_str</div><hr><div>arp/mac:&nbsp" . FormatDateStr('Y.m.d H:i', $row["last_found"]) . "</div></td>\n";
+                    print "<td class=\"data\" ></td>";
+                    print "<td class=\"data\" ></td>";
+                    print "</tr>";
                 }
             }
             ?>

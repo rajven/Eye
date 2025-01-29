@@ -1,1 +1,1 @@
-./2-7-1/mysql.sql
+./2-7-2/mysql.sql

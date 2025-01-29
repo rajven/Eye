@@ -1449,7 +1449,16 @@ if ($ou_info) {
     $user->{'enabled'} = $ou_info->{'enabled'};
     $user->{'queue_id'} = $ou_info->{'queue_id'};
     $user->{'filter_group_id'} = $ou_info->{'filter_group_id'};
+    $user->{'dynamic'} = $ou_info->{'dynamic'};
+    if ($user->{'dynamic'}) {
+        if (!$ou_info->{'life_duration'}) { $ou_info->{'life_duration'} = 24; }
+        my $now = DateTime->now(time_zone=>'local');
+        my $hours_dur = DateTime::Duration->new( hours => $ou_info->{'life_duration'} );
+        my $eof = $now + $hours_dur;
+        $user->{'eof'}=$eof->strftime('%Y-%m-%d %H:%M:%S');
+        }
     }
+
 my $result = insert_record($db,"User_list",$user);
 if ($result and $config_ref{auto_mac_rule} and $user_info->{mac}) {
     my $auth_rule;
@@ -1606,7 +1615,7 @@ if ($cur_auth_id) {
 	    $new_record->{filter_group_id}=$user_record->{filter_group_id};
 	    $new_record->{queue_id}=$user_record->{queue_id};
 	    $new_record->{enabled}="$user_record->{enabled}";
-        update_record($db,'User_auth',$new_record,"id=$cur_auth_id");
+            update_record($db,'User_auth',$new_record,"id=$cur_auth_id");
 	    }
     } else { return; }
 return $cur_auth_id;
