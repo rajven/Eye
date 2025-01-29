@@ -175,7 +175,6 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
         }
         $new['deleted'] = 0;
         $new['dynamic'] = 0;
-        $new['eol'] = '';
 
         $f_dnsname = trim($_POST["f_dns_name"]);
         if (!empty($f_dnsname)) {
