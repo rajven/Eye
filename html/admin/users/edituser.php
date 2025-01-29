@@ -396,7 +396,9 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     print "<td class=\"data\" >" . get_queue($db_link, $row["queue_id"]) . "</td>\n";
                     print "<td class=\"data\" >" . $row["day_quota"] . "/" . $row["month_quota"] . "</td>\n";
                     print "<td class=\"data\" ><div>dhcp:&nbsp$dhcp_str</div><hr><div>arp/mac:&nbsp" . FormatDateStr('Y.m.d H:i', $row["last_found"]) . "</div></td>\n";
-                    print "<td class=\"data\" ></td>";
+                    print "<td class=\"data\" ><div>".get_qa($row['dynamic'])."</div><hr><div>";
+                    if ($row['dynamic']) { print FormatDateStr('Y.m.d H:i', $row["eof"]); } else { print "&nbsp"; }
+                    print "</div></td>\n";
                     print "<td class=\"data\" ></td>";
                     print "</tr>";
                 }
