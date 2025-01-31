@@ -23,14 +23,14 @@ my $RET_CRITICAL=2;
 
 if (scalar @ARGV <= 2) {
     print "Usage: $0 <host> <snmp_string> <port> [warning] [critical]\n";
-    print "<snmp_string> => community;version;user;auth;priv\n";
+    print "<snmp_string> => community::version::user::auth::priv\n";
     print "for version 3: community = password\n";
     exit $RET_OK;
     }
 
 my $host = shift @ARGV;
 my $snmp_str = shift @ARGV;
-my ($community,$version,$user,$auth,$priv) = split(/;/,$snmp_str);
+my ($community,$version,$user,$auth,$priv) = split(/\:\:/,$snmp_str);
 
 my $snmp;
 $snmp->{version} = $version || '2';

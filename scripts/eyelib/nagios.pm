@@ -109,9 +109,9 @@ my $device = shift;
 my $host_template = 'generic-host';
 my $default_service="local-service";
 
-my $snmp_string = $device->{snmp}->{'ro-community'};
-if ($device->{snmp}->{version} > 2) {
-    $snmp_string = join(";",$device->{snmp}->{'ro-password'},$device->{snmp}->{version},$device->{snmp}->{'ro-user'},$device->{snmp}->{'auth-proto'},$device->{snmp}->{'priv-proto'});
+my $snmp_string = $device->{parent_snmp}->{'ro-community'};
+if ($device->{parent_snmp}->{version} > 2) {
+    $snmp_string = join("::",$device->{parent_snmp}->{'ro-password'},$device->{parent_snmp}->{version},$device->{parent_snmp}->{'ro-user'},$device->{parent_snmp}->{'auth-proto'},$device->{parent_snmp}->{'priv-proto'});
     }
 
 my $ping_enable = $device->{ou}->{nagios_ping};
@@ -187,7 +187,7 @@ if (!$device->{ou}->{nagios_dir}) { print Dumper($device); }
 
 my $snmp_string = $device->{snmp}->{'ro-community'};
 if ($device->{snmp}->{version} > 2) {
-    $snmp_string = join(";",$device->{snmp}->{'ro-password'},$device->{snmp}->{version},$device->{snmp}->{'ro-user'},$device->{snmp}->{'auth-proto'},$device->{snmp}->{'priv-proto'});
+    $snmp_string = join("::",$device->{snmp}->{'ro-password'},$device->{snmp}->{version},$device->{snmp}->{'ro-user'},$device->{snmp}->{'auth-proto'},$device->{snmp}->{'priv-proto'});
     }
 
 my $cfg_file = $device->{ou}->{nagios_dir}."/".$device->{name}.".cfg";
