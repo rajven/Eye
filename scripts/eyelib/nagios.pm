@@ -152,7 +152,7 @@ if ($device->{parent_name} and $device->{link_check} and $device->{parent_snmp}-
         print(FH "       host_name                  $device->{parent_name}\n");
         print(FH "       service_description port $device->{parent_port} - $device->{name}\n");
 	if ($device->{parent_snmp}->{version}<3) {
-            print(FH "       check_command              check_ifoperstatus!$device->{parent_port_snmp_index}!$device->{snmp}->{'ro-community'}\n");
+            print(FH "       check_command              check_ifoperstatus!$device->{parent_port_snmp_index}!$device->{parent_snmp}->{'ro-community'}\n");
 	    } else {
             print(FH "       check_command              check_ifoperstatus_v3!$device->{parent_port_snmp_index}!$device->{parent_snmp}->{'ro-user'}!$device->{parent_snmp}->{'auth-proto'}!$device->{parent_snmp}->{'priv-proto'}!$device->{parent_snmp}->{'ro-password'}\n");
 	    }
