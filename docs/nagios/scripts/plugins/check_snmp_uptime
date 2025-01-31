@@ -1,0 +1,65 @@
+#!/usr/bin/perl
+
+use strict;
+use lib "/etc/nagios4/scripts/plugins";
+use snmp;
+
+use Net::SNMP qw(ticks_to_time TRANSLATE_NONE);
+
+my $TIMEOUT = 30;
+$SIG{ALRM} = sub { print "ERROR: No response\n"; exit 3; };
+alarm($TIMEOUT);
+
+my $host = shift @ARGV;
+my $snmp_str = shift @ARGV;
+my ($community,$version,$user,$auth,$priv) = split(/;/,$snmp_str);
+
+my $snmp;
+$snmp->{version} = $version || '2';
+$snmp->{timeout} = 30;
+$snmp->{community} = $community || 'public';
+$snmp->{user} = $user || 'public';
+$snmp->{auth} = $auth || 'sha1';
+$snmp->{priv} = $priv || 'aes';
+
+my $session = init_snmp($host,$snmp);
+
+#sysUpTimeInstance .1.3.6.1.2.1.1.3.0
+
+my $inputline = '.1.3.6.1.2.1.1.3.0';
+
+$session->translate(TRANSLATE_NONE);
+
+my $result = $session->get_request(
+   -varbindlist => [$inputline]
+);
+
+if (!defined($result)) {
+   printf("ERROR: %s.\n", $session->error);
+   $session->close;
+   exit 2;
+}
+
+$session->close;
+
+my $value = $result->{$inputline};
+
+my $uptime = ticks_to_time($value);
+
+my $perf_data = "input=0;0;0;0;0;";
+if (!defined($result->{$inputline})) {
+    printf("ERROR: %s. |".$perf_data."\n", $session->error);
+    $session->close;
+    exit 2;
+    }
+
+$perf_data = "uptime=%s;0;0;0;0;";
+if ($value <=480) {
+    printf("ERROR: Restarted device! Uptime: %s |".$perf_data."\n", $uptime, $value);
+    $session->close;
+    exit 2;
+    }
+
+printf("OK Uptime: %s |".$perf_data."\n", $uptime,$value);
+
+exit 0;

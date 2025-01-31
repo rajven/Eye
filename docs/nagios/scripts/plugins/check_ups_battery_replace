@@ -1,0 +1,90 @@
+#!/usr/bin/perl
+
+use strict;
+use Net::SNMP;
+
+my $TIMEOUT = 30;
+$SIG{ALRM} = sub { print "ERROR: No response\n"; exit 3; };
+alarm($TIMEOUT);
+
+my $debug = 0;
+
+#eaton
+#upsBatteryAbmStatus (Charging(1),Discharging(2),Floating(3),Resting(4),unknown(5),Disconnected(6),Under Test(7),Check Battery(8)) 1.3.6.1.4.1.534.1.2.5.0
+#upsTestBatteryStatus (unknown (1),passed (2),failed (3),inProgress (4),notSupported (5),inhibited (6),scheduled (7)) 1.3.6.1.4.1.534.1.8.2.0
+
+my %ups_oids = (
+#apc ?
+'apc'=>'.1.3.6.1.4.1.318.1.1.1.2.2.4.0',
+#upsTestBatteryStatus
+'eaton'=>'.1.3.6.1.4.1.534.1.8.2.0',
+);
+
+exit if (!$ARGV[0]);
+
+my $hostip=$ARGV[0];
+
+my ($session, $error) = Net::SNMP->session(
+   -hostname  => shift || $hostip,
+   -community => shift || 'public',
+   -port      => shift || '161',
+   -timeout   => 5,
+   -version   => shift || '1',
+);
+
+if (!defined($session)) { printf("ERROR: %s.\n", $error); exit 1; }
+
+my %result;
+foreach my $key (sort keys %ups_oids) {
+my $key_oid = $ups_oids{$key};
+my $ret = $session->get_request( -varbindlist => [$key_oid] );
+my $value;
+if (!$ret) {
+    #search in subtree
+    $ret = $session->get_next_request( -varbindlist => [$key_oid] );
+    my @keys_next = keys %$ret;
+    if (scalar @keys_next and $keys_next[0]) {
+        my $get_key = $keys_next[0];
+	if ($get_key=~/^$key_oid/) {
+	    $value = $ret->{$get_key};
+            print STDERR "Get-Next for key $key_oid: $get_key => $value\n" if ($debug);
+	    }
+	}
+    } else {
+    $value = $ret->{$key_oid};
+    print STDERR "Get: $key_oid => $value\n" if ($debug);
+    }
+next if (!defined($value));
+$result{$key_oid}{value}=$value;
+$result{$key_oid}{vendor}=$key;
+last;
+}
+
+$session->close;
+
+if (!%result) { printf("OK: Unknown model. \n"); exit 0; }
+
+my $result_ok = 0;
+foreach my $key (keys %result) {
+next if (!$key);
+my $return_value = $result{$key}{value};
+next if (!defined($return_value));
+$result_ok = 1;
+if ($result{$key}{value} eq 'apc' and $return_value > 1) {
+    print("ERROR!!! Battery requires replacement!\n");
+    exit 2;
+    }
+#eaton
+if ($result{$key}{value} eq 'eaton' and ($return_value == 1 or $return_value ==3)) {
+    print("ERROR!!! Battery requires replacement!\n");
+    exit 2;
+    }
+}
+
+if ($result_ok) {
+    printf("OK. No Battery requires replacement.\n");
+    exit 0;
+    }
+
+printf("WARNING! You shouldn't have seen this. If you still see it, something clearly went wrong.\n");
+exit 3;

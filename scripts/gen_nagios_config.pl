@@ -19,6 +19,7 @@ use Net::Ping;
 use eyelib::config;
 use eyelib::main;
 use eyelib::nagios;
+use eyelib::snmp;
 use eyelib::database;
 use Fcntl qw(:flock);
 
@@ -62,14 +63,14 @@ if (scalar(@netdev_list)>0) {
         $ip =~s/\/\d+$//g;
         my $device_id = 'netdev_'.$router->{'id'};
         $devices{$device_id}{ip}=$ip;
-        $devices{$device_id}{community}=$router->{'community'} || $config_ref{snmp_default_community};
+	setCommunity($router);
+	$devices{$device_id}{snmp} = $router->{snmp};
+
         $devices{$device_id}{description}=translit($router->{'comment'});
         $devices{$device_id}{name} = $router->{'device_name'};
         $devices{$device_id}{device_model_id} = $router->{'device_model_id'};
         if ($router->{'device_model_id'}) { $devices{$device_id}{device_model} = $models{$router->{'device_model_id'}};  }
         $devices{$device_id}{device_id} = $router->{'id'};
-        $devices{$device_id}{snmp_version} = $router->{'snmp_version'} || $config_ref{snmp_default_version};
-        if ($devices{$device_id}{snmp_version} eq '2') { $devices{$device_id}{snmp_version}='2c'; }
         $devices{$device_id}{vendor_id} = $router->{'vendor_id'};
         $devices{$device_id}{ou_id} = 0;
         #1 - switch; 2 - router; 3 - auth
@@ -91,11 +92,6 @@ if (scalar(@netdev_list)>0) {
     	    if ($devices{$device_id}{type} eq '1') { $devices{$device_id}{ou}->{nagios_dir}='switches'; }
     	    if ($devices{$device_id}{type} eq '2') { $devices{$device_id}{ou}->{nagios_dir}='routers'; }
     	    }
-
-	$devices{$device_id}{snmp_version}=$router->{'snmp_version'} || $config_ref{snmp_default_version};
-	$devices{$device_id}{community}=$router->{'community'} || $config_ref{snmp_default_community};
-        $devices{$device_id}{rw_community}=$router->{'rw_community'} || $config_ref{snmp_default_community};
-        $devices{$device_id}{fdb_snmp_index}=$router->{'fdb_snmp_index'};
         $devices{$device_id}{user_id}=$router->{'user_id'};
         #get uplinks
         my $uplink_port = get_record_sql($dbh,"SELECT * FROM device_ports WHERE uplink=1 AND device_id=".$devices{$device_id}{device_id}." AND target_port_id>0 ORDER BY port DESC");
@@ -155,16 +151,7 @@ if (scalar(@auth_list)>0) {
 	next if ($auth_device and $auth_device->{device_type}<=2);
 
 	#snmp parameters
-	if ($auth_device) {
-		$devices{$device_id}{snmp_version}=$auth_device->{snmp_version};
-		$devices{$device_id}{community}=$auth_device->{community};
-		$devices{$device_id}{rw_community}=$auth_device->{rw_community};
-		$devices{$device_id}{name}=$auth_device->{device_name};
-		} else {
-		$devices{$device_id}{snmp_version}=$config_ref{snmp_default_version};
-		$devices{$device_id}{community}=$config_ref{snmp_default_community};
-		$devices{$device_id}{rw_community}=$config_ref{snmp_default_community};
-		}
+	setCommunity($auth_device);
 
         $devices{$device_id}{ip}=$ip;
 
@@ -207,8 +194,7 @@ if (scalar(@auth_list)>0) {
                 $devices{$device_id}{parent_port} = $uplink->{port};
 	        $devices{$device_id}{parent_port_snmp_index} = $uplink->{snmp_index};
         	$devices{$device_id}{parent_name}=$devices{$devices{$device_id}{parent}}->{'name'};
-        	$devices{$device_id}{parent_snmp_version}=$devices{$devices{$device_id}{parent}}->{'snmp_version'};
-        	$devices{$device_id}{parent_community}=$devices{$devices{$device_id}{parent}}->{'community'};
+        	$devices{$device_id}{parent_snmp}=$devices{$devices{$device_id}{parent}}->{'snmp'};
         	}
             }
         }

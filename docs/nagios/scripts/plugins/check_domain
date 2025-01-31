@@ -1,0 +1,42 @@
+#!/bin/bash
+
+. /usr/lib/nagios/plugins/utils.sh
+
+WHOIS=/usr/bin/whois
+
+DOMAIN_NAME=$1
+DAYS=$2
+
+if [ -z "${DOMAIN_NAME}" ]; then
+    echo "Domain not defined!"
+    exit $STATE_WARNING
+    fi
+
+[ -z "${DAYS}" ] && DAYS=30
+
+time_shift=$((86400 * ${DAYS}))
+
+if [ `echo "${DOMAIN_NAME}" | egrep -i "RU$"` ]; then
+    paid_data=`${WHOIS} "${DOMAIN_NAME}" | grep paid-till`
+    [ -z "${paid_data}" ] && exit $STATE_UNKNOWN
+    paid=`${WHOIS} "${DOMAIN_NAME}" | grep paid-till | awk '{ print $NF }' | awk -F"T" '{ print $1 }' | sed 's/\./\//g'`
+    else
+    paid=`${WHOIS} "${DOMAIN_NAME}" | grep -E "(Expiration|Expiry Date)" | head -1 | awk '{ print $NF }' | awk -F"T" '{ print $1 }' | sed 's/-/\//g'`
+    [ -z "${paid}" ] && exit $STATE_UNKNOWN
+    paid_data="paid-till: ${paid}"
+    fi
+
+now=`date +"%s"`
+paid_date=`date --date="${paid}" +"%s"`
+remaining=`expr ${paid_date} - ${now}`
+
+if [ ${remaining} -lt 0 ]; then
+    echo "${DOMAIN_NAME} domain prosrali..."
+    exit $STATE_CRITICAL
+    fi
+
+remaining_days=`expr ${remaining} / 86400`
+echo "${DOMAIN_NAME} ${paid_data} remaining ${remaining_days} days"
+
+[ ${remaining} -gt ${time_shift} ] && exit $STATE_OK
+exit $STATE_WARNING
