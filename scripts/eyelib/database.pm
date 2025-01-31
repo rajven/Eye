@@ -1449,14 +1449,6 @@ if ($ou_info) {
     $user->{'enabled'} = $ou_info->{'enabled'};
     $user->{'queue_id'} = $ou_info->{'queue_id'};
     $user->{'filter_group_id'} = $ou_info->{'filter_group_id'};
-    $user->{'dynamic'} = $ou_info->{'dynamic'};
-    if ($user->{'dynamic'}) {
-        if (!$ou_info->{'life_duration'}) { $ou_info->{'life_duration'} = 24; }
-        my $now = DateTime->now(time_zone=>'local');
-        my $hours_dur = DateTime::Duration->new( hours => $ou_info->{'life_duration'} );
-        my $eof = $now + $hours_dur;
-        $user->{'eof'}=$eof->strftime('%Y-%m-%d %H:%M:%S');
-        }
     }
 
 my $result = insert_record($db,"User_list",$user);
@@ -1610,6 +1602,15 @@ my $cur_auth_id=get_id_record($db,'User_auth',"ip='$ip' and mac='$mac' and delet
 if ($cur_auth_id) {
     my $user_record=get_record_sql($db,"SELECT * FROM User_list WHERE id=".$new_user_id);
     if ($user_record) {
+	    my $ou_info = get_record_sql($db,'SELECT * FROM OU WHERE id='.$user_record->{ou_id});
+	    if ($ou_info and $ou_info->{'dynamic'}) {
+	            if (!$ou_info->{'life_duration'}) { $ou_info->{'life_duration'} = 24; }
+	            my $now = DateTime->now(time_zone=>'local');
+	            my $hours_dur = DateTime::Duration->new( hours => $ou_info->{'life_duration'} );
+	            my $eof = $now + $hours_dur;
+		    $new_record->{'dynamic'} = 1;
+	            $new_record->{'eof'}=$eof->strftime('%Y-%m-%d %H:%M:%S');
+		    }
 	    $new_record->{ou_id}=$user_record->{ou_id};
 	    $new_record->{comments}=$user_record->{fio};
 	    $new_record->{filter_group_id}=$user_record->{filter_group_id};
