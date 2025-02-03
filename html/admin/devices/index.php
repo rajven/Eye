@@ -37,7 +37,7 @@ if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field
 <td class="info" colspan=3> <?php  print WEB_device_type_show; print_devtypes_select($db_link, "devtypes", $f_devtype_id, "id<3"); ?>
 <td class="info" colspan=3> <?php  print WEB_models; print_devmodels_select($db_link, "devmodels", $f_devmodel_id); ?>
 <?php print WEB_device_show_location; print_building_select($db_link, "building_id", $f_building_id); ?></td>
-<td class="info"><input type="submit" name="apply" value="<?php echo WEB_btn_show; ?>"></td>
+<td class="info"><input type="submit" id="apply" name="apply" value="<?php echo WEB_btn_show; ?>"></td>
 <td class="info" colspan=2><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove_device" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <tr align="center">
@@ -90,6 +90,25 @@ foreach ($switches as $row) {
 <td class="up"><?php echo WEB_device_online; ?></td>
 <tr>
 </table>
+
+<script>
+document.getElementById('devtypes').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('apply');
+  buttonApply.click();
+});
+
+document.getElementById('devmodels').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('apply');
+  buttonApply.click();
+});
+
+document.getElementById('building_id').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('apply');
+  buttonApply.click();
+});
+
+</script>
+
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
 ?>

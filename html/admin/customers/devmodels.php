@@ -116,7 +116,7 @@ print_control_submenu($page_url);
 <td><b><?php echo WEB_list_models; ?></b></td>
 <td><?php print_vendor_select($db_link,'vendor_select',$f_vendor_select); ?></td>
 <td><?php print WEB_rows_at_page."&nbsp:";print_row_at_pages('rows',$displayed); ?></td>
-<td><input type="submit" name="OK" value="<?php print WEB_btn_show; ?>"></td>
+<td><input id='apply' name='apply' type="submit" name="OK" value="<?php print WEB_btn_show; ?>"></td>
 </tr>
 </table>
 
@@ -143,8 +143,8 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td><b><?php echo WEB_cell_poe_in; ?></b></td>
 <td><b><?php echo WEB_cell_poe_out; ?></b></td>
 <td><b><?php echo WEB_nagios_template; ?></b></td>
-<td><input type="submit" name='save' value="<?php echo WEB_btn_save; ?>"></td>
-<td><input type="submit" name='remove' value="<?php echo WEB_btn_delete; ?>"></td>
+<td><input id='save' type="submit" name='save' value="<?php echo WEB_btn_save; ?>"></td>
+<td><input id='remove' type="submit" name='remove' value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
 $t_ou = get_records_sql($db_link,'SELECT * FROM device_models '.$v_filter." ORDER BY vendor_id, model_name LIMIT $start,$displayed");
@@ -167,6 +167,7 @@ foreach ($t_ou as $row) {
 <input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
 </div>
 </form>
+
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

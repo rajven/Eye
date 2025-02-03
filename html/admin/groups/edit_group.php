@@ -111,9 +111,9 @@ print "<td class=\"data\"></td>\n";
 <td class="data"><?php print WEB_cell_enabled."&nbsp"; print_qa_select('f_enabled', $ou_info['enabled']); ?></td>
 <td class="data"><?php print WEB_cell_filter."&nbsp"; print_group_select($db_link, 'f_filter_group_id', $ou_info['filter_group_id']); ?></td>
 <td class="data"><?php print WEB_cell_shaper."&nbsp"; print_queue_select($db_link, 'f_queue_id', $ou_info['queue_id']); ?></td>
-<td class="data" align=right><?php print WEB_cell_life_hours."&nbsp"; print "<input  type=\"number\" min=1 name='f_life_duration' value='{$ou_info['life_duration']}'";
+<td class="data" align=right><?php print WEB_cell_life_hours."&nbsp"; print "<input  type=\"number\" min=1 id='f_life_duration' name='f_life_duration' value='{$ou_info['life_duration']}'";
 if (!$ou_info['dynamic']) { print "disabled"; }; print " style=\"width:35%;\" ></td>\n"; ?>
-<?php print "<td align=right class=\"data\"><button name='save' value='{$ou_info['id']}'>".WEB_btn_save."</button></td>\n"; ?>
+<?php print "<td align=right class=\"data\"><button id='save' name='save' value='{$ou_info['id']}'>".WEB_btn_save."</button></td>\n"; ?>
 </tr>
 </table>
 <br>
@@ -139,7 +139,7 @@ foreach ( $t_auth_rules as $row ) {
     print "<td class=\"data\">"; print_qa_rule_select("s_type[]","{$row['type']}"); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_rule[]' value='{$row['rule']}'></td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_comment[]' value='{$row['comment']}'></td>\n";
-    print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
+    print "<td class=\"data\"><button id='s_save' name='s_save' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
     print "</tr>\n";
 }
 ?>
@@ -150,4 +150,22 @@ print "<input type=\"text\" name='s_new_rule' value=''>"; ?>
 <input type="submit" name="s_create" value="<?php echo WEB_btn_add; ?>">
 </div>
 </form>
-<?php require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php"); ?>
+
+<script>
+document.getElementById('f_dynamic').addEventListener('change', function(event) {
+  const selectValue = this.value;
+  const inputField = document.getElementById('f_life_duration');
+  if (selectValue === '1') {
+    inputField.disabled = false;
+    inputField.value=24;
+  } else {
+    inputField.disabled = true;
+  }
+});
+
+</script>
+
+<?php
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
+?>
+

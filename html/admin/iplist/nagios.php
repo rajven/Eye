@@ -164,6 +164,30 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <script src="/js/remodal/remodal.min.js"></script>
 <script src="/js/remodal-auth.js"></script>
 
+<script>
+document.getElementById('ou').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('btn_filter');
+  buttonApply.click();
+});
+
+document.getElementById('subnet').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('btn_filter');
+  buttonApply.click();
+});
+
+document.getElementById('enabled').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('btn_filter');
+  buttonApply.click();
+});
+
+document.getElementById('rows').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('btn_filter');
+  buttonApply.click();
+});
+
+
+</script>
+
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
 ?>

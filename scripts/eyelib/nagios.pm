@@ -12,9 +12,9 @@ use vars qw(@EXPORT @ISA);
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::snmp;
 use Time::Local;
 use Data::Dumper;
-use eyelib::mfi;
 
 @ISA = qw(Exporter);
 @EXPORT = qw(
@@ -80,6 +80,10 @@ sub read_host_template {
 my $device = shift;
 my $template_file = shift;
 my $result;
+
+if (!exists $device->{parent_snmp} and !$device->{snmp}) { setCommunity($device); }
+if (exists $device->{parent_snmp} and !$device->{snmp}) { $device->{snmp} = $device->{parent_snmp}; }
+
 my @custom_cfg=();
 if (-e $template_file) { @custom_cfg = read_file($template_file); } else { return; }
 if (@custom_cfg and scalar(@custom_cfg)) {

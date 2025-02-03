@@ -21,7 +21,7 @@ print_reports_submenu($page_url);
 <?php echo WEB_log_stop_date; ?>:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
 <?php echo WEB_cell_gateway; ?>:&nbsp<?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
 <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
-<input type="submit" value="<?php echo WEB_btn_show; ?>">
+<input id='btn_filter' name='btn_filter' type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
 
 <?php
@@ -112,5 +112,26 @@ print "</tr>\n";
 
 <?php
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
+?>
+
+<script>
+document.getElementById('ou').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('btn_filter');
+  buttonApply.click();
+});
+
+document.getElementById('rows').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('btn_filter');
+  buttonApply.click();
+});
+
+document.getElementById('gateway').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('btn_filter');
+  buttonApply.click();
+});
+
+</script>
+
+<?php
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
 ?>

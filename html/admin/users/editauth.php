@@ -425,8 +425,9 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
 </form>
 <br>
 
+
 <script>
-document.getElementById('f_dynamic').addEventListener('change', function() {
+document.getElementById('f_dynamic').addEventListener('change', function(event) {
   const selectValue = this.value;
   const inputField = document.getElementById('f_eof');
   if (selectValue === '1') {

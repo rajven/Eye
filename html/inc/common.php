@@ -486,7 +486,7 @@ function decrypt_string($crypted_string)
 
 function print_ou_select($db, $ou_name, $ou_value)
 {
-    print "<select name=\"$ou_name\" >\n";
+    print "<select id=\"$ou_name\" name=\"$ou_name\" >\n";
     $t_ou = mysqli_query($db, "SELECT id,ou_name FROM OU ORDER BY ou_name");
     while (list($f_ou_id, $f_ou_name) = mysqli_fetch_array($t_ou)) {
         print_select_item($f_ou_name, $f_ou_id, $ou_value);
@@ -509,7 +509,7 @@ function get_subnet_description($db, $subnet_id)
 
 function print_add_gw_subnets($db, $device_id, $gs_name)
 {
-    print "<select name=\"$gs_name\" >\n";
+    print "<select id=\"$gs_name\" name=\"$gs_name\" >\n";
     $t_gs = mysqli_query($db, "SELECT id,subnet,comment FROM subnets WHERE subnets.free=0 AND subnets.id NOT IN (SELECT subnet_id FROM gateway_subnets WHERE gateway_subnets.device_id=" . $device_id . ") ORDER BY subnet");
     while (list($f_gs_id, $f_gs_name, $f_gs_comment) = mysqli_fetch_array($t_gs)) {
         print_select_item($f_gs_name . '(' . $f_gs_comment . ')', $f_gs_id, 0);
@@ -519,7 +519,7 @@ function print_add_gw_subnets($db, $device_id, $gs_name)
 
 function print_add_dev_interface($db, $device_id, $int_list, $int_name)
 {
-    print "&nbsp<select name=\"$int_name\" >\n";
+    print "&nbsp<select id=\"$int_name\" name=\"$int_name\" >\n";
     $t_int = get_records_sql($db, "SELECT * FROM device_l3_interfaces WHERE device_id=" . $device_id);
     $int_exists = [];
     foreach ($t_int as $interface) {
@@ -544,7 +544,7 @@ function print_add_dev_interface($db, $device_id, $int_list, $int_name)
 
 function print_ou_set($db, $ou_name, $ou_value)
 {
-    print "<select name=\"$ou_name\">\n";
+    print "<select id=\"$ou_name\" name=\"$ou_name\">\n";
     $t_ou = mysqli_query($db, "SELECT id,ou_name FROM OU WHERE id>=1 ORDER BY ou_name");
     while (list($f_ou_id, $f_ou_name) = mysqli_fetch_array($t_ou)) {
         print_select_item($f_ou_name, $f_ou_id, $ou_value);
@@ -554,7 +554,7 @@ function print_ou_set($db, $ou_name, $ou_value)
 
 function print_subnet_select($db, $subnet_name, $subnet_value)
 {
-    print "<select name=\"$subnet_name\" >\n";
+    print "<select id=\"$subnet_name\" name=\"$subnet_name\" >\n";
     $t_subnet = mysqli_query($db, "SELECT id,subnet FROM subnets ORDER BY ip_int_start");
     print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
     while (list($f_subnet_id, $f_subnet_name) = mysqli_fetch_array($t_subnet)) {
@@ -565,7 +565,7 @@ function print_subnet_select($db, $subnet_name, $subnet_value)
 
 function print_acl_select($db, $acl_name, $acl_value)
 {
-    print "<select name=\"$acl_name\" >\n";
+    print "<select id=\"$acl_name\" name=\"$acl_name\" >\n";
     $t_acl = mysqli_query($db, "SELECT id,name FROM acl ORDER BY id");
     while (list($f_acl_id, $f_acl_name) = mysqli_fetch_array($t_acl)) {
         print_select_item($f_acl_name, $f_acl_id, $acl_value);
@@ -575,7 +575,7 @@ function print_acl_select($db, $acl_name, $acl_value)
 
 function print_device_ip_select($db, $ip_name, $ip, $user_id)
 {
-    print "<select name=\"$ip_name\">\n";
+    print "<select id=\"$ip_name\" name=\"$ip_name\">\n";
     $auth_list = get_records_sql($db, "SELECT ip FROM User_auth WHERE user_id=$user_id AND deleted=0 ORDER BY ip_int");
     foreach ($auth_list as $row) {
         print_select_item($row['ip'], $row['ip'], $ip);
@@ -585,7 +585,7 @@ function print_device_ip_select($db, $ip_name, $ip, $user_id)
 
 function print_subnet_select_office($db, $subnet_name, $subnet_value)
 {
-    print "<select name=\"$subnet_name\" >\n";
+    print "<select id=\"$subnet_name\" name=\"$subnet_name\" >\n";
     $t_subnet = mysqli_query($db, "SELECT id,subnet FROM subnets WHERE office=1 ORDER BY ip_int_start");
     print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
     while (list($f_subnet_id, $f_subnet_name) = mysqli_fetch_array($t_subnet)) {
@@ -596,7 +596,7 @@ function print_subnet_select_office($db, $subnet_name, $subnet_value)
 
 function print_subnet_select_office_splitted($db, $subnet_name, $subnet_value)
 {
-    print "<select name=\"$subnet_name\" >\n";
+    print "<select id=\"$subnet_name\" name=\"$subnet_name\" >\n";
     $t_subnet = mysqli_query($db, "SELECT id,subnet,ip_int_start,ip_int_stop FROM subnets WHERE office=1 ORDER BY ip_int_start");
     print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
     while (list($f_subnet_id, $f_subnet_name, $f_start_ip, $f_stop_ip) = mysqli_fetch_array($t_subnet)) {
@@ -614,7 +614,7 @@ function print_subnet_select_office_splitted($db, $subnet_name, $subnet_value)
 
 function print_loglevel_select($item_name, $value)
 {
-    print "<select name=\"$item_name\">\n";
+    print "<select id=\"$item_name\" name=\"$item_name\">\n";
     print_select_item('Error', L_ERROR, $value);
     print_select_item('Warning', L_WARNING, $value);
     print_select_item('Info', L_INFO, $value);
@@ -865,7 +865,7 @@ function get_building($db, $building_value)
 
 function print_device_model_select($db, $device_model_name, $device_model_value)
 {
-    print "<select name=\"$device_model_name\" class=\"js-select-single\">\n";
+    print "<select id=\"$device_model_name\" name=\"$device_model_name\" class=\"js-select-single\">\n";
     $t_device_model = mysqli_query($db, "SELECT M.id,M.model_name,V.name FROM device_models M,vendors V WHERE M.vendor_id = V.id ORDER BY V.name,M.model_name");
     while (list($f_device_model_id, $f_device_model_name, $f_vendor_name) = mysqli_fetch_array($t_device_model)) {
         print_select_item($f_vendor_name . " " . $f_device_model_name, $f_device_model_id, $device_model_value);
@@ -875,7 +875,7 @@ function print_device_model_select($db, $device_model_name, $device_model_value)
 
 function print_group_select($db, $group_name, $group_value)
 {
-    print "<select name=\"$group_name\">\n";
+    print "<select id=\"$group_name\" name=\"$group_name\">\n";
     $t_group = mysqli_query($db, "SELECT id,group_name FROM Group_list Order by group_name");
     while (list($f_group_id, $f_group_name) = mysqli_fetch_array($t_group)) {
         print_select_item($f_group_name, $f_group_id, $group_value);
@@ -885,7 +885,7 @@ function print_group_select($db, $group_name, $group_value)
 
 function print_building_select($db, $building_name, $building_value)
 {
-    print "<select name=\"$building_name\">\n";
+    print "<select id=\"$building_name\" name=\"$building_name\">\n";
     print_select_item(WEB_select_item_all, 0, $building_value);
     $t_building = mysqli_query($db, "SELECT id,name FROM building Order by name");
     while (list($f_building_id, $f_building_name) = mysqli_fetch_array($t_building)) {
@@ -896,7 +896,7 @@ function print_building_select($db, $building_name, $building_value)
 
 function print_devmodels_select($db, $devmodel_name, $devmodel_value, $dev_filter = 'device_type<=2')
 {
-    print "<select name=\"$devmodel_name\">\n";
+    print "<select id=\"$devmodel_name\" name=\"$devmodel_name\">\n";
     print_select_item(WEB_select_item_all, -1, $devmodel_value);
     $t_devmodel = mysqli_query($db, "SELECT M.id,V.name,M.model_name FROM device_models M,vendors V WHERE M.vendor_id = V.id and M.id in (SELECT device_model_id FROM devices WHERE $dev_filter) ORDER BY V.name,M.model_name");
     while (list($f_devmodel_id, $f_devmodel_vendor, $f_devmodel_name) = mysqli_fetch_array($t_devmodel)) {
@@ -907,7 +907,7 @@ function print_devmodels_select($db, $devmodel_name, $devmodel_value, $dev_filte
 
 function print_devtypes_select($db, $devtype_name, $devtype_value, $mode)
 {
-    print "<select name=\"$devtype_name\">\n";
+    print "<select id=\"$devtype_name\" name=\"$devtype_name\">\n";
     print_select_item(WEB_select_item_all, -1, $devtype_value);
     $filter = '';
     if (!empty($mode)) {
@@ -922,7 +922,7 @@ function print_devtypes_select($db, $devtype_name, $devtype_value, $mode)
 
 function print_devtype_select($db, $devtype_name, $devtype_value)
 {
-    print "<select name=\"$devtype_name\">\n";
+    print "<select id=\"$devtype_name\" name=\"$devtype_name\">\n";
     $t_devtype = mysqli_query($db, "SELECT id,`name." . HTML_LANG . "` FROM device_types ORDER BY `name." . HTML_LANG . "`");
     while (list($f_devtype_id, $f_devtype_name) = mysqli_fetch_array($t_devtype)) {
         print_select_item($f_devtype_name, $f_devtype_id, $devtype_value);
@@ -1000,7 +1000,7 @@ function get_gw_subnets($db, $device_id)
 
 function print_queue_select($db, $queue_name, $queue_value)
 {
-    print "<select name=\"$queue_name\">\n";
+    print "<select id=\"$queue_name\" name=\"$queue_name\">\n";
     $t_queue = mysqli_query($db, "SELECT id,queue_name FROM Queue_list Order by queue_name");
     while (list($f_queue_id, $f_queue_name) = mysqli_fetch_array($t_queue)) {
         print_select_item($f_queue_name, $f_queue_id, $queue_value);
@@ -1016,7 +1016,7 @@ function get_queue($db, $queue_value)
 
 function print_qa_l3int_select($qa_name, $qa_value = 0)
 {
-    print "<select name=\"$qa_name\">\n";
+    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
     print_select_item(WEB_select_item_lan, 0, $qa_value);
     print_select_item(WEB_select_item_wan, 1, $qa_value);
     print "</select>\n";
@@ -1024,7 +1024,7 @@ function print_qa_l3int_select($qa_name, $qa_value = 0)
 
 function print_qa_rule_select($qa_name, $qa_value = 1)
 {
-    print "<select name=\"$qa_name\">\n";
+    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
     print_select_item('Subnet', 1, $qa_value);
     print_select_item('Mac', 2, $qa_value);
     print_select_item('Hostname', 3, $qa_value);
@@ -1033,7 +1033,7 @@ function print_qa_rule_select($qa_name, $qa_value = 1)
 
 function print_snmp_auth_proto_select($qa_name, $qa_value = 'sha512')
 {
-    print "<select name=\"$qa_name\">\n";
+    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
     print_select_item('sha512', 'sha512', $qa_value);
     print_select_item('sha256', 'sha256', $qa_value);
     print_select_item('sha', 'sha', $qa_value);
@@ -1043,7 +1043,7 @@ function print_snmp_auth_proto_select($qa_name, $qa_value = 'sha512')
 
 function print_snmp_priv_proto_select($qa_name, $qa_value = 'aes128')
 {
-    print "<select name=\"$qa_name\">\n";
+    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
     print_select_item('aes128', 'aes128', $qa_value);
     print_select_item('aes', 'aes', $qa_value);
     print_select_item('des', 'des', $qa_value);
@@ -1075,7 +1075,7 @@ function print_qa_select($qa_name, $qa_value = 0)
 
 function print_list_select($qa_name, $qa_value, $list)
 {
-    print "<select name=\"$qa_name\">\n";
+    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
     if (empty($qa_value)) {
         $qa_value = '';
     }
@@ -1091,7 +1091,7 @@ function print_qa_select_ext($qa_name, $qa_value = 0, $readonly = 1)
     if ($readonly) {
         $state = 'disabled=true';
     }
-    print "<select name=\"$qa_name\">\n";
+    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
     print_select_item_ext(WEB_select_item_yes, 1, $qa_value, $readonly);
     print_select_item_ext(WEB_select_item_no, 0, $qa_value, $readonly);
     print "</select>\n";
@@ -1136,7 +1136,7 @@ function print_control_proto_select($qa_name, $qa_value = -1)
 
 function print_snmp_select($qa_name, $qa_value = 0)
 {
-    print "<select name=\"$qa_name\">\n";
+    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
     print_select_item('Disabled', 0, $qa_value);
     print_select_item('v1', 1, $qa_value);
     print_select_item('v2', 2, $qa_value);
@@ -1146,7 +1146,7 @@ function print_snmp_select($qa_name, $qa_value = 0)
 
 function print_dhcp_select($qa_name, $qa_value = 0)
 {
-    print "<select name=\"$qa_name\">\n";
+    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
     if (!isset($qa_value) or strlen($qa_value) == 0) {
         $qa_value = 'all';
     }
@@ -1175,7 +1175,7 @@ function print_dhcp_acl_select($qa_name)
 
 function print_enabled_select($qa_name, $qa_value)
 {
-    print "<select name=\"$qa_name\">\n";
+    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
     if (!isset($qa_value) or strlen($qa_value) == 0) {
         $qa_value = 0;
     }
@@ -1187,7 +1187,7 @@ function print_enabled_select($qa_name, $qa_value)
 
 function print_ip_type_select($qa_name, $qa_value)
 {
-    print "<select name=\"$qa_name\">\n";
+    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
     if (!isset($qa_value) or strlen($qa_value) == 0) {
         $qa_value = 0;
     }
@@ -1200,7 +1200,7 @@ function print_ip_type_select($qa_name, $qa_value)
 
 function print_vendor_select($db, $qa_name, $qa_value)
 {
-    print "<select name=\"$qa_name\" class=\"js-select-single\">\n";
+    print "<select id=\"$qa_name\" name=\"$qa_name\"  style=\"width: 100%\">\n";
     $sSQL = "SELECT id,`name` FROM `vendors` order by `name`";
     $vendors = mysqli_query($db, $sSQL);
     print_select_item(WEB_select_item_all, 0, $qa_value);
@@ -1212,7 +1212,7 @@ function print_vendor_select($db, $qa_name, $qa_value)
 
 function print_vendor_set($db, $qa_name, $qa_value)
 {
-    print "<select name=\"$qa_name\" class=\"js-select-single\" style=\"width: 100%\">\n";
+    print "<select id=\"$qa_name\" name=\"$qa_name\" style=\"width: 100%\">\n";
     $sSQL = "SELECT id,`name` FROM `vendors` order by `name`";
     $vendors = mysqli_query($db, $sSQL);
     while (list($v_id, $v_name) = mysqli_fetch_array($vendors)) {
@@ -1240,7 +1240,7 @@ function get_qa($qa_value)
 
 function print_action_select($action_name, $action_value)
 {
-    print "<select name=\"$action_name\">\n";
+    print "<select id=\"$action_name\" name=\"$action_name\">\n";
     print_select_item(WEB_select_item_allow, 1, $action_value);
     print_select_item(WEB_select_item_forbidden, 0, $action_value);
     print "</select>\n";
@@ -1256,7 +1256,7 @@ function get_action($action_value)
 
 function print_filter_select($db, $filter_name, $group_id)
 {
-    print "<select name=\"$filter_name\" class=\"js-select-single\">\n";
+    print "<select id=\"$filter_name\" name=\"$filter_name\" class=\"js-select-single\">\n";
     if (isset($group_id)) {
         $sSQL = "SELECT id,name FROM Filter_list WHERE Filter_list.id not in (Select filter_id FROM Group_filters WHERE group_id=$group_id)";
     } else {
@@ -1290,7 +1290,7 @@ function get_auth_count($db, $user_id)
 
 function print_login_select($db, $login_name, $current_login)
 {
-    print "<select name=\"$login_name\" class=\"js-select-single\">\n";
+    print "<select id=\"$login_name\" name=\"$login_name\" class=\"js-select-single\">\n";
     $t_login = mysqli_query($db, "SELECT id,login FROM User_list Order by Login");
     print_select_item('None', 0, $current_login);
     while (list($f_user_id, $f_login) = mysqli_fetch_array($t_login)) {
@@ -1301,7 +1301,7 @@ function print_login_select($db, $login_name, $current_login)
 
 function print_auth_select($db, $login_name, $current_auth)
 {
-    print "<select name=\"$login_name\" class=\"js-select-single\">\n";
+    print "<select id=\"$login_name\" name=\"$login_name\" class=\"js-select-single\">\n";
     $t_login = mysqli_query($db, "SELECT U.login,U.fio,A.ip,A.id FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.deleted=0 and (A.id not in (select device_ports.auth_id FROM device_ports) or A.id=$current_auth) order by U.login,U.fio,A.ip");
     print_select_item('Empty', 0, $current_auth);
     while (list($f_login, $f_fio, $f_ip, $f_auth_id) = mysqli_fetch_array($t_login)) {
@@ -1312,7 +1312,7 @@ function print_auth_select($db, $login_name, $current_auth)
 
 function print_auth_select_mac($db, $login_name, $current_auth)
 {
-    print "<select name=\"$login_name\" class=\"js-select-single\">\n";
+    print "<select id=\"$login_name\" name=\"$login_name\" class=\"js-select-single\">\n";
     $t_login = mysqli_query($db, "SELECT U.login,U.fio,A.ip,A.mac,A.id FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.deleted=0 and (A.id not in (select device_ports.auth_id FROM device_ports) or A.id=$current_auth) order by U.login,U.fio,A.ip");
 
     print_select_item('Empty', 0, $current_auth);
@@ -1333,7 +1333,7 @@ function compact_port_name($port)
 
 function print_device_port_select($db, $field_name, $device_id, $target_id)
 {
-    print "<select name=\"$field_name\" class=\"js-select-single\">\n";
+    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\">\n";
     if (empty($target_id)) {
         $target_id = 0;
     }
@@ -1354,7 +1354,7 @@ function print_device_port_select($db, $field_name, $device_id, $target_id)
 
 function print_device_select($db, $field_name, $device_id)
 {
-    print "<select name=\"$field_name\" class=\"js-select-single\" >\n";
+    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 order by D.device_name ASC";
     $t_device = mysqli_query($db, $d_sql);
     print_select_item(WEB_select_item_every, 0, $device_id);
@@ -1366,7 +1366,7 @@ function print_device_select($db, $field_name, $device_id)
 
 function print_netdevice_select($db, $field_name, $device_id)
 {
-    print "<select name=\"$field_name\" class=\"js-select-single\" >\n";
+    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type<=2 order by D.device_name ASC";
     $t_device = mysqli_query($db, $d_sql);
     print_select_item(WEB_select_item_every, 0, $device_id);
@@ -1378,7 +1378,7 @@ function print_netdevice_select($db, $field_name, $device_id)
 
 function print_vlan_select($db, $field_name, $vlan)
 {
-    print "<select name=\"$field_name\" class=\"js-select-single\">\n";
+    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\">\n";
     $d_sql = "SELECT DISTINCT vlan FROM device_ports ORDER BY vlan DESC";
     $v_device = mysqli_query($db, $d_sql);
     if (!isset($vlan) or empty($vlan)) {
@@ -1396,7 +1396,7 @@ function print_vlan_select($db, $field_name, $vlan)
 
 function print_device_select_ip($db, $field_name, $device_ip)
 {
-    print "<select name=\"$field_name\" class=\"js-select-single\" >\n";
+    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT D.device_name, D.ip FROM devices AS D Where D.deleted=0 order by D.device_name ASC";
     $t_device = mysqli_query($db, $d_sql);
     print_select_item(WEB_select_item_every, '', $device_ip);
@@ -1408,7 +1408,7 @@ function print_device_select_ip($db, $field_name, $device_ip)
 
 function print_syslog_device_select($db, $field_name, $syslog_filter, $device_ip)
 {
-    print "<select name=\"$field_name\" class=\"js-select-single\" >\n";
+    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT R.ip, D.device_name FROM (SELECT DISTINCT ip FROM remote_syslog WHERE $syslog_filter) AS R LEFT JOIN (SELECT ip, device_name FROM devices WHERE deleted=0) AS D ON R.ip=D.ip ORDER BY R.ip ASC";
     $t_device = mysqli_query($db, $d_sql);
     print_select_item(WEB_select_item_every, '', $device_ip);
@@ -1423,7 +1423,7 @@ function print_syslog_device_select($db, $field_name, $syslog_filter, $device_ip
 
 function print_gateway_select($db, $field_name, $device_id)
 {
-    print "<select name=\"$field_name\" >\n";
+    print "<select id=\"$field_name\" name=\"$field_name\" >\n";
     $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type=2 order by D.device_name ASC";
     $t_device = mysqli_query($db, $d_sql);
     print_select_item(WEB_select_item_every, 0, $device_id);
@@ -1671,7 +1671,7 @@ function get_port($db, $port_id)
 
 function print_option_select($db, $option_name)
 {
-    print "<select name=\"$option_name\">\n";
+    print "<select id=\"$option_name\" name=\"$option_name\">\n";
     $t_option = mysqli_query($db, "SELECT id,option_name FROM config_options WHERE uniq=0 AND draft=0 order by option_name");
     while (list($f_id, $f_name) = mysqli_fetch_array($t_option)) {
         print "<option value=$f_id>$f_name</option>";
@@ -2429,7 +2429,7 @@ function write_log($db, $msg, $level, $auth_id = 0)
 
 function print_year_select($year_name, $year)
 {
-    print "<select name=\"$year_name\" >\n";
+    print "<select id=\"$year_name\" name=\"$year_name\" >\n";
     for ($i = $year - 10; $i <= $year + 10; $i++) {
         print_select_item($i, $i, $year);
     }
@@ -2440,7 +2440,7 @@ function print_date_select($dd, $mm, $yy)
 {
     if ($dd >= 1) {
         print "<b>День</b>\n";
-        print "<select name=\"day\" >\n";
+        print "<select id=\"day\" name=\"day\" >\n";
         for ($i = 1; $i <= 31; $i++) {
             print_select_item($i, $i, $dd);
         }
@@ -2449,7 +2449,7 @@ function print_date_select($dd, $mm, $yy)
 
     if ($mm >= 1) {
         print "<b>Месяц</b>\n";
-        print "<select name=\"month\" >\n";
+        print "<select id=\"month\"  name=\"month\" >\n";
         for ($i = 1; $i <= 12; $i++) {
             $tmp_date = DateTimeImmutable::createFromFormat('U', strtotime("$i/01/$yy"));
             $month_name = $tmp_date->format('F');
@@ -2466,7 +2466,7 @@ function print_date_select2($dd, $mm, $yy)
 {
     if ($dd >= 1) {
         print "<b>День</b>\n";
-        print "<select name=\"day2\" >\n";
+        print "<select id=\"day2\" name=\"day2\" >\n";
         for ($i = 1; $i <= 31; $i++) {
             print_select_item($i, $i, $dd);
         }
@@ -2475,7 +2475,7 @@ function print_date_select2($dd, $mm, $yy)
 
     if ($mm >= 1) {
         print "<b>Месяц</b>\n";
-        print "<select name=\"month2\" >\n";
+        print "<select id=\"month2\" name=\"month2\" >\n";
         for ($i = 1; $i <= 12; $i++) {
             $tmp_date = DateTimeImmutable::createFromFormat('U', strtotime("$i/01/$yy"));
             $month_name = $tmp_date->format('F');
@@ -3502,7 +3502,7 @@ function print_select_item_ext($description, $value, $current, $disabled)
 
 function print_row_at_pages($name, $value)
 {
-    print "<select name='" . $name . "'>\n";
+    print "<select id='" . $name . "' name='" . $name . "'>\n";
     print_select_item(WEB_select_item_more, pow(10, 10), $value);
     print_select_item('25', 25, $value);
     print_select_item('50', 50, $value);
