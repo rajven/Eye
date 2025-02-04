@@ -63,6 +63,7 @@ if (scalar(@netdev_list)>0) {
         $ip =~s/\/\d+$//g;
         my $device_id = 'netdev_'.$router->{'id'};
         $devices{$device_id}{ip}=$ip;
+
 	setCommunity($router);
 	$devices{$device_id}{snmp} = $router->{snmp};
 
@@ -152,6 +153,7 @@ if (scalar(@auth_list)>0) {
 
 	#snmp parameters
 	setCommunity($auth_device);
+        $devices{$device_id}{snmp}=$auth_device->{snmp} if ($auth_device->{snmp});
 
         $devices{$device_id}{ip}=$ip;
 
