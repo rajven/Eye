@@ -482,20 +482,24 @@ if (!$traf_record->{snmp_out} or !$traf_record->{snmp_in}) {
     #input
     if (!$traf_record->{snmp_out} and exists $routers_svi{$router_id}{$traf_record->{snmp_in}}{$traf_record->{dst_ip}}) {
         #input
-        if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}) {
-            $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}+=$traf_record->{octets};
-            } else {
-            $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}=$traf_record->{octets};
+        if (!$free_networks->match_string($traf_record->{src_ip})) {
+            if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}) {
+                $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}+=$traf_record->{octets};
+                } else {
+                $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}=$traf_record->{octets};
+                }
             }
         next;
 	}
     #output
     if (!$traf_record->{snmp_in} and exists $routers_svi{$router_id}{$traf_record->{snmp_out}}{$traf_record->{src_ip}}) {
         #output
-        if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}) {
-            $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}+=$traf_record->{octets};
-            } else {
-            $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}=$traf_record->{octets};
+        if (!$free_networks->match_string($traf_record->{dst_ip})) {
+            if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}) {
+                $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}+=$traf_record->{octets};
+                } else {
+                $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}=$traf_record->{octets};
+                }
             }
         next;
         }
@@ -507,20 +511,24 @@ if (!$traf_record->{snmp_out} or !$traf_record->{snmp_in}) {
 if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{$router_id}->{$traf_record->{snmp_in}}) {
     if (exists $routers_svi{$router_id}{$traf_record->{snmp_out}}{$traf_record->{src_ip}}) {
         #output
-        if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}) {
-            $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}+=$traf_record->{octets};
-            } else {
-            $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}=$traf_record->{octets};
+        if (!$free_networks->match_string($traf_record->{dst_ip})) {
+            if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}) {
+                $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}+=$traf_record->{octets};
+                } else {
+                $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}=$traf_record->{octets};
+                }
             }
         next;
         }
     #It is unlikely that it will ever work out
     if (exists $routers_svi{$router_id}{$traf_record->{snmp_in}}{$traf_record->{dst_ip}}) {
         #input
-        if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}) {
-            $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}+=$traf_record->{octets};
-            } else {
-            $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}=$traf_record->{octets};
+        if (!$free_networks->match_string($traf_record->{src_ip})) {
+            if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}) {
+                $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}+=$traf_record->{octets};
+                } else {
+                $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}=$traf_record->{octets};
+                }
             }
         next;
         }
@@ -528,41 +536,49 @@ if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{
     next;
     } else {
     #forward
-    if ($traf_record->{direction}) {
-        #out
-        if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{forward_out}) {
-            $wan_stats{$router_id}{$traf_record->{snmp_out}}{forward_out}+=$traf_record->{octets};
+    if (!$free_networks->match_string($traf_record->{src_ip}) and !$free_networks->match_string($traf_record->{dst_ip})) {
+        if ($traf_record->{direction}) {
+            #out
+            if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{forward_out}) {
+                $wan_stats{$router_id}{$traf_record->{snmp_out}}{forward_out}+=$traf_record->{octets};
+                } else {
+                $wan_stats{$router_id}{$traf_record->{snmp_out}}{forward_out}+=$traf_record->{octets};
+                }
             } else {
-            $wan_stats{$router_id}{$traf_record->{snmp_out}}{forward_out}+=$traf_record->{octets};
-            }
-        } else {
-        #in
-        if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{forward_in}) {
-            $wan_stats{$router_id}{$traf_record->{snmp_in}}{forward_in}+=$traf_record->{octets};
-            } else {
-            $wan_stats{$router_id}{$traf_record->{snmp_in}}{forward_in}+=$traf_record->{octets};
+            #in
+            if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{forward_in}) {
+                $wan_stats{$router_id}{$traf_record->{snmp_in}}{forward_in}+=$traf_record->{octets};
+                } else {
+                $wan_stats{$router_id}{$traf_record->{snmp_in}}{forward_in}+=$traf_record->{octets};
+                }
             }
         }
     }
 
 #--- user statistics
 
-#outbound traffic
+my $free = 0;
+
 if ($traf_record->{direction}) {
+    #outbound traffic
     if (exists $user_stats{$traf_record->{src_ip}}) {
 	$user_ip  = $traf_record->{src_ip};
 	$l_src_ip = $traf_record->{src_ip};
 	$l_dst_ip = $traf_record->{dst_ip};
-	if (exists $user_stats{$user_ip}{$router_id}{out}) {
+        $free = $free_networks->match_string($l_dst_ip);
+        #skip calculate free net
+        if (!$free) {
+            if (exists $user_stats{$user_ip}{$router_id}{out}) {
 		$user_stats{$user_ip}{$router_id}{out}+=$traf_record->{octets};
 		} else {
 		$user_stats{$user_ip}{$router_id}{out}=$traf_record->{octets};
 		}
-	if (exists $user_stats{$user_ip}{$router_id}{pkt_out}) {
+	    if (exists $user_stats{$user_ip}{$router_id}{pkt_out}) {
 		$user_stats{$user_ip}{$router_id}{pkt_out}+=$traf_record->{pkts};
 		} else {
 		$user_stats{$user_ip}{$router_id}{pkt_out}=$traf_record->{pkts};
 		}
+            }
 	}
     #a new user is created only by the presence of outgoing traffic
     if (!$user_ip and $config_ref{add_unknown_user}) {
@@ -578,27 +594,39 @@ if ($traf_record->{direction}) {
 	$l_dst_ip = $traf_record->{dst_ip};
 	$user_stats{$user_ip}{auth_id}=$auth_id;
 	$user_stats{$user_ip}{$router_id}{in}=0;
-	$user_stats{$user_ip}{$router_id}{out}=$traf_record->{octets};
 	$user_stats{$user_ip}{$router_id}{pkt_in}=0;
-	$user_stats{$user_ip}{$router_id}{pkt_out}=$traf_record->{pkts};
+	$user_stats{$user_ip}{$router_id}{out}=0;
+	$user_stats{$user_ip}{$router_id}{pkt_out}=0;
 	$user_stats{$user_ip}{save_traf}=$config_ref{save_detail};
+
+        $free = $free_networks->match_string($l_dst_ip);
+        #skip calculate free net
+        if (!$free) {
+        	$user_stats{$user_ip}{$router_id}{out}=$traf_record->{octets};
+	        $user_stats{$user_ip}{$router_id}{pkt_out}=$traf_record->{pkts};
+                }
 	}
-    #inbound traffic
     } else {
+    #inbound traffic
     if (exists $user_stats{$traf_record->{xdst_ip}}) {
 	$user_ip  = $traf_record->{xdst_ip};
 	$l_src_ip = $traf_record->{src_ip};
 	$l_dst_ip = $traf_record->{xdst_ip};
-	if (exists $user_stats{$user_ip}{$router_id}{in}) {
-		$user_stats{$user_ip}{$router_id}{in}+=$traf_record->{octets};
-		} else {
-		$user_stats{$user_ip}{$router_id}{in}=$traf_record->{octets};
-		}
-	if (exists $user_stats{$user_ip}{$router_id}{pkt_in}) {
-		$user_stats{$user_ip}{$router_id}{pkt_in}+=$traf_record->{pkts};
-		} else {
-		$user_stats{$user_ip}{$router_id}{pkt_in}=$traf_record->{pkts};
-		}
+
+        $free = $free_networks->match_string($l_src_ip);
+        #skip calculate free net
+        if (!$free) {
+        	if (exists $user_stats{$user_ip}{$router_id}{in}) {
+	        	$user_stats{$user_ip}{$router_id}{in}+=$traf_record->{octets};
+		        } else {
+        		$user_stats{$user_ip}{$router_id}{in}=$traf_record->{octets};
+	        	}
+        	if (exists $user_stats{$user_ip}{$router_id}{pkt_in}) {
+	        	$user_stats{$user_ip}{$router_id}{pkt_in}+=$traf_record->{pkts};
+		        } else {
+        		$user_stats{$user_ip}{$router_id}{pkt_in}=$traf_record->{pkts};
+	        	}
+                }
 	}
     if (!$user_ip) {
 	log_warning("Unknown dst user ip at router $router_id:: proto=>$traf_record->{proto} src: $traf_record->{src_ip}:$traf_record->{src_port} dst: $traf_record->{xdst_ip}:$traf_record->{dst_port}");
