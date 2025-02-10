@@ -1,1 +1,0 @@
-ALTER TABLE `dhcp_log` ADD `circuit-id` VARCHAR(255) NULL AFTER `dhcp_hostname`, ADD `remote-id` VARCHAR(255) NULL AFTER `circuit-id`;

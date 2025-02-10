@@ -14,23 +14,6 @@ use strict;
 use warnings;
 
 my @old_releases = (
-'2.4.0',
-'2.4.1',
-'2.4.2',
-'2.4.3',
-'2.4.4',
-'2.4.5',
-'2.4.6',
-'2.4.7',
-'2.4.8',
-'2.4.9',
-'2.4.10',
-'2.4.11',
-'2.4.12',
-'2.4.14',
-'2.5.1',
-'2.5.2',
-'2.5.3',
 '2.6.1',
 '2.6.2',
 '2.6.3',
@@ -47,7 +30,10 @@ my $eye_release = $old_releases[@old_releases - 1];
 $dbh=init_db();
 init_option($dbh);
 
-if (!$config_ref{version}) { $config_ref{version}='2.4.12'; }
+if (!$config_ref{version} and !$ARGV[0]) {
+    print "Current version unknown! Skip upgrade!\n";
+    exit 100;
+    }
 
 if ($ARGV[0]) {
     if (exists($old_releases_h{$ARGV[0]})) { $config_ref{version}=$ARGV[0]; } else { print "Unknown version $ARGV[0]!\n"; }
