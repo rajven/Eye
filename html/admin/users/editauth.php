@@ -255,6 +255,8 @@ if ($auth_info['dhcp_time'] == '0000-00-00 00:00:00') {
 }
 if ($auth_info['last_found'] == '0000-00-00 00:00:00') { $auth_info['last_found'] = ''; }
 
+if ($auth_info['arp_found'] == '0000-00-00 00:00:00') { $auth_info['arp_found'] = ''; }
+
 $now = DateTime::createFromFormat("Y-m-d H:i:s",date('Y-m-d H:i:s'));
 $created = DateTime::createFromFormat("Y-m-d H:i:s",$auth_info['timestamp']);
 
@@ -396,7 +398,7 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
         </table>
         <table class="data">
             <tr>
-                <td class="data" colspan=5><?php echo WEB_status . ":"; ?></td>
+                <td class="data" colspan=4><?php echo WEB_status . ":"; ?></td>
             </tr>
             <tr>
                 <td colspan=2><?php print WEB_cell_dhcp_hostname . ": " . $auth_info['dhcp_hostname']; ?></td>
@@ -404,15 +406,17 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
                 <td align=right><?php print "Dhcp event: " . $dhcp_str; ?></td>
             </tr>
             <tr>
-                <td><a href=/admin/logs/authlog.php?auth_id=<?php print $id; ?>><?php print WEB_cell_created; ?></a></td>
+                <td><?php print WEB_cell_created; ?></td>
                 <td><?php print $auth_info['timestamp']; ?></td>
-                <td align=right colspan=2><?php print_url(WEB_report_by_day, "/admin/reports/authday.php?id=$id"); ?></td>
+                <td align=right colspan=2><?php print WEB_cell_connection . ": "; print get_connection($db_link, $id) ; ?></td>
             </tr>
             <tr>
-                <td><?php print WEB_cell_last_found . ": "; ?></td>
-                <td><?php print $auth_info['last_found'] . "<br>"; ?></td>
-                <td align=right><?php print WEB_cell_connection . ": "; ?></td>
-                <td align=right><?php print get_connection($db_link, $id) . "<br>"; ?></td>
+                <td colspan=2><?php print WEB_cell_arp_found . ": "; print $auth_info['arp_found'] ; ?></td>
+                <td colspan=2 align=right><?php print WEB_cell_last_found . ": "; print $auth_info['last_found'] ; ?></td>
+            </tr>
+            <tr>
+                <td align=right colspan=2><a href=/admin/logs/authlog.php?auth_id=<?php print $id; ?>><?php print WEB_log; ?></a></td>
+                <td align=right colspan=2><?php print_url(WEB_report_by_day, "/admin/reports/authday.php?id=$id"); ?></td>
             </tr>
         </table>
         <?php

@@ -352,6 +352,7 @@ foreach my $mac (keys %mac_address_table) {
                         if (exists $auth_table{oper_table}{$simple_mac}) {
                             my $auth_rec;
                             $auth_rec->{last_found}=$now_str;
+                            $auth_rec->{arp_found}=$now_str;
 			    $oper_arp_list{$auth_id}{updated}=1;
                             update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
                             }
@@ -363,6 +364,8 @@ foreach my $mac (keys %mac_address_table) {
                     $mac_history{$simple_mac}{auth_id}=$auth_id;
                     db_log_info($dbh,"Found auth_id: $auth_id ip: $mac_history{$simple_mac}{ip} [$mac_splitted] at device $dev_name [$port]. Update connection",$auth_id);
                     my $auth_rec;
+                    #for exists arp - update arp timestamp
+                    if (exists $auth_table{oper_table}{$simple_mac}) { $auth_rec->{arp_found}=$now_str; }
                     $auth_rec->{last_found}=$now_str;
 		    $oper_arp_list{$auth_id}{updated}=1;
                     update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
@@ -376,6 +379,8 @@ foreach my $mac (keys %mac_address_table) {
                     $connections{$auth_id}{port}=$port_id;
                     db_log_info($dbh,"Found auth_id: $auth_id ip: $mac_history{$simple_mac}{ip} [$mac_splitted] at device $dev_name [$port]. Create connection.",$auth_id);
                     my $auth_rec;
+                    #for exists arp - update arp timestamp
+                    if (exists $auth_table{oper_table}{$simple_mac}) { $auth_rec->{arp_found}=$now_str; }
                     $auth_rec->{last_found}=$now_str;
 		    $oper_arp_list{$auth_id}{updated}=1;
                     update_record($dbh,'User_auth',$auth_rec,"id=".$auth_id);
