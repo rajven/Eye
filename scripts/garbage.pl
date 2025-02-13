@@ -39,6 +39,10 @@ my @db_tables =(
 
 my $debug_history = 3;
 
+my $optimize = 0;
+
+if ($ARGV[0] =~/optimize/i) { $optimize = 1; }
+
 db_log_info($dbh,'Garbage started.');
 
 sub is_dhcp_pool {
@@ -346,16 +350,20 @@ foreach my $auth (@auth_full_list) {
             }
 }
 
-foreach my $table (@db_tables) {
-my $opt_sql = "optimize table ".$table;
-my $opt_rf=$dbh->prepare($opt_sql) or die "Unable to prepare $opt_sql:" . $dbh->errstr;
-my $opt_result = $opt_rf->execute();
-#CREATE TABLE `".$table.".new` LIKE $table;
-#INSERT INTO `".$table.".new` SELECT * FROM $table;
-#RENAME TABLE $table TO `".$table.".backup`;
-#RENAME TABLE `".$table.".new` TO $table;
-#DROP TABLE `".$table.".backup`;";
-}
+if ( $optimize ) {
+    db_log_info($dbh,'Start optimize tables');
+    foreach my $table (@db_tables) {
+        my $opt_sql = "optimize table ".$table;
+        my $opt_rf=$dbh->prepare($opt_sql) or die "Unable to prepare $opt_sql:" . $dbh->errstr;
+        my $opt_result = $opt_rf->execute();
+        #CREATE TABLE `".$table.".new` LIKE $table;
+        #INSERT INTO `".$table.".new` SELECT * FROM $table;
+        #RENAME TABLE $table TO `".$table.".backup`;
+        #RENAME TABLE `".$table.".new` TO $table;
+        #DROP TABLE `".$table.".backup`;";
+        }
+    db_log_info($dbh,'Optimize ended.');
+    }
 
 db_log_info($dbh,'Garbage stopped.');
 $dbh->disconnect;
