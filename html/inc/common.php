@@ -6,9 +6,9 @@ if (!defined("CONFIG")) {
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/consts.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/snmp.php");
 
-#ValidIpAddressRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
-#ValidHostnameRegex = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$";
-#$ValidMacAddressRegex="^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12}$";
+//ValidIpAddressRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
+//ValidHostnameRegex = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$";
+//$ValidMacAddressRegex="^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12}$";
 
 
 $config["init"] = 0;
@@ -191,7 +191,7 @@ function searchHostname($db, $id, $hostname)
     $domain_zone = get_option($db, 33);
 
     $a_search_filter = 'SELECT * FROM User_auth WHERE deleted=0 and id !="' . $id . '" and (dns_name ="' . mysqli_real_escape_string($db, $hostname) . '" or dns_name ="' . mysqli_real_escape_string($db, $hostname . '.' . $domain_zone) . '")';
-    #    LOG_DEBUG($db, "A search-filter: ".$a_search_filter);
+//        LOG_DEBUG($db, "A search-filter: ".$a_search_filter);
     $a_records = get_records_sql($db, $a_search_filter);
     foreach ($a_records as $a_rec) {
         $result .= 'auth_id:' . $a_rec['id'] . ' ip: ' . $a_rec['ip'] . '; ';
@@ -202,7 +202,7 @@ function searchHostname($db, $id, $hostname)
 
     $result_cname = '';
     $cname_search_filter = 'SELECT * FROM User_auth_alias WHERE auth_id !="' . $id . '" and (alias ="' . mysqli_real_escape_string($db, $hostname) . '" or alias ="' . mysqli_real_escape_string($db, $hostname . '.' . $domain_zone) . '")';
-    #    LOG_DEBUG($db, "CNAME search-filter: ".$cname_search_filter);
+//        LOG_DEBUG($db, "CNAME search-filter: ".$cname_search_filter);
     $a_records = get_records_sql($db, $cname_search_filter);
     foreach ($a_records as $a_rec) {
         $result_cname .= 'auth_id:' . $a_rec['auth_id'] . ';';
@@ -224,7 +224,7 @@ function checkUniqHostname($db, $id, $hostname)
     $domain_zone = get_option($db, 33);
 
     $check_A_filter = 'deleted=0 and id !="' . $id . '" and (dns_name ="' . mysqli_real_escape_string($db, $hostname) . '" or dns_name ="' . mysqli_real_escape_string($db, $hostname . '.' . $domain_zone) . '")';
-    #    LOG_DEBUG($db, "CNAME filter: ".$check_A_filter);
+//        LOG_DEBUG($db, "CNAME filter: ".$check_A_filter);
 
     $count = get_count_records($db, 'User_auth', $check_A_filter);
     if ($count > 0) {
@@ -233,7 +233,7 @@ function checkUniqHostname($db, $id, $hostname)
 
     $check_CNAME_filter = 'auth_id !="' . $id . '" and (alias ="' . mysqli_real_escape_string($db, $hostname) . '" or alias ="' . mysqli_real_escape_string($db, $hostname . '.' . $domain_zone) . '")';
 
-    #    LOG_DEBUG($db, "CNAME filter: ".$check_CNAME_filter);
+//        LOG_DEBUG($db, "CNAME filter: ".$check_CNAME_filter);
 
     $count = get_count_records($db, 'User_auth_alias', $check_CNAME_filter);
     if ($count > 0) {
@@ -453,7 +453,7 @@ function cidrToRange($cidr)
     $range[0] = long2ip($start);
     $range[1] = long2ip($stop);
     $range[2] = $cidr;
-    #dhcp
+    //dhcp
     $dhcp_size = round(($stop - $start) / 2, PHP_ROUND_HALF_UP);
     $dhcp_start = $start + round($dhcp_size / 2, PHP_ROUND_HALF_UP);
     $range[3] = long2ip($dhcp_start);
@@ -2699,7 +2699,12 @@ function expand_mac($db, $msg)
     }
     $mac = mac_dotted($msg);
     $vendor_info = get_vendor($db, $mac);
-    $result = ' <p title="' . $vendor_info . '"><a href=/admin/logs/mac.php?mac=' . $mac . '>' . $mac . '</a></p>';
+    if (!empty($vendor_info)) {
+//        $result = '<p title="' . $vendor_info . '"><a href=/admin/logs/mac.php?mac=' . $mac . '>' . $mac . '</a></p>';
+        $result = '<a href=/admin/logs/mac.php?mac=' . $mac . '><p title="' . $vendor_info . '">'. $mac . '</p></a>';
+        } else {
+        $result = '<a href=/admin/logs/mac.php?mac=' . $mac . '>' . $mac . '</a>';
+        }
     return $result;
 }
 
@@ -2722,8 +2727,8 @@ function expand_log_str($db, $msg)
     if (isset($matches[1])) {
         $mac = $matches[1];
         $mac = mac_dotted($mac);
-        #        $vendor_info = get_vendor($db,$mac);
-        #        $mac_replace = ' <p title="'.$vendor_info.'"><a href=/admin/logs/mac.php?mac='.$mac.'>'.$mac.'</a></p>';
+        //        $vendor_info = get_vendor($db,$mac);
+        //        $mac_replace = ' <p title="'.$vendor_info.'"><a href=/admin/logs/mac.php?mac='.$mac.'>'.$mac.'</a></p>';
         $mac_replace = ' <a href=/admin/logs/mac.php?mac=' . $mac . '>' . $mac . '</a> ';
         $result = preg_replace($mac_pattern, $mac_replace, $result);
     }
@@ -2733,8 +2738,8 @@ function expand_log_str($db, $msg)
     if (isset($matches[1])) {
         $mac = $matches[1];
         $mac = mac_dotted($mac);
-        #        $vendor_info = get_vendor($db,$mac);
-        #        $mac_replace = ' mac: <p title="'.$vendor_info.'"><a href=/admin/logs/mac.php?mac='.$mac.'>'.$mac.'</a></p>';
+        //        $vendor_info = get_vendor($db,$mac);
+        //        $mac_replace = ' mac: <p title="'.$vendor_info.'"><a href=/admin/logs/mac.php?mac='.$mac.'>'.$mac.'</a></p>';
         $mac_replace = ' mac: <a href=/admin/logs/mac.php?mac=' . $mac . '>' . $mac . '</a> ';
         $result = preg_replace($mac_pattern, $mac_replace, $result);
     }
@@ -3526,7 +3531,7 @@ function print_navigation($url, $page, $displayed, $count_records, $total)
     if (preg_match('/\.php\?/', $url)) {
         $v_char = "&";
     }
-    #две назад
+    //две назад
     print "<div align=left class=records >";
     if (($page - 2) > 0) :
         $pagetwoleft = "<a class='first_page_link' href=" . $url . $v_char . "page=" . ($page - 2) . ">" . ($page - 2) . "</a>  ";
@@ -3534,7 +3539,7 @@ function print_navigation($url, $page, $displayed, $count_records, $total)
         $pagetwoleft = null;
     endif;
 
-    #одна назад
+    //одна назад
     if (($page - 1) > 0) :
         $pageoneleft = "<a class='first_page_link' href=" . $url . $v_char . "page=" . ($page - 1) . ">" . ($page - 1) . "</a>  ";
         $pagetemp = ($page - 1);
@@ -3543,14 +3548,14 @@ function print_navigation($url, $page, $displayed, $count_records, $total)
         $pagetemp = null;
     endif;
 
-    #две вперед
+    //две вперед
     if (($page + 2) <= $total) :
         $pagetworight = "  <a class='first_page_link' href=" . $url . $v_char . "page=" . ($page + 2) . ">" . ($page + 2) . "</a>";
     else :
         $pagetworight = null;
     endif;
 
-    #одна вперед
+    //одна вперед
     if (($page + 1) <= $total) :
         $pageoneright = "  <a class='first_page_link' href=" . $url . $v_char . "page=" . ($page + 1) . ">" . ($page + 1) . "</a>";
         $pagetemp2 = ($page + 1);
@@ -3559,14 +3564,14 @@ function print_navigation($url, $page, $displayed, $count_records, $total)
         $pagetemp2 = null;
     endif;
 
-    # в начало
+    // в начало
     if ($page != 1 && $pagetemp != 1 && $pagetemp != 2) :
         $pagerevp = "<a href=" . $url . $v_char . "page=1 class='first_page_link' title='В начало'><<</a> ";
     else :
         $pagerevp = null;
     endif;
 
-    #в конец (последняя)
+    //в конец (последняя)
     if ($page != $total && $pagetemp2 != ($total - 1) && $pagetemp2 != $total) :
         $nextp = " ...  <a href=" . $url . $v_char . "page=" . $total . " class='first_page_link'>$total</a>";
     else :

@@ -346,8 +346,8 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
             </tr>
         </table>
 
-        <table class="data">
-            <tr>
+        <table class="data" width=120%>
+            <tr align=center>
                 <td class="data"><input type="checkbox" onClick="checkAll(this.checked);"></td>
                 <td class="data"><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
                 <td class="data"><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
@@ -358,7 +358,6 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                 <td class="data"><?php print WEB_cell_filter; ?></td>
                 <td class="data"><?php print WEB_cell_shaper; ?></td>
                 <td class="data"><?php print WEB_cell_perday . "/<br>" . WEB_cell_permonth . ", Mb"; ?></td>
-                <td class="data"><?php print $sort_url . "&sort=last_found&order=$new_order>" . WEB_cell_last_found . "</a>"; ?></td>
                 <td class="data"><?php print WEB_cell_temporary; ?></td>
                 <td class="data"><?php print "<input type=\"submit\" onclick=\"return confirm('" . WEB_msg_apply_selected . "?')\" name=\"removeauth\" value=" . WEB_btn_remove . ">"; ?></td>
             </tr>
@@ -376,29 +375,43 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     if ($row["last_found"] == '0000-00-00 00:00:00') {
                         $row["last_found"] = '';
                     }
-                    print "<tr align=center>\n";
-                    print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_auth_id[] value=" . $row["id"] . " ></td>\n";
-                    print "<td class=\"data\" align=left><a href=editauth.php?id=" . $row["id"] . ">" . $row["ip"] . "</a></td>\n";
-                    print "<td class=\"data\" >" . expand_mac($db_link, $row["mac"]) . "</td>\n";
+                    print "<tr align=center>";
+                    print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_auth_id[] value=" . $row["id"] . " ></td>";
+
+                    print "<td class=\"data\" align=left><a href=editauth.php?id=" . $row["id"] . ">" . $row["ip"] . "</a>";
+                    if (!empty($row["arp_found"])) { print "<p class='timestamp'>".FormatDateStr('Y.m.d H:i', $row["arp_found"])."</p>"; }
+                    print "</td>";
+
+                    print "<td class=\"data\" >" . expand_mac($db_link, $row["mac"]);
+                    if (!empty($row["last_found"])) { print "<p class='timestamp'>".FormatDateStr('Y.m.d H:i', $row["last_found"])."</p>"; }
+                    print "</td>";
+
                     if (isset($row["dhcp_hostname"]) and strlen($row["dhcp_hostname"]) > 0) {
-                        print "<td class=\"data\" >" . $row["comments"] . " [" . $row["dhcp_hostname"] . "]</td>\n";
+                        print "<td class=\"data\" >" . $row["comments"] . " [" . $row["dhcp_hostname"] . "]</td>";
                     } else {
-                        print "<td class=\"data\" >" . $row["comments"] . "</td>\n";
+                        print "<td class=\"data\" >" . $row["comments"] . "</td>";
                     }
-                    print "<td class=\"data\" >" . $row["dns_name"] . "</td>\n";
+
+                    print "<td class=\"data\" >" . $row["dns_name"] . "</td>";
                     $ip_status = 1;
                     if ($row["blocked"] or !$row["enabled"]) {
                         $ip_status = 0;
                     }
-                    print "<td class=\"data\" >" . get_qa($ip_status) . "</td>\n";
-                    print "<td class=\"data\" >" . get_qa($row["dhcp"]) . "</td>\n";
-                    print "<td class=\"data\" >" . get_group($db_link, $row["filter_group_id"]) . "</td>\n";
-                    print "<td class=\"data\" >" . get_queue($db_link, $row["queue_id"]) . "</td>\n";
-                    print "<td class=\"data\" >" . $row["day_quota"] . "/" . $row["month_quota"] . "</td>\n";
-                    print "<td class=\"data\" ><div>dhcp:&nbsp$dhcp_str</div><hr><div>arp/mac:&nbsp" . FormatDateStr('Y.m.d H:i', $row["last_found"]) . "</div></td>\n";
-                    print "<td class=\"data\" ><div>".get_qa($row['dynamic'])."</div><hr><div>";
-                    if ($row['dynamic']) { print FormatDateStr('Y.m.d H:i', $row["eof"]); } else { print "&nbsp"; }
-                    print "</div></td>\n";
+
+                    print "<td class=\"data\" >" . get_qa($ip_status) . "</td>";
+
+                    print "<td class=\"data\" >" . get_qa($row["dhcp"]);
+                    if (!empty($dhcp_str)) { print "<p class='timestamp'>".$dhcp_str. "</p>"; }
+                    print "</td>";
+
+                    print "<td class=\"data\" >" . get_group($db_link, $row["filter_group_id"]) . "</td>";
+                    print "<td class=\"data\" >" . get_queue($db_link, $row["queue_id"]) . "</td>";
+                    print "<td class=\"data\" >" . $row["day_quota"] . "/" . $row["month_quota"] . "</td>";
+
+                    print "<td class=\"data\" >".get_qa($row['dynamic']);
+                    if ($row['dynamic'] and !empty($row["eof"])) { print "<p class='timestamp'>".FormatDateStr('Y.m.d H:i', $row["eof"])."</p>"; } else { print "&nbsp"; }
+                    print "</td>";
+
                     print "<td class=\"data\" ></td>";
                     print "</tr>";
                 }
