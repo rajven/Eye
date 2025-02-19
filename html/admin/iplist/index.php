@@ -10,6 +10,8 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/enabledfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/iptypefilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/dynfilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/dhcpfilter.php");
 
 $sort_table = 'User_auth';
 if ($sort_field == 'login') { $sort_table = 'User_list'; }
@@ -31,6 +33,18 @@ if ($enabled>0) {
     if ($enabled===1) { $enabled_filter = ' and (User_auth.enabled=0 or User_list.enabled=0)'; }
     }
 
+$dynamic_filter='';
+if ($dynamic_enabled>0) {
+    if ($dynamic_enabled ==1) { $dynamic_filter = ' and User_auth.dynamic=1'; }
+    if ($dynamic_enabled ==2) { $dynamic_filter = ' and User_auth.dynamic=0'; }
+    }
+
+$dhcp_filter='';
+if ($dhcp_enabled>0) {
+    if ($dhcp_enabled ==1) { $dhcp_filter = ' and User_auth.dhcp=1'; }
+    if ($dhcp_enabled ==2) { $dhcp_filter = ' and User_auth.dhcp=0'; }
+    }
+
 if (isset($_POST['ip'])) { $f_ip = $_POST['ip']; }
 if (!isset($f_ip) and isset($_SESSION[$page_url]['ip'])) { $f_ip=$_SESSION[$page_url]['ip']; }
 if (!isset($f_ip)) { $f_ip=''; }
@@ -38,7 +52,7 @@ $_SESSION[$page_url]['ip']=$f_ip;
 
 $ip_list_type_filter='';
 if ($ip_type>0) {
-    //suspicious
+    //suspicious - dhcp not found 3 last days
     if ($ip_type===3) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('add', 'old', 'del') and (ABS(User_auth.dhcp_time - User_auth.last_found)>259200) and (UNIX_TIMESTAMP()-User_auth.last_found)<259200)"; }
     //dhcp
     if ($ip_type===2) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('add', 'old', 'del'))"; }
@@ -52,29 +66,54 @@ if (!empty($f_ip)) {
     if (empty($ip_where)) { $ip_where =" and (mac like '" . mac_dotted($f_ip) . "%' or comments like '".$f_ip."%' or dns_name like '".$f_ip."%' or dhcp_hostname like '".$f_ip."%')"; }
     $ip_list_filter = $ip_where;
     } else {
-    $ip_list_filter = $ou_filter.$cidr_filter.$enabled_filter.$ip_list_type_filter;
+    $ip_list_filter = $ou_filter.$cidr_filter.$enabled_filter.$ip_list_type_filter.$dynamic_filter.$dhcp_filter;
     }
 
 print_ip_submenu($page_url);
 
 ?>
 <div id="cont">
-
+<br>
 <form name="filter" action="index.php" method="post">
 <input type="hidden" name="ip-filter" value="<?php print $ip_list_filter; ?>">
 <input type="hidden" name="ip-sort" value="<?php print $sort_table.".".$sort_field." ".$order; ?>">
-<table class="data">
-        <tr>
+<table>
+<tr>
         <td>
         <b><?php print WEB_cell_ou; ?> - </b><?php print_ou_select($db_link, 'ou', $rou); ?>
+        </td>
+        <td>
         <b><?php print WEB_network_subnet; ?> - </b><?php print_subnet_select_office_splitted($db_link, 'cidr', $rcidr); ?>
+        </td>
+        <td></td>
+</tr>
+<tr>
+        <td>
         <b><?php echo WEB_ips_show_by_state; ?> - </b><?php print_enabled_select('enabled', $enabled); ?>
+        </td>
+        <td>
         <b><?php echo WEB_ips_show_by_ip_type; ?> - </b><?php print_ip_type_select('ip_type', $ip_type); ?>
+        </td>
+        <td></td>
+</tr>
+<tr>
+        <td>
+        <b><?php echo WEB_cell_dhcp; ?> - </b><?php print_yn_select('dhcp_enabled', $dhcp_enabled); ?>
+        </td>
+        <td>
+        <b><?php echo WEB_cell_temporary; ?> - </b><?php print_yn_select('dynamic_enabled', $dynamic_enabled); ?>
+        </td>
+        <td></td>
+</tr>
+<tr>
+        <td colspan=2>
         <?php echo WEB_ips_search_host; ?>:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>"/>
+        </td>
+        <td>
         <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
         <input id="btn_filter" name="btn_filter" type="submit" value="<?php echo WEB_btn_show; ?>">
         </td>
-        </tr>
+</tr>
 </table>
 </form>
 

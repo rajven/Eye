@@ -1176,9 +1176,21 @@ function print_enabled_select($qa_name, $qa_value)
     if (!isset($qa_value) or strlen($qa_value) == 0) {
         $qa_value = 0;
     }
-    print_select_item(WEB_select_item_every, 0, $qa_value);
+    print_select_item('-', 0, $qa_value);
     print_select_item(WEB_select_item_disabled, 1, $qa_value);
     print_select_item(WEB_select_item_enabled, 2, $qa_value);
+    print "</select>\n";
+}
+
+function print_yn_select($qa_name, $qa_value)
+{
+    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
+    if (!isset($qa_value) or strlen($qa_value) == 0) {
+        $qa_value = 0;
+    }
+    print_select_item('-', 0, $qa_value);
+    print_select_item(WEB_select_item_yes, 1, $qa_value);
+    print_select_item(WEB_select_item_no, 2, $qa_value);
     print "</select>\n";
 }
 

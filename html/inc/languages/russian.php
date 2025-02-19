@@ -437,7 +437,7 @@ define("WEB_rules_target","Юзер/группа");
 /* all ip list */
 define("WEB_ips_show_by_state","По активности");
 define("WEB_ips_show_by_ip_type","По типу");
-define("WEB_ips_search_host","Поиск ip or mac");
+define("WEB_ips_search_host","Поиск ip,mac,комментарий");
 define("WEB_selection_title","Применить к выделению");
 define("WEB_ips_search_full","Поиск по комментарию/ip/mac/dhcp hostname");
 
