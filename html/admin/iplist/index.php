@@ -201,8 +201,8 @@ foreach ($users as $user) {
     print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
     print "<td class=\"$cl\" >" . get_group($db_link, $user['filter_group_id']) . "</td>\n";
     print "<td class=\"$cl\" >" . get_queue($db_link, $user['queue_id']) . "</td>\n";
-    print "<td class=\"$cl\" >" . get_qa($user['save_traf']) . "</td>\n";
-    print "<td class=\"$cl\" >" . get_qa($user['dhcp']) . "</td>\n";
+    print_td_qa($user['save_traf'],FALSE,$cl);
+    print_td_qa($user['dhcp'],FALSE,$cl);
     print "<td class=\"$cl\" >".$user['dhcp_acl']."</td>\n";
     print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
     print "<td class=\"$cl\" >" . get_connection($db_link, $user['id']) . "</td>\n";

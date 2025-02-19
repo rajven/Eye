@@ -217,6 +217,7 @@ define("WEB_cell_mac_count","Mac count");
 define("WEB_cell_forename","Имя");
 define("WEB_cell_flags","Флаги");
 define("WEB_cell_created","Создан");
+define("WEB_cell_created_by","Источник");
 define("WEB_cell_deleted","Удалён");
 define("WEB_cell_gateway","Шлюз");
 define("WEB_cell_rule","Правил");

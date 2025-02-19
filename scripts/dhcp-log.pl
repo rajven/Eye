@@ -158,7 +158,6 @@ if (!$pid) {
             #save record for mute
             $leases{$ip}=$dhcp_record;
 
-
             my $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
 
             if (!$auth_record and $type eq 'old' ) { $type='add'; }
@@ -332,6 +331,7 @@ if (!$pid) {
                 $auth_rec->{dhcp_hostname} = $dhcp_record->{hostname_utf8};
                 $auth_rec->{dhcp_time}=$dhcp_event_time;
                 $auth_rec->{arp_found}=$dhcp_event_time;
+                $auth_rec->{created_by}='dhcp';
                 db_log_verbose($hdb,"Add lease by dhcp event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
                 update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
                 }
@@ -340,6 +340,7 @@ if (!$pid) {
                     my $auth_rec;
                     $auth_rec->{dhcp_action}=$type;
                     $auth_rec->{dhcp_time}=$dhcp_event_time;
+                    $auth_rec->{created_by}='dhcp';
                     $auth_rec->{arp_found}=$dhcp_event_time;
                     db_log_verbose($hdb,"Update lease by dhcp event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
                     update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");

@@ -278,6 +278,8 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
 
     $alias_link = '';
     if (!empty($auth_info['dns_name'])) { $alias_link="/admin/users/edit_alias.php?id=".$id; }
+    if (empty($auth_info['created_by'])) { $auth_info['created_by'] = '-'; }
+
     ?>
 
     <form name="def" action="editauth.php?id=<?php echo $id; ?>" method="post">
@@ -398,25 +400,34 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
         </table>
         <table class="data">
             <tr>
-                <td class="data" colspan=4><?php echo WEB_status . ":"; ?></td>
+                <td class="data" colspan=2><?php echo WEB_status . ":"; ?></td>
+                <td align=right ><a href=/admin/logs/authlog.php?auth_id=<?php print $id; ?>><?php print WEB_log; ?></a></td>
+                <td align=right ><?php print_url(WEB_report_by_day, "/admin/reports/authday.php?id=$id"); ?></td>
             </tr>
             <tr>
-                <td colspan=2><?php print WEB_cell_dhcp_hostname . ": " . $auth_info['dhcp_hostname']; ?></td>
-                <td width=100>&nbsp</td>
-                <td align=right><?php print "Dhcp event: " . $dhcp_str; ?></td>
+                <td ><?php echo WEB_cell_created_by . ":"; ?></td>
+                <td class="data" ></td>
+                <td class="data" colspan=2 align=right><?php echo $auth_info['created_by']; ?></td>
             </tr>
             <tr>
                 <td><?php print WEB_cell_created; ?></td>
-                <td><?php print $auth_info['timestamp']; ?></td>
-                <td align=right colspan=2><?php print WEB_cell_connection . ": "; print get_connection($db_link, $id) ; ?></td>
+                <td class="data" align=right><?php print $auth_info['timestamp']; ?></td>
+                <td><?php print WEB_cell_connection . ": "; ?></td>
+                <td class="data" align=right><?php print get_connection($db_link, $id) ; ?></td>
             </tr>
             <tr>
-                <td colspan=2><?php print WEB_cell_arp_found . ": "; print $auth_info['arp_found'] ; ?></td>
-                <td colspan=2 align=right><?php print WEB_cell_last_found . ": "; print $auth_info['last_found'] ; ?></td>
+                <td ><?php print WEB_cell_dhcp_hostname.":"; ?></td>
+                <td class="data"><?php print $auth_info['dhcp_hostname']; ?></td>
+                <td ><?php print "Dhcp event: "; ?></td>
+                <td class="data" align=right><?php print $dhcp_str; ?></td>
             </tr>
             <tr>
-                <td align=right colspan=2><a href=/admin/logs/authlog.php?auth_id=<?php print $id; ?>><?php print WEB_log; ?></a></td>
-                <td align=right colspan=2><?php print_url(WEB_report_by_day, "/admin/reports/authday.php?id=$id"); ?></td>
+                <td ><?php print WEB_cell_arp_found . ": "; ?></td>
+                <td class="data" align=right><?php print $auth_info['arp_found'] ; ?></td>
+                <td ><?php print WEB_cell_last_found . ": "; ?></td>
+                <td class="data" align=right><?php print $auth_info['last_found'] ; ?></td>
+            </tr>
+            <tr>
             </tr>
         </table>
         <?php

@@ -487,6 +487,8 @@ my $dns_changed = 0;
 $rec_id = $old_record->{'id'} if ($old_record->{'id'});
 
 if ($table eq "User_auth") {
+    #disable update field 'created_by'
+    if ($old_record->{'created_by'} and exists ($record->{'created_by'})) { delete $record->{'created_by'}; }
     foreach my $field (keys %$record) {
         if (exists $acl_fields{$field}) { $record->{changed}="1"; }
         if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
@@ -1519,13 +1521,16 @@ my $record=get_record_sql($db,'SELECT * FROM User_auth WHERE `deleted`=0 AND `ip
 
 my $new_record;
 $new_record->{last_found}=$timestamp;
+$new_record->{arp_found}=$timestamp;
+
 if ($client_id) { $new_record->{'client-id'} = $client_id; }
 
 #auth found?
 if ($record->{user_id}) {
     #update timestamp and return
-    if ($action!~/arp/i) {
+    if ($action=~/^(add|old|del)$/i) {
 	    $new_record->{dhcp_action}=$action;
+	    $new_record->{created_by}='dhcp';
 	    $new_record->{dhcp_time}=$timestamp;
 	    if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
 	    update_record($db,'User_auth',$new_record,"id=$record->{id}");
@@ -1548,14 +1553,15 @@ if ($record->{id}) {
     if (!$record->{mac}) {
         db_log_verbose($db,"use empty auth record...");
         $new_record->{mac}=$mac;
-	    if ($action!~/arp/i) {
+            if ($action=~/^(add|old|del)$/i) {
 	        $new_record->{dhcp_action}=$action;
 	        $new_record->{dhcp_time}=$timestamp;
+                $new_record->{created_by}='dhcp';
 	        if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
-	            update_record($db,'User_auth',$new_record,"id=$record->{id}");
+	        update_record($db,'User_auth',$new_record,"id=$record->{id}");
                 } else {
-	            update_record($db,'User_auth',$new_record,"id=$record->{id}");
-	            }
+	        update_record($db,'User_auth',$new_record,"id=$record->{id}");
+                }
         return $record->{id};
         }
     if ($record->{mac}) {
@@ -1584,8 +1590,13 @@ $new_record->{mac}=$mac;
 $new_record->{user_id}=$new_user_id;
 $new_record->{save_traf}="$save_detail";
 $new_record->{deleted}="0";
-$new_record->{dhcp_action}=$action;
-$new_record->{dhcp_time}=$timestamp;
+if ($action=~/^(add|old|del)$/i) {
+    $new_record->{dhcp_action}=$action;
+    $new_record->{dhcp_time}=$timestamp;
+    $new_record->{created_by}='dhcp';
+    } else {
+    $new_record->{created_by}=$action;
+    }
 if ($auth_exists) {
     #found ->Resurrection old record
     my $resurrection_id = get_id_record($db,'User_auth',"ip_int=".$ip_aton." and mac='".$mac."'");
@@ -1643,7 +1654,7 @@ $new_record->{ip}=$ip;
 $new_record->{user_id}=$new_user_id;
 $new_record->{save_traf}="$save_detail";
 $new_record->{deleted}="0";
-$new_record->{dhcp_action}='netflow';
+$new_record->{created_by}='netflow';
 $new_record->{ou_id}=$user_record->{ou_id};
 $new_record->{filter_group_id}=$user_record->{filter_group_id};
 $new_record->{queue_id}=$user_record->{queue_id};

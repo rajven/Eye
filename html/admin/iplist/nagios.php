@@ -137,14 +137,14 @@ foreach ($users as $user) {
 
     if (!empty($user['nagios']) and $user['nagios']) {
         if (preg_match('/127.0.0.1/', get_const('nagios_url'))) { print "<td class=\"$cl\" >". get_qa($user['nagios']) ."</td>\n"; } else {
-            $nagios_link = get_const('nagios_url').'/cgi-bin/status.cgi?host='.get_nagios_name($user);
+            $nagios_link = get_const('nagios_url').'status.cgi?host='.get_nagios_name($user);
             print "<td class=\"$cl\" >"; print_url(get_qa($user['nagios']),$nagios_link); print "</td>\n";
             }
         } else {
-        print "<td class=\"$cl\" >" . get_qa($user['nagios']) . "</td>\n";
+        print_td_qa($user['nagios'],FALSE,$cl);
         }
 
-    print "<td class=\"$cl\" >" . get_qa($user['link_check']) . "</td>\n";
+    print_td_qa($user['link_check'],FALSE,$cl);
     print "<td class=\"$cl\" >".$user['nagios_handler']."</td>\n";
     print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
     print "<td class=\"$cl\" >" . get_connection($db_link, $user['id']) . "</td>\n";

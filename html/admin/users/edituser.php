@@ -159,7 +159,7 @@ if (isset($_POST["addauth"])) {
             $fid = new_auth($db_link, $fip, $fmac, $id);
             if (!empty($fid)) {
                 $new['dhcp'] = $f_dhcp;
-                $new["dhcp_action"] = 'manual';
+                $new['created_by'] = 'manual';
                 update_record($db_link, "User_auth", "id=" . $fid, $new);
                 LOG_WARNING($db_link, "Add ip for login: " . $user_info["login"] . ": ip => $fip, mac => $fmac", $fid);
                 header("Location: /admin/users/editauth.php?id=" . $fid);
@@ -398,9 +398,11 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                         $ip_status = 0;
                     }
 
-                    print "<td class=\"data\" >" . get_qa($ip_status) . "</td>";
+                    print_td_qa($ip_status);
 
-                    print "<td class=\"data\" >" . get_qa($row["dhcp"]);
+                    $cl = "data_green";
+                    if (!$row["dhcp"]) { $cl = "data_red"; }
+                    print "<td class=\"$cl\" >" . get_qa($row["dhcp"]);
                     if (!empty($dhcp_str)) { print "<p class='timestamp'>".$dhcp_str. "</p>"; }
                     print "</td>";
 
@@ -408,11 +410,14 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     print "<td class=\"data\" >" . get_queue($db_link, $row["queue_id"]) . "</td>";
                     print "<td class=\"data\" >" . $row["day_quota"] . "/" . $row["month_quota"] . "</td>";
 
-                    print "<td class=\"data\" >".get_qa($row['dynamic']);
+                    if ($row['dynamic']) { $cl = "data_red"; } else { $cl = "data_green"; }
+                    print "<td class=\"$cl\" >". get_qa($row['dynamic']);
                     if ($row['dynamic'] and !empty($row["eof"])) { print "<p class='timestamp'>".FormatDateStr('Y.m.d H:i', $row["eof"])."</p>"; } else { print "&nbsp"; }
                     print "</td>";
 
-                    print "<td class=\"data\" ></td>";
+                    print "<td class=\"data\" >";
+                    if (!empty($row["created_by"])) { print $row["created_by"]; }  else { print "&nbsp"; }
+                    print "</td>";
                     print "</tr>";
                 }
             }

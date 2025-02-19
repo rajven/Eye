@@ -1097,19 +1097,16 @@ function print_qa_select_ext($qa_name, $qa_value = 0, $readonly = 1)
     print "</select>\n";
 }
 
-function print_td_yes_no($qa_value = 0)
+function print_td_yes_no($qa_value = 0, $text = FALSE)
 {
     $cl = 'down';
-    if ($qa_value == 1) {
-        $cl = 'up';
-    }
-    print "<td class=\"$cl\">";
-    if ($qa_value == 1) {
-        print WEB_select_item_yes;
-    } else {
-        print WEB_select_item_no;
-    }
-    print "</td>\n";
+    if ($qa_value == 1) { $cl = 'up'; }
+//    $cl = 'data';
+    if ($text) { 
+        print "<td class=\"$cl\">";
+        if ($qa_value == 1) { print WEB_select_item_yes; } else { print WEB_select_item_no; }
+        print "</td>\n";
+        } else { print_td_qa($qa_value,FALSE,$cl); }
 }
 
 function print_yes_no($qa_value = 0, $yes_style = 'data', $no_style='data')
@@ -1230,12 +1227,22 @@ function get_vendor_name($db, $v_id)
     return $vendor['name'];
 }
 
-function get_qa($qa_value)
+function get_qa($qa_value, $text = FALSE)
 {
-    if ($qa_value == 1) {
-        return "Да";
-    }
-    return "Нет";
+    if ($text) {
+        if ($qa_value == 1) { return "Да"; }
+        return "Нет";
+        } else {
+        if ($qa_value == 1) { return '<span style="font-size: 16px;">✓</span>'; }
+        return '<span style="font-size: 16px;">✗</span>';
+        }
+}
+
+function print_td_qa ($qa_value, $text = FALSE, $parent_class = '')
+{
+$cl = "data_green";
+if (!$qa_value) { $cl = "data_red"; }
+print "<td class=\"$parent_class $cl\" >" . get_qa($qa_value,$text) . "</td>";
 }
 
 function print_action_select($action_name, $action_value)

@@ -21,6 +21,7 @@ my @old_releases = (
 '2.7.1',
 '2.7.2',
 '2.7.3',
+'2.7.4',
 );
 
 my $r_index = 0;
@@ -54,10 +55,25 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
     my $dir_name = $old_releases[$i];
     $dir_name =~s/\./-/g;
     next if (! -d $dir_name);
+    #patch before change database schema
+    my @perl_patches = glob($dir_name.'/before*.pl');
+    if (@perl_patches and scalar @perl_patches) {
+        foreach my $patch (@perl_patches) {
+            next if (!$patch or ! -e $patch);
+            open(my $pipe, "-|", "perl $patch") or die "Error in apply upgrade script $patch! Ошибка: $!";
+            while (my $line = <$pipe>) { 
+                if ($line =~ /::/) { print "\r"; $line =~s/:://; }
+                print $line; 
+                }
+            close($pipe);
+            }
+        }
+    #change database schema
     my @sql_patches = glob($dir_name.'/*.sql');
     if (@sql_patches and scalar @sql_patches) {
         foreach my $patch (@sql_patches) {
             next if (!$patch or ! -e $patch);
+            next if ($patch=~/version.sql/);
             my @sql_cmd=read_file($patch);
             foreach my $sql (@sql_cmd) {
                 my $sql_prep = $dbh->prepare($sql) or die "Unable to prepare $sql: " . $dbh->errstr."\n";
@@ -68,17 +84,21 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
             }
         }
     }
-    my @perl_patches = glob($dir_name.'/*.pl');
+    #patch after change database schema
+    @perl_patches = glob($dir_name.'/after*.pl');
     if (@perl_patches and scalar @perl_patches) {
         foreach my $patch (@perl_patches) {
             next if (!$patch or ! -e $patch);
-            my $ret = do_exec_ref($patch);
-            print $ret->{output}."\n";
-            if ($ret->{status}>0) {
-                die "Error in apply upgrade script $patch! Abort."; 
+            open(my $pipe, "-|", "perl $patch") or die "Error in apply upgrade script $patch! Ошибка: $!";
+            while (my $line = <$pipe>) {
+                if ($line =~ /::/) { print "\r"; $line =~s/:://; }
+                print $line; 
                 }
+            close($pipe);
             }
         }
+    #change version
+    do_sql($dbh,'UPDATE version SET `version`="'.$old_releases[$i].'"');
 }
 
 print "Done!";

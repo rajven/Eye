@@ -217,6 +217,7 @@ define("WEB_cell_mac_count","Mac count");
 define("WEB_cell_forename","Name");
 define("WEB_cell_flags","Flags");
 define("WEB_cell_created","Created");
+define("WEB_cell_created_by","Created by");
 define("WEB_cell_deleted","Deleted");
 define("WEB_cell_gateway","Gateway");
 define("WEB_cell_rule", "Rules");
