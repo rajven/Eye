@@ -433,11 +433,17 @@ define("WEB_ou_new_rule","Новое правило");
 
 /* auto rules */
 define("WEB_rules_target","Юзер/группа");
+define("WEB_rules_search_target","Назначение правила");
+define("WEB_rules_search_type","Тип правила");
+define("WEB_rules_type_subnet","Подсеть");
+define("WEB_rules_type_mac","Мак-адрес");
+define("WEB_rules_type_hostname","Имя хоста");
 
 /* all ip list */
 define("WEB_ips_show_by_state","По активности");
 define("WEB_ips_show_by_ip_type","По типу");
 define("WEB_ips_search_host","Поиск ip,mac,комментарий");
+define("WEB_ips_search","Поиск");
 define("WEB_selection_title","Применить к выделению");
 define("WEB_ips_search_full","Поиск по комментарию/ip/mac/dhcp hostname");
 

@@ -1182,6 +1182,31 @@ function print_enabled_select($qa_name, $qa_value)
     print "</select>\n";
 }
 
+function print_rule_target_select($qa_name, $qa_value)
+{
+    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
+    if (!isset($qa_value) or strlen($qa_value) == 0) {
+        $qa_value = 0;
+    }
+    print_select_item('-', 0, $qa_value);
+    print_select_item(WEB_msg_IP, 1, $qa_value);
+    print_select_item(WEB_cell_ou, 2, $qa_value);
+    print "</select>\n";
+}
+
+function print_rule_type_select($qa_name, $qa_value)
+{
+    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
+    if (!isset($qa_value) or strlen($qa_value) == 0) {
+        $qa_value = 0;
+    }
+    print_select_item('-', 0, $qa_value);
+    print_select_item(WEB_rules_type_subnet, 1, $qa_value);
+    print_select_item(WEB_rules_type_mac, 2, $qa_value);
+    print_select_item(WEB_rules_type_hostname, 3, $qa_value);
+    print "</select>\n";
+}
+
 function print_yn_select($qa_name, $qa_value)
 {
     print "<select id=\"$qa_name\" name=\"$qa_name\">\n";

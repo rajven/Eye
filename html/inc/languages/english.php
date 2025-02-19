@@ -433,11 +433,17 @@ define("WEB_ou_new_rule","New rule");
 
 /* auto rules */
 define("WEB_rules_target","User/Group");
+define("WEB_rules_search_target","Rule target");
+define("WEB_rules_search_type","Rule type");
+define("WEB_rules_type_subnet","Subnet");
+define("WEB_rules_type_mac","Mac");
+define("WEB_rules_type_hostname","Hostname");
 
 /* all ip list */
 define("WEB_ips_show_by_state","By activity");
 define("WEB_ips_show_by_ip_type","By ip type");
 define("WEB_ips_search_host","Search ip,mac or comment");
+define("WEB_ips_search","Search");
 define("WEB_selection_title","Apply to Selection");
 define("WEB_ips_search_full","Search by comment/ip/mac/dhcp hostname");
 
