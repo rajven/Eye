@@ -289,6 +289,16 @@ document.getElementById('rows').addEventListener('change', function(event) {
   buttonApply.click();
 });
 
+document.getElementById('dhcp_enabled').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('btn_filter');
+  buttonApply.click();
+});
+
+document.getElementById('dynamic_enabled').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('btn_filter');
+  buttonApply.click();
+});
+
 
 </script>
 

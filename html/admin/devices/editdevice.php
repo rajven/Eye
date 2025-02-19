@@ -345,9 +345,23 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             } else {
                 print "<tr><td colspan=3>" . $device['ip'] . "::" . get_device_model_name($db_link, $device['device_model_id']) . "</td>";
             }
-            print "<td align=right><input type='submit' name='editdevice' value='" . WEB_btn_save . "'></td></tr>";
+            print "<td align=right><input type='submit' id='editdevice' name='editdevice' value='" . WEB_btn_save . "'></td></tr>";
             print "</table>\n";
             ?>
     </form>
 
-    <?php require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.small.php"); ?>
+<script>
+
+document.getElementById('f_devtype_id').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('editdevice');
+  buttonApply.click();
+});
+
+document.getElementById('f_snmp_version').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('editdevice');
+  buttonApply.click();
+});
+
+</script>
+
+<?php require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.simple.php"); ?>
