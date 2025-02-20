@@ -57,7 +57,7 @@ if (!empty($f_rule)) { $rule_filter = ' AND `rule` LIKE "'.$f_rule.'%"'; }
 
 $rule_filters = '';
 if (!empty($target_filter) or !empty($type_filter) or !empty($rule_filter)) {
-    $rule_filters='WHERE 1'.$target_filter.$type_filter.$rule_filter;
+    $rule_filters='WHERE id '.$target_filter.$type_filter.$rule_filter;
     }
 
 fix_auth_rules($db_link);
@@ -81,7 +81,8 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td align=right><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="removeRule" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
-$t_auth_rules = get_records_sql($db_link,"SELECT * FROM auth_rules $rule_filters ORDER BY id LIMIT $start,$displayed");
+$rulesSQL = "SELECT * FROM auth_rules $rule_filters ORDER BY id LIMIT $start,$displayed";
+$t_auth_rules = get_records_sql($db_link,$rulesSQL);
 foreach ( $t_auth_rules as $row ) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value=".$row["id"]." ></td>\n";
@@ -106,7 +107,24 @@ foreach ( $t_auth_rules as $row ) {
 ?>
 </table>
 </form>
+
+<script>
+document.getElementById('rule_target').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('btn_filter');
+  buttonApply.click();
+});
+document.getElementById('rule_type').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('btn_filter');
+  buttonApply.click();
+});
+document.getElementById('rows').addEventListener('change', function(event) {
+  const buttonApply = document.getElementById('btn_filter');
+  buttonApply.click();
+});
+
+</script>
+
 <?php
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php"); 
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php"); 
 ?>

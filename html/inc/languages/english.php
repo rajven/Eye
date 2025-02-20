@@ -433,6 +433,8 @@ define("WEB_ou_new_rule","New rule");
 
 /* auto rules */
 define("WEB_rules_target","User/Group");
+define("WEB_rules_target_user","User");
+define("WEB_rules_target_group","Group");
 define("WEB_rules_search_target","Rule target");
 define("WEB_rules_search_type","Rule type");
 define("WEB_rules_type_subnet","Subnet");

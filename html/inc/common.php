@@ -1189,8 +1189,8 @@ function print_rule_target_select($qa_name, $qa_value)
         $qa_value = 0;
     }
     print_select_item('-', 0, $qa_value);
-    print_select_item(WEB_msg_IP, 1, $qa_value);
-    print_select_item(WEB_cell_ou, 2, $qa_value);
+    print_select_item(WEB_rules_target_user, 1, $qa_value);
+    print_select_item(WEB_rules_target_group, 2, $qa_value);
     print "</select>\n";
 }
 

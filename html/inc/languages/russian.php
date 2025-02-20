@@ -433,6 +433,8 @@ define("WEB_ou_new_rule","Новое правило");
 
 /* auto rules */
 define("WEB_rules_target","Юзер/группа");
+define("WEB_rules_target_user","Пользователь");
+define("WEB_rules_target_group","Группа");
 define("WEB_rules_search_target","Назначение правила");
 define("WEB_rules_search_type","Тип правила");
 define("WEB_rules_type_subnet","Подсеть");
