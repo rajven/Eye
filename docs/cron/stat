@@ -1,10 +1,10 @@
 #under root
 
 #reconfigure nagios
-#16 * * * * root /etc/nagios/restart_nagios >/dev/null
+#16 * * * * root /opt/Eye/scripts/restart_nagios >/dev/null
 
 #refresh dnsmasq dhcp server config's
-#02 * * * * root /opt/Eye/scripts/update-dnsmasq
+02 * * * * root /opt/Eye/scripts/update-dnsmasq
 
 #maybe any user
 

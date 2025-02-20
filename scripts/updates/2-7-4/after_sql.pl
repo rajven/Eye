@@ -5,6 +5,9 @@
 #
 
 use utf8;
+use Encode;
+no warnings 'utf8';
+use open ':encoding(utf-8)';
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
 use eyelib::config;
@@ -28,13 +31,13 @@ if ($this_release eq $config_ref{version}) { print "Already updated!\n"; exit; }
 
 if ($upgrade_from ne $config_ref{version}) { print "Illegal version. Needed $upgrade_from!\n"; exit; }
 
-print 'Current version: '.$config_ref{version}.' upgrade to: '.$this_release."\n";
+print 'Apply patch for version: '.$config_ref{version}.' upgrade to: '.$this_release."\n";
 
 my @authlist_ref = get_records_sql($dbh,"SELECT * FROM User_auth WHERE `created_by` IS NULL" );
 
 my $total = scalar @authlist_ref;
 
-print "Fill field created_by\n";
+print "Stage 1: Fill field created_by\n";
 
 my $i = 0;
 foreach my $row (@authlist_ref) {
@@ -52,6 +55,6 @@ update_record($dbh,'User_auth',$new,'id='.$row->{id});
 print "\r::Progress: [$percent%] ";
 }
 
-print "Done!";
+print "Done!\n";
 
 exit;

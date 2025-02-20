@@ -1,12 +1,17 @@
 [Unit]
-Description=Write syslog to Rstat
+Description=Write syslog to Eye
 After=network.target mariadb.service syslog-ng.service
 PartOf=syslog-ng.service
 
 [Service]
 Type=forking
+User=eye
+Group=eye
 ExecStart=/opt/Eye/scripts/syslog-stat.pl --start
-PIDFile=/run/syslog-stat.pid
+RuntimeDirectory=eye
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+PIDFile=/run/eye/syslog-stat.pid
 RestartSec=30
 Restart=on-failure
 

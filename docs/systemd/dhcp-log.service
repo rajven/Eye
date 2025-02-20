@@ -1,11 +1,16 @@
 [Unit]
-Description=Write dhcp events to Rstat
+Description=Write dhcp events to Eye
 After=network.target mariadb.service dnsmasq.service dhcpd.service
 
 [Service]
 Type=forking
+User=eye
+Group=eye
+RuntimeDirectory=eye
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
 ExecStart=/opt/Eye/scripts/dhcp-log.pl --start
-PIDFile=/run/dhcp-log.pid
+PIDFile=/run/eye/dhcp-log.pid
 RestartSec=30
 Restart=on-failure
 

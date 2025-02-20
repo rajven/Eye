@@ -20,7 +20,8 @@ libnetwork-ipv4addr-perl libnet-openssh-perl libfile-tail-perl  \
 libcrypt-cbc-perl libcryptx-perl libdbd-pg-perl libfile-path-tiny-perl libexpect-perl libcrypt-des-perl
 
 #дополнительно
-apt install dnsmasq syslong-ng bind9 bind9-utils bind9-host
+apt install dnsmasq syslog-ng 
+apt install bind9 bind9-utils bind9-host
 
 2. Create user and group
 

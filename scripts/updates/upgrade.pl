@@ -5,6 +5,10 @@
 #
 
 use utf8;
+use Encode;
+no warnings 'utf8';
+use open ':encoding(utf-8)';
+
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
 use eyelib::config;
@@ -62,7 +66,7 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
             next if (!$patch or ! -e $patch);
             open(my $pipe, "-|", "perl $patch") or die "Error in apply upgrade script $patch! Ошибка: $!";
             while (my $line = <$pipe>) { 
-                if ($line =~ /::/) { print "\r"; $line =~s/:://; }
+                if ($line =~ /::/) { print "\r"; $line =~s/\:\://; }
                 print $line; 
                 }
             close($pipe);
@@ -91,7 +95,7 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
             next if (!$patch or ! -e $patch);
             open(my $pipe, "-|", "perl $patch") or die "Error in apply upgrade script $patch! Ошибка: $!";
             while (my $line = <$pipe>) {
-                if ($line =~ /::/) { print "\r"; $line =~s/:://; }
+                if ($line =~ /::/) { print "\r"; $line =~s/\:\://; }
                 print $line; 
                 }
             close($pipe);
@@ -101,6 +105,6 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
     do_sql($dbh,'UPDATE version SET `version`="'.$old_releases[$i].'"');
 }
 
-print "Done!";
+print "Done!\n";
 
 exit;

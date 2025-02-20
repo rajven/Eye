@@ -6,6 +6,8 @@
 
 use utf8;
 use open ":encoding(utf8)";
+use Encode;
+no warnings 'utf8';
 use English;
 use base;
 use FindBin '$Bin';
@@ -26,7 +28,7 @@ use Proc::Daemon;
 use Cwd;
 
 
-my $pf = '/run/syslog-stat.pid';
+my $pf = '/run/eye/syslog-stat.pid';
 my $socket_path='/run/syslog-ng.socket';
 
 my $daemon = Proc::Daemon->new(

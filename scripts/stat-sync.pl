@@ -6,6 +6,8 @@
 
 use utf8;
 use open ":encoding(utf8)";
+use Encode;
+no warnings 'utf8';
 use English;
 use base;
 use FindBin '$Bin';
@@ -23,7 +25,7 @@ use Cwd;
 use Net::Netmask;
 use DateTime;
 
-my $pf = '/run/stat-sync.pid';
+my $pf = '/run/eye/stat-sync.pid';
 
 my $daemon = Proc::Daemon->new(
         pid_file => $pf,
@@ -104,7 +106,7 @@ if (!$pid) {
         	    do_sql($hdb,"UPDATE User_auth SET dhcp_changed=0");
                     log_info("Found changed dhcp variables in records: ".$changed->{'c_count'});
                     my $dhcp_exec=get_option($hdb,38);
-	            my %result=do_exec_ref($dhcp_exec);
+	            my %result=do_exec_ref('/usr/bin/sudo '.$dhcp_exec);
 	            if ($result{status} ne 0) { log_error("Error sync dhcp config"); }
 	        }
             #acl & dhcp changed records 

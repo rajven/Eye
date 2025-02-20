@@ -4,9 +4,12 @@
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
 
-use FindBin '$Bin';
 use utf8;
 use open ":encoding(utf8)";
+use Encode;
+no warnings 'utf8';
+use English;
+use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
 use strict;
 use Time::Local;

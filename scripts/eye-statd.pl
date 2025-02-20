@@ -2,6 +2,8 @@
 
 use utf8;
 use open ":encoding(utf8)";
+use Encode;
+no warnings 'utf8';
 use English;
 use base;
 use FindBin '$Bin';
@@ -20,7 +22,11 @@ use eyelib::database;
 use eyelib::snmp;
 use Socket qw(AF_INET6 inet_ntop);
 use IO::Socket;
-use threads;
+
+my $proc_name = $MY_NAME;
+$proc_name =~ s/\.[^.]+$//;
+
+my $pid_file = '/run/eye/'.$proc_name;
 
 my @router_ref = ();
 my @interfaces = ();
@@ -62,6 +68,14 @@ $SIG{TERM} = \&TERM;
 $SIG{INT} = \&TERM;
 $SIG{HUP} = \&INIT;
 
+
+if (IsNotRun($pid_file)) {
+    Add_PID($pid_file);
+    } else {
+    print "Daemon $MY_NAME already running!\n";
+    exit 100;
+    }
+
 sub REAPER {
 	wait;
 	$saving = 0;
@@ -72,6 +86,7 @@ sub TERM {
 	print "SIGTERM received\n";
 	flush_traffic(1);
 	while (wait() != -1) {}
+        if (IsMyPID($pid_file)) { Remove_PID($pid_file); }
 	exit 0;
 }
 
@@ -811,3 +826,6 @@ $saving = 0;
 
 exit;
 }
+
+if (IsMyPID($pid_file)) { Remove_PID($pid_file); }
+exit;

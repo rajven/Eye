@@ -1,5 +1,5 @@
 [Unit]
-Description=Urgent sync access lists at mikrotik
+Description=Urgent sync access changes from Eye
 After=network.target mariadb.service
 
 [Service]
@@ -7,7 +7,10 @@ Type=forking
 User=eye
 Group=eye
 ExecStart=/opt/Eye/scripts/stat-sync.pl --start
-PIDFile=/run/stat-sync.pid
+PIDFile=/run/eye/stat-sync.pid
+RuntimeDirectory=eye
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
 RestartSec=30
 Restart=on-failure
 

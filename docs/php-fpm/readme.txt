@@ -5,7 +5,7 @@ a2enmod mpm_event
 apt install php-fpm libapache2-mod-fcgid
 
 a2enconf php8.2-fpm
-a2enmod proxy
+a2enmod proxy proxy_fcgi setenvif
 
 mkdir -p /var/log/php-fpm/
 

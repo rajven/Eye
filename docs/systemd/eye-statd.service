@@ -1,9 +1,15 @@
 [Unit]
-Description=EYE netflow collector
+Description=Eye netflow collector
 After=network.target
 
 [Service]
+User=eye
+Group=eye
+RuntimeDirectory=eye
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
 ExecStart=/opt/Eye/scripts/eye-statd.pl
+PIDFile=/run/eye/eye-statd.pid
 Restart=on-failure
 RestartSec=1
 
