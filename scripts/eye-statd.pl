@@ -481,7 +481,8 @@ my ($auth_id,$l_src_ip,$l_dst_ip,$user_ip,$router_id);
 
 $router_id = $traf_record->{device_id};
 
-if ($traf_record->{save}) {
+#prepare router traffic detailization data only if traffic retention is enabled globally
+if ($config_ref{save_detail} and $traf_record->{save}) {
     push(@{$saved_netflow{$traf_record->{device_id}}},join(';',$traf_record->{starttime},$traf_record->{proto},$traf_record->{snmp_in},$traf_record->{snmp_out},$traf_record->{src_ip},$traf_record->{dst_ip},$traf_record->{xsrc_ip},$traf_record->{xdst_ip},$traf_record->{src_port},$traf_record->{dst_port},$traf_record->{octets},$traf_record->{pkts}));
     }
 
@@ -785,6 +786,8 @@ foreach my $router_id (keys %wan_stats) {
 #update statistics in DB
 batch_db_sql($hdb,\@batch_sql_traf);
 
+@batch_sql_traf = ();
+
 if ($config_ref{enable_quotes}) {
     db_log_debug($hdb,"Recalc quotes started");
     foreach my $router_id (keys %routers_found) { recalc_quotes($hdb,$router_id); }
@@ -794,28 +797,7 @@ if ($config_ref{enable_quotes}) {
 if (scalar(@detail_traffic)) {
     db_log_debug($hdb,"Start write traffic detail to DB. ".scalar @detail_traffic." lines count") if ($debug);
     #mysql dont work at parallel table lock
-    if ($config_ref{DBTYPE} eq 'mysql') {
-		batch_db_sql_csv("Traffic_detail", \@detail_traffic);
-	} else {
-        my $index = 0;
-	my @tmp=();
-        my $item_per_thread = int(scalar @detail_traffic / $thread_count);
-        my @threads=();
-	foreach my $row (@detail_traffic) {
-    	    push(@tmp,$row);
-            $index++;
-	    if ($index<=$item_per_thread) { next; }
-    	    my @tmp1=();
-            push(@tmp1,@tmp);
-	    @tmp=();
-	    push(@threads, threads->create(\&batch_db_sql_csv, "Traffic_detail", \@tmp1));
-    	    }
-        if (scalar(@tmp)) {
-		push(@threads, threads->create(\&batch_db_sql_csv, "Traffic_detail", \@tmp));
-    	    }
-	    foreach my $t (@threads) { $t->join(); }
-	    @tmp=();
-	}
+    batch_db_sql_csv("Traffic_detail", \@detail_traffic);
     @detail_traffic = ();
     db_log_debug($hdb,"Write traffic detail to DB stopped") if ($debug);
     }
