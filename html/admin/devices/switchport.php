@@ -105,9 +105,9 @@ foreach ($ports as $row) {
         }
         print "</td>\n";
         print "<td class='".$cl."'>" . get_port_comment($db_link, $row['id'],$row['comment']) . "</td>\n";
-        print "<td class='".$cl."' >" . get_qa($row['uplink']) . "</td>\n";
-        print "<td class='".$cl."' >" . get_qa($row['nagios']) . "</td>\n";
-        print "<td class='".$cl."' >" . get_qa($row['skip']) . "</td>\n";
+        print_td_yes($row['uplink'],FALSE,$cl);
+        print_td_yes($row['nagios'],FALSE,$cl);
+        print_td_yes($row['skip'],FALSE,$cl);
         $display_vlan= $row['vlan'];
         if (!empty($row['untagged_vlan'])) { 
             if ($row['untagged_vlan'] != $row['vlan']) { 

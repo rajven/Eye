@@ -1270,7 +1270,7 @@ function get_qa($qa_value, $text = FALSE)
         if ($qa_value == 1) { return "Да"; }
         return "Нет";
         } else {
-        if ($qa_value == 1) { return '<span style="font-size: 16px;">✓</span>'; }
+        if ($qa_value == 1) { return '<span style="font-size: 16px; font-weight: bold;">✓</span>'; }
         return '<span style="font-size: 16px;">✗</span>';
         }
 }
@@ -1281,7 +1281,7 @@ function get_yes($qa_value, $text = FALSE)
         if ($qa_value == 1) { return "Да"; }
         return "";
         } else {
-        if ($qa_value == 1) { return '<span style="font-size: 16px;">✓</span>'; }
+        if ($qa_value == 1) { return '<span style="font-size: 16px; font-weight: bold;">✓</span>'; }
         return "";
         }
 }
@@ -1291,6 +1291,13 @@ function print_td_qa ($qa_value, $text = FALSE, $parent_class = '')
 $cl = "data_green";
 if (!$qa_value) { $cl = "data_red"; }
 print "<td class=\"$parent_class $cl\" >" . get_qa($qa_value,$text) . "</td>";
+}
+
+function print_td_yes ($qa_value, $text = FALSE, $parent_class = '')
+{
+$cl = "data_green";
+if (!$qa_value) { $cl = "data_red"; }
+print "<td class=\"$parent_class $cl\" >" . get_yes($qa_value,$text) . "</td>";
 }
 
 function print_action_select($action_name, $action_value)
