@@ -554,6 +554,10 @@ sub init_snmp {
 		-timeout      => $snmp->{timeout},
 		);
 	}
+    if ($error) {
+        log_debug("SNMP init-request status for $host:");
+        log_debug(Dumper($error));
+        }
     return if (!defined($session) or !$session);
     return $session;
 }

@@ -311,11 +311,30 @@ $ret ? return 1: return 0;
 
 sub HostIsLive {
 my $host=shift;
-my $proto=shift || "tcp";
-if ($< eq 0) { $proto="icmp"; }
-my $p = Net::Ping->new($proto);
-my $ok= $p->ping($host,5);
-$p->close();
+my $proto=shift;
+my $ok = 0;
+my $p;
+if ($proto and $proto=~/(icmp|tcp)/i) {
+    $p = Net::Ping->new($proto);
+    $ok = $p->ping($host,5);
+    $p->close();
+    return $ok;
+    }
+if (!$proto) {
+    eval {
+        $p = Net::Ping->new('icmp');
+        $ok = $p->ping($host,5);
+        $p->close();
+    };
+    if ($@) {
+        eval {
+            $p = Net::Ping->new('tcp');
+            $ok = $p->ping($host,5);
+            $p->close();
+        };
+        if ($@) { return 0; }
+        }
+    }
 return $ok;
 }
 

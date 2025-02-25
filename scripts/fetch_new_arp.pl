@@ -230,8 +230,9 @@ $dbh->disconnect;
 FDB_LOOP:
 foreach my $device (@device_list) {
 setCommunity($device);
+if (!HostIsLive($device->{ip})) { log_info("Host id: $device->{id} name: $device->{device_name} ip: $device->{ip} is down! Skip."); next; }
 my $int_list = get_snmp_ifindex($device->{ip},$device->{snmp});
-if (!$int_list) { log_info("Host id: $device->{id} name: $device->{device_name} ip: $device->{ip} is down! Skip."); next; }
+if (!$int_list) { log_info("Host id: $device->{id} name: $device->{device_name} ip: $device->{ip} interfaces not found by snmp request! Skip."); next; }
 $pm_fdb->start() and next FDB_LOOP;
 my $result;
 my $tmp_dbh = init_db();
