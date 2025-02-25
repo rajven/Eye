@@ -1275,6 +1275,17 @@ function get_qa($qa_value, $text = FALSE)
         }
 }
 
+function get_yes($qa_value, $text = FALSE)
+{
+    if ($text) {
+        if ($qa_value == 1) { return "Да"; }
+        return "";
+        } else {
+        if ($qa_value == 1) { return '<span style="font-size: 16px;">✓</span>'; }
+        return "";
+        }
+}
+
 function print_td_qa ($qa_value, $text = FALSE, $parent_class = '')
 {
 $cl = "data_green";

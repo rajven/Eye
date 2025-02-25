@@ -191,9 +191,9 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             }
             print "</td>\n";
             print "<td class='" . $cl . "' >" . get_port_comment($db_link, $row['id'], $row['comment']) . "</td>\n";
-            print "<td class='" . $cl . "' >" . get_qa($row['uplink']) . "</td>\n";
-            print "<td class='" . $cl . "' >" . get_qa($row['nagios']) . "</td>\n";
-            print "<td class='" . $cl . "' >" . get_qa($row['skip']) . "</td>\n";
+            print "<td class='" . $cl . "' >" . get_yes($row['uplink']) . "</td>\n";
+            print "<td class='" . $cl . "' >" . get_yes($row['nagios']) . "</td>\n";
+            print "<td class='" . $cl . "' >" . get_yes($row['skip']) . "</td>\n";
             $poe_info = "POE:None";
 
             $ifname = $row['ifName'];
