@@ -367,10 +367,9 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
             $flist = get_records($db_link, 'User_auth', "user_id=" . $id . " and deleted=0 ORDER BY $sort_table.$sort_field $order");
             if (!empty($flist)) {
                 foreach ($flist as $row) {
-                    if ($row["dhcp_time"] == '0000-00-00 00:00:00') {
-                        $dhcp_str = '';
-                    } else {
-                        $dhcp_str = FormatDateStr('Y.m.d H:m', $row["dhcp_time"]) . " (" . $row["dhcp_action"] . ")";
+                    $dhcp_str = '';
+                    if ($row["dhcp_time"] !== '0000-00-00 00:00:00') {
+                        if (!empty($row["dhcp_action"])) { $dhcp_str = FormatDateStr('Y.m.d H:m', $row["dhcp_time"]) . " (" . $row["dhcp_action"] . ")"; }
                     }
                     if ($row["last_found"] == '0000-00-00 00:00:00') {
                         $row["last_found"] = '';
