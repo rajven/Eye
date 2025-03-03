@@ -5,6 +5,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 
 if (isset($_POST["editgroup"])) {
     $new['group_name'] = $_POST["f_group_name"];
+    $new['instance_id'] = $_POST["f_instance_id"]*1;
     $new['comment'] = $_POST["f_group_comment"];
     update_record($db_link, "Group_list", "id='$id'", $new);
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -86,6 +87,11 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
             <tr>
                 <td><?php echo WEB_cell_comment; ?></td>
                 <td class='data'><input type="text" name="f_group_comment" value="<?php echo $group['comment']; ?>"></td>
+                <td class='data'></td>
+            </tr>
+            <tr>
+                <td><?php echo WEB_submenu_filter_instance; ?></td>
+                <td class='data'><?php print_instance_select($db_link,'f_instance_id',$group['instance_id']); ?></td>
                 <td class='data'></td>
             </tr>
         </table>

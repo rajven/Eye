@@ -121,6 +121,8 @@ define("WEB_submenu_network_stats","Сети (Статистика)");
 define("WEB_submenu_options","Параметры");
 define("WEB_submenu_customers","Пользователи");
 define("WEB_submenu_filter_list","Список фильтров");
+define("WEB_submenu_filter_instances","Экземпляры фильтрации");
+define("WEB_submenu_filter_instance","Экземпляр фильтрации");
 define("WEB_submenu_filter_group","Группы фильтров");
 define("WEB_submenu_traffic_ip_report","Отчёт по трафику (ip)");
 define("WEB_submenu_traffic_login_report","Отчёт по трафику (login)");
@@ -420,6 +422,8 @@ define("WEB_traffic_dst_port","Порт назначения");
 
 /* edit group filters */
 define("WEB_title_group","Группа");
+define("WEB_group_instances","Экземпляры фильтрации");
+define("WEB_group_instance_name","Имя экземпляра");
 define("WEB_groups_filter_list","Список фильтров группы");
 define("WEB_group_filter_order","Порядок правил");
 define("WEB_group_filter_name","Название фильтра");

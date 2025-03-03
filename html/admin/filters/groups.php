@@ -38,16 +38,19 @@ print_filters_submenu($page_url);
                 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
                 <td><b>Id</b></td>
                 <td width=200><b><?php echo WEB_cell_name; ?></b></td>
+                <td ><b><?php echo WEB_submenu_filter_instance; ?></b></td>
                 <td width=200><b><?php echo WEB_cell_comment; ?></b></td>
                 <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>"></td>
             </tr>
             <?php
             $groups = get_records_sql($db_link, 'SELECT * FROM Group_list ORDER BY id');
             foreach ($groups as $row) {
+		$filter_instance = get_record_sql($db_link,'SELECT * FROM filter_instances WHERE id='.$row["instance_id"]);
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=" . $row["id"] . "></td>\n";
                 print "<td class=\"data\" ><input type=\"hidden\" name=\"" . $row["id"] . "\" value=" . $row["id"] . ">" . $row["id"] . "</td>\n";
                 print "<td class=\"data\"><a href=editgroup.php?id=" . $row["id"] . ">" . $row["group_name"] . "</a></td>\n";
+                print "<td class=\"data\">". $filter_instance["name"]."</td>\n";
                 print "<td class=\"data\">" . $row["comment"] . "</td>\n";
                 print "<td></td></tr>";
             }

@@ -122,6 +122,8 @@ define("WEB_submenu_options","Parameters");
 define("WEB_submenu_customers","Users");
 define("WEB_submenu_filter_list","Filter List");
 define("WEB_submenu_filter_group","Filter Groups");
+define("WEB_submenu_filter_instances","Filter instances");
+define("WEB_submenu_filter_instance","Filter instance");
 define("WEB_submenu_traffic_ip_report","Traffic report for ip");
 define("WEB_submenu_traffic_login_report","Traffic report for login");
 define("WEB_submenu_traffic_wan_report","WAN statistics");
@@ -420,6 +422,8 @@ define("WEB_traffic_dst_port","Dst-port");
 
 /* edit group filters */
 define("WEB_title_group","Group");
+define("WEB_group_instances","Filter instances");
+define("WEB_group_instance_name","Instance name");
 define("WEB_groups_filter_list","Group filter list");
 define("WEB_group_filter_order","Rules order");
 define("WEB_group_filter_name","Filter name");

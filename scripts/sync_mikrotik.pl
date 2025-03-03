@@ -430,6 +430,8 @@ $queues{'queue_'.$row->{id}}{up}=$row->{Upload};
 
 log_debug("Queues status:".Dumper(\%queues));
 
+my @filter_instances = get_records_sql($dbh,"SELECT * FROM filter_instances");
+
 my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM Filter_list where type=0");
 
 my %filters;
@@ -480,6 +482,10 @@ log_debug("DNS-filters status:". Dumper(\%dyn_filters));
 #clean unused filter records
 do_sql($dbh,"DELETE FROM Group_filters WHERE group_id NOT IN (SELECT id FROM Group_list)");
 do_sql($dbh,"DELETE FROM Group_filters WHERE filter_id NOT IN (SELECT id FROM Filter_list)");
+
+my @groups_list = get_records_sql($dbh,"SELECT * FROM Group_list");
+my %groups;
+foreach my $group (@groups_list) { $groups{'group_'.$group->{id}}=$group; }
 
 my @grouplist_ref = get_records_sql($dbh,"SELECT `group_id`,`filter_id`,`order`,`action` FROM Group_filters ORDER BY Group_filters.group_id,Group_filters.order");
 
@@ -560,38 +566,44 @@ timestamp;
 #sync firewall rules
 
 #sync group chains
-my @chain_list=netdev_cmd($gate,$t,'/ip firewall filter  print terse without-paging where chain=Users and action=jump',1);
+foreach my $filter_instance (@filter_instances) {
+
+my $instance_name = 'Users';
+if ($filter_instance->{id}>1) { $instance_name = 'Users-'.$filter_instance->{name}; }
+
+my @chain_list=netdev_cmd($gate,$t,'/ip firewall filter  print terse without-paging where chain='.$instance_name.' and action=jump',1);
 
 log_debug("Get firewall chains:".Dumper(\@chain_list));
 
 my %cur_chain;
 foreach my $jump_list (@chain_list) {
-next if (!$jump_list);
-$jump_list=trim($jump_list);
-if ($jump_list=~/jump-target=(\S*)\s+/i) {
-    if ($1) { $cur_chain{$1}++; }
+    next if (!$jump_list);
+    $jump_list=trim($jump_list);
+    if ($jump_list=~/jump-target=(\S*)\s+/i) {
+	if ($1) { $cur_chain{$1}++; }
+	}
     }
-}
 
 #old chains
 foreach my $group_name (keys %cur_chain) {
-    if (!exists($group_filters{$group_name})) {
-        push (@cmd_list,":foreach i in [/ip firewall filter find where chain=Users and action=jump and jump-target=".$group_name."] do={/ip firewall filter remove \$i};");
+    if (!exists($group_filters{$group_name}) or $groups{$group_name}->{instance_id} ne $filter_instance->{id}) {
+        push (@cmd_list,":foreach i in [/ip firewall filter find where chain=".$instance_name." and action=jump and jump-target=".$group_name."] do={/ip firewall filter remove \$i};");
         } else {
         if ($cur_chain{$group_name} != 2) {
-            push (@cmd_list,":foreach i in [/ip firewall filter find where chain=Users and action=jump and jump-target=".$group_name."] do={/ip firewall filter remove \$i};");
-            push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." src-address-list=".$group_name);
-            push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." dst-address-list=".$group_name);
+            push (@cmd_list,":foreach i in [/ip firewall filter find where chain=".$instance_name." and action=jump and jump-target=".$group_name."] do={/ip firewall filter remove \$i};");
+            push (@cmd_list,"/ip firewall filter add chain=".$instance_name." action=jump jump-target=".$group_name." src-address-list=".$group_name);
+            push (@cmd_list,"/ip firewall filter add chain=".$instance_name." action=jump jump-target=".$group_name." dst-address-list=".$group_name);
             }
         }
-}
+    }
 
 #new chains
 foreach my $group_name (keys %group_filters) {
-    if (!exists($cur_chain{$group_name})) {
-        push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." src-address-list=".$group_name);
-        push (@cmd_list,"/ip firewall filter add chain=Users action=jump jump-target=".$group_name." dst-address-list=".$group_name);
+    if (!exists($cur_chain{$group_name}) and $groups{$group_name}->{instance_id} eq $filter_instance->{id}) {
+        push (@cmd_list,"/ip firewall filter add chain=".$instance_name." action=jump jump-target=".$group_name." src-address-list=".$group_name);
+        push (@cmd_list,"/ip firewall filter add chain=".$instance_name." action=jump jump-target=".$group_name." dst-address-list=".$group_name);
         }
+    }
 }
 
 my %chain_rules;

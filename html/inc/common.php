@@ -494,6 +494,16 @@ function print_ou_select($db, $ou_name, $ou_value)
     print "</select>\n";
 }
 
+function print_instance_select($db, $instance_name, $instance_value)
+{
+    print "<select id=\"$instance_name\" name=\"$instance_name\" >\n";
+    $t_instance = mysqli_query($db, "SELECT * FROM filter_instances ORDER BY id");
+    while (list($f_instance_id, $f_instance_name, $f_instance_comment) = mysqli_fetch_array($t_instance)) {
+        print_select_item($f_instance_name, $f_instance_id, $instance_value);
+    }
+    print "</select>\n";
+}
+
 function get_subnet_description($db, $subnet_id)
 {
     if (empty($subnet_id)) {
@@ -715,7 +725,8 @@ function print_filters_submenu($current_page)
 {
     print "<div id='submenu'>\n";
     print_submenu_url(WEB_submenu_filter_list, '/admin/filters/index.php', $current_page, 0);
-    print_submenu_url(WEB_submenu_filter_group, '/admin/filters/groups.php', $current_page, 1);
+    print_submenu_url(WEB_submenu_filter_group, '/admin/filters/groups.php', $current_page, 0);
+    print_submenu_url(WEB_submenu_filter_instances, '/admin/filters/instances.php', $current_page, 1);
     print "</div>\n";
 }
 
