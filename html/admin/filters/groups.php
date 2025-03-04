@@ -18,6 +18,7 @@ if (isset($_POST["remove"])) {
     $fgid = $_POST["fid"];
     foreach ($fgid as $key => $val) {
         if (!empty($val)) {
+            run_sql($db_link, "UPDATE User_auth SET filter_group_id=0, changed = 1 WHERE deleted=0 AND filter_group_id=" . $val * 1);
             run_sql($db_link, "DELETE FROM Group_filters WHERE group_id=" . $val * 1);
             delete_record($db_link, "Group_list", "id=" . $val * 1);
         }

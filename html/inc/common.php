@@ -517,10 +517,33 @@ function get_subnet_description($db, $subnet_id)
     return $result;
 }
 
+function get_filter_instance_description($db, $instance_id)
+{
+    if (empty($instance_id)) {
+        return '';
+    }
+    $instance = get_record_sql($db, 'SELECT * FROM filter_instances WHERE id=' . $instance_id);
+    if (empty($instance)) {
+        return '';
+    }
+    $result = $instance['name'] . '&nbsp(' . $instance['comment'] . ')';
+    return $result;
+}
+
 function print_add_gw_subnets($db, $device_id, $gs_name)
 {
     print "<select id=\"$gs_name\" name=\"$gs_name\" >\n";
     $t_gs = mysqli_query($db, "SELECT id,subnet,comment FROM subnets WHERE subnets.free=0 AND subnets.id NOT IN (SELECT subnet_id FROM gateway_subnets WHERE gateway_subnets.device_id=" . $device_id . ") ORDER BY subnet");
+    while (list($f_gs_id, $f_gs_name, $f_gs_comment) = mysqli_fetch_array($t_gs)) {
+        print_select_item($f_gs_name . '(' . $f_gs_comment . ')', $f_gs_id, 0);
+    }
+    print "</select>\n";
+}
+
+function print_add_gw_instances($db, $device_id, $gs_name)
+{
+    print "<select id=\"$gs_name\" name=\"$gs_name\" >\n";
+    $t_gs = mysqli_query($db, "SELECT id,name,comment FROM filter_instances WHERE filter_instances.id NOT IN (SELECT instance_id FROM device_filter_instances WHERE device_filter_instances.device_id=" . $device_id . ") ORDER BY name");
     while (list($f_gs_id, $f_gs_name, $f_gs_comment) = mysqli_fetch_array($t_gs)) {
         print_select_item($f_gs_name . '(' . $f_gs_comment . ')', $f_gs_id, 0);
     }

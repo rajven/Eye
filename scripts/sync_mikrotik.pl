@@ -569,7 +569,13 @@ timestamp;
 foreach my $filter_instance (@filter_instances) {
 
 my $instance_name = 'Users';
-if ($filter_instance->{id}>1) { $instance_name = 'Users-'.$filter_instance->{name}; }
+if ($filter_instance->{id}>1) {
+    $instance_name = 'Users-'.$filter_instance->{name};
+    #check filter instance exist at gateway
+    my $instance_ok = get_record_sql($dbh,"SELECT * FROM device_filter_instances WHERE device_id=$gate->{'id'} AND instance_id=$filter_instance->{id}");
+    #skip insatnce if not found
+    if (!$instance_ok) { next; }
+    }
 
 my @chain_list=netdev_cmd($gate,$t,'/ip firewall filter  print terse without-paging where chain='.$instance_name.' and action=jump',1);
 

@@ -233,7 +233,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
 
             //print gateway settings
             if ($device['device_type'] == 2) {
-                print "<tr><td>" . WEB_device_access_control . "</td><td>" . WEB_device_dhcp_server . "</td><td>" . WEB_device_queues_enabled . "</td><td>" . WEB_device_connected_only . "</td></tr>";
+                print "<tr><td>"; print_url(WEB_device_access_control,"/admin/devices/edit_gw_instances.php?id=$id"); print "</td><td>" . WEB_device_dhcp_server . "</td><td>" . WEB_device_queues_enabled . "</td><td>" . WEB_device_connected_only . "</td></tr>";
                 print "<tr>";
                 print "<td class='data'>";
                 print_qa_select('f_user_acl', $device['user_acl']);
