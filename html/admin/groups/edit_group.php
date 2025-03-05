@@ -36,9 +36,9 @@ if (isset($_POST["s_remove"])) {
 }
 
 if (isset($_POST['s_save'])) {
-    $len = is_array($_POST['s_save']) ? count($_POST['s_save']) : 0;
+    $len = is_array($_POST['s_id']) ? count($_POST['s_id']) : 0;
     for ($i = 0; $i < $len; $i ++) {
-        $save_id = intval($_POST['s_save'][$i]);
+        $save_id = intval($_POST['s_id'][$i]);
         $len_all = is_array($_POST['n_id']) ? count($_POST['n_id']) : 0;
         for ($j = 0; $j < $len_all; $j ++) {
             if (intval($_POST['n_id'][$j]) != $save_id) { continue; }
@@ -129,6 +129,7 @@ if (!$ou_info['dynamic']) { print "disabled"; }; print " style=\"width:35%;\" ><
     <td><b><?php echo WEB_ou_rule; ?></b></td>
     <td><b><?php echo WEB_cell_comment; ?></b></td>
     <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="s_remove" value="<?php echo WEB_btn_delete; ?>"></td>
+    <?php print "<td><button id='s_save' name='s_save'>".WEB_btn_save."</button></td>"; ?>
 </tr>
 <?php
 $t_auth_rules = get_records($db_link,'auth_rules',"ou_id=$id ORDER BY id");
@@ -139,7 +140,7 @@ foreach ( $t_auth_rules as $row ) {
     print "<td class=\"data\">"; print_qa_rule_select("s_type[]","{$row['type']}"); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_rule[]' value='{$row['rule']}'></td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_comment[]' value='{$row['comment']}'></td>\n";
-    print "<td class=\"data\"><button id='s_save' name='s_save' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
+    print "<td colspan=2 class=\"data\"></td>\n";
     print "</tr>\n";
 }
 ?>
