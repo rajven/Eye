@@ -261,6 +261,8 @@ my $device = shift;
 #skip unknown vendor
 if (!$switch_auth{$device->{vendor_id}}) { return 0; }
 
+my $dev_ident = $device->{device_name}." [$device->{ip}]:: ";
+
 my $t;
 
 #open my $out, '>', "/tmp/debug-$device->{ip}.txt" or warn $!;
@@ -269,7 +271,7 @@ my $t;
 
 if ($device->{proto} eq 'telnet') {
     if (!$device->{port}) { $device->{port} = '23'; }
-    log_info("Try login to $device->{device_name} $device->{ip}:$device->{port} by telnet...");
+    log_info($dev_ident. "Try login $device->{ip}:$device->{port} by telnet...");
     #zyxel patch
     if ($device->{vendor_id} eq '4') {
         eval {
@@ -295,12 +297,12 @@ if ($device->{proto} eq 'telnet') {
         $t->print($device->{password});
         $t->waitfor("/$switch_auth{$device->{vendor_id}}{prompt}/");
         };
-    if ($@) { log_error("Login to $device->{device_name} ip: $device->{ip} by telnet aborted: $@"); return 0; } else { log_info("Login to $device->{device_name} ip: $device->{ip} by telnet success!"); }
+    if ($@) { log_error($dev_ident."Login by telnet aborted: $@"); return 0; } else { log_info($dev_ident."Login by telnet success!"); }
     }
 
 if ($device->{proto} eq 'ssh') {
     if (!$device->{port}) { $device->{port} = '22'; }
-    log_info("Try login to $device->{device_name} $device->{ip}:$device->{port} by OpenSSH...");
+    log_info($dev_ident."Try login to $device->{ip}:$device->{port} by OpenSSH...");
 	$t = Net::OpenSSH->new($device->{ip},
 	    user=>$device->{login},
 	    password=>$device->{password},
@@ -317,12 +319,12 @@ if ($device->{proto} eq 'ssh') {
 	    ]
 	    );
 
-        if ($t->error) {  log_error("Login to $device->{device_name} ip: $device->{ip} by ssh aborted: ".$t->error); return 0; }
+        if ($t->error) {  log_error($dev_ident."Login by ssh aborted: ".$t->error); return 0; }
     }
 
 if ($device->{proto} eq 'essh') {
 	if (!$device->{port}) { $device->{port} = '22'; }
-	log_info("Try login to $device->{device_name} $device->{ip}:$device->{port} by ssh::expect...");
+	log_info($dev_ident."Try login to $device->{ip}:$device->{port} by ssh::expect...");
 
 	$t = Expect->spawn("ssh -o StrictHostKeyChecking=no -o PubkeyAcceptedKeyTypes=+ssh-dss -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-dss -o LogLevel=quiet -o UserKnownHostsFile=/dev/null $device->{login}\@$device->{ip}");
 	$t->log_stdout(0);  # Disable logging to stdout
@@ -342,9 +344,9 @@ if ($device->{proto} eq 'essh') {
     }
 
 if ($t) {
-    log_info("Login to $device->{device_name} ip: $device->{ip} by ssh success!");
+    log_info($dev_ident."Login by ssh success!");
     } else {
-    log_error("Login to $device->{device_name} ip: $device->{ip} by ssh failed!");
+    log_error($dev_ident."Login by ssh failed!");
     return 0;
     }
 
@@ -400,15 +402,17 @@ my @result=();
 my @tmp=();
 if (ref($cmd) eq 'ARRAY') { @tmp = @{$cmd}; } else { @tmp = split(/\n/,$cmd); }
 
+my $dev_ident = $device->{device_name}." [$device->{ip}]:: ";
+
 if ($device->{proto} eq 'ssh') {
     eval {
     foreach my $run_cmd (@tmp) {
         next if (!$run_cmd);
         if ($run_cmd =~ /SLEEP/i) {
-            if ($run_cmd =~ /SLEEP\s+(\d+)/i) { log_session('WAIT:'." $1 sec."); sleep($1); } else { log_session('WAIT:'." 10 sec."); sleep(10); };
+            if ($run_cmd =~ /SLEEP\s+(\d+)/i) { log_session($dev_ident.'WAIT:'." $1 sec."); sleep($1); } else { log_session($dev_ident.'WAIT:'." 10 sec."); sleep(10); };
             next;
             }
-        log_session('Send:'.$run_cmd);
+        log_session($dev_ident.'Send: '.$run_cmd);
         select(undef, undef, undef, 0.25);
         my @row = $session->capture($run_cmd."\r\n");
 	chomp(@row);
@@ -418,7 +422,7 @@ if ($device->{proto} eq 'ssh') {
 #	chomp($output);
 #        push(@result,$output);
         }
-    log_session('Get:'.Dumper(\@result));
+    log_session($dev_ident.'Get: '.Dumper(\@result));
     };
     if ($@) { log_error("Abort: $@"); return 0; };
     }
@@ -428,18 +432,18 @@ if ($device->{proto} eq 'essh') {
     foreach my $run_cmd (@tmp) {
         next if (!$run_cmd);
         if ($run_cmd =~ /SLEEP/i) {
-            if ($run_cmd =~ /SLEEP\s+(\d+)/i) { log_session('WAIT:'." $1 sec."); sleep($1); } else { log_session('WAIT:'." 10 sec."); sleep(10); };
+            if ($run_cmd =~ /SLEEP\s+(\d+)/i) { log_session($dev_ident.'WAIT:'." $1 sec."); sleep($1); } else { log_session($dev_ident.'WAIT:'." 10 sec."); sleep(10); };
             next;
             }
-        log_session('Send:'.$run_cmd);
+        log_session($dev_ident.'Send: '.$run_cmd);
         $session->send("$run_cmd\n");
         select(undef, undef, undef, 0.25);
         $session->expect(10, -re => qr/$device->{prompt}/);
 	push(@result,$session->before());
         }
-    log_session('Get:'.Dumper(\@result));
+    log_session($dev_ident.'Get: '.Dumper(\@result));
     };
-    if ($@) { log_error("Abort: $@"); return 0; };
+    if ($@) { log_error($dev_ident."Abort: $@"); return 0; };
     }
 
 if ($device->{proto} eq 'telnet') {
@@ -456,7 +460,7 @@ if ($device->{proto} eq 'telnet') {
         select(undef, undef, undef, 0.25);
         }
     };
-    if ($@) { log_error("Abort: $@"); return 0; };
+    if ($@) { log_error($dev_ident."Abort: $@"); return 0; };
     }
 return @result;
 }

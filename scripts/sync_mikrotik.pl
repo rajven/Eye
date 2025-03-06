@@ -81,6 +81,8 @@ my @changes_found = get_records_sql($dbh,"SELECT id FROM User_auth WHERE changed
 foreach my $gate (@gateways) {
 next if (!$gate);
 
+my $gate_ident = $gate->{device_name}." [$gate->{ip}]:: ";
+
 $pm->start and next;
 $dbh = init_db();
 
@@ -91,7 +93,7 @@ $gate->{login}.='+ct400w';
 my $t = netdev_login($gate);
 
 if (!$t) {
-    log_error("Login to $gate->{device_name} [$gate->{ip}] failed! Skip gateway.");
+    log_error($gate_ident."Login to $gate->{device_name} [$gate->{ip}] failed! Skip gateway.");
     $dbh->disconnect();
     $pm->finish;
     next;
@@ -155,7 +157,7 @@ foreach my $int (@lan_int) { #interface loop
     $int=trim($int);
     #get ip addr at interface
     my @int_addr=netdev_cmd($gate,$t,'/ip address print terse without-paging where interface='.$int,1);
-    log_debug("Get interfaces: ".Dumper(\@int_addr));
+    log_debug($gate_ident."Get interfaces: ".Dumper(\@int_addr));
     my $found_subnet;
     foreach my $int_str(@int_addr) {
         $int_str=trim($int_str);
@@ -174,7 +176,7 @@ foreach my $int (@lan_int) { #interface loop
                 }
         }
 
-    if (!$found_subnet) {  db_log_verbose($dbh,"DHCP subnet for interface $int not found! Skip interface.");  next; }
+    if (!$found_subnet) {  db_log_verbose($dbh,$gate_ident."DHCP subnet for interface $int not found! Skip interface.");  next; }
     my $dhcp_state;
     $dhcp_state->{subnet}=$found_subnet;
     $dhcp_state->{interface}=$int;
@@ -204,19 +206,19 @@ my $found_subnet=$dhcpd_int->{subnet};
 my @dhcp_subnets = split(/\,/,$found_subnet);
 my $int=$dhcpd_int->{interface};
 
-db_log_verbose($dbh,"Analyze interface $int. Found: ".Dumper($dhcp_conf{$found_subnet}));
+db_log_verbose($dbh,$gate_ident."Analyze interface $int. Found: ".Dumper($dhcp_conf{$found_subnet}));
 
 #fetch current dhcp records
 my @ret_static_leases=netdev_cmd($gate,$t,'/ip dhcp-server lease print terse without-paging where server=dhcp-'.$int,1);
 
-log_debug("Get dhcp leases:".Dumper(\@ret_static_leases));
+log_debug($gate_ident."Get dhcp leases:".Dumper(\@ret_static_leases));
 
 my @current_static_leases=();
 foreach my $str (@ret_static_leases) {
 next if (!$str);
 $str=trim($str);
 if ($str=~/^\d/) {
-    log_debug("Found current static lease record: ".$str);
+    log_debug($gate_ident."Found current static lease record: ".$str);
     push(@current_static_leases,$str);
     }
 }
@@ -291,19 +293,19 @@ if ($tmp_lease{acl}) {
     }
 }
 
-log_debug("Active leases: ".Dumper(\%active_leases));
+log_debug($gate_ident."Active leases: ".Dumper(\%active_leases));
 
 #sync state
 foreach my $ip (keys %active_leases) {
 if (!exists $leases{$ip}) {
-    db_log_verbose($dbh,"Address $ip not found in stat. Remove from router.");
+    db_log_verbose($dbh,$gate_ident."Address $ip not found in stat. Remove from router.");
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
     push(@cmd_list,'/ip arp remove [find address='.$ip.']');
     next;
     }
 if ($leases{$ip}{mac}!~/$active_leases{$ip}{mac}/i) {
-    db_log_verbose($dbh,"Mac-address mismatch for ip $ip. stat: $leases{$ip}{mac} active: $active_leases{$ip}{mac}. Remove lease from router.");
+    db_log_verbose($dbh,$gate_ident."Mac-address mismatch for ip $ip. stat: $leases{$ip}{mac} active: $active_leases{$ip}{mac}. Remove lease from router.");
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
     push(@cmd_list,'/ip arp remove [find address='.$ip.']');
@@ -311,7 +313,7 @@ if ($leases{$ip}{mac}!~/$active_leases{$ip}{mac}/i) {
     }
 next if (!$leases{$ip}{acl} and !$active_leases{$ip}{acl});
 if ($leases{$ip}{acl}!~/$active_leases{$ip}{acl}/) {
-    db_log_error($dbh,"Acl mismatch for ip $ip. stat: $leases{$ip}{acl} active: $active_leases{$ip}{acl}. Remove lease from router.");
+    db_log_error($dbh,$gate_ident."Acl mismatch for ip $ip. stat: $leases{$ip}{acl} active: $active_leases{$ip}{acl}. Remove lease from router.");
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
     push(@cmd_list,'/ip arp remove [find address='.$ip.']');
@@ -333,7 +335,7 @@ $dns_name =~s/\=//g;
 if ($dns_name) { $comment = 'comment="'.$dns_name." - ".$comment.'"'; } else { $comment = 'comment="'.$comment.'"'; }
 
 if (!exists $active_leases{$ip}) {
-    db_log_verbose($dbh,"Address $ip not found in router. Create static lease record.");
+    db_log_verbose($dbh,$gate_ident."Address $ip not found in router. Create static lease record.");
     #remove static and dynamic records for mac
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where mac-address='.uc($leases{$ip}{mac}).' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find mac-address='.uc($leases{$ip}{mac}).']');
@@ -347,7 +349,7 @@ if (!exists $active_leases{$ip}) {
     next;
     }
 if ($leases{$ip}{mac}!~/$active_leases{$ip}{mac}/i) {
-    db_log_error($dbh,"Mac-address mismatch for ip $ip. stat: $leases{$ip}{mac} active: $active_leases{$ip}{mac}. Create static lease record.");
+    db_log_error($dbh,$gate_ident."Mac-address mismatch for ip $ip. stat: $leases{$ip}{mac} active: $active_leases{$ip}{mac}. Create static lease record.");
     #remove static and dynamic records for mac
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where mac-address='.uc($leases{$ip}{mac}).' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find mac-address='.uc($leases{$ip}{mac}).']');
@@ -362,7 +364,7 @@ if ($leases{$ip}{mac}!~/$active_leases{$ip}{mac}/i) {
     }
 next if (!$leases{$ip}{acl} and !$active_leases{$ip}{acl});
 if ($leases{$ip}{acl}!~/$active_leases{$ip}{acl}/) {
-    db_log_error($dbh,"Acl mismatch for ip $ip. stat: $leases{$ip}{acl} active: $active_leases{$ip}{acl}. Create static lease record.");
+    db_log_error($dbh,$gate_ident."Acl mismatch for ip $ip. stat: $leases{$ip}{acl} active: $active_leases{$ip}{acl}. Create static lease record.");
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where mac-address='.uc($leases{$ip}{mac}).' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find mac-address='.uc($leases{$ip}{mac}).']');
     push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' server=dhcp-'.$int.' '.$comment);
@@ -379,7 +381,7 @@ if ($leases{$ip}{acl}!~/$active_leases{$ip}{acl}/) {
 #access lists config
 if ($gate->{user_acl}) {
 
-db_log_verbose($dbh,"Sync user state at router $router_name [".$router_ip."] started.");
+db_log_verbose($dbh,$gate_ident."Sync user state at router $router_name [".$router_ip."] started.");
 
 #get userid list
 my $user_auth_sql="SELECT User_auth.ip, User_auth.filter_group_id, User_auth.queue_id, User_auth.id
@@ -411,7 +413,7 @@ $lists{'group_'.$row->{filter_group_id}}=1;
 if ($row->{queue_id}) { $users{'queue_'.$row->{queue_id}}->{$row->{ip}}=1; }
 }
 
-log_debug("Users status:".Dumper(\%users));
+log_debug($gate_ident."Users status:".Dumper(\%users));
 
 #full list
 $lists{'group_all'}=1;
@@ -428,7 +430,7 @@ $queues{'queue_'.$row->{id}}{down}=$row->{Download};
 $queues{'queue_'.$row->{id}}{up}=$row->{Upload};
 }
 
-log_debug("Queues status:".Dumper(\%queues));
+log_debug($gate_ident."Queues status:".Dumper(\%queues));
 
 my @filter_instances = get_records_sql($dbh,"SELECT * FROM filter_instances");
 
@@ -476,8 +478,8 @@ foreach my $row (@filterlist_ref) {
         }
 }
 
-log_debug("Filters status:". Dumper(\%filters));
-log_debug("DNS-filters status:". Dumper(\%dyn_filters));
+log_debug($gate_ident."Filters status:". Dumper(\%filters));
+log_debug($gate_ident."DNS-filters status:". Dumper(\%dyn_filters));
 
 #clean unused filter records
 do_sql($dbh,"DELETE FROM Group_filters WHERE group_id NOT IN (SELECT id FROM Group_list)");
@@ -522,14 +524,14 @@ foreach my $row (@grouplist_ref) {
     }
 }
 
-log_debug("Group filters: ".Dumper(\%group_filters));
+log_debug($gate_ident."Group filters: ".Dumper(\%group_filters));
 
 my %cur_users;
 
 foreach my $group_name (keys %lists) {
 my @address_lists=netdev_cmd($gate,$t,'/ip firewall address-list print terse without-paging where list='.$group_name,1);
 
-log_debug("Get address lists:".Dumper(\@address_lists));
+log_debug($gate_ident."Get address lists:".Dumper(\@address_lists));
 
 foreach my $row (@address_lists) {
     $row=trim($row);
@@ -545,7 +547,7 @@ foreach my $row (@address_lists) {
 foreach my $group_name (keys %users) {
     foreach my $user_ip (keys %{$users{$group_name}}) {
     if (!exists($cur_users{$group_name}{$user_ip})) {
-        db_log_verbose($dbh,"Add user with ip: $user_ip to access-list $group_name");
+        db_log_verbose($dbh,$gate_ident."Add user with ip: $user_ip to access-list $group_name");
         push(@cmd_list,"/ip firewall address-list add address=".$user_ip." list=".$group_name);
         }
     }
@@ -555,7 +557,7 @@ foreach my $group_name (keys %users) {
 foreach my $group_name (keys %cur_users) {
     foreach my $user_ip (keys %{$cur_users{$group_name}}) {
     if (!exists($users{$group_name}{$user_ip})) {
-        db_log_verbose($dbh,"Remove user with ip: $user_ip from access-list $group_name");
+        db_log_verbose($dbh,$gate_ident."Remove user with ip: $user_ip from access-list $group_name");
         push(@cmd_list,":foreach i in [/ip firewall address-list find where address=".$user_ip." and list=".$group_name."] do={/ip firewall address-list remove \$i};");
         }
     }
@@ -579,7 +581,7 @@ if ($filter_instance->{id}>1) {
 
 my @chain_list=netdev_cmd($gate,$t,'/ip firewall filter  print terse without-paging where chain='.$instance_name.' and action=jump',1);
 
-log_debug("Get firewall chains:".Dumper(\@chain_list));
+log_debug($gate_ident."Get firewall chains:".Dumper(\@chain_list));
 
 my %cur_chain;
 foreach my $jump_list (@chain_list) {
@@ -697,8 +699,8 @@ foreach (my $f_index=0; $f_index<scalar(@get_filter); $f_index++) {
     next if (!$filter_str);
     push(@cur_filter,$filter_str);
 }
-log_debug("Current filters:".Dumper(\@cur_filter));
-log_debug("New filters:".Dumper($chain_rules{$group_name}));
+log_debug($gate_ident."Current filters:".Dumper(\@cur_filter));
+log_debug($gate_ident."New filters:".Dumper($chain_rules{$group_name}));
 
 #current state rules
 foreach (my $f_index=0; $f_index<scalar(@cur_filter); $f_index++) {
@@ -745,7 +747,7 @@ my %get_filter_mangle=();
 
 my @tmp=netdev_cmd($gate,$t,'/queue type print terse without-paging where name~"pcq_(down|up)load"',1);
 
-log_debug("Get queues: ".Dumper(\@tmp));
+log_debug($gate_ident."Get queues: ".Dumper(\@tmp));
 
 # 0   name=pcq_upload_3 kind=pcq pcq-rate=102401k pcq-limit=500KiB pcq-classifier=src-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s
 #pcq-src-address-mask=32 pcq-dst-address-mask=32 pcq-src-address6-mask=64 pcq-dst-address6-mask=64
@@ -774,7 +776,7 @@ if ($row=~/name=pcq_(down|up)load_(\d){1,3}\s+/i) {
 
 @tmp=();
 @tmp=netdev_cmd($gate,$t,'/queue tree print terse without-paging where parent~"(download|upload)_root"',1);
-log_debug("Get root queues: ".Dumper(\@tmp));
+log_debug($gate_ident."Get root queues: ".Dumper(\@tmp));
 
 #print Dumper(\@tmp);
 # 0 I name=queue_3_out parent=upload_root packet-mark=upload_3 limit-at=0 queue=*2A priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1
@@ -812,7 +814,7 @@ if ($row=~/queue=pcq_(down|up)load_(\d){1,3}/i) {
 @tmp=();
 
 @tmp=netdev_cmd($gate,$t,'/ip firewall mangle print terse without-paging where action=mark-packet and new-packet-mark~"(upload|download)_[0-9]{1,3}"',1);
-log_debug("Get firewall mangle rules for queues:".Dumper(\@tmp));
+log_debug($gate_ident."Get firewall mangle rules for queues:".Dumper(\@tmp));
 
 # 0    chain=forward action=mark-packet new-packet-mark=upload_0 passthrough=yes src-address-list=queue_0 out-interface=sfp-sfpplus1-wan log=no log-prefix=""
 # 0    chain=forward action=mark-packet new-packet-mark=download_3_vlan2 passthrough=yes dst-address-list=queue_3 out-interface=vlan2 in-interface-list=WAN log=no log-prefix=""
@@ -845,9 +847,9 @@ if ($row=~/new-packet-mark=download_(\d){1,3}_(\S*)\s+/i) {
     }
 }
 
-log_debug("Queues type status:".Dumper(\%get_queue_type));
-log_debug("Queues tree status:".Dumper(\%get_queue_tree));
-log_debug("Firewall mangle status:".Dumper(\%get_filter_mangle));
+log_debug($gate_ident."Queues type status:".Dumper(\%get_queue_type));
+log_debug($gate_ident."Queues tree status:".Dumper(\%get_queue_tree));
+log_debug($gate_ident."Firewall mangle status:".Dumper(\%get_filter_mangle));
 
 my %queue_type;
 my %queue_tree;
@@ -947,18 +949,18 @@ if (!$queue_ok) {
 }#end access lists config
 
 if (scalar(@cmd_list)) {
-    log_debug("Apply:");
-    if ($debug) { foreach my $cmd (@cmd_list) { log_debug("$cmd"); } }
+    log_debug($gate_ident."Apply:");
+    if ($debug) { foreach my $cmd (@cmd_list) { log_debug($gate_ident."$cmd"); } }
     eval {
         netdev_cmd($gate,$t,\@cmd_list,1);
     };
     if ($@) {
         $all_ok = 0;
-        log_debug("Error programming gateway! Err: ".$@);
+        log_debug($gate_ident."Error programming gateway! Err: ".$@);
         }
     }
 
-db_log_verbose($dbh,"Sync user state at router $router_name [".$router_ip."] stopped.");
+db_log_verbose($dbh,$gate_ident."Sync user state stopped.");
 $dbh->disconnect();
 $pm->finish;
 }
