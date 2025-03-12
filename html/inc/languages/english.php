@@ -499,6 +499,7 @@ define("WEB_user_unbind_mac","Unbind mac for login");
 define("WEB_user_bind_ip","Bind ip-address for login");
 define("WEB_user_unbind_ip","Unbind ip-address for login");
 define("WEB_user_create_netdev","Create network device");
+define("WEB_user_permanent","Permanent");
 
 /* public */
 define("WEB_msg_access_login","Internet for login");

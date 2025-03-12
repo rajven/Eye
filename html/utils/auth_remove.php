@@ -10,16 +10,10 @@ if (isset($_POST["RemoveAuth"]) and (isset($_POST["f_deleted"]))) {
         $all_ok = 1;
         foreach ($auth_id as $key => $val) {
             if ($val) {
-                run_sql($db_link, 'DELETE FROM connections WHERE auth_id=' . $val);
-                run_sql($db_link, 'DELETE FROM User_auth_alias WHERE auth_id=' . $val);
-                $changes = delete_record($db_link, "User_auth", "id=" . $val);
-                if (!empty($changes)) {
-                    LOG_WARNING($db_link, "Remove user ip: $changes");
-                } else {
-                    $all_ok = 1;
+                $changes = delete_user_auth($db_link,$val);
+                if (empty($changes)) { $all_ok = 0; }
                 }
             }
-        }
         if ($all_ok) {
             print "Success!";
         } else {

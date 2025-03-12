@@ -499,6 +499,7 @@ define("WEB_user_unbind_mac","Отвязать мак от юзера");
 define("WEB_user_bind_ip","Привязать IP-адрес к юзеру");
 define("WEB_user_unbind_ip","Отвязать IP-адрес от юзера");
 define("WEB_user_create_netdev","Создать устройтсво");
+define("WEB_user_permanent","Неудаляемый");
 
 /* public */
 define("WEB_msg_access_login","Интернет (логин)");

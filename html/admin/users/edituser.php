@@ -28,11 +28,13 @@ if (isset($_POST["edituser"])) {
         $new["blocked"] = 0;
         $new["day_quota"] = 0;
         $new["month_quota"] = 0;
+        $new["permanent"] = 0;
     } else {
         $new["enabled"] = get_int($_POST["f_enabled"]);
         $new["blocked"] = get_int($_POST["f_blocked"]);
         $new["day_quota"] = get_int(trim($_POST["f_perday"]));
         $new["month_quota"] = get_int(trim($_POST["f_permonth"]));
+        $new["permanent"] = $_POST["f_permanent"] * 1;
     }
     $changes = get_diff_rec($db_link, "User_list", "id='$id'", $new, 0);
     if (!empty($changes)) {
@@ -179,14 +181,7 @@ if (isset($_POST["addauth"])) {
 if (isset($_POST["removeauth"])) {
     $auth_id = $_POST["f_auth_id"];
     foreach ($auth_id as $key => $val) {
-        if ($val) {
-            run_sql($db_link, 'DELETE FROM connections WHERE auth_id=' . $val);
-            run_sql($db_link, 'DELETE FROM User_auth_alias WHERE auth_id=' . $val);
-            $changes = delete_record($db_link, "User_auth", "id=" . $val);
-            if (!empty($changes)) {
-                LOG_INFO($db_link, "Remove user " . $user_info["login"] . " ip: \r\n " . $changes);
-            }
-        }
+        if ($val) { delete_user_auth($db_link, $val); }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -257,36 +252,40 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                 <td colspan=2><?php print WEB_cell_login; ?></td>
                 <td colspan=2><?php print WEB_cell_fio; ?></td>
                 <td colspan=2><?php print WEB_cell_ou; ?></td>
+                <td ><?php print WEB_user_permanent; ?></td>
             </tr>
             <tr>
                 <td colspan=2><input type="text" name="f_login" value="<?php print $user_info["login"]; ?>" size=25></td>
                 <td colspan=2><input type="text" name="f_fio" value="<?php print $user_info["fio"]; ?>" size=25></td>
                 <td colspan=2><?php print_ou_set($db_link, 'f_ou', $user_info["ou_id"]); ?></td>
+                <td><?php print_qa_select('f_permanent', $user_info["permanent"]); ?></td>
             </tr>
             <tr>
                 <td colspan=2><?php print WEB_cell_perday; ?></td>
                 <td colspan=2><?php print WEB_cell_permonth; ?></td>
                 <td><?php print WEB_cell_blocked; ?></td>
+                <td></td>
                 <td><?php print WEB_cell_enabled; ?></td>
             </tr>
             <tr>
                 <td colspan=2><input type="text" name="f_perday" value="<?php echo $user_info["day_quota"]; ?>" size=5></td>
                 <td colspan=2><input type="text" name="f_permonth" value="<?php echo $user_info["month_quota"]; ?>" size=5></td>
                 <td><?php print_qa_select('f_blocked', $user_info["blocked"]); ?></td>
+                <td></td>
                 <td><?php print_qa_select('f_enabled', $user_info["enabled"]); ?></td>
             </tr>
             <tr>
-                <td class=data colspan=6><?php echo WEB_user_rules_for_autoassign; ?>:</td>
+                <td class=data colspan=7><?php echo WEB_user_rules_for_autoassign; ?>:</td>
             </tr>
             <tr>
                 <td colspan=2><?php print WEB_cell_filter; ?></td>
                 <td colspan=2><?php print WEB_cell_shaper; ?></td>
-                <td colspan=2></td>
+                <td colspan=3></td>
             </tr>
             <tr>
                 <td colspan=2><?php print_group_select($db_link, 'f_filter', $user_info["filter_group_id"]); ?></td>
                 <td colspan=2><?php print_queue_select($db_link, 'f_queue', $user_info["queue_id"]); ?></td>
-                <td colspan=2></td>
+                <td colspan=3></td>
             </tr>
             <tr>
                 <?php
@@ -315,7 +314,7 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     print "<td colspan=2></td>";
                 }
                 ?>
-                <td colspan=2 align=right><?php print WEB_cell_created . ":";
+                <td colspan=3 align=right><?php print WEB_cell_created . ":&nbsp";
                                             print $user_info["timestamp"]; ?></td>
             </tr>
             <tr>
@@ -323,7 +322,7 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                 print_url(WEB_report_by_day, "/admin/reports/userday.php?id=$id"); ?></td>
                 <td></td>
                 <td><input type="submit" name="showDevice" value=<?php print WEB_btn_device; ?>></td>
-                <td></td>
+                <td colspan=2></td>
                 <td align=right><input type="submit" name="edituser" value=<?php print WEB_btn_save; ?>></td>
             </tr>
         </table>

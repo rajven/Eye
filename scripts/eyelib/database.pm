@@ -73,6 +73,9 @@ delete_dns_hostname
 create_dns_ptr
 delete_dns_ptr
 update_record
+delete_user_auth
+delete_user
+delete_device
 write_db_log
 set_changed
 recalc_quotes
@@ -676,6 +679,8 @@ if ($table eq 'User_auth') {
             }
     }
 
+if ($table eq 'User_list' and $old_record->{'permanent'}) { return; }
+
 if ($table eq 'User_auth_alias') {
     if ($old_record->{'alias'} and $old_record->{'auth_id'}) {
             my $del_dns;
@@ -690,6 +695,63 @@ if ($table eq 'User_auth_alias') {
 
 my $sSQL = "DELETE FROM ".$table." WHERE ".$filter;
 return do_sql($db,$sSQL);
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub delete_user_auth {
+my $db = shift;
+my $id = shift;
+#remove aliases
+my @t_User_auth_alias = get_records_sql($db,'SELECT * FROM User_auth_alias WHERE auth_id='.$id);
+if (@t_User_auth_alias and scalar @t_User_auth_alias) {
+    foreach my $row ( @t_User_auth_alias) { delete_record($db,'User_auth_alias','id='.$row->{'id'}); }
+    }
+#remove connections
+do_sql($db,'DELETE FROM connections WHERE auth_id='.$id);
+#remove user auth record
+my $changes = delete_record($db, "User_auth", "id=" . $id);
+return $changes;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub delete_user {
+my $db = shift;
+my $id = shift;
+#remove user record
+my $changes = delete_record($db, "User_list", "id=" . $id);
+#if fail - exit
+if (!$changes) { return; }
+#remove auth records
+my @t_User_auth = get_records_sql($db,'SELECT * FROM User_auth WHERE user_id='.$id);
+if (@t_User_auth and scalar @t_User_auth) {
+    foreach my $row ( @t_User_auth ) { delete_user_auth($db,$row->{'id'}); }
+    }
+#remove device
+my $device = get_record_sql($db, "SELECT * FROM devices WHERE user_id=".$id);
+if ($device) { delete_device($db,$device->{'id'}); }
+#remove auth assign rules
+do_sql($db, "DELETE FROM auth_rules WHERE user_id=$id");
+return $changes;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub delete_device {
+my $db = shift;
+my $id = shift;
+#remove user record
+my $changes = delete_record($db, "devices", "id=" . $id);
+#if fail - exit
+if (!$changes) { return; }
+unbind_ports($db, $id);
+do_sql($db, "DELETE FROM connections WHERE device_id=" . $id);
+do_sql($db, "DELETE FROM device_l3_interfaces WHERE device_id=" . $id);
+do_sql($db, "DELETE FROM device_ports WHERE device_id=" . $id);
+do_sql($db, "DELETE FROM device_filter_instances WHERE device_id=" . $id);
+do_sql($db, "DELETE FROM gateway_subnets WHERE device_id=".$id);
+return $changes;
 }
 
 #---------------------------------------------------------------------------------------------------------------

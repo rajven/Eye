@@ -129,11 +129,10 @@ if ($dhcp_networks->match_string($row->{ip})) {
     my $clean_dhcp_time = $last_dhcp_time + 60*$dhcp_networks->match_string($row->{ip});
     if (time() - $clean_dhcp_time>0) {
         db_log_verbose($dbh,"Clean overdue dhcp leases for ip: $row->{ip} id: $row->{id} last dhcp: $row->{dhcp_time} clean time: ".GetTimeStrByUnixTime($clean_dhcp_time)." now: ".GetNowTime());
-#        do_sql($dbh,"DELETE FROM connections WHERE auth_id='".$row->{id}."'");
-        delete_record($dbh,"User_auth","id='".$row->{id}."'");
+        delete_user_auth($dbh,$row->{id});
         my $u_count=get_count_records($dbh,'User_auth','deleted=0 and user_id='.$row->{user_id});
         if (!$u_count) {
-                delete_record($dbh,"User_list","id=".$row->{'user_id'});
+                delete_user($dbh,$row->{'user_id'});
                 db_log_info($dbh,"Remove dynamic user id: $row->{'user_id'} by dhcp lease timeout");
                 }
         }
@@ -192,18 +191,8 @@ db_log_info($dbh,'Clearing empty user account and corresponded devices for dynam
 my $u_sql = "SELECT * FROM User_list as U WHERE (U.ou_id=".$default_hotspot_ou_id." OR U.ou_id=".$default_user_ou_id.") AND (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0";
 my @u_ref = get_records_sql($dbh,$u_sql);
 foreach my $row (@u_ref) {
-do_sql($dbh,"DELETE FROM User_list WHERE id='".$row->{id}."'");
 db_log_info($dbh,"Remove empty dynamic user with id: $row->{id} login: $row->{login}");
-#delete binded device
-my $user_device = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=".$row->{id});
-if ($user_device) {
-    db_log_info($dbh,"Remove corresponded device id: $user_device->{id} name: $user_device->{device_name}");
-    unbind_ports($dbh, $user_device->{id});
-    do_sql($dbh, "DELETE FROM connections WHERE device_id=".$user_device->{id});
-    do_sql($dbh, "DELETE FROM device_l3_interfaces WHERE device_id=".$user_device->{id});
-    do_sql($dbh, "DELETE FROM device_ports WHERE device_id=".$user_device->{id});
-    delete_record($dbh, "devices", "id=".$user_device->{id});
-    }
+delete_user($dbh,$row->{id});
 }
 
 ##### clean empty user account and corresponded devices ################
@@ -213,18 +202,8 @@ if ($config_ref{clean_empty_user}) {
     my $u_sql = "SELECT * FROM User_list as U WHERE (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0";
     my @u_ref = get_records_sql($dbh,$u_sql);
     foreach my $row (@u_ref) {
-        do_sql($dbh,"DELETE FROM User_list WHERE id='".$row->{id}."'");
         db_log_info($dbh,"Remove empty user with id: $row->{id} login: $row->{login}");
-        #delete binded device
-        my $user_device = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=".$row->{id});
-        if ($user_device) {
-            db_log_info($dbh,"Remove corresponded device id: $user_device->{id} name: $user_device->{device_name}");
-            unbind_ports($dbh, $user_device->{id});
-            do_sql($dbh, "DELETE FROM connections WHERE device_id=".$user_device->{id});
-            do_sql($dbh, "DELETE FROM device_l3_interfaces WHERE device_id=".$user_device->{id});
-            do_sql($dbh, "DELETE FROM device_ports WHERE device_id=".$user_device->{id});
-            delete_record($dbh, "devices", "id=".$user_device->{id});
-            }
+        delete_user($dbh,$row->{id});
         }
     }
 
