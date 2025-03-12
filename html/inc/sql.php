@@ -616,7 +616,7 @@ function delete_record($db, $table, $filter)
         if (!$sql_result) {
             LOG_ERROR($db, "UPDATE Request (from delete): " . mysqli_error($db));
             return;
-        }
+            }
         //dns
         if (!empty($old['dns_name']) and !empty($old['ip'])) {
             $del_dns['name_type'] = 'A';
@@ -625,13 +625,15 @@ function delete_record($db, $table, $filter)
             $del_dns['type'] = 'del';
             if (!empty($rec_id)) {
                 $del_dns['auth_id'] = $rec_id;
-            }
+                }
             insert_record($db, 'dns_queue', $del_dns);
+            }
+        LOG_VERBOSE($db, "Deleted FROM table $table WHERE $filter $changed_log");
+        return $changed_log;
         }
-    }
 
     //never delete permanent user
-    if ($table === 'User_list' and $old['permanent']) { $delete_it = 0; }
+    if ($table === 'User_list' and $old['permanent']) { return; }
 
     //remove aliases
     if ($table === 'User_auth_alias') {
