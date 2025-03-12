@@ -358,15 +358,12 @@ if (!$pid) {
                     if (time()-$d_time>60 and ($auth_ou_id == $default_user_ou_id or $auth_ou_id==$default_hotspot_ou_id)) {
                         db_log_info($hdb,"Remove user ip record by dhcp release event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
                         my $auth_rec;
-                        $auth_rec->{deleted}="1";
                         $auth_rec->{dhcp_action}=$type;
                         $auth_rec->{dhcp_time}=$dhcp_event_time;
                         update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
+                        delete_user_auth($hdb,$auth_id);
                         my $u_count=get_count_records($hdb,'User_auth','deleted=0 and user_id='.$auth_record->{'user_id'});
-                        if (!$u_count) {
-                                delete_record($hdb,"User_list","id=".$auth_record->{'user_id'});
-                                db_log_info($hdb,"Remove dynamic user id: $auth_record->{'user_id'} by dhcp request",$auth_id);
-                                }
+                        if (!$u_count) { delete_user($hdb,$auth_record->{'user_id'}); }
                         }
                     }
                 }
