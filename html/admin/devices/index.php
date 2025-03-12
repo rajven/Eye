@@ -11,14 +11,8 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 if (isset($_POST["remove_device"])) {
     $dev_ids = $_POST["fid"];
     foreach ($dev_ids as $key => $val) {
-        if ($val) {
-                unbind_ports($db_link, $val);
-                run_sql($db_link, "DELETE FROM connections WHERE device_id=".$val);
-                run_sql($db_link, "DELETE FROM device_l3_interfaces WHERE device_id=".$val);
-                run_sql($db_link, "DELETE FROM device_ports WHERE device_id=".$val);
-                delete_record($db_link, "devices", "id=".$val);
-                }
-            }
+        if ($val) { delete_device($db_link,$val); }
+        }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
     }

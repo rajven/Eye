@@ -80,6 +80,7 @@ if ($msg_error) {
         <tr><td><input type=checkbox class="putField" name="e_bind_mac" value='1'></td><td><?php print WEB_user_bind_mac."&nbsp";print_qa_select('a_bind_mac', 1);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_bind_ip" value='1'></td><td><?php print WEB_user_bind_ip."&nbsp";print_qa_select('a_bind_ip', 1);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_create_netdev" value='1'></td><td><?php print WEB_user_create_netdev."&nbsp";print_qa_select('a_create_netdev', 1);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_permanent" value='1'></td><td><?php print WEB_user_permanent."&nbsp";print_qa_select('a_permanent', 0);?></td></tr>
         </table>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
@@ -116,7 +117,7 @@ if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
-$sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month_quota, U.blocked FROM User_list U, OU O WHERE $filter ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
+$sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month_quota, U.blocked, U.permanent FROM User_list U, OU O WHERE $filter ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
 
 ?>
 
@@ -156,7 +157,9 @@ foreach ($users as $row) {
     }
     print "<tr align=center>\n";
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
-    print "<td class=\"$cl\">".$row['id']."</td>\n";
+    $cl_id = $cl;
+    if (!empty($row['permanent']) and $row['permanent'] == 1) { $cl_id = 'warn'; }
+    print "<td class=\"$cl_id\">".$row['id']."</td>\n";
     if (empty($row['login'])) { $row['login']=$row['id']; }
     print "<td class=\"$cl\" align=left><a href=edituser.php?id=".$row['id'].">" . $row['login'] . "</a></td>\n";
     print "<td class=\"$cl\">".$row['fio']."</td>\n";
@@ -185,6 +188,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td class="off"><?php echo WEB_color_user_disabled; ?></td>
 <td class="error"><?php echo WEB_color_user_blocked; ?></td>
 <td class="custom"><?php echo WEB_color_user_custom; ?></td>
+<td class="warn"><?php echo WEB_color_user_permanent; ?></td>
 </table>
 
 <script src="/js/remodal/remodal.min.js"></script>

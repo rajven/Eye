@@ -46,6 +46,10 @@ if (isset($_POST["ApplyForAll"])) {
         $_POST["a_create_netdev"] = 0;
     }
 
+    if (empty($_POST["a_permanent"])) {
+        $_POST["a_permanent"] = 0;
+    }
+
     $a_enabled       = $_POST["a_enabled"] * 1;
     $a_dhcp          = $_POST["a_dhcp"] * 1;
     $a_dhcp_acl      = $_POST["a_dhcp_acl"];
@@ -55,6 +59,7 @@ if (isset($_POST["ApplyForAll"])) {
     $a_day           = $_POST["a_day_q"] * 1;
     $a_month         = $_POST["a_month_q"] * 1;
     $a_ou_id         = $_POST["a_new_ou"] * 1;
+    $a_permanent     = $_POST["a_permanent"] * 1;
 
     $a_bind_mac      = $_POST["a_bind_mac"] * 1;
     $a_bind_ip       = $_POST["a_bind_ip"] * 1;
@@ -96,6 +101,10 @@ if (isset($_POST["ApplyForAll"])) {
             if (isset($_POST["e_new_ou"])) {
                 $user['ou_id'] = $a_ou_id;
                 $auth['ou_id'] = $a_ou_id;
+            }
+
+            if (isset($_POST["e_permanent"])) {
+                $user['permanent'] = $a_permanent;
             }
 
             $login = get_record($db_link, "User_list", "id='$val'");

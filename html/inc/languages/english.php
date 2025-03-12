@@ -72,6 +72,7 @@ define("WEB_color_user_blocked","Blocked by traffic");
 define("WEB_color_device_description","Device Status");
 define("WEB_color_user_empty","Login is empty");
 define("WEB_color_user_custom","Customised");
+define("WEB_color_user_permanent","Permanent");
 
 /* device and port state */
 define("WEB_device_online","Online");
