@@ -21,6 +21,8 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
     if (checkValidIp($ip)) {
         $ip_aton = ip2long($ip);
         $mac = mac_dotted($_POST["f_mac"]);
+
+
         //search mac
         $mac_exists = find_mac_in_subnet($db_link, $ip, $mac);
         if (isset($mac_exists) and $mac_exists['count'] >= 1 and !in_array($parent_id, $mac_exists['users_id'])) {
@@ -57,22 +59,38 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         $new['WikiName'] = $_POST["f_wiki"];
         $f_dnsname = trim($_POST["f_dns_name"]);
 
+        $dns_alias_count = get_count_records($db_link,'User_auth_alias','auth_id='.$id);
         if (!empty($f_dnsname)) {
             $domain_zone = get_option($db_link, 33);
             $f_dnsname = preg_replace('/'.$domain_zone.'/','',$f_dnsname);
             $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
             $f_dnsname = preg_replace('/\s+/','-',$f_dnsname);
             $f_dnsname = preg_replace('/\./','-',$f_dnsname);
-            if (checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) {
-                    $new['dns_name'] = $f_dnsname;
+            //disable change dns name when exists aliases
+            if ($dns_alias_count >0 and $f_dnsname !== $old_auth_info['dns_name']) {
+                $f_dnsname =  $old_auth_info['dns_name'];
                 } else {
-                    $msg_error = "DNS $f_dnsname already exists at: ".searchHostname($db_link,$id,$f_dnsname)." Discard changes!";
-                    $_SESSION[$page_url]['msg'] = $msg_error;
-                    LOG_ERROR($db_link, $msg_error);
-                    header("Location: " . $_SERVER["REQUEST_URI"]);
-                    exit;
+                if (checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) {
+                        $new['dns_name'] = $f_dnsname;
+                        } else {
+                        $msg_error = "DNS $f_dnsname already exists at: ".searchHostname($db_link,$id,$f_dnsname)." Discard changes!";
+                        $_SESSION[$page_url]['msg'] = $msg_error;
+                        LOG_ERROR($db_link, $msg_error);
+                        header("Location: " . $_SERVER["REQUEST_URI"]);
+                        exit;
+                        }
                 }
-            } else { $new['dns_name'] = ''; }
+            } else {
+            //remove all dns aliases
+            $new['dns_name'] = '';
+            $t_User_auth_alias = get_records($db_link,'User_auth_alias',"auth_id=$id ORDER BY alias");
+            if (!empty($t_User_auth_alias)) {
+                foreach ( $t_User_auth_alias as $row ) {
+                    LOG_INFO($db_link, "Remove alias id: ".$row['id']." for auth_id: $id :: ".dump_record($db_link,'User_auth_alias','id='.$row['id']));
+                    delete_record($db_link,'User_auth_alias','id='.$row['id']);
+                    }
+                }
+            }
 
         $new['save_traf'] = $_POST["f_save_traf"] * 1;
         $new['dhcp_acl'] = trim($_POST["f_acl"]);
