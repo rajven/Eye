@@ -21,9 +21,9 @@ function get_ifmib_index_table($ip, $snmp)
     }
 
     if ($mk_ros_version == 0 or $mk_ros_version > 6468) {
-        #fdb_index => snmp_index
+        //fdb_index => snmp_index
         $index_map_table = walk_snmp($ip, $snmp, IFMIB_IFINDEX_MAP);
-        #get map snmp interfaces to fdb table
+        //get map snmp interfaces to fdb table
         if (isset($index_map_table) and count($index_map_table) > 0) {
             foreach ($index_map_table as $key => $value) {
                 $key = trim($key);
@@ -37,9 +37,9 @@ function get_ifmib_index_table($ip, $snmp)
         }
     }
 
-    #return simple map snmp_port_index = snmp_port_index
+    //return simple map snmp_port_index = snmp_port_index
     if (empty($ifmib_map)) {
-        #ifindex
+        //ifindex
         $index_table = walk_snmp($ip, $snmp, IFMIB_IFINDEX);
         if (isset($index_table) and count($index_table) > 0) {
             foreach ($index_table as $key => $value) {
@@ -56,7 +56,7 @@ function get_ifmib_index_table($ip, $snmp)
     return $ifmib_map;
 }
 
-#get mac table by selected snmp oid
+//get mac table by selected snmp oid
 function get_mac_table($ip, $snmp, $oid, $index_map)
 {
     if (!isset($ip)) {
@@ -101,15 +101,15 @@ function get_mac_table($ip, $snmp, $oid, $index_map)
     return $fdb_table;
 }
 
-#get ip interfaces
+//get ip interfaces
 function getIpAdEntIfIndex($db, $ip, $snmp)
 {
     if (!isset($ip)) {
         return;
     }
-    #oid+ip = index
+    //oid+ip = index
     $ip_table = walk_snmp($ip, $snmp, ipAdEntIfIndex);
-    #oid+index=name
+    //oid+index=name
     $int_table = walk_snmp($ip, $snmp, ifDescr);
     $result = [];
     if (isset($ip_table) and gettype($ip_table) == 'array' and count($ip_table) > 0) {
@@ -144,7 +144,7 @@ function getIpAdEntIfIndex($db, $ip, $snmp)
     return $result;
 }
 
-#get mac table by analyze all available tables
+//get mac table by analyze all available tables
 function get_fdb_table($ip, $snmp)
 {
 
@@ -204,12 +204,12 @@ function check_snmp_access($ip, $snmp)
     if (!isset($ip)) {
         return;
     }
-    #check host up
+    //check host up
     $status = exec(escapeshellcmd("ping -W 1 -i 1 -c 3 " . $ip));
     if (empty($status)) {
         return;
     }
-    #check snmp
+    //check snmp
     $result = get_snmp($ip, $snmp, SYS_DESCR_MIB);
     if (empty($result)) {
         return;
@@ -312,7 +312,7 @@ function getSnmpAccess($device)
     $result['version']      = $device['snmp_version'];
     $result['ro-community'] = $device['community'];
     $result['rw-community'] = $device['rw_community'];
-    #snmpv3
+    //snmpv3
     $result['auth-proto']   = $device['snmp3_auth_proto'];
     $result['priv-proto']   = $device['snmp3_priv_proto'];
     $result['ro-user']      = $device['snmp3_user_ro'];
@@ -543,7 +543,7 @@ function get_sfp_status($vendor_id, $port, $ip, $snmp, $modules_oids)
                     }
                     //                if (isset($sfp_speed)) { $status .= ' ' . $sfp_speed; }
                     //                if (isset($spf_lenght)) { $status .= ' ' . $spf_lenght; }
-                    if (abs($volt) > 0) {
+                    if (abs($volt) > 1) {
                         $status .= ' Volt: ' . round($volt / 1000, 2) . ' V';
                     }
                     if (!empty($circut) and abs($circut) > 0) {
@@ -577,7 +577,7 @@ function get_sfp_status($vendor_id, $port, $ip, $snmp, $modules_oids)
                     break;
                 }
             }
-            if (isset($status)) {
+            if (!empty($status)) {
                 $status = preg_replace('/"/', '', $status);
                 $status .= '<br>';
             }
@@ -1523,7 +1523,7 @@ function get_snmp($ip, $snmp, $oid)
             $result = NULL;
         }
     } catch (Exception $e) {
-        #	echo 'Caught exception: ',  $e->getMessage(), "\n";
+        //	echo 'Caught exception: ',  $e->getMessage(), "\n";
         $result = NULL;
     }
     return $result;
@@ -1544,7 +1544,7 @@ function set_snmp($ip, $snmp, $oid, $field, $value)
             $result = snmpset($ip, $snmp["rw-community"], $oid, $field, $value, SNMP_timeout, SNMP_retry);
         }
     } catch (Exception $e) {
-        #	echo 'Caught exception: ',  $e->getMessage(), "\n";
+        //	echo 'Caught exception: ',  $e->getMessage(), "\n";
         $result = false;
     }
     return $result;
