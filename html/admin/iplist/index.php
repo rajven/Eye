@@ -53,7 +53,7 @@ $_SESSION[$page_url]['ip']=$f_ip;
 $ip_list_type_filter='';
 if ($ip_type>0) {
     //suspicious - dhcp not found 3 last days
-    if ($ip_type===3) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('add', 'old', 'del') and (ABS(User_auth.dhcp_time - User_auth.last_found)>259200) and (UNIX_TIMESTAMP()-User_auth.last_found)<259200)"; }
+    if ($ip_type===3) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('add', 'old', 'del') and (ABS(User_auth.dhcp_time - User_auth.arp_found)>259200) and (UNIX_TIMESTAMP()-User_auth.arp_found)<259200)"; }
     //dhcp
     if ($ip_type===2) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('add', 'old', 'del'))"; }
     //static
@@ -200,7 +200,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
                 <td align=Center><?php print WEB_cell_traf; ?></td>
                 <td align=Center><?php print WEB_cell_dhcp; ?></td>
                 <td align=Center><?php print WEB_cell_acl; ?></td>
-                <td align=Center><?php print $sort_url . "&sort=last_found&order=$new_order>Last</a>"; ?></td>
+                <td align=Center><?php print $sort_url . "&sort=arp_found&order=$new_order>Last</a>"; ?></td>
                 <td align=Center><?php print WEB_cell_connection; ?></td>
         </tr>
 <?php
@@ -222,6 +222,7 @@ foreach ($users as $user) {
         $dhcp_str = $user['dhcp_time'] . " (" . $user['dhcp_action'] . ")";
     }
     if ($user['last_found'] == '0000-00-00 00:00:00') { $user['last_found'] = ''; }
+    if ($user['arp_found'] == '0000-00-00 00:00:00') { $user['arp_found'] = ''; }
     print "<tr align=center>\n";
     $cl = "data";
     if (!$user['enabled']) { $cl = "warn"; }
@@ -243,7 +244,11 @@ foreach ($users as $user) {
     print_td_qa($user['save_traf'],FALSE,$cl);
     print_td_qa($user['dhcp'],FALSE,$cl);
     print "<td class=\"$cl\" >".$user['dhcp_acl']."</td>\n";
-    print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
+    if (empty($user['arp_found'])) {
+        print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
+        } else {
+        print "<td class=\"$cl\" >".$user['arp_found']."</td>\n";
+        }
     print "<td class=\"$cl\" >" . get_connection($db_link, $user['id']) . "</td>\n";
     print "</tr>\n";
 }
