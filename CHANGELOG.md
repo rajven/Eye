@@ -1,5 +1,6 @@
 # Changelog 2.7.7
 
+- added comment for user auto rules (6f111ca)
 - we update the device's management address when the associated authorization record changes. (92e9f4e)
 - added sort device list by ip as ip-address, not string (e44f605)
 - fixed sfp snmp status for port without snmp (41c74cc)
@@ -20,7 +21,6 @@
 - hide dhcp timestamp if action is empty (96f841a)
 - added install libcrypt-rijndael-perl to manual (dc0ec8c)
 - optimized snmp collector (abe0374)
-- cosmetic changes (3572af6)
 - changed log level warning messages from collector to debug removed No state for switchport status page (d63e210)
 - optimized: prepare router traffic detailization data only if traffic retention is enabled globally (61e23a0)
 - bugfix: fixed the immediate update of the dhcp server configuration. bugfix: fixed name sessionsclean-fpm -> sessionclean-fpm bugfix: fixed readme for usage php-fpm bugfix: fixed perl scripts for hide utf-8 warnings changed: all Eye subsystem perl daemons run from user eye (f868cce)
@@ -43,6 +43,9 @@
 - set minmal length for snmp v3 password to 8 (df41423)
 - added snmpv3 to web (f65466d)
 - added support snmpv3 to perl backend (cfb1d63)
+
+# Changelog 2.7.0
+
 - log entry of Martian packets (not belonging to office networks, but passing through the router) (078c2ad)
 - bugfix: fixed lifetime of collector state variables (eb795c8)
 - bugfix: fixed editing of user bindings to mac or address (3cc7b44)
@@ -78,6 +81,9 @@
 - bugfix: fixed mass change device models (e0e046c)
 - we always update the vlan membership for the port when snmp is available (a898d04)
 - The address and port comments are combined in the output of the switch ports (73160f2)
+
+# Changelog 2.6.3
+
 - fixed display poe status for sfp port at poe device (1265710)
 - set poe fields variables as array (4b956f9)
 - set default false for poe fields device models (a067d35)
