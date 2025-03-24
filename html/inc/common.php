@@ -1429,7 +1429,7 @@ function compact_port_name($port)
 
 function print_device_port_select($db, $field_name, $device_id, $target_id)
 {
-    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\">\n";
+    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
     if (empty($target_id)) {
         $target_id = 0;
     }
@@ -1474,7 +1474,7 @@ function print_netdevice_select($db, $field_name, $device_id)
 
 function print_vlan_select($db, $field_name, $vlan)
 {
-    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\">\n";
+    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" style=\"width: 100px;\" >\n";
     $d_sql = "SELECT DISTINCT vlan FROM device_ports ORDER BY vlan DESC";
     $v_device = mysqli_query($db, $d_sql);
     if (!isset($vlan) or empty($vlan)) {

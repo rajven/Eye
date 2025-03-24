@@ -2,7 +2,7 @@
 
 if (!defined("CONFIG")) die("Not defined");
 
-$datetime_start = DateTime::createFromFormat("Y-m-d 00:00:00",date("Y-m-d"));
+$datetime_start = DateTime::createFromFormat("Y-m-d 00:00:00",date("Y-m-d").' 00:00:00');
 
 if (empty($default_date_shift)) { $default_date_shift='h'; }
 

@@ -40,16 +40,18 @@ print_log_submenu($page_url);
 <div id="contsubmenu">
 
 <form action="<?php print $page_url; ?>" method="post">
-<input type="hidden" name="id" value=<?php echo $id; ?>>
-<?php echo WEB_cell_ip; ?>:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
+<input type="hidden" name="id" value="<?php echo $id; ?>">
 <?php echo WEB_log_start_date; ?>:&nbsp<input type="datetime-local" name="date_start" value="<?php echo $date1; ?>" />
 <?php echo WEB_log_stop_date; ?>:&nbsp<input type="datetime-local" name="date_stop" value="<?php echo $date2; ?>" />
 <?php echo WEB_cell_gateway; ?>:&nbsp <?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
 DNS:&nbsp <input type=checkbox name=dns value="1" <?php print $dns_checked; ?>>
 <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+<div><br>
+<?php echo WEB_cell_ip; ?>:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$">
 <input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
 
+<div><br>
 <b><?php echo WEB_log_full; ?></b>
 
 <?php

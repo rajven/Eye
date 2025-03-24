@@ -4,6 +4,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $default_date_shift='d';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datefilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
 
 if (isset($_POST['dhcp_show'])) { $f_dhcp = $_POST['dhcp_show']; }
     else {
@@ -20,6 +21,11 @@ $_SESSION[$page_url]['ip']=$f_ip;
 $dhcp_where = '';
 if ($f_dhcp != 'all') { $dhcp_where = " and action='$f_dhcp' "; }
 
+if (empty($rcidr)) { $cidr_filter = ''; } else {
+    $cidr_range = cidrToRange($rcidr);
+    if (!empty($cidr_range)) { $cidr_filter = " and (ip_int>=".ip2long($cidr_range[0])." and ip_int<=".ip2long($cidr_range[1]).")"; }
+    }
+
 if (!empty($f_ip)) {
     if (checkValidIp($f_ip)) { 
         $dhcp_where = " and ip_int=inet_aton('" . $f_ip . "') "; 
@@ -30,7 +36,10 @@ if (!empty($f_ip)) {
         }
     }
 
+$dhcp_where .= $cidr_filter;
+
 print_log_submenu($page_url);
+
 
 ?>
 
@@ -39,10 +48,13 @@ print_log_submenu($page_url);
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
   <?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
   <?php echo WEB_log_stop_date; ?>:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
-  <?php echo WEB_log_event_type; ?>:&nbsp<?php print_dhcp_select('dhcp_show', $f_dhcp); ?>
-  <?php echo WEB_log_select_ip_mac; ?>:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" />
   <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+<div><br>
+  <?php echo WEB_network_subnet; ?>:&nbsp<?php print_subnet_select_office_splitted($db_link, 'cidr', $rcidr); ?>
+  <?php echo WEB_log_event_type; ?>:&nbsp<?php print_dhcp_select('dhcp_show', $f_dhcp); ?>
   <input type="submit" value="<?php echo WEB_btn_show; ?>">
+<div><br>
+  <?php echo WEB_log_select_ip_mac; ?>:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" />
 </form>
 
 <?php
