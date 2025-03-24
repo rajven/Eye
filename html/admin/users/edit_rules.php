@@ -30,10 +30,11 @@ if (isset($_POST['s_save'])) {
             if (intval($_POST['n_id'][$j]) != $save_id) { continue; }
             $new['type'] = $_POST['s_type'][$j]*1;
             $new['rule'] = trim($_POST['s_rule'][$j]);
+            $new['comment'] = trim($_POST['s_comment'][$j]);
             if ($new['type'] ==2) {
                 $new['rule'] = mac_dotted($new['rule']);
                 }
-	    update_auth_rule($db_link,$new['rule'],$new['type'],$save_id);
+	    update_auth_rule($db_link,$new,$save_id);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -69,6 +70,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
     <td width=30><b>id</b></td>
     <td><b><?php echo WEB_cell_type; ?></b></td>
     <td><b><?php echo WEB_ou_rule; ?></b></td>
+    <td><b><?php echo WEB_cell_comment; ?></b></td>
     <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="s_remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
@@ -79,6 +81,7 @@ foreach ( $t_auth_rules as $row ) {
     print "<td class=\"data\"><input type=\"hidden\" name='n_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\">"; print_qa_rule_select("s_type[]","{$row['type']}"); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_rule[]' value='{$row['rule']}'></td>\n";
+    print "<td class=\"data\"><input type=\"text\" name='s_comment[]' value='{$row['comment']}'></td>\n";
     print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
     print "</tr>\n";
 }

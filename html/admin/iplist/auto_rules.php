@@ -77,7 +77,8 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b><?php echo WEB_cell_type; ?></b></td>
 <td><b><?php echo WEB_ou_rule; ?></b></td>
-<td><b><?php echo WEB_rules_target; ?></b></td>
+<td colspan=2><b><?php echo WEB_rules_target; ?></b></td>
+<td><b><?php echo WEB_cell_comment; ?></b></td>
 <td align=right><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="removeRule" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
@@ -102,6 +103,7 @@ foreach ( $t_auth_rules as $row ) {
 	if (!empty($ou_info)) { print "Group: &nbsp"; print_url($ou_info['ou_name'],'/admin/groups/edit_group.php?id='.$ou_info['id']); }
 	}
     print "</td>";
+    print "<td class=\"data\" colspan=2>".$row['comment']."</td>\n";
     print "</tr>\n";
 }
 ?>
