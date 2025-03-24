@@ -194,7 +194,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             print_td_yes($row['uplink'],FALSE,$cl);
             print_td_yes($row['nagios'],FALSE,$cl);
             print_td_yes($row['skip'],FALSE,$cl);
-            $poe_info = "POE:None";
+            $poe_info = "";
 
             $ifname = $row['ifName'];
 

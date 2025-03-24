@@ -38,7 +38,7 @@ if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field
 <td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b><a href=index.php?sort=device_type&order=<?php print $new_order; ?>><?php echo WEB_cell_type; ?></a></b></td>
 <td><b><a href=index.php?sort=device_name&order=<?php print $new_order; ?>><?php echo WEB_cell_name; ?></a></b></td>
-<td><b><a href=index.php?sort=ip&order=<?php print $new_order; ?>><?php echo WEB_cell_ip; ?></a></b></td>
+<td><b><a href=index.php?sort=ip_int&order=<?php print $new_order; ?>><?php echo WEB_cell_ip; ?></a></b></td>
 <td><b><a href=index.php?sort=device_model_id&order=<?php print $new_order; ?>><?php echo WEB_cell_host_model; ?></a></b></td>
 <td><b><a href=index.php?sort=building_id&order=<?php print $new_order; ?>><?php echo WEB_location_name; ?></a></b></td>
 <td><b><?php echo WEB_device_port_count; ?></b></td>

@@ -95,6 +95,7 @@ if (isset($_POST["showDevice"])) {
         $new['device_name'] = $user_info['login'];
         $new['device_type'] = 5;
         $new['ip'] = $auth['ip'];
+        $new['ip_int'] = $auth['ip_int'];
         $new['community'] = get_const('snmp_default_community');
         $new['snmp_version'] = get_const('snmp_default_version');
         $new['login'] = get_option($db_link, 28);

@@ -40,6 +40,7 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     unset($new);
     if (isset($_POST["f_ip"])) {
         $new['ip'] = $_POST["f_ip"];
+        $new['ip_int'] = ip2long($new['ip']);
     }
     $cur_device = get_record_sql($db_link, "SELECT * FROM devices WHERE id=" . $id);
     //main device info
