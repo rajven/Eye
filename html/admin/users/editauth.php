@@ -21,8 +21,6 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
     if (checkValidIp($ip)) {
         $ip_aton = ip2long($ip);
         $mac = mac_dotted($_POST["f_mac"]);
-
-
         //search mac
         $mac_exists = find_mac_in_subnet($db_link, $ip, $mac);
         if (isset($mac_exists) and $mac_exists['count'] >= 1 and !in_array($parent_id, $mac_exists['users_id'])) {
@@ -51,6 +49,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             header("Location: " . $_SERVER["REQUEST_URI"]);
             exit;
         }
+
         $new['ip'] = $ip;
         $new['ou_id'] = $parent_ou_id;
         $new['ip_int'] = $ip_aton;
@@ -58,6 +57,14 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         $new['comments'] = $_POST["f_comments"];
         $new['WikiName'] = $_POST["f_wiki"];
         $f_dnsname = trim($_POST["f_dns_name"]);
+
+        //update device managment ip
+        $device = get_record_sql($db_link,"SELECT * FROM devices WHERE ip_int=".$old_auth_info['ip_int']);
+        if (!empty($device)) {
+            $dev['ip'] = $ip;
+            $dev['ip_int']=$ip_aton;
+            update_record($db_link,"devices","id=".$device['id'],$dev);
+            }
 
         $dns_alias_count = get_count_records($db_link,'User_auth_alias','auth_id='.$id);
         if (!empty($f_dnsname)) {
