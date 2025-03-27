@@ -192,7 +192,7 @@ next if ($fact_connected_nets->match_string($gw_subnet));
 push(@relayed_subnets,$gw_subnet);
 }
 
-if (scalar @relayed_subnets) {
+if (scalar @relayed_subnets and $relayed_dhcp_interface) {
     my $dhcp_state;
     $dhcp_state->{interface} = $relayed_dhcp_interface;
     $dhcp_state->{subnet} = join(",",@relayed_subnets);
@@ -228,6 +228,7 @@ if ($str=~/^\d/) {
 my @auth_records=();
 foreach my $dhcp_subnet (@dhcp_subnets) {
     next if (!$dhcp_subnet);
+    next if (!exists $dhcp_conf{$dhcp_subnet});
     my @tmp1=get_records_sql($dbh,"SELECT * from User_auth WHERE dhcp=1 and `ip_int`>=".$dhcp_conf{$dhcp_subnet}->{first_ip_aton}." and `ip_int`<=".$dhcp_conf{$dhcp_subnet}->{last_ip_aton}." and deleted=0 and ou_id !=".$default_user_ou_id." and ou_id !=".$default_hotspot_ou_id." ORDER BY ip_int");
     push(@auth_records,@tmp1);
     undef @tmp1;

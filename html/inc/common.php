@@ -1946,8 +1946,12 @@ function apply_auth_rule($db, $auth_record, $user_id)
 function fix_auth_rules($db)
 {
     //cleanup hotspot subnet rules
-    delete_record($db, "auth_rules", "ou_id=" . get_const('default_user_ou_id'));
-    delete_record($db, "auth_rules", "ou_id=" . get_const('default_hotspot_ou_id'));
+    $t_hotspot = get_records_sql($db, "SELECT * FROM `OU` WHERE default_users=1 or default_hotspot=1");
+    if (!empty($t_hotspot)) {
+        foreach ($t_hotspot as $row) {
+            delete_record($db, "auth_rules", "ou_id='" . $row['id'] . "'");
+        }
+    }
     $t_hotspot = get_records_sql($db, "SELECT * FROM subnets WHERE hotspot=1");
     if (!empty($t_hotspot)) {
         foreach ($t_hotspot as $row) {

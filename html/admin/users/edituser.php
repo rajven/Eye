@@ -402,6 +402,7 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     $cl = "data_green";
                     if (!$row["dhcp"]) { $cl = "data_red"; }
                     print "<td class=\"$cl\" >" . get_qa($row["dhcp"]);
+                    if (!empty($row["dhcp_acl"])) { print "<p class='timestamp'>".$row["dhcp_acl"]. "</p>"; }
                     if (!empty($dhcp_str)) { print "<p class='timestamp'>".$dhcp_str. "</p>"; }
                     print "</td>";
 

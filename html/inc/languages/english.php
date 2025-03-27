@@ -269,6 +269,8 @@ define("WEB_btn_apply_selected","Apply for selected");
 define("WEB_btn_save_filters","Save filters");
 define("WEB_btn_on","On");
 define("WEB_btn_off","Off");
+define("WEB_btn_auto_clean","Auto clean");
+define("WEB_btn_auto_mark","Mark old");
 
 /* control options */
 define("WEB_config_remove_option","Parameter removed");

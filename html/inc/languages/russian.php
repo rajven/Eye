@@ -269,6 +269,8 @@ define("WEB_btn_apply_selected","Поменять у выделения");
 define("WEB_btn_save_filters","Сохранить фильтры");
 define("WEB_btn_on","Включить");
 define("WEB_btn_off","Выключить");
+define("WEB_btn_auto_clean","АвтоОчистка");
+define("WEB_btn_auto_mark","Выбрать старые");
 
 /* control options */
 define("WEB_config_remove_option","Удалён параметр");
