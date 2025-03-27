@@ -131,4 +131,3 @@ print "</table>\n";
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>
-uh
