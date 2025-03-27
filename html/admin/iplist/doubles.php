@@ -83,7 +83,7 @@ foreach ($users as $row) {
             if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
                 print "<td class=\"$cl\" >".$user['comments']." [" . $user['dhcp_hostname'] . "]</td>\n";
                 } else {
-                print "<td class=\"$cl\" >".$user['comments']." $f_index => $f_count </td>\n";
+                print "<td class=\"$cl\" >".$user['comments']."</td>\n";
                 }
             print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
             print "<td class=\"$cl\" >".$user['timestamp']."</td>\n";
@@ -107,7 +107,7 @@ foreach ($users as $row) {
             print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
             print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
             if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
-                print "<td class=\"$cl\" >".$user['comments']." [" . $user['dhcp_hostname'] . "] $f_index => $f_count </td>\n";
+                print "<td class=\"$cl\" >".$user['comments']." [" . $user['dhcp_hostname'] . "]</td>\n";
                 } else {
                 print "<td class=\"$cl\" >".$user['comments']."</td>\n";
                 }
