@@ -25,6 +25,13 @@ use POSIX;
 use Net::Netmask;
 use Text::Iconv;
 use File::Tail;
+use Fcntl qw(:flock);
+
+open(SELF,"<",$0) or die "Cannot open $0 - $!";
+flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
+
+setpriority(0,0,19);
+
 
 my $mute_time=300;
 
@@ -346,15 +353,18 @@ if (!$pid) {
             if ($type=~/del/i and $auth_id) {
                 if ($auth_record->{dhcp_time} =~ /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})/) {
                     my $d_time = mktime($6,$5,$4,$3,$2-1,$1-1900);
-                    if (time()-$d_time>60 and ($auth_ou_id == $default_user_ou_id or $auth_ou_id==$default_hotspot_ou_id)) {
+                    if (time()-$d_time>60 and (is_dynamic_ou($hdb,$auth_ou_id) or is_default_ou($hdb,$auth_ou_id))) {
                         db_log_info($hdb,"Remove user ip record by dhcp release event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
                         my $auth_rec;
                         $auth_rec->{dhcp_action}=$type;
                         $auth_rec->{dhcp_time}=$dhcp_event_time;
                         update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
-                        delete_user_auth($hdb,$auth_id);
-                        my $u_count=get_count_records($hdb,'User_auth','deleted=0 and user_id='.$auth_record->{'user_id'});
-                        if (!$u_count) { delete_user($hdb,$auth_record->{'user_id'}); }
+                        #remove user auth record if it belongs to the default pool or it is dynamic
+                        if (is_default_ou($hdb,$auth_ou_id) or (is_dynamic_ou($hdb,$auth_ou_id) and $auth_record->{dynamic})) {
+                                delete_user_auth($hdb,$auth_id);
+                                my $u_count=get_count_records($hdb,'User_auth','deleted=0 and user_id='.$auth_record->{'user_id'});
+                                if (!$u_count) { delete_user($hdb,$auth_record->{'user_id'}); }
+                                }
                         }
                     }
                 }

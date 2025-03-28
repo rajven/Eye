@@ -64,6 +64,10 @@ new_auth
 StrToIp
 get_first_line
 is_ad_computer
+get_dynamic_ou
+is_dynamic_ou
+get_default_ou
+is_default_ou
 update_dns_record
 update_dns_record_by_dhcp
 create_dns_cname
@@ -1927,6 +1931,51 @@ push(@all_network_list,$net->{subnet});
 $all_networks->add_string($net->{subnet},$net);
 }
 
+}
+
+#--------------------------------------------------------------------------------------------------------------
+
+sub get_dynamic_ou {
+my $db = shift;
+my @dynamic=();
+my @ou_list = get_records_sql($db,"SELECT id FROM OU WHERE dynamic = 1");
+foreach my $group (@ou_list) {
+    next if (!$group);
+    push(@dynamic,$group->{id});
+    }
+return wantarray ? @dynamic : \@dynamic;
+}
+
+#--------------------------------------------------------------------------------------------------------------
+
+sub get_default_ou {
+my $db = shift;
+my @dynamic=();
+my $ou = get_record_sql($db,"SELECT id FROM OU WHERE default_users = 1");
+if (!$ou) { push(@dynamic,0); } else { push(@dynamic,$ou->{'id'}); }
+$ou = get_record_sql($db,"SELECT id FROM OU WHERE default_hotspot = 1");
+if ($ou) { push(@dynamic,$ou->{id}); }
+return wantarray ? @dynamic : \@dynamic;
+}
+
+#--------------------------------------------------------------------------------------------------------------
+
+sub is_dynamic_ou {
+my $db = shift;
+my $ou_id = shift;
+my @dynamic=get_dynamic_ou($db);
+if (in_array(\@dynamic,$ou_id)) { return 1; }
+return 0;
+}
+
+#--------------------------------------------------------------------------------------------------------------
+
+sub is_default_ou {
+my $db = shift;
+my $ou_id = shift;
+my @dynamic=get_default_ou($db);
+if (in_array(\@dynamic,$ou_id)) { return 1; }
+return 0;
 }
 
 #---------------------------------------------------------------------------------------------------------------
