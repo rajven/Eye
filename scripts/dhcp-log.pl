@@ -184,7 +184,7 @@ if (!$pid) {
 
             #if record not found - create it
             if (!$auth_record and $type=~/(add|old)/i) {
-                    db_log_warning($hdb,"Record for dhcp request type: ".$type." ip=".$dhcp_record->{ip}." and mac=".$mac." does not exists!");
+#                    db_log_warning($hdb,"Record for dhcp request type: ".$type." ip=".$dhcp_record->{ip}." and mac=".$mac." does not exists!");
                     my $res_id = resurrection_auth($hdb,$dhcp_record);
                     if (!$res_id) {
                         db_log_error($hdb,"Error creating an ip address record for ip=".$dhcp_record->{ip}." and mac=".$mac."!");
