@@ -120,8 +120,10 @@ if (!$pid) {
             next if (!$type);
             next if ($type!~/(old|add|del)/i);
 
+            #mute doubles
             if (exists $leases{$ip} and $leases{$ip}{'type'} eq $type and time()-$leases{$ip}{'last_time'} <= $mute_time) { next; }
 
+            #update config variables every 1 minute
             if (time()-$last_refresh_config>=60) { init_option($hdb); }
 
             my $client_hostname='';
@@ -164,27 +166,17 @@ if (!$pid) {
             #save record for mute
             $leases{$ip}=$dhcp_record;
 
+            #search actual record
             my $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
 
-            if (!$auth_record and $type eq 'old' ) { $type='add'; }
-
-            if ($type eq 'add') {
-                    my $res_id = resurrection_auth($hdb,$dhcp_record);
-                    if (!$res_id) {
-                        db_log_error($hdb,"Error creating an ip address record for ip=".$dhcp_record->{ip}." and mac=".$mac."!");
-                        next;
-                        }
-                    $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE id='.$res_id);
-                    db_log_info($hdb,"Check for new auth. Found id: $res_id",$res_id);
-                } else {
-                    $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
+            #if record not found and type del => next event
+            if (!$type) { next; }
+            if (!$auth_record and $type eq 'del') {
+                next;
                 }
 
-            #create new record for refresh dhcp packet
-            if (!$auth_record) {
-                #don't create record by del request!
-                #because when the host address is changed, the new address will be overwritten by the old one being released
-                if ($type=~/old/i) {
+            #if record not found - create it
+            if (!$auth_record and $type=~/(add|old)/i) {
                     db_log_warning($hdb,"Record for dhcp request type: ".$type." ip=".$dhcp_record->{ip}." and mac=".$mac." does not exists!");
                     my $res_id = resurrection_auth($hdb,$dhcp_record);
                     if (!$res_id) {
@@ -193,7 +185,6 @@ if (!$pid) {
                         }
                     $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE id='.$res_id);
                     db_log_info($hdb,"Check for new auth. Found id: $res_id",$res_id);
-                    } else { next; }
                 }
 
             my $auth_id = $auth_record->{id};
