@@ -55,10 +55,10 @@ if (isset($_POST["edituser"])) {
 
 if (isset($_POST["addMacRule"])) {
     unset($new);
-    $first_auth = get_record_sql($db_link, "SELECT mac FROM User_auth WHERE user_id=" . $id . " AND deleted=0 AND LENGTH(mac)>0 ORDER BY id");
-    if (!empty($first_auth) and !empty($first_auth['mac'])) {
-        add_auth_rule($db_link, $first_auth['mac'], 2, $id);
-    }
+    $first_auth = get_records_sql($db_link, "SELECT mac FROM User_auth WHERE user_id=" . $id . " AND deleted=0 AND LENGTH(mac)>0 ORDER BY id");
+    foreach ($first_auth as $row) {
+        if (!empty($row['mac'])) { add_auth_rule($db_link, $row['mac'], 2, $id); }
+        }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -72,10 +72,10 @@ if (isset($_POST["delMacRule"])) {
 
 if (isset($_POST["addIPRule"])) {
     unset($new);
-    $first_auth = get_record_sql($db_link, "SELECT ip FROM User_auth WHERE user_id=" . $id . " AND deleted=0 AND LENGTH(ip)>0 ORDER BY id");
-    if (!empty($first_auth) and !empty($first_auth['ip'])) {
-        add_auth_rule($db_link, $first_auth['ip'], 1, $id);
-    }
+    $first_auth = get_records_sql($db_link, "SELECT ip FROM User_auth WHERE user_id=" . $id . " AND deleted=0 AND LENGTH(ip)>0 ORDER BY id");
+    foreach ($first_auth as $row) {
+        if (!empty($row['ip'])) { add_auth_rule($db_link, $row['ip'], 1, $id); }
+        }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
