@@ -246,7 +246,7 @@ if ($debug_history) {
     my $clean_date = $now - $day_dur;
     my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
     db_log_info($dbh,"Clean debug worklog older that ".$clean_str);
-    do_sql($dbh,"DELETE FROM worklog WHERE level>$L_DEBUG AND `timestamp` < $clean_str" );
+    do_sql($dbh,"DELETE FROM worklog WHERE level>=$L_DEBUG AND `timestamp` < $clean_str" );
 }
 
 ##### remote syslog  ######
