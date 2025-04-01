@@ -2238,13 +2238,10 @@ function add_auth_rule($db, $rule, $type, $user_id)
         $rule_id = insert_record($db, "auth_rules", $new);
         LOG_INFO($db, "Create auto rule for user_id: " . $user_id . " rule: " . $rule . " type: " . $type);
     } else {
-        if ($auth_rules['user_id'] === $user_id) {
-            $rule_id = update_record($db, "auth_rules", "id=" . $auth_rules['id'], $new);
-            LOG_INFO($db, "Replaced auto rule for user_id: " . $user_id . " rule: " . $rule . " type: " . $type);
-        } else {
+        if ($auth_rules['user_id'] !== $user_id) {
             LOG_WARNING($db, "Create auto rule for user_id: " . $user_id . " rule: " . $rule . " type: " . $type . " failed! Already exists at user_id: " . $auth_rules['user_id']);
             $rule_id = 0;
-        }
+            } else { $rule_id =  $auth_rules['id']; }
     }
     return $rule_id;
 }
