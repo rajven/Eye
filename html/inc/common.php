@@ -2960,6 +2960,11 @@ function get_new_user_id($db, $ip, $mac, $hostname)
     $result['ou_id'] = NULL;
     $ip_aton = ip2long($ip);
 
+    if (is_hotspot($db, $ip)) {
+            $result['ou_id'] = get_const('default_hotspot_ou_id');
+            return $result;
+        }
+
     //personal user rules
     //ip
     if (!empty($ip)) {
@@ -2967,6 +2972,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
         foreach ($t_rules as $row) {
             if (!empty($row['rule']) and is_subnet_aton($row['rule'], $ip_aton)) {
                 $result['user_id'] = $row['user_id'];
+                return $result;
             }
         }
     }
@@ -2977,6 +2983,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
             $pattern = '/' . mac_simplify($row['rule']) . '/';
             if (!empty($row['rule']) and preg_match($pattern, mac_simplify($mac))) {
                 $result['user_id'] = $row['user_id'];
+                return $result;
             }
         }
     }
@@ -2986,24 +2993,19 @@ function get_new_user_id($db, $ip, $mac, $hostname)
         foreach ($mac_rules as $row) {
             if (!empty($row['rule']) and preg_match($row['rule'], $hostname)) {
                 $result['user_id'] = $row['user_id'];
+                return $result;
             }
         }
-    }
-
-    if (!empty($result['user_id'])) {
-        return $result;
     }
 
     //ou rules
     //ip
     if (!empty($ip)) {
-        if (is_hotspot($db, $ip)) {
-            $result['ou_id'] = get_const('default_hotspot_ou_id');
-        }
         $t_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND ou_id IS NOT NULL");
         foreach ($t_rules as $row) {
             if (!empty($row['rule']) and is_subnet_aton($row['rule'], $ip_aton)) {
                 $result['ou_id'] = $row['ou_id'];
+                return $result;
             }
         }
     }
@@ -3014,6 +3016,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
             $pattern = '/' . mac_simplify($row['rule']) . '/';
             if (!empty($row['rule']) and preg_match($pattern, mac_simplify($mac))) {
                 $result['ou_id'] = $row['ou_id'];
+                return $result;
             }
         }
     }
@@ -3023,6 +3026,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
         foreach ($mac_rules as $row) {
             if (!empty($row['rule']) and preg_match($row['rule'], $hostname)) {
                 $result['ou_id'] = $row['ou_id'];
+                return $result;
             }
         }
     }

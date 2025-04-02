@@ -799,13 +799,19 @@ $result->{dhcp_hostname} = $hostname;
 $result->{ou_id}=undef;
 $result->{user_id}=undef;
 
+my $hotspot_users = new Net::Patricia;
+#check hotspot
+my @hotspot_rules = get_records_sql($db,'SELECT * FROM subnets WHERE hotspot=1 AND LENGTH(subnet)>0');
+foreach my $row (@hotspot_rules) { $hotspot_users->add_string($row->{subnet},$default_hotspot_ou_id); }
+if ($hotspot_users->match_string($ip)) { $result->{ou_id}=$hotspot_users->match_string($ip); return $result; }
+
 #check ip
 if (defined $ip and $ip) {
     my $users = new Net::Patricia;
     #check ip rules
     my @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND user_id IS NOT NULL');
     foreach my $row (@ip_rules) { eval { $users->add_string($row->{rule},$row->{user_id}); }; }
-    if ($users->match_string($ip)) { $result->{user_id}=$users->match_string($ip); }
+    if ($users->match_string($ip)) { $result->{user_id}=$users->match_string($ip); return $result; }
     }
 
 #check mac
@@ -813,33 +819,26 @@ if (defined $mac and $mac) {
     my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0 AND user_id IS NOT NULL');
     foreach my $user (@user_rules) {
 	my $rule = mac_simplify($user->{rule});
-        if ($mac=~/$rule/i) { $result->{user_id}=$user->{user_id}; }
+        if ($mac=~/$rule/i) { $result->{user_id}=$user->{user_id}; return $result; }
         }
     }
 #check hostname
 if (defined $hostname and $hostname) {
     my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0 AND user_id IS NOT NULL');
     foreach my $user (@user_rules) {
-        if ($hostname=~/$user->{rule}/i) { $result->{user_id}=$user->{user_id}; }
+        if ($hostname=~/$user->{rule}/i) { $result->{user_id}=$user->{user_id}; return $result; }
         }
     }
-
-#
-if ($result->{user_id}) { return $result; }
 
 #check ou rules
 
 #check ip
 if (defined $ip and $ip) {
     my $users = new Net::Patricia;
-    #check hotspot
-    my @ip_rules = get_records_sql($db,'SELECT * FROM subnets WHERE hotspot=1 AND LENGTH(subnet)>0');
-    foreach my $row (@ip_rules) { $users->add_string($row->{subnet},$default_hotspot_ou_id); }
-    if ($users->match_string($ip)) { $result->{ou_id}=$users->match_string($ip); }
     #check ip rules
     @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND ou_id IS NOT NULL');
     foreach my $row (@ip_rules) { eval { $users->add_string($row->{rule},$row->{ou_id}); }; }
-    if ($users->match_string($ip)) { $result->{ou_id}=$users->match_string($ip); }
+    if ($users->match_string($ip)) { $result->{ou_id}=$users->match_string($ip); return $result; }
     }
 
 #check mac
@@ -847,7 +846,7 @@ if (defined $mac and $mac) {
     my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0 AND ou_id IS NOT NULL');
     foreach my $user (@user_rules) {
 	my $rule = mac_simplify($user->{rule});
-        if ($mac=~/$rule/i) { $result->{ou_id}=$user->{ou_id}; }
+        if ($mac=~/$rule/i) { $result->{ou_id}=$user->{ou_id}; return $result; }
         }
     }
 
@@ -855,7 +854,7 @@ if (defined $mac and $mac) {
 if (defined $hostname and $hostname) {
     my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0 AND ou_id IS NOT NULL');
     foreach my $user (@user_rules) {
-        if ($hostname=~/$user->{rule}/i) { $result->{ou_id}=$user->{ou_id}; }
+        if ($hostname=~/$user->{rule}/i) { $result->{ou_id}=$user->{ou_id}; return $result; }
         }
     }
 
