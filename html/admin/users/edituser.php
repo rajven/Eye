@@ -223,6 +223,10 @@ if (isset($_POST["new_user"])) {
             } else {
                 $new["login"] = $login;
                 $new["ou_id"] = $ou_id;
+                if (!empty($auth_info["comments"])) { $new["fio"] = $auth_info["comments"]; }
+                if (!isset($new["fio"]) and !empty($auth_info["dns_name"])) { $new["fio"] = $auth_info["dns_name"]; }
+                if (!isset($new["fio"]) and !empty($auth_info["dhcp_hostname"])) { $new["fio"] = $auth_info["dhcp_hostname"]; }
+                $new["enabled"] = $auth_info["enabled"];
                 $l_id = insert_record($db_link, "User_list", $new);
                 $auth["user_id"] = $l_id;
                 $auth["save_traf"] = $save_traf;
