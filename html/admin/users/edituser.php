@@ -193,7 +193,7 @@ if (isset($_POST["new_user"])) {
     $save_traf = get_option($db_link, 23) * 1;
     foreach ($auth_id as $key => $val) {
         if ($val) {
-            $auth_info = get_record_sql($db_link, "SELECT ip, mac, comments, dns_name, dhcp_hostname FROM User_auth WHERE id=$val");
+            $auth_info = get_record_sql($db_link, "SELECT * FROM User_auth WHERE id=$val");
             $ou_id = $user_info["ou_id"];
             $login = NULL;
             if (!empty($auth_info["dns_name"])) {
