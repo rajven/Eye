@@ -252,7 +252,11 @@ if ($lease->{dhcp_acl}) {
     $leases{$lease->{ip}}{acl}=trim($lease->{dhcp_acl});
     $leases{$lease->{ip}}{acl}=~s/;/,/g;
     }
+if ($lease->{dhcp_option_set}) {
+    $leases{$lease->{ip}}{dhcp_option_set}=trim($lease->{dhcp_option_set});
+    }
 $leases{$lease->{ip}}{acl}='' if (!$leases{$lease->{ip}}{acl});
+$leases{$lease->{ip}}{dhcp_option_set}='' if (!$leases{$lease->{ip}}{dhcp_option_set});
 }
 
 
@@ -278,6 +282,7 @@ $value=~s/\"//g;
 if ($token=~/^address$/i) { $tmp_lease{ip}=GetIP($value); }
 if ($token=~/^mac-address$/i) { $tmp_lease{mac}=uc(mac_splitted($value)); }
 if ($token=~/^address-lists$/i) { $tmp_lease{acl}=$value; }
+if ($token=~/^dhcp-option-set$/i) { $tmp_lease{dhcp_option_set}=$value; }
 }
 
 next if (!$tmp_lease{ip});
@@ -289,8 +294,12 @@ $active_leases{$tmp_lease{ip}}{mac}=$tmp_lease{mac};
 $active_leases{$tmp_lease{ip}}{id}=$tmp_lease{id};
 
 $active_leases{$tmp_lease{ip}}{acl}='';
+$active_leases{$tmp_lease{ip}}{dhcp_option_set}='';
 if ($tmp_lease{acl}) {
     $active_leases{$tmp_lease{ip}}{acl}=$tmp_lease{acl};
+    }
+if ($tmp_lease{dhcp_option_set}) {
+    $active_leases{$tmp_lease{ip}}{dhcp_option_set}=$tmp_lease{dhcp_option_set};
     }
 }
 
@@ -312,9 +321,15 @@ if ($leases{$ip}{mac}!~/$active_leases{$ip}{mac}/i) {
     push(@cmd_list,'/ip arp remove [find address='.$ip.']');
     next;
     }
-next if (!$leases{$ip}{acl} and !$active_leases{$ip}{acl});
-if ($leases{$ip}{acl}!~/$active_leases{$ip}{acl}/) {
+if (!(!$leases{$ip}{acl} and !$active_leases{$ip}{acl}) and $leases{$ip}{acl} ne $active_leases{$ip}{acl}) {
     db_log_error($dbh,$gate_ident."Acl mismatch for ip $ip. stat: $leases{$ip}{acl} active: $active_leases{$ip}{acl}. Remove lease from router.");
+    push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
+    push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
+    push(@cmd_list,'/ip arp remove [find address='.$ip.']');
+    next;
+    }
+if (!(!$leases{$ip}{dhcp_option_set} and !$active_leases{$ip}{dhcp_option_set}) and $leases{$ip}{dhcp_option_set} ne $active_leases{$ip}{dhcp_option_set}) {
+    db_log_error($dbh,$gate_ident."DHCP option-set mismatch for ip $ip. stat: $leases{$ip}{dhcp_option_set} active: $active_leases{$ip}{dhcp_option_set}. Remove lease from router.");
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
     push(@cmd_list,'/ip arp remove [find address='.$ip.']');
@@ -325,6 +340,9 @@ if ($leases{$ip}{acl}!~/$active_leases{$ip}{acl}/) {
 foreach my $ip (keys %leases) {
 my $acl='';
 if ($leases{$ip}{acl}) { $acl = 'address-lists='.$leases{$ip}{acl}; }
+
+my $dhcp_option_set='';
+if ($leases{$ip}{dhcp_option_set}) { $dhcp_option_set = 'dhcp-option-set='.$leases{$ip}{dhcp_option_set}; }
 
 my $comment = $leases{$ip}{comment};
 $comment =~s/\=//g;
@@ -344,7 +362,7 @@ if (!exists $active_leases{$ip}) {
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
     #add new bind
-    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' server=dhcp-'.$int.' '.$comment);
+    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' '.$dhcp_option_set.' server=dhcp-'.$int.' '.$comment);
     #clear arp record
     push(@cmd_list,'/ip arp remove [find mac-address='.uc($leases{$ip}{mac}).']');
     next;
@@ -358,17 +376,25 @@ if ($leases{$ip}{mac}!~/$active_leases{$ip}{mac}/i) {
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
     #add new bind
-    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' server=dhcp-'.$int.' '.$comment);
+    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' '.$dhcp_option_set.' server=dhcp-'.$int.' '.$comment);
     #clear arp record
     push(@cmd_list,'/ip arp remove [find mac-address='.uc($leases{$ip}{mac}).']');
     next;
     }
-next if (!$leases{$ip}{acl} and !$active_leases{$ip}{acl});
-if ($leases{$ip}{acl}!~/$active_leases{$ip}{acl}/) {
+if (!(!$leases{$ip}{acl} and !$active_leases{$ip}{acl}) and $leases{$ip}{acl} ne $active_leases{$ip}{acl}) {
     db_log_error($dbh,$gate_ident."Acl mismatch for ip $ip. stat: $leases{$ip}{acl} active: $active_leases{$ip}{acl}. Create static lease record.");
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where mac-address='.uc($leases{$ip}{mac}).' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find mac-address='.uc($leases{$ip}{mac}).']');
-    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' server=dhcp-'.$int.' '.$comment);
+    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' '.$dhcp_option_set.' server=dhcp-'.$int.' '.$comment);
+    #clear arp record
+    push(@cmd_list,'/ip arp remove [find mac-address='.uc($leases{$ip}{mac}).']');
+    next;
+    }
+if (!(!$leases{$ip}{dhcp_option_set} and !$active_leases{$ip}{dhcp_option_set}) and $leases{$ip}{dhcp_option_set} ne $active_leases{$ip}{dhcp_option_set}) {
+    db_log_error($dbh,$gate_ident."Acl mismatch for ip $ip. stat: $leases{$ip}{acl} active: $active_leases{$ip}{acl}. Create static lease record.");
+    push(@cmd_list,':foreach i in [/ip dhcp-server lease find where mac-address='.uc($leases{$ip}{mac}).' ] do={/ip dhcp-server lease remove $i};');
+    push(@cmd_list,'/ip dhcp-server lease remove [find mac-address='.uc($leases{$ip}{mac}).']');
+    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' '.$dhcp_option_set.' server=dhcp-'.$int.' '.$comment);
     #clear arp record
     push(@cmd_list,'/ip arp remove [find mac-address='.uc($leases{$ip}{mac}).']');
     next;

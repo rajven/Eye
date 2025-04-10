@@ -208,6 +208,7 @@ define("WEB_cell_nagios_handler","Реакция на событие");
 define("WEB_cell_link","Линк");
 define("WEB_cell_traf","Запись трафика");
 define("WEB_cell_acl","dhcp acl");
+define("WEB_cell_option_set","dhcp option set");
 define("WEB_cell_le","Правил");
 define("WEB_cell_login_quote_month","Квота на логин, месяц");
 define("WEB_cell_ip_quote_month","Квота на адрес, месяц");

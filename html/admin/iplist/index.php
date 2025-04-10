@@ -129,10 +129,11 @@ print_ip_submenu($page_url);
         <tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td><?php print WEB_cell_filter."&nbsp";print_group_select($db_link, 'a_group_id', 0);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td><?php print WEB_cell_shaper."&nbsp";print_queue_select($db_link, 'a_queue_id', 0);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_dhcp" value='1'></td><td><?php print "Dhcp&nbsp"; print_qa_select('a_dhcp', 1);?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_dhcp_acl" value='1'></td><td><?php print "Dhcp-acl&nbsp";print_dhcp_acl_select('a_dhcp_acl','');?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_dhcp_acl" value='1'></td><td><?php print "Dhcp-acl&nbsp"; ?><input type="text" name="a_dhcp_acl" value="" size=10/></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_dhcp_option_set" value='1'></td><td><?php print "Dhcp-option-set&nbsp"; ?> <input type="text" name="a_dhcp_option_set" value="" size=10/> </td></tr>
         <tr><td><input type=checkbox class="putField" name="e_traf" value='1'></td><td><?php print "Save traffic&nbsp"; print_qa_select('a_traf',1);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_bind_mac" value='1'></td><td><?php print WEB_user_bind_mac."&nbsp";print_qa_select('a_bind_mac', 1);?></td></tr>
-    <tr><td><input type=checkbox class="putField" name="e_bind_ip" value='1'></td><td><?php print WEB_user_bind_ip."&nbsp";print_qa_select('a_bind_ip', 1);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_bind_ip" value='1'></td><td><?php print WEB_user_bind_ip."&nbsp";print_qa_select('a_bind_ip', 1);?></td></tr>
         </table>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>

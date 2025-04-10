@@ -3,6 +3,26 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
 
 login($db_link);
 
+if (!empty($_GET['redirect'])) {
+    // Очищаем и проверяем URL
+    $redirect = trim($_GET['redirect']);
+    // Удаляем все слеши в начале, чтобы избежать дублирования
+    $redirect = ltrim($redirect, '/');
+    // Проверяем, что URL не ведет на другой домен и не содержит опасных символов
+    if (preg_match('/^[a-zA-Z0-9\-_\/\.]+$/', $redirect) && 
+        strpos($redirect, '..') === false && 
+        strpos($redirect, '//') === false) {
+        // Проверяем, что текущий URL не совпадает с целевым
+        $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $currentPath = ltrim($currentPath, '/');
+        if ($currentPath !== $redirect) {
+            header('Location: /' . $redirect);
+            exit;
+        }
+    }
+    // Если проверки не прошли - игнорируем
+}
+
 $start_time = microtime();
 $start_array = explode(" ",$start_time);
 $start_time = $start_array[1] + $start_array[0];

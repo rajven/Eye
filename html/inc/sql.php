@@ -425,6 +425,8 @@ function update_record($db, $table, $filter, $newvalue)
         'ip' => '1',
         'dhcp' => '1',
         'deleted' => '1',
+        'dhcp_option_set' =>'1',
+        'dhcp_acl' => '1',
         'mac' => '1',
     ];
 

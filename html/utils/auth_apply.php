@@ -12,7 +12,7 @@ if (isset($_POST["ApplyForAll"])) {
         $_POST["a_enabled"] = 0;
     }
     if (empty($_POST["a_dhcp"])) {
-        $_POST["a_dhcp"] = 1;
+        $_POST["a_dhcp"] = 0;
     }
     if (empty($_POST["a_queue_id"])) {
         $_POST["a_queue_id"] = 0;
@@ -21,13 +21,13 @@ if (isset($_POST["ApplyForAll"])) {
         $_POST["a_group_id"] = 0;
     }
     if (empty($_POST["a_traf"])) {
-        $_POST["a_traf"] = 1;
+        $_POST["a_traf"] = 0;
     }
 
     if (empty($_POST["n_enabled"])) {
         $_POST["n_enabled"] = 0;
     }
-    
+
     if (empty($_POST["n_link"])) {
         $_POST["n_link"] = 0;
     }
@@ -42,7 +42,8 @@ if (isset($_POST["ApplyForAll"])) {
 
     $a_enabled  = $_POST["a_enabled"] * 1;
     $a_dhcp     = $_POST["a_dhcp"] * 1;
-    $a_dhcp_acl = $_POST["a_dhcp_acl"];
+    $a_dhcp_acl = trim($_POST["a_dhcp_acl"]);
+    $a_dhcp_option_set = trim($_POST["a_dhcp_option_set"]);
     $a_queue    = $_POST["a_queue_id"] * 1;
     $a_group    = $_POST["a_group_id"] * 1;
     $a_traf     = $_POST["a_traf"] * 1;
@@ -61,17 +62,12 @@ if (isset($_POST["ApplyForAll"])) {
     foreach ($auth_id as $key => $val) {
         if ($val) {
             unset($auth);
+            //check user state
+            $cur_auth = get_record_sql($db_link, "SELECT * FROM User_auth WHERE 'id'=" . $val);
+            if (!empty($cur_auth)) { $user_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE 'id='" . $cur_auth["user_id"]); }
+
             if (isset($_POST["e_enabled"])) {
-                //check user state
-                if ($a_enabled) {
-                    $cur_auth = get_record_sql($db_link, "User_auth", "id=" . $val);
-                    if (!empty($cur_auth)) {
-                        $user_info = get_record_sql($db_link, "User_list", 'id=' . $cur_auth["user_id"]);
-                        if (!empty($user_info)) {
-                            $a_enabled = $user_info["enabled"];
-                        }
-                    }
-                }
+                if (!empty($user_info)) { $a_enabled = $user_info["enabled"] * $a_enabled; }
                 $auth['enabled'] = $a_enabled;
             }
             if (isset($_POST["e_group_id"])) {
@@ -85,6 +81,9 @@ if (isset($_POST["ApplyForAll"])) {
             }
             if (isset($_POST["e_dhcp_acl"])) {
                 $auth['dhcp_acl'] = $a_dhcp_acl;
+            }
+            if (isset($_POST["e_dhcp_option_set"])) {
+                $auth['dhcp_option_set'] = $a_dhcp_option_set;
             }
             if (isset($_POST["e_traf"])) {
                 $auth['save_traf'] = $a_traf;

@@ -1,5 +1,5 @@
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/qauth.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 
 $action='';
 $ip='';
@@ -81,4 +81,5 @@ if (!empty($action)) {
 
 unset($_GET);
 unset($_POST);
+logout($db_link,TRUE);
 ?>

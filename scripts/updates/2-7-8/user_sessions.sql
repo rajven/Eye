@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS user_sessions ( id INT AUTO_INCREMENT PRIMARY KEY, session_id VARCHAR(128) NOT NULL, user_id INT NOT NULL, ip_address VARCHAR(45) NOT NULL, user_agent TEXT NOT NULL, created_at INT NOT NULL, last_activity INT NOT NULL, is_active TINYINT(1) DEFAULT 1, INDEX (session_id), INDEX (user_id), INDEX (is_active) );

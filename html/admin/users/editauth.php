@@ -101,6 +101,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
 
         $new['save_traf'] = $_POST["f_save_traf"] * 1;
         $new['dhcp_acl'] = trim($_POST["f_acl"]);
+        $new['dhcp_option_set'] = trim($_POST["f_dhcp_option_set"]);
         $new['dynamic'] = trim($_POST["f_dynamic"]);
         if ($new['dynamic']) { $new['eof'] =  trim($_POST["f_eof"]); }
         if (get_const('default_user_ou_id') == $parent_ou_id or get_const('default_hotspot_ou_id') == $parent_ou_id) {
@@ -330,12 +331,14 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
                 <td><?php print WEB_cell_mac; ?></td>
                 <td><?php print WEB_cell_dhcp; ?></td>
                 <td><?php print WEB_cell_acl; ?></td>
+                <td><?php print WEB_cell_option_set; ?></td>
                 <td></td>
             <tr>
                 <td><input type="text" name="f_ip" value="<?php echo $auth_info['ip']; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"></td>
                 <td><input type="text" name="f_mac" value="<?php echo $auth_info['mac']; ?>" pattern="^(([0-9A-Fa-f]{2}[\.\:\-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\.\-][0-9a-fA-F]{4}[\.\-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12})$"></td>
                 <td><?php print_qa_select('f_dhcp', $auth_info['dhcp']); ?></td>
-                <td colspan=2><input type="text" name="f_acl" value="<?php echo $auth_info['dhcp_acl']; ?>"></td>
+                <td><input type="text" name="f_acl" value="<?php echo $auth_info['dhcp_acl']; ?>" size=10></td>
+                <td><input type="text" name="f_dhcp_option_set" value="<?php echo $auth_info['dhcp_option_set']; ?>" size=10></td>
             </tr>
             <tr>
                 <td><?php print WEB_cell_filter; ?></td>

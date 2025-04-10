@@ -50,20 +50,21 @@ if (isset($_POST["ApplyForAll"])) {
         $_POST["a_permanent"] = 0;
     }
 
-    $a_enabled       = $_POST["a_enabled"] * 1;
-    $a_dhcp          = $_POST["a_dhcp"] * 1;
-    $a_dhcp_acl      = $_POST["a_dhcp_acl"];
-    $a_queue         = $_POST["a_queue_id"] * 1;
-    $a_group         = $_POST["a_group_id"] * 1;
-    $a_traf          = $_POST["a_traf"] * 1;
-    $a_day           = $_POST["a_day_q"] * 1;
-    $a_month         = $_POST["a_month_q"] * 1;
-    $a_ou_id         = $_POST["a_new_ou"] * 1;
-    $a_permanent     = $_POST["a_permanent"] * 1;
+    if (isset($_POST["a_enabled"]))             {     $a_enabled         = $_POST["a_enabled"] * 1; }
+    if (isset($_POST["a_dhcp"]))                {     $a_dhcp            = $_POST["a_dhcp"] * 1; }
+    if (isset($_POST["a_dhcp_acl"]))            {     $a_dhcp_acl        = trim($_POST["a_dhcp_acl"]); }
+    if (isset($_POST["a_dhcp_option_set"]))     {     $a_dhcp_option_set = trim($_POST["a_dhcp_option_set"]); }
+    if (isset($_POST["a_queue_id"]))            {     $a_queue           = $_POST["a_queue_id"] * 1; }
+    if (isset($_POST["a_group_id"]))            {     $a_group           = $_POST["a_group_id"] * 1; }
+    if (isset($_POST["a_traf"]))                {     $a_traf            = $_POST["a_traf"] * 1; }
+    if (isset($_POST["a_day_q"]))               {     $a_day             = $_POST["a_day_q"] * 1; }
+    if (isset($_POST["a_month_q"]))             {     $a_month           = $_POST["a_month_q"] * 1; }
+    if (isset($_POST["a_new_ou"]))              {     $a_ou_id           = $_POST["a_new_ou"] * 1; }
+    if (isset($_POST["a_permanent"]))           {     $a_permanent       = $_POST["a_permanent"] * 1; }
 
-    $a_bind_mac      = $_POST["a_bind_mac"] * 1;
-    $a_bind_ip       = $_POST["a_bind_ip"] * 1;
-    $a_create_netdev = $_POST["a_create_netdev"] * 1;
+    if (isset($_POST["a_bind_mac"]))            {     $a_bind_mac        = $_POST["a_bind_mac"] * 1; }
+    if (isset($_POST["a_bind_ip"]))             {     $a_bind_ip         = $_POST["a_bind_ip"] * 1; }
+    if (isset($_POST["a_create_netdev"]))       {     $a_create_netdev   = $_POST["a_create_netdev"] * 1; }
 
     $msg = "Massive User change!";
     LOG_WARNING($db_link, $msg);
@@ -88,6 +89,9 @@ if (isset($_POST["ApplyForAll"])) {
             }
             if (isset($_POST["e_dhcp_acl"])) {
                 $auth['dhcp_acl'] = $a_dhcp_acl;
+            }
+            if (isset($_POST["e_dhcp_option_set"])) {
+                $auth['dhcp_option_set'] = $a_dhcp_option_set;
             }
             if (isset($_POST["e_traf"])) {
                 $auth['save_traf'] = $a_traf;

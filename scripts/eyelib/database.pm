@@ -121,6 +121,8 @@ our %acl_fields = (
 
 our %dhcp_fields = (
 'ip' => '1',
+'dhcp_acl'=>'1',
+'dhcp_option_set'=>'1',
 'dhcp'=>'1',
 'deleted'=>'1',
 'mac'=>'1',

@@ -208,6 +208,7 @@ define("WEB_cell_nagios_handler","Event response");
 define("WEB_cell_link","Link");
 define("WEB_cell_traf","Traffic recording");
 define("WEB_cell_acl","dhcp acl");
+define("WEB_cell_option_set","dhcp option set");
 define("WEB_cell_le","Rules");
 define("WEB_cell_login_quote_month","Quota by login, month");
 define("WEB_cell_ip_quote_month","Quota per ip, month");
