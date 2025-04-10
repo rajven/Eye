@@ -8,10 +8,17 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/common.php");
 
 ini_set('session.use_trans_sid', true);
 ini_set('session.use_only_cookies', false);
-ini_set('session.gc_maxlifetime', 3600*24);
 
 define('SESSION_TABLE', 'sessions');
 define('USER_SESSIONS_TABLE', 'user_sessions');
+
+//set default const values
+if (!defined('SESSION_LIFETIME') || SESSION_LIFETIME < 60) { define('SESSION_LIFETIME', 86400); }
+if (!defined("HTML_LANG")) { define("HTML_LANG","english"); }
+if (!defined("HTML_STYLE")) { define("HTML_STYLE","white"); }
+if (!defined("IPCAM_GROUP_ID")) { define("IPCAM_GROUP_ID","5"); }
+if (!defined("SNMP_timeout")) { define("SNMP_timeout","500000"); }
+if (!defined("SNMP_retry")) { define("SNMP_retry","1"); }
 
 // Инициализация сессий в БД
 function init_db_sessions($db) {
@@ -27,7 +34,7 @@ function init_db_sessions($db) {
     register_shutdown_function('session_write_close');
 }
 
-// Обработчики сессий (процедурный стиль)
+// Обработчики сессий
 function sess_open($savePath, $sessionName) { return true; }
 function sess_close() { return true; }
 
@@ -35,7 +42,11 @@ function sess_read($sessionId) {
     global $db_link;
     $sessionId = mysqli_real_escape_string($db_link, $sessionId);
     $result = mysqli_query($db_link, "SELECT data FROM ".SESSION_TABLE." WHERE id = '$sessionId'");
-    return $result && mysqli_num_rows($result) ? mysqli_fetch_assoc($result)['data'] : '';
+    if (!$result) {
+        error_log("Session read failed: " . mysqli_error($db_link));
+        return '';
+    }
+    return mysqli_num_rows($result) ? mysqli_fetch_assoc($result)['data'] : '';
 }
 
 function sess_write($sessionId, $data) {
@@ -46,34 +57,37 @@ function sess_write($sessionId, $data) {
     $query = "INSERT INTO ".SESSION_TABLE." (id, data, last_accessed) 
               VALUES ('$sessionId', '$data', $time)
               ON DUPLICATE KEY UPDATE data = '$data', last_accessed = $time";
-    return mysqli_query($db_link, $query);
+
+    if (!mysqli_query($db_link, $query)) {
+        error_log("Session write failed: " . mysqli_error($db_link));
+        return false;
+    }
+    return true;
 }
 
 function sess_destroy($sessionId) {
     global $db_link;
     $sessionId = mysqli_real_escape_string($db_link, $sessionId);
-    return mysqli_query($db_link, "DELETE FROM ".SESSION_TABLE." WHERE id = '$sessionId'");
+    if (!mysqli_query($db_link, "DELETE FROM ".SESSION_TABLE." WHERE id = '$sessionId'")) {
+        error_log("Session destroy failed: " . mysqli_error($db_link));
+        return false;
+    }
+    return true;
 }
 
 function sess_gc($maxLifetime) {
     global $db_link;
     $old = time() - $maxLifetime;
-    return mysqli_query($db_link, "DELETE FROM ".SESSION_TABLE." WHERE last_accessed < $old");
+    if (!mysqli_query($db_link, "DELETE FROM ".SESSION_TABLE." WHERE last_accessed < $old")) {
+        error_log("Session GC failed: " . mysqli_error($db_link));
+        return false;
+    }
+    return true;
 }
 
-// Инициализация системы сессий
-init_db_sessions($db_link);
-
-// Старт сессии с безопасными настройками
-session_start([
-    'cookie_lifetime' => 86400 * 30,
-    'cookie_secure'   => true,
-    'cookie_httponly' => true,
-    'cookie_samesite' => 'Strict',
-    'gc_maxlifetime' => 86400 * 30
-]);
 
 function login($db) {
+
     // 1. Проверка активной сессии
     if (!empty($_SESSION['user_id']) && validate_session($db)) {
         // Дополнительная валидация сессии
@@ -105,39 +119,42 @@ function login($db) {
 }
 
 function authenticate_by_credentials($db,$login,$password) {
+
     $login = mysqli_real_escape_string($db, trim($login));
     $query = "SELECT * FROM `Customers` WHERE Login='{$login}'";
     $user = get_record_sql($db, $query);
-    if (!empty($user)) {
-        if (!password_verify($password, $user['password'])) {
-            sleep(1);
-            return false;
-            }
-        } else {
-            sleep(1);
-            return false;
-        }
+
+    if (empty($user)) {
+        sleep(1);
+        return false;
+    }
+
+    if (!password_verify($password, $user['password'])) {
+        sleep(1);
+        return false;
+    }
 
     // Создание сессии
     session_regenerate_id(true);
-    
+
     $_SESSION = [
         'user_id'    => $user['id'],
         'login'      => $user['Login'],
         'acl'        => $user['rights'],
         'ip'         => get_client_ip(),
-        'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
         'created'    => time()
     ];
-    
+
     // Запись сессии в БД
     $sessionId = mysqli_real_escape_string($db, session_id());
     $ip = mysqli_real_escape_string($db, $_SESSION['ip']);
     $userAgent = mysqli_real_escape_string($db, $_SESSION['user_agent']);
     $time = time();
 
-    mysqli_query($db, 
-        "INSERT INTO ".USER_SESSIONS_TABLE." 
+    // Запись в БД
+    $sessionId = mysqli_real_escape_string($db, session_id());
+    $query = "INSERT INTO ".USER_SESSIONS_TABLE." 
         (session_id, user_id, ip_address, user_agent, created_at, last_activity) 
         VALUES (
             '$sessionId',
@@ -146,19 +163,24 @@ function authenticate_by_credentials($db,$login,$password) {
             '$userAgent',
             $time,
             $time
-        )");
+        )";
+    if (!mysqli_query($db, $query)) {
+        error_log("Session DB error: ".mysqli_error($db));
+        return false;
+    }
 
     return true;
 }
 
 function validate_session($db) {
+
     // Проверка IP и User-Agent
     if ($_SESSION['ip'] !== get_client_ip() || 
         $_SESSION['user_agent'] !== ($_SERVER['HTTP_USER_AGENT'] ?? '')) {
         logout($db);
         return false;
     }
-    
+
     // Проверка активности сессии в БД
     $sessionId = mysqli_real_escape_string($db, session_id());
     $result = mysqli_query($db, 
@@ -169,24 +191,31 @@ function validate_session($db) {
             user_id = {$_SESSION['user_id']} AND
             is_active = 1
          LIMIT 1");
-    
+
     if (!$result || mysqli_num_rows($result) === 0) {
         logout($db);
         return false;
     }
-    
+
     // Обновление времени активности
     mysqli_query($db, 
         "UPDATE ".USER_SESSIONS_TABLE." 
          SET last_activity = ".time()." 
          WHERE session_id = '$sessionId'");
-    
+
     return true;
 }
 
-// Вспомогательная функция
 function get_client_ip() {
-    return $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+    foreach (['HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $key) {
+        if (!empty($_SERVER[$key])) {
+            $ip = trim(current(explode(',', $_SERVER[$key])));
+            if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                return $ip;
+            }
+        }
+    }
+    return '127.0.0.1';
 }
 
 // Авторизация по API-ключу (без пароля)
@@ -257,10 +286,10 @@ function logout($db, $silent = FALSE) {
         // Очистка данных
         $_SESSION = [];
         session_destroy();
-        setcookie(session_name(), '', time() - 3600, '/');
+        setcookie(session_name(), '', time() - SESSION_LIFETIME, '/');
         // Удаление авторизационной куки (если есть)
         if (isset($_COOKIE['Auth'])) {
-            setcookie('Auth', '', time() - 3600, '/');
+            setcookie('Auth', '', time() - SESSION_LIFETIME, '/');
         }
     }
     if (!$silent) {
@@ -268,3 +297,18 @@ function logout($db, $silent = FALSE) {
         //?redirect=' . urlencode($_SERVER['REQUEST_URI']));
         }
 }
+
+// Инициализация системы сессий
+init_db_sessions($db_link);
+
+// Инициализация сессии
+if (session_status() !== PHP_SESSION_ACTIVE) {
+        // Старт сессии с безопасными настройками
+        session_start([
+            'cookie_lifetime' => SESSION_LIFETIME ,
+//          'cookie_secure'   => true,
+//          'cookie_httponly' => true,
+            'cookie_samesite' => 'Strict',
+            'gc_maxlifetime' => SESSION_LIFETIME
+        ]);
+    }
