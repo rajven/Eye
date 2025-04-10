@@ -1188,20 +1188,49 @@ function print_dhcp_select($qa_name, $qa_value = 0)
     print "</select>\n";
 }
 
-function print_nagios_handler_select($qa_name)
+function print_nagios_handler_select($db,$qa_name)
 {
+$nagios_handler = get_records_sql($db,"SELECT DISTINCT `nagios_handler` FROM User_auth WHERE `nagios_handler` IS NOT NULL AND `nagios_handler` != '' AND  `deleted`=0");
+if (!empty($nagios_handler) and count($nagios_handler)>0) {
     print "<select name=\"$qa_name\">\n";
     print_select_simple(WEB_select_item_no, '');
-    print_select_simple('restart-port', 'restart-port');
+    foreach ($nagios_handler as $handler) {
+        print_select_simple($handler['nagios_handler'],$handler['nagios_handler']);
+        }
     print "</select>\n";
+    } else {
+    print "<input type=\"text\" name=\"$qa_name\" value=\"\" size=10/>";
+    }
 }
 
-function print_dhcp_acl_select($qa_name)
+function print_dhcp_acl($db,$qa_name)
 {
+$dhcp_acl = get_records_sql($db,"SELECT DISTINCT `dhcp_acl` FROM User_auth WHERE `dhcp_acl` IS NOT NULL AND `dhcp_acl` != '' AND  `deleted`=0");
+if (!empty($dhcp_acl) and count($dhcp_acl)>0) {
     print "<select name=\"$qa_name\">\n";
     print_select_simple(WEB_select_item_no, '');
-    print_select_simple('hotspot-free', 'hotspot-free');
+    foreach ($dhcp_acl as $acl) {
+        print_select_simple($acl['dhcp_acl'],$acl['dhcp_acl']);
+        }
     print "</select>\n";
+    } else {
+    print "<input type=\"text\" name=\"$qa_name\" value=\"\" size=10/>";
+    }
+}
+
+function print_dhcp_option_set($db,$qa_name)
+{
+$dhcp_option_sets = get_records_sql($db,"SELECT DISTINCT `dhcp_option_set` FROM User_auth WHERE `dhcp_option_set` IS NOT NULL AND `dhcp_option_set` != '' AND `deleted`=0");
+if (!empty($dhcp_option_sets) and count($dhcp_option_sets)>0) {
+    print "<select name=\"$qa_name\">\n";
+    print_select_simple(WEB_select_item_no, '');
+    foreach ($dhcp_option_sets as $dhcp_option_set) {
+        print_select_simple($dhcp_option_set['dhcp_option_set'],$dhcp_option_set['dhcp_option_set']);
+        }
+    print "</select>\n";
+    } else {
+    print "<input type=\"text\" name=\"$qa_name\" value=\"\" size=10/>";
+    }
 }
 
 function print_enabled_select($qa_name, $qa_value)

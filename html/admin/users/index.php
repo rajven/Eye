@@ -71,16 +71,16 @@ if ($msg_error) {
         <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
-        <tr><td><input type=checkbox class="putField" name="e_enabled" value='1'></td><td><?php print WEB_cell_enabled."&nbsp";print_qa_select('a_enabled', 0); ?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td><?php print WEB_cell_filter."&nbsp";print_group_select($db_link, 'a_group_id', 0); ?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td><?php print WEB_cell_shaper."&nbsp";print_queue_select($db_link, 'a_queue_id', 0); ?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_day_q" value='1'></td><td><?php print WEB_cell_perday."&nbsp"; ?><input type="text" name="a_day_q" value="0" size=5></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_month_q" value='1'></td><td><?php print WEB_cell_permonth."&nbsp"; ?><input type="text" name="a_month_q" value="0" size=5></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_new_ou" value='1'></td><td><?php print WEB_cell_ou."&nbsp";print_ou_select($db_link, 'a_new_ou', $rou); ?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_bind_mac" value='1'></td><td><?php print WEB_user_bind_mac."&nbsp";print_qa_select('a_bind_mac', 1);?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_bind_ip" value='1'></td><td><?php print WEB_user_bind_ip."&nbsp";print_qa_select('a_bind_ip', 1);?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_create_netdev" value='1'></td><td><?php print WEB_user_create_netdev."&nbsp";print_qa_select('a_create_netdev', 1);?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_permanent" value='1'></td><td><?php print WEB_user_permanent."&nbsp";print_qa_select('a_permanent', 0);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_enabled" value='1'></td><td align=left><?php print WEB_cell_enabled."</td><td align=right>";print_qa_select('a_enabled', 0); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td align=left><?php print WEB_cell_filter."</td><td align=right>";print_group_select($db_link, 'a_group_id', 0); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td align=left><?php print WEB_cell_shaper."</td><td align=right>";print_queue_select($db_link, 'a_queue_id', 0); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_day_q" value='1'></td><td align=left><?php print WEB_cell_perday."</td><td align=right>"; ?><input type="text" name="a_day_q" value="0" size=5></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_month_q" value='1'></td><td align=left><?php print WEB_cell_permonth."</td><td align=right>"; ?><input type="text" name="a_month_q" value="0" size=5></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_new_ou" value='1'></td><td align=left><?php print WEB_cell_ou."</td><td align=right>";print_ou_select($db_link, 'a_new_ou', $rou); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_bind_mac" value='1'></td><td align=left><?php print WEB_user_bind_mac."</td><td align=right>";print_qa_select('a_bind_mac', 1);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_bind_ip" value='1'></td><td align=left><?php print WEB_user_bind_ip."</td><td align=right>";print_qa_select('a_bind_ip', 1);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_create_netdev" value='1'></td><td align=left><?php print WEB_user_create_netdev."</td><td align=right>";print_qa_select('a_create_netdev', 1);?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_permanent" value='1'></td><td align=left><?php print WEB_user_permanent."</td><td align=right>";print_qa_select('a_permanent', 0);?></td></tr>
         </table>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
