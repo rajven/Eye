@@ -1,3 +1,22 @@
+# Changelog 2.7.8
+
+- the work with mass modification of records has been simplified.
+- added comment for user record created by ip-record
+- the function of assigning a new address to a user/group has been redesigned. Now, no other rules apply to addresses from the hotspot range. Any match stops processing the remaining rules.
+- when creating a mac/ip address binding to a login, the notification about an existing record for the same login was removed.
+- added login search to the list of all addresses
+- removed warning for new ip by dhcp event
+- added the ability to delete an entry in a dynamic group via dhcp release event
+- added: dhcp-option-set for mikrotik dhcp server 
+- the authorization procedure has been rewritten
+- fixed clearing the work log from debugging entries
+- added: Auto-select of old recordings has been added to the list of duplicates.
+- bugfix: Fixed group operation on users 
+- bugfix: optimized processing of dhcp events
+- bugfix: Fixed auto-cleaning of rules for linking to hotspot and dhcp groups 
+- bugfix: Fixed programming of the dhcp server on mikrotik for some configuration options 
+- bugfix: Fixed deleting entries from the list of duplicates 
+
 # Changelog 2.7.7
 
 - added comment for user auto rules (6f111ca)
