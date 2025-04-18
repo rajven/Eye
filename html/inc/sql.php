@@ -135,6 +135,7 @@ function allow_update($table, $action = 'update', $field = '')
             'User_auth' => [
                 'comments' => '1',
                 'dns_name' => '1',
+                'dns_ptr_only' => '1',
                 'firmware' => '1',
                 'link_check' => '1',
                 'nagios' => '1',
@@ -433,6 +434,7 @@ function update_record($db, $table, $filter, $newvalue)
     $dns_fields = [
         'ip' => '1',
         'dns_name' => '1',
+        'dns_ptr_only' => '1',
         'alias' => '1',
     ];
 
@@ -472,7 +474,7 @@ function update_record($db, $table, $filter, $newvalue)
     }
 
     if ($table === "User_auth" and $dns_changed) {
-        if (!empty($old['dns_name']) and !empty($old['ip'])) {
+        if (!empty($old['dns_name']) and !empty($old['ip']) and !$old['dns_ptr_only']) {
             $del_dns['name_type'] = 'A';
             $del_dns['name'] = $old['dns_name'];
             $del_dns['value'] = $old['ip'];
@@ -482,8 +484,29 @@ function update_record($db, $table, $filter, $newvalue)
             }
             insert_record($db, 'dns_queue', $del_dns);
         }
-        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip'])) {
+        if (!empty($old['dns_name']) and !empty($old['ip']) and $old['dns_ptr_only']) {
+            $del_dns['name_type'] = 'PTR';
+            $del_dns['name'] = $old['dns_name'];
+            $del_dns['value'] = $old['ip'];
+            $del_dns['type'] = 'del';
+            if (!empty($rec_id)) {
+                $del_dns['auth_id'] = $rec_id;
+            }
+            insert_record($db, 'dns_queue', $del_dns);
+        }
+
+        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and !$newvalue['dns_ptr_only']) {
             $new_dns['name_type'] = 'A';
+            $new_dns['name'] = $newvalue['dns_name'];
+            $new_dns['value'] = $newvalue['ip'];
+            $new_dns['type'] = 'add';
+            if (!empty($rec_id)) {
+                $new_dns['auth_id'] = $rec_id;
+            }
+            insert_record($db, 'dns_queue', $new_dns);
+        }
+        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and $newvalue['dns_ptr_only']) {
+            $new_dns['name_type'] = 'PTR';
             $new_dns['name'] = $newvalue['dns_name'];
             $new_dns['value'] = $newvalue['ip'];
             $new_dns['type'] = 'add';
@@ -619,9 +642,20 @@ function delete_record($db, $table, $filter)
             LOG_ERROR($db, "UPDATE Request (from delete): " . mysqli_error($db));
             return;
             }
-        //dns
-        if (!empty($old['dns_name']) and !empty($old['ip'])) {
+        //dns - A-record
+        if (!empty($old['dns_name']) and !empty($old['ip']) and !$old['dns_ptr_only']) {
             $del_dns['name_type'] = 'A';
+            $del_dns['name'] = $old['dns_name'];
+            $del_dns['value'] = $old['ip'];
+            $del_dns['type'] = 'del';
+            if (!empty($rec_id)) {
+                $del_dns['auth_id'] = $rec_id;
+                }
+            insert_record($db, 'dns_queue', $del_dns);
+            }
+        //ptr
+        if (!empty($old['dns_name']) and !empty($old['ip']) and $old['dns_ptr_only']) {
+            $del_dns['name_type'] = 'PTR';
             $del_dns['name'] = $old['dns_name'];
             $del_dns['value'] = $old['ip'];
             $del_dns['type'] = 'del';
@@ -733,9 +767,18 @@ function insert_record($db, $table, $newvalue)
     }
 
     if ($table === 'User_auth') {
-        //dns
-        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip'])) {
+        //dns - A-record
+        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and !$newvalue['dns_ptr_only']) {
             $add_dns['name_type'] = 'A';
+            $add_dns['name'] = $newvalue['dns_name'];
+            $add_dns['value'] = $newvalue['ip'];
+            $add_dns['type'] = 'add';
+            $add_dns['auth_id'] = $last_id;
+            insert_record($db, 'dns_queue', $add_dns);
+        }
+        //dns - ptr
+        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and $newvalue['dns_ptr_only']) {
+            $add_dns['name_type'] = 'PTR';
             $add_dns['name'] = $newvalue['dns_name'];
             $add_dns['value'] = $newvalue['ip'];
             $add_dns['type'] = 'add';

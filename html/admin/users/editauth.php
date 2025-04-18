@@ -57,6 +57,8 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         $new['comments'] = $_POST["f_comments"];
         $new['WikiName'] = $_POST["f_wiki"];
         $f_dnsname = trim($_POST["f_dns_name"]);
+        $new['dns_ptr_only']=0;
+        if (isset($_POST["f_dns_ptr"]) or !empty($f_dns_name)) { $new['dns_ptr_only']=1; }
 
         //update device managment ip
         $device = get_record_sql($db_link,"SELECT * FROM devices WHERE ip_int=".$old_auth_info['ip_int']);
@@ -67,7 +69,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             }
 
         $dns_alias_count = get_count_records($db_link,'User_auth_alias','auth_id='.$id);
-        if (!empty($f_dnsname)) {
+        if (!empty($f_dnsname) and !$new['dns_ptr_only']) {
             $domain_zone = get_option($db_link, 33);
             $f_dnsname = preg_replace('/'.$domain_zone.'/','',$f_dnsname);
             $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
@@ -87,7 +89,9 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
                         exit;
                         }
                 }
-            } else {
+            }
+
+        if (empty($f_dnsname) or $new['dns_ptr_only']) {
             //remove all dns aliases
             $new['dns_name'] = '';
             $t_User_auth_alias = get_records($db_link,'User_auth_alias',"auth_id=$id ORDER BY alias");
@@ -97,6 +101,19 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
                     delete_record($db_link,'User_auth_alias','id='.$row['id']);
                     }
                 }
+            }
+
+        if ($old_auth_info['dns_ptr_only'] and !$new['dns_ptr_only']) {
+            $new['dns_name'] = ''; 
+            }
+
+        if (!empty($f_dnsname) and $new['dns_ptr_only']) {
+            $domain_zone = get_option($db_link, 33);
+            $f_dnsname = preg_replace('/'.$domain_zone.'/','',$f_dnsname);
+            $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
+            $f_dnsname = preg_replace('/\s+/','-',$f_dnsname);
+            $f_dnsname = preg_replace('/\./','-',$f_dnsname);
+            $new['dns_name'] = $f_dnsname;
             }
 
         $new['save_traf'] = $_POST["f_save_traf"] * 1;
@@ -201,20 +218,7 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
         }
         $new['deleted'] = 0;
         $new['dynamic'] = 0;
-
-        $f_dnsname = trim($_POST["f_dns_name"]);
-        if (!empty($f_dnsname)) {
-            $domain_zone = get_option($db_link, 33);
-            $f_dnsname = preg_replace('/'.$domain_zone.'/','',$f_dnsname);
-            $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
-            $f_dnsname = preg_replace('/\s+/','-',$f_dnsname);
-            $f_dnsname = preg_replace('/\./','-',$f_dnsname);
-            }
-
-        if (!empty($f_dnsname) and checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) {
-            run_sql($db_link,"UPDATE User_auth SET dns_name='' WHERE id=".$id);
-            $new['dns_name'] = $f_dnsname;
-            } else { $new['dns_name']=''; }
+        $new['dns_name']='';
 
         $parent_id = $old_auth_info['user_id'];
 
@@ -303,24 +307,26 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
     print "<b>" . WEB_user_title . "&nbsp<a href=/admin/users/edituser.php?id=" . $auth_info['user_id'] . ">" . $parent_name . "</a> </b>";
 
     $alias_link = '';
-    if (!empty($auth_info['dns_name'])) { $alias_link="/admin/users/edit_alias.php?id=".$id; }
+    if (!empty($auth_info['dns_name']) and !$auth_info['dns_ptr_only']) { $alias_link="/admin/users/edit_alias.php?id=".$id; }
     if (empty($auth_info['created_by'])) { $auth_info['created_by'] = '-'; }
-
+    $f_dns_ptr = '';
+    if ($auth_info['dns_ptr_only']) { $f_dns_ptr = 'checked'; }
     ?>
 
     <form name="def" action="editauth.php?id=<?php echo $id; ?>" method="post">
         <input type="hidden" name="id" value=<?php echo $id; ?>>
         <table class="data">
             <tr>
-                <td width=200><?php print WEB_cell_dns_name . " &nbsp | &nbsp ";
-                                print_url(WEB_cell_aliases, $alias_link); ?></td>
+                <td width=230><?php print WEB_cell_dns_name . " &nbsp | &nbsp "; print_url(WEB_cell_aliases, $alias_link); ?></td>
                 <td width=200><?php print WEB_cell_comment; ?></td>
                 <td width=70><?php print WEB_cell_enabled; ?></td>
                 <td><?php print WEB_cell_traf; ?></td>
                 <td></td>
             </tr>
             <tr>
-                <td><input type="text" name="f_dns_name" value="<?php echo $auth_info['dns_name']; ?>" pattern="^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$"></td>
+                <td><input type="text" name="f_dns_name" size="14"  value="<?php echo $auth_info['dns_name']; ?>" pattern="^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$">
+                    <input type="checkbox" id="f_dns_ptr" name="f_dns_ptr" value="1" <?php echo $f_dns_ptr; ?>> &nbsp ptr
+                </td>
                 <td><input type="text" name="f_comments" value="<?php echo $auth_info['comments']; ?>"></td>
                 <td><?php print_qa_select('f_enabled', $auth_info['enabled']); ?></td>
                 <td><?php print_qa_select('f_save_traf', $auth_info['save_traf']); ?></td>

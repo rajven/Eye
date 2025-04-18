@@ -394,8 +394,11 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     } else {
                         print "<td class=\"data\" >" . $row["comments"] . "</td>";
                     }
-
-                    print "<td class=\"data\" >" . $row["dns_name"] . "</td>";
+                    $f_dns_type = 'A';
+                    if ($row["dns_ptr_only"]) { $f_dns_type = 'ptr'; }
+                    $f_dns_row = '';
+                    if (!empty($row["dns_name"])) { $f_dns_row = $row["dns_name"]."<hr>".$f_dns_type; }
+                    print "<td class=\"data\" >" . $f_dns_row . "</td>";
                     $ip_status = 1;
                     if ($row["blocked"] or !$row["enabled"]) {
                         $ip_status = 0;

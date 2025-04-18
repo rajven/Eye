@@ -371,19 +371,19 @@ function get_sfp_status($vendor_id, $port, $ip, $snmp, $modules_oids)
                 }
                 $sfp_length = parse_snmp_value(get_snmp($ip, $snmp, ELTEX_SFP_LENGTH . "." . $port));
                 $status = 'Vendor: ' . $sfp_vendor . ' Serial: ' . $sfp_sn . ' Laser: ' . $sfp_freq . ' Distance: ' . $sfp_length . '<br>';
-                if (!empty($sfp_status_temp) and abs($temp) > 0.1) {
+                if (!empty($sfp_status_temp) && is_numeric($temp) && abs(floatval($temp)) > 0.1) {
                     $status .= 'Temp: ' . $temp . " C";
                 }
-                if (!empty($sfp_status_volt) and abs($volt) > 100000) {
+                if (!empty($sfp_status_volt) && is_numeric($volt) && abs(floatval($volt)) > 100000) {
                     $status .= ' Volt: ' . round($volt / 1000000, 2) . ' V';
                 }
-                if (!empty($sfp_status_circut) and abs($circut) > 100) {
+                if (!empty($sfp_status_circut) && is_numeric($circut) && abs(floatval($circut)) > 100) {
                     $status .= ' Circut: ' . round($circut / 1000, 2) . ' mA';
                 }
-                if (!empty($sfp_status_tx) and abs($tx) > 100) {
+                if (!empty($sfp_status_tx) && is_numeric($tx) && abs(floatval($tx)) > 100) {
                     $status .= ' Tx: ' . round($tx / 1000, 2) . ' dBm';
                 }
-                if (!empty($sfp_status_rx) and abs($rx) > 100) {
+                if (!empty($sfp_status_rx) && is_numeric($rx) && abs(floatval($rx)) > 100) {
                     $status .= ' Rx: ' . round($rx / 1000, 2) . ' dBm';
                 }
                 $status .= '<br>';
@@ -474,19 +474,19 @@ function get_sfp_status($vendor_id, $port, $ip, $snmp, $modules_oids)
                     continue;
                 }
             }
-            if (!empty($temp) and abs($temp) > 0) {
+            if (!empty($temp) && is_numeric($temp) && abs(floatval($temp)) > 0) {
                 $status .= 'Temp: ' . $temp . " C";
             }
-            if (!empty($volt) and abs($volt) > 0) {
+            if (!empty($volt) && is_numeric($volt) && abs(floatval($volt)) > 0) {
                 $status .= ' Volt: ' . $volt . ' V';
             }
-            if (!empty($circut) and abs($circut) > 0) {
+            if (!empty($circut) && is_numeric($circut) && abs(floatval($circut)) > 0) {
                 $status .= ' Circut: ' . $circut . ' mA';
             }
-            if (!empty($tx) and abs($tx) > 0.1) {
+            if (!empty($tx) && is_numeric($tx) && abs(floatval($tx)) > 0.1) {
                 $status .= ' Tx: ' . $tx . ' dBm';
             }
-            if (!empty($rx) and abs($rx) > 0.1) {
+            if (!empty($rx) && is_numeric($rx) && abs(floatval($rx)) > 0.1) {
                 $status .= ' Rx: ' . $rx . ' dBm';
             }
             if (!empty($status)) {
@@ -543,10 +543,10 @@ function get_sfp_status($vendor_id, $port, $ip, $snmp, $modules_oids)
                     }
                     //                if (isset($sfp_speed)) { $status .= ' ' . $sfp_speed; }
                     //                if (isset($spf_lenght)) { $status .= ' ' . $spf_lenght; }
-                    if (abs($volt) > 1000) {
+                    if (!empty($volt) && is_numeric($volt) && abs(floatval($volt)) > 1000) {
                         $status .= ' Volt: ' . round($volt / 1000, 2) . ' V';
                     }
-                    if (!empty($circut) and abs($circut) > 0) {
+                    if (!empty($circut) && is_numeric($circut) && abs(floatval($circut)) > 0) {
                         $status .= ' Circut: ' . $circut . ' mA <br>';
                     }
                     if (!empty($tx)) {

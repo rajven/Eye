@@ -131,6 +131,7 @@ our %dhcp_fields = (
 our %dns_fields = (
 'ip' => '1',
 'dns_name'=>'1',
+'dns_ptr_only'=>'1',
 'alias'=>'1',
 );
 
@@ -526,8 +527,16 @@ if ($found_changed) {
         $change_str .= ", `changed_time`='".GetNowTime()."'"; 
         if ($dns_changed) {
                 my $del_dns;
-                if ($old_record->{'dns_name'} and $old_record->{'ip'}) {
+                if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_ptr_only'}) {
                     $del_dns->{'name_type'}='A';
+                    $del_dns->{'name'}=$old_record->{'dns_name'};
+                    $del_dns->{'value'}=$old_record->{'ip'};
+                    $del_dns->{'type'}='del';
+                    if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
+                    insert_record($db,'dns_queue',$del_dns);
+                    }
+                if ($old_record->{'dns_name'} and $old_record->{'ip'} and $old_record->{'dns_ptr_only'}) {
+                    $del_dns->{'name_type'}='PTR';
                     $del_dns->{'name'}=$old_record->{'dns_name'};
                     $del_dns->{'value'}=$old_record->{'ip'};
                     $del_dns->{'type'}='del';
@@ -539,8 +548,16 @@ if ($found_changed) {
                 my $dns_rec_name = $old_record->{dns_name};
                 if ($record->{'dns_name'}) { $dns_rec_name = $record->{'dns_name'}; }
                 if ($record->{'ip'}) { $dns_rec_ip = $record->{'ip'}; }
-                if ($dns_rec_name and $dns_rec_ip) {
+                if ($dns_rec_name and $dns_rec_ip and !$record->{'dns_ptr_only'}) {
                     $new_dns->{'name_type'}='A';
+                    $new_dns->{'name'}=$dns_rec_name;
+                    $new_dns->{'value'}=$dns_rec_ip;
+                    $new_dns->{'type'}='add';
+                    if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
+                    insert_record($db,'dns_queue',$new_dns);
+                    }
+                if ($dns_rec_name and $dns_rec_ip and $record->{'dns_ptr_only'}) {
+                    $new_dns->{'name_type'}='PTR';
                     $new_dns->{'name'}=$dns_rec_name;
                     $new_dns->{'value'}=$dns_rec_ip;
                     $new_dns->{'type'}='add';
@@ -636,9 +653,18 @@ if ($result) {
                     }
         }
     if ($table eq 'User_auth' and $dns_changed) {
-        if ($record->{'dns_name'} and $record->{'ip'} and $dns_changed) {
+        if ($record->{'dns_name'} and $record->{'ip'} and $dns_changed and !$record->{'dns_ptr_only'}) {
                     my $add_dns;
                     $add_dns->{'name_type'}='A';
+                    $add_dns->{'name'}=$record->{'dns_name'};
+                    $add_dns->{'value'}=$record->{'ip'};
+                    $add_dns->{'type'}='add';
+                    $add_dns->{'auth_id'}=$result;
+                    insert_record($db,'dns_queue',$add_dns);
+                    }
+        if ($record->{'dns_name'} and $record->{'ip'} and $dns_changed and $record->{'dns_ptr_only'}) {
+                    my $add_dns;
+                    $add_dns->{'name_type'}='PTR';
                     $add_dns->{'name'}=$record->{'dns_name'};
                     $add_dns->{'value'}=$record->{'ip'};
                     $add_dns->{'type'}='add';
@@ -674,9 +700,18 @@ db_log_debug($db,'Delete record from table  '.$table.' value: '.$diff);
 if ($table eq 'User_auth') {
     my $sSQL = "UPDATE User_auth SET changed=1, deleted=1, changed_time='".GetNowTime()."' WHERE ".$filter;
     do_sql($db,$sSQL);
-    if ($old_record->{'dns_name'} and $old_record->{'ip'}) {
+    if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_ptr_only'}) {
             my $del_dns;
             $del_dns->{'name_type'}='A';
+            $del_dns->{'name'}=$old_record->{'dns_name'};
+            $del_dns->{'value'}=$old_record->{'ip'};
+            $del_dns->{'type'}='del';
+            $del_dns->{'auth_id'}=$old_record->{'id'};
+            insert_record($db,'dns_queue',$del_dns);
+            }
+    if ($old_record->{'dns_name'} and $old_record->{'ip'} and $old_record->{'dns_ptr_only'}) {
+            my $del_dns;
+            $del_dns->{'name_type'}='PTR';
             $del_dns->{'name'}=$old_record->{'dns_name'};
             $del_dns->{'value'}=$old_record->{'ip'};
             $del_dns->{'type'}='del';
@@ -941,24 +976,19 @@ if ($dns_cmd->{name_type}=~/^a$/i) {
     $fqdn=lc($dns_cmd->{name});
     $fqdn=~s/\.$ad_zone$//i;
     $fqdn=~s/\.$//;
-
     if (!$dns_cmd->{value}) { next; }
     $fqdn_ip=lc($dns_cmd->{value});
     #skip update unknown domain
     if ($fqdn =~/\./) { next; }
-
     $fqdn = $fqdn.".".$ad_zone;
-
     #dns update disabled?
     my $maybe_update_dns=( $enable_ad_dns_update and $office_networks->match_string($fqdn_ip) );
     if (!$maybe_update_dns) {
         db_log_info($hdb,"FOUND Auth_id: $auth_id. DNS update disabled.");
         next;
         }
-
     #get aliases
     my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE auth_id=".$auth_id);
-
     #remove A & PTR
     if ($dns_cmd->{type} eq 'del') {
         #remove aliases
@@ -972,7 +1002,6 @@ if ($dns_cmd->{name_type}=~/^a$/i) {
         delete_dns_hostname($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
         delete_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
         }
-
     #create A & PTR
     if ($dns_cmd->{type} eq 'add') {
         my @dns_record=ResolveNames($fqdn,$dns_server);
@@ -1000,6 +1029,34 @@ if ($dns_cmd->{name_type}=~/^a$/i) {
             }
         }
     }
+#PTR
+if ($dns_cmd->{name_type}=~/^ptr$/i) {
+    $fqdn=lc($dns_cmd->{name});
+    $fqdn=~s/\.$ad_zone$//i;
+    $fqdn=~s/\.$//;
+    if (!$dns_cmd->{value}) { next; }
+    $fqdn_ip=lc($dns_cmd->{value});
+    #skip update unknown domain
+    if ($fqdn =~/\./) { next; }
+    $fqdn = $fqdn.".".$ad_zone;
+    #dns update disabled?
+    my $maybe_update_dns=( $enable_ad_dns_update and $office_networks->match_string($fqdn_ip) );
+    if (!$maybe_update_dns) {
+        db_log_info($hdb,"FOUND Auth_id: $auth_id. DNS update disabled.");
+        next;
+        }
+    #remove A & PTR
+    if ($dns_cmd->{type} eq 'del') {
+        #remove main record
+        delete_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
+        }
+    #create A & PTR
+    if ($dns_cmd->{type} eq 'add') {
+        #create record
+        create_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
+        }
+    }
+
 };
 if ($@) { log_error("Error dns commands: $@"); }
 }
@@ -1600,10 +1657,8 @@ if ($record->{user_id}) {
 	    $new_record->{created_by}='dhcp';
 	    $new_record->{dhcp_time}=$timestamp;
 	    if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
-	    update_record($db,'User_auth',$new_record,"id=$record->{id}");
-	    } else {
-	    update_record($db,'User_auth',$new_record,"id=$record->{id}");
 	    }
+    update_record($db,'User_auth',$new_record,"id=$record->{id}");
     return $record->{id};
     }
 
@@ -1620,15 +1675,13 @@ if ($record->{id}) {
     if (!$record->{mac}) {
         db_log_verbose($db,"use empty auth record...");
         $new_record->{mac}=$mac;
-            if ($action=~/^(add|old|del)$/i) {
+        if ($action=~/^(add|old|del)$/i) {
 	        $new_record->{dhcp_action}=$action;
 	        $new_record->{dhcp_time}=$timestamp;
                 $new_record->{created_by}='dhcp';
 	        if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
-	        update_record($db,'User_auth',$new_record,"id=$record->{id}");
-                } else {
-	        update_record($db,'User_auth',$new_record,"id=$record->{id}");
                 }
+        update_record($db,'User_auth',$new_record,"id=$record->{id}");
         return $record->{id};
         }
     if ($record->{mac}) {

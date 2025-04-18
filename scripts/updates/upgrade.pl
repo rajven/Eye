@@ -17,20 +17,13 @@ use eyelib::database;
 use strict;
 use warnings;
 
-my @old_releases = (
-'2.6.1',
-'2.6.2',
-'2.6.3',
-'2.7.0',
-'2.7.1',
-'2.7.2',
-'2.7.3',
-'2.7.4',
-'2.7.5',
-'2.7.6',
-'2.7.7',
-'2.7.8',
-);
+my $update_dir = '/opt/Eye/scripts/updates/';
+
+opendir(my $dh, $update_dir) or die "Eror listing for $update_dir: $!";
+my @old_releases = sort grep { -d "$update_dir/$_" && !/^\.\.?$/ && /^\d/ } readdir($dh);
+closedir $dh;
+
+s/-/./g for @old_releases;
 
 my $r_index = 0;
 my %old_releases_h = map {$_ => $r_index++ } @old_releases;
