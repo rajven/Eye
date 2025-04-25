@@ -32,7 +32,6 @@ flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
 setpriority(0,0,19);
 
-
 my $mute_time=300;
 
 my $log_file='/var/log/dhcp.log';
@@ -114,15 +113,18 @@ if (!$pid) {
         my $dhcp_log=File::Tail->new(name=>$log_file,maxinterval=>5,interval=>1,ignore_nonexistant=>1) || die "$log_file not found!";
 
         #truncate current log file
-        truncate $log_file, 0;
+        #truncate $log_file, 0;
 
         while (my $logline=$dhcp_log->read) {
 
             next if (!$logline);
 
             chomp($logline);
-
             log_verbose("GET CLIENT REQUEST: $logline");
+
+            $logline =~ s/[^\p{L}\p{N}\p{P}\p{Z}]//g;
+            log_debug("Ffilter printable : $logline");
+
             my ($type,$mac,$ip,$hostname,$timestamp,$tags,$sup_hostname,$old_hostname,$circuit_id,$remote_id,$client_id,$decoded_circuit_id,$decoded_remote_id) = split (/\;/, $logline);
             next if (!$type);
             next if ($type!~/(old|add|del)/i);

@@ -1,0 +1,13 @@
+[Unit]
+Description=Clear dhcp-log after restart dnsmasq
+After=dnsmasq.service
+Requires=dnsmasq.service
+PartOf=dnsmasq.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/truncate -s 0 /var/log/dhcp.log
+User=root
+
+[Install]
+WantedBy=multi-user.target
