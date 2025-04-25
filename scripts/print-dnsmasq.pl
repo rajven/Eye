@@ -45,6 +45,7 @@ if ($address=~/inet\s+(.*)\s+brd/i) {
 }
 
 my %static_hole;
+my %mac_subnets;
 
 my @subnets=get_records_sql($dbh,'SELECT * FROM subnets WHERE dhcp=1 and office=1 and vpn=0 and hotspot=0 ORDER BY ip_int_start');
 foreach my $subnet (@subnets) {
@@ -67,21 +68,28 @@ print "dhcp-option=net:net-$subnet_name,option:router,$dhcp_conf{$subnet_name}->
 }
 
 #get userid list
-my $sSQL="SELECT id,ip,ip_int,mac,comments,dns_name,dhcp_option_set,dhcp_acl FROM User_auth where dhcp=1 and deleted=0 and ou_id !=".$default_user_ou_id." and ou_id !=".$default_hotspot_ou_id." ORDER by ip_int";
+my $sSQL="SELECT id,ip,ip_int,mac,comments,dns_name,dhcp_option_set,dhcp_acl,ou_id FROM User_auth where dhcp=1 and deleted=0 ORDER by ip_int";
 my @users = get_records_sql($dbh,$sSQL);
 foreach my $row (@users) {
 next if (!$row);
 next if (!$dhcp_networks->match_string($row->{ip}));
 next if (!$row->{mac});
 next if (!$row->{ip});
+next if (is_default_ou($dbh,$row->{ou_id}));
 if (exists $static_hole{$row->{ip}}) { $static_hole{$row->{ip}}{skip}=1; }
 print '#Comment:'.$row->{comments}."\n" if ($row->{comments});
-print '#DNS:'.$row->{dns_name}."\n" if ($row->{dns_name});
-print 'dhcp-host='.$row->{mac}.', '.$row->{ip}."\n";
-if ($row->{dhcp_option_set}) {
-    print '#DHCP group:'.$row->{dhcp_option_set}."\n";
-    print 'dhcp-host=set:'.$row->{dhcp_option_set}.','.$row->{ip}."\n";
+my $dns_name = '';
+if ($row->{dns_name}) {
+    print '#DNS:'.$row->{dns_name}."\n";
+    $dns_name = ','.$row->{dns_name};
     }
+
+my $dhcp_set = '';
+if ($row->{dhcp_option_set}) {
+    $dhcp_set = ',set:'.$row->{dhcp_option_set};
+    }
+
+print 'dhcp-host='.$row->{mac}.$dns_name.','.$row->{ip}.$dhcp_set."\n";
 }
 
 foreach my $ip (keys %static_hole) {

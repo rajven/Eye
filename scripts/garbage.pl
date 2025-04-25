@@ -199,7 +199,8 @@ delete_user($dbh,$row->{id});
 if ($config_ref{clean_empty_user}) {
     db_log_info($dbh,'Clearing empty user account and corresponded devices');
 #    my $u_sql = "SELECT * FROM User_list as U WHERE (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id)=0";
-    my $u_sql = "SELECT * FROM User_list as U WHERE (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0";
+#    my $u_sql = "SELECT * FROM User_list as U WHERE (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0";
+    my $u_sql = "SELECT * FROM User_list as U WHERE U.permanent=0 AND (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id)=0;"
     my @u_ref = get_records_sql($dbh,$u_sql);
     foreach my $row (@u_ref) {
         db_log_info($dbh,"Remove empty user with id: $row->{id} login: $row->{login}");
