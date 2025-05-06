@@ -1233,6 +1233,38 @@ if (!empty($dhcp_option_sets) and count($dhcp_option_sets)>0) {
     }
 }
 
+function print_dhcp_acl_list($db,$qa_name,$value='')
+{
+$dhcp_acl = get_records_sql($db,"SELECT DISTINCT `dhcp_acl` FROM User_auth WHERE `dhcp_acl` IS NOT NULL AND `dhcp_acl` != '' AND  `deleted`=0");
+if (!empty($dhcp_acl) and count($dhcp_acl)>0) {
+    print "<input list=\"dhcp_acl\" id=\"$qa_name\" name=\"$qa_name\" value=\"$value\"/>";
+    print "<datalist id=\"dhcp_acl\">";
+    print "<option value=\"\">";
+    foreach ($dhcp_acl as $acl) {
+        print "<option value=\"{$acl['dhcp_acl']}\">";
+        }
+    print "</datalist>";
+    } else {
+    print "<input type=\"text\" name=\"$qa_name\" value=\"\" size=10/>";
+    }
+}
+
+function print_dhcp_option_set_list($db,$qa_name,$value='')
+{
+$dhcp_option_sets = get_records_sql($db,"SELECT DISTINCT `dhcp_option_set` FROM User_auth WHERE `dhcp_option_set` IS NOT NULL AND `dhcp_option_set` != '' AND `deleted`=0");
+if (!empty($dhcp_option_sets) and count($dhcp_option_sets)>0) {
+    print "<input list=\"dhcp_option_set\" id=\"$qa_name\" name=\"$qa_name\" value=\"$value\"/>";
+    print "<datalist id=\"dhcp_option_set\">";
+    print "<option value=\"\">";
+    foreach ($dhcp_option_sets as $dhcp_option_set) {
+        print "<option value=\"{$dhcp_option_set['dhcp_option_set']}\">";
+        }
+    print "</datalist>";
+    } else {
+    print "<input type=\"text\" name=\"$qa_name\" value=\"\" size=10/>";
+    }
+}
+
 function print_enabled_select($qa_name, $qa_value)
 {
     print "<select id=\"$qa_name\" name=\"$qa_name\">\n";

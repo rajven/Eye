@@ -129,8 +129,8 @@ print_ip_submenu($page_url);
         <tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td align=left><?php print WEB_cell_filter."</td><td align=right>";print_group_select($db_link, 'a_group_id', 0);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td align=left><?php print WEB_cell_shaper."</td><td align=right>";print_queue_select($db_link, 'a_queue_id', 0);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_dhcp" value='1'></td><td align=left><?php print "Dhcp"."</td><td align=right>"; print_qa_select('a_dhcp', 1);?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_dhcp_acl" value='1'></td><td align=left><?php print "Dhcp-acl"."</td><td align=right>"; print_dhcp_acl($db_link,"a_dhcp_acl"); ?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_dhcp_option_set" value='1'></td><td align=left><?php print "Dhcp-option-set"."</td><td align=right>"; print_dhcp_option_set($db_link,"a_dhcp_option_set"); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_dhcp_acl" value='1'></td><td align=left><?php print "Dhcp-acl"."</td><td align=right>"; print_dhcp_acl_list($db_link,"a_dhcp_acl"); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_dhcp_option_set" value='1'></td><td align=left><?php print "Dhcp-option-set"."</td><td align=right>"; print_dhcp_option_set_list($db_link,"a_dhcp_option_set"); ?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_traf" value='1'></td><td align=left><?php print "Save traffic"."</td><td align=right>"; print_qa_select('a_traf',1);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_bind_mac" value='1'></td><td align=left><?php print WEB_user_bind_mac."</td><td align=right>";print_qa_select('a_bind_mac', 1);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_bind_ip" value='1'></td><td align=left><?php print WEB_user_bind_ip."</td><td align=right>";print_qa_select('a_bind_ip', 1);?></td></tr>
