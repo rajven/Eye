@@ -1,3 +1,13 @@
+# Changelog 2.7.9
+
+- bugfix: fixed the garbage collection script that was broken by the previous patch
+- bugfix: During garbage collection, the user's "non-deleted" records were also deleted.
+- added a selection list for setting the dhcp parameters
+- added display of dhcp options to the user's page
+- added support dhcp-group (for dhcp option set as mikrotik) to dnsmasq
+- added truncate dhcp.log after restart dnsmasq service
+- added support ptr-dns records
+
 # Changelog 2.7.8
 
 - the work with mass modification of records has been simplified.
