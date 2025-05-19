@@ -278,6 +278,8 @@ $auth_info = get_record_sql($db_link, $sSQL);
 $device = get_record_sql($db_link, "SELECT * FROM devices WHERE user_id=" . $auth_info['user_id']);
 
 $parent_name = get_login($db_link, $auth_info['user_id']);
+if (empty($parent_name)) { $parent_name=$auth_info['user_id']; }
+
 if ($auth_info['dhcp_time'] == '0000-00-00 00:00:00') {
     $dhcp_str = '';
 } else {

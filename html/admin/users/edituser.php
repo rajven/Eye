@@ -21,7 +21,8 @@ if (isset($_POST["edituser"])) {
     $new["ou_id"] = $_POST["f_ou"] * 1;
     $new["filter_group_id"] = $_POST["f_filter"] * 1;
     $new["queue_id"] = $_POST["f_queue"] * 1;
-    $new["login"] = trim($_POST["f_login"]);
+    $user_name = trim($_POST["f_login"]);
+    if (!empty($user_name)) { $new["login"] = $user_name; }
     $new["fio"] = trim($_POST["f_fio"]);
     if (get_const('default_user_ou_id') == $new["ou_id"] or get_const('default_hotspot_ou_id') == $new["ou_id"]) {
         $new["enabled"] = 0;

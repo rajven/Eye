@@ -231,7 +231,8 @@ foreach ($users as $user) {
     if (!$user['UEnabled'] or $user['UBlocked']) { $cl = "off"; }
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$user['id']."></td>\n";
     print "<td class=\"$cl\" >".$user['ou_name']."</td>\n";
-    print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user['login'] . "</a></td>\n";
+    if (empty($user['login'])) { $user_name = $user['user_id']; } else { $user_name = $user['login']; }
+    print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user_name . "</a></td>\n";
     print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
     if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
