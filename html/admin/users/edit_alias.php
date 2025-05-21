@@ -31,6 +31,7 @@ if (isset($_POST["s_remove"])) {
 if (isset($_POST['s_save'])) {
     $len = is_array($_POST['s_save']) ? count($_POST['s_save']) : 0;
     $domain_zone = get_option($db_link, 33);
+    $domain_zone = ltrim($domain_zone, '.');
     for ($i = 0; $i < $len; $i ++) {
         $save_id = intval($_POST['s_save'][$i]);
         $len_all = is_array($_POST['n_id']) ? count($_POST['n_id']) : 0;
@@ -38,10 +39,10 @@ if (isset($_POST['s_save'])) {
             if (intval($_POST['n_id'][$j]) != $save_id) { continue; }
             $f_dnsname = trim($_POST['s_alias'][$j]);
             if (!empty($f_dnsname)) {
-                $f_dnsname = preg_replace('/'.$domain_zone.'/','',$f_dnsname);
-                $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
+                $f_dnsname = preg_replace('/\.' . str_replace('.', '\.', $domain_zone) . '$/', '', $f_dnsname);
+//                $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
                 $f_dnsname = preg_replace('/\s+/','-',$f_dnsname);
-                $f_dnsname = preg_replace('/\./','-',$f_dnsname);
+//                $f_dnsname = preg_replace('/\./','-',$f_dnsname);
                 }
             if (empty($f_dnsname) or !checkValidHostname($f_dnsname) or !checkUniqHostname($db_link,$id,$f_dnsname)) { continue; }
             $new['alias'] = $f_dnsname;
@@ -59,10 +60,11 @@ if (isset($_POST["s_create"])) {
         $f_dnsname = trim($new_alias);
         if (!empty($f_dnsname)) {
             $domain_zone = get_option($db_link, 33);
-            $f_dnsname = preg_replace('/'.$domain_zone.'/','',$f_dnsname);
-            $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
+            $domain_zone = ltrim($domain_zone, '.');
+            $f_dnsname = preg_replace('/\.' . str_replace('.', '\.', $domain_zone) . '$/', '', $f_dnsname);
+//            $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
             $f_dnsname = preg_replace('/\s+/','-',$f_dnsname);
-            $f_dnsname = preg_replace('/\./','-',$f_dnsname);
+//            $f_dnsname = preg_replace('/\./','-',$f_dnsname);
             }
 
         if (empty($f_dnsname) or !checkValidHostname($f_dnsname) or !checkUniqHostname($db_link,$id,$f_dnsname)) {

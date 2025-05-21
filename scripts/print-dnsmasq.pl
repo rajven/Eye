@@ -99,4 +99,75 @@ if (!$static_hole{$ip}{skip}) {
     }
 }
 
+# DNS
+print "#--- DNS ---#\n";
+
+#get userid list
+my $sSQL="SELECT id,ou_id,ip,dns_name,dhcp_hostname,dns_ptr_only FROM User_auth WHERE deleted=0 AND ip>'' AND (dns_name>'' OR dhcp_hostname>'') AND dns_name NOT LIKE '%.' ORDER by ip_int;";
+my @users = get_records_sql($dbh,$sSQL);
+foreach my $row (@users) {
+next if (!$row);
+next if (is_default_ou($dbh,$row->{ou_id}));
+next if (!$office_networks->match_string($row->{ip}));
+
+my $dns_name = trim($row->{dns_name});
+if ($dns_name) {
+    $dns_name =~s/_/-/g;
+#    $dns_name =~s/[\.]/-/g;
+    $dns_name =~s/ /-/g;
+    $dns_name =~s/-$//g;
+    $dns_name = trim($dns_name);
+    if ($dns_name and $dns_name!~/\.$domain_name$/) { $dns_name = $dns_name .".".$domain_name; }
+    } else { $dns_name=''; }
+
+next if (!$dns_name);
+
+#if (!$row->{dns_ptr_only} and ($dns_name or $row->{dhcp_hostname})) {
+if (!$row->{dns_ptr_only} and $dns_name) {
+    print '#Comment:'.$row->{comments}."\n" if ($row->{comments});
+    if ($dns_name) {
+        print '#DNS A-record '.$dns_name."\n";
+        print 'address=/'.$dns_name.'/'.$row->{ip}."\n";
+        } 
+#        else {
+#        if ($row->{dhcp_hostname} and $row->{dhcp_hostname}!~/UNDEFINED/i) {
+#            $dns_name = $row->{dhcp_hostname};
+#            $dns_name = $dns_name .".".$domain_name; }
+#            $dns_name =~s/_/-/g;
+##            $dns_name =~s/[\.]/-/g;
+#            $dns_name =~s/ /-/g;
+#            $dns_name =~s/-$//g;
+#            $dns_name = trim($dns_name);
+#            if ($dns_name) {
+#                print '#DNS-from-DHCP A-record '.$dns_name."\n";
+#                print 'address=/'.$dns_name.'/'.$row->{ip}."\n";
+#                }
+#            }
+    #aliases
+    if ($dns_name) {
+        my $aSQL="SELECT * FROM `User_auth_alias` WHERE auth_id=$row->{id} AND alias>'' AND alias NOT LIKE '%.';";
+        my @aliases = get_records_sql($dbh,$aSQL);
+        print '#DNS aliases for '.$dns_name."\n" if (@aliases and scalar @aliases);
+        foreach my $alias (@aliases) {
+            my $dns_alias = trim($alias->{alias});
+#            $dns_alias =~s/$domain_name//i;
+            $dns_alias =~s/_/-/g;
+            $dns_alias =~s/[\.]/-/g;
+            $dns_alias =~s/ /-/g;
+            $dns_alias =~s/-$//g;
+            $dns_alias = trim($dns_alias);
+            if ($dns_alias and $dns_alias !~ /\.\Q$domain_name\E$/i) { $dns_alias = $dns_alias .".".$domain_name; }
+            print "cname=".$dns_alias.",".$dns_name."\n" if ($dns_alias);
+            }
+        }
+    }
+
+my $ptr_record='';
+if ($dns_name and $row->{ip}=~/([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})/) {
+    $ptr_record=$4.".".$3.".".$2.".".$1.".in-addr.arpa";
+    print '#PTR for '.$dns_name."\n";
+    print 'ptr-record='.$ptr_record.','.$dns_name."\n";
+    }
+}
+
 exit 0;

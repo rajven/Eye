@@ -17,6 +17,8 @@ use eyelib::database;
 use strict;
 use warnings;
 
+STDOUT->autoflush(1);
+
 my $update_dir = '/opt/Eye/scripts/updates/';
 
 opendir(my $dh, $update_dir) or die "Eror listing for $update_dir: $!";

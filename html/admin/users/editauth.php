@@ -71,18 +71,25 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         $dns_alias_count = get_count_records($db_link,'User_auth_alias','auth_id='.$id);
         if (!empty($f_dnsname) and !$new['dns_ptr_only']) {
             $domain_zone = get_option($db_link, 33);
-            $f_dnsname = preg_replace('/'.$domain_zone.'/','',$f_dnsname);
-            $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
+            $domain_zone = ltrim($domain_zone, '.');
+            $f_dnsname = preg_replace('/\.' . str_replace('.', '\.', $domain_zone) . '$/', '', $f_dnsname);
+//            $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
             $f_dnsname = preg_replace('/\s+/','-',$f_dnsname);
-            $f_dnsname = preg_replace('/\./','-',$f_dnsname);
+//            $f_dnsname = preg_replace('/\./','-',$f_dnsname);
             //disable change dns name when exists aliases
             if ($dns_alias_count >0 and $f_dnsname !== $old_auth_info['dns_name']) {
                 $f_dnsname =  $old_auth_info['dns_name'];
                 } else {
-                if (checkValidHostname($f_dnsname) and checkUniqHostname($db_link,$id,$f_dnsname)) {
+                $valid_dns = checkValidHostname($f_dnsname);
+                $uniq_dns = checkUniqHostname($db_link,$id,$f_dnsname);
+                if ($valid_dns and $uniq_dns) {
                         $new['dns_name'] = $f_dnsname;
                         } else {
-                        $msg_error = "DNS $f_dnsname already exists at: ".searchHostname($db_link,$id,$f_dnsname)." Discard changes!";
+                        if (!$uniq_dns) {
+                            $msg_error = "DNS $f_dnsname already exists at: ".searchHostname($db_link,$id,$f_dnsname)." Discard changes!";
+                            } else {
+                            $msg_error = "DNS $f_dnsname not valid! Discard changes!";
+                            }
                         $_SESSION[$page_url]['msg'] = $msg_error;
                         LOG_ERROR($db_link, $msg_error);
                         header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -109,10 +116,11 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
 
         if (!empty($f_dnsname) and $new['dns_ptr_only']) {
             $domain_zone = get_option($db_link, 33);
-            $f_dnsname = preg_replace('/'.$domain_zone.'/','',$f_dnsname);
-            $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
+            $domain_zone = ltrim($domain_zone, '.');
+            $f_dnsname = preg_replace('/\.' . str_replace('.', '\.', $domain_zone) . '$/', '', $f_dnsname);
+//            $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
             $f_dnsname = preg_replace('/\s+/','-',$f_dnsname);
-            $f_dnsname = preg_replace('/\./','-',$f_dnsname);
+//            $f_dnsname = preg_replace('/\./','-',$f_dnsname);
             $new['dns_name'] = $f_dnsname;
             }
 
@@ -326,7 +334,7 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
                 <td></td>
             </tr>
             <tr>
-                <td><input type="text" name="f_dns_name" size="14"  value="<?php echo $auth_info['dns_name']; ?>" pattern="^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$">
+                <td><input type="text" name="f_dns_name" size="14"  value="<?php echo $auth_info['dns_name']; ?>" pattern="^([a-zA-Z0-9-]{1,63})(\.[a-zA-Z0-9-]{1,63})*\.?$">
                     <input type="checkbox" id="f_dns_ptr" name="f_dns_ptr" value="1" <?php echo $f_dns_ptr; ?>> &nbsp ptr
                 </td>
                 <td><input type="text" name="f_comments" value="<?php echo $auth_info['comments']; ?>"></td>

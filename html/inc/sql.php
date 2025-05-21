@@ -474,7 +474,7 @@ function update_record($db, $table, $filter, $newvalue)
     }
 
     if ($table === "User_auth" and $dns_changed) {
-        if (!empty($old['dns_name']) and !empty($old['ip']) and !$old['dns_ptr_only']) {
+        if (!empty($old['dns_name']) and !empty($old['ip']) and !$old['dns_ptr_only'] and !preg_match('/\.$/', $old['dns_name'])) {
             $del_dns['name_type'] = 'A';
             $del_dns['name'] = $old['dns_name'];
             $del_dns['value'] = $old['ip'];
@@ -484,7 +484,7 @@ function update_record($db, $table, $filter, $newvalue)
             }
             insert_record($db, 'dns_queue', $del_dns);
         }
-        if (!empty($old['dns_name']) and !empty($old['ip']) and $old['dns_ptr_only']) {
+        if (!empty($old['dns_name']) and !empty($old['ip']) and $old['dns_ptr_only'] and !preg_match('/\.$/', $old['dns_name'])) {
             $del_dns['name_type'] = 'PTR';
             $del_dns['name'] = $old['dns_name'];
             $del_dns['value'] = $old['ip'];
@@ -495,7 +495,7 @@ function update_record($db, $table, $filter, $newvalue)
             insert_record($db, 'dns_queue', $del_dns);
         }
 
-        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and !$newvalue['dns_ptr_only']) {
+        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and !$newvalue['dns_ptr_only'] and !preg_match('/\.$/', $newvalue['dns_name'])) {
             $new_dns['name_type'] = 'A';
             $new_dns['name'] = $newvalue['dns_name'];
             $new_dns['value'] = $newvalue['ip'];
@@ -505,7 +505,7 @@ function update_record($db, $table, $filter, $newvalue)
             }
             insert_record($db, 'dns_queue', $new_dns);
         }
-        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and $newvalue['dns_ptr_only']) {
+        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and $newvalue['dns_ptr_only'] and !preg_match('/\.$/', $newvalue['dns_name'])) {
             $new_dns['name_type'] = 'PTR';
             $new_dns['name'] = $newvalue['dns_name'];
             $new_dns['value'] = $newvalue['ip'];
@@ -522,7 +522,7 @@ function update_record($db, $table, $filter, $newvalue)
         if ($old['auth_id']) {
             $auth_id = $old['auth_id'];
         }
-        if (!empty($old['alias'])) {
+        if (!empty($old['alias']) and !preg_match('/\.$/', $old['alias'])) {
             $del_dns['name_type'] = 'CNAME';
             $del_dns['name'] = $old['alias'];
             $del_dns['type'] = 'del';
@@ -532,7 +532,7 @@ function update_record($db, $table, $filter, $newvalue)
             }
             insert_record($db, 'dns_queue', $del_dns);
         }
-        if (!empty($newvalue['alias'])) {
+        if (!empty($newvalue['alias'])  and !preg_match('/\.$/', $newvalue['alias'])) {
             $new_dns['name_type'] = 'CNAME';
             $new_dns['name'] = $newvalue['alias'];
             $new_dns['type'] = 'add';
@@ -643,7 +643,7 @@ function delete_record($db, $table, $filter)
             return;
             }
         //dns - A-record
-        if (!empty($old['dns_name']) and !empty($old['ip']) and !$old['dns_ptr_only']) {
+        if (!empty($old['dns_name']) and !empty($old['ip']) and !$old['dns_ptr_only']  and !preg_match('/\.$/', $old['dns_name'])) {
             $del_dns['name_type'] = 'A';
             $del_dns['name'] = $old['dns_name'];
             $del_dns['value'] = $old['ip'];
@@ -654,7 +654,7 @@ function delete_record($db, $table, $filter)
             insert_record($db, 'dns_queue', $del_dns);
             }
         //ptr
-        if (!empty($old['dns_name']) and !empty($old['ip']) and $old['dns_ptr_only']) {
+        if (!empty($old['dns_name']) and !empty($old['ip']) and $old['dns_ptr_only']  and !preg_match('/\.$/', $old['dns_name'])) {
             $del_dns['name_type'] = 'PTR';
             $del_dns['name'] = $old['dns_name'];
             $del_dns['value'] = $old['ip'];
@@ -674,7 +674,7 @@ function delete_record($db, $table, $filter)
     //remove aliases
     if ($table === 'User_auth_alias') {
         //dns
-        if (!empty($old['alias'])) {
+        if (!empty($old['alias'])  and !preg_match('/\.$/', $old['alias'])) {
             $del_dns['name_type'] = 'CNAME';
             $del_dns['name'] = $old['alias'];
             $del_dns['value'] = '';
@@ -756,7 +756,7 @@ function insert_record($db, $table, $newvalue)
 
     if ($table === 'User_auth_alias') {
         //dns
-        if (!empty($newvalue['alias'])) {
+        if (!empty($newvalue['alias'])  and !preg_match('/\.$/', $newvalue['alias'])) {
             $add_dns['name_type'] = 'CNAME';
             $add_dns['name'] = $newvalue['alias'];
             $add_dns['value'] = get_dns_name($db, $newvalue['auth_id']);
@@ -768,7 +768,7 @@ function insert_record($db, $table, $newvalue)
 
     if ($table === 'User_auth') {
         //dns - A-record
-        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and !$newvalue['dns_ptr_only']) {
+        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and !$newvalue['dns_ptr_only']  and !preg_match('/\.$/', $newvalue['dns_name'])) {
             $add_dns['name_type'] = 'A';
             $add_dns['name'] = $newvalue['dns_name'];
             $add_dns['value'] = $newvalue['ip'];
@@ -777,7 +777,7 @@ function insert_record($db, $table, $newvalue)
             insert_record($db, 'dns_queue', $add_dns);
         }
         //dns - ptr
-        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and $newvalue['dns_ptr_only']) {
+        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and $newvalue['dns_ptr_only'] and !preg_match('/\.$/', $newvalue['dns_name'])) {
             $add_dns['name_type'] = 'PTR';
             $add_dns['name'] = $newvalue['dns_name'];
             $add_dns['value'] = $newvalue['ip'];
