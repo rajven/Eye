@@ -237,27 +237,39 @@ File::Temp::cleanup();
 
 #---------------------------------------------------------------------------------------------------------------
 
+#my $new_id = do_sql($dbh, 'INSERT INTO User_list (login) VALUES (?)', 'Ivan');
 sub do_sql {
-my $db=shift;
-my $sql=shift;
-return if (!$db);
-return if (!$sql);
-if ($sql!~/^select /i) { log_debug($sql); }
-my $sql_prep = $db->prepare($sql) or die "Unable to prepare $sql: " . $db->errstr;
-my $sql_ref;
-my $rv = $sql_prep->execute() or die "Unable to execute $sql: " . $db->errstr;
-if ($sql=~/^insert/i) {
-    if ($config_ref{DBTYPE} eq 'mysql') {
-        $sql_ref = $sql_prep->{mysql_insertid};
-	} else {
-        ($sql_ref) = $db->selectrow_array("SELECT lastval()");
-	}
-    }
-if ($sql=~/^select /i) { $sql_ref = $sql_prep->fetchall_arrayref() or die "Unable to select $sql: " . $db->errstr; };
-$sql_prep->finish();
-return $sql_ref;
-}
+    my ($db, $sql, @bind_values) = @_;
+    return unless $db;
+    return unless $sql;
+    # Логируем не-SELECT-запросы
+    log_debug( $sql . (@bind_values ? ' | bind: [' . join(', ', map { defined $_ ? $_ : 'undef' } @bind_values) . ']' : '')) unless $sql =~ /^select /i;
 
+    # Подготовка запроса
+    my $sth = $db->prepare($sql) or die "Unable to prepare SQL [$sql]: " . $db->errstr;
+    # Выполнение запроса с подстановкой параметров, если есть
+    my $rv;
+    if (@bind_values) {
+        $rv = $sth->execute(@bind_values) or die "Unable to execute SQL [$sql] with bind: [" . join(', ', map { defined $_ ? $_ : 'undef' } @bind_values) . "]: " . $sth->errstr;
+    } else {
+        $rv = $sth->execute() or die "Unable to execute SQL [$sql]: " . $sth->errstr;
+    }
+    my $sql_ref;
+    # Возврат ID при insert
+    if ($sql =~ /^insert/i) {
+        if ($config_ref{DBTYPE} and $config_ref{DBTYPE} eq 'mysql') {
+            $sql_ref = $sth->{mysql_insertid};
+        } else {
+            ($sql_ref) = $db->selectrow_array("SELECT lastval()");
+        }
+    }
+    # Обработка SELECT
+    elsif ($sql =~ /^select /i) {
+        $sql_ref = $sth->fetchall_arrayref({}) or die "Unable to fetch data for SQL [$sql]: " . $sth->errstr;
+    }
+    $sth->finish();
+    return $sql_ref;
+}
 
 #---------------------------------------------------------------------------------------------------------------
 
