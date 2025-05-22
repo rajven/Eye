@@ -948,6 +948,9 @@ my $static_ok = 0;
 eval {
 
 if ($dns_cmd->{name_type}=~/^cname$/i) {
+    #skip update unknown domain
+    if ($dns_cmd->{name} =~/\.$/ or $dns_cmd->{value} =~/\.$/) { next; }
+
     $fqdn=lc($dns_cmd->{name});
     $fqdn=~s/\.$ad_zone$//i;
 #    $fqdn=~s/\.$//;
@@ -956,8 +959,6 @@ if ($dns_cmd->{name_type}=~/^cname$/i) {
         $fqdn_parent=~s/\.$ad_zone$//i;
 #        $fqdn_parent=~s/\.$//;
         }
-    #skip update unknown domain
-    if ($fqdn =~/\.$/ or $fqdn_parent =~/\.$/) { next; }
 
     $fqdn = $fqdn.".".$ad_zone;
     $fqdn_parent = $fqdn_parent.".".$ad_zone;
@@ -973,13 +974,13 @@ if ($dns_cmd->{name_type}=~/^cname$/i) {
     }
 
 if ($dns_cmd->{name_type}=~/^a$/i) {
+    #skip update unknown domain
+    if ($dns_cmd->{name} =~/\.$/ or $dns_cmd->{value} =~/\.$/) { next; }
     $fqdn=lc($dns_cmd->{name});
     $fqdn=~s/\.$ad_zone$//i;
 #    $fqdn=~s/\.$//;
     if (!$dns_cmd->{value}) { next; }
     $fqdn_ip=lc($dns_cmd->{value});
-    #skip update unknown domain
-    if ($fqdn =~/\.$/) { next; }
     $fqdn = $fqdn.".".$ad_zone;
     #dns update disabled?
     my $maybe_update_dns=( $enable_ad_dns_update and $office_networks->match_string($fqdn_ip) );
@@ -1297,9 +1298,9 @@ my $server = shift;
 my $db = shift;
 #skip update domain controllers
 if (!$db) {
-    log_info("DNS-UPDATE: Zone $zone Server: $server CNAME: $alias for $fqdn"); 
+    log_info("DNS-UPDATE: Add => Zone $zone Server: $server CNAME: $alias for $fqdn"); 
     } else {
-    db_log_info($db,"DNS-UPDATE: Zone $zone Server: $server CNAME: $alias for $fqdn ");
+    db_log_info($db,"DNS-UPDATE: Add => Zone $zone Server: $server CNAME: $alias for $fqdn ");
     }
 my $ad_zone = get_option($db,33);
 my $nsupdate_file = "/tmp/".$fqdn."-nsupdate";
@@ -1375,9 +1376,9 @@ my $db = shift;
 #skip update domain controllers
 if ($fqdn=~/^dc[0-9]{1,2}\./i) { return; }
 if (!$db) {
-    log_info("DNS-UPDATE: Zone $zone Server: $server A: $fqdn IP: $ip"); 
+    log_info("DNS-UPDATE: Add => Zone $zone Server: $server A: $fqdn IP: $ip"); 
     } else {
-    db_log_info($db,"DNS-UPDATE: Zone $zone Server: $server A: $fqdn IP: $ip");
+    db_log_info($db,"DNS-UPDATE: Add => Zone $zone Server: $server A: $fqdn IP: $ip");
     }
 my $ad_zone = get_option($db,33);
 my $nsupdate_file = "/tmp/".$fqdn."-nsupdate";
