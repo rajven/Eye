@@ -123,11 +123,12 @@ if (!$pid) {
             log_verbose("GET CLIENT REQUEST: $logline");
 
             $logline =~ s/[^\p{L}\p{N}\p{P}\p{Z}]//g;
-            log_debug("Ffilter printable : $logline");
+            log_debug("Filter printable : $logline");
 
             my ($type,$mac,$ip,$hostname,$timestamp,$tags,$sup_hostname,$old_hostname,$circuit_id,$remote_id,$client_id,$decoded_circuit_id,$decoded_remote_id) = split (/\;/, $logline);
             next if (!$type);
             next if ($type!~/(old|add|del)/i);
+
 
             #mute doubles
             if (exists $leases{$ip} and $leases{$ip}{'type'} eq $type and time()-$leases{$ip}{'last_time'} <= $mute_time) { next; }
@@ -374,6 +375,9 @@ if (!$pid) {
             if ($dhcp_record->{hotspot} and $ignore_hotspot_dhcp_log) { next; }
 
             if ($ignore_update_dhcp_event and $type=~/old/i) { next; }
+
+            if ($decoded_remote_id) { $remote_id = $decoded_remote_id; }
+            if ($decoded_circuit_id) { $circuit_id = $decoded_circuit_id; }
 
             my $dhcp_log;
             if (!$auth_id) { $auth_id=0; }

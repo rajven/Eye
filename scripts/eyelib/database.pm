@@ -1135,9 +1135,9 @@ my $enable_ad_dns_update = ($ad_zone and $ad_dns and $update_hostname_from_dhcp)
 log_debug("Dhcp record: ".Dumper($dhcp_record));
 log_debug("Subnets: ".Dumper($subnets_dhcp->{$dhcp_record->{network}->{subnet}}));
 log_debug("enable_ad_dns_update: ".$enable_ad_dns_update);
-log_debug("DNS update flags - zone: ".$ad_zone.",dns: ".$ad_dns.", update_hostname_from_dhcp: ".$update_hostname_from_dhcp.", enable_ad_dns_update: ".$enable_ad_dns_update);
+log_debug("DNS update flags - zone: ".$ad_zone.",dns: ".$ad_dns.", update_hostname_from_dhcp: ".$update_hostname_from_dhcp.", enable_ad_dns_update: ".$enable_ad_dns_update. ", network dns-update enabled: ".$subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname});
 
-my $maybe_update_dns=(is_ad_computer($hdb,$dhcp_record->{hostname_utf8}) and ($dhcp_record->{type}=~/add/i or $dhcp_record->{type}=~/old/i) and $enable_ad_dns_update and $subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname});
+my $maybe_update_dns=($enable_ad_dns_update and $subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname} and (is_ad_computer($hdb,$dhcp_record->{hostname_utf8}) and ($dhcp_record->{type}=~/add/i or $dhcp_record->{type}=~/old/i)));
 if (!$maybe_update_dns) {
     db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id}. DNS update don't needed.");
     return 0;

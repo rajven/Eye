@@ -233,24 +233,92 @@ exit $code;
 #---------------------------------------------------------------------------------------------------------
 
 sub sendEmail {
-my ($subject, $message, $crf) = @_;
-return if (!$send_email);
-my $sendmail = '/sbin/sendmail';
-open(MAIL, "|$sendmail -oi -t");
-print MAIL "From: $sender_email\n";
-print MAIL "To: $admin_email\n";
-print MAIL "Subject: $subject\nMIME-Version: 1.0\nContent-Language: ru\nContent-Type: text/html; charset=utf-8\nContent-Transfer-Encoding: 8bit\n\n";
-print MAIL '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">'."\n";
-print MAIL '<html xmlns="http://www.w3.org/1999/xhtml">'."\n";
-print MAIL "<head><title>$subject </title></head><body>\n";
-my @msg = split("\n",$message);
-foreach my $row (@msg) {
-if ($crf) { print MAIL "$row<br>"; } else { print MAIL "$row\n"; };
+    my ($subject, $message, $use_br) = @_;
+    
+    return unless $send_email;
+    
+    # Validate email addresses
+    unless ($sender_email =~ /\A[^@\s]+@[^@\s]+\z/) {
+        log_error("Invalid sender email address: $sender_email");
+        return;
+    }
+    
+    unless ($admin_email =~ /\A[^@\s]+@[^@\s]+\z/) {
+        log_error("Invalid admin email address: $admin_email");
+        return;
+    }
+    
+    # Sanitize input
+    $subject =~ s/[^\p{L}\p{N}\s\-\.\,\!\?]//g;
+    $message =~ s/\r//g;  # Remove carriage returns
+    
+    my $sendmail = '/usr/sbin/sendmail';
+    unless (-x $sendmail) {
+        log_error("Sendmail not found or not executable at $sendmail");
+        return;
+    }
+    
+    # Build email headers
+    my $headers = <<"END_HEADERS";
+From: $sender_email
+To: $admin_email
+Subject: $subject
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 8bit
+X-Mailer: Perl sendEmail
+
+END_HEADERS
+
+    # Build HTML email body
+    my $html_message = <<"END_HTML";
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>$subject</title>
+</head>
+<body>
+END_HTML
+
+    # Process message lines
+    my @lines = split("\n", $message);
+    foreach my $line (@lines) {
+        $line = htmlspecialchars($line);  # HTML escape
+        $html_message .= $use_br ? "$line<br>\n" : "$line\n";
+    }
+    
+    $html_message .= "</body></html>\n";
+    
+    # Send email
+    unless (open(MAIL, "|$sendmail -oi -t")) {
+        log_error("Failed to open sendmail: $!");
+        return;
+    }
+    
+    print MAIL $headers;
+    print MAIL $html_message;
+    
+    unless (close(MAIL)) {
+        log_error("Failed to send email: $!");
+        return;
+    }
+    
+    log_info("Sent email from $sender_email to $admin_email with subject: $subject");
+    log_debug("Email body:\n$message");
 }
-print MAIL "</body></html>\n";
-close(MAIL);
-log_info("Send email from $sender_email to $admin_email with subject: $subject");
-log_debug("Body:\n$message");
+
+#---------------------------------------------------------------------------------------------------------
+
+# Helper function for HTML escaping
+sub htmlspecialchars {
+    my ($text) = @_;
+    $text =~ s/&/&amp;/g;
+    $text =~ s/</&lt;/g;
+    $text =~ s/>/&gt;/g;
+    $text =~ s/"/&quot;/g;
+    $text =~ s/'/&#039;/g;
+    return $text;
 }
 
 #---------------------------------------------------------------------------------------------------------
