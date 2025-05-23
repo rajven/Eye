@@ -2384,69 +2384,71 @@ function get_first_line($msg)
     return truncateByWords($msg, 80);
 }
 
-function email($level, $msg)
-{
-    if (!get_const('send_email')) {
+function email($level = L_INFO, $msg = '') {
+    // Проверка констант и уровня
+    if (!get_const('send_email') || !in_array($level, [L_WARNING, L_ERROR], true)) {
         return;
     }
-    if (!($level === L_WARNING or $level === L_ERROR)) {
+    // Безопасное получение данных сессии
+    $currentIp = filter_var($_SESSION['ip'] ?? '127.0.0.1', FILTER_VALIDATE_IP) ?: '127.0.0.1';
+    $currentLogin = htmlspecialchars($_SESSION['login'] ?? 'http', ENT_QUOTES, 'UTF-8');
+    // Обработка сообщения
+    $subjectPrefix = ($level === L_WARNING) ? "WARN: " : "ERROR: ";
+    $subject = $subjectPrefix . htmlspecialchars(get_first_line($msg), ENT_QUOTES, 'UTF-8') . "...";
+    $messageType = ($level === L_WARNING) ? 'WARNING' : 'ERROR';
+    // Формирование HTML-сообщения с экранированием
+    $safeMsg = nl2br(htmlspecialchars($msg, ENT_QUOTES, 'UTF-8'));
+    $htmlMessage = "<html>
+        <body>
+            <h1>$messageType!</h1>
+            <p>Manager: $currentLogin</p>
+            <p>From: $currentIp</p>
+            <div>$safeMsg</div>
+        </body>
+    </html>";
+    // Заголовки письма
+    $senderEmail = filter_var(get_const('sender_email'), FILTER_VALIDATE_EMAIL);
+    if (!$senderEmail) {
+        error_log("Invalid sender email address");
         return;
     }
-
-    // Generate a boundary string
-    $boundary = md5(time());
-
-    // Headers
-    $headers = array(
-        'From' => get_const('sender_email'),
-        'Reply-To' => get_const('sender_email'),
+    $boundary = md5(uniqid(time(), true));
+    $headers = [
+        'From' => $senderEmail,
+        'Reply-To' => $senderEmail,
         'X-Mailer' => 'PHP',
         'MIME-Version' => '1.0',
-        'Content-Type' => 'multipart/mixed; boundary=' . $boundary
-    );
-
-    $subject = get_first_line($msg);
-
-    if ($level === L_WARNING) {
-        $subject = "WARN: " . $subject . "...";
-        $message = 'WARNING! Manager: ' . $_SESSION['login'] . ' <br>' . $msg . '<br>';
+        'Content-Type' => 'multipart/mixed; boundary=' . $boundary,
+        'Content-Transfer-Encoding' => 'base64'
+    ];
+    // Формирование тела письма
+    $message = "--$boundary\r\n" .
+               "Content-Type: text/html; charset=UTF-8\r\n" .
+               "Content-Transfer-Encoding: base64\r\n\r\n" .
+               chunk_split(base64_encode($htmlMessage)) . "\r\n" .
+               "--$boundary--";
+    // Отправка письма
+    $adminEmail = filter_var(get_const('admin_email'), FILTER_VALIDATE_EMAIL);
+    if ($adminEmail) {
+        if (!mail($adminEmail, $subject, $message, $headers)) {
+            error_log("Failed to send email to $adminEmail");
+        }
+    } else {
+        error_log("Invalid admin email address");
     }
-    if ($level === L_ERROR) {
-        $subject = "ERROR: " . $subject . "...";
-        $message = 'ERROR! Manager: ' . $_SESSION['login'] . ' <br>' . $msg . '<br>';
-    }
-
-    // HTML part
-    $html_message = "<html><body><h1>$message</h1></body></html>";
-    $html_encoded = chunk_split(base64_encode($html_message));
-
-    // Create the message body
-    $message = "";
-    $message .= "--" . $boundary . "\r\n";
-    $message .= "Content-Type: text/html; charset=UTF-8\r\n";
-    $message .= "Content-Transfer-Encoding: base64\r\n\r\n";
-    $message .= $html_encoded . "\r\n";
-    $message .= "--" . $boundary . "--";
-
-    // Send email
-    mail(get_const('admin_email'), $subject, $message, $headers);
 }
 
-function write_log($db, $msg, $level, $auth_id = 0)
+function write_log($db, $msg, $level = L_INFO, $auth_id = 0)
 {
-    $work_user = 'http';
-    if (isset($_SESSION['login'])) {
-        $work_user = $_SESSION['login'];
-    }
-    if (!isset($msg)) {
-        $msg = 'ERROR! Empty log string!';
-    }
-    if (!isset($level)) {
-        $level = L_INFO;
-    }
-    $msg = str_replace("'", '', $msg);
-    $sSQL = "insert into worklog(customer,message,level,auth_id) values('$work_user','$msg',$level,$auth_id)";
-    mysqli_query($db, $sSQL);
+    // Безопасное получение данных сессии
+    $currentIp = filter_var($_SESSION['ip'] ?? '127.0.0.1', FILTER_VALIDATE_IP) ?: '127.0.0.1';
+    $currentLogin = htmlspecialchars($_SESSION['login'] ?? 'http', ENT_QUOTES, 'UTF-8');
+    if (!isset($msg)) { return; }
+    $msg = 'From: '.$currentIp.' '.$msg;
+    $stmt = mysqli_prepare($db, "INSERT INTO worklog(customer, message, level, auth_id) VALUES (?, ?, ?, ?)");
+    mysqli_stmt_bind_param($stmt, 'ssii', $currentLogin, $msg, $level, $auth_id);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
 }
 
 function print_year_select($year_name, $year)

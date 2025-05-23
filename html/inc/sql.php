@@ -168,15 +168,15 @@ function allow_update($table, $action = 'update', $field = '')
 function get_record_field($db, $table, $field, $filter)
 {
     if (!isset($table)) {
-        LOG_ERROR($db, "Search in unknown table! Skip command.");
+#        LOG_ERROR($db, "Search in unknown table! Skip command.");
         return;
     }
     if (!isset($filter)) {
-        LOG_ERROR($db, "Search filter is empty! Skip command.");
+#        LOG_ERROR($db, "Search filter is empty! Skip command.");
         return;
     }
     if (!isset($field)) {
-        LOG_ERROR($db, "Search field is empty! Skip command.");
+#        LOG_ERROR($db, "Search field is empty! Skip command.");
         return;
     }
     if (preg_match('/=$/', $filter)) {
@@ -198,11 +198,11 @@ function get_record_field($db, $table, $field, $filter)
 function get_record($db, $table, $filter)
 {
     if (!isset($table)) {
-        LOG_ERROR($db, "Search in unknown table! Skip command.");
+#        LOG_ERROR($db, "Search in unknown table! Skip command.");
         return;
     }
     if (!isset($filter)) {
-        LOG_ERROR($db, "Search filter is empty! Skip command.");
+#        LOG_ERROR($db, "Search filter is empty! Skip command.");
         return;
     }
     if (preg_match('/=$/', $filter)) {
@@ -246,7 +246,7 @@ function get_record($db, $table, $filter)
 function get_records($db, $table, $filter)
 {
     if (!isset($table)) {
-        LOG_ERROR($db, "Search in unknown table! Skip command.");
+#        LOG_ERROR($db, "Search in unknown table! Skip command.");
         return;
     }
     if (isset($filter) and preg_match('/=$/', $filter)) {
@@ -294,7 +294,7 @@ function get_records_sql($db, $sql)
 {
     $result = NULL;
     if (empty($sql)) {
-        LOG_ERROR($db, "Empty query! Skip command.");
+#        LOG_ERROR($db, "Empty query! Skip command.");
         return $result;
     }
     $records = mysqli_query($db, $sql);
@@ -334,7 +334,7 @@ function get_record_sql($db, $sql)
 {
     $result = NULL;
     if (!isset($sql)) {
-        LOG_ERROR($db, "Empty query! Skip command.");
+#        LOG_ERROR($db, "Empty query! Skip command.");
         return $result;
     }
     $record = mysqli_query($db, $sql . " LIMIT 1");
@@ -373,11 +373,11 @@ function get_record_sql($db, $sql)
 function update_record($db, $table, $filter, $newvalue)
 {
     if (!isset($table)) {
-        LOG_WARNING($db, "Change record for unknown table! Skip command.");
+#        LOG_WARNING($db, "Change record for unknown table! Skip command.");
         return;
     }
     if (!isset($filter)) {
-        LOG_WARNING($db, "Change record ($table) with empty filter! Skip command.");
+#        LOG_WARNING($db, "Change record ($table) with empty filter! Skip command.");
         return;
     }
     if (preg_match('/=$/', $filter)) {
@@ -385,7 +385,7 @@ function update_record($db, $table, $filter, $newvalue)
         return;
     }
     if (!isset($newvalue)) {
-        LOG_WARNING($db, "Change record ($table [ $filter ]) with empty data! Skip command.");
+#        LOG_WARNING($db, "Change record ($table [ $filter ]) with empty data! Skip command.");
         return;
     }
 
@@ -580,11 +580,11 @@ function update_record($db, $table, $filter, $newvalue)
 function delete_record($db, $table, $filter)
 {
     if (!allow_update($table, 'del')) {
-        LOG_WARNING($db, "User does not have write permission");
+#        LOG_INFO($db, "User does not have write permission");
         return;
     }
     if (!isset($table)) {
-        LOG_WARNING($db, "Delete FROM unknown table! Skip command.");
+#        LOG_WARNING($db, "Delete FROM unknown table! Skip command.");
         return;
     }
     if (!isset($filter)) {
@@ -706,15 +706,15 @@ function delete_record($db, $table, $filter)
 function insert_record($db, $table, $newvalue)
 {
     if (!allow_update($table, 'add')) {
-        LOG_WARNING($db, "User does not have write permission");
+#        LOG_WARNING($db, "User does not have write permission");
         return;
     }
     if (!isset($table)) {
-        LOG_WARNING($db, "Create record for unknown table! Skip command.");
+#        LOG_WARNING($db, "Create record for unknown table! Skip command.");
         return;
     }
     if (empty($newvalue)) {
-        LOG_WARNING($db, "Create record ($table) with empty data! Skip command.");
+#        LOG_WARNING($db, "Create record ($table) with empty data! Skip command.");
         return;
     }
 
