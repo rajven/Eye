@@ -605,8 +605,6 @@ if ($found_changed) {
     my $sSQL = "UPDATE $table SET $change_str WHERE $filter";
     db_log_debug($db,'Change table '.$table.' for '.$filter.' set: '.$diff, $rec_id);
     do_sql($db,$sSQL);
-    } else {
-    db_log_debug($db,'Nothing change. Skip update.');
     }
 return 1;
 }
