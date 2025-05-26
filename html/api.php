@@ -69,9 +69,11 @@ if (!empty($action)) {
               if ($faction == 0) { $dhcp_action = 'del'; }
               LOG_VERBOSE($db_link, "API: external dhcp request for $ip [$mac] $dhcp_action");
               if (checkValidIp($ip) and is_our_network($db_link, $ip)) {
-                    $run_cmd = "/opt/Eye/scripts/dnsmasq-hook.sh '".$dhcp_action."' '".$mac."' '".$ip."' '".$dhcp_hostname."'";
-                    $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
-                    LOG_VERBOSE($db_link, "Run command: $run_cmd ");
+                    $new['action']=$dhcp_action;
+                    $new['mac']=$mac;
+                    $new['ip']=$ip;
+                    $new['dhcp_hostname']=$dhcp_hostname;
+                    insert_record($db_link,"dhcp_queue",$new);
                     } else { LOG_ERROR($db_link, "$ip - wrong network!"); }
               }
           }

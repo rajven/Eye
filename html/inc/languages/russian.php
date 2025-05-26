@@ -461,8 +461,8 @@ define("WEB_ips_search_full","Поиск по комментарию/ip/mac/dhcp
 define("WEB_log_start_date","Начало");
 define("WEB_log_stop_date","Конец");
 define("WEB_log_level_display","Уровень логов");
-define("WEB_log_filter_source","Фильтр Источник");
-define("WEB_log_filter_event","Фильтр - сообщение");
+define("WEB_log_filter_source","Источник");
+define("WEB_log_filter_event","Событие");
 define("WEB_log_message","Сообщение");
 define("WEB_log_time","Время");
 define("WEB_log_manager","Администратор");

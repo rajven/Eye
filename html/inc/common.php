@@ -2444,9 +2444,8 @@ function write_log($db, $msg, $level = L_INFO, $auth_id = 0)
     $currentIp = filter_var($_SESSION['ip'] ?? '127.0.0.1', FILTER_VALIDATE_IP) ?: '127.0.0.1';
     $currentLogin = htmlspecialchars($_SESSION['login'] ?? 'http', ENT_QUOTES, 'UTF-8');
     if (!isset($msg)) { return; }
-    $msg = 'From: '.$currentIp.' '.$msg;
-    $stmt = mysqli_prepare($db, "INSERT INTO worklog(customer, message, level, auth_id) VALUES (?, ?, ?, ?)");
-    mysqli_stmt_bind_param($stmt, 'ssii', $currentLogin, $msg, $level, $auth_id);
+    $stmt = mysqli_prepare($db, "INSERT INTO worklog(customer, message, level, auth_id, ip) VALUES (?, ?, ?, ?, ?)");
+    mysqli_stmt_bind_param($stmt, 'ssiis', $currentLogin, $msg, $level, $auth_id, $currentIp);
     mysqli_stmt_execute($stmt);
     mysqli_stmt_close($stmt);
 }

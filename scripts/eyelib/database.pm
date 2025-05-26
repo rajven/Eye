@@ -50,6 +50,7 @@ GetNowTime
 GetUnixTimeByStr
 GetTimeStrByUnixTime
 get_option
+process_dhcp_request
 get_subnets_ref
 init_db
 init_option
@@ -303,9 +304,8 @@ if ($level eq $L_VERBOSE and $log_level >= $L_VERBOSE) { log_verbose($msg); $db_
 if ($level eq $L_DEBUG and $log_level >= $L_DEBUG) { log_debug($msg); $db_log = 1; }
 
 if ($db_log) {
-    my $history_sql="INSERT INTO worklog(customer,message,level,auth_id) VALUES(".$db->quote($MY_NAME).",".$db->quote($msg).",$level,$auth_id)";
-    my $history_rf=$db->prepare($history_sql) or die "Unable to prepare $history_sql:" . $db->errstr;
-    $history_rf->execute() or die "Unable to execute $history_sql: " . $db->errstr;
+    #my $new_id = do_sql($dbh, 'INSERT INTO User_list (login) VALUES (?)', 'Ivan');
+    do_sql($db,'INSERT INTO worklog(customer,message,level,auth_id,ip) VALUES( ?, ?, ?, ?, ?)',$MY_NAME,$msg,$level,$auth_id,$config_ref{self_ip});
     }
 }
 
@@ -1830,6 +1830,14 @@ $config_ref{version}='';
 my $version_record = get_record_sql($db,"SELECT version FROM version WHERE version is NOT NULL");
 if ($version_record) { $config_ref{version}=$version_record->{version}; }
 
+$config_ref{self_ip} = '127.0.0.1';
+if ($DBHOST ne '127.0.0.1') {
+    my $ip_route = qx(ip r get $DBHOST 2>&1 | head -1);
+    if ($? == 0) {
+        if ($ip_route =~ /src\s+(\d+\.\d+\.\d+\.\d+)/) { $config_ref{self_ip} = $1; }
+        }
+    }
+
 $config_ref{dbh}=$db;
 $config_ref{save_detail}=get_option($db,23);
 $config_ref{add_unknown_user}=get_option($db,22);
@@ -2259,6 +2267,145 @@ my $day_dur = DateTime::Duration->new( days => 1 );
 my $clean_date = $now - $day_dur;
 my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
 do_sql($db,"DELETE FROM `ad_comp_cache` WHERE last_found<=$clean_str");
+}
+
+#--------------------------------------------------------------------------------
+
+sub process_dhcp_request {
+
+my ($db, $type, $mac, $ip, $hostname, $client_id, $circuit_id, $remote_id) = @_;
+
+return if (!$type);
+return if ($type!~/(old|add|del)/i);
+
+my $client_hostname='';
+if ($hostname and ($hostname ne "undef" or $hostname !~ /UNDEFINED/i)) { $client_hostname=$hostname; }
+
+my $auth_network = $office_networks->match_string($ip);
+if (!$auth_network) {
+    log_error("Unknown network in dhcp request! IP: $ip");
+    return;
+    }
+
+if (!$circuit_id) { $circuit_id=''; }
+if (!$client_id) { $client_id = ''; }
+if (!$remote_id) { $remote_id = ''; }
+
+my $timestamp=time();
+
+my $ip_aton=StrToIp($ip);
+$mac=mac_splitted(isc_mac_simplify($mac));
+
+my $dhcp_event_time = GetNowTime($timestamp);
+
+my $dhcp_record;
+$dhcp_record->{'mac'}=$mac;
+$dhcp_record->{'ip'}=$ip;
+$dhcp_record->{'ip_aton'}=$ip_aton;
+$dhcp_record->{'hostname'}=$client_hostname;
+$dhcp_record->{'network'}=$auth_network;
+$dhcp_record->{'type'}=$type;
+$dhcp_record->{'hostname_utf8'}=$client_hostname;
+$dhcp_record->{'timestamp'} = $timestamp;
+$dhcp_record->{'last_time'} = time();
+$dhcp_record->{'circuit-id'} = $circuit_id;
+$dhcp_record->{'client-id'} = $client_id;
+$dhcp_record->{'remote-id'} = $remote_id;
+$dhcp_record->{'hotspot'}=is_hotspot($dbh,$dhcp_record->{ip});
+
+#search actual record
+my $auth_record = get_record_sql($db,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
+
+#if record not found and type del => next event
+if (!$auth_record and $type eq 'del') { return; }
+
+#if record not found - create it
+if (!$auth_record and $type=~/(add|old)/i) {
+#        db_log_warning($db,"Record for dhcp request type: ".$type." ip=".$dhcp_record->{ip}." and mac=".$mac." does not exists!");
+        my $res_id = resurrection_auth($db,$dhcp_record);
+        if (!$res_id) {  db_log_error($db,"Error creating an ip address record for ip=".$dhcp_record->{ip}." and mac=".$mac."!");  return; }
+        $auth_record = get_record_sql($db,'SELECT * FROM User_auth WHERE id='.$res_id);
+        db_log_info($db,"Check for new auth. Found id: $res_id",$res_id);
+        }
+
+my $auth_id = $auth_record->{id};
+my $auth_ou_id = $auth_record->{ou_id};
+
+$dhcp_record->{'auth_id'} = $auth_id;
+$dhcp_record->{'auth_ou_id'} = $auth_ou_id;
+
+log_debug(uc($type).">>");
+log_debug("MAC:        ".$dhcp_record->{'mac'});
+log_debug("IP:         ".$dhcp_record->{'ip'});
+log_debug("CIRCUIT-ID: ".$dhcp_record->{'circuit-id'});
+log_debug("REMOTE-ID:  ".$dhcp_record->{'remote-id'});
+log_debug("HOSTNAME:   ".$dhcp_record->{'hostname'});
+log_debug("TYPE:       ".$dhcp_record->{'type'});
+log_debug("TIME:       ".$dhcp_event_time);
+log_debug("AUTH_ID:    ".$auth_id);
+log_debug("END GET");
+
+update_dns_record_by_dhcp($db,$dhcp_record,$auth_record);
+
+if ($type=~/add/i and $dhcp_record->{hostname_utf8}) {
+                my $auth_rec;
+                $auth_rec->{dhcp_hostname} = $dhcp_record->{hostname_utf8};
+                $auth_rec->{dhcp_time}=$dhcp_event_time;
+                $auth_rec->{arp_found}=$dhcp_event_time;
+                $auth_rec->{created_by}='dhcp';
+                db_log_verbose($db,"Add lease by dhcp event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
+                update_record($db,'User_auth',$auth_rec,"id=$auth_id");
+                }
+
+if ($type=~/old/i) {
+                my $auth_rec;
+                $auth_rec->{dhcp_action}=$type;
+                $auth_rec->{dhcp_time}=$dhcp_event_time;
+                $auth_rec->{created_by}='dhcp';
+                $auth_rec->{arp_found}=$dhcp_event_time;
+                db_log_verbose($db,"Update lease by dhcp event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
+                update_record($db,'User_auth',$auth_rec,"id=$auth_id");
+                }
+
+if ($type=~/del/i and $auth_id) {
+                if ($auth_record->{dhcp_time} =~ /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})/) {
+                    my $d_time = mktime($6,$5,$4,$3,$2-1,$1-1900);
+                    if (time()-$d_time>60 and (is_dynamic_ou($db,$auth_ou_id) or is_default_ou($db,$auth_ou_id))) {
+                        db_log_info($db,"Remove user ip record by dhcp release event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
+                        my $auth_rec;
+                        $auth_rec->{dhcp_action}=$type;
+                        $auth_rec->{dhcp_time}=$dhcp_event_time;
+                        update_record($db,'User_auth',$auth_rec,"id=$auth_id");
+                        #remove user auth record if it belongs to the default pool or it is dynamic
+                        if (is_default_ou($db,$auth_ou_id) or (is_dynamic_ou($db,$auth_ou_id) and $auth_record->{dynamic})) {
+                                delete_user_auth($db,$auth_id);
+                                my $u_count=get_count_records($db,'User_auth','deleted=0 and user_id='.$auth_record->{'user_id'});
+                                if (!$u_count) { delete_user($db,$auth_record->{'user_id'}); }
+                                }
+                        }
+                    }
+                }
+
+if ($dhcp_record->{hotspot} and $ignore_hotspot_dhcp_log) { return $dhcp_record; }
+
+if ($ignore_update_dhcp_event and $type=~/old/i) { return $dhcp_record; }
+
+my $dhcp_log;
+if (!$auth_id) { $auth_id=0; }
+$dhcp_log->{'auth_id'} = $auth_id;
+$dhcp_log->{'ip'} = $dhcp_record->{'ip'};
+$dhcp_log->{'ip_int'} = $dhcp_record->{'ip_aton'};
+$dhcp_log->{'mac'} = $dhcp_record->{'mac'};
+$dhcp_log->{'action'} = $type;
+$dhcp_log->{'dhcp_hostname'} = $dhcp_record->{'hostname_utf8'};
+$dhcp_log->{'timestamp'} = $dhcp_event_time;
+$dhcp_log->{'circuit-id'} = $circuit_id;
+$dhcp_log->{'client-id'} = $client_id;
+$dhcp_log->{'remote-id'} = $remote_id;
+
+insert_record($db,'dhcp_log',$dhcp_log);
+
+return $dhcp_record;
 }
 
 #---------------------------------------------------------------------------------------------------------------

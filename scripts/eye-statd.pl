@@ -601,7 +601,7 @@ if ($traf_record->{direction}) {
         #skip create router interface as user
         if (exists $routers_by_ip{$traf_record->{src_ip}}) { next; }
 	if (!$office_networks->match_string($traf_record->{src_ip})) {
-	    log_debug("Unknown src network at router $router_id:: proto=>$traf_record->{proto} src: $traf_record->{src_ip}:$traf_record->{src_port} dst: $traf_record->{dst_ip}:$traf_record->{dst_port}");
+	    log_debug("Unknown src network at router $router_id:: int_in => $traf_record->{snmp_in} int_out=>$traf_record->{snmp_out} proto=>$traf_record->{proto} src: $traf_record->{src_ip}:$traf_record->{src_port} dst: $traf_record->{dst_ip}:$traf_record->{dst_port}");
 	    next;
 	    }
         $user_ip = $traf_record->{src_ip};

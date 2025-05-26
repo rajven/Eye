@@ -129,76 +129,18 @@ if (!$pid) {
             next if (!$type);
             next if ($type!~/(old|add|del)/i);
 
-
             #mute doubles
             if (exists $leases{$ip} and $leases{$ip}{'type'} eq $type and time()-$leases{$ip}{'last_time'} <= $mute_time) { next; }
 
             #update config variables every 1 minute
             if (time()-$last_refresh_config>=60) { init_option($hdb); }
 
-            my $client_hostname='';
-            if ($hostname and $hostname ne "undef") { $client_hostname=$hostname; } else {
-                if ($sup_hostname) { $client_hostname=$sup_hostname; } else {
-                    if ($old_hostname) { $client_hostname=$old_hostname; }
-                    }
-                }
-
-            my $auth_network = $office_networks->match_string($ip);
-            if (!$auth_network) {
-                log_error("Unknown network in dhcp request! IP: $ip");
-                next;
-                }
-
-            if (!$timestamp) { $timestamp=time(); }
-
-            my $ip_aton=StrToIp($ip);
-
-            $mac=mac_splitted(isc_mac_simplify($mac));
-
-            my $dhcp_event_time = GetNowTime($timestamp);
-
-            my $dhcp_record;
-            $dhcp_record->{'mac'}=$mac;
-            $dhcp_record->{'ip'}=$ip;
-            $dhcp_record->{'ip_aton'}=$ip_aton;
-            $dhcp_record->{'hostname'}=$client_hostname;
-            $dhcp_record->{'tags'}=$tags;
-            $dhcp_record->{'network'}=$auth_network;
-            $dhcp_record->{'type'}=$type;
-            $dhcp_record->{'hostname_utf8'}=$converter->convert($client_hostname);
-            $dhcp_record->{'timestamp'} = $timestamp;
-            $dhcp_record->{'last_time'} = time();
-            $dhcp_record->{'circuit-id'} = $circuit_id;
-            $dhcp_record->{'client-id'} = $client_id;
-            $dhcp_record->{'remote-id'} = $remote_id;
-            $dhcp_record->{'hotspot'}=is_hotspot($dbh,$dhcp_record->{ip});
+            my $dhcp_record = process_dhcp_request($hdb, $type, $mac, $ip, $hostname, $client_id, $decoded_circuit_id, $decoded_remote_id);
+            next if (!$dhcp_record);
 
             #save record for mute
             $leases{$ip}=$dhcp_record;
-
-            #search actual record
-            my $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
-
-            #if record not found and type del => next event
-            if (!$type) { next; }
-            if (!$auth_record and $type eq 'del') {
-                next;
-                }
-
-            #if record not found - create it
-            if (!$auth_record and $type=~/(add|old)/i) {
-#                    db_log_warning($hdb,"Record for dhcp request type: ".$type." ip=".$dhcp_record->{ip}." and mac=".$mac." does not exists!");
-                    my $res_id = resurrection_auth($hdb,$dhcp_record);
-                    if (!$res_id) {
-                        db_log_error($hdb,"Error creating an ip address record for ip=".$dhcp_record->{ip}." and mac=".$mac."!");
-                        next;
-                        }
-                    $auth_record = get_record_sql($hdb,'SELECT * FROM User_auth WHERE id='.$res_id);
-                    db_log_info($hdb,"Check for new auth. Found id: $res_id",$res_id);
-                }
-
-            my $auth_id = $auth_record->{id};
-            my $auth_ou_id = $auth_record->{ou_id};
+            my $auth_id = $dhcp_record->{auth_id};
 
             my $switch;
             my $switch_port;
@@ -316,83 +258,8 @@ if (!$pid) {
                         }
                     }
                 }
-
-            log_debug(uc($type).">>");
-            log_debug("MAC:        ".$dhcp_record->{'mac'});
-            log_debug("IP:         ".$dhcp_record->{'ip'});
-            log_debug("TAGS:       ".$dhcp_record->{'tags'});
-            log_debug("CIRCUIT-ID: ".$dhcp_record->{'circuit-id'});
-            log_debug("REMOTE-ID:  ".$dhcp_record->{'remote-id'});
-            log_debug("HOSTNAME:   ".$dhcp_record->{'hostname'});
-            log_debug("TYPE:       ".$dhcp_record->{'type'});
-            log_debug("TIME:       ".$dhcp_event_time);
-            log_debug("UTF8 NAME:  ".$dhcp_record->{'hostname_utf8'});
             log_debug("SWITCH:     ".$switch->{'device_name'}) if ($switch);
             log_debug("SWITCH PORT:".$switch_port->{'ifName'}) if ($switch_port);
-            log_debug("END GET");
-
-            update_dns_record_by_dhcp($hdb,$dhcp_record,$auth_record);
-
-            if ($type=~/add/i and $dhcp_record->{hostname_utf8} and $dhcp_record->{hostname_utf8} !~/UNDEFINED/i) {
-                my $auth_rec;
-                $auth_rec->{dhcp_hostname} = $dhcp_record->{hostname_utf8};
-                $auth_rec->{dhcp_time}=$dhcp_event_time;
-                $auth_rec->{arp_found}=$dhcp_event_time;
-                $auth_rec->{created_by}='dhcp';
-                db_log_verbose($hdb,"Add lease by dhcp event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
-                update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
-                }
-
-            if ($type=~/old/i) {
-                    my $auth_rec;
-                    $auth_rec->{dhcp_action}=$type;
-                    $auth_rec->{dhcp_time}=$dhcp_event_time;
-                    $auth_rec->{created_by}='dhcp';
-                    $auth_rec->{arp_found}=$dhcp_event_time;
-                    db_log_verbose($hdb,"Update lease by dhcp event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
-                    update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
-                }
-
-            if ($type=~/del/i and $auth_id) {
-                if ($auth_record->{dhcp_time} =~ /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})/) {
-                    my $d_time = mktime($6,$5,$4,$3,$2-1,$1-1900);
-                    if (time()-$d_time>60 and (is_dynamic_ou($hdb,$auth_ou_id) or is_default_ou($hdb,$auth_ou_id))) {
-                        db_log_info($hdb,"Remove user ip record by dhcp release event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
-                        my $auth_rec;
-                        $auth_rec->{dhcp_action}=$type;
-                        $auth_rec->{dhcp_time}=$dhcp_event_time;
-                        update_record($hdb,'User_auth',$auth_rec,"id=$auth_id");
-                        #remove user auth record if it belongs to the default pool or it is dynamic
-                        if (is_default_ou($hdb,$auth_ou_id) or (is_dynamic_ou($hdb,$auth_ou_id) and $auth_record->{dynamic})) {
-                                delete_user_auth($hdb,$auth_id);
-                                my $u_count=get_count_records($hdb,'User_auth','deleted=0 and user_id='.$auth_record->{'user_id'});
-                                if (!$u_count) { delete_user($hdb,$auth_record->{'user_id'}); }
-                                }
-                        }
-                    }
-                }
-
-            if ($dhcp_record->{hotspot} and $ignore_hotspot_dhcp_log) { next; }
-
-            if ($ignore_update_dhcp_event and $type=~/old/i) { next; }
-
-            if ($decoded_remote_id) { $remote_id = $decoded_remote_id; }
-            if ($decoded_circuit_id) { $circuit_id = $decoded_circuit_id; }
-
-            my $dhcp_log;
-            if (!$auth_id) { $auth_id=0; }
-            $dhcp_log->{'auth_id'} = $auth_id;
-            $dhcp_log->{'ip'} = $dhcp_record->{'ip'};
-            $dhcp_log->{'ip_int'} = $dhcp_record->{'ip_aton'};
-            $dhcp_log->{'mac'} = $dhcp_record->{'mac'};
-            $dhcp_log->{'action'} = $type;
-            $dhcp_log->{'dhcp_hostname'} = $dhcp_record->{'hostname_utf8'};
-            $dhcp_log->{'timestamp'} = $dhcp_event_time;
-            $dhcp_log->{'circuit-id'} = $circuit_id;
-            $dhcp_log->{'client-id'} = $client_id;
-            $dhcp_log->{'remote-id'} = $remote_id;
-
-            insert_record($hdb,'dhcp_log',$dhcp_log);
             }
         };
         if ($@) { log_error("Exception found: $@"); sleep(60); }

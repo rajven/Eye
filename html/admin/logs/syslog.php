@@ -42,11 +42,10 @@ if ($f_id>0) {
 
 <?php
 
-if (!empty($fmessage)) {
-    if (!empty($log_filter)) { $log_filter = $log_filter." and message LIKE '%".$fmessage."%'"; } else { $log_filter = " message LIKE '%".$fmessage."%'"; }
-    }
+if (!empty($fmessage)) { $log_filter .= " AND `message` LIKE '%" . addslashes($fmessage) . "%'"; }
 
 $countSQL="SELECT Count(*) FROM `remote_syslog` WHERE `date`>='$date1' AND `date`<'$date2' $log_filter";
+
 $res = mysqli_query($db_link, $countSQL);
 $count_records = mysqli_fetch_array($res);
 $total=ceil($count_records[0]/$displayed);
@@ -54,6 +53,8 @@ if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed; 
 print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+#speedup pageing
+$sSQL = "SELECT * FROM (SELECT * FROM `remote_syslog` WHERE `date`>='$date1' AND `date`<'$date2' $log_filter) as R ORDER BY `date` DESC LIMIT $start,$displayed";
 ?>
 
 <br>
@@ -66,13 +67,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
 <?php
 
-#speedup pageing
-$sSQL = "SELECT 
-`date`, `ip`, `message` 
-FROM `remote_syslog` as R 
-JOIN 
-(SELECT id FROM `remote_syslog` WHERE `date`>='$date1' AND `date`<'$date2' $log_filter ORDER BY `id` DESC LIMIT $start,$displayed) as I 
-ON R.id = I.id";
+
 $syslog = get_records_sql($db_link, $sSQL);
 if (!empty($syslog)) {
     foreach ($syslog as $row) {

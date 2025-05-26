@@ -32,18 +32,9 @@ binmode(STDOUT,':utf8');
 
 setpriority(0,0,19);
 
-my %dhcp_conf;
-
-my $connected = new Net::Patricia;
 my $dhcp_networks = new Net::Patricia;
 
-my $int_addr=do_exec('/sbin/ip addr show | grep "scope global"');
-foreach my $address (split(/\n/,$int_addr)) {
-if ($address=~/inet\s+(.*)\s+brd/i) {
-    if ($1) { $connected->add_string($1); }
-    }
-}
-
+my %dhcp_conf;
 my %static_hole;
 my %mac_subnets;
 
@@ -77,6 +68,20 @@ next if (!$row->{mac});
 next if (!$row->{ip});
 next if (is_default_ou($dbh,$row->{ou_id}));
 if (exists $static_hole{$row->{ip}}) { $static_hole{$row->{ip}}{skip}=1; }
+
+my $subnet = $dhcp_networks->match_string($row->{ip});
+$mac_subnets{$subnet} ||= {
+        name => $subnet,
+        macs => {}
+    };
+if (exists $mac_subnets{$subnet}{macs}{$row->{mac}}) {
+    my $old_row = $mac_subnets{$subnet}{macs}{$row->{mac}};
+    db_log_warning($dbh,"Mac $row->{mac} already exists in DHCP fo subnet $subnet! auth_id: $row->{id} and auth_id: $old_row->{id}");
+    next;
+    }
+
+$mac_subnets{$subnet}{macs}{$row->{mac}} = $row;
+
 print '#Comment:'.$row->{comments}."\n" if ($row->{comments});
 my $dns_name = '';
 if ($row->{dns_name}) {
