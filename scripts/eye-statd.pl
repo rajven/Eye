@@ -488,6 +488,9 @@ my ($auth_id,$l_src_ip,$l_dst_ip,$user_ip,$router_id);
 
 #print Dumper($traf_record) if ($debug);
 
+#skip unknown router
+next if ($traf_record->{device_id});
+
 $router_id = $traf_record->{device_id};
 
 #prepare router traffic detailization data only if traffic retention is enabled globally
