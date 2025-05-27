@@ -489,7 +489,7 @@ my ($auth_id,$l_src_ip,$l_dst_ip,$user_ip,$router_id);
 #print Dumper($traf_record) if ($debug);
 
 #skip unknown router
-next if ($traf_record->{device_id});
+next if (!$traf_record->{device_id});
 
 $router_id = $traf_record->{device_id};
 
@@ -657,7 +657,7 @@ if ($traf_record->{direction}) {
                 }
 	}
     if (!$user_ip) {
-	log_debug("Unknown dst user ip at router $router_id:: proto=>$traf_record->{proto} src: $traf_record->{src_ip}:$traf_record->{src_port} dst: $traf_record->{xdst_ip}:$traf_record->{dst_port}");
+	log_debug("Unknown dst user ip at router $router_id:: int_in => $traf_record->{snmp_in} int_out=>$traf_record->{snmp_out} proto=>$traf_record->{proto} src: $traf_record->{src_ip}:$traf_record->{src_port} dst: $traf_record->{xdst_ip}:$traf_record->{dst_port}");
 	}
     }
 
