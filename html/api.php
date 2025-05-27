@@ -6,20 +6,25 @@ $ip='';
 $mac='';
 $rec_id='';
 $ip_aton=NULL;
+$f_subnet='';
 
-//GET
+//MODE
 if (!empty($_GET['get'])) { $action = 'get_'.$_GET['get']; }
 if (!empty($_GET['send'])) { $action = 'send_'.$_GET['send']; }
+if (!empty($_POST['get'])) { $action = 'get_'.$_POST['get']; }
+if (!empty($_POST['send'])) { $action = 'send_'.$_POST['send']; }
+
+//GET
 if (!empty($_GET['ip'])) { $ip = $_GET['ip']; }
 if (!empty($_GET['mac'])) { $mac = mac_dotted(trim($_GET['mac'])); }
 if (!empty($_GET['rec_id'])) { $rec_id = $_GET['id']; }
+if (!empty($_GET['subnet'])) { $f_subnet = $_GET['subnet']; }
 
 //POST
-if (!empty($_POST['get'])) { $action = 'get_'.$_POST['get']; }
-if (!empty($_POST['send'])) { $action = 'send_'.$_POST['send']; }
 if (!empty($_POST['ip'])) { $ip = $_POST['ip']; }
 if (!empty($_POST['mac'])) { $mac = mac_dotted($_POST['mac']); }
 if (!empty($_POST['rec_id'])) { $rec_id = $_POST['id']; }
+if (!empty($_POST['subnet'])) { $f_subnet = $_POST['subnet']; }
 
 if (!empty($action)) {
 
@@ -62,12 +67,35 @@ if (!empty($action)) {
       if ($action ==='get_dhcp_all') {
             $result=[];
             LOG_VERBOSE($db_link,"API: Get all dhcp records");
-            $sql = "SELECT id, ip, ip_int, mac, comments, dns_name, dhcp_option_set, dhcp_acl, ou_id 
-                    FROM User_auth 
-                    WHERE dhcp=1 AND deleted=0 
-                    ORDER BY ip_int";
+            $sql = "SELECT ua.id, ua.ip, ua.ip_int, ua.mac, ua.comments, ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id, SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
+                FROM  User_auth ua JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
+                WHERE ua.dhcp = 1 AND ua.deleted = 0 AND s.dhcp = 1 ORDER BY ua.ip_int";
             $result = get_records_sql($db_link, $sql);
+            if (!empty($result)) {
+                    LOG_VERBOSE($db_link, "API: " . count($result) . " records found.");
+                    try {
+                        header('Content-Type: application/json');
+                        echo json_encode($result, JSON_THROW_ON_ERROR);
+                    } catch (JsonException $exception) {
+                        LOG_ERROR($db_link, "API: JSON encoding error: " . $exception->getMessage());
+                        exit("JSON error");
+                        }
+                    } else {
+                        LOG_VERBOSE($db_link, "API: No records found.");
+                        header('Content-Type: application/json');
+                        echo json_encode([]);
+                    }
+            }
 
+      //return user auth record
+      if ($action ==='get_dhcp_subnet' and !empty($f_subnet)) {
+            $result=[];
+            $f_subnet = trim($f_subnet, "'");
+            LOG_VERBOSE($db_link,"API: Get dhcp records for subnet ".$f_subnet);
+            $sql = "SELECT ua.id, ua.ip, ua.ip_int, ua.mac, ua.comments, ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id, SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
+                FROM  User_auth ua JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
+                WHERE ua.dhcp = 1 AND ua.deleted = 0 AND s.dhcp = 1 AND SUBSTRING_INDEX(s.subnet, '/', 1) = '".$f_subnet."' ORDER BY ua.ip_int";
+            $result = get_records_sql($db_link, $sql);
             if (!empty($result)) {
                     LOG_VERBOSE($db_link, "API: " . count($result) . " records found.");
                     try {

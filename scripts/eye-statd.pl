@@ -31,6 +31,8 @@ my $pid_file = '/run/eye/'.$proc_name;
 my @router_ref = ();
 my @interfaces = ();
 
+my %mute;
+
 my %routers_svi;
 my %routers_by_ip;
 my %routers;
@@ -420,7 +422,14 @@ sub save_flow {
 		$flow->{router_ip} = $router_ip;
 		$flow->{device_id} = $router_id;
 		$flow->{save} = $routers_by_ip{$router_ip}{save};
-		} else { return; }
+		} else {
+                if (!exists $mute{$router_ip}) { $mute{$router_ip} = time(); }
+                if (time() - $mute{$router_ip} >=3600) {
+                    $mute{$router_ip} = time();
+                    log_warning("Found unknown router ip [".$router_ip."] in netflow!");
+                    }
+                return;
+                }
 
 	#skip local traffic for router
 	if (!exists $wan_dev{$router_id}->{$flow->{snmp_out}} and ! exists $wan_dev{$router_id}->{$flow->{snmp_in}}) { return; }

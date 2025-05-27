@@ -107,6 +107,7 @@ function login($db) {
     // 4. Проверка логина/пароля из POST-данных (обычная форма входа)
     if (!empty($_POST['login']) && !empty($_POST['password'])) {
         if (authenticate_by_credentials($db, $_POST['login'], $_POST['password'])) {
+            LOG_INFO($db, "Logged in customer id: ".$_SESSION['user_id']." name: ".$_SESSION['login']." from ".$_SESSION['ip']." with acl: ".$_SESSION['acl']);
             return true;
         }
         // Неудачная попытка входа
@@ -271,12 +272,14 @@ function IsSilentAuthenticated($db) {
         'api_auth'   => true // Метка API-аутентификации
     ];
 
+    LOG_INFO($db, "Logged in to api customer id: ".$_SESSION['user_id']." name: ".$_SESSION['login']." from ".$_SESSION['ip']." with acl: ".$_SESSION['acl']);
     return true;
 }
 
 // Выход из системы (полная версия)
 function logout($db, $silent = FALSE) {
     if (session_status() === PHP_SESSION_ACTIVE) {
+        LOG_INFO($db, "Logout customer id: ".$_SESSION['user_id']." name: ".$_SESSION['login']." from ".$_SESSION['ip']." with acl: ".$_SESSION['acl']);
         // Деактивация сессии в БД
         $sessionId = mysqli_real_escape_string($db, session_id());
         mysqli_query($db, 
