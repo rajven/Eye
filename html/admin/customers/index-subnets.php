@@ -10,6 +10,7 @@ if (isset($_POST["s_remove"])) {
             if (isset($net_id)) {
                 LOG_INFO($db_link, "Remove subnet id: $net_id ". dump_record($db_link,'subnets','id='.$val));
                 delete_record($db_link, "subnets", "id=" . $net_id);
+                delete_record($db_link, "gateway_subnets", "subnet_id=" . $net_id);
             }
         }
     }

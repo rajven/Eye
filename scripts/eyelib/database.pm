@@ -1746,12 +1746,19 @@ if ($cur_auth_id) {
     if ($user_record) {
 	    my $ou_info = get_record_sql($db,'SELECT * FROM OU WHERE id='.$user_record->{ou_id});
 	    if ($ou_info and $ou_info->{'dynamic'}) {
-	            if (!$ou_info->{'life_duration'}) { $ou_info->{'life_duration'} = 24; }
-	            my $now = DateTime->now(time_zone=>'local');
-	            my $hours_dur = DateTime::Duration->new( hours => $ou_info->{'life_duration'} );
-	            my $eof = $now + $hours_dur;
-		    $new_record->{'dynamic'} = 1;
-	            $new_record->{'eof'}=$eof->strftime('%Y-%m-%d %H:%M:%S');
+                    # Устанавливаем значение по умолчанию, если не задано
+                    if (!$ou_info->{'life_duration'}) { 
+                            $ou_info->{'life_duration'} = 24.0;  # Явно указываем дробное число
+                            }
+                    my $now = DateTime->now(time_zone => 'local');
+                    # Разбиваем life_duration на часы и минуты (для дробного значения)
+                    my $hours = int($ou_info->{'life_duration'});  # Целая часть (часы)
+                    my $minutes = ($ou_info->{'life_duration'} - $hours) * 60;  # Дробная часть → минуты
+                    # Создаём продолжительность с учётом дробных часов (в виде часов + минут)
+                    my $duration = DateTime::Duration->new( hours   => $hours, minutes => $minutes);
+                    my $eof = $now + $duration;
+                    $new_record->{'dynamic'} = 1;
+                    $new_record->{'eof'} = $eof->strftime('%Y-%m-%d %H:%M:%S');
 		    }
 	    $new_record->{ou_id}=$user_record->{ou_id};
 	    $new_record->{comments}=$user_record->{fio};

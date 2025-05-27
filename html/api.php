@@ -43,6 +43,7 @@ if (!empty($action)) {
                   LOG_VERBOSE($db_link,"API: Record found.");
                   try {
                     $json = json_encode($result, JSON_THROW_ON_ERROR);
+                    header('Content-Type: application/json');
                     echo $json;
                     }
                   catch (JsonException $exception) {
@@ -56,6 +57,32 @@ if (!empty($action)) {
               LOG_VERBOSE($db_link,"API: not enough parameters");
              }
           }
+
+      //return user auth record
+      if ($action ==='get_dhcp_all') {
+            $result=[];
+            LOG_VERBOSE($db_link,"API: Get all dhcp records");
+            $sql = "SELECT id, ip, ip_int, mac, comments, dns_name, dhcp_option_set, dhcp_acl, ou_id 
+                    FROM User_auth 
+                    WHERE dhcp=1 AND deleted=0 
+                    ORDER BY ip_int";
+            $result = get_records_sql($db_link, $sql);
+
+            if (!empty($result)) {
+                    LOG_VERBOSE($db_link, "API: " . count($result) . " records found.");
+                    try {
+                        header('Content-Type: application/json');
+                        echo json_encode($result, JSON_THROW_ON_ERROR);
+                    } catch (JsonException $exception) {
+                        LOG_ERROR($db_link, "API: JSON encoding error: " . $exception->getMessage());
+                        exit("JSON error");
+                        }
+                    } else {
+                        LOG_VERBOSE($db_link, "API: No records found.");
+                        header('Content-Type: application/json');
+                        echo json_encode([]);
+                    }
+            }
 
       //add dhcp log record
       if ($action ==='send_dhcp') {

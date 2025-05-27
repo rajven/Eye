@@ -724,7 +724,7 @@ CREATE TABLE `OU` (
   `filter_group_id` int(11) NOT NULL DEFAULT 0,
   `queue_id` int(11) NOT NULL DEFAULT 0,
   `dynamic` tinyint(1) NOT NULL DEFAULT 0,
-  `life_duration` int(11) NOT NULL DEFAULT 24
+  `life_duration` DECIMAL(10,2) NOT NULL DEFAULT '24'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

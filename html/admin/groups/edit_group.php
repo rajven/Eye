@@ -82,7 +82,6 @@ fix_auth_rules($db_link);
 </tr>
 <?php
 $ou_info = get_record_sql($db_link,'SELECT * FROM OU WHERE id='.$id);
-if ($ou_info['life_duration']<1) { $ou_info['life_duration']=1; }
 print "<tr align=center>\n";
 print "<td colspan=2 class=\"data\"><input type=\"text\" name='f_group_name' value='{$ou_info['ou_name']}' style=\"width:95%;\"></td>\n";
 if ($ou_info['default_users']) { $cl = "up"; } else { $cl="data"; }
@@ -111,7 +110,8 @@ print "<td class=\"data\"></td>\n";
 <td class="data"><?php print WEB_cell_enabled."&nbsp"; print_qa_select('f_enabled', $ou_info['enabled']); ?></td>
 <td class="data"><?php print WEB_cell_filter."&nbsp"; print_group_select($db_link, 'f_filter_group_id', $ou_info['filter_group_id']); ?></td>
 <td class="data"><?php print WEB_cell_shaper."&nbsp"; print_queue_select($db_link, 'f_queue_id', $ou_info['queue_id']); ?></td>
-<td class="data" align=right><?php print WEB_cell_life_hours."&nbsp"; print "<input  type=\"number\" min=1 id='f_life_duration' name='f_life_duration' value='{$ou_info['life_duration']}'";
+<td class="data" align=right><?php print WEB_cell_life_hours."&nbsp"; 
+print "<input type='number' step='0.01' min='0.01' id='f_life_duration' name='f_life_duration' value='" . htmlspecialchars($ou_info['life_duration'])."'";
 if (!$ou_info['dynamic']) { print "disabled"; }; print " style=\"width:35%;\" ></td>\n"; ?>
 <?php print "<td align=right class=\"data\"><button id='save' name='save' value='{$ou_info['id']}'>".WEB_btn_save."</button></td>\n"; ?>
 </tr>
