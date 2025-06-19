@@ -408,38 +408,41 @@ if (!(!$leases{$ip}{dhcp_option_set} and !$active_leases{$ip}{dhcp_option_set}) 
 
 }#end interface dhcp loop
 
-#hotspot exceptions
-my @ret_hotspot_bindings=netdev_cmd($gate,$t,'/ip hotspot ip-binding print terse without-paging where type=bypassed',1);
-
-my %actual_hotspot_bindings;
-foreach my $row (@ret_hotspot_bindings) {
-    next if (!$row or $row !~ /^\s*\d/);
-    my %data;
-    # Используем регулярное выражение для извлечения пар ключ=значение
-    while ($row =~/\b(\S+?)=([^\s=]+(?:\s(?!\S+=)[^\s=]+)*)/g) {
-        my ($key, $value) = ($1, $2);
-        $data{$key} = $value;
-        }
-
-    if (exists $data{'mac-address'}) {
-        $actual_hotspot_bindings{$data{'mac-address'}} = $data{'mac-address'};
-        $actual_hotspot_bindings{$data{'mac-address'}} = $data{comment} if (exists $data{comment});
-        }
-}
-
-#update binding
-foreach my $actual_mac (keys %actual_hotspot_bindings) {
-    if (!exists $hotspot_exceptions{$actual_mac}) {.
-        db_log_verbose($dbh,$gate_ident."Address $actual_mac removed from hotspot ip-binding");
-        push(@cmd_list,':foreach i in [/ip hotspot ip-binding find where mac-address='.uc($actual_mac).' ] do={/ip hotspot ip-binding remove $i};');
-        }
+#check hotspot
+my @ret_hotspot = netdev_cmd($gate,$t,'/ip hotspot print terse where disabled=no',1);
+#if hotspot found - apply exception
+if (@ret_hotspot and scalar(@ret_hotspot)) {
+    #hotspot exceptions
+    my @ret_hotspot_bindings=netdev_cmd($gate,$t,'/ip hotspot ip-binding print terse without-paging where type=bypassed',1);
+    my %actual_hotspot_bindings;
+    foreach my $row (@ret_hotspot_bindings) {
+        next if (!$row or $row !~ /^\s*\d/);
+        my %data;
+        # Используем регулярное выражение для извлечения пар ключ=значение
+        while ($row =~/\b(\S+?)=([^\s=]+(?:\s(?!\S+=)[^\s=]+)*)/g) {
+            my ($key, $value) = ($1, $2);
+            $data{$key} = $value;
+            }
+        if (exists $data{'mac-address'}) {
+            $actual_hotspot_bindings{$data{'mac-address'}} = $data{'mac-address'};
+            $actual_hotspot_bindings{$data{'mac-address'}} = $data{comment} if (exists $data{comment});
+            }
     }
-
-foreach my $actual_mac (keys %hotspot_exceptions) {
-    if (!exists $actual_hotspot_bindings{$actual_mac} or $actual_hotspot_bindings{$actual_mac} !~ /$hotspot_exceptions{$actual_mac}/) {
-        db_log_verbose($dbh,$gate_ident."Address $actual_mac added to hotspot ip-binding");
-        push(@cmd_list,':foreach i in [/ip hotspot ip-binding find where mac-address='.uc($actual_mac).' ] do={/ip hotspot ip-binding remove $i};');
-        push(@cmd_list,'/ip hotspot ip-binding add mac-address='.uc($actual_mac).'  type=bypassed  comment="'.$hotspot_exceptions{$actual_mac}.'"');
+    log_debug("Actual bindings:".Dumper(\%actual_hotspot_bindings));
+    log_debug("Configuration exceptions:".Dumper(\%hotspot_exceptions));
+    #update binding
+    foreach my $actual_mac (keys %actual_hotspot_bindings) {
+        if (!exists $hotspot_exceptions{$actual_mac}) {
+            db_log_info($dbh,$gate_ident."Address $actual_mac removed from hotspot ip-binding");
+            push(@cmd_list,':foreach i in [/ip hotspot ip-binding find where mac-address='.uc($actual_mac).' ] do={/ip hotspot ip-binding remove $i};');
+            }
+        }
+    foreach my $actual_mac (keys %hotspot_exceptions) {
+        if (!exists $actual_hotspot_bindings{$actual_mac}) {
+            db_log_info($dbh,$gate_ident."Address $actual_mac added to hotspot ip-binding");
+            push(@cmd_list,':foreach i in [/ip hotspot ip-binding find where mac-address='.uc($actual_mac).' ] do={/ip hotspot ip-binding remove $i};');
+            push(@cmd_list,'/ip hotspot ip-binding add mac-address='.uc($actual_mac).'  type=bypassed  comment="'.$hotspot_exceptions{$actual_mac}.'"');
+            }
         }
     }
 
