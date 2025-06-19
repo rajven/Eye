@@ -110,7 +110,8 @@ my @changed_ref=();
 my $connected_users = new Net::Patricia;
 #сети, которые должен отдавать роутер по dhcp - simple hash
 my %connected_nets_hash;
-
+#исключения из авторизации хот-спота
+my %hotspot_exceptions;
 my @lan_int=();
 my @wan_int=();
 
@@ -251,6 +252,10 @@ $leases{$lease->{ip}}{mac}=uc(mac_splitted($lease->{mac}));
 if ($lease->{dhcp_acl}) {
     $leases{$lease->{ip}}{acl}=trim($lease->{dhcp_acl});
     $leases{$lease->{ip}}{acl}=~s/;/,/g;
+    if ($leases{$lease->{ip}}{acl}=~/hotspot\-free/) {
+        $hotspot_exceptions{$leases{$lease->{ip}}{mac}}=$leases{$lease->{ip}}{mac};
+        $hotspot_exceptions{$leases{$lease->{ip}}{mac}}=$leases{$lease->{ip}}{comment} if ($leases{$lease->{ip}}{comment});
+        }
     }
 if ($lease->{dhcp_option_set}) {
     $leases{$lease->{ip}}{dhcp_option_set}=trim($lease->{dhcp_option_set});
@@ -402,6 +407,40 @@ if (!(!$leases{$ip}{dhcp_option_set} and !$active_leases{$ip}{dhcp_option_set}) 
 }
 
 }#end interface dhcp loop
+
+#hotspot exceptions
+my @ret_hotspot_bindings=netdev_cmd($gate,$t,'/ip hotspot ip-binding print terse without-paging where type=bypassed',1);
+
+my %actual_hotspot_bindings;
+foreach my $row (@ret_hotspot_bindings) {
+    next if (!$row or $row !~ /^\s*\d/);
+    my %data;
+    # Используем регулярное выражение для извлечения пар ключ=значение
+    while (/\b(\S+?)=([^\s=]+(?:\s(?!\S+=)[^\s=]+)*)/g) {
+        my ($key, $value) = ($1, $2);
+        $data{$key} = $value;
+        }
+
+    if (exists $data{'mac-address'}) {
+        $actual_hotspot_bindings{$data{'mac-address'}} = $data{'mac-address'};
+        $actual_hotspot_bindings{$data{'mac-address'}} = $data{comment} if (exists $data{comment});
+        }
+}
+
+#update binding
+foreach my $actual_mac (keys %actual_hotspot_bindings) {
+    if (!exists $hotspot_exceptions{$actual_mac}) { 
+        db_log_verbose($dbh,$gate_ident."Address $actual_mac removed from hotspot ip-binding");
+        push(@cmd_list,':foreach i in [/ip hotspot ip-binding where mac-address='.uc($actual_mac).' ] do={//ip hotspot ip-binding remove $i};');
+        }
+    }
+
+foreach my $actual_mac (keys %hotspot_exceptions) {
+    if (!exists $actual_hotspot_bindings{$actual_mac}) {
+        db_log_verbose($dbh,$gate_ident."Address $actual_mac added to hotspot ip-binding");
+        push(@cmd_list,'/ip hotspot ip-binding add mac-address='.uc($actual_mac).'  type=bypassed  comment="'.$hotspot_exceptions{$actual_mac});
+        }
+    }
 
 }#end dhcp config
 
