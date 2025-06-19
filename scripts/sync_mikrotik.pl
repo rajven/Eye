@@ -416,7 +416,7 @@ foreach my $row (@ret_hotspot_bindings) {
     next if (!$row or $row !~ /^\s*\d/);
     my %data;
     # Используем регулярное выражение для извлечения пар ключ=значение
-    while (/\b(\S+?)=([^\s=]+(?:\s(?!\S+=)[^\s=]+)*)/g) {
+    while ($row =~/\b(\S+?)=([^\s=]+(?:\s(?!\S+=)[^\s=]+)*)/g) {
         my ($key, $value) = ($1, $2);
         $data{$key} = $value;
         }
@@ -429,16 +429,17 @@ foreach my $row (@ret_hotspot_bindings) {
 
 #update binding
 foreach my $actual_mac (keys %actual_hotspot_bindings) {
-    if (!exists $hotspot_exceptions{$actual_mac}) { 
+    if (!exists $hotspot_exceptions{$actual_mac}) {.
         db_log_verbose($dbh,$gate_ident."Address $actual_mac removed from hotspot ip-binding");
-        push(@cmd_list,':foreach i in [/ip hotspot ip-binding where mac-address='.uc($actual_mac).' ] do={//ip hotspot ip-binding remove $i};');
+        push(@cmd_list,':foreach i in [/ip hotspot ip-binding find where mac-address='.uc($actual_mac).' ] do={/ip hotspot ip-binding remove $i};');
         }
     }
 
 foreach my $actual_mac (keys %hotspot_exceptions) {
-    if (!exists $actual_hotspot_bindings{$actual_mac}) {
+    if (!exists $actual_hotspot_bindings{$actual_mac} or $actual_hotspot_bindings{$actual_mac} !~ /$hotspot_exceptions{$actual_mac}/) {
         db_log_verbose($dbh,$gate_ident."Address $actual_mac added to hotspot ip-binding");
-        push(@cmd_list,'/ip hotspot ip-binding add mac-address='.uc($actual_mac).'  type=bypassed  comment="'.$hotspot_exceptions{$actual_mac});
+        push(@cmd_list,':foreach i in [/ip hotspot ip-binding find where mac-address='.uc($actual_mac).' ] do={/ip hotspot ip-binding remove $i};');
+        push(@cmd_list,'/ip hotspot ip-binding add mac-address='.uc($actual_mac).'  type=bypassed  comment="'.$hotspot_exceptions{$actual_mac}.'"');
         }
     }
 
