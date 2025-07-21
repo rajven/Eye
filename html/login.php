@@ -5,6 +5,25 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 
 $error = '';
 
+function getSafeRedirectUrl(string $default = '/'): string {
+    $url = filter_input(INPUT_GET, 'redirect_url', FILTER_SANITIZE_URL) 
+        ?? filter_input(INPUT_POST, 'redirect_url', FILTER_SANITIZE_URL) 
+        ?? $default;
+
+    $decodedUrl = urldecode($url);
+    // Проверяем:
+    // 1. URL начинается с `/` (но не `//` или `http://`)
+    // 2. Содержит только разрешённые символы (a-z, 0-9, -, _, /, ?, =, &, ., ~)
+    if (!preg_match('/^\/(?!\/)[a-z0-9\-_\/?=&.~]*$/i', $decodedUrl)) {
+        return $default;
+    }
+
+    return $url;
+}
+
+// Использование
+$redirect_url = getSafeRedirectUrl(DEFAULT_PAGE);
+
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
 
     $login = trim($_POST['login']);
@@ -21,7 +40,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
 	}
 
     if (empty($error)) {
-	if (login($db_link)) { header("Location: /admin/index.php"); }
+	if (login($db_link)) { 
+            $redirect_url = urldecode($redirect_url);
+            header("Location: $redirect_url");
+            }
 	}
 
     }
@@ -48,6 +70,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
 		    <i class="fas fa-lock"></i>
 		</label>
 		<input type="password" name="password" placeholder="<?php echo WEB_msg_password; ?>" id="password" required>
+                <input type="hidden" name="redirect_url" value="<?php print htmlspecialchars($redirect_url); ?>">
 		<input type="submit" name="submit" value="<?php echo WEB_btn_login; ?>">
 	    </form>
 	</div>

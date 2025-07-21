@@ -211,4 +211,9 @@ define('MYSQL_FIELD_STRING', array(252,253,254));
 //lock device by snmp access
 define('SNMP_LOCK_TIMEOUT',30);
 
+//login pages
+define('DEFAULT_PAGE','/admin/index.php');
+define('LOGIN_PAGE','/login.php');
+define('LOGOUT_PAGE','/logout.php');
+
 ?>

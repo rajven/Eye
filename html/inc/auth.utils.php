@@ -88,6 +88,13 @@ function sess_gc($maxLifetime) {
 
 function login($db) {
 
+    $current_url = urlencode($_SERVER['REQUEST_URI']);
+    $redirect_url = NULL;
+
+    if ($_SERVER['REQUEST_URI'] != LOGIN_PAGE && $_SERVER['REQUEST_URI'] != LOGOUT_PAGE) {
+        $redirect_url = $current_url;
+        }
+
     // 1. Проверка активной сессии
     if (!empty($_SESSION['user_id']) && validate_session($db)) {
         // Дополнительная валидация сессии
@@ -96,7 +103,7 @@ function login($db) {
             return true;
         }
         // Несоответствие параметров - разрушаем сессию
-        logout($db);
+        logout($db,FALSE,$redirect_url);
     }
 
     // 2. Проверка API-авторизации (для API-запросов)
@@ -107,7 +114,7 @@ function login($db) {
     // 4. Проверка логина/пароля из POST-данных (обычная форма входа)
     if (!empty($_POST['login']) && !empty($_POST['password'])) {
         if (authenticate_by_credentials($db, $_POST['login'], $_POST['password'])) {
-            LOG_INFO($db, "Logged in customer id: ".$_SESSION['user_id']." name: ".$_SESSION['login']." from ".$_SESSION['ip']." with acl: ".$_SESSION['acl']);
+            LOG_INFO($db, "Logged in customer id: ".$_SESSION['user_id']." name: ".$_SESSION['login']." from ".$_SESSION['ip']." with acl: ".$_SESSION['acl']." url: ".$redirect_url);
             return true;
         }
         // Неудачная попытка входа
@@ -115,7 +122,7 @@ function login($db) {
     }
 
     // 5. Если ни один метод не сработал - требовать авторизацию
-    logout($db);
+    logout($db,FALSE,$redirect_url);
     exit;
 }
 
@@ -277,7 +284,7 @@ function IsSilentAuthenticated($db) {
 }
 
 // Выход из системы (полная версия)
-function logout($db, $silent = FALSE) {
+function logout($db, $silent = FALSE, $redirect_url = DEFAULT_PAGE) {
     if (session_status() === PHP_SESSION_ACTIVE) {
         LOG_INFO($db, "Logout customer id: ".$_SESSION['user_id']." name: ".$_SESSION['login']." from ".$_SESSION['ip']." with acl: ".$_SESSION['acl']);
         // Деактивация сессии в БД
@@ -296,8 +303,11 @@ function logout($db, $silent = FALSE) {
         }
     }
     if (!$silent) {
-        header('Location: /login.php');
-        //?redirect=' . urlencode($_SERVER['REQUEST_URI']));
+        if ($redirect_url == DEFAULT_PAGE) {
+            header('Location: '.LOGIN_PAGE);
+            } else {
+            header('Location: '.LOGIN_PAGE.'?redirect_url='.$redirect_url);
+            }
         }
 }
 
