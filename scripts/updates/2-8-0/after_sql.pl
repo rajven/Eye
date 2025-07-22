@@ -90,7 +90,7 @@ foreach my $row (@authlist_ref) {
 
 print "Stage 2: Fix systemd units\n";
 
-do_exec("2-8-0/udpate-services.sh");
+do_exec("2-8-0/update-services.sh");
 
 print "Done!\n";
 
