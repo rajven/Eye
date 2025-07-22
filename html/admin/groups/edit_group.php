@@ -15,7 +15,10 @@ if (isset($_POST['save'])) {
         $new['filter_group_id']= $_POST['f_filter_group_id']*1;
         $new['enabled']= $_POST['f_enabled']*1;
         $new['dynamic']= $_POST['f_dynamic']*1;
-        if ($new['dynamic']) { $new['life_duration']= $_POST['f_life_duration']*1; } else { $new['life_duration']=0; }
+        if ($new['dynamic']) {
+            $tmp_life_duration = str_replace(',', '.',$_POST['f_life_duration']*1);
+            if (!empty($tmp_life_duration) and is_numeric($tmp_life_duration)) { $new['life_duration'] = $tmp_life_duration; }
+            } else { $new['life_duration']=0; }
         if ($new['default_users'] == TRUE) { run_sql($db_link,"UPDATE OU set default_users=0 WHERE id!='{$id}'"); }
         if ($new['default_hotspot'] == TRUE) { run_sql($db_link,"UPDATE OU set default_hotspot=0 WHERE id!='{$id}'"); }
         update_record($db_link, "OU", "id='{$id}'", $new);
@@ -108,7 +111,7 @@ print "<td class=\"data\"></td>\n";
 <tr><td colspan=4><?php echo WEB_ou_autoclient_rules; ?></td></tr>
 <tr>
 <td class="data"><?php print WEB_cell_enabled."&nbsp"; print_qa_select('f_enabled', $ou_info['enabled']); ?></td>
-<td class="data"><?php print WEB_cell_filter."&nbsp"; print_group_select($db_link, 'f_filter_group_id', $ou_info['filter_group_id']); ?></td>
+<td class="data"><?php print WEB_cell_filter."&nbsp"; print_filter_group_select($db_link, 'f_filter_group_id', $ou_info['filter_group_id']); ?></td>
 <td class="data"><?php print WEB_cell_shaper."&nbsp"; print_queue_select($db_link, 'f_queue_id', $ou_info['queue_id']); ?></td>
 <td class="data" align=right><?php print WEB_cell_life_hours."&nbsp"; 
 print "<input type='number' step='0.01' min='0.01' id='f_life_duration' name='f_life_duration' value='" . htmlspecialchars($ou_info['life_duration'])."'";

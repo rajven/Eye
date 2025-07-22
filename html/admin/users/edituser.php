@@ -289,7 +289,7 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                 <td colspan=3></td>
             </tr>
             <tr>
-                <td colspan=2><?php print_group_select($db_link, 'f_filter', $user_info["filter_group_id"]); ?></td>
+                <td colspan=2><?php print_filter_group_select($db_link, 'f_filter', $user_info["filter_group_id"]); ?></td>
                 <td colspan=2><?php print_queue_select($db_link, 'f_queue', $user_info["queue_id"]); ?></td>
                 <td colspan=3></td>
             </tr>

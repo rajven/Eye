@@ -364,7 +364,7 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
                 <td><?php print WEB_cell_permonth; ?></td>
             </tr>
             <tr>
-                <td><?php print_group_select($db_link, 'f_group_id', $auth_info['filter_group_id']); ?> </td>
+                <td><?php print_filter_group_select($db_link, 'f_group_id', $auth_info['filter_group_id']); ?> </td>
                 <td><?php print_queue_select($db_link, 'f_queue_id', $auth_info['queue_id']); ?> </td>
                 <td><?php print_qa_select('f_blocked', $auth_info['blocked']); ?></td>
                 <td><input type="text" name="f_day_q" value="<?php echo $auth_info['day_quota']; ?>" size=5></td>

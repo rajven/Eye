@@ -72,7 +72,7 @@ if ($msg_error) {
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
         <tr><td><input type=checkbox class="putField" name="e_enabled" value='1'></td><td align=left><?php print WEB_cell_enabled."</td><td align=right>";print_qa_select('a_enabled', 0); ?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td align=left><?php print WEB_cell_filter."</td><td align=right>";print_group_select($db_link, 'a_group_id', 0); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td align=left><?php print WEB_cell_filter."</td><td align=right>";print_filter_group_select($db_link, 'a_group_id', 0); ?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td align=left><?php print WEB_cell_shaper."</td><td align=right>";print_queue_select($db_link, 'a_queue_id', 0); ?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_day_q" value='1'></td><td align=left><?php print WEB_cell_perday."</td><td align=right>"; ?><input type="text" name="a_day_q" value="0" size=5></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_month_q" value='1'></td><td align=left><?php print WEB_cell_permonth."</td><td align=right>"; ?><input type="text" name="a_month_q" value="0" size=5></td></tr>

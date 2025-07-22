@@ -8,6 +8,9 @@ if (isset($_POST["ApplyForAll"])) {
 
     $auth_id = $_POST["fid"];
 
+    if (empty($_POST["a_new_ou"])) {
+        $_POST["a_new_ou"] = 0;
+    }
     if (empty($_POST["a_enabled"])) {
         $_POST["a_enabled"] = 0;
     }
@@ -40,6 +43,7 @@ if (isset($_POST["ApplyForAll"])) {
         $_POST["a_bind_ip"] = 0;
     }
 
+    $a_ou_id    = $_POST["a_new_ou"] * 1;
     $a_enabled  = $_POST["a_enabled"] * 1;
     $a_dhcp     = $_POST["a_dhcp"] * 1;
     $a_dhcp_acl = trim($_POST["a_dhcp_acl"]);
@@ -63,8 +67,9 @@ if (isset($_POST["ApplyForAll"])) {
         if ($val) {
             unset($auth);
             //check user state
-            $cur_auth = get_record_sql($db_link, "SELECT * FROM User_auth WHERE 'id'=" . $val);
-            if (!empty($cur_auth)) { $user_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE 'id='" . $cur_auth["user_id"]); }
+            $cur_auth = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `id`=" . $val);
+            if (!empty($cur_auth)) { $user_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE `id`=" . $cur_auth["user_id"]); }
+
 
             if (isset($_POST["e_enabled"])) {
                 if (!empty($user_info)) { $a_enabled = $user_info["enabled"] * $a_enabled; }
@@ -103,6 +108,27 @@ if (isset($_POST["ApplyForAll"])) {
                 $ret = update_record($db_link, "User_auth", "id='" . $val . "'", $auth);
                 if (!$ret) { $all_ok = 0; }
             }
+
+            //change user group
+            if (isset($_POST["e_new_ou"]) and !empty($a_ou_id) and !empty($user_info)) {
+                $user['ou_id'] = $a_ou_id;
+                $u_auth['ou_id'] = $a_ou_id;
+                //change user group
+                $msg = " For user id: " . $cur_auth['user_id'] . " login: " . $user_info['login'] . " set: ou_id = ".$a_ou_id;
+                LOG_INFO($db_link,$msg);
+                $ret = update_record($db_link, "User_list", "id='" . $cur_auth['user_id'] . "'", $user);
+                if (!$ret) { $all_ok = 0; }
+                //change user ip
+                $auth_list = get_records_sql($db_link, "SELECT * FROM User_auth WHERE user_id=" . $cur_auth['user_id']);
+                if (!empty($auth_list)) {
+                        foreach ($auth_list as $row) {
+                            if (empty($row)) { continue; }
+                            $ret = update_record($db_link, "User_auth", "id='" . $row["id"] . "'", $u_auth);
+                            if (!$ret) { $all_ok = 0; }
+                            }
+                        }
+                unset($user);
+                }
 
             //bind mac rule
             if (isset($_POST["e_bind_mac"])) {

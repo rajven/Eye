@@ -907,7 +907,7 @@ function print_device_model_select($db, $device_model_name, $device_model_value)
     print "</select>\n";
 }
 
-function print_group_select($db, $group_name, $group_value)
+function print_filter_group_select($db, $group_name, $group_value)
 {
     print "<select id=\"$group_name\" name=\"$group_name\">\n";
     $t_group = mysqli_query($db, "SELECT id,group_name FROM Group_list Order by group_name");
