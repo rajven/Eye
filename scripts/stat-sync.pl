@@ -157,23 +157,10 @@ if (!$pid) {
             my @users_auth = get_records_sql($hdb,$users_sql);
             if (@users_auth and scalar @users_auth) {
                     foreach my $row (@users_auth) {
-                        delete_record($hdb,"User_auth","id='".$row->{id}."'");
+                        delete_user_auth($hdb,$row->{id});
                         db_log_info($hdb,"Removed dynamic user auth record for auth_id: $row->{'id'} by eof time: $row->{'eof'}",$row->{'id'});
                         my $u_count=get_count_records($hdb,'User_auth','deleted=0 and user_id='.$row->{user_id});
-                        if (!$u_count) {
-                                delete_record($hdb,"User_list","id=".$row->{'user_id'});
-                                db_log_info($hdb,"Removed dynamic user id: $row->{'user_id'} by eof time");
-                                #delete binded device
-                                my $user_device = get_record_sql($hdb,"SELECT * FROM devices WHERE user_id=".$row->{id});
-                                if ($user_device) {
-                                        db_log_info($hdb,"Remove corresponded device id: $user_device->{id} name: $user_device->{device_name}");
-                                        unbind_ports($hdb, $user_device->{id});
-                                        do_sql($hdb, "DELETE FROM connections WHERE device_id=".$user_device->{id});
-                                        do_sql($hdb, "DELETE FROM device_l3_interfaces WHERE device_id=".$user_device->{id});
-                                        do_sql($hdb, "DELETE FROM device_ports WHERE device_id=".$user_device->{id});
-                                        delete_record($hdb, "devices", "id=".$user_device->{id});
-                                        }
-                                }
+                        if (!$u_count) { delete_user($hdb,$row->{'user_id'}); }
                         }
                     }
             }

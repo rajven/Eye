@@ -618,6 +618,7 @@ if ($traf_record->{direction}) {
 	    }
         $user_ip = $traf_record->{src_ip};
 	$auth_id = new_auth($hdb,$user_ip);
+        if (!$auth_id) { next; }
 	$l_src_ip = $traf_record->{src_ip};
 	$l_dst_ip = $traf_record->{dst_ip};
 	$user_stats{$user_ip}{auth_id}=$auth_id;

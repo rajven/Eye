@@ -34,6 +34,43 @@ setpriority(0,0,19);
 
 if ($config_ref{config_mode}) { log_info("System in configuration mode! Skip discovery."); exit; }
 
+
+db_log_verbose($dbh,'Clearing empty records.');
+
+##### clean empty user account and corresponded devices for dynamic users and hotspot ################
+log_info($dbh,'Clearing empty user account and corresponded devices for dynamic users and hotspot');
+my $u_sql = "SELECT * FROM User_list as U WHERE (U.ou_id=".$default_hotspot_ou_id." OR U.ou_id=".$default_user_ou_id.") AND (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0";
+my @u_ref = get_records_sql($dbh,$u_sql);
+foreach my $row (@u_ref) {
+    db_log_info($dbh,"Remove empty dynamic user with id: $row->{id} login: $row->{login}");
+    delete_user($dbh,$row->{id});
+}
+
+##### clean empty user account and corresponded devices ################
+if ($config_ref{clean_empty_user}) {
+    log_info($dbh,'Clearing empty user account and corresponded devices');
+    my $u_sql = "SELECT * FROM User_list as U WHERE U.permanent=0 AND (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted=0 AND User_auth.user_id = U.id)=0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id)=0;";
+    my @u_ref = get_records_sql($dbh,$u_sql);
+    foreach my $row (@u_ref) {
+            db_log_info($dbh,"Remove empty user with id: $row->{id} login: $row->{login}");
+            delete_user($dbh,$row->{id});
+        }
+    }
+
+#clean temporary user auth records
+my $now = DateTime->now(time_zone=>'local');
+my $clear_time =$dbh->quote($now->strftime('%Y-%m-%d %H:%M:%S'));
+my $users_sql = "SELECT * FROM User_auth WHERE deleted=0 AND dynamic=1 AND `eof`<=".$clear_time;
+my @users_auth = get_records_sql($dbh,$users_sql);
+if (@users_auth and scalar @users_auth) {
+    foreach my $row (@users_auth) {
+            delete_user_auth($dbh,$row->{id});
+            db_log_info($dbh,"Removed dynamic user auth record for auth_id: $row->{'id'} by eof time: $row->{'eof'}",$row->{'id'});
+            my $u_count=get_count_records($dbh,'User_auth','deleted=0 and user_id='.$row->{user_id});
+            if (!$u_count) { delete_user($dbh,$row->{'user_id'}); }
+        }
+    }
+
 my %mac_history;
 
 my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime(time());

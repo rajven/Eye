@@ -58,6 +58,7 @@ insert_record
 apply_device_lock
 set_lock_discovery
 unset_lock_discovery
+find_mac_in_subnet
 IpToStr
 unbind_ports
 resurrection_auth
@@ -1619,7 +1620,7 @@ sub find_mac_in_subnet {
     if (!$ip or !$mac) { return; }
     my $ip_subnet = get_ip_subnet($db, $ip);
     if (!$ip_subnet) { return; }
-    my @t_auth = get_records_sql($db, "SELECT id,mac,user_id FROM User_auth WHERE ip_int>=" . $ip_subnet->{'ip_int_start'} . " and ip_int<=" . $ip_subnet->{'ip_int_stop'} . " and mac='" . $mac . "' and deleted=0 ORDER BY id");
+    my @t_auth = get_records_sql($db, "SELECT * FROM User_auth WHERE ip_int>=" . $ip_subnet->{'ip_int_start'} . " and ip_int<=" . $ip_subnet->{'ip_int_stop'} . " and mac='" . $mac . "' and deleted=0 ORDER BY id");
     my $auth_count = 0;
     my $result;
     $result->{'count'} = 0;
@@ -1627,8 +1628,7 @@ sub find_mac_in_subnet {
         next if (!$row);
         $auth_count++;
         $result->{'count'} = $auth_count;
-        $result->{$auth_count} = $row->{'id'};
-        push(@{$result->{'users_id'}}, $row->{'user_id'});
+        $result->{items}{$auth_count} = $row;
         }
     return $result;
 }
@@ -1710,11 +1710,27 @@ if ($new_user_info->{user_id}) { $new_user_id = $new_user_info->{user_id}; }
 if (!$new_user_id) { $new_user_id = new_user($db,$new_user_info); }
 
 my $mac_exists=find_mac_in_subnet($db,$ip,$mac);
+if ($mac_exists) {
+    #deleting the user's entry if the address belongs to a dynamic group
+    foreach my $dup_record_id (keys %{$mac_exists->{items}}) {
+        my $dup_record = $mac_exists->{items}{$dup_record_id};
+        next if (!$dup_record);
+        #remove old dynamic record with some mac
+        if ($dup_record->{dynamic}) {
+            delete_user_auth($db,$dup_record->{id});
+            }
+        }
+    }
+
+#recheck
+$mac_exists=find_mac_in_subnet($db,$ip,$mac);
+
 #disable dhcp for same mac in one ip subnet
 if ($mac_exists and $mac_exists->{'count'}) { $new_record->{dhcp}=0; }
 
 #seek old auth with same ip and mac
 my $auth_exists=get_count_records($db,'User_auth',"ip_int=".$ip_aton." and mac='".$mac."'");
+
 $new_record->{ip_int}=$ip_aton;
 $new_record->{ip}=$ip;
 $new_record->{mac}=$mac;
@@ -1784,6 +1800,12 @@ my $new_user_info=get_new_user_id($db,$ip,undef,undef);
 my $new_user_id;
 if ($new_user_info->{user_id}) { $new_user_id = $new_user_info->{user_id}; }
 if ($new_user_info->{ou_id}) { $new_user_id = new_user($db,$new_user_info); }
+
+if (is_dynamic_ou($db,$new_user_info->{ou_id})) {
+    db_log_debug($db,"The ip-address $ip belongs to a dynamic group - ignore it.");
+    return;
+    }
+
 my $user_record=get_record_sql($db,"SELECT * FROM User_list WHERE id=".$new_user_id);
 my $timestamp=GetNowTime();
 my $new_record;
