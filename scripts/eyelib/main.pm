@@ -37,6 +37,7 @@ timestamp
 do_exec
 do_exec_ref
 do_exit
+hash_to_kv_csv
 sendEmail
 IsNotRun
 IsMyPID
@@ -189,6 +190,32 @@ if (ref($arr)=~'ARRAY') { @tmp = @{$arr}; } else { push(@tmp,$arr); }
 my $value = shift;
 my %num = map { $_, 1 } @tmp;
 return $num{$value} || 0;
+}
+
+
+#---------------------------------------------------------------------------------------------------------.
+
+sub hash_to_kv_csv {
+    my ($hash_ref, $delimiter) = @_;
+    $delimiter ||= ',';
+    return '' unless $hash_ref && %$hash_ref;
+    # Экранируем специальные символы
+    my $escape = sub {
+        my $value = shift;
+        return '' unless defined $value;
+        # Если значение содержит кавычки или запятые - заключаем в кавычки
+        if ($value =~ /["$delimiter]/) {
+            $value =~ s/"/""/g;
+            return '"' . $value . '"';
+        }
+        return $value;
+    };
+    # Формируем пары ключ=>значение
+    my @pairs;
+    while (my ($key, $value) = each %$hash_ref) {
+        push @pairs, $escape->($key) . '=>' . $escape->($value);
+    }
+    return join($delimiter, @pairs);
 }
 
 #---------------------------------------------------------------------------------------------------------.

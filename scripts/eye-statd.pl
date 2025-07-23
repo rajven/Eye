@@ -12,7 +12,7 @@ use strict;
 use DBI;
 use Time::Local;
 use Net::Patricia;
-#use Data::Dumper;
+use Data::Dumper;
 use Date::Parse;
 use DateTime;
 use eyelib::config;
@@ -30,6 +30,12 @@ my $pid_file = '/run/eye/'.$proc_name;
 
 my @router_ref = ();
 my @interfaces = ();
+
+my %proto_map = (
+    1  => 'ICMP',    2  => 'IGMP',    6  => 'TCP',
+    17 => 'UDP',     47 => 'GRE',     50 => 'ESP',
+    51 => 'AH',      89 => 'OSPF',    88 => 'EIGRP'
+);
 
 my %mute;
 
@@ -301,111 +307,127 @@ sub parse_netflow_v9_template_flowset {
 }
 
 sub parse_netflow_v9_data_flowset {
-	my $flowsetid = shift;
-	my $flowsetdata = shift;
-	my $ipaddr = shift;
-	my $source_id = shift;
-	
-	my $template = $netflow9_templates->{$ipaddr}->{$source_id}->{$flowsetid}->{'template'};
-	if (!defined($template)) {
-#		print "Template ID $flowsetid from $source_id/" . inet_ntoa($ipaddr) . " does not (yet) exist\n" if ($debug);
-		return;
-		}
+    my ($flowsetid, $flowsetdata, $ipaddr, $source_id) = @_;
 
-# Flowset record types
-#define NF9_IN_BYTES            1
-#define NF9_IN_PACKETS          2
-#define NF9_IN_PROTOCOL         4
-#define NF9_L4_SRC_PORT         7
-#define NF9_IPV4_SRC_ADDR       8
-#define NF9_INPUT_SNMP          10
-#define NF9_L4_DST_PORT         11
-#define NF9_IPV4_DST_ADDR       12
-#define NF9_OUTPUT_SNMP         14
-#define NF9_OUT_BYTES           23
-#define NF9_OUT_PKTS            24
-#define NF9_DIRECTION           61
-#define NF_F_XLATE_SRC_ADDR_IPV4          225
-#define NF_F_XLATE_DST_ADDR_IPV4          226
-#define NF_F_XLATE_SRC_PORT               227
-#define NF_F_XLATE_DST_PORT               228
-#define NF9_IPV6_SRC_ADDR       27
-#define NF9_IPV6_DST_ADDR       28
-#define NF_F_XLATE_SRC_ADDR_IPV6          281
-#define NF_F_XLATE_DST_ADDR_IPV6          282
+    my $template = $netflow9_templates->{$ipaddr}->{$source_id}->{$flowsetid}->{'template'};
+    unless (defined $template) {
+        return;
+    }
 
-	my $len = $netflow9_templates->{$ipaddr}->{$source_id}->{$flowsetid}->{'len'};
-	my $offset = 0;
-	my $datalen = length($flowsetdata);
+    my $len = $netflow9_templates->{$ipaddr}->{$source_id}->{$flowsetid}->{'len'};
+    my $offset = 0;
+    my $datalen = length($flowsetdata);
 
-	while (($offset + $len) <= $datalen) {
-		my %flow;
-		$flow{netflow_v} = '9';
-		$flow{ipv} = '4';
-		$flow{starttime} = time();
-		for (my $i = 0; $i < scalar @$template; $i += 2) {
-		    my $field_type = $template->[$i];
-		    my $field_length = $template->[$i+1];
-		    my $value = substr($flowsetdata, $offset, $field_length);
-		    $offset += $field_length;
-			# IN_BYTES
-			if ($field_type == 1) {
-				if ($field_length == 4) {
-				    $flow{octets} = unpack("N", $value);
-				    } elsif ($field_length == 8) {
-					$flow{octets} = unpack("Q>", $value);
-				    }
-				}
-			# IN_PACKETS
-			elsif ($field_type == 2) {
-				if ($field_length == 4) {
-				    $flow{pkts} = unpack("N", $value);
-				    } elsif ($field_length == 8) {
-					$flow{pkts} = unpack("Q>", $value);
-				    }
-				}
-			# IN_PROTOCOL
-			elsif ($field_type == 4) { $flow{proto} = unpack("C", $value); }
-			# L4_SRC_PORT
-			elsif ($field_type == 7) { $flow{src_port} = unpack("n", $value); }
-			# IPV4_SRC_ADDR
-			elsif ($field_type == 8) { $flow{src_ip} = inet_ntop(AF_INET, $value); }
-			# INPUT_SNMP
-			elsif ($field_type == 10) {
-				if ($field_length == 2) {
-				    $flow{snmp_in} = unpack("n", $value);
-				    } elsif ($field_length == 4) {
-					$flow{snmp_in} = unpack("N", $value);
-				    }
-				}
-			# L4_DST_PORT
-			elsif ($field_type == 11) { $flow{dst_port} = unpack("n", $value); }
-			# IPV4_DST_ADDR
-			elsif ($field_type == 12) { $flow{dst_ip} = inet_ntop(AF_INET, $value); }
-			# OUTPUT_SNMP
-			elsif ($field_type == 14) {
-				if ($field_length == 2) {
-				    $flow{snmp_out} = unpack("n", $value);
-				    } elsif ($field_length == 4) {
-					$flow{snmp_out} = unpack("N", $value);
-				    }
-				}
-			# IP_PROTOCOL_VERSION
-			elsif ($field_type == 60) { my $ipversion = unpack("C", $value);
-				#skip ipv6
-				if ($ipversion == 6) { %flow=(); last; }
-				}
-			# XLATE_SRC_ADDR_IPV4
-			elsif ($field_type == 225) { $flow{xsrc_ip} = inet_ntop(AF_INET, $value); }
-			# XLATE_DST_ADDR_IPV4
-			elsif ($field_type == 226) { $flow{xdst_ip} = inet_ntop(AF_INET, $value); }
-		}
-		$flow{snmp_in} = 0 if (!$flow{snmp_in});
-		$flow{snmp_out} = 0 if (!$flow{snmp_out});
-		$flow{octets} = 0 if (!$flow{octets});
-		$flow{pkts} = 0 if (!$flow{pkts});
-		if (%flow) { save_flow($ipaddr, \%flow); }
-	}
+    while (($offset + $len) <= $datalen) {
+        my %flow = (
+            netflow_v => '9',
+            starttime => time(),
+            ipv      => '4',
+            snmp_in  => 0,
+            snmp_out => 0,
+            octets   => 0,
+            pkts     => 0
+        );
+
+        for (my $i = 0; $i < scalar @$template; $i += 2) {
+            my $field_type = $template->[$i];
+            my $field_length = $template->[$i+1];
+            my $value = substr($flowsetdata, $offset, $field_length);
+            $offset += $field_length;
+
+            # IN_BYTES (1)
+            if ($field_type == 1) {
+                $flow{octets} = $field_length == 8 ? unpack("Q>", $value) : unpack("N", $value);
+            }
+            # IN_PACKETS (2)
+            elsif ($field_type == 2) {
+                $flow{pkts} = $field_length == 8 ? unpack("Q>", $value) : unpack("N", $value);
+            }
+            # IN_PROTOCOL (4)
+            elsif ($field_type == 4) {
+                $flow{proto} = unpack("C", $value);
+            }
+            # L4_SRC_PORT (7)
+            elsif ($field_type == 7) {
+                $flow{src_port} = unpack("n", $value);
+            }
+            # IPV4_SRC_ADDR (8)
+            elsif ($field_type == 8) {
+                $flow{src_ip} = inet_ntop(AF_INET, $value);
+            }
+            # INPUT_SNMP (10)
+            elsif ($field_type == 10) {
+                $flow{snmp_in} = $field_length == 4 ? unpack("N", $value) : unpack("n", $value);
+            }
+            # L4_DST_PORT (11)
+            elsif ($field_type == 11) {
+                $flow{dst_port} = unpack("n", $value);
+            }
+            # IPV4_DST_ADDR (12)
+            elsif ($field_type == 12) {
+                $flow{dst_ip} = inet_ntop(AF_INET, $value);
+            }
+            # OUTPUT_SNMP (14)
+            elsif ($field_type == 14) {
+                $flow{snmp_out} = $field_length == 4 ? unpack("N", $value) : unpack("n", $value);
+            }
+            # ICMP_TYPE (32)
+            elsif ($field_type == 32) {
+                $flow{icmp_type} = unpack("C", $value);
+            }
+            # ICMP_CODE (33)
+            elsif ($field_type == 33) {
+                $flow{icmp_code} = unpack("C", $value);
+            }
+            # IP_PROTOCOL_VERSION (60)
+            elsif ($field_type == 60) {
+                my $ipversion = unpack("C", $value);
+                if ($ipversion == 6) {
+                    %flow = ();
+                    last;
+                }
+                $flow{ipv} = $ipversion;
+            }
+            # XLATE_SRC_ADDR_IPV4 (225)
+            elsif ($field_type == 225) {
+                $flow{xsrc_ip} = inet_ntop(AF_INET, $value);
+            }
+            # XLATE_DST_ADDR_IPV4 (226)
+            elsif ($field_type == 226) {
+                $flow{xdst_ip} = inet_ntop(AF_INET, $value);
+            }
+        }
+
+        # Обработка не-TCP/UDP трафика
+        if ($flow{proto} == 1) {          # ICMP
+            $flow{src_port} = $flow{icmp_type} || 0;
+            $flow{dst_port} = $flow{icmp_code} || 0;
+        }
+        elsif ($flow{proto} == 2) {       # IGMP
+            $flow{src_port} = $flow{igmp_type} || 0;
+        }
+        elsif ($flow{proto} == 47) {      # GRE
+            $flow{src_port} = $flow{gre_version} || 0;
+            $flow{dst_port} = $flow{gre_key} || 0;
+        }
+        elsif ($flow{proto} == 50 ||      # ESP
+               $flow{proto} == 51) {      # AH
+            $flow{src_port} = $flow{dst_port} = 0;  # Нет портов
+        }
+        elsif ($flow{proto} == 89) {      # OSPF
+            $flow{src_port} = $flow{dst_port} = 0;
+        }
+
+        # Сохраняем только валидные потоки
+        if (%flow && exists $flow{src_ip} && exists $flow{dst_ip}) {
+            save_flow($ipaddr, \%flow);
+        }
+    }
+}
+
+sub get_proto_name {
+    my ($proto_num) = @_;
+    return $proto_map{$proto_num} || "Proto-$proto_num";
 }
 
 sub save_flow {
@@ -453,6 +475,12 @@ my $pid = fork();
 
 INIT();
 
+#log_debug("ROUTERS-SVI:".Dumper(\%routers_svi));
+#log_debug("ROUTERS by IP::".Dumper(\%routers_by_ip));
+#log_debug("ROUTERS:".Dumper(\%routers));
+#log_debug("WAN-DEVS:".Dumper(\%wan_dev));
+#log_debug("LAN-DEVS:".Dumper(\%lan_dev));
+
 if (!defined $pid) {
     $saving = 0;
     print "cannot fork! Save traffic and exit...\n";
@@ -484,9 +512,9 @@ my $start_time;
 
 foreach my $traf_record (@flush_table) {
 
-my ($auth_id,$l_src_ip,$l_dst_ip,$user_ip,$router_id);
+#log_debug("RAW-DATA: ".hash_to_kv_csv($traf_record));
 
-#print Dumper($traf_record) if ($debug);
+my ($auth_id,$l_src_ip,$l_dst_ip,$user_ip,$router_id);
 
 #skip unknown router
 next if (!$traf_record->{device_id});
@@ -509,6 +537,7 @@ if (!$start_time) { $start_time = $traf_record->{starttime}; }
 if (!$traf_record->{snmp_out} or !$traf_record->{snmp_in}) {
     #input
     if (!$traf_record->{snmp_out} and exists $routers_svi{$router_id}{$traf_record->{snmp_in}}{$traf_record->{dst_ip}}) {
+#        log_debug("ROUTER id: $router_id I-DATA: ".hash_to_kv_csv($traf_record));
         #input
         if (!$free_networks->match_string($traf_record->{src_ip})) {
             if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}) {
@@ -521,6 +550,7 @@ if (!$traf_record->{snmp_out} or !$traf_record->{snmp_in}) {
 	}
     #output
     if (!$traf_record->{snmp_in} and exists $routers_svi{$router_id}{$traf_record->{snmp_out}}{$traf_record->{src_ip}}) {
+#        log_debug("ROUTER id: $router_id O-DATA: ".hash_to_kv_csv($traf_record));
         #output
         if (!$free_networks->match_string($traf_record->{dst_ip})) {
             if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}) {
@@ -531,6 +561,7 @@ if (!$traf_record->{snmp_out} or !$traf_record->{snmp_in}) {
             }
         next;
         }
+#    log_debug("ROUTER id: $router_id U-DATA: ".hash_to_kv_csv($traf_record));
     #unknown packet
     next;
     }
@@ -538,6 +569,7 @@ if (!$traf_record->{snmp_out} or !$traf_record->{snmp_in}) {
 #simple output traffic from router
 if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{$router_id}->{$traf_record->{snmp_in}}) {
     if (exists $routers_svi{$router_id}{$traf_record->{snmp_out}}{$traf_record->{src_ip}}) {
+#        log_debug("ROUTER id: $router_id O-SDATA: ".hash_to_kv_csv($traf_record));
         #output
         if (!$free_networks->match_string($traf_record->{dst_ip})) {
             if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}) {
@@ -550,6 +582,7 @@ if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{
         }
     #It is unlikely that it will ever work out
     if (exists $routers_svi{$router_id}{$traf_record->{snmp_in}}{$traf_record->{dst_ip}}) {
+#        log_debug("ROUTER id: $router_id I-SDATA: ".hash_to_kv_csv($traf_record));
         #input
         if (!$free_networks->match_string($traf_record->{src_ip})) {
             if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}) {
@@ -560,12 +593,14 @@ if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{
             }
         next;
         }
+#    log_debug("ROUTER id: $router_id U-SDATA: ".hash_to_kv_csv($traf_record));
     #unknown packet
     next;
     } else {
     #forward
     if (!$free_networks->match_string($traf_record->{src_ip}) and !$free_networks->match_string($traf_record->{dst_ip})) {
         if ($traf_record->{direction}) {
+#	    log_debug("ROUTER id: $router_id FO-DATA: ".hash_to_kv_csv($traf_record));
             #out
             if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{forward_out}) {
                 $wan_stats{$router_id}{$traf_record->{snmp_out}}{forward_out}+=$traf_record->{octets};
@@ -573,6 +608,7 @@ if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{
                 $wan_stats{$router_id}{$traf_record->{snmp_out}}{forward_out}+=$traf_record->{octets};
                 }
             } else {
+#	    log_debug("ROUTER id: $router_id FI-DATA: ".hash_to_kv_csv($traf_record));
             #in
             if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{forward_in}) {
                 $wan_stats{$router_id}{$traf_record->{snmp_in}}{forward_in}+=$traf_record->{octets};
@@ -580,7 +616,9 @@ if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{
                 $wan_stats{$router_id}{$traf_record->{snmp_in}}{forward_in}+=$traf_record->{octets};
                 }
             }
-        }
+        } else {
+#	    log_debug("ROUTER id: $router_id FREE-DATA: ".hash_to_kv_csv($traf_record));
+	}
     }
 
 #--- user statistics
@@ -613,7 +651,7 @@ if ($traf_record->{direction}) {
         #skip create router interface as user
         if (exists $routers_by_ip{$traf_record->{src_ip}}) { next; }
 	if (!$office_networks->match_string($traf_record->{src_ip})) {
-	    log_debug("Unknown src network at router $router_id:: int_in => $traf_record->{snmp_in} int_out=>$traf_record->{snmp_out} proto=>$traf_record->{proto} src: $traf_record->{src_ip}:$traf_record->{src_port} dst: $traf_record->{dst_ip}:$traf_record->{dst_port}");
+	    log_debug("Unknown src network ".hash_to_kv_csv($traf_record));
 	    next;
 	    }
         $user_ip = $traf_record->{src_ip};
@@ -657,12 +695,12 @@ if ($traf_record->{direction}) {
 	        	}
                 }
 	}
-    if (!$user_ip) {
-	log_debug("Unknown dst user ip at router $router_id:: int_in => $traf_record->{snmp_in} int_out=>$traf_record->{snmp_out} proto=>$traf_record->{proto} src: $traf_record->{src_ip}:$traf_record->{src_port} dst: $traf_record->{xdst_ip}:$traf_record->{dst_port}");
-	}
     }
 
-next if (!$user_ip);
+if (!$user_ip) {
+    log_debug("Unknown USER: ".hash_to_kv_csv($traf_record));
+    next;
+    }
 
 $last_time = $traf_record->{starttime};
 
@@ -726,7 +764,7 @@ my $hour_date2 = $hdb->quote(sprintf "%04d-%02d-%02d %02d:00:00",$year+1900,$mon
 
 my @batch_sql_traf=();
 
-#print Dumper(\%user_stats) if ($debug);
+#log_debug("User STATS: ".Dumper(\%user_stats));
 
 # update database
 foreach my $user_ip (keys %user_stats) {
