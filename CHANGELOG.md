@@ -1,3 +1,32 @@
+# Changelog 2.8.1 - release
+
+- html: set autofocus for login page
+- bugfix: Fixed the processing of non-tcp|udp traffic in the netflow collector
+- always remove dynamic user ip record by dhcp release request
+
+# Changelog 2.8.0 - draft
+- fixed upgrade script name
+- The rule of the only mac in the subnet has been implemented for dynamic records.
+- The ability to set a group has been added to mass editing from the address list.
+- enhanced security for the redirected page
+- connections for remote/old addresses are hidden
+- a redirect was made to the requested page after authorization
+- Hotspot exceptions will not be added for an inactive service.
+- Added an exception from the hotspot for entries with dhcp-acl = hotspot-free
+- ignoring packets from an unknown router has been added to the netflow collector.
+- The api has added the function of returning dhcp records only for a specific subnet: dhcp_subnet&subnet='192.168.1.0' logging of packets from unknown sources has been added to the netflow collector
+- expanded the log of some events in the netflow collector
+- api: added the get_dhcp_all function, which returns all entries for the configuration of the dhcp server. 
+- html: added fractional number support for the lifetime of dynamic records
+- log level fixed for some event
+- using the ENUM field was a mistake.
+- The database schema has been updated to the latest version the indexes of the log tables have been redesigned, which significantly accelerated their operation Log tables with text fields have been compressed the processing of dhcp events received via the api has been moved through separate tables. there is no need to call the command via sudo anymore
+- the notification was removed in the mail/log for some types of operations.
+- bugfix: fixed logged dhcp event with option82 bugfix: fixed dns update request from dhcp
+- rewrited upgrade script
+- added support for "foreign" domains. If the host name ends with a dot, then this entry will not be added to the office DNS.
+- removed the option to put an empty username
+
 # Changelog 2.7.9
 
 - bugfix: fixed the garbage collection script that was broken by the previous patch
