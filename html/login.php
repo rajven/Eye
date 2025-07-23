@@ -92,7 +92,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
 		<label for="username">
 		    <i class="fas fa-user"></i>
 		</label>
-		<input type="text" name="login" placeholder="<?php echo WEB_msg_username; ?>" id="login" required>
+		<input type="text" name="login" placeholder="<?php echo WEB_msg_username; ?>" id="login" required autofocus>
 		<label for="password">
 		    <i class="fas fa-lock"></i>
 		</label>
