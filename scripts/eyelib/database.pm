@@ -2306,7 +2306,7 @@ return if (!$type);
 return if ($type!~/(old|add|del)/i);
 
 my $client_hostname='';
-if ($hostname and ($hostname ne "undef" or $hostname !~ /UNDEFINED/i)) { $client_hostname=$hostname; }
+if ($hostname and ($hostname ne "undef" or $hostname !~ /(UNDEFINED|\-hostname)/i)) { $client_hostname=$hostname; }
 
 my $auth_network = $office_networks->match_string($ip);
 if (!$auth_network) {
@@ -2395,9 +2395,7 @@ if ($type=~/old/i) {
                 }
 
 if ($type=~/del/i and $auth_id) {
-                if ($auth_record->{dhcp_time} =~ /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})/) {
-                    my $d_time = mktime($6,$5,$4,$3,$2-1,$1-1900);
-                    if (time()-$d_time>60 and (is_dynamic_ou($db,$auth_ou_id) or is_default_ou($db,$auth_ou_id))) {
+                if ($auth_record->{dynamic} or is_default_ou($db,$auth_ou_id)) {
                         db_log_info($db,"Remove user ip record by dhcp release event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
                         my $auth_rec;
                         $auth_rec->{dhcp_action}=$type;
@@ -2410,7 +2408,6 @@ if ($type=~/del/i and $auth_id) {
                                 if (!$u_count) { delete_user($db,$auth_record->{'user_id'}); }
                                 }
                         }
-                    }
                 }
 
 if ($dhcp_record->{hotspot} and $ignore_hotspot_dhcp_log) { return $dhcp_record; }
