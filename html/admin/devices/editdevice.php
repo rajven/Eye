@@ -107,11 +107,6 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     if (isset($_POST["f_user_acl"])) {
         $new['user_acl'] = $_POST["f_user_acl"] * 1;
     }
-    if ($new['device_type'] == 0) {
-        $new['queue_enabled'] = 0;
-        $new['connected_user_only'] = 1;
-        $new['user_acl'] = 1;
-    }
     //interfaces
     if (isset($_POST["f_wan"])) {
         $new['wan_int'] = $_POST["f_wan"];
@@ -157,6 +152,13 @@ if (isset($_POST["editdevice"]) and isset($id)) {
             $new['nagios_status'] = $cur_auth['nagios_status'];
         }
     }
+
+    if ($new['device_type'] == 0 or $new['protocol']<0) {
+        $new['queue_enabled'] = 0;
+        $new['connected_user_only'] = 1;
+        $new['user_acl'] = 0;
+    }
+
     update_record($db_link, "devices", "id='$id'", $new);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;

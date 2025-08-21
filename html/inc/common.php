@@ -30,6 +30,12 @@ $config["init"] = 0;
 // 17, 'Maipu'
 // 18, 'Asus'
 
+// Функция для безопасного получения параметров
+function getParam($name, $page_url, $default = null, $filter = FILTER_DEFAULT) {
+    $value = filter_input(INPUT_GET, $name, $filter) ?? filter_input(INPUT_POST, $name, $filter);
+    return $value !== null ? $value : ($_SESSION[$page_url][$name] ?? $default);
+}
+
 function randomPassword($length = 8)
 {
     $alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';

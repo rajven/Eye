@@ -215,7 +215,7 @@ sub hash_to_kv_csv {
     while (my ($key, $value) = each %$hash_ref) {
         push @pairs, $escape->($key) . '=>' . $escape->($value);
     }
-    return join($delimiter, @pairs);
+    return join($delimiter, sort @pairs);
 }
 
 #---------------------------------------------------------------------------------------------------------.

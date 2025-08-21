@@ -17,13 +17,13 @@ if (!empty($_POST['send'])) { $action = 'send_'.$_POST['send']; }
 //GET
 if (!empty($_GET['ip'])) { $ip = $_GET['ip']; }
 if (!empty($_GET['mac'])) { $mac = mac_dotted(trim($_GET['mac'])); }
-if (!empty($_GET['rec_id'])) { $rec_id = $_GET['id']; }
+if (!empty($_GET['id'])) { $rec_id = $_GET['id']; }
 if (!empty($_GET['subnet'])) { $f_subnet = $_GET['subnet']; }
 
 //POST
 if (!empty($_POST['ip'])) { $ip = $_POST['ip']; }
 if (!empty($_POST['mac'])) { $mac = mac_dotted($_POST['mac']); }
-if (!empty($_POST['rec_id'])) { $rec_id = $_POST['id']; }
+if (!empty($_POST['id'])) { $rec_id = $_POST['id']; }
 if (!empty($_POST['subnet'])) { $f_subnet = $_POST['subnet']; }
 
 if (!empty($action)) {
@@ -31,6 +31,7 @@ if (!empty($action)) {
       if (!empty($ip) and checkValidIp($ip))  { $ip_aton=ip2long($ip); }
 
       //return user auth record
+      //api.php?login=<LOGIN>&api_key=<API_KEY>&get=user_auth&{mac=<MAC>|ip=<IP>}
       if ($action ==='get_user_auth') {
           $result=[];
           $sql='';
@@ -63,7 +64,39 @@ if (!empty($action)) {
              }
           }
 
-      //return user auth record
+      //return user records
+      //api.php?login=<LOGIN>&api_key=<API_KEY>&get=user&id=<ID>
+      if ($action ==='get_user') {
+          $result=[];
+          $sql='';
+          LOG_VERBOSE($db_link,"API: Get User record with id: $rec_id");
+          if (!empty($rec_id)) {
+                $sql="SELECT * FROM User_list WHERE id=$rec_id";
+                $result=get_record_sql($db_link,$sql);
+                if (!empty($result)) {
+                    LOG_VERBOSE($db_link,"API: User record found.");
+                    $sql="SELECT * FROM User_auth WHERE deleted=0 AND user_id=".$rec_id;
+                    $result_auth=get_records_sql($db_link,$sql);
+                    try {
+                        if (!empty($result_auth)) { $result["auth"]=$result_auth; } else { $result["auth"]=''; }
+                        $json_user = json_encode($result, JSON_THROW_ON_ERROR);
+                        header('Content-Type: application/json');
+                        echo $json_user;
+                        }
+                    catch (JsonException $exception) {
+                        LOG_ERROR($db_link,"API: Error decoding JSON. Error: ".$exception->getMessage());
+                        exit($exception->getMessage());
+                      }
+                } else {
+                  LOG_VERBOSE($db_link,"API: User not found.");
+                }
+             } else {
+              LOG_VERBOSE($db_link,"API: not enough parameters");
+             }
+          }
+
+      //return all records for dhcp server
+      //api.php?login=<LOGIN>&api_key=<API_KEY>&get=dhcp_all
       if ($action ==='get_dhcp_all') {
             $result=[];
             LOG_VERBOSE($db_link,"API: Get all dhcp records");
@@ -87,7 +120,8 @@ if (!empty($action)) {
                     }
             }
 
-      //return user auth record
+      //return all record in subnet for dhcp-server
+      //api.php?login=<LOGIN>&api_key=<API_KEY>&get=dhcp_subnet&subnet=<SUBNET>
       if ($action ==='get_dhcp_subnet' and !empty($f_subnet)) {
             $result=[];
             $f_subnet = trim($f_subnet, "'");
@@ -113,6 +147,7 @@ if (!empty($action)) {
             }
 
       //add dhcp log record
+      //api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=<MAC>&ip=<IP>&action=<0|1>[&hostname=<HOSTNAME>]
       if ($action ==='send_dhcp') {
           if (!empty($ip) and !empty($mac)) {
               $dhcp_hostname = '';

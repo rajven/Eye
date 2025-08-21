@@ -45,10 +45,10 @@ my $all_ok = 1;
 my @gateways =();
 #select undeleted mikrotik routers only
 if ($ARGV[0]) {
-    my $router = get_record_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9 and id='.$ARGV[0]);
+    my $router = get_record_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) and protocol>0 and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9 and id='.$ARGV[0]);
     if ($router) { push(@gateways,$router); }
     } else {
-    @gateways = get_records_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9');
+    @gateways = get_records_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) and protocol>0 and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9');
     }
 
 #все сети организации, работающие по dhcp
