@@ -121,10 +121,14 @@ if (isset($_POST["showDevice"])) {
 
 if (isset($_POST["addauth"])) {
     $fip = substr(trim($_POST["newip"]), 0, 18);
-    $fmac = NULL;
-    if (isset($_POST["newmac"])) {
+    $fcomment = NULL;
+    if (!empty(trim($_POST["newmac"]))) {
         $fmac = mac_dotted(substr(trim($_POST["newmac"]), 0, 17));
-    }
+        if (!checkValidMac($fmac)) { 
+                $fmac=NULL;
+                $fcomment = trim($_POST["newmac"]); 
+            }
+        }
     if ($fip) {
         if (checkValidIp($fip)) {
             $ip_aton = ip2long($fip);
@@ -164,6 +168,7 @@ if (isset($_POST["addauth"])) {
             if (!empty($fid)) {
                 $new['dhcp'] = $f_dhcp;
                 $new['created_by'] = 'manual';
+                if (!empty($fcomment)) { $new['comments'] = $fcomment; }
                 update_record($db_link, "User_auth", "id=" . $fid, $new);
                 LOG_WARNING($db_link, "Add ip for login: " . $user_info["login"] . ": ip => $fip, mac => $fmac", $fid);
                 header("Location: /admin/users/editauth.php?id=" . $fid);
