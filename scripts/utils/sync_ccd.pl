@@ -60,7 +60,7 @@ print "Обработка завершена успешно!\n";
 # Функция логирования
 sub log_message {
     my ($level, $message) = @_;
-    
+
     # Уровни логирования: DEBUG < INFO < WARN < ERROR
     my %levels = (
         'DEBUG' => 1,
@@ -68,35 +68,18 @@ sub log_message {
         'WARN'  => 3,
         'ERROR' => 4
     );
-    
+
     return unless $levels{$level} >= $levels{$log_level};
-    
-    my $timestamp = strftime("%Y-%m-%d %H:%M:%S", localtime);
-    my $log_entry = "[$timestamp] [$level] $message\n";
-    
+
+    my ($sec,$min,$hour,$mday,$mon,$year) = (localtime())[0,1,2,3,4,5];
+    $mon += 1; $year += 1900;
+
     open my $fh, '>>', $log_file or do {
         warn "Не могу открыть лог файл $log_file: $!\n";
         return;
     };
-    print $fh $log_entry;
+    printf $fh "%04d%02d%02d-%02d%02d%02d [%d] [%s] %s\n",$year,$mon,$mday,$hour,$min,$sec,$$,$level,$message;
     close $fh;
-}
-
-# Функция для форматирования времени
-sub strftime {
-    my ($format, @time) = @_;
-    my @tm = localtime($time[0] || time);
-    my %formats = (
-        '%Y' => sprintf("%04d", $tm[5] + 1900),
-        '%m' => sprintf("%02d", $tm[4] + 1),
-        '%d' => sprintf("%02d", $tm[3]),
-        '%H' => sprintf("%02d", $tm[2]),
-        '%M' => sprintf("%02d", $tm[1]),
-        '%S' => sprintf("%02d", $tm[0]),
-    );
-    
-    $format =~ s/(%\w)/$formats{$1} || $1/eg;
-    return $format;
 }
 
 sub ip_and_mask_to_cidr {
@@ -128,11 +111,11 @@ sub ip_and_mask_to_cidr {
 
 sub fetch_json {
     my $url = shift;
-    
+
     my $ua = LWP::UserAgent->new;
     $ua->timeout(30);
     $ua->env_proxy;
-    
+
     log_message("DEBUG", "Выполняем запрос к API: $url");
     my $response = $ua->get($url);
 
@@ -170,12 +153,12 @@ sub parse_auth_data {
 sub find_ovpn_configs {
     my $dir = shift;
     my @configs;
-    
+
     find(sub {
         return unless -f && /\.conf$/;
         push @configs, $File::Find::name;
     }, $dir);
-    
+
     log_message("DEBUG", "Найдено " . scalar(@configs) . " конфигурационных файлов OpenVPN");
     return @configs;
 }
@@ -189,7 +172,7 @@ sub process_ovpn_config {
 
     # Читаем конфиг и находим ccd directory и сеть
     my ($ccd_dir, $network, $network_mask) = parse_ovpn_config($config_file);
-    
+
     unless ($ccd_dir && $network) {
         log_message("WARN", "Не найдены ccd directory или network в $config_file");
         return;
@@ -205,7 +188,7 @@ sub process_ovpn_config {
         my $config_dir = dirname($config_file);
         $ccd_dir = "$config_dir/$ccd_dir";
     }
-    
+
     # Создаем CCD директорию если не существует
     make_path($ccd_dir) unless -d $ccd_dir;
 
@@ -222,22 +205,22 @@ sub process_ovpn_config {
 sub parse_ovpn_config {
     my $config_file = shift;
     my ($ccd_dir, $network, $network_mask);
-    
+
     open my $fh, '<', $config_file or do {
         my $error = "Не могу открыть $config_file: $!";
         log_message("ERROR", $error);
         warn "$error\n";
         return (undef, undef);
     };
-    
+
     while (my $line = <$fh>) {
         chomp $line;
-        
+
         # Ищем client-config-dir
         if ($line =~ /^\s*client-config-dir\s+(\S+)/i) {
             $ccd_dir = $1;
         }
-        
+
         # Ищем server directive
         if ($line =~ /^\s*server\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i) {
             $network = ip_and_mask_to_cidr($1,$2) if ($1 and $2);
@@ -249,12 +232,12 @@ sub parse_ovpn_config {
             $network = ip_and_mask_to_cidr($1,$2) if ($1 and $2);
             $network_mask = $2 if ($2);
         }
-        
+
         last if $ccd_dir && $network;
     }
-    
+
     close $fh;
-    
+
     return ($ccd_dir, $network, $network_mask);
 }
 
@@ -271,7 +254,8 @@ sub process_ccd_file {
     my $log_msg = "Обрабатываем пользователя: $username, IP: $ip";
     log_message("INFO", $log_msg);
     print "$log_msg ...";
-    
+
+
     # Читаем существующий файл или создаем новый
     my @lines;
     if (-f $ccd_file) {
@@ -284,11 +268,12 @@ sub process_ccd_file {
         @lines = <$fh>;
         close $fh;
     }
-    
+
+    my $changed = 0;
+
     # Ищем или добавляем ifconfig-push
     my $found = 0;
     my $new_ifconfig = "ifconfig-push $ip $network_mask";
-    my $changed = 0;
 
     for my $i (0..$#lines) {
         if ($lines[$i] =~ /^ifconfig-push/) {
@@ -307,7 +292,7 @@ sub process_ccd_file {
             last;
         }
     }
-    
+
     # Если не нашли, добавляем новую строку
     unless ($found) {
         my $add_msg = "Добавляем ifconfig-push для $username";
@@ -316,7 +301,7 @@ sub process_ccd_file {
         $changed = 1;
         push @lines, "$new_ifconfig\n";
     }
-    
+
     if ($changed) {
         # Записываем обратно в файл
         open my $fh, '>', $ccd_file or do {
@@ -363,3 +348,4 @@ $SIG{__DIE__} = sub {
     warn "Критическая ошибка: $error\n";
     exit 1;
 };
+
