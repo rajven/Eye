@@ -16,7 +16,7 @@ use Net::Patricia;
 
 my $api_user='USER';
 my $api_key ='PASSWORD';
-my $host    ='IP';
+my $host    ='HOST';
 my $user_id = $ARGV[0];
 
 exit if (!$user_id);
@@ -243,6 +243,12 @@ sub parse_ovpn_config {
             $network = ip_and_mask_to_cidr($1,$2) if ($1 and $2);
             $network_mask = $2 if ($2);
         }
+
+        # Ищем server directive
+        if ($line =~ /^\s*ifconfig\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i) {
+            $network = ip_and_mask_to_cidr($1,$2) if ($1 and $2);
+            $network_mask = $2 if ($2);
+        }
         
         last if $ccd_dir && $network;
     }
@@ -354,12 +360,6 @@ sub process_ccd_file {
 # Обработка ошибок
 $SIG{__DIE__} = sub {
     my $error = shift;
-    log_message("ERROR", "Критическая ошибка: $error");
     warn "Критическая ошибка: $error\n";
     exit 1;
 };
-
-END {
-    # Любая финальная очистка
-    log_message("DEBUG", "Скрипт завершил работу");
-}
