@@ -313,7 +313,7 @@ sub process_ccd_file {
         print $fh @lines;
         close $fh;
         # Ставим права на конфиг
-        chmod 0644, $ccd_file or do {
+        chmod 0664, $ccd_file or do {
             my $error = "chmod failed: $!";
             log_message("ERROR", $error);
             die "$error\n";
