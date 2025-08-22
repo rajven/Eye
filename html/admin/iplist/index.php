@@ -45,10 +45,10 @@ if ($dhcp_enabled>0) {
     if ($dhcp_enabled ==2) { $dhcp_filter = ' and User_auth.dhcp=0'; }
     }
 
-if (isset($_POST['ip'])) { $f_ip = normalizeIpAddress(substr(trim($_POST["ip"]), 0, 18)); }
-if (!isset($f_ip) and isset($_SESSION[$page_url]['ip'])) { $f_ip=$_SESSION[$page_url]['ip']; }
-if (!isset($f_ip)) { $f_ip=''; }
-$_SESSION[$page_url]['ip']=$f_ip;
+if (isset($_POST['search_str'])) { $f_search_str = trim($_POST['search_str']); }
+if (!isset($f_search_str) and isset($_SESSION[$page_url]['search_str'])) { $f_search_str=$_SESSION[$page_url]['search_str']; }
+if (!isset($f_search_str)) { $f_search_str=''; }
+$_SESSION[$page_url]['search_str']=$f_search_str;
 
 $ip_list_type_filter='';
 if ($ip_type>0) {
@@ -61,13 +61,20 @@ if ($ip_type>0) {
     }
 
 $ip_where = '';
-if (!empty($f_ip)) {
-    if (checkValidIp($f_ip)) { $ip_where = " and ip_int=inet_aton('" . $f_ip . "') "; }
-    if (empty($ip_where)) { $ip_where =" and (mac like '" . mac_dotted($f_ip) . "%' or login like '".$f_ip."%' or comments like '".$f_ip."%' or dns_name like '".$f_ip."%' or dhcp_hostname like '".$f_ip."%')"; }
-    $ip_list_filter = $ip_where;
-    } else {
-    $ip_list_filter = $ou_filter.$cidr_filter.$enabled_filter.$ip_list_type_filter.$dynamic_filter.$dhcp_filter;
+if (!empty($f_search_str)) {
+    $f_ip = normalizeIpAddress($f_search_str);
+    if (!empty($f_ip)) { 
+        $ip_where = " and ip_int=inet_aton('" . $f_ip . "') ";
+        $f_search_str = $f_ip;
+        } else {
+        if (checkValidMac($f_search_str)) { $ip_where =" and mac='" . mac_dotted($f_search_str) ."'"; }
+            else {
+            $ip_where =" and (mac like '" . mac_dotted($f_search_str) . "%' or login like '".$f_search_str."%' or comments like '".$f_search_str."%' or dns_name like '".$f_search_str."%' or dhcp_hostname like '".$f_search_str."%')"; 
+            }
+        }
     }
+
+$ip_list_filter = $ou_filter.$cidr_filter.$enabled_filter.$ip_list_type_filter.$dynamic_filter.$dhcp_filter.$ip_where;
 
 print_ip_submenu($page_url);
 
@@ -107,7 +114,7 @@ print_ip_submenu($page_url);
 </tr>
 <tr>
         <td colspan=2>
-        <?php echo WEB_ips_search_host; ?>:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>"/>
+        <?php echo WEB_ips_search_host; ?>:&nbsp<input type="text" name="search_str" value="<?php echo $f_search_str; ?>"/>
         </td>
         <td>
         <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>

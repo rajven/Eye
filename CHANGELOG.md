@@ -1,5 +1,7 @@
 # Changelog 2.8.2 - release
 - html: The default interval is 1 hour for displaying logs and reports.
+- html: The search in the list of all addresses now takes into account the filters set
+- html: The IP address can be written using the russain letter Ю instead of a dot.
 - bugfix: devices with control disabled were configured anyway.
 - bugfix: for router-type devices, the flag for processing user policies and shapers has been removed.
 - api: The get=user function has been added to the api to get user information.
