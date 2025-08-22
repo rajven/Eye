@@ -3,8 +3,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
-$default_date_shift='m';
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datefilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 
 if (isset($_POST['mac'])) { $f_mac = mac_simplify($_POST['mac']); }
 if (isset($_GET['mac'])) { $f_mac = mac_simplify($_GET['mac']); }
@@ -21,8 +20,7 @@ print_log_submenu($page_url);
 <div id="cont">
 <br>
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
-<?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-<?php echo WEB_log_stop_date; ?>:&nbsp<input type="date"	name="date_stop" value="<?php echo $date2; ?>" />
+<?php print_date_fields($date1,$date2,$date_shift); ?>
 <?php echo WEB_cell_mac; ?>:&nbsp<input type="text" name="mac" value="<?php echo mac_dotted($f_mac); ?>" pattern="^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12}$" />
 <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
 <input type="submit" value="<?php echo WEB_btn_show; ?>">

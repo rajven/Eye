@@ -460,6 +460,11 @@ define("WEB_ips_search_full","Поиск по комментарию/ip/mac/dhcp
 /* logs */
 define("WEB_log_start_date","Начало");
 define("WEB_log_stop_date","Конец");
+define("WEB_date_shift","Интервал");
+define("WEB_date_shift_hour","За час");
+define("WEB_date_shift_8hour","8 часов");
+define("WEB_date_shift_day","За день");
+define("WEB_date_shift_month","За месяц");
 define("WEB_log_level_display","Уровень логов");
 define("WEB_log_filter_source","Источник");
 define("WEB_log_filter_event","Событие");

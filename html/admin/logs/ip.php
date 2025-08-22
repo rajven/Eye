@@ -2,8 +2,7 @@
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
-$default_date_shift='m';
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datefilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 
 if (isset($_POST['ip'])) { $f_ip = $_POST['ip']; }
 if (isset($_GET['ip'])) { $f_ip = $_GET['ip']; }
@@ -25,8 +24,7 @@ if (!empty($f_ip)) {
 <br>
 <?php echo WEB_log_mac_history_hint; ?>
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
-<?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-<?php echo WEB_log_stop_date; ?>:&nbsp<input type="date"	name="date_stop" value="<?php echo $date2; ?>" />
+<?php print_date_fields($date1,$date2,$date_shift); ?>
 <?php echo WEB_log_select_ip_mac; ?>:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])|([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12})$"/>
 <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
 <input type="submit" value="<?php echo WEB_btn_show; ?>">

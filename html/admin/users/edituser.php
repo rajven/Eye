@@ -120,17 +120,18 @@ if (isset($_POST["showDevice"])) {
 }
 
 if (isset($_POST["addauth"])) {
-    $fip = substr(trim($_POST["newip"]), 0, 18);
+    $fip = normalizeIpAddress(substr(trim($_POST["newip"]), 0, 18));
     $fcomment = NULL;
-    if (!empty(trim($_POST["newmac"]))) {
-        $fmac = mac_dotted(substr(trim($_POST["newmac"]), 0, 17));
-        if (!checkValidMac($fmac)) { 
+    $fmac = trim($_POST["newmac"]);
+    if (!empty($fmac)) {
+        if (!checkValidMac($fmac)) {
+                $fcomment = $fmac;
                 $fmac=NULL;
-                $fcomment = trim($_POST["newmac"]); 
+            } else {
+            $fmac = mac_dotted($fmac);
             }
         }
-    if ($fip) {
-        if (checkValidIp($fip)) {
+    if (!empty($fip)) {
             $ip_aton = ip2long($fip);
             $f_dhcp = 1;
             //search mac
@@ -177,13 +178,12 @@ if (isset($_POST["addauth"])) {
             header("Location: " . $_SERVER["REQUEST_URI"]);
             exit;
         } else {
-            $msg_error = "$msg_ip_error xxx.xxx.xxx.xxx";
+            $msg_error = "IP-address fromat eror!";
             $_SESSION[$page_url]['msg'] = $msg_error;
         }
-    }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
-}
+    }
 
 if (isset($_POST["removeauth"])) {
     $auth_id = $_POST["f_auth_id"];

@@ -31,6 +31,64 @@ $config["init"] = 0;
 // 18, 'Asus'
 
 // Функция для безопасного получения параметров
+/*
+FILTER_DEFAULT              // Без фильтрации (по умолчанию)
+FILTER_UNSAFE_RAW           // Без фильтрации (аналогично FILTER_DEFAULT)
+FILTER_CALLBACK             // Пользовательская функция обратного вызова
+
+FILTER_VALIDATE_BOOLEAN    // true/false/1/0/"1"/"0"/"yes"/"no"
+FILTER_VALIDATE_EMAIL      // Email адрес
+FILTER_VALIDATE_FLOAT      // Число с плавающей точкой
+FILTER_VALIDATE_INT        // Целое число
+FILTER_VALIDATE_IP         // IP адрес (IPv4/IPv6)
+FILTER_VALIDATE_REGEXP     // По регулярному выражению
+FILTER_VALIDATE_URL        // URL адрес
+FILTER_VALIDATE_DOMAIN     // Доменное имя (PHP 7.0+)
+
+FILTER_SANITIZE_EMAIL          // Удаляет все кроме букв, цифр и !#$%&'*+-/=?^_`{|}~@.[]
+FILTER_SANITIZE_ENCODED        // URL-encode строка
+FILTER_SANITIZE_MAGIC_QUOTES   // Apply addslashes()
+FILTER_SANITIZE_NUMBER_FLOAT   // Удаляет все кроме цифр, +- и .,eE
+FILTER_SANITIZE_NUMBER_INT     // Удаляет все кроме цифр и +-
+FILTER_SANITIZE_SPECIAL_CHARS  // HTML-escape '"<>& и символы с ASCII < 32
+FILTER_SANITIZE_FULL_SPECIAL_CHARS // Эквивалентно htmlspecialchars()
+FILTER_SANITIZE_STRING         // Устарело - используйте FILTER_SANITIZE_FULL_SPECIAL_CHARS
+FILTER_SANITIZE_STRIPPED       // Устарело
+FILTER_SANITIZE_URL            // Удаляет все кроме букв, цифр и $-_.+!*'(),{}|\\^~[]`<>#%";/?:@&=
+
+Flags::
+
+// Для FILTER_VALIDATE_BOOLEAN
+FILTER_NULL_ON_FAILURE      // Возвращает null вместо false при failure
+
+// Для FILTER_VALIDATE_INT
+FILTER_FLAG_ALLOW_OCTAL     // Разрешает восьмеричные числа (0123)
+FILTER_FLAG_ALLOW_HEX       // Разрешает шестнадцатеричные числа (0x1A)
+
+// Для FILTER_VALIDATE_FLOAT
+FILTER_FLAG_ALLOW_THOUSAND  // Разрешает разделитель тысяч (1,234.56)
+FILTER_FLAG_ALLOW_SCIENTIFIC// Разрешает научную нотацию (1.2e3)
+
+// Для FILTER_VALIDATE_IP
+FILTER_FLAG_IPV4            // Только IPv4
+FILTER_FLAG_IPV6            // Только IPv6
+FILTER_FLAG_NO_PRIV_RANGE   // Запрещает частные IP (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+FILTER_FLAG_NO_RES_RANGE    // Запрещает зарезервированные IP
+FILTER_FLAG_GLOBAL_RANGE    // Разрешает только глобальные IP
+
+// Для FILTER_VALIDATE_URL
+FILTER_FLAG_PATH_REQUIRED   // Требует наличие path (/page.html)
+FILTER_FLAG_QUERY_REQUIRED  // Требует наличие query string (?id=1)
+
+// Для FILTER_SANITIZE_STRING
+FILTER_FLAG_NO_ENCODE_QUOTES // Не кодировать кавычки
+FILTER_FLAG_STRIP_LOW        // Удаляет символы с ASCII < 32
+FILTER_FLAG_STRIP_HIGH       // Удаляет символы с ASCII > 127
+FILTER_FLAG_ENCODE_LOW       // Кодирует символы с ASCII < 32
+FILTER_FLAG_ENCODE_HIGH      // Кодирует символы с ASCII > 127
+FILTER_FLAG_ENCODE_AMP       // Кодирует амперсанд (&)
+*/
+
 function getParam($name, $page_url, $default = null, $filter = FILTER_DEFAULT) {
     $value = filter_input(INPUT_GET, $name, $filter) ?? filter_input(INPUT_POST, $name, $filter);
     return $value !== null ? $value : ($_SESSION[$page_url][$name] ?? $default);
@@ -129,47 +187,90 @@ function fpkts($packets)
 
 function checkValidIp($cidr)
 {
-
-    // Checks for a valid IP address or optionally a cidr notation range
-    // e.g. 1.2.3.4 or 1.2.3.0/24
-
-    // if(!preg_match("^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(/[0-9]{1,2}){0,1}$", $cidr)) {
-    $ip_pattern = '/^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:[.](?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}/';
-    if (!preg_match($ip_pattern, $cidr)) {
-        $return = FALSE;
-    } else {
-        $return = TRUE;
+    if (!is_string($cidr) || empty(trim($cidr))) {
+        return false;
     }
 
-    if ($return == TRUE) {
-        $parts = explode("/", $cidr);
-        $ip = $parts[0];
-        if (empty($parts[1])) {
-            $parts[1] = "32";
-        }
-        $netmask = $parts[1];
-        $octets = explode(".", $ip);
-        foreach ($octets as $octet) {
-            if ($octet > 255) {
-                $return = FALSE;
-            }
-        }
-        if (($netmask != "") && ($netmask > 32)) {
-            $return = FALSE;
+    $cidr = trim($cidr);
+
+    // Проверяем IPv4 CIDR
+    if (preg_match('/^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/', $cidr)) {
+        return validateIPv4CIDR($cidr);
+    }
+
+    // Проверяем IPv6 CIDR
+    if (preg_match('/^([0-9a-fA-F:]+)+(\/\d{1,3})?$/i', $cidr)) {
+        return validateIPv6CIDR($cidr);
+    }
+
+    return false;
+}
+
+function validateIPv4CIDR($cidr)
+{
+    $parts = explode("/", $cidr);
+    $ip = $parts[0];
+    $netmask = isset($parts[1]) ? (int)$parts[1] : 32;
+
+    // Проверяем октеты
+    $octets = explode(".", $ip);
+    if (count($octets) !== 4) {
+        return false;
+    }
+
+    foreach ($octets as $octet) {
+        $octet = (int)$octet;
+        if ($octet < 0 || $octet > 255) {
+            return false;
         }
     }
-    return $return;
+
+    return $netmask >= 0 && $netmask <= 32;
+}
+
+// для IPv6
+function validateIPv6CIDR($cidr)
+{
+    // Упрощенная проверка IPv6
+    $parts = explode("/", $cidr);
+    $ip = $parts[0];
+    $netmask = isset($parts[1]) ? (int)$parts[1] : 128;
+
+    return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false 
+           && $netmask >= 0 && $netmask <= 128;
+}
+
+function normalizeIpAddress($input) {
+    // Заменяем все возможные варианты "ю" на стандартные точки
+    $normalized = str_replace(
+        ['ю', 'Ю', '>'], // Кириллические и латинские варианты
+        '.', 
+        strtolower(trim($input))
+    );
+    if (!checkValidIp($normalized)) { return ''; }
+    return $normalized;
 }
 
 function checkValidMac($mac)
 {
-    $ValidMacAddressRegex = "/^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4}[\\.-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12}$/";
-    if (!preg_match($ValidMacAddressRegex, $mac)) {
-        $return = FALSE;
-    } else {
-        $return = TRUE;
+    if (!is_string($mac)) return false;
+
+    $mac = trim($mac);
+
+    // Отдельные шаблоны для каждого формата
+    $patterns = [
+        '/^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/', // 00:1A:2B:3C:4D:5E
+        '/^([0-9a-fA-F]{4}[\\.-]){2}[0-9a-fA-F]{4}$/', // 001A.2B3C.4D5E
+        '/^[0-9A-Fa-f]{12}$/' // 001A2B3C4D5E
+    ];
+
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $mac)) {
+            return true;
+        }
     }
-    return $return;
+
+    return false;
 }
 
 function checkValidHostname($dnsname)
@@ -660,6 +761,24 @@ function print_loglevel_select($item_name, $value)
     print_select_item('Verbose', L_VERBOSE, $value);
     print_select_item('Debug', L_DEBUG, $value);
     print "</select>\n";
+}
+
+function print_timeshift_select($value)
+{
+    print "<select id='date_shift' name='date_shift' onchange=\"updateDates()\">\n";
+    print_select_item('-', '-', $value);
+    print_select_item(WEB_date_shift_hour, 'h', $value);
+    print_select_item(WEB_date_shift_8hour, '8h', $value);
+    print_select_item(WEB_date_shift_day, 'd', $value);
+    print_select_item(WEB_date_shift_month, 'm', $value);
+    print "</select>\n";
+}
+
+function print_date_fields($date1,$date2,$date_shift)
+{
+print WEB_log_start_date.'&nbsp'; print '<input type="datetime-local" name="date_start" id="date_start" value="'.$date1.'" onchange="SetDateShiftCustom()"/>';
+print WEB_log_stop_date.'&nbsp'; print '<input type="datetime-local" name="date_stop" id="date_stop" value="'.$date2.'" onchange="SetDateShiftCustom()"/>';
+print WEB_date_shift.'&nbsp'; print_timeshift_select($date_shift);
 }
 
 function reencodeurl($url)

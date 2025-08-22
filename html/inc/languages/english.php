@@ -460,6 +460,11 @@ define("WEB_ips_search_full","Search by comment/ip/mac/dhcp hostname");
 /* logs */
 define("WEB_log_start_date","Start");
 define("WEB_log_stop_date","End");
+define("WEB_date_shift","Time preset");
+define("WEB_date_shift_hour","Last hour");
+define("WEB_date_shift_8hour","Last 8 hour");
+define("WEB_date_shift_day","Last day");
+define("WEB_date_shift_month","Last month");
 define("WEB_log_level_display","Log level");
 define("WEB_log_filter_source","Source");
 define("WEB_log_filter_event","Event");

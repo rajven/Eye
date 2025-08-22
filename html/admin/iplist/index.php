@@ -45,7 +45,7 @@ if ($dhcp_enabled>0) {
     if ($dhcp_enabled ==2) { $dhcp_filter = ' and User_auth.dhcp=0'; }
     }
 
-if (isset($_POST['ip'])) { $f_ip = $_POST['ip']; }
+if (isset($_POST['ip'])) { $f_ip = normalizeIpAddress(substr(trim($_POST["ip"]), 0, 18)); }
 if (!isset($f_ip) and isset($_SESSION[$page_url]['ip'])) { $f_ip=$_SESSION[$page_url]['ip']; }
 if (!isset($f_ip)) { $f_ip=''; }
 $_SESSION[$page_url]['ip']=$f_ip;

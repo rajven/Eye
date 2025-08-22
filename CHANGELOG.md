@@ -1,3 +1,10 @@
+# Changelog 2.8.2 - release
+- html: The default interval is 1 hour for displaying logs and reports.
+- bugfix: devices with control disabled were configured anyway.
+- bugfix: for router-type devices, the flag for processing user policies and shapers has been removed.
+- api: The get=user function has been added to the api to get user information.
+- utils: added a script for configuring openvpn ccd files based on data from user addresses
+
 # Changelog 2.8.1 - release
 
 - html: set autofocus for login page

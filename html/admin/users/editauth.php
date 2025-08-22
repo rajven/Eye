@@ -17,8 +17,8 @@ $parent_ou_id = $user_info['ou_id'];
 $user_enabled = $user_info['enabled'];
 
 if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
-    $ip = trim($_POST["f_ip"]);
-    if (checkValidIp($ip)) {
+    $ip = normalizeIpAddress(substr(trim($_POST["f_ip"]), 0, 18));
+    if (!empty($ip)) {
         $ip_aton = ip2long($ip);
         $mac = mac_dotted($_POST["f_mac"]);
         //search mac
@@ -350,7 +350,7 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
                 <td><?php print WEB_cell_option_set; ?></td>
                 <td></td>
             <tr>
-                <td><input type="text" name="f_ip" value="<?php echo $auth_info['ip']; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"></td>
+                <td><input type="text" name="f_ip" value="<?php echo $auth_info['ip']; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])[\.ю]){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"></td>
                 <td><input type="text" name="f_mac" value="<?php echo $auth_info['mac']; ?>" pattern="^(([0-9A-Fa-f]{2}[\.\:\-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\.\-][0-9a-fA-F]{4}[\.\-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12})$"></td>
                 <td><?php print_qa_select('f_dhcp', $auth_info['dhcp']); ?></td>
                 <td><?php print_dhcp_acl_list($db_link,"f_acl",$auth_info['dhcp_acl']); ?></td>

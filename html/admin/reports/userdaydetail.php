@@ -3,8 +3,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
-$default_date_shift='d';
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datefilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 
 $usersip = mysqli_query($db_link, "SELECT ip,user_id,comments FROM User_auth WHERE User_auth.id=$id");
@@ -23,8 +22,7 @@ print_trafdetail_submenu($page_url,"id=$id&date_start='$date1'&date_stop='$date2
 
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
 <input type="hidden" name="id" value=<?php echo $id; ?>>
-<?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-<?php echo WEB_log_stop_date; ?>:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
+<?php print_date_fields($date1,$date2,$date_shift); ?>
 <?php echo WEB_cell_gateway; ?>:&nbsp<?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
 DNS:&nbsp <input type=checkbox name=dns value="1" <?php print $dns_checked; ?>>
 <input type="submit" value="<?php echo WEB_btn_show; ?>">

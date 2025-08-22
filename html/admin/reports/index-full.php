@@ -3,8 +3,7 @@ $default_displayed=100;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
-$default_date_shift='d';
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datefilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 $default_sort='tin';
 $default_order='DESC';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
@@ -17,8 +16,7 @@ print_reports_submenu($page_url);
 <div id="cont">
 <form action="index-full.php" method="post">
 <?php echo WEB_cell_ou; ?>:&nbsp<?php print_ou_select($db_link,'ou',$rou); ?>
-<?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-<?php echo WEB_log_stop_date; ?>:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
+<?php print_date_fields($date1,$date2,$date_shift); ?>
 <?php echo WEB_cell_gateway; ?>:&nbsp<?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
 <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
 <input id='btn_filter' name='btn_filter' type="submit" value="<?php echo WEB_btn_show; ?>">

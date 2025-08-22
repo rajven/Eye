@@ -3,8 +3,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
-$default_date_shift='d';
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datefilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 
@@ -17,8 +16,7 @@ $user=get_record_sql($db_link,'SELECT * FROM User_list WHERE id='.$id);
 <br>
 <form action="<?php print $_SERVER['PHP_SELF']; ?>" method="post">
 <input type="hidden" name="id" value=<?php echo $id; ?>>
-<?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-<?php echo WEB_log_stop_date; ?>:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
+<?php print_date_fields($date1,$date2,$date_shift); ?>
 <?php echo WEB_cell_gateway; ?>:&nbsp<?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
 <input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>

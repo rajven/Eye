@@ -2,8 +2,7 @@
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
-$default_date_shift='m';
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datefilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 
 if (isset($_POST['device_show'])) { $f_id = $_POST['device_show'] * 1; }
 if (isset($_GET['device_show'])) { $f_id = $_GET['device_show'] * 1; }
@@ -18,12 +17,11 @@ if ($f_id > 0) { $where_dev = " and D.id=$f_id "; }
 
 <div id="cont">
 <br>
-	<form action="<?=$_SERVER['PHP_SELF']?>" method="post">
-  <?php echo WEB_log_report_by_device; ?>&nbsp<?php print_netdevice_select($db_link, "device_show", $f_id); ?>
-  <?php echo WEB_log_start_date; ?>:&nbsp<input type="date" name="date_start" value="<?php echo $date1; ?>" />
-  <?php echo WEB_log_stop_date; ?>:&nbsp<input type="date" name="date_stop" value="<?php echo $date2; ?>" />
-  <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
-  <input type="submit" value="<?php echo WEB_btn_show; ?>">
+<form action="<?=$_SERVER['PHP_SELF']?>" method="post">
+<?php echo WEB_log_report_by_device; ?>&nbsp<?php print_netdevice_select($db_link, "device_show", $f_id); ?>
+<?php print_date_fields($date1,$date2,$date_shift); ?>
+<?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
+<input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
 
 <?php
