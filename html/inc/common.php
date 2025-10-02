@@ -288,6 +288,14 @@ function checkValidHostname($dnsname)
     return $result;
 }
 
+function replaceSpecialChars($input) {
+    // Заменяем ? на _ в любом месте
+    $result = str_replace('?', '_', $input);
+    // Заменяем * на % только в начале и конце с помощью регулярного выражения
+    $result = preg_replace('/^\*|\*$/', '%', $result);
+    return $result;
+}
+
 function searchHostname($db, $id, $hostname)
 {
     if (empty($hostname)) {

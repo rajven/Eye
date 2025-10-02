@@ -6,8 +6,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/cfg/config.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/sql.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/common.php");
 
-ini_set('session.use_trans_sid', true);
-ini_set('session.use_only_cookies', false);
+//ini_set('session.use_trans_sid', true);
+//ini_set('session.use_only_cookies', false);
 
 define('SESSION_TABLE', 'sessions');
 define('USER_SESSIONS_TABLE', 'user_sessions');
@@ -318,10 +318,12 @@ init_db_sessions($db_link);
 if (session_status() !== PHP_SESSION_ACTIVE) {
         // Старт сессии с безопасными настройками
         session_start([
-            'cookie_lifetime' => SESSION_LIFETIME ,
-//          'cookie_secure'   => true,
-//          'cookie_httponly' => true,
-            'cookie_samesite' => 'Strict',
-            'gc_maxlifetime' => SESSION_LIFETIME
+            'cookie_lifetime' => SESSION_LIFETIME,
+            'cookie_path' => '/', // ВАЖНО: кука должна быть доступна для всего сайта
+            'cookie_domain' => $_SERVER['HTTP_HOST'], // Текущий домен
+            'cookie_secure' => isset($_SERVER['HTTPS']), // true если HTTPS
+//            'cookie_httponly' => true,
+            'cookie_samesite' => 'Lax', // Или 'Strict', но 'Lax' лучше для переходов по ссылкам
+            'gc_maxlifetime' => SESSION_LIFETIME,
         ]);
     }

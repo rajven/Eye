@@ -13,6 +13,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/iptypefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/dynfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/dhcpfilter.php");
 
+
 $sort_table = 'User_auth';
 if ($sort_field == 'login') { $sort_table = 'User_list'; }
 if ($sort_field == 'fio') { $sort_table = 'User_list'; }
@@ -50,6 +51,8 @@ if (!isset($f_search_str) and isset($_SESSION[$page_url]['search_str'])) { $f_se
 if (!isset($f_search_str)) { $f_search_str=''; }
 $_SESSION[$page_url]['search_str']=$f_search_str;
 
+$f_search=replaceSpecialChars($f_search_str);
+
 $ip_list_type_filter='';
 if ($ip_type>0) {
     //suspicious - dhcp not found 3 last days
@@ -69,7 +72,7 @@ if (!empty($f_search_str)) {
         } else {
         if (checkValidMac($f_search_str)) { $ip_where =" and mac='" . mac_dotted($f_search_str) ."'"; }
             else {
-            $ip_where =" and (mac like '" . mac_dotted($f_search_str) . "%' or login like '".$f_search_str."%' or comments like '".$f_search_str."%' or dns_name like '".$f_search_str."%' or dhcp_hostname like '".$f_search_str."%')"; 
+            $ip_where =" and (mac like '" . mac_dotted($f_search) . "%' or login like '".$f_search."%' or comments like '".$f_search."%' or dns_name like '".$f_search."%' or dhcp_hostname like '".$f_search."%')"; 
             }
         }
     }
