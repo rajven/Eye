@@ -294,6 +294,7 @@ define("WEB_network_dhcp_free","Свободно<br>в пуле");
 define("WEB_network_static_free","Свободно<br>(static)");
 define("WEB_network_zombi_dhcp","Зомби, dhcp");
 define("WEB_network_zombi","Зомби, всего");
+define("WEB_network_notify","Уведомления");
 
 /* control-subnets */
 define("WEB_network_org_title","Сети организации");
@@ -514,5 +515,11 @@ define("WEB_user_permanent","Неудаляемый");
 define("WEB_msg_access_login","Интернет (логин)");
 define("WEB_msg_access_ip","Интернет (ip)");
 define("WEB_traffic_stats","Текущий трафик для");
+
+/* nofify */
+define("WEB_NOTIFY_NONE","Отключено");
+define("WEB_NOTIFY_CREATE","Создание");
+define("WEB_NOTIFY_UPDATE","Изменение");
+define("WEB_NOTIFY_DELETE","Удаление");
 
 ?>

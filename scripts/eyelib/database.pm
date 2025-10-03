@@ -34,6 +34,7 @@ db_log_error
 db_log_info
 db_log_verbose
 delete_record
+record_to_txt
 do_sql
 Get_Variable
 Set_Variable
@@ -86,7 +87,8 @@ write_db_log
 set_changed
 recalc_quotes
 clean_variables
-
+get_office_subnet
+get_notify_subnet
 $add_rules
 $L_WARNING
 $L_INFO
@@ -239,38 +241,51 @@ File::Temp::cleanup();
 
 #---------------------------------------------------------------------------------------------------------------
 
-#my $new_id = do_sql($dbh, 'INSERT INTO User_list (login) VALUES (?)', 'Ivan');
 sub do_sql {
     my ($db, $sql, @bind_values) = @_;
-    return unless $db;
-    return unless $sql;
+    return 0 unless $db;
+    return 0 unless $sql;
     # Логируем не-SELECT-запросы
     log_debug( $sql . (@bind_values ? ' | bind: [' . join(', ', map { defined $_ ? $_ : 'undef' } @bind_values) . ']' : '')) unless $sql =~ /^select /i;
-
     # Подготовка запроса
-    my $sth = $db->prepare($sql) or die "Unable to prepare SQL [$sql]: " . $db->errstr;
-    # Выполнение запроса с подстановкой параметров, если есть
+    my $sth = $db->prepare($sql) or do {
+        log_error("Unable to prepare SQL [$sql]: " . $db->errstr);
+        return 0;
+    };
+    # Выполнение запроса
     my $rv;
     if (@bind_values) {
-        $rv = $sth->execute(@bind_values) or die "Unable to execute SQL [$sql] with bind: [" . join(', ', map { defined $_ ? $_ : 'undef' } @bind_values) . "]: " . $sth->errstr;
+        $rv = $sth->execute(@bind_values) or do {
+            log_error("Unable to execute SQL [$sql] with bind: [" . join(', ', map { defined $_ ? $_ : 'undef' } @bind_values) . "]: " . $sth->errstr);
+            return 0;
+        };
     } else {
-        $rv = $sth->execute() or die "Unable to execute SQL [$sql]: " . $sth->errstr;
+        $rv = $sth->execute() or do {
+            log_error("Unable to execute SQL [$sql]: " . $sth->errstr);
+            return 0;
+        };
     }
-    my $sql_ref;
-    # Возврат ID при insert
+    # Обработка результатов по типу запроса
     if ($sql =~ /^insert/i) {
+        my $id;
         if ($config_ref{DBTYPE} and $config_ref{DBTYPE} eq 'mysql') {
-            $sql_ref = $sth->{mysql_insertid};
+            $id = $sth->{mysql_insertid};
         } else {
-            ($sql_ref) = $db->selectrow_array("SELECT lastval()");
+            ($id) = $db->selectrow_array("SELECT lastval()");
         }
+        $sth->finish();
+        return $id || 0;  # Возвращаем ID или 0 если ID нет
     }
-    # Обработка SELECT
     elsif ($sql =~ /^select /i) {
-        $sql_ref = $sth->fetchall_arrayref({}) or die "Unable to fetch data for SQL [$sql]: " . $sth->errstr;
+        my $data = $sth->fetchall_arrayref({});
+        $sth->finish();
+        return $data;  # возвращаем ссылку на массив
     }
-    $sth->finish();
-    return $sql_ref;
+    else {
+        # UPDATE, DELETE, CREATE, ALTER и т.д.
+        $sth->finish();
+        return 1;
+    }
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -354,10 +369,7 @@ sub db_log_warning {
 my $db = shift;
 my $msg = shift;
 my $id = shift;
-if ($log_level >= $L_WARNING) {
-    sendEmail("WARN! ".get_first_line($msg),$msg,1);
-    write_db_log($db,$msg,$L_WARNING,$id);
-    }
+if ($log_level >= $L_WARNING) { write_db_log($db,$msg,$L_WARNING,$id); }
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -467,14 +479,13 @@ return if (!$db);
 return if (!$table);
 return if (!$filter);
 my $old_value = get_record_sql($db,"SELECT * FROM $table WHERE $filter");
-my $result='';
+my $result;
 foreach my $field (keys %$value) {
     if (!$value->{$field}) { $value->{$field}=''; }
     if (!$old_value->{$field}) { $old_value->{$field}=''; }
-    if ($value->{$field}!~/^$old_value->{$field}$/) { $result = $result." $field => $value->{$field} (old: $old_value->{$field}),"; }
+    if ($value->{$field}!~/^$old_value->{$field}$/) { $result->{$field} = "$value->{$field} [ old: " . $old_value->{$field} . "]"; }
     }
-$result=~s/,$//;
-return $result;
+return hast_to_txt($result);
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -507,9 +518,8 @@ my $found_changed=0;
 my $rec_id = 0;
 my $dns_changed = 0;
 
-$rec_id = $old_record->{'id'} if ($old_record->{'id'});
-
 if ($table eq "User_auth") {
+    $rec_id = $old_record->{'id'} if ($old_record->{'id'});
     #disable update field 'created_by'
     if ($old_record->{'created_by'} and exists ($record->{'created_by'})) { delete $record->{'created_by'}; }
     foreach my $field (keys %$record) {
@@ -623,6 +633,7 @@ my $fields='';
 my $values='';
 my $new_str='';
 
+my $rec_id = 0;
 my $dns_changed = 0;
 
 if ($table eq "User_auth") {
@@ -651,6 +662,7 @@ $new_str=~s/,$//;
 my $sSQL = "INSERT INTO $table($fields) VALUES($values)";
 my $result = do_sql($db,$sSQL);
 if ($result) {
+    $rec_id = $result if ($table eq "User_auth");
     $new_str='id: '.$result.' '.$new_str;
     if ($table eq 'User_auth_alias' and $dns_changed) {
         if ($record->{'alias'} and $record->{'alias'}!~/\.$/) {
@@ -684,7 +696,7 @@ if ($result) {
                     }
         }
     }
-db_log_debug($db,'Add record to table '.$table.' '.$new_str);
+db_log_debug($db,'Add record to table '.$table.' '.$new_str,$rec_id);
 return $result;
 }
 
@@ -697,6 +709,7 @@ my $filter = shift;
 return if (!$db);
 return if (!$table);
 return if (!$filter);
+my $rec_id = 0;
 
 my $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter");
 
@@ -706,7 +719,12 @@ foreach my $field (keys %$old_record) {
     $diff = $diff." $field => $old_record->{$field},";
     }
 $diff=~s/,$//;
-db_log_debug($db,'Delete record from table  '.$table.' value: '.$diff);
+
+if ($table eq 'User_auth') {
+    $rec_id = $old_record->{'id'} if ($old_record->{'id'});
+    }
+
+db_log_debug($db,'Delete record from table  '.$table.' value: '.$diff, $rec_id);
 #never delete user ip record!
 if ($table eq 'User_auth') {
     my $sSQL = "UPDATE User_auth SET changed=1, deleted=1, changed_time='".GetNowTime()."' WHERE ".$filter;
@@ -751,18 +769,46 @@ return do_sql($db,$sSQL);
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub record_to_txt {
+my $db = shift;
+my $table = shift;
+my $id = shift;
+my $record = get_record_sql($db,'SELECT * FROM '.$table.' WHERE id='.$id);
+return hash_to_text($record);
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub delete_user_auth {
 my $db = shift;
 my $id = shift;
+my $msg = '';
+my $record = get_record_sql($db,'SELECT * FROM User_auth WHERE id='.$id);
+my $txt_record = hash_to_text($record);
 #remove aliases
 my @t_User_auth_alias = get_records_sql($db,'SELECT * FROM User_auth_alias WHERE auth_id='.$id);
 if (@t_User_auth_alias and scalar @t_User_auth_alias) {
-    foreach my $row ( @t_User_auth_alias) { delete_record($db,'User_auth_alias','id='.$row->{'id'}); }
+    foreach my $row ( @t_User_auth_alias) {
+        my $alias_txt = record_to_txt($db,'User_auth_alias','id='.$row->{'id'});
+        if (delete_record($db,'User_auth_alias','id='.$row->{'id'})) {
+            $msg = "Deleting an alias: ". $alias_txt . "::Success!\n" . $msg;
+            } else {
+            $msg = "Deleting an alias: ". $alias_txt . "::Fail!\n" . $msg;
+            }
+        }
     }
 #remove connections
 do_sql($db,'DELETE FROM connections WHERE auth_id='.$id);
 #remove user auth record
 my $changes = delete_record($db, "User_auth", "id=" . $id);
+if ($changes) {
+    $msg = "Deleting ip-record: ". $txt_record . "::Success!\n" . $msg;
+    } else {
+    $msg = "Deleting ip-record: ". $txt_record . "::Fail!\n" . $msg;
+    }
+db_log_warning($db, $msg, id);
+my $send_alert = isNotifyDelete(get_notify_subnet($db,$record->{ip}));
+sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert);
 return $changes;
 }
 
@@ -826,6 +872,27 @@ my $users = new Net::Patricia;
 my @ip_rules = get_records_sql($db,'SELECT * FROM subnets WHERE hotspot=1 AND LENGTH(subnet)>0');
 foreach my $row (@ip_rules) { $users->add_string($row->{subnet}); }
 if ($users->match_string($ip)) { return 1; }
+return 0;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_office_subnet {
+my $db = shift;
+my $ip  = shift;
+my $subnets = new Net::Patricia;
+my @ip_rules = get_records_sql($db,'SELECT * FROM subnets WHERE office=1 AND LENGTH(subnet)>0');
+foreach my $row (@ip_rules) { $subnets->add_string($row->{subnet}); }
+return $subnets->match_string($ip);
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_notify_subnet {
+my $db = shift;
+my $ip  = shift;
+my $notify_flag = get_office_subnet($db,$ip);
+if ($notify_flag) { return $notify_flag->{notify}; }
 return 0;
 }
 
@@ -1209,7 +1276,6 @@ if ($fqdn_static ne '') {
 if ($fqdn ne '' and $dynamic_ok ne '') { db_log_debug($hdb,"Dynamic record for $fqdn [$dynamic_ok] correct. No changes required."); }
 
 if ($fqdn ne '' and !$dynamic_ok) {
-    #log event without email alert
     log_error("Dynamic record mismatch! Expected: $fqdn => $dhcp_record->{ip}, recivied: $dynamic_ref. Checking the status.");
     #check exists hostname
     my $another_hostname_exists = 0;
@@ -1648,6 +1714,7 @@ my $client_id = $ip_record->{'client-id'};
 if (!exists $ip_record->{ip_aton}) { $ip_record->{ip_aton}=StrToIp($ip); }
 if (!exists $ip_record->{hotspot}) { $ip_record->{hotspot}=is_hotspot($db,$ip); }
 
+
 my $ip_aton=$ip_record->{ip_aton};
 
 my $timestamp=GetNowTime();
@@ -1679,13 +1746,24 @@ if ($user_subnet->{static}) {
     return 0;
     }
 
+my $send_alert_update = isNotifyUpdate(get_notify_subnet($db,$ip));
+my $send_alert_create = isNotifyCreate(get_notify_subnet($db,$ip));
+#my $send_alert_delete = isNotifyDelete(get_notify_subnet($db,$ip));
+
+my $mac_exists=find_mac_in_subnet($db,$ip,$mac);
+
+my $msg = '';
+
 #search changed mac
 $record=get_record_sql($db,'SELECT * FROM User_auth WHERE `ip_int`='.$ip_aton." and deleted=0");
 if ($record->{id}) {
-    #if found record with same ip but another mac
+    #if found record with same ip but without mac - update it
     if (!$record->{mac}) {
-        db_log_verbose($db,"use empty auth record...");
+        $msg = "Use auth record with no mac: " . hash_to_text($record);
+        db_log_verbose($db,$msg);
         $new_record->{mac}=$mac;
+        #disable dhcp for same mac in one ip subnet
+        if ($mac_exists and $mac_exists->{'count'}) { $new_record->{dhcp}=0; }
         if ($action=~/^(add|old|del)$/i) {
 	        $new_record->{dhcp_action}=$action;
 	        $new_record->{dhcp_time}=$timestamp;
@@ -1693,13 +1771,17 @@ if ($record->{id}) {
 	        if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
                 }
         update_record($db,'User_auth',$new_record,"id=$record->{id}");
+        sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert_update);
         return $record->{id};
         }
+    #if found record with same ip but another mac - delete old record
     if ($record->{mac}) {
-        db_log_warning($db,"For ip: $ip mac change detected! Old mac: [".$record->{mac}."] New mac: [".$mac."]. Disable old auth_id: $record->{id}") if (!$ip_record->{hotspot});
-        my $disable_record;
-        $disable_record->{deleted}="1";
-        update_record($db,'User_auth',$disable_record,"id=".$record->{id});
+        if (!$ip_record->{hotspot}) {
+            my $msg = "For ip: $ip mac change detected! Old mac: [".$record->{mac}."] New mac: [".$mac."]. Disable old auth_id: $record->{id}";
+            db_log_warning($db,$msg,$record->{id});
+            sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert_update);
+            }
+        delete_user_auth($db,$record->{id});
         }
     }
 
@@ -1709,7 +1791,6 @@ my $new_user_id;
 if ($new_user_info->{user_id}) { $new_user_id = $new_user_info->{user_id}; }
 if (!$new_user_id) { $new_user_id = new_user($db,$new_user_info); }
 
-my $mac_exists=find_mac_in_subnet($db,$ip,$mac);
 if ($mac_exists) {
     #deleting the user's entry if the address belongs to a dynamic group
     foreach my $dup_record_id (keys %{$mac_exists->{items}}) {
@@ -1744,19 +1825,24 @@ if ($action=~/^(add|old|del)$/i) {
     } else {
     $new_record->{created_by}=$action;
     }
+
+my $cur_auth_id= 0;
 if ($auth_exists) {
     #found ->Resurrection old record
     my $resurrection_id = get_id_record($db,'User_auth',"ip_int=".$ip_aton." and mac='".$mac."'");
-    if (!$ip_record->{hotspot}) { db_log_warning($db,"Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac"); }
-	    else { db_log_info($db,"Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac"); }
-    update_record($db,'User_auth',$new_record,"id=$resurrection_id");
+    $msg = "Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac";
+    if (!$ip_record->{hotspot}) { db_log_warning($db,$msg); } else { db_log_info($db,$msg); }
+    if (update_record($db,'User_auth',$new_record,"id=$resurrection_id")) { $cur_auth_id = $resurrection_id; }
     } else {
     #not found ->create new record
-    if (!$ip_record->{hotspot}) { db_log_warning($db,"New ip created! ip: $ip mac: $mac"); } else { db_log_info($db,"New ip created! ip: $ip mac: $mac"); }
-    insert_record($db,'User_auth',$new_record);
+    $msg = "New ip created! ip: $ip mac: $mac";
+    $cur_auth_id = insert_record($db,'User_auth',$new_record);
+    if ($cur_auth_id) {
+        if (!$ip_record->{hotspot}) { db_log_warning($db,$msg); } else { db_log_info($db,$msg); }
+        }
     }
 #filter and status
-my $cur_auth_id=get_id_record($db,'User_auth',"ip='$ip' and mac='$mac' and deleted=0 ORDER BY last_found DESC");
+$cur_auth_id=get_id_record($db,'User_auth',"ip='$ip' and mac='$mac' and deleted=0 ORDER BY last_found DESC") if (!$cur_auth_id);
 if ($cur_auth_id) {
     my $user_record=get_record_sql($db,"SELECT * FROM User_list WHERE id=".$new_user_id);
     if ($user_record) {
@@ -1783,6 +1869,8 @@ if ($cur_auth_id) {
 	    $new_record->{enabled}="$user_record->{enabled}";
             update_record($db,'User_auth',$new_record,"id=$cur_auth_id");
 	    }
+    db_log_warning($db, $msg, $cur_auth_id);
+    sendEmail("WARN! ".get_first_line($msg),$msg."\n".record_to_txt($db,'User_auth',$cur_auth_id),1) if ($send_alert_create);
     } else { return; }
 return $cur_auth_id;
 }
@@ -1806,6 +1894,7 @@ if (is_dynamic_ou($db,$new_user_info->{ou_id})) {
     return;
     }
 
+my $send_alert = isNotifyCreate(get_notify_subnet($db,$ip));
 my $user_record=get_record_sql($db,"SELECT * FROM User_list WHERE id=".$new_user_id);
 my $timestamp=GetNowTime();
 my $new_record;
@@ -1822,7 +1911,11 @@ $new_record->{enabled}="$user_record->{enabled}";
 if ($user_record->{fio}) { $new_record->{comments}=$user_record->{fio}; }
 
 my $cur_auth_id=insert_record($db,'User_auth',$new_record);
-db_log_warning($db,"New ip created by netflow! ip: $ip") if ($cur_auth_id);
+if ($cur_auth_id) {
+    my $msg = "New ip created by netflow! ip: $ip";
+    db_log_warning($db,$msg,$cur_auth_id);
+    sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert);
+    }
 return $cur_auth_id;
 }
 

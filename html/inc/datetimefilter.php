@@ -14,7 +14,10 @@ $time_stop = null;
 $date1 = '';
 $date2 = '';
 
-if (empty($date_start) || empty($date_stop)) {
+$shift_array = [ 'h', '8h', 'd', 'm' ];
+
+// если время не передано или установлен интервал сдвига - обновить время
+if (empty($date_start) || empty($date_stop) || in_array($date_shift, $shift_array)) {
     // Устанавливаем конечную дату = текущее время
     $datetime_stop = new DateTime();
     $date2 = $datetime_stop->format('Y-m-d H:i');

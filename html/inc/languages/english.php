@@ -294,6 +294,7 @@ define("WEB_network_dhcp_free","Free<br>in the pool");
 define("WEB_network_static_free","Free<br>(static)");
 define("WEB_network_zombi_dhcp","Zombies, dhcp");
 define("WEB_network_zombi","Zombies, total");
+define("WEB_network_notify","Notify");
 
 /* control subnets */
 define("WEB_network_org_title","Organization networks");
@@ -514,5 +515,11 @@ define("WEB_user_permanent","Permanent");
 define("WEB_msg_access_login","Internet for login");
 define("WEB_msg_access_ip","Internet for ip");
 define("WEB_traffic_stats","Current statisticks for");
+
+/* nofify */
+define("WEB_NOTIFY_NONE","Disabled");
+define("WEB_NOTIFY_CREATE","Create");
+define("WEB_NOTIFY_UPDATE","Change");
+define("WEB_NOTIFY_DELETE","Delete");
 
 ?>

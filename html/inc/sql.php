@@ -28,40 +28,167 @@ if (!mysqli_set_charset($result,'utf8mb4')) {
 return $result;
 }
 
+/**
+ * Преобразует ассоциативный массив в человекочитаемый текстовый формат (подобие YAML/Perl hash)
+ */
+function hash_to_text($hash_ref, $indent = 0, &$seen = null) {
+    if ($seen === null) {
+        $seen = [];
+    }
+
+    if (!isset($hash_ref)) {
+        return 'null';
+    }
+
+    if (is_array($hash_ref) && is_assoc($hash_ref)) {
+        $spaces = str_repeat('  ', $indent);
+        $lines = [];
+        $keys = array_keys($hash_ref);
+        sort($keys);
+
+        foreach ($keys as $key) {
+            $value = $hash_ref[$key];
+            $formatted_key = preg_match('/^[a-zA-Z_]\w*$/', $key) ? $key : "'" . addslashes($key) . "'";
+            $formatted_value = '';
+
+            if (is_array($value)) {
+                if (is_assoc($value)) {
+                    $formatted_value = ":\n" . hash_to_text($value, $indent + 1, $seen);
+                } else {
+                    $formatted_value = array_to_text($value, $indent + 1, $seen);
+                }
+            } elseif (is_object($value)) {
+                // Защита от циклических ссылок для объектов
+                $obj_id = spl_object_hash($value);
+                if (isset($seen[$obj_id])) {
+                    $formatted_value = '[circular reference]';
+                } else {
+                    $seen[$obj_id] = true;
+                    $formatted_value = '[' . get_class($value) . ']';
+                }
+            } elseif ($value === null) {
+                $formatted_value = 'null';
+            } else {
+                $formatted_value = "'" . addslashes((string)$value) . "'";
+            }
+
+            if ($formatted_value !== '') {
+                $lines[] = "$spaces  $formatted_key => $formatted_value";
+            }
+        }
+
+        if (empty($lines)) {
+            return "$spaces  # empty";
+        }
+        return implode(",\n", $lines);
+    } else {
+        // Не ассоциативный массив или скаляр — обрабатываем как строку
+        return "'" . (isset($hash_ref) ? addslashes((string)$hash_ref) : '') . "'";
+    }
+}
+
+/**
+ * Преобразует индексированный массив в текстовый формат
+ */
+function array_to_text($array_ref, $indent = 0, &$seen = null) {
+    if ($seen === null) {
+        $seen = [];
+    }
+
+    if (!is_array($array_ref) || empty($array_ref)) {
+        return '[]';
+    }
+
+    $spaces = str_repeat('  ', $indent);
+    $lines = [];
+
+    foreach ($array_ref as $item) {
+        $formatted_item = '';
+
+        if (is_array($item)) {
+            if (is_assoc($item)) {
+                $formatted_item = ":\n" . hash_to_text($item, $indent + 1, $seen);
+            } else {
+                $formatted_item = array_to_text($item, $indent + 1, $seen);
+            }
+        } elseif (is_object($item)) {
+            $obj_id = spl_object_hash($item);
+            if (isset($seen[$obj_id])) {
+                $formatted_item = '[circular reference]';
+            } else {
+                $seen[$obj_id] = true;
+                $formatted_item = '[' . get_class($item) . ']';
+            }
+        } elseif ($item === null) {
+            $formatted_item = 'null';
+        } else {
+            $formatted_item = "'" . addslashes((string)$item) . "'";
+        }
+
+        if ($formatted_item !== '') {
+            $lines[] = "$spaces  $formatted_item";
+        }
+    }
+
+    if (empty($lines)) {
+        return "[]";
+    }
+    return "[\n" . implode(",\n", $lines) . "\n$spaces]";
+}
+
+/**
+ * Проверяет, является ли массив ассоциативным
+ */
+function is_assoc($array) {
+    if (!is_array($array) || empty($array)) {
+        return false;
+    }
+    return array_keys($array) !== range(0, count($array) - 1);
+}
+
 function run_sql($db, $query)
 {
-    if (preg_match('/^\s*(UPDATE|DELETE)/i', $query)) {
-        unset($matches);
-        preg_match('/FROM\s+(.*)\s+/i', $query, $matches);
-        if (!empty($matches[1])) {
-            if (!allow_update($matches[1], 'del')) {
-                LOG_DEBUG($db, "Access denied: $query ");
-                return;
-            }
+    // Проверка прав доступа для UPDATE, DELETE, INSERT
+    if (preg_match('/^\s*(UPDATE|DELETE|INSERT)/i', $query)) {
+        $table_name = null;
+        // Определяем имя таблицы для проверки прав
+        if (preg_match('/^\s*UPDATE\s+(\w+)/i', $query, $matches)) {
+            $table_name = $matches[1];
+            $operation = 'update';
+        } elseif (preg_match('/^\s*DELETE\s+FROM\s+(\w+)/i', $query, $matches)) {
+            $table_name = $matches[1];
+            $operation = 'del';
+        } elseif (preg_match('/^\s*INSERT\s+INTO\s+(\w+)/i', $query, $matches)) {
+            $table_name = $matches[1];
+            $operation = 'add';
         }
-        unset($matches);
-        preg_match('/INSERT\s+INTO\s+(.*)\s+/i', $query, $matches);
-        if (!empty($matches[1])) {
-            if (!allow_update($matches[1], 'add')) {
-                LOG_DEBUG($db, "Access denied: $query ");
-                return;
-            }
+        // Проверяем права доступа
+        if ($table_name && !allow_update($table_name, $operation)) {
+            LOG_DEBUG($db, "Access denied: $query");
+            return false;
         }
-        unset($matches);
-        preg_match('/UPDATE\s+(.*)\s+/i', $query, $matches);
-        if (!empty($matches[1])) {
-            if (!allow_update($matches[1], 'update')) {
-                LOG_DEBUG($db, "Access denied: $query ");
-                return;
-            }
-        }
-        unset($matches);
     }
+    // Выполняем запрос
     $sql_result = mysqli_query($db, $query);
     if (!$sql_result) {
         LOG_ERROR($db, "At simple SQL: $query :" . mysqli_error($db));
-        return;
+        return false;
     }
+    // Возвращаем результат в зависимости от типа запроса
+    if (preg_match('/^\s*SELECT/i', $query)) {
+        // Для SELECT возвращаем результат запроса
+        return $sql_result;
+    } elseif (preg_match('/^\s*INSERT/i', $query)) {
+        // Для INSERT возвращаем ID вставленной записи
+        return mysqli_insert_id($db);
+    } elseif (preg_match('/^\s*UPDATE/i', $query)) {
+        // Для UPDATE возвращаем 1 (успех)
+        return 1;
+    } elseif (preg_match('/^\s*DELETE/i', $query)) {
+        // Для DELETE также возвращаем 1 (успех)
+        return 1;
+    }
+    // Для других типов запросов возвращаем результат как есть
     return $sql_result;
 }
 
@@ -368,7 +495,6 @@ function get_record_sql($db, $sql)
     }
     return $result;
 }
-
 
 function update_record($db, $table, $filter, $newvalue)
 {
@@ -811,61 +937,83 @@ function get_rec_str($array)
     return $result;
 }
 
-function get_diff_rec($db, $table, $filter, $newvalue, $only_changed)
+function get_diff_rec($db, $table, $filter, $newvalue, $only_changed = false)
 {
-    if (!isset($table)) {
-        return;
+    if (!isset($table) || !isset($filter) || !isset($newvalue)) {
+        return '';
     }
-    if (!isset($filter)) {
-        return;
+    $old_sql = "SELECT * FROM `$table` WHERE $filter";
+    $result = mysqli_query($db, $old_sql);
+    if (!$result) {
+        LOG_ERROR($db, "SQL: $old_sql :" . mysqli_error($db));
+        return '';
     }
-    if (!isset($newvalue)) {
-        return;
+    $old = mysqli_fetch_array($result, MYSQLI_ASSOC);
+    if (!$old) {
+        // Запись не найдена — возможно, ошибка или новая запись
+        return "Record not found for filter: $filter";
     }
-
-    if (!isset($only_changed)) {
-        $only_changed = 0;
-    }
-
-    $old_sql = "SELECT * FROM $table WHERE $filter";
-    $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "SQL: $old_sql :" . mysqli_error($db));
-    $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
-    $changed_log = "\r\n";
-    foreach ($newvalue as $key => $value) {
-        if (strcmp($old[$key], $value) !== 0) {
-            $changed_log = $changed_log . " $key => cur: $value old: $old[$key],\r\n";
+    $changed = [];
+    $unchanged = [];
+    foreach ($newvalue as $key => $new_val) {
+        // Пропускаем ключи, которых нет в старой записи (например, служебные поля)
+        if (!array_key_exists($key, $old)) {
+            continue;
+        }
+        $old_val = $old[$key];
+        // Сравниваем как строки, но аккуратно с null
+        $old_str = ($old_val === null) ? '' : (string)$old_val;
+        $new_str = ($new_val === null) ? '' : (string)$new_val;
+        if ($old_str !== $new_str) {
+            $changed[$key] = $new_str . ' [ old: ' . $old_str . ' ]';
+        } else {
+            $unchanged[$key] = $old_val;
         }
     }
-    $old_record = '';
-    if (!$only_changed) {
-        $old_record = "\r\n Has not changed:\r\n";
-        foreach ($old as $key => $value) {
-            if (!empty($newvalue[$key])) {
-                $old_record = $old_record . " $key = $value,\r\n";
-            }
-        }
-        $old_record = substr_replace($old_record, "", -3);
+    if ($only_changed) {
+        return empty($changed) ? '' : hash_to_text($changed);
     }
-    // print $changed_log;
-    return $changed_log . $old_record;
+    $output = '';
+    if (!empty($changed)) {
+        $output .= hash_to_text($changed);
+    } else {
+        $output .= "# no changes";
+    }
+    if (!empty($unchanged)) {
+        $output .= "\r\nHas not changed:\r\n" . hash_to_text($unchanged);
+    }
+    return $output;
 }
 
-function delete_user_auth($db, $id)
-{
-//remove aliases
-$t_User_auth_alias = get_records($db,'User_auth_alias',"auth_id=$id ORDER BY alias");
-if (!empty($t_User_auth_alias)) {
-    foreach ( $t_User_auth_alias as $row ) {
-        LOG_INFO($db, "Remove alias id: ".$row['id']." for auth_id: $id :: ".dump_record($db,'User_auth_alias','id='.$row['id']));
-        delete_record($db,'User_auth_alias','id='.$row['id']); 
+function delete_user_auth($db, $id) {
+    $msg = '';
+    $record = get_record_sql($db, 'SELECT * FROM User_auth WHERE id=' . $id);
+    $txt_record = hash_to_text($record);
+    // remove aliases
+    $t_User_auth_alias = get_records_sql($db, 'SELECT * FROM User_auth_alias WHERE auth_id=' . $id);
+    if (!empty($t_User_auth_alias)) {
+        foreach ($t_User_auth_alias as $row) {
+            $alias_txt = record_to_txt($db, 'User_auth_alias', 'id=' . $row['id']);
+            if (delete_record($db, 'User_auth_alias', 'id=' . $row['id'])) {
+                $msg = "Deleting an alias: " . $alias_txt . "::Success!\n" . $msg;
+            } else {
+                $msg = "Deleting an alias: " . $alias_txt . "::Fail!\n" . $msg;
+            }
         }
     }
-//remove connections
-run_sql($db, 'DELETE FROM connections WHERE auth_id=' . $id);
-//remove user auth record
-LOG_INFO($db, "Removed user auth_id: $id :: ".dump_record($db,'User_auth','id='.$id));
-$changes = delete_record($db, "User_auth", "id=" . $id);
-return $changes;
+    // remove connections
+    run_sql($db, 'DELETE FROM connections WHERE auth_id=' . $id);
+    // remove user auth record
+    $changes = delete_record($db, "User_auth", "id=" . $id);
+    if ($changes) {
+        $msg = "Deleting ip-record: " . $txt_record . "::Success!\n" . $msg;
+    } else {
+        $msg = "Deleting ip-record: " . $txt_record . "::Fail!\n" . $msg;
+    }
+    LOG_WARNING($db, $msg);
+    $send_alert_delete = isNotifyDelete(get_notify_subnet($db, $record['ip']));
+    if ($send_alert_delete) { email(L_WARNING,$msg); }
+    return $changes;
 }
 
 function delete_user($db,$id)
@@ -913,6 +1061,11 @@ run_sql($db, "DELETE FROM device_ports WHERE device_id=" . $id);
 run_sql($db, "DELETE FROM device_filter_instances WHERE device_id=" . $id);
 run_sql($db, "DELETE FROM gateway_subnets WHERE device_id=".$id);
 return $changes;
+}
+
+function record_to_txt($db, $table, $id) {
+    $record = get_record_sql($db, 'SELECT * FROM ' . $table . ' WHERE id =' . $id);
+    return hash_to_text($record);
 }
 
 $db_link = new_connection(DB_HOST, DB_USER, DB_PASS, DB_NAME);

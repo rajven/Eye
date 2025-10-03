@@ -1,4 +1,6 @@
 <?php
+ob_start();
+
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
 
 login($db_link);

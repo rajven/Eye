@@ -1,1 +1,0 @@
-ALTER TABLE `device_models` ADD `poe_in` BOOLEAN NOT NULL DEFAULT FALSE AFTER `vendor_id`, ADD `poe_out` BOOLEAN NOT NULL DEFAULT FALSE AFTER `poe_in`;

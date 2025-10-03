@@ -6,6 +6,7 @@ $end_array = explode(" ",$end_time);
 $end_time = $end_array[1] + $end_array[0];
 $time = $end_time - $start_time;
 printf(WEB_page_speed."%f ".WEB_sec,$time);
+ob_end_flush();
 ?>
 
 </div>

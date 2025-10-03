@@ -74,6 +74,7 @@ print_control_submenu($page_url);
                 <td><b><?php echo WEB_network_free; ?></b></td>
                 <td><b><?php echo WEB_network_dyndns; ?></b></td>
                 <td><b><?php echo WEB_network_discovery; ?></b></td>
+                <td><b><?php echo WEB_network_notify; ?></b></td>
                 <td><b><?php echo WEB_cell_comment; ?></b></td>
             </tr>
             <?php
@@ -91,6 +92,7 @@ print_control_submenu($page_url);
                 print_td_yes_no($row['free']);
                 print_td_yes_no($row['dhcp_update_hostname']);
                 print_td_yes_no($row['discovery']);
+                print "<td class=\"data\">" . printFlagsByFirstLetter($row['notify']) . " </td>\n";
                 print "<td class=\"data\">" . $row['comment'] . " </td>\n";
                 print "</tr>\n";
                 }

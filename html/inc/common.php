@@ -2467,7 +2467,7 @@ function LOG_ERROR($db, $msg, $auth_id = 0)
     if (get_const('log_level') < L_ERROR) {
         return;
     }
-    email(L_ERROR, $msg);
+    email(L_ERROR,$msg);
     write_log($db, $msg, L_ERROR, $auth_id);
 }
 
@@ -2484,7 +2484,6 @@ function LOG_WARNING($db, $msg, $auth_id = 0)
     if (get_const('log_level') < L_WARNING) {
         return;
     }
-    email(L_WARNING, $msg);
     write_log($db, $msg, L_WARNING, $auth_id);
 }
 
@@ -2517,11 +2516,8 @@ function get_first_line($msg)
     return truncateByWords($msg, 80);
 }
 
-function email($level = L_INFO, $msg = '') {
-    // Проверка констант и уровня
-    if (!get_const('send_email') || !in_array($level, [L_WARNING, L_ERROR], true)) {
-        return;
-    }
+function email($level = L_WARNING, $msg = '') {
+    if (empty($msg)) { return; }
     // Безопасное получение данных сессии
     $currentIp = filter_var($_SESSION['ip'] ?? '127.0.0.1', FILTER_VALIDATE_IP) ?: '127.0.0.1';
     $currentLogin = htmlspecialchars($_SESSION['login'] ?? 'http', ENT_QUOTES, 'UTF-8');
@@ -2562,8 +2558,9 @@ function email($level = L_INFO, $msg = '') {
                "--$boundary--";
     // Отправка письма
     $adminEmail = filter_var(get_const('admin_email'), FILTER_VALIDATE_EMAIL);
+    $additional_parameters = "-f ".$senderEmail;
     if ($adminEmail) {
-        if (!mail($adminEmail, $subject, $message, $headers)) {
+        if (!mail($adminEmail, $subject, $message, $headers, $additional_parameters)) {
             error_log("Failed to send email to $adminEmail");
         }
     } else {
@@ -3307,6 +3304,36 @@ function is_office($db, $ip)
     return 0;
 }
 
+function get_office_subnet($db, $ip)
+{
+    if (!isset($ip)) {
+        return 0;
+    }
+    LOG_DEBUG($db, "Check office network for ip: $ip");
+    $ip_aton = ip2long($ip);
+    $subnets = get_records_sql($db, 'SELECT * FROM `subnets` WHERE office=1');
+    foreach ($subnets as $row) {
+        if ($ip_aton >= $row['ip_int_start'] and $ip_aton <= $row['ip_int_stop']) {
+            LOG_DEBUG($db, "ip: $ip [$ip_aton] found in office {$row['subnet']}: [" . $row['ip_int_start'] . ".." . $row['ip_int_stop'] . "]");
+            return $row;
+        }
+    }
+    LOG_DEBUG($db, "ip $ip not found in office network!");
+    return 0;
+}
+
+function get_notify_subnet($db, $ip)
+{
+    if (!isset($ip)) {
+        return 0;
+    }
+    $office_subnet = get_office_subnet($db, $ip);
+    if ($office_subnet) {
+        return $office_subnet['notify'];
+    }
+    return 0;
+}
+
 function is_our_network($db, $ip)
 {
     if (!isset($ip)) {
@@ -3337,6 +3364,151 @@ function get_eye_version($db)
         return $v_table['version'];
     }
     return NULL;
+}
+
+
+function getNotifyFlags(): array {
+    return [
+        WEB_NOTIFY_NONE   => NOTIFY_NONE,
+        WEB_NOTIFY_CREATE => NOTIFY_CREATE,
+        WEB_NOTIFY_UPDATE => NOTIFY_UPDATE,
+        WEB_NOTIFY_DELETE => NOTIFY_DELETE,
+    ];
+}
+
+function getNotifyLabels(): array {
+    return [
+        NOTIFY_NONE   => WEB_NOTIFY_NONE,
+        NOTIFY_CREATE => WEB_NOTIFY_CREATE,
+        NOTIFY_UPDATE => WEB_NOTIFY_UPDATE,
+        NOTIFY_DELETE => WEB_NOTIFY_DELETE,
+    ];
+}
+
+
+function printFlagsByFirstLetter(int $flags): string {
+    if ($flags === 0) {
+        return 'x';
+    }
+
+    $flagLabels = getNotifyLabels();
+    
+    $activeLetters = [];
+    $fullLabels = [];
+    
+    foreach ($flagLabels as $flagValue => $label) {
+        if ($flagValue === 0) continue;
+        
+        if (($flags & $flagValue) === $flagValue) {
+            $firstLetter = mb_substr($label, 0, 1, 'UTF-8');
+            $activeLetters[] = $firstLetter;
+            $fullLabels[] = $label;
+        }
+    }
+    
+    sort($activeLetters);
+    $letters = implode('', $activeLetters);
+    $tooltipText = implode(', ', $fullLabels);
+    
+    return '<span title="' . htmlspecialchars($tooltipText) . '">' . htmlspecialchars($letters) . '</span>';
+}
+
+
+function renderNotifyCombobox(string $name, int $selectedFlags = 0, array $attributes = []): string {
+    $labels = getNotifyLabels();
+    $flags = getNotifyFlags();
+    
+    // Собираем атрибуты
+    $attrString = '';
+    foreach ($attributes as $key => $value) {
+        $attrString .= ' ' . htmlspecialchars($key) . '="' . htmlspecialchars($value) . '"';
+    }
+    
+    // Предопределенные комбинации с читаемыми названиями
+    $combinations = [
+        NOTIFY_NONE => $labels[NOTIFY_NONE],
+        NOTIFY_CREATE => $labels[NOTIFY_CREATE],
+        NOTIFY_UPDATE => $labels[NOTIFY_UPDATE],
+        NOTIFY_DELETE => $labels[NOTIFY_DELETE],
+        NOTIFY_CREATE | NOTIFY_UPDATE => $labels[NOTIFY_CREATE] . ' + ' . $labels[NOTIFY_UPDATE],
+        NOTIFY_CREATE | NOTIFY_DELETE => $labels[NOTIFY_CREATE] . ' + ' . $labels[NOTIFY_DELETE],
+        NOTIFY_UPDATE | NOTIFY_DELETE => $labels[NOTIFY_UPDATE] . ' + ' . $labels[NOTIFY_DELETE],
+        NOTIFY_CREATE | NOTIFY_UPDATE | NOTIFY_DELETE => $labels[NOTIFY_CREATE] . ' + ' . $labels[NOTIFY_UPDATE] . ' + ' . $labels[NOTIFY_DELETE],
+    ];
+    
+    $html = '<select name="' . htmlspecialchars($name) . '"' . $attrString . '>';
+    
+    foreach ($combinations as $value => $label) {
+        $isSelected = ($selectedFlags === $value);
+        $selected = $isSelected ? ' selected' : '';
+        
+        $html .= '<option value="' . $value . '"' . $selected . '>'
+               . htmlspecialchars($label)
+               . '</option>';
+    }
+    
+    $html .= '</select>';
+    return $html;
+}
+
+/**
+ * Проверяет, установлен ли флаг создания
+ */
+function isNotifyCreate(int $flags): bool {
+    return ($flags & NOTIFY_CREATE) === NOTIFY_CREATE;
+}
+
+/**
+ * Проверяет, установлен ли флаг изменения
+ */
+function isNotifyUpdate(int $flags): bool {
+    return ($flags & NOTIFY_UPDATE) === NOTIFY_UPDATE;
+}
+
+/**
+ * Проверяет, установлен ли флаг удаления
+ */
+function isNotifyDelete(int $flags): bool {
+    return ($flags & NOTIFY_DELETE) === NOTIFY_DELETE;
+}
+
+/**
+ * Проверяет, отключены ли все уведомления
+ */
+function isNotifyNone(int $flags): bool {
+    return $flags === NOTIFY_NONE;
+}
+
+/**
+ * Проверяет, установлен ли конкретный флаг
+ */
+function hasNotifyFlag(int $flags, int $flagToCheck): bool {
+    return ($flags & $flagToCheck) === $flagToCheck;
+}
+
+/**
+ * Устанавливает флаг(и)
+ */
+function setNotifyFlag(int &$flags, int $flagToSet): void {
+    $flags |= $flagToSet;
+}
+
+/**
+ * Снимает флаг(и)
+ */
+function unsetNotifyFlag(int &$flags, int $flagToUnset): void {
+    $flags &= ~$flagToUnset;
+}
+
+/**
+ * Преобразует массив выбранных значений в битовую маску
+ */
+function arrayToNotifyFlags(array $selectedValues): int {
+    $flags = NOTIFY_NONE;
+    foreach ($selectedValues as $value) {
+        $flags |= (int)$value;
+    }
+    return $flags;
 }
 
 $config["org_name"] = get_option($db_link, 32);

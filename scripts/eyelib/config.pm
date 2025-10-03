@@ -16,6 +16,17 @@ use Config::Tiny;
 use File::Basename;
 use Data::Dumper;
 
+# Константы флагов уведомлений
+use constant {
+    NOTIFY_NONE   => 0,      # 0000 - отключено
+    NOTIFY_CREATE => 1 << 0, # 0001 - создание
+    NOTIFY_UPDATE => 1 << 1, # 0010 - изменение
+    NOTIFY_DELETE => 1 << 2, # 0100 - удаление
+};
+
+# Предопределенная комбинация
+use constant NOTIFY_ALL => NOTIFY_CREATE | NOTIFY_UPDATE | NOTIFY_DELETE; # 0111
+
 @ISA = qw(Exporter);
 @EXPORT = qw(
 $HOME_DIR
@@ -104,6 +115,11 @@ $last_refresh_config
 $tftp_dir
 $tftp_server
 $cpu_count
+NOTIFY_NONE
+NOTIFY_CREATE
+NOTIFY_UPDATE
+NOTIFY_DELETE
+NOTIFY_ALL
 );
 
 BEGIN

@@ -296,13 +296,15 @@ function logout($db, $silent = FALSE, $redirect_url = DEFAULT_PAGE) {
         // Очистка данных
         $_SESSION = [];
         session_destroy();
-        setcookie(session_name(), '', time() - SESSION_LIFETIME, '/');
-        // Удаление авторизационной куки (если есть)
-        if (isset($_COOKIE['Auth'])) {
-            setcookie('Auth', '', time() - SESSION_LIFETIME, '/');
+        if (!headers_sent()) {
+            setcookie(session_name(), '', time() - SESSION_LIFETIME, '/');
+            // Удаление авторизационной куки (если есть)
+            if (isset($_COOKIE['Auth'])) {
+                setcookie('Auth', '', time() - SESSION_LIFETIME, '/');
+            }
         }
     }
-    if (!$silent) {
+    if (!$silent and !headers_sent()) {
         if ($redirect_url == DEFAULT_PAGE) {
             header('Location: '.LOGIN_PAGE);
             } else {

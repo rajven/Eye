@@ -6,6 +6,7 @@ package eyelib::main;
 
 use utf8;
 use open ":encoding(utf8)";
+use Encode;
 use strict;
 use English;
 use FindBin '$Bin';
@@ -21,7 +22,11 @@ use MIME::Base64;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw(
-eye_version
+isNotifyCreate
+isNotifyUpdate
+isNotifyDelete
+isNotifyNone
+hasNotifyFlag
 log_file
 write_to_file
 wrlog
@@ -52,6 +57,7 @@ read_file
 uniq
 strim
 trim
+hash_to_text
 is_integer
 is_float
 run_in_parallel
@@ -64,7 +70,45 @@ netdev_set_auth
 BEGIN
 {
 
-our $eye_version = "2.4.14";
+#---------------------------------------------------------------------------------------------------------
+# Проверяет, установлен ли флаг создания
+
+sub isNotifyCreate {
+    my ($flags) = @_;
+    return ($flags & NOTIFY_CREATE) == NOTIFY_CREATE;
+}
+
+#---------------------------------------------------------------------------------------------------------
+# Проверяет, установлен ли флаг изменения
+
+sub isNotifyUpdate {
+    my ($flags) = @_;
+    return ($flags & NOTIFY_UPDATE) == NOTIFY_UPDATE;
+}
+
+#---------------------------------------------------------------------------------------------------------
+# Проверяет, установлен ли флаг удаления
+
+sub isNotifyDelete {
+    my ($flags) = @_;
+    return ($flags & NOTIFY_DELETE) == NOTIFY_DELETE;
+}
+
+#---------------------------------------------------------------------------------------------------------
+# Проверяет, отключены ли все уведомления
+
+sub isNotifyNone {
+    my ($flags) = @_;
+    return $flags == NOTIFY_NONE;
+}
+
+#---------------------------------------------------------------------------------------------------------
+# Проверяет, установлен ли конкретный флаг
+
+sub hasNotifyFlag {
+    my ($flags, $flagToCheck) = @_;
+    return ($flags & $flagToCheck) == $flagToCheck;
+}
 
 #---------------------------------------------------------------------------------------------------------
 
@@ -259,45 +303,29 @@ exit $code;
 
 #---------------------------------------------------------------------------------------------------------
 
+sub encode_mime_header {
+    my ($str) = @_;
+    return $str if $str =~ /^[[:ascii:]]*$/;
+    my $b64 = encode_base64($str, '');
+    $b64 =~ s/\s+$//;
+    return "=?UTF-8?B?$b64?=";
+}
+
+#---------------------------------------------------------------------------------------------------------
+
 sub sendEmail {
-    my ($subject, $message, $use_br) = @_;
-    
+    my ($subject, $msg, $use_br) = @_;
+    return unless defined $msg && length $msg;
     return unless $send_email;
-    
-    # Validate email addresses
-    unless ($sender_email =~ /\A[^@\s]+@[^@\s]+\z/) {
-        log_error("Invalid sender email address: $sender_email");
+    unless (defined $sender_email && defined $admin_email) {
+        log_error("Email addresses not defined");
         return;
     }
-    
-    unless ($admin_email =~ /\A[^@\s]+@[^@\s]+\z/) {
-        log_error("Invalid admin email address: $admin_email");
-        return;
-    }
-    
-    # Sanitize input
+
+    # Санитизация (оставляет Unicode буквы/цифры)
     $subject =~ s/[^\p{L}\p{N}\s\-\.\,\!\?]//g;
-    $message =~ s/\r//g;  # Remove carriage returns
-    
-    my $sendmail = '/usr/sbin/sendmail';
-    unless (-x $sendmail) {
-        log_error("Sendmail not found or not executable at $sendmail");
-        return;
-    }
-    
-    # Build email headers
-    my $headers = <<"END_HEADERS";
-From: $sender_email
-To: $admin_email
-Subject: $subject
-MIME-Version: 1.0
-Content-Type: text/html; charset=utf-8
-Content-Transfer-Encoding: 8bit
-X-Mailer: Perl sendEmail
+    $msg =~ s/\r//g;
 
-END_HEADERS
-
-    # Build HTML email body
     my $html_message = <<"END_HTML";
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -306,47 +334,139 @@ END_HEADERS
     <title>$subject</title>
 </head>
 <body>
+<div>
 END_HTML
 
-    # Process message lines
-    my @lines = split("\n", $message);
+    my @lines = split(/\n/, $msg);
     foreach my $line (@lines) {
-        $line = htmlspecialchars($line);  # HTML escape
+        $line = htmlspecialchars($line);
         $html_message .= $use_br ? "$line<br>\n" : "$line\n";
     }
-    
-    $html_message .= "</body></html>\n";
-    
-    # Send email
+    $html_message .= "</div>\n</body>\n</html>\n";
+    # Кодируем Unicode-строку в байты UTF-8, затем в base64
+    my $html_utf8_bytes = encode('UTF-8', $html_message);
+    my $encoded_html = encode_base64($html_utf8_bytes); 
+
+    my $boundary = '----=' . time() . int(rand(1000));
+    my $encoded_subject = encode_mime_header($subject);
+
+    my $headers = <<"END_HEADERS";
+From: $sender_email
+To: $admin_email
+Subject: $encoded_subject
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="$boundary"
+
+END_HEADERS
+
+    my $mime_message = <<"END_MIME";
+--$boundary
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: base64
+
+$encoded_html
+--$boundary--
+END_MIME
+
+    my $sendmail = '/usr/sbin/sendmail';
+    unless (-x $sendmail) {
+        log_error("Sendmail not found or not executable at $sendmail");
+        return;
+    }
     unless (open(MAIL, "|$sendmail -oi -t")) {
         log_error("Failed to open sendmail: $!");
         return;
     }
-    
     print MAIL $headers;
-    print MAIL $html_message;
-    
-    unless (close(MAIL)) {
-        log_error("Failed to send email: $!");
-        return;
-    }
-    
+    print MAIL $mime_message;
+    close(MAIL) or log_error("Failed to send email: $!");
     log_info("Sent email from $sender_email to $admin_email with subject: $subject");
-    log_debug("Email body:\n$message");
+    log_debug("Email body:\n$msg");
 }
 
 #---------------------------------------------------------------------------------------------------------
 
-# Helper function for HTML escaping
-sub htmlspecialchars {
-    my ($text) = @_;
-    $text =~ s/&/&amp;/g;
-    $text =~ s/</&lt;/g;
-    $text =~ s/>/&gt;/g;
-    $text =~ s/"/&quot;/g;
-    $text =~ s/'/&#039;/g;
-    return $text;
+sub hash_to_text {
+    my ($hash_ref, $indent, $seen) = @_;
+    $indent ||= 0;
+    $seen   ||= {};
+    return 'undef' unless defined $hash_ref;
+    if (ref $hash_ref eq 'HASH') {
+        # Защита от циклических ссылок
+        my $addr = refaddr($hash_ref);
+        if ($seen->{$addr}) {
+            return '';
+        }
+        $seen->{$addr} = 1;
+        my $spaces = '  ' x $indent;
+        my @lines;
+        for my $key (sort keys %$hash_ref) {
+            my $value = $hash_ref->{$key};
+            my $formatted_key = $key =~ /^[a-zA-Z_]\w*$/ ? $key : "'$key'";
+            my $formatted_value;
+            if (ref $value eq 'HASH') {
+                $formatted_value = ":\n" . hash_to_text($value, $indent + 1, $seen) . "\n$spaces";
+            }
+            elsif (ref $value eq 'ARRAY') {
+                $formatted_value = array_to_text($value, $indent + 1, $seen);
+            }
+            elsif (ref $value) {
+                $formatted_value = '[' . ref($value) . ']';
+            }
+            elsif (!defined $value) {
+                $formatted_value = '';
+            }
+            else {
+                $formatted_value = "'$value'";
+            }
+            push @lines, "$spaces  $formatted_key => $formatted_value" if ($formatted_value);
+        }
+        return join(",\n", @lines) || "$spaces  # empty";
+    }
+    else {
+        return "'$hash_ref'";
+    }
 }
+
+#---------------------------------------------------------------------------------------------------------
+
+sub array_to_text {
+    my ($array_ref, $indent, $seen) = @_;
+    $indent ||= 0;
+    $seen   ||= {};
+    return '[]' unless @$array_ref;
+    my $spaces = '  ' x $indent;
+    my @lines;
+    foreach my $item (@$array_ref) {
+        my $formatted_item;
+        if (ref $item eq 'HASH') {
+            $formatted_item = ":\n" . hash_to_text($item, $indent + 1, $seen) . "\n$spaces";
+        }
+        elsif (ref $item eq 'ARRAY') {
+            $formatted_item = array_to_text($item, $indent + 1, $seen);
+        }
+        elsif (ref $item) {
+            $formatted_item = '[' . ref($item) . ']';
+        }
+        elsif (!defined $item) {
+            $formatted_item = '';
+        }
+        else {
+            $formatted_item = "'$item'";
+        }
+        push @lines, "$spaces  $formatted_item" if ($formatted_item);
+    }
+    return "[\n" . join(",\n", @lines) . "\n$spaces]";
+}
+
+#---------------------------------------------------------------------------------------------------------
+
+# Вспомогательная функция для получения адреса ссылки
+sub refaddr {
+    my $ref = shift;
+    return "$ref" =~ /\(0x([0-9a-f]+)\)$/ ? "0x$1" : "$ref";
+}
+
 
 #---------------------------------------------------------------------------------------------------------
 
@@ -710,6 +830,20 @@ sub crypt_string {
 
 my $result = encode_base64($cipher_handle->encrypt($simple_string));
 return $result;
+}
+
+#---------------------------------------------------------------------------------------------------------
+
+# Helper function for HTML escaping
+sub htmlspecialchars {
+    my ($text) = @_;
+    return '' unless defined $text;
+    $text =~ s/&/&amp;/g;
+    $text =~ s/</&lt;/g;
+    $text =~ s/>/&gt;/g;
+    $text =~ s/"/&quot;/g;
+    $text =~ s/'/&#039;/g;
+    return $text;
 }
 
 #---------------------------------------------------------------------------------

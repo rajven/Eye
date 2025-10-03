@@ -171,7 +171,14 @@ if (!empty($action)) {
         LOG_WARNING($db_link,"API: Unknown request");
       }
 
+ob_end_flush();
+
+// Легкая очистка сессии без установки кук
+if (session_status() === PHP_SESSION_ACTIVE) {
+    $_SESSION = [];
+    session_destroy();
+}
+
 unset($_GET);
 unset($_POST);
-logout($db_link,TRUE);
 ?>

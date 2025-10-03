@@ -1,2 +1,0 @@
-ALTER TABLE `User_auth` ADD `dynamic` BOOLEAN NOT NULL DEFAULT FALSE AFTER `filter_group_id`;
-ALTER TABLE `User_auth` ADD `eof` DATETIME NULL DEFAULT NULL AFTER `dynamic`;

@@ -1,2 +1,0 @@
-ALTER TABLE `OU` ADD `dynamic` BOOLEAN NOT NULL DEFAULT FALSE AFTER `queue_id`;
-ALTER TABLE `OU` ADD `life_duration` INT NOT NULL DEFAULT '24' AFTER `dynamic`;

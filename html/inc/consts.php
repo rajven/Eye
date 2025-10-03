@@ -216,4 +216,12 @@ define('DEFAULT_PAGE','/admin/index.php');
 define('LOGIN_PAGE','/login.php');
 define('LOGOUT_PAGE','/logout.php');
 
+// Constants of notification flags
+define('NOTIFY_NONE', 0); // 0000 - disabled
+define('NOTIFY_CREATE', 1 << 0); // 0001 - creating
+define('NOTIFY_UPDATE', 1 << 1); // 0010 - change
+define('NOTIFY_DELETE', 1 << 2); // 0100 - deletion
+
+// Predefined combinations
+define('NOTIFY_ALL', NOTIFY_CREATE | NOTIFY_UPDATE | NOTIFY_DELETE); // 0111
 ?>
