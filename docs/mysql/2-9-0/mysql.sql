@@ -841,7 +841,7 @@ CREATE TABLE `subnets` (
   `static` tinyint(1) NOT NULL DEFAULT 0,
   `dhcp_update_hostname` tinyint(1) NOT NULL DEFAULT 0,
   `discovery` tinyint(1) NOT NULL DEFAULT 1,
-  `notify` tinyint(1) NOT NULL DEFAULT '3',
+  `notify` tinyint(1) NOT NULL DEFAULT '7',
   `comment` varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

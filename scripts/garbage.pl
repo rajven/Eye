@@ -112,9 +112,7 @@ if ($day==1) {
     foreach my $row (@month_stats) {
         my $m_quota=$row->{uquota}*$KB*$KB;
         next if ($m_quota < $row->{traf_sum});
-        db_log_info($dbh,"Amnistuyemo blocked user $row->{login} [$row->{id}] by traffic for a day");
-        do_sql($dbh,"UPDATE User_list set blocked=0 WHERE id=$row->{id}");
-        do_sql($dbh,"UPDATE User_auth set blocked=0, changed=1 WHERE user_id=$row->{id}");
+        unblock_user($dbh,$row->{id});
         }
     log_info($dbh,'Daily statistics stopped');
     }

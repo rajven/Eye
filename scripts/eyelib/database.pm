@@ -35,6 +35,7 @@ db_log_info
 db_log_verbose
 delete_record
 record_to_txt
+unblock_user
 do_sql
 Get_Variable
 Set_Variable
@@ -728,7 +729,7 @@ db_log_debug($db,'Delete record from table  '.$table.' value: '.$diff, $rec_id);
 #never delete user ip record!
 if ($table eq 'User_auth') {
     my $sSQL = "UPDATE User_auth SET changed=1, deleted=1, changed_time='".GetNowTime()."' WHERE ".$filter;
-    do_sql($db,$sSQL);
+    my $ret = do_sql($db,$sSQL);
     if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
             my $del_dns;
             $del_dns->{'name_type'}='A';
@@ -747,6 +748,7 @@ if ($table eq 'User_auth') {
             $del_dns->{'auth_id'}=$old_record->{'id'};
             insert_record($db,'dns_queue',$del_dns);
             }
+    return $ret;
     }
 
 if ($table eq 'User_list' and $old_record->{'permanent'}) { return; }
@@ -806,10 +808,46 @@ if ($changes) {
     } else {
     $msg = "Deleting ip-record: ". $txt_record . "::Fail!\n" . $msg;
     }
-db_log_warning($db, $msg, id);
+db_log_warning($db, $msg, $id);
 my $send_alert = isNotifyDelete(get_notify_subnet($db,$record->{ip}));
 sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert);
 return $changes;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub unblock_user {
+my $db = shift;
+my $user_id = shift;
+my $user_record = get_record_sql($db,'SELECT * FROM User_list WHERE id='.$user_id);
+my $user_ident = 'id:'. $user_record->{'id'} . ' '. $user_record->{'login'};
+$user_ident = $user_ident . '[' . $user_record->{'fio'} . ']' if ($user_record->{'fio'});
+my $msg = "Amnistuyemo blocked by traffic user $user_ident \nInternet access for the user's IP address has been restored:\n";
+my @user_auth = get_records_sql($db,'SELECT * FROM User_auth WHERE deleted=0 AND user_id='.$user_id);
+my $send_alert = 0;
+if (@user_auth and scalar @user_auth) {
+    foreach my $record (@user_auth) {
+        $send_alert = ($send_alert or isNotifyUpdate(get_notify_subnet($db,$record->{ip})));
+        my $auth_ident = $record->{ip};
+        $auth_ident = $auth_ident . '['.$record->{dns_name} .']' if ($record->{dns_name});
+        $auth_ident = $auth_ident . ' :: '.$record->{comments} if ($record->{dns_name});
+        my $new;
+        $new->{'blocked'}=0;
+        $new->{'changed'}=1;
+        my $ret_id = update_record($db,'User_auth',$new,'id='.$record->{'id'});
+        if ($ret_id) {
+            $msg = $msg ."\n".$auth_ident;
+            }
+        }
+    }
+my $new;
+$new->{'blocked'}=0;
+my $ret_id = update_record($db,'User_list','id='.$user_id);
+if ($ret_id) {
+    db_log_info($dbh,$msg);
+    sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert);
+    }
+return $ret_id;
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -882,7 +920,7 @@ my $db = shift;
 my $ip  = shift;
 my $subnets = new Net::Patricia;
 my @ip_rules = get_records_sql($db,'SELECT * FROM subnets WHERE office=1 AND LENGTH(subnet)>0');
-foreach my $row (@ip_rules) { $subnets->add_string($row->{subnet}); }
+foreach my $row (@ip_rules) { $subnets->add_string($row->{subnet},$row); }
 return $subnets->match_string($ip);
 }
 
