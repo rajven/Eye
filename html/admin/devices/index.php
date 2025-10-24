@@ -29,18 +29,19 @@ if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field
 <table class="data">
 <tr class="info" align="right">
 <td class="info" colspan=3> <?php  print WEB_device_type_show; print_devtypes_select($db_link, "devtypes", $f_devtype_id, "id<3"); ?>
-<td class="info" colspan=3> <?php  print WEB_models; print_devmodels_select($db_link, "devmodels", $f_devmodel_id); ?>
+<td class="info" colspan=3 align=left> <?php  print WEB_models; print_devmodels_select($db_link, "devmodels", $f_devmodel_id); ?>
 <?php print WEB_device_show_location; print_building_select($db_link, "building_id", $f_building_id); ?></td>
 <td class="info"><input type="submit" id="apply" name="apply" value="<?php echo WEB_btn_show; ?>"></td>
-<td class="info" colspan=2><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove_device" value="<?php echo WEB_btn_delete; ?>"></td>
+<td class="info" colspan=3><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove_device" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <tr align="center">
 <td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b><a href=index.php?sort=device_type&order=<?php print $new_order; ?>><?php echo WEB_cell_type; ?></a></b></td>
 <td><b><a href=index.php?sort=device_name&order=<?php print $new_order; ?>><?php echo WEB_cell_name; ?></a></b></td>
 <td><b><a href=index.php?sort=ip_int&order=<?php print $new_order; ?>><?php echo WEB_cell_ip; ?></a></b></td>
-<td><b><a href=index.php?sort=device_model_id&order=<?php print $new_order; ?>><?php echo WEB_cell_host_model; ?></a></b></td>
-<td><b><a href=index.php?sort=building_id&order=<?php print $new_order; ?>><?php echo WEB_location_name; ?></a></b></td>
+<td><b><a href=index.php?sort=model_name&order=<?php print $new_order; ?>><?php echo WEB_cell_host_model; ?></a></b></td>
+<td style="width: 1%; white-space: nowrap;"><b><?php echo WEB_cell_sn; ?></b></td>
+<td><b><a href=index.php?sort=building_name&order=<?php print $new_order; ?>><?php echo WEB_location_name; ?></a></b></td>
 <td><b><?php echo WEB_device_port_count; ?></b></td>
 <td><b><?php echo WEB_nagios; ?></b></td>
 <td><b><?php echo WEB_network_discovery; ?></b></td>
@@ -51,7 +52,11 @@ if ($f_building_id > 0) { $filter .= ' and building_id=' . $f_building_id; }
 if ($f_devtype_id >= 0) { $filter .= ' and device_type=' . $f_devtype_id; } else { $filter .= ' and device_type<=2'; }
 if ($f_devmodel_id > 0) { $filter .= ' and device_model_id=' . $f_devmodel_id; }
 
-$dSQL = 'SELECT * FROM devices WHERE deleted=0 '.$filter.' '.$sort_sql;
+$dSQL = 'SELECT D.*, DM.model_name, B.name AS building_name FROM devices D
+LEFT JOIN device_models DM ON D.device_model_id = DM.id
+LEFT JOIN building B ON D.building_id = B.id
+WHERE D.deleted = 0 ' . $filter . ' ' . $sort_sql;
+
 $switches = get_records_sql($db_link,$dSQL);
 foreach ($switches as $row) {
     print "<tr align=center>\n";
@@ -68,9 +73,12 @@ foreach ($switches as $row) {
         } else {
         print "<td class=\"$cl\">".$row['ip']."</td>\n";
         }
-    print "<td class=\"$cl\">" . get_vendor_name($db_link, $row['vendor_id']) . " " . get_device_model($db_link,$row['device_model_id']) . "</td>\n";
-    print "<td class=\"$cl\">" . get_building($db_link, $row['building_id']) . "(" . $row['comment'] . ")</td>\n";
-    print "<td class=\"$cl\">".$row['port_count']."</td>\n";
+    print "<td class=\"$cl\">" . get_vendor_name($db_link, $row['vendor_id']) . " " . $row['model_name'] . "</td>\n";
+    print '<td class="'.$cl.'" style="width: 1%; white-space: nowrap;">' . $row['SN'] ."</td>\n";
+    print "<td class=\"$cl\">" . get_building($db_link, $row['building_id']);
+    if (!empty($row['comment'])) { print  '<hr style="opacity: 0;">' . $row['comment']; }
+    print "</td>\n";
+    print "<td class=\"$cl\">" . $row['port_count'] . "</td>\n";
     print "<td class=\"$cl\">" . get_qa($row['nagios']) . "</td>\n";
     print "<td class=\"$cl\">" . get_qa($row['discovery']) . "</td>\n";
 }
