@@ -1,13 +1,44 @@
-<div id="copyright">Copyright &copy; 2008-2025 Eye v<?php print $config["version"]; ?> &nbsp<a href="https://github.com/rajven/Eye">rnd@rajven.ru</a></div>
+<br style="clear: both">
 
+<div id="copyright">Copyright &copy; 2008-2025 Eye v<?php print $config["version"]; ?> &nbsp<a href="https://github.com/rajven/Eye">rnd@rajven.ru</a></div>
+<hr>
+<div>
 <?php
 $end_time = microtime();
 $end_array = explode(" ",$end_time);
 $end_time = $end_array[1] + $end_array[0];
 $time = $end_time - $start_time;
-printf(WEB_page_speed."%f ".WEB_sec,$time);
+$end_memory = memory_get_usage();
+$peak_memory = memory_get_peak_usage();
 ob_end_flush();
 ?>
+</div>
+
+<div class="performance-info">
+    ⚡ Страница сгенерирована за <strong><?php printf("%.4f сек", $time); ?></strong>
+    &nbsp;|&nbsp;
+    🧠 Память: <?php echo fbytes($peak_memory); ?> (пик)
+    &nbsp;|&nbsp;
+    💾 Использовано: <?php echo fbytes($end_memory - $start_memory); ?>
+</div>
+
+<style>
+.performance-info {
+//    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+//    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    text-align: center;
+    margin: 20px 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.performance-info strong {
+    color: black;
+}
+</style>
 
 </div>
 

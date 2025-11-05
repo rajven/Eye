@@ -71,6 +71,7 @@ print_editdevice_submenu($page_url, $device_id, $device['device_type'], $user_in
             </div>
         </div>
     </form>
-    <?php
+
+<?php
     require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.php");
-    ?>
+?>

@@ -712,6 +712,7 @@ CREATE TABLE `mac_vendors` (
 
 CREATE TABLE `OU` (
   `id` int(11) NOT NULL,
+  `parent_id` INT(11) NULL DEFAULT NULL,
   `ou_name` varchar(40) DEFAULT NULL,
   `comment` varchar(250) DEFAULT NULL,
   `default_users` tinyint(1) NOT NULL DEFAULT 0,

@@ -434,6 +434,7 @@ define("WEB_group_filter_order","Порядок правил");
 define("WEB_group_filter_name","Название фильтра");
 
 /* edit OU */
+define("WEB_ou_parent","Родительская группа");
 define("WEB_ou_autoclient_rules","Правила для автоназначенных клиентов");
 define("WEB_ou_rules_for_autoassigning","Правила автоназначения адресов в");
 define("WEB_ou_rules_order","Порядок применения");

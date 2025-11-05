@@ -107,5 +107,5 @@ while (list ($fmac, $f_last) = mysqli_fetch_array($maclist)) {
 
 print "</table>\n";
 
-require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.small.php");
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.simple.php");
 ?>

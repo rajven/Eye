@@ -1,11 +1,14 @@
 <?php
+
+$start_memory = memory_get_usage();
+$start_time = microtime();
+
 ob_start();
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
 
 login($db_link);
 
-$start_time = microtime();
 $start_array = explode(" ",$start_time);
 $start_time = $start_array[1] + $start_array[0];
 

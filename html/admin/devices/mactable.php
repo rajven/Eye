@@ -66,5 +66,5 @@ if ($snmp_ok) {
 	}
 
 unset_lock_discovery($db_link,$id);
-require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.small.php");
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.simple.php");
 ?>
