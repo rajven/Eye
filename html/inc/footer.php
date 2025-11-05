@@ -22,24 +22,6 @@ ob_end_flush();
     💾 Использовано: <?php echo fbytes($end_memory - $start_memory); ?>
 </div>
 
-<style>
-.performance-info {
-//    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-//    color: white;
-    padding: 12px 20px;
-    border-radius: 10px;
-    font-size: 14px;
-    text-align: center;
-    margin: 20px 0;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.performance-info strong {
-    color: black;
-}
-</style>
-
 </div>
 
 <script src="/js/select-auto.js"></script>
