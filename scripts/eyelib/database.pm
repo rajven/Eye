@@ -784,8 +784,11 @@ return hash_to_text($record);
 sub delete_user_auth {
 my $db = shift;
 my $id = shift;
-my $msg = '';
 my $record = get_record_sql($db,'SELECT * FROM User_auth WHERE id='.$id);
+my $auth_ident = $record->{ip};
+$auth_ident = $auth_ident . '['.$record->{dns_name} .']' if ($record->{dns_name});
+$auth_ident = $auth_ident . ' :: '.$record->{comments} if ($record->{dns_name});
+my $msg = "";
 my $txt_record = hash_to_text($record);
 #remove aliases
 my @t_User_auth_alias = get_records_sql($db,'SELECT * FROM User_auth_alias WHERE auth_id='.$id);
@@ -793,9 +796,9 @@ if (@t_User_auth_alias and scalar @t_User_auth_alias) {
     foreach my $row ( @t_User_auth_alias) {
         my $alias_txt = record_to_txt($db,'User_auth_alias','id='.$row->{'id'});
         if (delete_record($db,'User_auth_alias','id='.$row->{'id'})) {
-            $msg = "Deleting an alias: ". $alias_txt . "::Success!\n" . $msg;
+            $msg = "Deleting an alias: ". $alias_txt . "\n::Success!\n" . $msg;
             } else {
-            $msg = "Deleting an alias: ". $alias_txt . "::Fail!\n" . $msg;
+            $msg = "Deleting an alias: ". $alias_txt . "\n::Fail!\n" . $msg;
             }
         }
     }
@@ -804,10 +807,12 @@ do_sql($db,'DELETE FROM connections WHERE auth_id='.$id);
 #remove user auth record
 my $changes = delete_record($db, "User_auth", "id=" . $id);
 if ($changes) {
-    $msg = "Deleting ip-record: ". $txt_record . "::Success!\n" . $msg;
+    $msg = "Deleting ip-record: ". $txt_record . "\n::Success!\n" . $msg;
     } else {
-    $msg = "Deleting ip-record: ". $txt_record . "::Fail!\n" . $msg;
+    $msg = "Deleting ip-record: ". $txt_record . "\n::Fail!\n" . $msg;
     }
+
+$msg = "Deleting user ip record $auth_ident\n\n".$msg;
 db_log_warning($db, $msg, $id);
 my $send_alert = isNotifyDelete(get_notify_subnet($db,$record->{ip}));
 sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert);
@@ -1752,6 +1757,9 @@ my $client_id = $ip_record->{'client-id'};
 if (!exists $ip_record->{ip_aton}) { $ip_record->{ip_aton}=StrToIp($ip); }
 if (!exists $ip_record->{hotspot}) { $ip_record->{hotspot}=is_hotspot($db,$ip); }
 
+my $auth_ident = "Found new ip-address: " . $ip;
+$auth_ident = $auth_ident . '['.$mac .']' if ($mac);
+$auth_ident = $auth_ident . ' :: '.$hostname if ($hostname);
 
 my $ip_aton=$ip_record->{ip_aton};
 
@@ -1797,7 +1805,7 @@ $record=get_record_sql($db,'SELECT * FROM User_auth WHERE `ip_int`='.$ip_aton." 
 if ($record->{id}) {
     #if found record with same ip but without mac - update it
     if (!$record->{mac}) {
-        $msg = "Use auth record with no mac: " . hash_to_text($record);
+        $msg = $auth_ident. "\nUse auth record with no mac: " . hash_to_text($record);
         db_log_verbose($db,$msg);
         $new_record->{mac}=$mac;
         #disable dhcp for same mac in one ip subnet
@@ -1868,12 +1876,12 @@ my $cur_auth_id= 0;
 if ($auth_exists) {
     #found ->Resurrection old record
     my $resurrection_id = get_id_record($db,'User_auth',"ip_int=".$ip_aton." and mac='".$mac."'");
-    $msg = "Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac";
+    $msg = $auth_ident . " Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac";
     if (!$ip_record->{hotspot}) { db_log_warning($db,$msg); } else { db_log_info($db,$msg); }
     if (update_record($db,'User_auth',$new_record,"id=$resurrection_id")) { $cur_auth_id = $resurrection_id; }
     } else {
     #not found ->create new record
-    $msg = "New ip created! ip: $ip mac: $mac";
+    $msg = $auth_ident ."\n";
     $cur_auth_id = insert_record($db,'User_auth',$new_record);
     if ($cur_auth_id) {
         if (!$ip_record->{hotspot}) { db_log_warning($db,$msg); } else { db_log_info($db,$msg); }

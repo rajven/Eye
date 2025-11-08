@@ -251,17 +251,6 @@ sub {
     }
 );
 
-my %dev_ifindex=();
-
-foreach my $device (@device_list) {
-    my $dev_id = $device->{id};
-    my @device_ports = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id=$dev_id");
-    foreach my $port_data (@device_ports) {
-        if (!$port_data->{snmp_index}) { $port_data->{snmp_index} = $port_data->{port}; }
-        $dev_ifindex{$dev_id}->{$port_data->{port}}=$port_data->{snmp_index};
-    }
-}
-
 $dbh->disconnect;
 
 FDB_LOOP:
@@ -274,7 +263,7 @@ $pm_fdb->start() and next FDB_LOOP;
 my $result;
 my $tmp_dbh = init_db();
 if (apply_device_lock($tmp_dbh,$device->{id})) {
-    my $fdb=get_fdb_table($device->{ip},$device->{snmp},$dev_ifindex{$device->{id}});
+    my $fdb=get_fdb_table($device->{ip},$device->{snmp});
     unset_lock_discovery($tmp_dbh,$device->{id});
     $result->{id}=$device->{id};
     $result->{fdb} = $fdb;
@@ -325,6 +314,7 @@ foreach my $port_data (@device_ports) {
     }
 
 my $sw_mac;
+#for mikrotik - skip DL mac
 if ($device->{vendor_id} eq '9') {
     #get device mac
     my $sw_auth = get_record_sql($dbh,"SELECT mac FROM User_auth WHERE deleted=0 and ip='".$device->{ip}."'");

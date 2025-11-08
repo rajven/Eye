@@ -238,25 +238,19 @@ sub get_mac_table {
 #-------------------------------------------------------------------------------------
 
 sub get_fdb_table {
-    my ($host,$snmp,$iflist) = @_;
-
+    my ($host,$snmp) = @_;
     my $ifindex_map = get_ifmib_index_table($host,$snmp);
+#    print "IFINDEX_MAP: " . Dumper($ifindex_map);
     my $fdb1=get_mac_table($host,$snmp,$fdb_table_oid,$ifindex_map);
+#    print "FDB1: " . Dumper($fdb1);
     my $fdb2=get_mac_table($host,$snmp,$fdb_table_oid2,$ifindex_map);
-
-    my $fdb3;
-
-    if ($fdb2 and $iflist) {
-        foreach my $mac (keys %$fdb2) {
-            if (exists $iflist->{$fdb2->{$mac}}) { $fdb3->{$mac}=$iflist->{$fdb2->{$mac}}; }
-            }
-        }
+#    print "FDB2: " . Dumper($fdb1);
 
     my $fdb;
-    if ($fdb1 and !$fdb3) { $fdb = $fdb1; }
-    if (!$fdb1 and $fdb3) { $fdb = $fdb3; }
     #join tables
-    if ($fdb1 and $fdb3) { $fdb = { %$fdb1,%$fdb3 }; }
+    if (!$fdb1 and $fdb2) { $fdb = $fdb2; }
+    if (!$fdb2 and $fdb1) { $fdb = $fdb1; }
+    if ($fdb1 and $fdb2) { $fdb = { %$fdb1,%$fdb2 }; }
 
     my $snmp_cisco = $snmp;
 
@@ -264,10 +258,11 @@ sub get_fdb_table {
     if (!$fdb) {
         my $vlan_table=snmp_get_oid($host,$snmp,$cisco_vlan_oid);
         if (!$vlan_table) { $vlan_table=snmp_walk_oid($host,$snmp,$cisco_vlan_oid); }
-        #fuck!
+        # just empty
         if (!$vlan_table) { return; }
+        #fucking cisco!
         my %fdb_vlan;
-            foreach my $vlan_oid (keys %$vlan_table) {
+        foreach my $vlan_oid (keys %$vlan_table) {
                 next if (!$vlan_oid);
                 my $vlan_id;
                 if ($vlan_oid=~/\.([0-9]{1,4})$/) { $vlan_id=$1; }
@@ -276,18 +271,18 @@ sub get_fdb_table {
                 $snmp_cisco->{'ro-community'} = $snmp->{'ro-community'}.'@'.$vlan_id;
                 $fdb_vlan{$vlan_id}=get_mac_table($host,$snmp_cisco,$fdb_table_oid,$ifindex_map);
                 if (!$fdb_vlan{$vlan_id}) { $fdb_vlan{$vlan_id}=get_mac_table($host,$snmp_cisco,$fdb_table_oid2,$ifindex_map); }
-            }
-            foreach my $vlan_id (keys %fdb_vlan) {
+        }
+        foreach my $vlan_id (keys %fdb_vlan) {
                 next if (!exists $fdb_vlan{$vlan_id});
                 if (defined $fdb_vlan{$vlan_id}) {
                         my %tmp=%{$fdb_vlan{$vlan_id}};
                         foreach my $mac (keys %tmp) {
-                                next if (!$mac);
-                                $fdb->{$mac}=$tmp{$mac};
-                                }
-                    }
-            }
+                            next if (!$mac);
+                            $fdb->{$mac}=$tmp{$mac};
+                        }
+                }
         }
+    }
     return $fdb;
 }
 

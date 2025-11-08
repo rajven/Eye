@@ -1,0 +1,87 @@
+diff -urN oxidized-0.34.3/lib/oxidized/input/scp.rb oxidized-0.34.3-patched/lib/oxidized/input/scp.rb
+--- oxidized-0.34.3/lib/oxidized/input/scp.rb	2025-11-02 14:44:17.000000000 +0300
++++ oxidized-0.34.3-patched/lib/oxidized/input/scp.rb	2025-11-02 15:05:48.936021265 +0300
+@@ -29,13 +29,14 @@
+ 
+     def make_ssh_opts
+       secure = Oxidized.config.input.scp.secure?
++      node_ssh_port = @node.input_port || vars(:ssh_port)
+       ssh_opts = {
+         number_of_password_prompts:      0,
+         verify_host_key:                 secure ? :always : :never,
+         append_all_supported_algorithms: true,
+         password:                        @node.auth[:password],
+         timeout:                         Oxidized.config.timeout,
+-        port:                            (vars(:ssh_port) || 22).to_i,
++        port:                            (node_ssh_port || 22).to_i,
+         forward_agent:                   false
+       }
+ 
+diff -urN oxidized-0.34.3/lib/oxidized/input/ssh.rb oxidized-0.34.3-patched/lib/oxidized/input/ssh.rb
+--- oxidized-0.34.3/lib/oxidized/input/ssh.rb	2025-11-02 14:44:17.000000000 +0300
++++ oxidized-0.34.3-patched/lib/oxidized/input/ssh.rb	2025-11-02 14:50:20.590731103 +0300
+@@ -140,6 +140,7 @@
+ 
+     def make_ssh_opts
+       secure = Oxidized.config.input.ssh.secure?
++      node_ssh_port = @node.input_port || vars(:ssh_port)
+       ssh_opts = {
+         number_of_password_prompts:      0,
+         keepalive:                       vars(:ssh_no_keepalive) ? false : true,
+@@ -147,7 +148,7 @@
+         append_all_supported_algorithms: true,
+         password:                        @node.auth[:password],
+         timeout:                         Oxidized.config.timeout,
+-        port:                            (vars(:ssh_port) || 22).to_i,
++        port:                            (node_ssh_port || 22).to_i,
+         forward_agent:                   false
+       }
+ 
+diff -urN oxidized-0.34.3/lib/oxidized/input/telnet.rb oxidized-0.34.3-patched/lib/oxidized/input/telnet.rb
+--- oxidized-0.34.3/lib/oxidized/input/telnet.rb	2025-11-02 14:44:17.000000000 +0300
++++ oxidized-0.34.3-patched/lib/oxidized/input/telnet.rb	2025-11-02 14:55:10.438366636 +0300
+@@ -12,11 +12,11 @@
+       @timeout = Oxidized.config.timeout
+       @node.model.cfg['telnet'].each { |cb| instance_exec(&cb) }
+       @log = File.open(Oxidized::Config::LOG + "/#{@node.ip}-telnet", 'w') if Oxidized.config.input.debug?
+-      port = vars(:telnet_port) || 23
++      port = @node.input_port || vars(:telnet_port) || 23
+ 
+       telnet_opts = {
+         'Host'    => @node.ip,
+-        'Port'    => port.to_i,
++        'Port'    => (port || 23).to_i,
+         'Timeout' => @timeout,
+         'Model'   => @node.model,
+         'Log'     => @log
+diff -urN oxidized-0.34.3/lib/oxidized/node.rb oxidized-0.34.3-patched/lib/oxidized/node.rb
+--- oxidized-0.34.3/lib/oxidized/node.rb	2025-11-02 14:44:17.000000000 +0300
++++ oxidized-0.34.3-patched/lib/oxidized/node.rb	2025-11-02 14:52:21.127569609 +0300
+@@ -7,7 +7,7 @@
+   class Node
+     include SemanticLogger::Loggable
+ 
+-    attr_reader :name, :ip, :model, :input, :output, :group, :auth, :prompt, :vars, :last, :repo
++    attr_reader :name, :ip, :model, :input, :output, :group, :auth, :prompt, :vars, :last, :repo, :input_port
+     attr_accessor :running, :user, :email, :msg, :from, :stats, :retry, :err_type, :err_reason
+     alias running? running
+ 
+@@ -24,6 +24,7 @@
+       @group = opt[:group]
+       @model = resolve_model opt
+       @input = resolve_input opt
++      @input_port = resolve_input_port opt
+       @output = resolve_output opt
+       @auth = resolve_auth opt
+       @prompt = resolve_prompt opt
+@@ -176,6 +177,10 @@
+       end
+     end
+ 
++    def resolve_input_port(opt)
++      resolve_key :input_port, opt
++    end
++
+     def resolve_output(opt)
+       output = resolve_key :output, opt, Oxidized.config.output.default
+       unless Oxidized.mgr.output[output]
