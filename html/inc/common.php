@@ -2641,6 +2641,12 @@ function write_log($db, $msg, $level = L_INFO, $auth_id = 0)
     $currentIp = filter_var($_SESSION['ip'] ?? '127.0.0.1', FILTER_VALIDATE_IP) ?: '127.0.0.1';
     $currentLogin = htmlspecialchars($_SESSION['login'] ?? 'http', ENT_QUOTES, 'UTF-8');
     if (!isset($msg)) { return; }
+    // Для уровня L_DEBUG пишем в error_log
+    if ($level === L_DEBUG) {
+        error_log("DEBUG: " . $msg);
+//        return;
+    }
+    // пишем в БД
     $stmt = mysqli_prepare($db, "INSERT INTO worklog(customer, message, level, auth_id, ip) VALUES (?, ?, ?, ?, ?)");
     mysqli_stmt_bind_param($stmt, 'ssiis', $currentLogin, $msg, $level, $auth_id, $currentIp);
     mysqli_stmt_execute($stmt);
