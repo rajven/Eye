@@ -199,16 +199,41 @@ function get_fdb_table($ip, $snmp)
     return $fdb_table;
 }
 
+function is_host_up(string $ip, int $maxLoss = 5, int $count = 3): bool
+{
+    $cmd = sprintf(
+        'ping -W 1 -i 1 -c %d %s 2>&1',
+        $count,
+        escapeshellarg($ip)
+    );
+
+    exec($cmd, $out, $ret);
+
+    // Ищем строку вида: "3 packets transmitted, 3 received, 0% packet loss"
+    foreach ($out as $line) {
+        if (preg_match(
+            '/(\d+)\s+packets transmitted,\s+(\d+)\s+received.*?(\d+)% packet loss/i',
+            $line,
+            $m
+        )) {
+            $loss = (int)$m[3];
+            return $loss <= $maxLoss;
+        }
+    }
+
+    // Если статистики нет вообще — считаем хост недоступным
+    return false;
+}
+
 function check_snmp_access($ip, $snmp)
 {
     if (!isset($ip)) {
         return;
     }
+
     //check host up
-    $status = exec(escapeshellcmd("ping -W 1 -i 1 -c 3 " . $ip));
-    if (empty($status)) {
-        return;
-    }
+    if (!is_host_up($ip)) { return; }
+
     //check snmp
     $result = get_snmp($ip, $snmp, SYS_DESCR_MIB);
     if (empty($result)) {

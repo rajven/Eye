@@ -77,7 +77,7 @@ set password for root
 #mysql_secure_installation
 
 Create database
-#cat docs/mysql/create_db.sql | mysql -u root -p stat
+#cat docs/mysql/create_db.sql | mysql -u root -p
 
 Import default tables
 #cat docs/mysql/latest-mysql.sql | mysql -u root -p stat
@@ -169,6 +169,9 @@ set enabled=yes
 set enabled=yes  interfaces=WAN
 /ip traffic-flow target
 add dst-address=[IP-NETFLOW-SERVER] port=2055
+
+#cp docs/systemd/eye-statd.service /etc/systemd/system
+#systemctl enable eye-statd
 
 ######################################### Remote System Log ###############################################################
 

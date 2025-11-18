@@ -167,6 +167,9 @@ set enabled=yes  interfaces=WAN
 /ip traffic-flow target
 add dst-address=[IP-SERVER] port=2055
 
+#cp docs/systemd/eye-statd.service /etc/systemd/system
+#systemctl enable eye-statd
+
 ######################################### Remote syslog ###############################################################
 
 Если нужно писать логи с устройств:
