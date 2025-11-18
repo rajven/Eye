@@ -166,8 +166,8 @@ function login($db) {
         $logout_path = rtrim(LOGOUT_PAGE, '/');
         // 3. Сравниваем пути
         if ($current_path !== $login_path && $current_path !== $logout_path) {
-            // 4. Кодируем только если нужно сохранить полный URL с параметрами
-            $redirect_url = urlencode($_SERVER['REQUEST_URI']);
+            // 4. Кодируем 
+            $redirect_url = safeUrlEncode($_SERVER['REQUEST_URI']);
             }
         }
 

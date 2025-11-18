@@ -116,14 +116,26 @@ function get_dhcp_gateway($gw_raw, $fallback): int {
     return $gw ? $gw : $fallback;
 }
 
+function safeUrlEncode($url) {
+    // Сначала декодируем на случай двойного кодирования
+    $decoded = urldecode($url);
+    // Если после декодирования получили другой результат - значит был закодирован
+    if ($decoded !== $url) {
+        // Уже был закодирован - возвращаем декодированную версию
+        return $url; // Или $decoded в зависимости от логики
+    }
+    // Не был закодирован - кодируем
+    return urlencode($url);
+}
+
 function getSafeRedirectUrl(string $default = '/'): string {
-    $url = filter_input(INPUT_GET, 'redirect_url', FILTER_SANITIZE_URL) 
-        ?? filter_input(INPUT_POST, 'redirect_url', FILTER_SANITIZE_URL) 
+    $url = filter_input(INPUT_GET, 'redirect_url', FILTER_SANITIZE_URL)
+        ?? filter_input(INPUT_POST, 'redirect_url', FILTER_SANITIZE_URL)
         ?? $default;
 
-    $default = urlencode($default);
-
+    $default = safeUrlEncode($default);
     $decodedUrl = urldecode($url);
+
     // Проверяем:
     // 1. URL начинается с `/` (но не `//` или `http://`)
     // 2. Содержит только разрешённые символы (a-z, 0-9, -, _, /, ?, =, &, ., ~)
@@ -158,7 +170,7 @@ function getSafeRedirectUrl(string $default = '/'): string {
         return $default;
     }
 
-    return urlencode($url);
+    return safeUrlEncode($url);
 }
 
 function randomPassword($length = 8)
