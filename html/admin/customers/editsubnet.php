@@ -4,81 +4,95 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php")
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 
 if (isset($_POST['s_save'])) {
-    $new['subnet'] = trim($_POST['s_subnet']);
-    $new['vlan_tag'] = trim($_POST['s_vlan']) * 1;
-    if (empty($new['vlan_tag']) or ($new['vlan_tag'] < 1 or $new['vlan_tag'] > 4096)) { 
-        $new['vlan_tag'] = 1; 
-    }
-    $new['office'] = $_POST['s_office'] * 1;
-    $new['hotspot'] = $_POST['s_hotspot'] * 1;
-    $new['vpn'] = $_POST['s_vpn'] * 1;
-    $new['free'] = $_POST['s_free'] * 1;
-    $new['dhcp'] = $_POST['s_dhcp'] * 1;
-    $new['dhcp_lease_time'] = $_POST['s_lease_time'] * 1;
-    $new['static'] = $_POST['s_static'] * 1;
-    $new['discovery'] = $_POST['s_discovery'] * 1;
-    $new['notify'] = $_POST['s_notify'] * 1;
-    $new['dhcp_update_hostname'] = $_POST['s_dhcp_update'] * 1;
-    $new['comment'] = trim($_POST['s_comment']);
+        $new = [];
 
-    $range = cidrToRange($new['subnet']);
-    $first_user_ip = $range[0];
-    $last_user_ip = $range[1];
-    $cidr = $range[2][1];
-    if (isset($cidr) and $cidr <= 32) { 
-        $new['subnet'] = $first_user_ip . '/' . $cidr; 
-    } else { 
-        $new['subnet'] = ''; 
-    }
-    $new['ip_int_start'] = ip2long($first_user_ip);
-    $new['ip_int_stop'] = ip2long($last_user_ip);
-    $new['dhcp_start'] = ip2long(trim($_POST['s_dhcp_start']));
-    $new['dhcp_stop'] = ip2long(trim($_POST['s_dhcp_stop']));
+        // === INPUT CLEANING =====================================================================================
+        $new['subnet'] = trim($_POST['s_subnet']);
+        $new['vlan_tag'] = normalize_vlan($_POST['s_vlan']);
+        $new['office'] = intval_or_zero($_POST['s_office']);
+        $new['hotspot'] = intval_or_zero($_POST['s_hotspot']);
+        $new['vpn'] = intval_or_zero($_POST['s_vpn']);
+        $new['free'] = intval_or_zero($_POST['s_free']);
+        $new['dhcp'] = intval_or_zero($_POST['s_dhcp']);
+        $new['dhcp_lease_time'] = intval_or_zero($_POST['s_lease_time']);
+        $new['static'] = intval_or_zero($_POST['s_static']);
+        $new['discovery'] = intval_or_zero($_POST['s_discovery']);
+        $new['notify'] = intval_or_zero($_POST['s_notify']);
+        $new['dhcp_update_hostname'] = intval_or_zero($_POST['s_dhcp_update']);
+        $new['comment'] = trim($_POST['s_comment']);
 
-    $dhcp_fail = 0;
-    if (!isset($new['dhcp_start']) or $new['dhcp_start'] == 0) { $dhcp_fail = 1; }
-    if (!isset($new['dhcp_stop']) or $new['dhcp_stop'] == 0) { $dhcp_fail = 1; }
-    if (!$dhcp_fail and ($new['dhcp_start'] - $new['ip_int_stop'] >= 0)) { $dhcp_fail = 1; }
-    if (!$dhcp_fail and ($new['dhcp_start'] - $new['ip_int_start'] <= 0)) { $dhcp_fail = 1; }
-    if (!$dhcp_fail and ($new['dhcp_stop'] - $new['ip_int_stop'] >= 0)) { $dhcp_fail = 1; }
-    if (!$dhcp_fail and ($new['dhcp_stop'] - $new['ip_int_start'] <= 0)) { $dhcp_fail = 1; }
-    if (!$dhcp_fail and ($new['dhcp_start'] - $new['dhcp_stop'] >= 0)) { $dhcp_fail = 1; }
+        // === CIDR / RANGE PROCESSING =============================================================================
 
-    if ($dhcp_fail) {
-        $new['dhcp_start'] = ip2long($range[3]);
-        $new['dhcp_stop'] = ip2long($range[4]);
-    }
+        $range = cidrToRange($new['subnet']);
+        $first_ip     = $range[0];
+        $last_ip      = $range[1];
+        $cidr         = $range[2][1] ?? null;
+        $new['subnet'] = ($cidr && $cidr <= 32) ? "$first_ip/$cidr" : '';
+        $new['ip_int_start'] = ip2long($first_ip);
+        $new['ip_int_stop']  = ip2long($last_ip);
 
-    $gateway = ip2long(trim($_POST['s_gateway']));
-    if (!isset($gateway)) { $gateway = $range[5]; }
-    $new['gateway'] = $gateway;
+        // === GATEWAY ===============================================================================================
 
-    if ($new['hotspot']) {
-        $new['dhcp_update_hostname'] = 0;
-        $new['discovery'] = 0;
-        $new['vpn'] = 0;
-    }
+        $gateway_fallback = ip2long($range[5]);
+        $new['gateway'] = get_dhcp_gateway($_POST['s_gateway'], $gateway_fallback);
 
-    if ($new['vpn']) { 
-        $new['discovery'] = 0;
-        $new['dhcp'] = 0;
-    }
+        // === GATEWAY VALIDATION ===================================================================================
 
-    if ($new['office']) { $new['free'] = 0; }
-    
-    if (!$new['office']) {
-        $new['discovery'] = 0;
-        $new['dhcp'] = 0;
-        $new['static'] = 0;
-        $new['dhcp_update_hostname'] = 0;
-        $new['gateway'] = 0;
-        $new['dhcp_start'] = 0;
-        $new['dhcp_stop'] = 0;
-    }
+        if ( !$new['gateway'] || $new['gateway'] <= $new['ip_int_start'] || $new['gateway'] >= $new['ip_int_stop'] ) {
+              // если введённый gateway не подходит — используем дефолтный
+                $new['gateway'] = $gateway_fallback;
+            }
 
-    update_record($db_link, "subnets", "id='$id'", $new);
-    header("Location: /admin/customers/index-subnets.php");
-    exit;
+        // === DHCP RANGE VALIDATION ================================================================================
+
+        $dhcp_start = ip2long(trim($_POST['s_dhcp_start']));
+        $dhcp_stop  = ip2long(trim($_POST['s_dhcp_stop']));
+
+        if (!validate_dhcp_range(
+            $dhcp_start,
+            $dhcp_stop,
+            $new['ip_int_start'],
+            $new['ip_int_stop']
+        )) {
+            // fallback пул
+            $dhcp_start = ip2long($range[3]);
+            $dhcp_stop  = ip2long($range[4]);
+        }
+
+        $new['dhcp_start'] = $dhcp_start;
+        $new['dhcp_stop']  = $dhcp_stop;
+
+
+        // === MODE DEPENDENCY RULES ================================================================================
+
+        if ($new['hotspot']) {
+            $new['dhcp_update_hostname'] = 0;
+            $new['discovery'] = 0;
+            $new['vpn'] = 0;
+        }
+
+        if ($new['vpn']) {
+            $new['discovery'] = 0;
+            $new['dhcp'] = 0;
+        }
+
+        if ($new['office']) {
+            $new['free'] = 0;
+        }
+
+        if (!$new['office']) {
+            $new['discovery'] = 0;
+            $new['dhcp'] = 0;
+            $new['static'] = 0;
+            $new['dhcp_update_hostname'] = 0;
+            $new['gateway'] = 0;
+            $new['dhcp_start'] = 0;
+            $new['dhcp_stop'] = 0;
+        }
+
+        update_record($db_link, "subnets", "id='$id'", $new);
+        header("Location: /admin/customers/index-subnets.php");
+        exit;
 }
 
 unset($_POST);

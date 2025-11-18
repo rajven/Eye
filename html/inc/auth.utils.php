@@ -88,11 +88,20 @@ function sess_gc($maxLifetime) {
 
 function login($db) {
 
-    $current_url = urlencode($_SERVER['REQUEST_URI']);
-    $redirect_url = NULL;
+    $redirect_url = getSafeRedirectUrl(DEFAULT_PAGE);
 
-    if ($_SERVER['REQUEST_URI'] != LOGIN_PAGE && $_SERVER['REQUEST_URI'] != LOGOUT_PAGE) {
-        $redirect_url = $current_url;
+    if ($redirect_url == DEFAULT_PAGE) {
+        // 1. Сначала получаем путь из оригинального URL
+        $current_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $current_path = $current_path ? rtrim($current_path, '/') : '/';
+        // 2. Подготавливаем пути для сравнения
+        $login_path = rtrim(LOGIN_PAGE, '/');
+        $logout_path = rtrim(LOGOUT_PAGE, '/');
+        // 3. Сравниваем пути
+        if ($current_path !== $login_path && $current_path !== $logout_path) {
+            // 4. Кодируем только если нужно сохранить полный URL с параметрами
+            $redirect_url = urlencode($_SERVER['REQUEST_URI']);
+            }
         }
 
     // 1. Проверка активной сессии
@@ -305,7 +314,7 @@ function logout($db, $silent = FALSE, $redirect_url = DEFAULT_PAGE) {
         }
     }
     if (!$silent and !headers_sent()) {
-        if ($redirect_url == DEFAULT_PAGE) {
+        if ($redirect_url == DEFAULT_PAGE or empty($redirect_url) or $redirect_url=='/') {
             header('Location: '.LOGIN_PAGE);
             } else {
             header('Location: '.LOGIN_PAGE.'?redirect_url='.$redirect_url);
