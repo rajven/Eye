@@ -121,6 +121,8 @@ function getSafeRedirectUrl(string $default = '/'): string {
         ?? filter_input(INPUT_POST, 'redirect_url', FILTER_SANITIZE_URL) 
         ?? $default;
 
+    $default = urlencode($default);
+
     $decodedUrl = urldecode($url);
     // Проверяем:
     // 1. URL начинается с `/` (но не `//` или `http://`)
