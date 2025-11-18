@@ -5,49 +5,6 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 
 $error = '';
 
-function getSafeRedirectUrl(string $default = '/'): string {
-    $url = filter_input(INPUT_GET, 'redirect_url', FILTER_SANITIZE_URL) 
-        ?? filter_input(INPUT_POST, 'redirect_url', FILTER_SANITIZE_URL) 
-        ?? $default;
-
-    $decodedUrl = urldecode($url);
-    // Проверяем:
-    // 1. URL начинается с `/` (но не `//` или `http://`)
-    // 2. Содержит только разрешённые символы (a-z, 0-9, -, _, /, ?, =, &, ., ~)
-    if (!preg_match('/^\/(?!\/)[a-z0-9\-_\/?=&.~]*$/i', $decodedUrl)) {
-        return $default;
-    }
-
-    // Проверяем:
-    // 1. Начинается с /, не содержит //, ~, %00
-    // 2. Разрешённые символы: a-z, 0-9, -, _, /, ?, =, &, .
-    // 3. Допустимые форматы:
-    //    - /path/          (слэш на конце)
-    //    - /path           (без слэша)
-    //    - /file.html      (только .html)
-    //    - /script.php     (только .php)
-    //    - Любой вариант с параметрами (?id=1)
-    if (!preg_match(
-        '/^\/'                      // Начинается с /
-        . '(?!\/)'                  // Не //
-        . '[a-z0-9\-_\/?=&.]*'      // Разрешённые символы
-        . '(?:\/'                   // Варианты окончаний:
-          . '|\.(html|php)(?:\?[a-z0-9\-_=&]*)?'  // .html/.php (+ параметры)
-          . '|(?:\?[a-z0-9\-_=&]*)?' // Или параметры без расширения
-        . ')$/i', 
-        $decodedUrl
-    )) {
-        return $default;
-    }
-
-    // Дополнительная защита: явно блокируем /config/, /vendor/ и т.д.
-    if (preg_match('/(^|\/)(cfg|inc|log|sessions|tmp)(\/|$)/i', $decodedUrl)) {
-        return $default;
-    }
-
-    return $url;
-}
-
 // Использование
 $redirect_url = getSafeRedirectUrl(DEFAULT_PAGE);
 
