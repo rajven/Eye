@@ -162,7 +162,7 @@ if (!$row->{dns_ptr_only} and $dns_name) {
             $dns_alias =~s/-$//g;
             $dns_alias = trim($dns_alias);
             if ($dns_alias and $dns_alias !~ /\.\Q$domain_name\E$/i) { $dns_alias = $dns_alias .".".$domain_name; }
-            print "cname=".$dns_alias.",".$dns_name."\n" if ($dns_alias);
+            print 'address=/'.$dns_alias.'/'.$row->{ip}."\n" if ($dns_alias);
             }
         }
     }
