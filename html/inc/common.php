@@ -2656,7 +2656,7 @@ function write_log($db, $msg, $level = L_INFO, $auth_id = 0)
     // Для уровня L_DEBUG пишем в error_log
     if ($level === L_DEBUG) {
         error_log("DEBUG: " . $msg);
-//        return;
+        return;
     }
     // пишем в БД
     $stmt = mysqli_prepare($db, "INSERT INTO worklog(customer, message, level, auth_id, ip) VALUES (?, ?, ?, ?, ?)");
