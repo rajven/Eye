@@ -26,6 +26,7 @@ our @ISA = qw(Exporter);
 
 our @EXPORT = qw(
 batch_db_sql
+reconnect_db
 batch_db_sql_cached
 batch_db_sql_csv
 db_log_warning
@@ -183,7 +184,6 @@ if ( !defined $db ) { die "Cannot connect to $config_ref{DBTYPE} server: $DBI::e
 if ($config_ref{DBTYPE} eq 'mysql') {
     $db->do('SET NAMES utf8mb4');
     $db->{'mysql_enable_utf8'} = 1;
-    $db->{'mysql_auto_reconnect'} = 1;
     }
 my $table= shift;
 my $batch_sql=shift;
@@ -215,7 +215,6 @@ return if (!$db);
 if ($config_ref{DBTYPE} eq 'mysql') {
     $db->do('SET NAMES utf8mb4');
     $db->{'mysql_enable_utf8'} = 1;
-    $db->{'mysql_auto_reconnect'} = 1;
     }
 
 my $table= shift;
@@ -242,10 +241,47 @@ File::Temp::cleanup();
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub reconnect_db {
+    my $db_ref = shift;
+    # Если соединение активно, ничего не делаем
+    if ($$db_ref && $$db_ref->ping) {
+        return 1;
+    }
+    # Переподключаемся
+    eval {
+        # Закрываем старое соединение если есть
+        if ($$db_ref) {
+            $$db_ref->disconnect;
+            $$db_ref = undef;
+        }
+        # Создаем новое соединение
+        $$db_ref = init_db();
+        # Проверяем что соединение установлено
+        unless ($$db_ref && $$db_ref->ping) {
+            die "Failed to establish database connection";
+        }
+        1;  # возвращаем истину при успехе
+    } or do {
+        my $error = $@ || 'Unknown error';
+        warn "Database reconnection failed: $error";
+        $$db_ref = undef;
+        return 0;
+    };
+    return 1;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub do_sql {
     my ($db, $sql, @bind_values) = @_;
     return 0 unless $db;
     return 0 unless $sql;
+
+    unless (reconnect_db(\$db)) {
+        log_error("No database connection available for SQL: $sql");
+        return 0;
+    }
+
     # Логируем не-SELECT-запросы
     log_debug( $sql . (@bind_values ? ' | bind: [' . join(', ', map { defined $_ ? $_ : 'undef' } @bind_values) . ']' : '')) unless $sql =~ /^select /i;
     # Подготовка запроса
@@ -312,7 +348,12 @@ return if (!$db);
 return if (!$msg);
 $msg=~s/[\'\"]//g;
 my $db_log = 0;
-if (!$db) { $db_log = 0; }
+
+# Переподключение
+unless (reconnect_db(\$db)) {
+    log_error("No database connection available");
+    $db_log = 0;
+}
 
 if ($level eq $L_ERROR and $log_level >= $L_ERROR) { log_error($msg); $db_log = 1; }
 if ($level eq $L_WARNING and $log_level >= $L_WARNING) { log_warning($msg); $db_log = 1; }
@@ -382,7 +423,6 @@ if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
 if ($config_ref{DBTYPE} eq 'mysql') {
     $db->do('SET NAMES utf8mb4');
     $db->{'mysql_enable_utf8'} = 1;
-    $db->{'mysql_auto_reconnect'} = 1;
     }
 return $db;
 }
@@ -425,6 +465,10 @@ my $table = shift;
 my @result;
 return @result if (!$db);
 return @result if (!$table);
+unless (reconnect_db(\$db)) {
+    log_error("No database connection available");
+    return 0;
+}
 my $list = $db->prepare( $table ) or die "Unable to prepare $table:" . $db->errstr;
 $list->execute() or die "Unable to execute $table: " . $db->errstr;
 while(my $row_ref = $list->fetchrow_hashref()) { push(@result,$row_ref); }
@@ -442,6 +486,11 @@ return @result if (!$db);
 return @result if (!$tsql);
 $tsql.=' LIMIT 1';
 my $row_ref;
+# Переподключение
+unless (reconnect_db(\$db)) {
+    log_error("No database connection available");
+    return;
+}
 eval {
     my $list = $db->prepare($tsql) or die "Unable to prepare $tsql: " . $db->errstr;
     $list->execute() or die "Unable to execute $tsql: " . $db->errstr;
@@ -510,6 +559,12 @@ my $filter = shift;
 return if (!$db);
 return if (!$table);
 return if (!$filter);
+
+# Переподключение
+unless (reconnect_db(\$db)) {
+    log_error("No database connection available");
+    return;
+}
 
 my $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter");
 my $diff='';
@@ -637,6 +692,12 @@ my $new_str='';
 my $rec_id = 0;
 my $dns_changed = 0;
 
+# Переподключение
+unless (reconnect_db(\$db)) {
+    log_error("No database connection available");
+    return;
+}
+
 if ($table eq "User_auth") {
     foreach my $field (keys %$record) {
         if (exists $acl_fields{$field}) { $record->{changed}="1"; }
@@ -712,6 +773,12 @@ return if (!$table);
 return if (!$filter);
 my $rec_id = 0;
 
+# Переподключение
+unless (reconnect_db(\$db)) {
+    log_error("No database connection available");
+    return;
+}
+
 my $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter");
 
 my $diff='';
@@ -784,6 +851,7 @@ return hash_to_text($record);
 sub delete_user_auth {
 my $db = shift;
 my $id = shift;
+
 my $record = get_record_sql($db,'SELECT * FROM User_auth WHERE id='.$id);
 my $auth_ident = $record->{ip};
 $auth_ident = $auth_ident . '['.$record->{dns_name} .']' if ($record->{dns_name});
@@ -849,7 +917,7 @@ my $new;
 $new->{'blocked'}=0;
 my $ret_id = update_record($db,'User_list','id='.$user_id);
 if ($ret_id) {
-    db_log_info($dbh,$msg);
+    db_log_info($db,$msg);
     sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert);
     }
 return $ret_id;
@@ -1040,6 +1108,9 @@ my $hdb = shift;
 my $auth_id = shift;
 
 return if (!$config_ref{enable_dns_updates});
+
+# Переподключение
+if (!$hdb or !$hdb->ping) { $hdb = init_db(); }
 
 #get domain
 my $ad_zone = get_option($hdb,33);
@@ -2431,7 +2502,7 @@ do_sql($db,"DELETE FROM `variables` WHERE clear_time<=$clean_variables_date");
 my $now = DateTime->now(time_zone=>'local');
 my $day_dur = DateTime::Duration->new( days => 1 );
 my $clean_date = $now - $day_dur;
-my $clean_str = $dbh->quote($clean_date->ymd("-")." 00:00:00");
+my $clean_str = $db->quote($clean_date->ymd("-")." 00:00:00");
 do_sql($db,"DELETE FROM `ad_comp_cache` WHERE last_found<=$clean_str");
 }
 
