@@ -359,7 +359,7 @@ if ($level eq $L_ERROR and $log_level >= $L_ERROR) { log_error($msg); $db_log = 
 if ($level eq $L_WARNING and $log_level >= $L_WARNING) { log_warning($msg); $db_log = 1; }
 if ($level eq $L_INFO and $log_level >= $L_INFO) { log_info($msg); $db_log = 1; }
 if ($level eq $L_VERBOSE and $log_level >= $L_VERBOSE) { log_verbose($msg); $db_log = 1; }
-if ($level eq $L_DEBUG and $log_level >= $L_DEBUG) { log_debug($msg); $db_log = 1; }
+if ($level eq $L_DEBUG and $log_level >= $L_DEBUG) { log_debug($msg); return; }
 
 if ($db_log) {
     #my $new_id = do_sql($dbh, 'INSERT INTO User_list (login) VALUES (?)', 'Ivan');
@@ -373,7 +373,7 @@ sub db_log_debug {
 my $db = shift;
 my $msg = shift;
 my $id = shift;
-if ($debug) { write_db_log($db,$msg,$L_DEBUG,$id); }
+if ($debug) { log_debug($msg); }
 }
 
 #---------------------------------------------------------------------------------------------------------------
