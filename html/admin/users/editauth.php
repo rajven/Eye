@@ -415,7 +415,8 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
             </tr>
             <tr>
                 <td><?php print WEB_cell_temporary; ?></td>
-                <td><?php print WEB_cell_eof; ?></td>
+                <?php if ($auth_info['dynamic']) { print "<td class='cell_red'>"; } else { print "<td>"; } ?>
+                <?php print WEB_cell_eof; ?></td>
                 <td></td>
                 <td></td>
                 <td></td>

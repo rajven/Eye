@@ -14,7 +14,8 @@ table.info                      { background-color: #f8f2aa; margin-bottom: 5px;
 
 td                              { padding: 4px; border-bottom: 1px solid #ddd; }
 td.data                         { background-color: #ffffff; }
-td.data_red                     { background-color: #ffffff;  color: red; }
+td.cell_red                     { background-color: #cfcfcf;  color: red; }
+td.data_red                     { background-color: #ffffff;  font-size: 24pt; color: red; }
 td.data_green                   { background-color: #ffffff;  color: green; }
 td.info                         { background-color: #f8f2aa; }
 td.up                           { background-color: #33ff99; }

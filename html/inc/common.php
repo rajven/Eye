@@ -1577,8 +1577,8 @@ function get_qa($qa_value, $text = FALSE)
         if ($qa_value == 1) { return "Да"; }
         return "Нет";
         } else {
-        if ($qa_value == 1) { return '<span style="font-size: 16px; font-weight: bold;">✓</span>'; }
-        return '<span style="font-size: 16px;">✗</span>';
+        if ($qa_value == 1) { return '<span style="font-size: 24px; font-weight: bold;">✓</span>'; }
+        return '<span style="font-size: 24px; font-weight: bold;">✗</span>';
         }
 }
 
