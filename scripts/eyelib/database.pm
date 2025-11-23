@@ -1829,7 +1829,7 @@ if (!exists $ip_record->{ip_aton}) { $ip_record->{ip_aton}=StrToIp($ip); }
 if (!exists $ip_record->{hotspot}) { $ip_record->{hotspot}=is_hotspot($db,$ip); }
 
 my $auth_ident = "Found new ip-address: " . $ip;
-$auth_ident = $auth_ident . '['.$mac .']' if ($mac);
+$auth_ident = $auth_ident . ' ['.$mac .']' if ($mac);
 $auth_ident = $auth_ident . ' :: '.$hostname if ($hostname);
 
 my $ip_aton=$ip_record->{ip_aton};
