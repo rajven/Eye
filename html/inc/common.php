@@ -185,11 +185,17 @@ function randomPassword($length = 8)
     return implode($pass); //turn the array into a string
 }
 
-function mb_ucfirst($str)
-{
-    $str = mb_strtolower($str);
-    $fc = mb_strtoupper(mb_substr($str, 0, 1));
-    return $fc . mb_substr($str, 1);
+if (!function_exists('mb_ucfirst')) {
+    function mb_ucfirst(string $string, ?string $encoding = null): string
+    {
+        if ($string === '') {
+            return '';
+        }
+        $encoding ??= mb_internal_encoding();
+        $firstChar = mb_substr($string, 0, 1, $encoding);
+        return mb_strtoupper($firstChar, $encoding) . 
+               mb_substr($string, 1, null, $encoding);
+    }
 }
 
 function get_user_ip()

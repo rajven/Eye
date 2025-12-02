@@ -1,50 +1,107 @@
 #!/bin/bash
 
-logger -t dhcpd "Refresh dnsmasq config request"
+# =============================================================================
+# Refresh dnsmasq config from /opt/Eye/scripts/print-dnsmasq.pl
+# Triggers restart if dhcp-host=, address=, or ptr-record= lines change.
+# =============================================================================
+set -euo pipefail  # Fail fast on error, undefined var, or pipe failure
 
-force=$1
+logger -t dnsmasq-refresh "Config refresh requested"
 
-/opt/Eye/scripts/print-dnsmasq.pl >/tmp/mac-all
+force="${1:-}"
+
+# --- 1. Generate new config ---
+/opt/Eye/scripts/print-dnsmasq.pl > /tmp/mac-all.new
 ret=$?
-
 if [ ${ret} -ne 0 ]; then
-    [ -e "/tmp/mac-all" ] && rm -f /tmp/mac-all
-    logger -t dhcpd "Config generate error! Bye."
-    exit
-    fi
+    rm -f /tmp/mac-all.new
+    logger -t dnsmasq-refresh "ERROR: Config generation failed (exit $ret). Aborting."
+    exit 1
+fi
 
-[ ! -e "/etc/dnsmasq.d/" ] && mkdir -p "/etc/dnsmasq.d/"
+# Ensure target dir exists
+[ -d /etc/dnsmasq.d ] || mkdir -p /etc/dnsmasq.d
 
-touch /etc/dnsmasq.d/mac-all
-CHANGES=$(diff -ubBi /tmp/mac-all /etc/dnsmasq.d/mac-all | egrep "^[+-]dhcp" | awk '{ print $1 }' | sed -E 's/(\+|\-)//;s/dhcp-host=//;s/\,//' | sort -u)
+# --- 2. Compare with current config ---
+# Use existing file or empty if missing
+current_file="/etc/dnsmasq.d/mac-all"
+tmp_new="/tmp/mac-all.new"
+tmp_old="/tmp/mac-all.old"
 
-if [ -n "${CHANGES}" -o -n "${force}" ]; then
-    logger -t dhcpd "Update dnsmasq config"
-    cat /etc/dnsmasq.d/mac-all >/tmp/mac.old
-    cat  /tmp/mac-all >/etc/dnsmasq.d/mac-all
-    /usr/sbin/dnsmasq --test >/dev/null 2>&1
-    ret=$?
-    if [ ${ret} -eq 0 ]; then
-        #clear leases
-        systemctl stop dnsmasq >/dev/null
-        echo "${CHANGES}" | while read LEASE; do
-            logger -t dhcpd "Clear ${LEASE}"
-            if [ -n "${LEASE}" ]; then
-                sed -i "/${LEASE}/d" /var/lib/misc/dnsmasq.leases
-                fi
-        done
-        systemctl start dnsmasq >/dev/null
+# Always have a baseline for diff (even if file missing)
+if [ -f "$current_file" ]; then
+    cp "$current_file" "$tmp_old"
+else
+    touch "$tmp_old"
+fi
+
+# Get diff of relevant lines only
+diff_output=$(diff -u "$tmp_old" "$tmp_new" 2>/dev/null || true)
+
+# Extract changed lines with our directives
+changed_lines=$(echo "$diff_output" | grep -E "^[+-](dhcp-host|address|ptr-record)=" || true)
+
+# Extract MACs (only from dhcp-host) for lease cleanup
+changes_macs=$(echo "$changed_lines" | grep "^[+-]dhcp-host=" | \
+    sed -E 's/^[+-]dhcp-host=//' | cut -d',' -f1 | \
+    grep -Eo '^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$' | sort -u)
+
+# Check if address= or ptr-record= changed
+if echo "$changed_lines" | grep -q "^[+-]\(address\|ptr-record\)="; then
+    need_restart="yes"
+fi
+
+# --- 3. Decide: restart or skip? ---
+if [ -n "${changes_macs}" ] || [ -n "${need_restart:-}" ] || [ -n "${force:-}" ]; then
+    logger -t dnsmasq-refresh "Changes detected. Updating config..."
+
+    # --- ATOMIC REPLACE: delete → copy ---
+    rm -f "$current_file"
+    /bin/cp "$tmp_new" "$current_file"
+
+    # --- Validate new config ---
+    if /usr/sbin/dnsmasq --test >/dev/null 2>&1; then
+        logger -t dnsmasq-refresh "Config OK. Restarting dnsmasq..."
+
+        # Stop dnsmasq
+        if ! systemctl stop dnsmasq >/dev/null 2>&1; then
+            logger -t dnsmasq-refresh "WARNING: Failed to stop dnsmasq (maybe not running?)"
+        fi
+
+        # Clear leases for changed MACs
+        if [ -n "${changes_macs}" ] && [ -f /var/lib/misc/dnsmasq.leases ]; then
+            while IFS= read -r mac; do
+                [ -z "$mac" ] && continue
+                logger -t dnsmasq-refresh "Clearing lease for ${mac}"
+                sed -i "/${mac}/d" /var/lib/misc/dnsmasq.leases 2>/dev/null || true
+            done <<< "${changes_macs}"
+        fi
+
+        # Start dnsmasq
+        if systemctl start dnsmasq >/dev/null 2>&1; then
+            logger -t dnsmasq-refresh "SUCCESS: dnsmasq restarted"
         else
-        logger -t dhcpd "Config error! Rollback changes."
-        cat /tmp/mac.old >/etc/dnsmasq.d/mac-all
+            logger -t dnsmasq-refresh "CRITICAL: dnsmasq failed to start! Rolling back..."
+            rm -f "$current_file"
+            [ -f "$tmp_old" ] && /bin/cp "$tmp_old" "$current_file"
+            systemctl start dnsmasq >/dev/null 2>&1 || \
+                logger -t dnsmasq-refresh "Rollback config applied, but dnsmasq still failed to start!"
+            exit 1
         fi
     else
-    logger -t dhcpd "Config not changed. Skip restart"
+        logger -t dnsmasq-refresh "ERROR: dnsmasq config test failed! Rolling back..."
+        rm -f "$current_file"
+        [ -f "$tmp_old" ] && /bin/cp "$tmp_old" "$current_file"
+        systemctl restart dnsmasq >/dev/null 2>&1 || true
+        exit 1
     fi
+else
+    logger -t dnsmasq-refresh "No relevant changes. Skipping restart."
+fi
 
-logger -t dhcpd "done"
+# --- Cleanup ---
+rm -f "$tmp_new" "$tmp_old"
 
-[ -e "/tmp/mac-all" ] && rm -f /tmp/mac-all
-[ -e "/tmp/mac.old" ] && rm -f /tmp/mac.old
+logger -t dnsmasq-refresh "Done."
 
-exit
+exit 0
