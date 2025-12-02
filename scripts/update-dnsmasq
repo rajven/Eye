@@ -4,7 +4,7 @@
 # Refresh dnsmasq config from /opt/Eye/scripts/print-dnsmasq.pl
 # Triggers restart if dhcp-host=, address=, or ptr-record= lines change.
 # =============================================================================
-set -euo pipefail  # Fail fast on error, undefined var, or pipe failure
+# set -euo pipefail  # Fail fast on error, undefined var, or pipe failure
 
 logger -t dnsmasq-refresh "Config refresh requested"
 
