@@ -83,9 +83,9 @@ Create user and database
 
 #mysql -u root -p
 
-MariaDB [(none)]>
-grant all privileges to stat.* stat@localhost, identified with a "password";
-flush privileges;
+CREATE USER 'stat'@'localhost' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON stat.* TO 'stat'@'localhost';
+FLUSH PRIVILEGES;
 exit
 
 6. Настраиваем конфиги для вэба и скриптов:

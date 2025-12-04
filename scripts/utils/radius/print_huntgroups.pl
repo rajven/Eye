@@ -1,4 +1,4 @@
-#!/usr/bin/perl -CS
+#!/usr/bin/perl 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #

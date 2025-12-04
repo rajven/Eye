@@ -258,7 +258,8 @@ foreach ($users as $user) {
     print_td_qa($user['dhcp'],FALSE,$cl);
     print "<td class=\"$cl\" >".$user['dhcp_acl']."</td>\n";
     if (empty($user['arp_found'])) {
-        print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
+//        print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
+        print "<td class=\"$cl\" >-</td>\n";
         } else {
         print "<td class=\"$cl\" >".$user['arp_found']."</td>\n";
         }

@@ -3,9 +3,7 @@
 if (!defined("CONFIG"))die("Not defined");
 
 setlocale(LC_ALL, 'ru_RU.UTF8');
-
-define("HTML_LANG","english");
-#define("HTML_LANG","russian");
+define("HTML_LANG","russian");
 
 define("HTML_STYLE","white");
 
