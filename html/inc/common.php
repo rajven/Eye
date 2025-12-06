@@ -2730,17 +2730,35 @@ function write_log($db, $msg, $level = L_INFO, $auth_id = 0)
     // Безопасное получение данных сессии
     $currentIp = filter_var($_SESSION['ip'] ?? '127.0.0.1', FILTER_VALIDATE_IP) ?: '127.0.0.1';
     $currentLogin = htmlspecialchars($_SESSION['login'] ?? 'http', ENT_QUOTES, 'UTF-8');
+    
     if (!isset($msg)) { return; }
+    
     // Для уровня L_DEBUG пишем в error_log
     if ($level === L_DEBUG) {
         error_log("DEBUG: " . $msg);
         return;
     }
-    // пишем в БД
-    $stmt = mysqli_prepare($db, "INSERT INTO worklog(customer, message, level, auth_id, ip) VALUES (?, ?, ?, ?, ?)");
-    mysqli_stmt_bind_param($stmt, 'ssiis', $currentLogin, $msg, $level, $auth_id, $currentIp);
-    mysqli_stmt_execute($stmt);
-    mysqli_stmt_close($stmt);
+    
+    try {
+        // Используем подготовленный запрос PDO напрямую
+        $stmt = $db->prepare("INSERT INTO worklog(customer, message, level, auth_id, ip) 
+                               VALUES (:customer, :message, :level, :auth_id, :ip)");
+        
+        $result = $stmt->execute([
+            ':customer' => $currentLogin,
+            ':message' => $msg,
+            ':level' => $level,
+            ':auth_id' => $auth_id,
+            ':ip' => $currentIp
+        ]);
+        
+        return $result;
+        
+    } catch (PDOException $e) {
+        // В случае ошибки логируем в error_log, чтобы избежать рекурсии
+        error_log("Error writing log to database: " . $e->getMessage());
+        return false;
+    }
 }
 
 function print_year_select($year_name, $year)
@@ -3773,3 +3791,5 @@ $config["init"] = 1;
 
 clean_dns_cache($db_link);
 //clean_unreferensed_rules($db_link);
+
+$config["debug"] = 1;

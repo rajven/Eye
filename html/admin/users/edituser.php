@@ -3,7 +3,6 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/auth.php");
 require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/languages/" . HTML_LANG . ".php");
 require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/idfilter.php");
 
-
 $default_sort = 'ip_int';
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/sortfilter.php");
 
