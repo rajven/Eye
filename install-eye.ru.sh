@@ -410,7 +410,7 @@ download_additional_scripts() {
     print_info "Загрузка jsTree..."
     if wget -q https://github.com/vakata/jstree/archive/3.3.12.tar.gz -O jstree.tar.gz; then
         tar -xzf jstree.tar.gz -C /opt/Eye/html/js/
-        mv /opt/Eye/html/js/jstree-3.3.12/dist /opt/Eye/html/js/jstree
+        mv /opt/Eye/html/js/jstree-3.3.12/dist/* /opt/Eye/html/js/jstree
         rm -rf /opt/Eye/html/js/jstree-3.3.12
         rm -f jstree.tar.gz
     else

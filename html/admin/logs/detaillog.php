@@ -60,13 +60,12 @@ $gateway_filter='';
 if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) AND"; }
 
 $countSQL="SELECT Count(*) FROM Traffic_detail as A WHERE $gateway_filter $ip_where `timestamp`>='$date1' AND `timestamp`<'$date2'";
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
+$count_records = get_single_field($db_link,$countSQL);
+$total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 $gateway_list = get_gateways($db_link);
 ?>
 
@@ -91,28 +90,28 @@ $gateway_list = get_gateways($db_link);
 $fsql = "SELECT A.id, A.auth_id, A.`timestamp`, A.router_id, A.proto, A.src_ip, A.src_port, A.dst_ip, A.dst_port, A.bytes, A.pkt FROM Traffic_detail as A JOIN (SELECT id FROM Traffic_detail 
         WHERE $gateway_filter $ip_where `timestamp`>='$date1' AND `timestamp`<'$date2'
         ORDER BY `timestamp` ASC LIMIT $start,$displayed) as T ON A.id = T.id ORDER BY $sort_table.$sort_field $order";
-$userdata = mysqli_query($db_link, $fsql);
-while (list ($uid, $auth_id, $udata, $urouter, $uproto, $sip, $sport,$dip, $dport, $ubytes, $upkt) = mysqli_fetch_array($userdata)) {
+$userdata = get_records_sql($db_link, $fsql);
+foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td class=\"data\">$uid</td>\n";
-    print "<td class=\"data\">"; print_auth_simple($db_link,$auth_id); print "</td>\n";
-    print "<td class=\"data\">$udata</td>\n";
-    print "<td class=\"data\">$gateway_list[$urouter]</td>\n";
-    $proto_name = getprotobynumber($uproto);
-    if (!$proto_name) { $proto_name=$uproto; }
+    print "<td class=\"data\">" . $row['id'] . "</td>\n";
+    print "<td class=\"data\">"; print_auth_simple($db_link, $row['auth_id']); print "</td>\n";
+    print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
+    print "<td class=\"data\">" . $gateway_list[$row['router_id']] . "</td>\n";
+    $proto_name = getprotobynumber($row['proto']);
+    if (!$proto_name) { $proto_name = $row['proto']; }
     print "<td class=\"data\">" . $proto_name . "</td>\n";
-    print "<td class=\"data\" align=left>" . long2ip($sip) . "</td>\n";
+    print "<td class=\"data\" align=left>" . long2ip($row['src_ip']) . "</td>\n";
     $ip_name = '-';
-    if ($rdns) { $ip_name = ResolveIP($db_link,$sip); }
+    if ($rdns) { $ip_name = ResolveIP($db_link, $row['src_ip']); }
     print "<td class=\"data\" align=left>" . $ip_name . "</td>\n";
-    print "<td class=\"data\">" .$sport . "</td>\n";
-    print "<td class=\"data\" align=left>" . long2ip($dip) . "</td>\n";
+    print "<td class=\"data\">" . $row['src_port'] . "</td>\n";
+    print "<td class=\"data\" align=left>" . long2ip($row['dst_ip']) . "</td>\n";
     $ip_name = '-';
-    if ($rdns) { $ip_name = ResolveIP($db_link,$dip); }
+    if ($rdns) { $ip_name = ResolveIP($db_link, $row['dst_ip']); }
     print "<td class=\"data\" align=left>" . $ip_name . "</td>\n";
-    print "<td class=\"data\">" . $dport . "</td>\n";
-    print "<td class=\"data\" align=right>" . fbytes($ubytes) . "</td>\n";
-    print "<td class=\"data\" align=right>" . $upkt . "</td>\n";
+    print "<td class=\"data\">" . $row['dst_port'] . "</td>\n";
+    print "<td class=\"data\" align=right>" . fbytes($row['bytes']) . "</td>\n";
+    print "<td class=\"data\" align=right>" . $row['pkt'] . "</td>\n";
     print "</tr>\n";
 }
 ?>

@@ -50,10 +50,8 @@ if ($rgateway == 0) {
 }
 
 $countSQL = "SELECT Count(*) FROM ($trafSQL) A";
-
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
+$count_records = get_single_field($db_link,$countSQL);
+$total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
@@ -61,7 +59,7 @@ $start = ($page * $displayed) - $displayed;
 #set sort
 $trafSQL=$trafSQL ." $sort_sql LIMIT $start,$displayed";
 
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 
 print "<br><br>\n";
 print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
@@ -78,25 +76,26 @@ print "</tr>\n";
 $total_in = 0;
 $total_out = 0;
 
-$traf = mysqli_query($db_link, $trafSQL);
+$traf = get_records_sql($db_link, $trafSQL);
 
-while (list ($s_login,$s_ou_id,$u_id,$s_ip,$s_auth_id, $s_router_id, $traf_day_in, $traf_day_out, $p_in, $p_out) = mysqli_fetch_array($traf)) {
-    if ($traf_day_in + $traf_day_out ==0) { continue; }
-    $total_in += $traf_day_in;
-    $total_out += $traf_day_out;
-    if (!empty($gateway_list[$s_router_id])) { $s_router = $gateway_list[$s_router_id]; } else { $s_router=''; }
-    $cl = "data";
-    if ($traf_day_out > 2 * $traf_day_in) { $cl = "nb"; }
+foreach ($traf as $row) {
+    if ($row['tin'] + $row['tout'] == 0) { continue; }
+    $total_in += $row['tin'];
+    $total_out += $row['tout'];
+    $s_router = !empty($gateway_list[$row['router_id']]) ? $gateway_list[$row['router_id']] : '';
+    $cl = $row['tout'] > 2 * $row['tin'] ? "nb" : "data";
+    
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td align=left class=\"$cl\">$s_login</td>\n";
-    print "<td align=left class=\"$cl\"><a href=authday.php?id=$s_auth_id&date_start=$date1&date_stop=$date2>$s_ip</a></td>\n";
+    print "<td align=left class=\"$cl\">" . $row['login'] . "</td>\n";
+    print "<td align=left class=\"$cl\"><a href=authday.php?id=" . $row['auth_id'] . "&date_start=$date1&date_stop=$date2>" . $row['ip'] . "</a></td>\n";
     print "<td align=left class=\"$cl\">$s_router</td>\n";
-    print "<td class=\"$cl\">" . fbytes($traf_day_in) . "</td>\n";
-    print "<td class=\"$cl\">" . fbytes($traf_day_out) . "</td>\n";
-    print "<td class=\"$cl\">" . fpkts($p_in) . "</td>\n";
-    print "<td class=\"$cl\">" . fpkts($p_out) . "</td>\n";
+    print "<td class=\"$cl\">" . fbytes($row['tin']) . "</td>\n";
+    print "<td class=\"$cl\">" . fbytes($row['tout']) . "</td>\n";
+    print "<td class=\"$cl\">" . fpkts($row['pin']) . "</td>\n";
+    print "<td class=\"$cl\">" . fpkts($row['pout']) . "</td>\n";
     print "</tr>\n";
 }
+
 print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
 print "<td class=\"data\" colspan=2><b>".WEB_title_itog."</b></td>\n";
 print "<td class=\"data\"><b></b></td>\n";

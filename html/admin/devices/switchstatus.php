@@ -10,12 +10,12 @@ $device_model = get_record($db_link, 'device_models', "id=" . $device['device_mo
 if (isset($_POST["regensnmp"])) {
     $snmp_index = $_POST["f_snmp_start"] * 1;
     $sSQL = "SELECT id,port from device_ports WHERE device_ports.device_id=$id order by id";
-    $flist = mysqli_query($db_link, $sSQL);
+    $flist = get_records_sql($db_link, $sSQL);
     LOG_DEBUG($db_link, "Recalc snmp_index for device id: $id with start $snmp_index");
-    while (list($port_id, $port) = mysqli_fetch_array($flist)) {
-        $snmp = $port + $snmp_index - 1;
+    foreach ($flist as $row) {
+        $snmp = $row['port'] + $snmp_index - 1;
         $new['snmp_index'] = $snmp;
-        update_record($db_link, "device_ports", "id='$port_id'", $new);
+        update_record($db_link, "device_ports", "id=".$row['id'], $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;

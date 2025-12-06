@@ -23,9 +23,8 @@ if (isset($_POST["ExportAuth"])) {
         if (!empty($_POST["ip-filter"])) { $ip_filter = $_POST['ip-filter']; }
         if (!empty($_POST["ip-sort"])) { $sort = $_POST['ip-sort']; }
         $sSQL = "SELECT User_auth.*, User_list.login, User_list.enabled as UEnabled, User_list.blocked as UBlocked FROM User_auth, User_list WHERE User_auth.user_id = User_list.id AND User_auth.deleted = 0 $ip_filter ORDER BY $sort";
-        $auth_table = mysqli_query($db_link, $sSQL);
-        while ($record = mysqli_fetch_array($auth_table)) {
+        $auth_table = get_records_sql($db_link, $sSQL);
+        foreach ($auth_table as $record) {
             print $record['login'] . ';' . $record['ip'] . ';' . $record['mac'] . ';' . $record['comments'] . ';' . $record['dns_name'] . ';' . $record['last_found'] .';' . get_connection_string($db_link, $record['id']). "\n";
         }
-    }
 }

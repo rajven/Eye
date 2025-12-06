@@ -73,14 +73,14 @@ print_control_submenu($page_url);
 </table>
 
 <?php
+
 $countSQL="SELECT Count(*) FROM vendors";
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
+$count_records = get_single_field($db_link,$countSQL);
+$total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 
 ?>
 <table class="data">

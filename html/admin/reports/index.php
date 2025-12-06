@@ -61,22 +61,23 @@ $trafSQL=$trafSQL ." $sort_sql";
 $total_in = 0;
 $total_out = 0;
 
-$traf = mysqli_query($db_link, $trafSQL);
+$traf = get_records_sql($db_link, $trafSQL);
 
-while (list ($s_login,$s_ou_id,$u_id,$s_auth_id, $s_router_id, $traf_day_in, $traf_day_out) = mysqli_fetch_array($traf)) {
-    if ($traf_day_in + $traf_day_out ==0) { continue; }
-    $total_in += $traf_day_in;
-    $total_out += $traf_day_out;
-    if (!empty($gateway_list[$s_router_id])) { $s_router = $gateway_list[$s_router_id]; } else { $s_router=''; }
-    $cl = "data";
-    if ($traf_day_out > 2 * $traf_day_in) { $cl = "nb"; }
+foreach ($traf as $row) {
+    if ($row['tin'] + $row['tout'] == 0) { continue; }
+    $total_in += $row['tin'];
+    $total_out += $row['tout'];
+    $s_router = !empty($gateway_list[$row['router_id']]) ? $gateway_list[$row['router_id']] : '';
+    $cl = $row['tout'] > 2 * $row['tin'] ? "nb" : "data";
+    
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td align=left class=\"$cl\"><a href=userday.php?id=$u_id&date_start=$date1&date_stop=$date2>$s_login</a></td>\n";
+    print "<td align=left class=\"$cl\"><a href=userday.php?id=" . $row['user_id'] . "&date_start=$date1&date_stop=$date2>" . $row['login'] . "</a></td>\n";
     print "<td align=left class=\"$cl\">$s_router</td>\n";
-    print "<td class=\"$cl\">" . fbytes($traf_day_in) . "</td>\n";
-    print "<td class=\"$cl\">" . fbytes($traf_day_out) . "</td>\n";
+    print "<td class=\"$cl\">" . fbytes($row['tin']) . "</td>\n";
+    print "<td class=\"$cl\">" . fbytes($row['tout']) . "</td>\n";
     print "</tr>\n";
 }
+
 print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
 print "<td class=\"data\" colspan=2><b>".WEB_title_itog."</b></td>\n";
 print "<td class=\"data\"><b>" . fbytes($total_in) . "</b></td>\n";

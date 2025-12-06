@@ -20,9 +20,8 @@ if (isset($_POST["editport"])) {
 
 unset($_POST);
 
-$device_id = get_record_field($db_link, 'device_ports', 'device_id', "id=" . $id);
 $port = get_record($db_link, 'device_ports', "id=" . $id);
-
+$device_id = $port['device_id'];
 $device = get_record($db_link, 'devices', "id=" . $device_id);
 $user_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=" . $device['user_id']);
 

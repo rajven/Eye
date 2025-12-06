@@ -3,6 +3,23 @@ if (! defined("CONFIG")) die("Not defined");
 
 if (! defined("SQL")) { die("Not defined"); }
 
+function db_escape($connection, $string) {
+    // Определяем тип подключения
+    if ($connection instanceof PDO) {
+        return $connection->quote($string);
+    } elseif ($connection instanceof mysqli) {
+        return mysqli_real_escape_string($connection, $string);
+    } elseif (is_resource($connection) && get_resource_type($connection) === 'mysql link') {
+        // Для устаревшего mysql_*
+        return mysql_real_escape_string($string, $connection);
+    } elseif ($connection instanceof PostgreSQL) {
+        // Для PostgreSQL
+        return pg_escape_string($connection, $string);
+    } else {
+        // Фолбэк
+        return addslashes($string);
+    }
+}
 
 function new_connection ($db_host, $db_user, $db_password, $db_name)
 {
@@ -197,12 +214,20 @@ function get_count_records($db, $table, $filter)
     if (!empty($filter)) {
         $filter = 'where ' . $filter;
     }
-    $t_count = mysqli_query($db, "SELECT count(*) FROM $table $filter");
-    list($count) = mysqli_fetch_array($t_count);
-    if (!isset($count)) {
-        $count = 0;
+    $t_count = get_record_sql($db, "SELECT count(*) as cnt FROM $table $filter");
+    if (!empty($t_count) and isset($t_count['cnt'])) { return $t_count['cnt']; }
+    return 0;
+}
+
+function get_single_field($db, $sql)
+{
+    $t_count = get_record_sql($db, $sql);
+    if (!empty($t_count) && is_array($t_count)) {
+        // Получаем все значения и берем первое
+        $values = array_values($t_count);
+        return !empty($values) ? $values[0] : 0;
     }
-    return $count;
+    return 0;
 }
 
 function get_id_record($db, $table, $filter)
@@ -210,9 +235,9 @@ function get_id_record($db, $table, $filter)
     if (isset($filter)) {
         $filter = 'WHERE ' . $filter;
     }
-    $t_record = mysqli_query($db, "SELECT id FROM $table $filter limit 1");
-    list($id) = mysqli_fetch_array($t_record);
-    return $id;
+    $t_record = get_record_sql($db, "SELECT id FROM $table $filter");
+    if (!empty($t_record) and isset($t_record['id'])) { return $t_record['id']; }
+    return 0;
 }
 
 function set_changed($db, $id)
@@ -292,36 +317,6 @@ function allow_update($table, $action = 'update', $field = '')
     return 0;
 }
 
-function get_record_field($db, $table, $field, $filter)
-{
-    if (!isset($table)) {
-#        LOG_ERROR($db, "Search in unknown table! Skip command.");
-        return;
-    }
-    if (!isset($filter)) {
-#        LOG_ERROR($db, "Search filter is empty! Skip command.");
-        return;
-    }
-    if (!isset($field)) {
-#        LOG_ERROR($db, "Search field is empty! Skip command.");
-        return;
-    }
-    if (preg_match('/=$/', $filter)) {
-        LOG_ERROR($db, "Search record ($table) with illegal filter $filter! Skip command.");
-        return;
-    }
-    $old_sql = "SELECT $field FROM $table WHERE $filter LIMIT 1";
-    $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "SQL: $old_sql :" . mysqli_error($db));
-    $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
-    foreach ($old as $key => $value) {
-        if (!isset($value) or $value === 'NULL') {
-            $value = '';
-        }
-        $result[$key] = $value;
-    }
-    return $result[$field];
-}
-
 function get_record($db, $table, $filter)
 {
     if (!isset($table)) {
@@ -372,13 +367,13 @@ function get_record($db, $table, $filter)
 
 function get_records($db, $table, $filter)
 {
+    $result = [];
     if (!isset($table)) {
-#        LOG_ERROR($db, "Search in unknown table! Skip command.");
-        return;
+        return $result;
     }
     if (isset($filter) and preg_match('/=$/', $filter)) {
         LOG_ERROR($db, "Search record ($table) with illegal filter $filter! Skip command.");
-        return;
+        return $result;
     }
     $s_filter = '';
     if (isset($filter)) {
@@ -388,7 +383,7 @@ function get_records($db, $table, $filter)
     $get_record = mysqli_query($db, $get_sql);
     if (!$get_record) {
         LOG_ERROR($db, "SQL: $get_sql :" . mysqli_error($db));
-        return;
+        return $result;
     }
     $fields = [];
     while ($field = mysqli_fetch_field($get_record)) {
@@ -396,7 +391,6 @@ function get_records($db, $table, $filter)
         $f_name = $field->name;
         $fields[$f_table][$f_name] = $field;
     }
-    $result = NULL;
     $index = 0;
     while ($rec = mysqli_fetch_array($get_record, MYSQLI_ASSOC)) {
         foreach ($rec as $key => $value) {
@@ -419,7 +413,7 @@ function get_records($db, $table, $filter)
 
 function get_records_sql($db, $sql)
 {
-    $result = NULL;
+    $result = [];
     if (empty($sql)) {
 #        LOG_ERROR($db, "Empty query! Skip command.");
         return $result;
@@ -596,7 +590,7 @@ function update_record($db, $table, $filter, $newvalue)
         if (!preg_match('/password/i', $key)) {
             $changed_log = $changed_log . " $key => $value (old: $old[$key]),";
         }
-        $run_sql = $run_sql . " `" . $key . "`='" . mysqli_real_escape_string($db, $value) . "',";
+        $run_sql = $run_sql . " `" . $key . "`='" . db_escape($db, $value) . "',";
     }
 
     if ($table === "User_auth" and $dns_changed) {
@@ -856,7 +850,7 @@ function insert_record($db, $table, $newvalue)
         }
         $field_list = $field_list . "`" . $key . "`,";
         $value = trim($value);
-        $value_list = $value_list . "'" . mysqli_real_escape_string($db, $value) . "',";
+        $value_list = $value_list . "'" . db_escape($db, $value) . "',";
     }
     if (empty($value_list)) {
         return;

@@ -53,29 +53,32 @@ if ($days_shift >1 and $days_shift <=30) { $display_date_format='%Y-%m-%d'; }
 if ($days_shift >30 and $days_shift <=730) { $display_date_format='%Y-%m'; }
 if ($days_shift >730) { $display_date_format='%Y'; }
 
-$sSQL = "SELECT router_id,DATE_FORMAT(`timestamp`,'$display_date_format') as tHour,SUM(`byte_in`),SUM(`byte_out`),MAX(ROUND(`pkt_in`/`step`)),MAX(ROUND(`pkt_out`/`step`))
-FROM User_stats_full WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' AND auth_id=$id";
+$sSQL = "SELECT router_id, DATE_FORMAT(`timestamp`,'$display_date_format') as tHour, 
+         SUM(`byte_in`) as byte_in_sum, SUM(`byte_out`) as byte_out_sum,
+         MAX(ROUND(`pkt_in`/`step`)) as pkt_in_max, MAX(ROUND(`pkt_out`/`step`)) as pkt_out_max
+         FROM User_stats_full WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' AND auth_id=$id";
 if ($rgateway == 0) {
-        $sSQL = $sSQL . " GROUP BY DATE_FORMAT(`timestamp`,'$display_date_format'),router_id ORDER BY tHour,router_id";
-        } else {
-        $sSQL = $sSQL . " AND router_id=$rgateway GROUP BY DATE_FORMAT(`timestamp`,'$display_date_format'),router_id ORDER BY tHour";
-        }
+    $sSQL = $sSQL . " GROUP BY DATE_FORMAT(`timestamp`,'$display_date_format'),router_id ORDER BY tHour,router_id";
+} else {
+    $sSQL = $sSQL . " AND router_id=$rgateway GROUP BY DATE_FORMAT(`timestamp`,'$display_date_format'),router_id ORDER BY tHour";
+}
 
-$userdata = mysqli_query($db_link, $sSQL);
+$userdata = get_records_sql($db_link, $sSQL);
 $sum_in = 0;
 $sum_out = 0;
-while (list ($u_router_id, $udata, $uin, $uout, $pin, $pout) = mysqli_fetch_array($userdata)) {
+foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td class=\"data\">$gateway_list[$u_router_id]</td>\n";
-    print "<td class=\"data\">" . $udata . "</td>\n";
-    print "<td class=\"data\">" . fbytes($uin) . "</td>\n";
-    print "<td class=\"data\">" . fbytes($uout) . "</td>\n";
-    print "<td class=\"data\">" . fpkts($pin) . "</td>\n";
-    print "<td class=\"data\">" . fpkts($pout) . "</td>\n";
+    print "<td class=\"data\">" . $gateway_list[$row['router_id']] . "</td>\n";
+    print "<td class=\"data\">" . $row['tHour'] . "</td>\n";
+    print "<td class=\"data\">" . fbytes($row['byte_in_sum']) . "</td>\n";
+    print "<td class=\"data\">" . fbytes($row['byte_out_sum']) . "</td>\n";
+    print "<td class=\"data\">" . fpkts($row['pkt_in_max']) . "</td>\n";
+    print "<td class=\"data\">" . fpkts($row['pkt_out_max']) . "</td>\n";
     print "</tr>\n";
-    $sum_in += $uin;
-    $sum_out += $uout;
+    $sum_in += $row['byte_in_sum'];
+    $sum_out += $row['byte_out_sum'];
 }
+
 print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
 print "<td class=\"data\"><b>" . WEB_title_itog . "</b></td>\n";
 print "<td class=\"data\"><b> </b></td>\n";

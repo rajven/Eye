@@ -75,7 +75,7 @@ function sess_read($sessionId) {
     global $db_link;
     log_session_debug($db_link, "Reading session", ['sessionId' => $sessionId]);
     
-    $sessionId = mysqli_real_escape_string($db_link, $sessionId);
+    $sessionId = db_escape($db_link, $sessionId);
     $result = mysqli_query($db_link, "SELECT data FROM ".SESSION_TABLE." WHERE id = '$sessionId'");
     
     if (!$result) {
@@ -95,8 +95,8 @@ function sess_write($sessionId, $data) {
     global $db_link;
     log_session_debug($db_link, "Writing session", ['sessionId' => $sessionId, 'data_length' => strlen($data)]);
     
-    $sessionId = mysqli_real_escape_string($db_link, $sessionId);
-    $data = mysqli_real_escape_string($db_link, $data);
+    $sessionId = db_escape($db_link, $sessionId);
+    $data = db_escape($db_link, $data);
     $time = time();
     $query = "INSERT INTO ".SESSION_TABLE." (id, data, last_accessed) 
               VALUES ('$sessionId', '$data', $time)
@@ -117,7 +117,7 @@ function sess_destroy($sessionId) {
     global $db_link;
     log_session_debug($db_link, "Destroying session", ['sessionId' => $sessionId]);
     
-    $sessionId = mysqli_real_escape_string($db_link, $sessionId);
+    $sessionId = db_escape($db_link, $sessionId);
     if (!mysqli_query($db_link, "DELETE FROM ".SESSION_TABLE." WHERE id = '$sessionId'")) {
         $error = mysqli_error($db_link);
         LOG_DEBUG($db_link, "Session destroy failed: " . $error);
@@ -222,7 +222,7 @@ function login($db) {
 function authenticate_by_credentials($db,$login,$password) {
     log_session_debug($db, "Authenticating by credentials", ['login' => $login]);
 
-    $login = mysqli_real_escape_string($db, trim($login));
+    $login = db_escape($db, trim($login));
     $query = "SELECT * FROM `Customers` WHERE Login='{$login}'";
     $user = get_record_sql($db, $query);
 
@@ -258,13 +258,13 @@ function authenticate_by_credentials($db,$login,$password) {
     log_session_debug($db, "Session data populated", $_SESSION);
 
     // Запись сессии в БД
-    $sessionId = mysqli_real_escape_string($db, session_id());
-    $ip = mysqli_real_escape_string($db, $_SESSION['ip']);
-    $userAgent = mysqli_real_escape_string($db, $_SESSION['user_agent']);
+    $sessionId = db_escape($db, session_id());
+    $ip = db_escape($db, $_SESSION['ip']);
+    $userAgent = db_escape($db, $_SESSION['user_agent']);
     $time = time();
 
     // Запись в БД
-    $sessionId = mysqli_real_escape_string($db, session_id());
+    $sessionId = db_escape($db, session_id());
     $query = "INSERT INTO ".USER_SESSIONS_TABLE." 
         (session_id, user_id, ip_address, user_agent, created_at, last_activity) 
         VALUES (
@@ -310,7 +310,7 @@ function validate_session($db) {
     }
 
     // Проверка активности сессии в БД
-    $sessionId = mysqli_real_escape_string($db, session_id());
+    $sessionId = db_escape($db, session_id());
     $result = mysqli_query($db, 
         "SELECT 1 
          FROM ".USER_SESSIONS_TABLE." 
@@ -391,8 +391,8 @@ function IsSilentAuthenticated($db) {
     }
 
     // Экранирование и подготовка
-    $login = mysqli_real_escape_string($db, $login);
-    $api_key = mysqli_real_escape_string($db, $api_key);
+    $login = db_escape($db, $login);
+    $api_key = db_escape($db, $api_key);
 
     // Ищем пользователя с таким логином и API-ключом
     $query = "SELECT id, rights FROM Customers 
@@ -442,7 +442,7 @@ function logout($db, $silent = FALSE, $redirect_url = DEFAULT_PAGE) {
         // Деактивация сессии в БД
         $sessionId = session_id();
         if ($sessionId) {
-            $sessionId = mysqli_real_escape_string($db, $sessionId);
+            $sessionId = db_escape($db, $sessionId);
             $result = mysqli_query($db, 
                 "UPDATE ".USER_SESSIONS_TABLE." 
                  SET is_active = 0 

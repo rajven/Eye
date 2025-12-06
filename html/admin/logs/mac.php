@@ -28,14 +28,12 @@ print_log_submenu($page_url);
 
 <?php
 $countSQL="SELECT Count(*) FROM mac_history WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $mac_where ORDER BY id DESC";
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-
-$total=ceil($count_records[0]/$displayed);
+$count_records = get_single_field($db_link,$countSQL);
+$total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed; 
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 <br>
 <table class="data" width="850">

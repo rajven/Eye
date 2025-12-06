@@ -26,13 +26,12 @@ if ($f_id > 0) { $where_dev = " and D.id=$f_id "; }
 
 <?php
 $countSQL="SELECT Count(*) FROM Unknown_mac AS U, devices AS D, device_ports AS DP  WHERE D.device_type<=2 and U.device_id = D.id  AND U.port_id = DP.id AND U.timestamp>='$date1' AND U.timestamp<'$date2' $where_dev";
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
+$count_records = get_single_field($db_link,$countSQL);
+$total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed; 
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 <br>
 <table class="data" width="750">

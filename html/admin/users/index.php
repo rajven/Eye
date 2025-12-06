@@ -3,8 +3,6 @@ $default_displayed = 500;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
-$default_ou=get_const('default_user_ou_id');
-
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
 $default_sort='login';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
@@ -108,14 +106,12 @@ $sort_url = "<a href=/admin/users/index.php?";
 if ($rou == 0) { $filter = "U.ou_id=O.id and U.deleted=0"; } else { $filter = "U.OU_id=O.id and U.deleted=0 and U.ou_id=$rou"; }
 
 $countSQL = "SELECT Count(*) FROM User_list U, OU O WHERE $filter";
-
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
+$count_records = get_single_field($db_link,$countSQL);
+$total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 
 $sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month_quota, U.blocked, U.permanent FROM User_list U, OU O WHERE $filter ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
 

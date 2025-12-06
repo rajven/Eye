@@ -46,7 +46,7 @@ if (isset($_POST["edituser"])) {
         run_sql($db_link, "UPDATE User_auth SET enabled=0, changed=1 WHERE user_id=" . $id);
     }
     if (!empty($new["fio"])) {
-        run_sql($db_link, "UPDATE User_auth SET `comments`='" . mysqli_real_escape_string($db_link, $new["fio"]) . "' WHERE `user_id`=" . $id . " AND `deleted`=0 AND (`comments` IS NULL or `comments`='' or `comments`='" . $user_info["fio"] . "')");
+        run_sql($db_link, "UPDATE User_auth SET `comments`='" . db_escape($db_link, $new["fio"]) . "' WHERE `user_id`=" . $id . " AND `deleted`=0 AND (`comments` IS NULL or `comments`='' or `comments`='" . $user_info["fio"] . "')");
     }
     run_sql($db_link, "UPDATE User_auth SET ou_id=" . $new["ou_id"] . " WHERE user_id=" . $id);
     run_sql($db_link, "UPDATE devices SET device_name='" . $new["login"] . "' WHERE user_id=" . $id);

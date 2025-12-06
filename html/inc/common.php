@@ -390,7 +390,7 @@ function searchHostname($db, $id, $hostname)
     $result = '';
     $domain_zone = get_option($db, 33);
 
-    $a_search_filter = 'SELECT * FROM User_auth WHERE deleted=0 and id !="' . $id . '" and (dns_name ="' . mysqli_real_escape_string($db, $hostname) . '" or dns_name ="' . mysqli_real_escape_string($db, $hostname . '.' . $domain_zone) . '")';
+    $a_search_filter = 'SELECT * FROM User_auth WHERE deleted=0 and id !="' . $id . '" and (dns_name ="' . db_escape($db, $hostname) . '" or dns_name ="' . db_escape($db, $hostname . '.' . $domain_zone) . '")';
 //        LOG_DEBUG($db, "A search-filter: ".$a_search_filter);
     $a_records = get_records_sql($db, $a_search_filter);
     foreach ($a_records as $a_rec) {
@@ -401,7 +401,7 @@ function searchHostname($db, $id, $hostname)
     }
 
     $result_cname = '';
-    $cname_search_filter = 'SELECT * FROM User_auth_alias WHERE auth_id !="' . $id . '" and (alias ="' . mysqli_real_escape_string($db, $hostname) . '" or alias ="' . mysqli_real_escape_string($db, $hostname . '.' . $domain_zone) . '")';
+    $cname_search_filter = 'SELECT * FROM User_auth_alias WHERE auth_id !="' . $id . '" and (alias ="' . db_escape($db, $hostname) . '" or alias ="' . db_escape($db, $hostname . '.' . $domain_zone) . '")';
 //        LOG_DEBUG($db, "CNAME search-filter: ".$cname_search_filter);
     $a_records = get_records_sql($db, $cname_search_filter);
     foreach ($a_records as $a_rec) {
@@ -423,7 +423,7 @@ function checkUniqHostname($db, $id, $hostname)
 
     $domain_zone = get_option($db, 33);
 
-    $check_A_filter = 'deleted=0 and id !="' . $id . '" and (dns_name ="' . mysqli_real_escape_string($db, $hostname) . '" or dns_name ="' . mysqli_real_escape_string($db, $hostname . '.' . $domain_zone) . '")';
+    $check_A_filter = 'deleted=0 and id !="' . $id . '" and (dns_name ="' . db_escape($db, $hostname) . '" or dns_name ="' . db_escape($db, $hostname . '.' . $domain_zone) . '")';
 //        LOG_DEBUG($db, "CNAME filter: ".$check_A_filter);
 
     $count = get_count_records($db, 'User_auth', $check_A_filter);
@@ -431,7 +431,7 @@ function checkUniqHostname($db, $id, $hostname)
         return FALSE;
     }
 
-    $check_CNAME_filter = 'auth_id !="' . $id . '" and (alias ="' . mysqli_real_escape_string($db, $hostname) . '" or alias ="' . mysqli_real_escape_string($db, $hostname . '.' . $domain_zone) . '")';
+    $check_CNAME_filter = 'auth_id !="' . $id . '" and (alias ="' . db_escape($db, $hostname) . '" or alias ="' . db_escape($db, $hostname . '.' . $domain_zone) . '")';
 
 //        LOG_DEBUG($db, "CNAME filter: ".$check_CNAME_filter);
 
@@ -684,22 +684,12 @@ function decrypt_string($crypted_string)
     return  openssl_decrypt($crypted_string, $ciphering, ENCRYPTION_KEY, $options, ENCRYPTION_IV);
 }
 
-function print_ou_select($db, $ou_name, $ou_value)
-{
-    print "<select id=\"$ou_name\" name=\"$ou_name\" >\n";
-    $t_ou = mysqli_query($db, "SELECT id,ou_name FROM OU ORDER BY ou_name");
-    while (list($f_ou_id, $f_ou_name) = mysqli_fetch_array($t_ou)) {
-        print_select_item($f_ou_name, $f_ou_id, $ou_value);
-    }
-    print "</select>\n";
-}
-
 function print_instance_select($db, $instance_name, $instance_value)
 {
     print "<select id=\"$instance_name\" name=\"$instance_name\" >\n";
-    $t_instance = mysqli_query($db, "SELECT * FROM filter_instances ORDER BY id");
-    while (list($f_instance_id, $f_instance_name, $f_instance_comment) = mysqli_fetch_array($t_instance)) {
-        print_select_item($f_instance_name, $f_instance_id, $instance_value);
+    $t_instance = get_records_sql($db, "SELECT id,name,comment FROM filter_instances ORDER BY id");
+    foreach ($t_instance as $row) {
+        print_select_item($row['name'], $row['id'], $instance_value);
     }
     print "</select>\n";
 }
@@ -733,9 +723,11 @@ function get_filter_instance_description($db, $instance_id)
 function print_add_gw_subnets($db, $device_id, $gs_name)
 {
     print "<select id=\"$gs_name\" name=\"$gs_name\" >\n";
-    $t_gs = mysqli_query($db, "SELECT id,subnet,comment FROM subnets WHERE subnets.free=0 AND subnets.id NOT IN (SELECT subnet_id FROM gateway_subnets WHERE gateway_subnets.device_id=" . $device_id . ") ORDER BY subnet");
-    while (list($f_gs_id, $f_gs_name, $f_gs_comment) = mysqli_fetch_array($t_gs)) {
-        print_select_item($f_gs_name . '(' . $f_gs_comment . ')', $f_gs_id, 0);
+    $t_gs = get_records_sql($db, "SELECT id,subnet,comment FROM subnets WHERE subnets.free=0 AND subnets.id NOT IN (SELECT subnet_id FROM gateway_subnets WHERE gateway_subnets.device_id=" . $device_id . ") ORDER BY subnet");
+    if (!empty($t_gs)) {
+        foreach ($t_gs as $row) {
+            print_select_item($row['subnet'] . '(' . $row['comment'] . ')', $row['id'], 0);
+        }
     }
     print "</select>\n";
 }
@@ -743,9 +735,11 @@ function print_add_gw_subnets($db, $device_id, $gs_name)
 function print_add_gw_instances($db, $device_id, $gs_name)
 {
     print "<select id=\"$gs_name\" name=\"$gs_name\" >\n";
-    $t_gs = mysqli_query($db, "SELECT id,name,comment FROM filter_instances WHERE filter_instances.id NOT IN (SELECT instance_id FROM device_filter_instances WHERE device_filter_instances.device_id=" . $device_id . ") ORDER BY name");
-    while (list($f_gs_id, $f_gs_name, $f_gs_comment) = mysqli_fetch_array($t_gs)) {
-        print_select_item($f_gs_name . '(' . $f_gs_comment . ')', $f_gs_id, 0);
+    $t_gs = get_records_sql($db, "SELECT id,name,comment FROM filter_instances WHERE filter_instances.id NOT IN (SELECT instance_id FROM device_filter_instances WHERE device_filter_instances.device_id=" . $device_id . ") ORDER BY name");
+    if (!empty($t_gs)) {
+        foreach ($t_gs as $row) {
+            print_select_item($row['name'] . '(' . $row['comment'] . ')', $row['id'], 0);
+        }
     }
     print "</select>\n";
 }
@@ -755,8 +749,10 @@ function print_add_dev_interface($db, $device_id, $int_list, $int_name)
     print "&nbsp<select id=\"$int_name\" name=\"$int_name\" >\n";
     $t_int = get_records_sql($db, "SELECT * FROM device_l3_interfaces WHERE device_id=" . $device_id);
     $int_exists = [];
-    foreach ($t_int as $interface) {
-        $int_exists[$interface['snmpin']] = $interface;
+    if (!empty(t_int)) {
+        foreach ($t_int as $interface) {
+            $int_exists[$interface['snmpin']] = $interface;
+        }
     }
     foreach ($int_list as $interface) {
         if (!empty($int_exists[$interface['index']])) {
@@ -775,23 +771,63 @@ function print_add_dev_interface($db, $device_id, $int_list, $int_name)
     print "</select>\n";
 }
 
+function print_ou_select_recursive($db, $ou_name, $ou_value, $parent_id = null, $level = 0, $hide_zero_id = false)
+{
+    $conditions = [];
+    
+    if ($parent_id === null) {
+        $conditions[] = "(parent_id IS NULL OR parent_id = 0)";
+    } else {
+        $conditions[] = "parent_id = " . (int)$parent_id;
+    }
+
+    if ($hide_zero_id) {
+        $conditions[] = "id != 0";
+    }
+    
+    $where = implode(" AND ", $conditions);
+    
+    $sql = "SELECT id, parent_id, ou_name FROM OU 
+            WHERE $where 
+            ORDER BY ou_name";
+    
+    $items = get_records_sql($db, $sql);
+
+    if (empty($items)) {
+        return;
+    }
+    foreach ($items as $row) {
+        $indent = str_repeat("&nbsp;&nbsp;&nbsp;", $level);
+        $prefix = ($level > 0) ? $indent . "-&nbsp;" : "";
+        $display_name = $prefix . htmlspecialchars($row['ou_name']);
+        print_select_item($display_name, $row['id'], $ou_value);
+        print_ou_select_recursive($db, $ou_name, $ou_value, $row['id'], $level + 1, $hide_zero_id);
+    }
+}
+
+function print_ou_select($db, $ou_name, $ou_value)
+{
+    print "<select id=\"$ou_name\" name=\"$ou_name\" >\n";
+    print_ou_select_recursive($db, $ou_name, $ou_value, null, 0, false);
+    print "</select>\n";
+}
+
 function print_ou_set($db, $ou_name, $ou_value)
 {
-    print "<select id=\"$ou_name\" name=\"$ou_name\">\n";
-    $t_ou = mysqli_query($db, "SELECT id,ou_name FROM OU WHERE id>=1 ORDER BY ou_name");
-    while (list($f_ou_id, $f_ou_name) = mysqli_fetch_array($t_ou)) {
-        print_select_item($f_ou_name, $f_ou_id, $ou_value);
-    }
+    print "<select id=\"$ou_name\" name=\"$ou_name\" >\n";
+    print_ou_select_recursive($db, $ou_name, $ou_value, null, 0, true);
     print "</select>\n";
 }
 
 function print_subnet_select($db, $subnet_name, $subnet_value)
 {
     print "<select id=\"$subnet_name\" name=\"$subnet_name\" >\n";
-    $t_subnet = mysqli_query($db, "SELECT id,subnet FROM subnets ORDER BY ip_int_start");
+    $t_subnet = get_recrods_sql($db, "SELECT id,subnet FROM subnets ORDER BY ip_int_start");
     print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
-    while (list($f_subnet_id, $f_subnet_name) = mysqli_fetch_array($t_subnet)) {
-        print_select_item($f_subnet_name, $f_subnet_id, $subnet_value);
+    if (!empty($t_subnet)) {
+        foreach ($t_subnet as $row) {
+            print_select_item($row['subnet'], $row['id'], $subnet_value);
+        }
     }
     print "</select>\n";
 }
@@ -799,9 +835,11 @@ function print_subnet_select($db, $subnet_name, $subnet_value)
 function print_acl_select($db, $acl_name, $acl_value)
 {
     print "<select id=\"$acl_name\" name=\"$acl_name\" >\n";
-    $t_acl = mysqli_query($db, "SELECT id,name FROM acl ORDER BY id");
-    while (list($f_acl_id, $f_acl_name) = mysqli_fetch_array($t_acl)) {
-        print_select_item($f_acl_name, $f_acl_id, $acl_value);
+    $t_acl = get_records_sql($db, "SELECT id,name FROM acl ORDER BY id");
+    if (!empty($t_acl)) {
+        foreach ($t_acl as $row) {
+            print_select_item($row['name'], $row['id'], $acl_value);
+        }
     }
     print "</select>\n";
 }
@@ -810,8 +848,10 @@ function print_device_ip_select($db, $ip_name, $ip, $user_id)
 {
     print "<select id=\"$ip_name\" name=\"$ip_name\">\n";
     $auth_list = get_records_sql($db, "SELECT ip FROM User_auth WHERE user_id=$user_id AND deleted=0 ORDER BY ip_int");
-    foreach ($auth_list as $row) {
-        print_select_item($row['ip'], $row['ip'], $ip);
+    if (!empty($auth_list)) {
+        foreach ($auth_list as $row) {
+            print_select_item($row['ip'], $row['ip'], $ip);
+        }
     }
     print "</select>\n";
 }
@@ -819,10 +859,12 @@ function print_device_ip_select($db, $ip_name, $ip, $user_id)
 function print_subnet_select_office($db, $subnet_name, $subnet_value)
 {
     print "<select id=\"$subnet_name\" name=\"$subnet_name\" >\n";
-    $t_subnet = mysqli_query($db, "SELECT id,subnet FROM subnets WHERE office=1 ORDER BY ip_int_start");
+    $t_subnet = get_records_sql($db, "SELECT id,subnet FROM subnets WHERE office=1 ORDER BY ip_int_start");
     print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
-    while (list($f_subnet_id, $f_subnet_name) = mysqli_fetch_array($t_subnet)) {
-        print_select_item($f_subnet_name, $f_subnet_id, $subnet_value);
+    if (!empty($t_subnet)) {
+        foreach ($t_subnet as $row) {
+            print_select_item($row['subnet'], $row['id'], $subnet_value);
+        }
     }
     print "</select>\n";
 }
@@ -830,11 +872,13 @@ function print_subnet_select_office($db, $subnet_name, $subnet_value)
 function print_subnet_select_office_splitted($db, $subnet_name, $subnet_value)
 {
     print "<select id=\"$subnet_name\" name=\"$subnet_name\" >\n";
-    $t_subnet = mysqli_query($db, "SELECT id,subnet,ip_int_start,ip_int_stop FROM subnets WHERE office=1 ORDER BY ip_int_start");
+    $t_subnet = get_records_sql($db, "SELECT id,subnet,ip_int_start,ip_int_stop FROM subnets WHERE office=1 ORDER BY ip_int_start");
     print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
-    while (list($f_subnet_id, $f_subnet_name, $f_start_ip, $f_stop_ip) = mysqli_fetch_array($t_subnet)) {
-        print_select_item($f_subnet_name, $f_subnet_name, $subnet_value);
-        $cidr = cidrToRange($f_subnet_name);
+    foreach ($t_subnet as $row) {
+        print_select_item($row['subnet'], $row['subnet'], $subnet_value);
+        $cidr = cidrToRange($row['subnet']);
+        $f_start_ip = $row['ip_int_start'];
+        $f_stop_ip = $row['ip_int_stop'];
         if ($cidr[2][1] < 24) {
             while ($f_start_ip <= $f_stop_ip) {
                 print_select_item("&nbsp&nbsp-&nbsp" . long2ip($f_start_ip) . "/24", long2ip($f_start_ip) . "/24", $subnet_value);
@@ -1118,9 +1162,9 @@ function get_building($db, $building_value)
 function print_device_model_select($db, $device_model_name, $device_model_value)
 {
     print "<select id=\"$device_model_name\" name=\"$device_model_name\" class=\"js-select-single\">\n";
-    $t_device_model = mysqli_query($db, "SELECT M.id,M.model_name,V.name FROM device_models M,vendors V WHERE M.vendor_id = V.id ORDER BY V.name,M.model_name");
-    while (list($f_device_model_id, $f_device_model_name, $f_vendor_name) = mysqli_fetch_array($t_device_model)) {
-        print_select_item($f_vendor_name . " " . $f_device_model_name, $f_device_model_id, $device_model_value);
+    $t_device_model = get_records_sql($db, "SELECT M.id,M.model_name,V.name FROM device_models M,vendors V WHERE M.vendor_id = V.id ORDER BY V.name,M.model_name");
+    foreach ($t_device_model as $row) {
+        print_select_item($row['name'] . " " . $row['model_name'], $row['id'], $device_model_value);
     }
     print "</select>\n";
 }
@@ -1128,9 +1172,9 @@ function print_device_model_select($db, $device_model_name, $device_model_value)
 function print_filter_group_select($db, $group_name, $group_value)
 {
     print "<select id=\"$group_name\" name=\"$group_name\">\n";
-    $t_group = mysqli_query($db, "SELECT id,group_name FROM Group_list Order by group_name");
-    while (list($f_group_id, $f_group_name) = mysqli_fetch_array($t_group)) {
-        print_select_item($f_group_name, $f_group_id, $group_value);
+    $t_group = get_records_sql($db, "SELECT id,group_name FROM Group_list Order by group_name");
+    foreach ($t_group as $row) {
+        print_select_item($row['group_name'], $row['id'], $group_value);
     }
     print "</select>\n";
 }
@@ -1139,9 +1183,9 @@ function print_building_select($db, $building_name, $building_value)
 {
     print "<select id=\"$building_name\" name=\"$building_name\">\n";
     print_select_item(WEB_select_item_all, 0, $building_value);
-    $t_building = mysqli_query($db, "SELECT id,name FROM building Order by name");
-    while (list($f_building_id, $f_building_name) = mysqli_fetch_array($t_building)) {
-        print_select_item($f_building_name, $f_building_id, $building_value);
+    $t_building = get_records_sql($db, "SELECT id,name FROM building Order by name");
+    foreach ($t_building as $row) {
+        print_select_item($row['name'], $row['id'], $building_value);
     }
     print "</select>\n";
 }
@@ -1150,9 +1194,11 @@ function print_devmodels_select($db, $devmodel_name, $devmodel_value, $dev_filte
 {
     print "<select id=\"$devmodel_name\" name=\"$devmodel_name\">\n";
     print_select_item(WEB_select_item_all, -1, $devmodel_value);
-    $t_devmodel = mysqli_query($db, "SELECT M.id,V.name,M.model_name FROM device_models M,vendors V WHERE M.vendor_id = V.id and M.id in (SELECT device_model_id FROM devices WHERE $dev_filter) ORDER BY V.name,M.model_name");
-    while (list($f_devmodel_id, $f_devmodel_vendor, $f_devmodel_name) = mysqli_fetch_array($t_devmodel)) {
-        print_select_item($f_devmodel_vendor . " " . $f_devmodel_name, $f_devmodel_id, $devmodel_value);
+    $t_devmodel = get_records_sql($db, "SELECT M.id,V.name,M.model_name FROM device_models M,vendors V WHERE M.vendor_id = V.id and M.id in (SELECT device_model_id FROM devices WHERE $dev_filter) ORDER BY V.name,M.model_name");
+    if (!empty($t_devmodel)) {
+        foreach ($t_devmodel as $row) {
+            print_select_item($row['name'] . " " . $row['model_name'], $row['id'], $devmodel_value);
+        }
     }
     print "</select>\n";
 }
@@ -1165,9 +1211,11 @@ function print_devtypes_select($db, $devtype_name, $devtype_value, $mode)
     if (!empty($mode)) {
         $filter = "WHERE $mode";
     }
-    $t_devtype = mysqli_query($db, "SELECT id,`name." . HTML_LANG . "` FROM device_types $filter ORDER BY `name." . HTML_LANG . "`");
-    while (list($f_devtype_id, $f_devtype_name) = mysqli_fetch_array($t_devtype)) {
-        print_select_item($f_devtype_name, $f_devtype_id, $devtype_value);
+    $t_devtype = get_records_sql($db, "SELECT id,`name." . HTML_LANG . "` FROM device_types $filter ORDER BY `name." . HTML_LANG . "`");
+    if (!empty($t_devtype)) {
+        foreach ($t_devtype as $row) {
+            print_select_item($row['name.' . HTML_LANG ], $row['id'], $devtype_value);
+        }
     }
     print "</select>\n";
 }
@@ -1175,36 +1223,43 @@ function print_devtypes_select($db, $devtype_name, $devtype_value, $mode)
 function print_devtype_select($db, $devtype_name, $devtype_value)
 {
     print "<select id=\"$devtype_name\" name=\"$devtype_name\">\n";
-    $t_devtype = mysqli_query($db, "SELECT id,`name." . HTML_LANG . "` FROM device_types ORDER BY `name." . HTML_LANG . "`");
-    while (list($f_devtype_id, $f_devtype_name) = mysqli_fetch_array($t_devtype)) {
-        print_select_item($f_devtype_name, $f_devtype_id, $devtype_value);
+    $t_devtype = get_records_sql($db, "SELECT id,`name." . HTML_LANG . "` FROM device_types ORDER BY `name." . HTML_LANG . "`");
+    foreach ($t_devtype as $row) {
+        print_select_item($row['name.'.HTML_LANG], $row['id'], $devtype_value);
     }
     print "</select>\n";
 }
 
 function get_group($db, $group_value)
 {
-    list($group_name) = mysqli_fetch_array(mysqli_query($db, "SELECT group_name FROM Group_list WHERE id=$group_value"));
-    return $group_name;
+    $group = get_record_sql($db, "SELECT group_name FROM Group_list WHERE id=$group_value");
+    if (!empty($group) and isset($group['group_name'])) {
+        return $group['group_name'];
+    }
+    return '';
 }
 
 function get_devtype_name($db, $device_type_id)
 {
-    list($type_name) = mysqli_fetch_array(mysqli_query($db, "SELECT `name." . HTML_LANG . "` FROM device_types WHERE id=$device_type_id"));
-    return $type_name;
+    $type = get_record_sql($db, "SELECT `name." . HTML_LANG . "` FROM device_types WHERE id=$device_type_id");
+    if (!empty($type) and isset($type['name.'.HTML_LANG])) {
+        return $type['name.'.HTML_LANG];
+    }
+    return '';
 }
 
 function get_l3_interfaces($db, $device_id)
 {
     $wan = '';
     $lan = '';
-    $t_l3int = mysqli_query($db, "SELECT name,interface_type FROM device_l3_interfaces WHERE device_id=$device_id ORDER BY name");
-    while (list($f_name, $f_type) = mysqli_fetch_array($t_l3int)) {
-        if ($f_type == 0) {
-            $lan = $lan . " " . $f_name;
+    $t_l3int = get_records_sql($db, "SELECT name,interface_type FROM device_l3_interfaces WHERE device_id=$device_id ORDER BY name");
+    if (empty($t_l3int)) { return ''; }
+    foreach ($t_l3int as $row) {
+        if ($row['interface_type'] == 0) {
+            $lan = $lan . " " . $row['name'];
         }
-        if ($f_type == 1) {
-            $wan = $wan . " " . $f_name;
+        if ($row['interface_type'] == 1) {
+            $wan = $wan . " " . $row['name'];
         }
     }
     $wan = trim($wan);
@@ -1221,19 +1276,36 @@ function get_l3_interfaces($db, $device_id)
 
 function get_wan_interfaces($db, $device_id)
 {
-    $l3_wan_sql = "SELECT id,name,snmpin FROM device_l3_interfaces WHERE device_id='" . $device_id . "' and interface_type=1 ORDER BY name";
+    $device_id = (int)$device_id;
+    
+    $l3_wan_sql = "SELECT id, name, snmpin 
+                   FROM device_l3_interfaces 
+                   WHERE device_id = '" . $device_id . "' 
+                     AND interface_type = 1 
+                   ORDER BY name";
+    
     $t_l3int = get_records_sql($db, $l3_wan_sql);
-    for ($i = 0; $i < count($t_l3int); ++$i) {
-        $t_l3int[$i]['comment'] = '';
-        if (empty($t_l3int[$i]['snmpin'])) {
+    
+    // Обрабатываем каждый интерфейс
+    foreach ($t_l3int as &$row) { // & - передача по ссылке для изменения исходного массива
+        $row['comment'] = '';
+        
+        if (empty($row['snmpin'])) {
             continue;
         }
-        $con_sql = "SELECT * FROM `device_ports` WHERE device_id='" . $device_id . "' AND snmp_index='" . $t_l3int[$i]['snmpin'] . "'";
+        
+        $con_sql = "SELECT * FROM `device_ports` 
+                    WHERE device_id = '" . $device_id . "' 
+                      AND snmp_index = '" . $row['snmpin'] . "'";
+        
         $conn = get_record_sql($db, $con_sql);
-        if (isset($conn) and !empty($conn['comment'])) {
-            $t_l3int[$i]['comment'] = $conn['comment'];
+        
+        // Проверяем, есть ли комментарий в результатах запроса
+        if (!empty($conn) && !empty($conn['comment'])) {
+            $row['comment'] = $conn['comment'];
         }
     }
+    unset($row); 
     return $t_l3int;
 }
 
@@ -1241,6 +1313,7 @@ function get_gw_subnets($db, $device_id)
 {
     $gw_subnets_sql = 'SELECT gateway_subnets.*,subnets.subnet,subnets.comment FROM gateway_subnets LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id WHERE gateway_subnets.device_id=' . $device_id . ' ORDER BY subnets.subnet ASC';
     $gw_subnets = get_records_sql($db, $gw_subnets_sql);
+    if (empty($gw_subnets)) { return ''; }
     $result = '';
     foreach ($gw_subnets as $row) {
         if (!empty($row)) {
@@ -1253,17 +1326,20 @@ function get_gw_subnets($db, $device_id)
 function print_queue_select($db, $queue_name, $queue_value)
 {
     print "<select id=\"$queue_name\" name=\"$queue_name\">\n";
-    $t_queue = mysqli_query($db, "SELECT id,queue_name FROM Queue_list Order by queue_name");
-    while (list($f_queue_id, $f_queue_name) = mysqli_fetch_array($t_queue)) {
-        print_select_item($f_queue_name, $f_queue_id, $queue_value);
+    $t_queue = get_records_sql($db, "SELECT id,queue_name FROM Queue_list Order by queue_name");
+    foreach ($t_queue as $row) {
+        print_select_item($row['queue_name'], $row['id'], $queue_value);
     }
     print "</select>\n";
 }
 
 function get_queue($db, $queue_value)
 {
-    list($queue_name) = mysqli_fetch_array(mysqli_query($db, "SELECT queue_name FROM Queue_list WHERE id=$queue_value"));
-    return $queue_name;
+    $queue=get_record_sql($db, "SELECT queue_name FROM Queue_list WHERE id=$queue_value");
+    if (!empty($queue) && isset($queue['queue_name'])) {
+        return $queue['queue_name'];
+    }
+    return '';
 }
 
 function print_qa_l3int_select($qa_name, $qa_value = 0)
@@ -1549,10 +1625,10 @@ function print_vendor_select($db, $qa_name, $qa_value)
 {
     print "<select id=\"$qa_name\" name=\"$qa_name\"  style=\"width: 100%\">\n";
     $sSQL = "SELECT id,`name` FROM `vendors` order by `name`";
-    $vendors = mysqli_query($db, $sSQL);
+    $vendors = get_records_sql($db, $sSQL);
     print_select_item(WEB_select_item_all, 0, $qa_value);
-    while (list($v_id, $v_name) = mysqli_fetch_array($vendors)) {
-        print_select_item($v_name, $v_id, $qa_value);
+    foreach ($vendors as $row) {
+        print_select_item($row['name'], $row['id'], $qa_value);
     }
     print "</select>\n";
 }
@@ -1561,9 +1637,9 @@ function print_vendor_set($db, $qa_name, $qa_value)
 {
     print "<select id=\"$qa_name\" name=\"$qa_name\" style=\"width: 100%\">\n";
     $sSQL = "SELECT id,`name` FROM `vendors` order by `name`";
-    $vendors = mysqli_query($db, $sSQL);
-    while (list($v_id, $v_name) = mysqli_fetch_array($vendors)) {
-        print_select_item($v_name, $v_id, $qa_value);
+    $vendors = get_records_sql($db, $sSQL);
+    foreach ($vendors as $row) {
+        print_select_item($row['name'], $row['id'], $qa_value);
     }
     print "</select>\n";
 }
@@ -1571,10 +1647,10 @@ function print_vendor_set($db, $qa_name, $qa_value)
 function get_vendor_name($db, $v_id)
 {
     $vendor = get_record_sql($db, "SELECT * FROM `vendors` WHERE id=" . $v_id);
-    if (empty($vendor)) {
-        return NULL;
+    if (!empty($vendor) and isset($vendor['name'])) {
+        return $vendor['name'];
     }
-    return $vendor['name'];
+    return '';
 }
 
 function get_qa($qa_value, $text = FALSE)
@@ -1638,38 +1714,41 @@ function print_filter_select($db, $filter_name, $group_id)
         $sSQL = "SELECT id,name FROM Filter_list Order by name";
     }
 
-    $t_filters = mysqli_query($db, $sSQL);
-    while (list($filter_id, $filter_name) = mysqli_fetch_array($t_filters)) {
-        print_select_item($filter_name, $filter_id, 0);
+    $t_filters = get_records_sql($db, $sSQL);
+    foreach ($t_filters as $row) {
+        print_select_item($row['name'], $row['id'], 0);
     }
     print "</select>\n";
 }
 
 function get_filter($db, $filter_value)
 {
-    list($filter) = mysqli_fetch_array(mysqli_query($db, "SELECT name FROM Filter_list WHERE id=" . $filter_value));
-    return $filter;
+    $filter = get_record_sql($db, "SELECT name FROM Filter_list WHERE id=" . $filter_value);
+    if (!empty($filter) and isset($filter['name'])) { return $filter['name']; }
+    return '';
 }
 
 function get_login($db, $user_id)
 {
-    list($login) = mysqli_fetch_array(mysqli_query($db, "SELECT login FROM User_list WHERE id=$user_id"));
-    return $login;
+    $login = get_record_sql($db, "SELECT login FROM User_list WHERE id=$user_id");
+    if (!empty($login) and isset($login['login'])) { return $login['login']; }
+    return '';
 }
 
 function get_auth_count($db, $user_id)
 {
-    list($count) = mysqli_fetch_array(mysqli_query($db, "SELECT count(id) FROM User_auth WHERE user_id=$user_id and deleted=0"));
-    return $count;
+    $count = get_record_sql($db, "SELECT count(id) as cnt FROM User_auth WHERE user_id=$user_id and deleted=0");
+    if (!empty($count) and isset($count['cnt'])) { return $count['cnt']; }
+    return 0;
 }
 
 function print_login_select($db, $login_name, $current_login)
 {
     print "<select id=\"$login_name\" name=\"$login_name\" class=\"js-select-single\">\n";
-    $t_login = mysqli_query($db, "SELECT id,login FROM User_list Order by Login");
+    $t_login = get_records_sql($db, "SELECT id,login FROM User_list Order by Login");
     print_select_item('None', 0, $current_login);
-    while (list($f_user_id, $f_login) = mysqli_fetch_array($t_login)) {
-        print_select_item($f_login, $f_user_id, $current_login);
+    foreach ($t_login as $row) {
+        print_select_item($row['login'], $row['id'], $current_login);
     }
     print "</select>\n";
 }
@@ -1677,10 +1756,10 @@ function print_login_select($db, $login_name, $current_login)
 function print_auth_select($db, $login_name, $current_auth)
 {
     print "<select id=\"$login_name\" name=\"$login_name\" class=\"js-select-single\">\n";
-    $t_login = mysqli_query($db, "SELECT U.login,U.fio,A.ip,A.id FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.deleted=0 and (A.id not in (select device_ports.auth_id FROM device_ports) or A.id=$current_auth) order by U.login,U.fio,A.ip");
+    $t_login = get_records_sql($db, "SELECT U.login,U.fio,A.ip,A.id FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.deleted=0 and (A.id not in (select device_ports.auth_id FROM device_ports) or A.id=$current_auth) order by U.login,U.fio,A.ip");
     print_select_item('Empty', 0, $current_auth);
-    while (list($f_login, $f_fio, $f_ip, $f_auth_id) = mysqli_fetch_array($t_login)) {
-        print_select_item($f_login . "[" . $f_fio . "] - " . $f_ip, $f_auth_id, $current_auth);
+    foreach ($t_login as $row) {
+        print_select_item($row['login'] . "[" . $row['fio'] . "] - " . $row['ip'], $row['id'], $current_auth);
     }
     print "</select>\n";
 }
@@ -1688,11 +1767,11 @@ function print_auth_select($db, $login_name, $current_auth)
 function print_auth_select_mac($db, $login_name, $current_auth)
 {
     print "<select id=\"$login_name\" name=\"$login_name\" class=\"js-select-single\">\n";
-    $t_login = mysqli_query($db, "SELECT U.login,U.fio,A.ip,A.mac,A.id FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.deleted=0 and (A.id not in (select device_ports.auth_id FROM device_ports) or A.id=$current_auth) order by U.login,U.fio,A.ip");
+    $t_login = get_records_sql($db, "SELECT U.login,U.fio,A.ip,A.mac,A.id FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.deleted=0 and (A.id not in (select device_ports.auth_id FROM device_ports) or A.id=$current_auth) order by U.login,U.fio,A.ip");
 
     print_select_item('Empty', 0, $current_auth);
-    while (list($f_login, $f_fio, $f_ip, $f_mac, $f_auth_id) = mysqli_fetch_array($t_login)) {
-        print_select_item($f_login . "[" . $f_mac . "] - " . $f_ip, $f_auth_id, $current_auth);
+    foreach ($t_login as $row) {
+        print_select_item($row['login'] . "[" . $row['mac'] . "] - " . $row['ip'], $row['id'], $current_auth);
     }
     print "</select>\n";
 }
@@ -1716,13 +1795,13 @@ function print_device_port_select($db, $field_name, $device_id, $target_id)
         $device_id = 0;
     }
     $d_sql = "SELECT D.device_name, DP.port, DP.device_id, DP.id, DP.ifName FROM devices AS D, device_ports AS DP WHERE D.deleted=0 and D.id = DP.device_id AND (DP.device_id<>$device_id or DP.id=$target_id) and (DP.id not in (select target_port_id FROM device_ports WHERE target_port_id>0 and target_port_id<>$target_id)) ORDER BY D.device_name,DP.port";
-    $t_device = mysqli_query($db, $d_sql);
+    $t_device = get_records_sql($db, $d_sql);
     print_select_item('Empty', 0, $target_id);
-    while (list($f_name, $f_port, $f_device_id, $f_target_id, $f_ifname) = mysqli_fetch_array($t_device)) {
-        if (empty($f_ifname)) {
-            $f_ifname = $f_port;
+    foreach ($t_device as $row) {
+        if (empty($row['ifName'])) {
+            $row['ifName'] = $row['port'];
         }
-        print_select_item($f_name . "[" . $f_port . "] - " . compact_port_name($f_ifname), $f_target_id, $target_id);
+        print_select_item($row['device_name'] . "[" . $row['port'] . "] - " . compact_port_name($row['ifName']), $row['id'], $target_id);
     }
     print "</select>\n";
 }
@@ -1731,10 +1810,10 @@ function print_device_select($db, $field_name, $device_id)
 {
     print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 order by D.device_name ASC";
-    $t_device = mysqli_query($db, $d_sql);
+    $t_device = get_records_sql($db, $d_sql);
     print_select_item(WEB_select_item_every, 0, $device_id);
-    while (list($f_name, $f_device_id) = mysqli_fetch_array($t_device)) {
-        print_select_item($f_name, $f_device_id, $device_id);
+    foreach ($t_device as $row) {
+        print_select_item($row['device_name'], $row['id'], $device_id);
     }
     print "</select>\n";
 }
@@ -1743,10 +1822,10 @@ function print_netdevice_select($db, $field_name, $device_id)
 {
     print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type<=2 order by D.device_name ASC";
-    $t_device = mysqli_query($db, $d_sql);
+    $t_device = get_records_sql($db, $d_sql);
     print_select_item(WEB_select_item_every, 0, $device_id);
-    while (list($f_name, $f_device_id) = mysqli_fetch_array($t_device)) {
-        print_select_item($f_name, $f_device_id, $device_id);
+    foreach ($t_device as $row) {
+        print_select_item($row['device_name'], $row['id'], $device_id);
     }
     print "</select>\n";
 }
@@ -1755,16 +1834,16 @@ function print_vlan_select($db, $field_name, $vlan)
 {
     print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" style=\"width: 100px;\" >\n";
     $d_sql = "SELECT DISTINCT vlan FROM device_ports ORDER BY vlan DESC";
-    $v_device = mysqli_query($db, $d_sql);
+    $v_device = get_records_sql($db, $d_sql);
     if (!isset($vlan) or empty($vlan)) {
         $vlan = 1;
     };
     print_select_item('1', 1, $vlan);
-    while (list($f_vlan) = mysqli_fetch_array($v_device)) {
-        if ($f_vlan === '1') {
+    foreach ($v_device as $row) {
+        if ($row['vlan'] === '1') {
             continue;
         }
-        print_select_item($f_vlan, $f_vlan, $vlan);
+        print_select_item($row['vlan'], $row['vlan'], $vlan);
     }
     print "</select>\n";
 }
@@ -1773,10 +1852,10 @@ function print_device_select_ip($db, $field_name, $device_ip)
 {
     print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT D.device_name, D.ip FROM devices AS D Where D.deleted=0 order by D.device_name ASC";
-    $t_device = mysqli_query($db, $d_sql);
+    $t_device = get_records_sql($db, $d_sql);
     print_select_item(WEB_select_item_every, '', $device_ip);
-    while (list($f_name, $f_device_ip) = mysqli_fetch_array($t_device)) {
-        print_select_item($f_name, $f_device_ip, $device_ip);
+    foreach ($t_device as $row) {
+        print_select_item($row['device_name'], $row['ip'], $device_ip);
     }
     print "</select>\n";
 }
@@ -1785,13 +1864,13 @@ function print_syslog_device_select($db, $field_name, $syslog_filter, $device_ip
 {
     print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
     $d_sql = "SELECT R.ip, D.device_name FROM (SELECT DISTINCT ip FROM remote_syslog WHERE $syslog_filter) AS R LEFT JOIN (SELECT ip, device_name FROM devices WHERE deleted=0) AS D ON R.ip=D.ip ORDER BY R.ip ASC";
-    $t_device = mysqli_query($db, $d_sql);
+    $t_device = get_records_sql($db, $d_sql);
     print_select_item(WEB_select_item_every, '', $device_ip);
-    while (list($f_ip, $f_name) = mysqli_fetch_array($t_device)) {
-        if (!isset($f_name) or empty($f_name)) {
-            $f_name = $f_ip;
+    foreach ($t_device as $row) {
+        if (!isset($row['device_name']) or empty($row['device_name'])) {
+            $row['device_name'] = $row['ip'];
         }
-        print_select_item($f_name, $f_ip, $device_ip);
+        print_select_item($row['device_name'], $row['ip'], $device_ip);
     }
     print "</select>\n";
 }
@@ -1800,10 +1879,10 @@ function print_gateway_select($db, $field_name, $device_id)
 {
     print "<select id=\"$field_name\" name=\"$field_name\" >\n";
     $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type=2 order by D.device_name ASC";
-    $t_device = mysqli_query($db, $d_sql);
+    $t_device = get_records_sql($db, $d_sql);
     print_select_item(WEB_select_item_every, 0, $device_id);
-    while (list($f_name, $f_device_id) = mysqli_fetch_array($t_device)) {
-        print_select_item($f_name, $f_device_id, $device_id);
+    foreach ($t_device as $row) {
+        print_select_item($row['device_name'], $row['id'], $device_id);
     }
     print "</select>\n";
 }
@@ -1811,10 +1890,10 @@ function print_gateway_select($db, $field_name, $device_id)
 function get_gateways($db)
 {
     $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type=2 order by D.device_name ASC";
-    $t_device = mysqli_query($db, $d_sql);
+    $t_device = get_records_sql($db, $d_sql);
     unset($result);
-    while (list($f_name, $f_device_id) = mysqli_fetch_array($t_device)) {
-        $result[$f_device_id] = $f_name;
+    foreach ($t_device as $row) {
+        $result[$row['id']] = $row['device_name'];
     }
     return $result;
 }
@@ -1822,9 +1901,9 @@ function get_gateways($db)
 function print_device_port($db, $target_id)
 {
     $d_sql = "SELECT D.device_name, DP.port, DP.device_id FROM devices AS D, device_ports AS DP WHERE D.id = DP.device_id AND DP.id=$target_id and D.deleted=0";
-    $t_device = mysqli_query($db, $d_sql);
-    while (list($f_name, $f_port, $f_device_id) = mysqli_fetch_array($t_device)) {
-        print "<a href=\"/admin/devices/switchport.php?id=$f_device_id\">" . $f_name . "[" . $f_port . "]</a>\n";
+    $t_device = get_records_sql($db, $d_sql);
+    foreach ($t_device as $row) {
+        print "<a href=\"/admin/devices/switchport.php?id=".$row['device_id']."\">" . $row['device_name'] . "[" . $row['port'] . "]</a>\n";
     }
 }
 
@@ -1902,20 +1981,20 @@ function get_device_by_auth($db, $id)
 function print_auth_port($db, $port_id, $new_window = FALSE)
 {
     $d_sql = "SELECT A.ip, A.ip_int, A.mac, A.id, A.dns_name, A.user_id FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
-    $t_auth = mysqli_query($db, $d_sql);
-    while (list($f_ip, $f_int, $f_mac, $f_auth_id, $f_dns, $f_user_id) = mysqli_fetch_array($t_auth)) {
-        $name = $f_ip;
-        if (!empty($f_dns)) {
-            $name = $f_dns;
+    $t_auth = get_records_sql($db, $d_sql);
+    foreach ($t_auth as $row) {
+        $name = $row['ip'];
+        if (!empty($row['dns_name'])) {
+            $name = $row['dns_name'];
         }
-        $title = get_login($db, $f_user_id) . " =>" . $f_ip . "[" . $f_mac . "]";
-        if (!empty($f_dns)) {
-            $title .= " | " . $f_dns;
+        $title = get_login($db, $row['user_id']) . " =>" . $row['ip'] . "[" . $row['mac'] . "]";
+        if (!empty($row['dns_name'])) {
+            $title .= " | " . $row['dns_name'];
         }
         if ($new_window) {
-            print "<a href=\"\" title=\"" . $title . "\" onclick=\"" . open_window_url("/admin/users/editauth.php?id=" . $f_auth_id) . " return false;\">" . $name . " [" . $f_ip . "]</a><br>";
+            print "<a href=\"\" title=\"" . $title . "\" onclick=\"" . open_window_url("/admin/users/editauth.php?id=" . $row['id']) . " return false;\">" . $name . " [" . $row['ip'] . "]</a><br>";
         } else {
-            print "<a href=/admin/users/editauth.php?id=" . $f_auth_id . " title=\"" . $title . "\" >" . $name . " [" . $f_ip . "]</a><br>";
+            print "<a href=/admin/users/editauth.php?id=" . $row['id'] . " title=\"" . $title . "\" >" . $name . " [" . $row['ip'] . "]</a><br>";
         }
     }
 }
@@ -1923,16 +2002,16 @@ function print_auth_port($db, $port_id, $new_window = FALSE)
 function get_port_comment($db, $port_id, $port_comment = '')
 {
     $d_sql = "SELECT A.ip_int, A.comments FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
-    $t_auth = mysqli_query($db, $d_sql);
+    $t_auth = get_records_sql($db, $d_sql);
     $comment_found = 0;
     $result = '';
-    while (list($f_int, $f_comment) = mysqli_fetch_array($t_auth)) {
-        if (!empty($f_comment)) {
+    foreach ($t_auth as $row) {
+        if (!empty($row['comments'])) {
             $comment_found = 1;
         } else {
-            $f_comment = '';
+            $row['comments'] = '';
         }
-        $result .= $f_comment . '<br>';
+        $result .= $row['comments'] . '<br>';
     }
     if (!$comment_found) {
         return $port_comment;
@@ -1996,64 +2075,56 @@ function print_auth_detail($db, $auth_id)
 
 function get_auth_port_count($db, $port_id)
 {
-    $d_sql = "SELECT count(A.id) FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0";
-    $t_device = mysqli_query($db, $d_sql);
-    list($f_count) = mysqli_fetch_array($t_device);
-    if (!isset($f_count)) {
-        $f_count = 0;
-    }
-    return $f_count;
+    $d_sql = "SELECT count(A.id) as cnt FROM User_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0";
+    $t_device = get_record_sql($db, $d_sql);
+    if (empty($t_device)) { return 0; }
+    return $t_device['cnt'];
 }
 
 function get_connection($db, $auth_id)
 {
     $d_sql = "SELECT D.device_name, DP.port FROM devices AS D, device_ports AS DP, connections AS C WHERE D.deleted=0 and D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id=$auth_id";
-    $t_device = mysqli_query($db, $d_sql);
-    list($f_name, $f_port) = mysqli_fetch_array($t_device);
-    if (isset($f_name)) {
-        $result = expand_device_name($db, $f_name) . "[" . $f_port . "]";
-    } else {
-        $result = '';
+    $t_device = get_record_sql($db, $d_sql);
+    if (!empty($t_device) and isset($t_device['device_name'])) {
+        return expand_device_name($db, $t_device['device_name']) . "[" . $t_device['port'] . "]";
     }
-    return $result;
+    return '';
 }
 
 function get_connection_string($db, $auth_id)
 {
     $d_sql = "SELECT D.device_name, DP.port FROM devices AS D, device_ports AS DP, connections AS C WHERE D.deleted=0 and D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id=$auth_id";
-    $t_device = mysqli_query($db, $d_sql);
-    list($f_name, $f_port) = mysqli_fetch_array($t_device);
-    if (isset($f_name)) {
-        $result = $f_name . "[" . $f_port . "]";
-    } else {
-        $result = '';
+    $t_device = get_record_sql($db, $d_sql);
+    if (!empty($t_device) and isset($t_device['device_name'])) {
+        return $t_device['device_name'] . "[" . $t_device['port'] . "]";
     }
-    return $result;
+    return '';
 }
 
 function get_port($db, $port_id)
 {
     $d_sql = "SELECT D.device_name, DP.port FROM devices AS D, device_ports AS DP WHERE D.deleted=0 and D.id = DP.device_id AND DP.id = $port_id";
-    $t_device = mysqli_query($db, $d_sql);
-    list($f_name, $f_port) = mysqli_fetch_array($t_device);
-    if (isset($f_name)) {
-        $result = expand_device_name($db, $f_name) . "[" . $f_port . "]";
-    } else {
-        $result = '';
+    $t_device = get_record_sql($db, $d_sql);
+    if (!empty($t_device) and isset($t_device['device_name'])) {
+        return expand_device_name($db, $t_device['device_name']) . "[" . $t_device['port'] . "]";
     }
-    return $result;
+    return '';
 }
 
 function print_option_select($db, $option_name)
 {
     print "<select id=\"$option_name\" name=\"$option_name\">\n";
-    $t_option = mysqli_query($db, "SELECT id,option_name FROM config_options WHERE uniq=0 AND draft=0 order by option_name");
-    while (list($f_id, $f_name) = mysqli_fetch_array($t_option)) {
-        print "<option value=$f_id>$f_name</option>";
+    $t_option = get_records_sql($db, "SELECT id,option_name FROM config_options WHERE uniq=0 AND draft=0 order by option_name");
+    if (!empty($t_option)) {
+        foreach ($t_option as $row) {
+            print "<option value=".$row['id'].">".$row['option_name']."</option>";
+        }
     }
-    $t_option = mysqli_query($db, "SELECT id,option_name FROM config_options WHERE draft=0 AND uniq=1 AND id NOT IN (select option_id FROM config where draft=0) order by option_name");
-    while (list($f_id, $f_name) = mysqli_fetch_array($t_option)) {
-        print "<option value=$f_id>$f_name</option>";
+    $t_option = get_records_sql($db, "SELECT id,option_name FROM config_options WHERE draft=0 AND uniq=1 AND id NOT IN (select option_id FROM config where draft=0) order by option_name");
+    if (!empty($t_option)) {
+        foreach ($t_option as $row) {
+            print "<option value=".$row['id'].">".$row['option_name']."</option>";
+        }
     }
     print "</select>\n";
 }
@@ -2469,10 +2540,11 @@ function get_auth($db, $current_auth)
     if ($current_auth == 0) {
         return;
     }
-    $t_login = mysqli_query($db, "SELECT U.login,A.ip FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.id=$current_auth");
-    list($f_login, $f_ip) = mysqli_fetch_array($t_login);
-    $result = $f_login . "[" . $f_ip . "]";
-    return $result;
+    $t_login = get_record_sql($db, "SELECT U.login,A.ip FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.id=$current_auth");
+    if (!empty($t_login) and isset($t_login['login'])) {
+        return $f_login['login'] . "[" . $t_login['ip'] . "]";
+    }
+    return '';
 }
 
 function get_auth_by_mac($db, $mac)
@@ -2481,10 +2553,9 @@ function get_auth_by_mac($db, $mac)
         return;
     }
     $mac = mac_dotted($mac);
-    $t_login = mysqli_query($db, "SELECT U.id,U.login,A.id,A.ip FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.mac='" . $mac . "' and A.deleted=0 ORDER BY A.last_found DESC limit 1");
-    list($f_id, $f_login, $f_auth_id, $f_ip) = mysqli_fetch_array($t_login);
-    if (isset($f_id)) {
-        $result['auth'] = '<a href=/admin/users/edituser.php?id=' . $f_id . '>' . $f_login . '</a> / ip: <a href=/admin/users/editauth.php?id=' . $f_auth_id . '>' . $f_ip . '</a>';
+    $t_login = get_record_sql($db, "SELECT U.id,U.login,A.id as auth_id,A.ip FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.mac='" . $mac . "' and A.deleted=0 ORDER BY A.last_found DESC");
+    if (!empty($t_login) and isset($t_login['id'])) {
+        $result['auth'] = '<a href=/admin/users/edituser.php?id=' . $t_login['id'] . '>' . $t_login['login'] . '</a> / ip: <a href=/admin/users/editauth.php?id=' . $t_login['auth_id'] . '>' . $t_login['ip'] . '</a>';
     } else {
         $result['auth'] = 'Unknown';
     }
@@ -2500,10 +2571,11 @@ function get_auth_mac($db, $current_auth)
     if ($current_auth == 0) {
         return;
     }
-    $t_login = mysqli_query($db, "SELECT U.login,A.mac FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.id=$current_auth");
-    list($f_login, $f_mac) = mysqli_fetch_array($t_login);
-    $result = $f_login . "[" . $f_mac . "]";
-    return $result;
+    $t_login = get_record_sql($db, "SELECT U.login,A.mac FROM User_list as U, User_auth as A WHERE A.user_id=U.id and A.id=$current_auth");
+    if (!empty($t_login) and isset($t_loing['login'])) {
+        return $t_login['login'] . " [" . $t_login['mac'] . "]";
+    }
+    return '';
 }
 
 function add_auth_rule($db, $rule, $type, $user_id)
@@ -2788,39 +2860,78 @@ function unset_lock_discovery($db, $device_id)
 
 function set_port_for_group($db, $group_id, $place_id, $state)
 {
-    $authSQL = 'SELECT User_auth.id,User_auth.dns_name,User_auth.ip FROM User_auth, User_list WHERE User_auth.user_id = User_list.id AND User_auth.deleted=0 and User_list.ou_id=' . $group_id;
-    $auth_list = mysqli_query($db, $authSQL);
+
+    $authSQL = 'SELECT User_auth.id, User_auth.dns_name, User_auth.ip 
+                FROM User_auth, User_list 
+                WHERE User_auth.user_id = User_list.id 
+                  AND User_auth.deleted = 0 
+                  AND User_list.ou_id = ' . $group_id;
+    
+    $auth_list = get_records_sql($db, $authSQL);
     LOG_VERBOSE($db, 'Mass port state change started!');
-    // get auth list for group
-    while (list($a_id, $a_name, $a_ip) = mysqli_fetch_array($auth_list)) {
-        // get device and port for auth
+    
+    // Обработка списка авторизаций
+    foreach ($auth_list as $row) {
+        // Фильтр по месту
         if ($place_id == 0) {
             $place_filter = '';
         } else {
-            $place_filter = 'D.building_id=' . $place_id . ' and ';
-        }
-        $devSQL = 'SELECT D.id, D.device_name, D.vendor_id, D.device_model, D.ip, DP.port, DP.snmp_index  FROM devices AS D, device_ports AS DP, connections AS C WHERE ' . $place_filter . ' D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id=' . $a_id . ' LIMIT 1';
-        $dev_info = mysqli_query($db, $devSQL);
-        list($d_id, $d_name, $d_vendor_id, $d_model, $d_ip, $d_port, $d_snmp_index) = mysqli_fetch_array($dev_info);
-        
-        if (!isset($d_id)) {
-            continue;
+            $place_filter = 'D.building_id = ' . $place_id . ' AND ';
         }
         
-        $device=get_record($db,'devices',"id=".$d_id);
+        // Получение информации об устройстве
+        $devSQL = 'SELECT D.id, D.device_name, D.vendor_id, D.device_model, D.ip, 
+                          DP.port, DP.snmp_index  
+                   FROM devices AS D, device_ports AS DP, connections AS C 
+                   WHERE ' . $place_filter . ' 
+                         D.id = DP.device_id 
+                         AND DP.id = C.port_id 
+                         AND C.auth_id = ' . $row['id'];
+        
+        $dev_info = get_record_sql($db, $devSQL);
+        
+        if (empty($dev_info)) { 
+            continue; 
+        }
+        
+        // Получение устройства
+        $device = get_record($db, 'devices', "id = " . (int)$dev_info['id']);
         $snmp = getSnmpAccess($device);
-
+        
+        // Определение режима и обновление nagios_handler
         if ($state == 1) {
             $mode = 'enable';
-            run_sql($db, "Update User_auth set nagios_handler='restart-port' WHERE id=$a_id and nagios_handler='manual-mode'");
+            $runSQL = "UPDATE User_auth 
+                       SET nagios_handler = 'restart-port' 
+                       WHERE id = " . (int)$row['id'] . " 
+                         AND nagios_handler = 'manual-mode'";
         } else {
             $mode = 'disable';
-            run_sql($db, "Update User_auth set nagios_handler='manual-mode' WHERE id=$a_id and nagios_handler='restart-port'");
+            $runSQL = "UPDATE User_auth 
+                       SET nagios_handler = 'manual-mode' 
+                       WHERE id = " . (int)$row['id'] . " 
+                         AND nagios_handler = 'restart-port'";
         }
-        LOG_INFO($db, "At device $d_name [$d_ip] $mode port $d_port for auth_id: $a_id ($a_ip [$a_name])");
-        set_port_state($d_vendor_id, $d_snmp_index, $d_ip, $snmp, $state);
-        set_port_poe_state($d_vendor_id, $d_port, $d_snmp_index, $d_ip, $snmp, $state);
+        
+        run_sql($db, $runSQL);
+        
+        // Логирование
+        LOG_INFO($db, "At device " . $dev_info['device_name'] . 
+                      " [" . $dev_info['ip'] . "] " . 
+                      $mode . " port " . $dev_info['port'] . 
+                      " for auth_id: " . $row['id'] . 
+                      " (" . $row['ip'] . " [" . $row['dns_name'] . "])");
+        
+        // Установка состояния порта
+        set_port_state($dev_info['vendor_id'], $dev_info['snmp_index'], 
+                       $dev_info['ip'], $snmp, $state);
+        
+        // Установка состояния PoE
+        set_port_poe_state($dev_info['vendor_id'], $dev_info['port'], 
+                           $dev_info['snmp_index'], $dev_info['ip'], 
+                           $snmp, $state);
     }
+    
     LOG_VERBOSE($db, 'Mass port state change stopped.');
 }
 
@@ -2900,23 +3011,23 @@ function mac_dotted($mac)
 
 function unbind_ports($db, $device_id)
 {
-    $target = mysqli_query($db, "SELECT U.target_port_id,U.id FROM device_ports U WHERE U.device_id=$device_id");
-    while (list($target_id, $id) = mysqli_fetch_array($target)) {
-        run_sql($db, "UPDATE device_ports SET target_port_id=0 WHERE target_port_id=" . $id);
-        run_sql($db, "UPDATE device_ports SET target_port_id=0 WHERE id=" . $id);
+    $target = get_records_sql($db, "SELECT U.target_port_id,U.id FROM device_ports U WHERE U.device_id=$device_id");
+    foreach ($target as $row) {
+        run_sql($db, "UPDATE device_ports SET target_port_id=0 WHERE target_port_id=" . $row['id']);
+        run_sql($db, "UPDATE device_ports SET target_port_id=0 WHERE id=" . $row['id']);
     }
 }
 
 function bind_ports($db, $port_id, $target_id)
 {
-    $old_target = mysqli_query($db, "SELECT U.target_port_id FROM device_ports U WHERE U.id=$port_id");
-    list($old_target_id) = mysqli_fetch_array($old_target);
     // unbind current connection
     $new['target_port_id'] = 0;
-    update_record($db, "device_ports", "id='$port_id'", $new);
-    if (isset($old_target_id)) {
+    $old_target = get_record_sql($db, "SELECT U.target_port_id FROM device_ports U WHERE U.id=$port_id");
+    if (!empty($old_target)) { 
+        $old_target_id = $old_target['target_port_id'];
         update_record($db, "device_ports", "id='$old_target_id'", $new);
-    }
+        }
+    update_record($db, "device_ports", "id='$port_id'", $new);
     // new link
     if (isset($target_id) and $target_id > 0) {
         $new['target_port_id'] = $target_id;
@@ -3366,10 +3477,10 @@ function is_hotspot($db, $ip)
     }
     LOG_DEBUG($db, "Check hotspot network for ip: $ip");
     $ip_aton = ip2long($ip);
-    $t_option = mysqli_query($db, "SELECT subnet,ip_int_start,ip_int_stop FROM `subnets` WHERE hotspot=1");
-    while (list($f_net, $f_start, $f_stop) = mysqli_fetch_array($t_option)) {
-        if ($ip_aton >= $f_start and $ip_aton <= $f_stop) {
-            LOG_DEBUG($db, "ip: $ip [$ip_aton] found in network $f_net: [" . $f_start . ".." . $f_stop . "]");
+    $t_option = get_records_sql($db, "SELECT subnet,ip_int_start,ip_int_stop FROM `subnets` WHERE hotspot=1");
+    foreach ($t_option as $row) {
+        if ($ip_aton >= $row['ip_int_start'] and $ip_aton <= $row['ip_int_stop']) {
+            LOG_DEBUG($db, "ip: $ip [$ip_aton] found in hotspot network ".$row['subnet'].": [" . $row['ip_int_start'] . ".." . $row['ip_int_stop'] . "]");
             return 1;
         }
     }
@@ -3384,10 +3495,10 @@ function is_office($db, $ip)
     }
     LOG_DEBUG($db, "Check office network for ip: $ip");
     $ip_aton = ip2long($ip);
-    $t_option = mysqli_query($db, "SELECT subnet,ip_int_start,ip_int_stop FROM `subnets` WHERE office=1");
-    while (list($f_net, $f_start, $f_stop) = mysqli_fetch_array($t_option)) {
-        if ($ip_aton >= $f_start and $ip_aton <= $f_stop) {
-            LOG_DEBUG($db, "ip: $ip [$ip_aton] found in office $f_net: [" . $f_start . ".." . $f_stop . "]");
+    $t_option = get_records_sql($db, "SELECT subnet,ip_int_start,ip_int_stop FROM `subnets` WHERE office=1");
+    foreach ($t_option as $row) {
+        if ($ip_aton >= $row['ip_int_start'] and $ip_aton <= $row['ip_int_stop']) {
+            LOG_DEBUG($db, "ip: $ip [$ip_aton] found in office network ".$row['subnet'].": [" . $row['ip_int_start'] . ".." . $row['ip_int_stop'] . "]");
             return 1;
         }
     }
