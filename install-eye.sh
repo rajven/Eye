@@ -11,14 +11,6 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Global variables
-MYSQL_PASSWORD=""
-POSTGRES_PASSWORD=""
-NA
-DB_TYPE="mysql"  # Default database type
-DB_NAME="stat"
-DB_USER="stat"
-
 # Output functions
 print_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
@@ -164,11 +156,11 @@ install_deps_altlinux() {
     apt-get update
 
     # General utilities
-    apt-get install -y git xxd wget fping hwdata
+    apt-get install -y git xxd wget fping hwdata rsync
 
     # Database installation based on selected type
     if [[ "$DB_TYPE" == "postgresql" ]]; then
-        apt-get install -y postgresql postgresql-client
+        apt-get install -y postgresql17 postgresql17-server postgresql17-contrib postgresql17-perl
     else
         apt-get install -y mariadb-server mariadb-client
     fi
@@ -176,7 +168,7 @@ install_deps_altlinux() {
     # Web server and PHP
     if [[ "$DB_TYPE" == "postgresql" ]]; then
         apt-get install -y apache2 \
-            php8.2 php8.2-pgsql php8.2-pdo-pgsql php8.2-intl php8.2-mbstring \
+            php8.2 php8.2-pgsql php8.2-pdo_pgsql php8.2-intl php8.2-mbstring \
             pear-Mail php8.2-snmp php8.2-zip \
             php8.2-fpm-fcgi apache2-mod_fcgid
     else
@@ -232,7 +224,7 @@ install_deps_debian() {
     apt-get update
 
     # General utilities
-    apt-get install -y git xxd bsdmainutils pwgen wget fping ieee-data
+    apt-get install -y git xxd bsdmainutils pwgen wget fping ieee-data rsync
 
     # Database installation based on selected type
     if [[ "$DB_TYPE" == "postgresql" ]]; then
@@ -538,7 +530,7 @@ download_additional_scripts() {
     print_info "Downloading jsTree..."
     if wget -q https://github.com/vakata/jstree/archive/3.3.12.tar.gz -O jstree.tar.gz; then
         tar -xzf jstree.tar.gz -C /opt/Eye/html/js/
-        mv /opt/Eye/html/js/jstree-3.3.12/dist/* /opt/Eye/html/js/jstree
+        rsync -a /opt/Eye/html/js/jstree-3.3.12/dist/ /opt/Eye/html/js/jstree/
         rm -rf /opt/Eye/html/js/jstree-3.3.12
         rm -f jstree.tar.gz
     else
@@ -676,6 +668,15 @@ EOF
 setup_postgresql() {
     print_step "Configuring PostgreSQL"
 
+    PGDATA="/var/lib/pgsql/data"
+    if [[ "$OS_FAMILY" == "alt" ]]; then
+        echo "root ALL=(ALL:ALL) NOPASSWD: ALL" >/etc/sudoers.d/root
+        PGDATA="/var/lib/pgsql/data"
+        if [ -z "$(ls -A $PGDATA 2>/dev/null)" ]; then
+            /etc/init.d/postgresql initdb
+            fi
+        fi
+
     # Start and enable service
     $SERVICE_MANAGER enable postgresql
     $SERVICE_MANAGER start postgresql
@@ -703,7 +704,11 @@ setup_postgresql() {
     print_info "Importing database structure..."
 
     # Import main SQL file as postgres user
-    sudo -u postgres psql -f ${SQL_CREATE_FILE}
+    if [[ "$OS_FAMILY" == "alt" ]]; then
+        psql -U postgres -f ${SQL_CREATE_FILE}
+        else
+        sudo -u postgres psql -f ${SQL_CREATE_FILE}
+        fi
 
     if [[ $? -ne 0 ]]; then
         print_error "Error importing create_db.sql"
@@ -714,11 +719,21 @@ setup_postgresql() {
 
     # Set password for stat user
     print_info "Setting password for user 'stat'..."
-    sudo -u postgres psql -c "ALTER USER stat WITH PASSWORD '$DB_PASSWORD';"
+    if [[ "$OS_FAMILY" == "alt" ]]; then
+        psql -U postgres -c "CREATE USER stat WITH PASSWORD '$DB_PASSWORD';"
+        psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE stat TO stat;"
+        else
+        sudo -u postgres psql -c "CREATE USER stat WITH PASSWORD '$DB_PASSWORD';"
+        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE stat TO stat;"
+        fi
 
     # Import data
     print_info "Importing initial data..."
-    sudo -u postgres psql -d stat -f ${SQL_DATA_FILE}
+    if [[ "$OS_FAMILY" == "alt" ]]; then
+        psql -U postgres -d stat -f ${SQL_DATA_FILE}
+        else
+        sudo -u postgres psql -d stat -f ${SQL_DATA_FILE}
+        fi
 
     if [[ $? -ne 0 ]]; then
         print_warn "Error importing data.sql (data may already exist)"
@@ -726,19 +741,52 @@ setup_postgresql() {
         print_info "Initial data imported"
     fi
 
-    # Configure PostgreSQL for MD5 authentication
-    local pg_hba_file="/etc/postgresql/$(ls /etc/postgresql/ | head -1)/main/pg_hba.conf"
-    if [[ -f "$pg_hba_file" ]]; then
-        # Backup original
-        cp "$pg_hba_file" "${pg_hba_file}.backup"
-        
-        # Add local md5 authentication if not present
-        if ! grep -q "local.*stat.*md5" "$pg_hba_file"; then
-            echo "local   stat            stat                                    md5" >> "$pg_hba_file"
-            print_info "Added MD5 authentication for stat user in pg_hba.conf"
-        fi
+    # Grant privileges on all tables to stat user
+    print_info "Granting privileges on all tables to user 'stat'..."
+    if [[ "$OS_FAMILY" == "alt" ]]; then
+        psql -U postgres -d stat <<EOF
+GRANT ALL ON ALL TABLES IN SCHEMA public TO stat;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO stat;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO stat;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO stat;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO stat;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO stat;
+EOF
+        else
+        sudo -u postgres psql -d stat <<EOF
+GRANT ALL ON ALL TABLES IN SCHEMA public TO stat;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO stat;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO stat;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO stat;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO stat;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO stat;
+EOF
     fi
 
+    # Configure PostgreSQL for MD5 authentication
+    if [[ "$OS_FAMILY" == "alt" ]]; then
+        local pg_hba_file="/var/lib/pgsql/data/pg_hba.conf"
+        if [[ -f "$pg_hba_file" ]]; then
+            # Backup original
+            cp "$pg_hba_file" "${pg_hba_file}.backup"
+            # Add local md5 authentication if not present
+            if ! grep -q "local.*stat.*md5" "$pg_hba_file"; then
+                echo "local   stat            stat                                    scram-sha-256" >> "$pg_hba_file"
+                print_info "Added MD5 authentication for stat user in pg_hba.conf"
+                fi
+            fi
+        else
+        local pg_hba_file="/etc/postgresql/$(ls /etc/postgresql/ | head -1)/main/pg_hba.conf"
+        if [[ -f "$pg_hba_file" ]]; then
+            # Backup original
+            cp "$pg_hba_file" "${pg_hba_file}.backup"
+            # Add local md5 authentication if not present
+            if ! grep -q "local.*stat.*md5" "$pg_hba_file"; then
+                echo "local   stat            stat                                    scram-sha-256" >> "$pg_hba_file"
+                print_info "Added MD5 authentication for stat user in pg_hba.conf"
+                fi
+            fi
+        fi
     # Restart PostgreSQL to apply changes
     $SERVICE_MANAGER restart postgresql
 

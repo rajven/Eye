@@ -48,60 +48,89 @@ function db_escape($connection, $value) {
     }
 }
 
-function new_connection ($db_host, $db_user, $db_password, $db_name)
+function new_connection ($db_type, $db_host, $db_user, $db_password, $db_name)
 {
     // Создаем временный логгер для отладки до установки соединения
     $temp_debug_message = function($message) {
         error_log("DB_CONNECTION_DEBUG: " . $message);
     };
-    
+
     $temp_debug_message("Starting new_connection function");
-    $temp_debug_message("DB parameters - host: $db_host, user: $db_user, db: $db_name");
-    
+    $temp_debug_message("DB parameters - type: $db_type, host: $db_host, user: $db_user, db: $db_name");
+
     try {
         $temp_debug_message("Constructing DSN");
-        $dsn = "mysql:host=$db_host;dbname=$db_name;charset=utf8mb4";
-        $temp_debug_message("DSN: $dsn");
         
+        // Определяем DSN в зависимости от типа базы данных
+        $dsn = "";
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
-            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
         ];
         
-        $temp_debug_message("Attempting to create PDO connection");
+        if ($db_type === 'mysql') {
+            $dsn = "mysql:host=$db_host;dbname=$db_name;charset=utf8mb4";
+            $options[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET NAMES utf8mb4";
+        } elseif ($db_type === 'pgsql' || $db_type === 'postgresql') {
+            $dsn = "pgsql:host=$db_host;dbname=$db_name;options='--client_encoding=UTF8'";
+            $options[PDO::ATTR_PERSISTENT] = true; // Опционально: включение постоянных соединений для PostgreSQL
+        } else {
+            throw new Exception("Unsupported database type: $db_type. Supported types: mysql, pgsql");
+        }
+        
+        $temp_debug_message("DSN: $dsn");
         $temp_debug_message("PDO options: " . json_encode($options));
-        
+        $temp_debug_message("Attempting to create PDO connection");
+
         $result = new PDO($dsn, $db_user, $db_password, $options);
-        
+
         // Теперь у нас есть соединение, можем использовать LOG_DEBUG
         $temp_debug_message("PDO connection created successfully");
-        $temp_debug_message("PDO connection info: " . $result->getAttribute(PDO::ATTR_CONNECTION_STATUS));
-        $temp_debug_message("PDO client version: " . $result->getAttribute(PDO::ATTR_CLIENT_VERSION));
-        $temp_debug_message("PDO server version: " . $result->getAttribute(PDO::ATTR_SERVER_VERSION));
+        $temp_debug_message("PDO connection info: " . ($result->getAttribute(PDO::ATTR_CONNECTION_STATUS) ?? 'N/A for PostgreSQL'));
         
-        // Проверка кодировки
-        $stmt = $result->query("SHOW VARIABLES LIKE 'character_set_connection'");
-        $charset = $stmt->fetch(PDO::FETCH_ASSOC);
-        $temp_debug_message("Database character set: " . ($charset['Value'] ?? 'not set'));
-        
+        // Проверяем наличие атрибутов перед использованием
+        if ($db_type === 'mysql') {
+            $temp_debug_message("PDO client version: " . $result->getAttribute(PDO::ATTR_CLIENT_VERSION));
+            $temp_debug_message("PDO server version: " . $result->getAttribute(PDO::ATTR_SERVER_VERSION));
+            
+            // Проверка кодировки для MySQL
+            $stmt = $result->query("SHOW VARIABLES LIKE 'character_set_connection'");
+            $charset = $stmt->fetch(PDO::FETCH_ASSOC);
+            $temp_debug_message("Database character set: " . ($charset['Value'] ?? 'not set'));
+        } elseif ($db_type === 'pgsql' || $db_type === 'postgresql') {
+            // Проверка кодировки для PostgreSQL
+            $stmt = $result->query("SHOW server_encoding");
+            $charset = $stmt->fetch(PDO::FETCH_ASSOC);
+            $temp_debug_message("PostgreSQL server encoding: " . ($charset['server_encoding'] ?? 'not set'));
+            
+            // Получаем версию PostgreSQL
+            $stmt = $result->query("SELECT version()");
+            $version = $stmt->fetch(PDO::FETCH_ASSOC);
+            $temp_debug_message("PostgreSQL version: " . ($version['version'] ?? 'unknown'));
+        }
+
         return $result;
-        
+
     } catch (PDOException $e) {
         // Логируем ошибку через error_log, так как соединение не установлено
-        error_log("DB_CONNECTION_ERROR: Failed to connect to MySQL");
-        error_log("DB_CONNECTION_ERROR: DSN: mysql:host=$db_host;dbname=$db_name;charset=utf8mb4");
+        error_log("DB_CONNECTION_ERROR: Failed to connect to $db_type");
+        error_log("DB_CONNECTION_ERROR: DSN: $dsn");
         error_log("DB_CONNECTION_ERROR: User: $db_user");
         error_log("DB_CONNECTION_ERROR: Error code: " . $e->getCode());
         error_log("DB_CONNECTION_ERROR: Error message: " . $e->getMessage());
         error_log("DB_CONNECTION_ERROR: Trace: " . $e->getTraceAsString());
-        
+
         // Также выводим в консоль для немедленной обратной связи
-        echo "Error connect to MySQL " . PHP_EOL;
+        echo "Error connect to $db_type " . PHP_EOL;
         echo "Error message: " . $e->getMessage() . PHP_EOL;
-        echo "DSN: mysql:host=$db_host;dbname=$db_name;charset=utf8mb4" . PHP_EOL;
-        
+        echo "DSN: $dsn" . PHP_EOL;
+
+        exit();
+    } catch (Exception $e) {
+        // Обработка других исключений (например, неподдерживаемый тип БД)
+        error_log("DB_CONNECTION_ERROR: " . $e->getMessage());
+        echo "Error: " . $e->getMessage() . PHP_EOL;
         exit();
     }
 }
@@ -1161,6 +1190,6 @@ function record_to_txt($db, $table, $id) {
     return hash_to_text($record);
 }
 
-$db_link = new_connection(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+$db_link = new_connection(DB_TYPE, DB_HOST, DB_USER, DB_PASS, DB_NAME);
 
 ?>

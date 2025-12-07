@@ -3194,7 +3194,7 @@ function get_cacti_graph($host_ip, $port_index)
         return;
     }
 
-    $cacti_db_link = new_connection(CACTI_DB_HOST, CACTI_DB_USER, CACTI_DB_PASS, CACTI_DB_NAME);
+    $cacti_db_link = new_connection('mysql',CACTI_DB_HOST, CACTI_DB_USER, CACTI_DB_PASS, CACTI_DB_NAME);
     if (!$cacti_db_link) {
         return FALSE;
     }
