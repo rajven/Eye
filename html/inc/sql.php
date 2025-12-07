@@ -263,23 +263,7 @@ function is_assoc($array) {
 function normalize_field_value($key, $value) {
     if ($value === null or $value === 'NULL') {
         // Регулярное выражение для определения числовых полей
-        $numeric_field_pattern = '/\b(?:
-            # ID поля
-            id|_id|
-            # Числовые счетчики
-            count|_count|num|port|size|level|status|type|bytes|byte|
-            # Временные метки
-            _time|_timestamp|_at|time|timestamp|
-            # Сетевые/трафик
-            _in|_out|_int|forward|gateway|ip_int|quota|step|
-            # Сетевые ID
-            vlan|index|snmp|protocol|router|subnet|target|vendor|
-            # Флаги/boolean (tinyint)
-            action|active|blocked|changed|connected|default|deleted|dhcp|
-            discovery|draft|dynamic|enabled|free|hotspot|link|nagios|netflow|
-            notify|office|permanent|poe|queue|rights|save|skip|static|uniq|uplink|vpn
-        )\b/ix';
-        
+        $numeric_field_pattern = '/\b(?:id|_id|count|_count|num|port|size|level|status|type|bytes|byte|_time|_timestamp|_at|time|timestamp|_in|_out|_int|forward|gateway|ip_int|quota|step|vlan|index|snmp|protocol|router|subnet|target|vendor|action|active|blocked|changed|connected|default|deleted|dhcp|discovery|draft|dynamic|enabled|free|hotspot|link|nagios|netflow|notify|office|permanent|poe|queue|rights|save|skip|static|uniq|uplink|vpn)\b/i';
         if (preg_match($numeric_field_pattern, $key)) {
             return 0;
         } else {
