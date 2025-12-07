@@ -1137,10 +1137,10 @@ $history_syslog_day = get_option($db,48);
 
 $history_trafstat_day = get_option($db,49);
 
-my $ou = get_record_sql($db,"SELECT id FROM OU WHERE COALESCE(default_users::integer, 0) = 1");
+my $ou = get_record_sql($db,"SELECT id FROM OU WHERE default_users = 1");
 if (!$ou) { $default_user_ou_id = 0; } else { $default_user_ou_id = $ou->{'id'}; }
 
-$ou = get_record_sql($db,"SELECT id FROM OU WHERE COALESCE(default_hotspot::integer, 0) = 1 ");
+$ou = get_record_sql($db,"SELECT id FROM OU WHERE default_hotspot = 1 ");
 if (!$ou) { $default_hotspot_ou_id = $default_user_ou_id; } else { $default_hotspot_ou_id = $ou->{'id'}; }
 
 @subnets=get_records_sql($db,'SELECT * FROM subnets ORDER BY ip_int_start');
