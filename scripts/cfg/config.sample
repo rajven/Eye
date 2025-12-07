@@ -12,9 +12,10 @@ from_addr=admin@example.com
 
 #database - change it!!!
 DBSERVER=localhost
-DBUSER=mysql_user
-DBNAME=mysql_database
-DBPASS=mysql_password
+DBTYPE=db_type
+DBUSER=db_user
+DBNAME=db_name
+DBPASS=db_password
 
 #login for windows AD
 #domain_auth=EXAMPLE\roman%password

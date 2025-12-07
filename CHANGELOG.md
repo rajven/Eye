@@ -1,4 +1,6 @@
 # Changelog 2.9.1 - release
+- Added PostgreSQL support (EXPERIMENTAL — DO NOT USE IN PRODUCTION!)
+- html: switched to use PDO
 - added perl-Net-SNMP module patch to support sha512 in AltLinux
 - The installer has been added 
 - Old versions of the database dump have been removed 

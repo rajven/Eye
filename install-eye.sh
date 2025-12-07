@@ -1,6 +1,6 @@
 #!/bin/bash
-# Eye Installation Script for ALT Linux/Debian/Ubuntu
-# Version: 2.0
+# Eye Installation Script for ALT Linux/Debian/Ubuntu with PostgreSQL support
+# Version: 2.1
 
 set -e
 
@@ -10,6 +10,14 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Global variables
+MYSQL_PASSWORD=""
+POSTGRES_PASSWORD=""
+NA
+DB_TYPE="mysql"  # Default database type
+DB_NAME="stat"
+DB_USER="stat"
 
 # Output functions
 print_info() {
@@ -76,6 +84,78 @@ detect_distro() {
     fi
 }
 
+select_language_with_auto() {
+    print_step "Select Installation Language"
+    
+    # Проверка автоматического режима
+    if [[ "$AUTO_MODE" == "true" ]]; then
+        EYE_LANG="english"
+        EYE_LANG_SHORT="en"
+        print_info "Auto mode: English language selected by default"
+        return 0
+    fi
+    
+    echo "Available languages:"
+    echo "1) English"
+    echo "2) Russian (default)"
+    echo ""
+
+    while true; do
+        read -p "Select language (1 or 2) [2]: " lang_choice
+        
+        # Если пустой ввод - по умолчанию английский
+        if [[ -z "$lang_choice" ]]; then
+            lang_choice="2"
+        fi
+        
+        # Обработка ввода (приводим к нижнему регистру)
+        lang_choice_lower=$(echo "$lang_choice" | tr '[:upper:]' '[:lower:]')
+        
+        case $lang_choice_lower in
+            1|english|en|eng|анг|английский)
+                EYE_LANG="english"
+                EYE_LANG_SHORT="en"
+                print_info "Selected English language"
+                break
+                ;;
+            2|russian|ru|rus|ру|русский)
+                EYE_LANG="russian"
+                EYE_LANG_SHORT="ru"
+                print_info "Selected Russian language (Русский)"
+                break
+                ;;
+            *)
+                print_error "Invalid choice: '$lang_choice'"
+                print_warn "Available options: 1 (English), 2 (Russian)"
+                print_warn "You can also type: english, en, russian, ru"
+                ;;
+        esac
+    done
+}
+
+# Ask user for database type
+select_database_type() {
+    print_step "Select Database Type"
+    
+    echo "Available database types:"
+    echo "1) MySQL/MariaDB (default)"
+    echo "2) PostgreSQL"
+    echo ""
+    
+    read -p "Select database type (1 or 2) [1]: " db_choice
+    
+    case $db_choice in
+        2|postgres|postgresql|pgsql)
+            DB_TYPE="postgresql"
+            print_info "Selected PostgreSQL"
+            ;;
+        *)
+            DB_TYPE="mysql"
+            print_info "Selected MySQL/MariaDB"
+            ;;
+    esac
+}
+
 # Install dependencies for ALT Linux
 install_deps_altlinux() {
     print_step "Installing dependencies for ALT Linux"
@@ -86,27 +166,51 @@ install_deps_altlinux() {
     # General utilities
     apt-get install -y git xxd wget fping hwdata
 
-    # Database
-    apt-get install -y mariadb-server mariadb-client
+    # Database installation based on selected type
+    if [[ "$DB_TYPE" == "postgresql" ]]; then
+        apt-get install -y postgresql postgresql-client
+    else
+        apt-get install -y mariadb-server mariadb-client
+    fi
 
     # Web server and PHP
-    apt-get install -y apache2 \
-        php8.2 php8.2-mysqlnd php8.2-intl php8.2-mbstring \
-        pear-Mail php8.2-snmp php8.2-zip \
-        php8.2-pgsql php8.2-mysqlnd php8.2-pdo_mysql php8.2-mysqlnd-mysqli \
-        php8.2-fpm-fcgi apache2-mod_fcgid
+    if [[ "$DB_TYPE" == "postgresql" ]]; then
+        apt-get install -y apache2 \
+            php8.2 php8.2-pgsql php8.2-pdo-pgsql php8.2-intl php8.2-mbstring \
+            pear-Mail php8.2-snmp php8.2-zip \
+            php8.2-fpm-fcgi apache2-mod_fcgid
+    else
+        apt-get install -y apache2 \
+            php8.2 php8.2-mysqlnd php8.2-intl php8.2-mbstring \
+            pear-Mail php8.2-snmp php8.2-zip \
+            php8.2-pgsql php8.2-mysqlnd php8.2-pdo_mysql php8.2-mysqlnd-mysqli \
+            php8.2-fpm-fcgi apache2-mod_fcgid
+    fi
 
     # Perl modules
-    apt-get install -y perl perl-Net-Patricia perl-NetAddr-IP \
-        perl-Config-Tiny perl-Net-DNS perl-DateTime perl-Net-Ping \
-        perl-Net-Netmask perl-Text-Iconv perl-Net-SNMP \
-        perl-Net-Telnet perl-DBI perl-DBD-mysql perl-DBD-Pg \
-        perl-Parallel-ForkManager perl-Proc-Daemon \
-        perl-DateTime-Format-DateParse \
-        perl-Net-OpenSSH perl-File-Tail perl-Crypt-Rijndael \
-        perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
-        perl-File-Path-Tiny perl-Expect \
-        perl-Proc-ProcessTable
+    if [[ "$DB_TYPE" == "postgresql" ]]; then
+        apt-get install -y perl perl-Net-Patricia perl-NetAddr-IP \
+            perl-Config-Tiny perl-Net-DNS perl-DateTime perl-Net-Ping \
+            perl-Net-Netmask perl-Text-Iconv perl-Net-SNMP \
+            perl-Net-Telnet perl-DBI perl-DBD-Pg \
+            perl-Parallel-ForkManager perl-Proc-Daemon \
+            perl-DateTime-Format-DateParse \
+            perl-Net-OpenSSH perl-File-Tail perl-Crypt-Rijndael \
+            perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
+            perl-File-Path-Tiny perl-Expect \
+            perl-Proc-ProcessTable
+    else
+        apt-get install -y perl perl-Net-Patricia perl-NetAddr-IP \
+            perl-Config-Tiny perl-Net-DNS perl-DateTime perl-Net-Ping \
+            perl-Net-Netmask perl-Text-Iconv perl-Net-SNMP \
+            perl-Net-Telnet perl-DBI perl-DBD-mysql perl-DBD-Pg \
+            perl-Parallel-ForkManager perl-Proc-Daemon \
+            perl-DateTime-Format-DateParse \
+            perl-Net-OpenSSH perl-File-Tail perl-Crypt-Rijndael \
+            perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
+            perl-File-Path-Tiny perl-Expect \
+            perl-Proc-ProcessTable
+    fi
 
     # Additional services
     apt-get install -y dnsmasq syslog-ng syslog-ng-journal
@@ -130,25 +234,48 @@ install_deps_debian() {
     # General utilities
     apt-get install -y git xxd bsdmainutils pwgen wget fping ieee-data
 
-    # Database
-    apt-get install -y mariadb-server mariadb-client
+    # Database installation based on selected type
+    if [[ "$DB_TYPE" == "postgresql" ]]; then
+        apt-get install -y postgresql postgresql-client
+    else
+        apt-get install -y mariadb-server mariadb-client
+    fi
 
     # Web server and PHP
-    apt-get install -y apache2 \
-        php php-mysql php-bcmath php-intl php-mbstring \
-        php-date php-mail php-snmp php-zip \
-        php-db php-pgsql php-fpm libapache2-mod-fcgid
+    if [[ "$DB_TYPE" == "postgresql" ]]; then
+        apt-get install -y apache2 \
+            php php-pgsql php-bcmath php-intl php-mbstring \
+            php-date php-mail php-snmp php-zip \
+            php-db php-fpm libapache2-mod-fcgid
+    else
+        apt-get install -y apache2 \
+            php php-mysql php-bcmath php-intl php-mbstring \
+            php-date php-mail php-snmp php-zip \
+            php-db php-pgsql php-fpm libapache2-mod-fcgid
+    fi
 
     # Perl modules
-    apt-get install -y perl libnet-patricia-perl libnetaddr-ip-perl \
-        libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
-        libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl \
-        libnet-telnet-perl libdbi-perl libdbd-mysql-perl \
-        libparallel-forkmanager-perl libproc-daemon-perl \
-        libdatetime-format-dateparse-perl \
-        libnet-openssh-perl libfile-tail-perl libcrypt-rijndael-perl \
-        libcrypt-cbc-perl libcryptx-perl libdbd-pg-perl \
-        libfile-path-tiny-perl libexpect-perl libcrypt-des-perl
+    if [[ "$DB_TYPE" == "postgresql" ]]; then
+        apt-get install -y perl libnet-patricia-perl libnetaddr-ip-perl \
+            libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
+            libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl \
+            libnet-telnet-perl libdbi-perl \
+            libparallel-forkmanager-perl libproc-daemon-perl \
+            libdatetime-format-dateparse-perl \
+            libnet-openssh-perl libfile-tail-perl libcrypt-rijndael-perl \
+            libcrypt-cbc-perl libcryptx-perl libdbd-pg-perl \
+            libfile-path-tiny-perl libexpect-perl libcrypt-des-perl
+    else
+        apt-get install -y perl libnet-patricia-perl libnetaddr-ip-perl \
+            libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
+            libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl \
+            libnet-telnet-perl libdbi-perl libdbd-mysql-perl \
+            libparallel-forkmanager-perl libproc-daemon-perl \
+            libdatetime-format-dateparse-perl \
+            libnet-openssh-perl libfile-tail-perl libcrypt-rijndael-perl \
+            libcrypt-cbc-perl libcryptx-perl libdbd-pg-perl \
+            libfile-path-tiny-perl libexpect-perl libcrypt-des-perl
+    fi
 
     # Additional services
     apt-get install -y dnsmasq syslog-ng
@@ -428,10 +555,10 @@ setup_mysql() {
 
     # Start and enable service
     $SERVICE_MANAGER enable mariadb 2>/dev/null || \
-        $SERVICE_MANAGER enable mysql 2>/dev/null || true
+    $SERVICE_MANAGER enable mysql 2>/dev/null || true
 
     $SERVICE_MANAGER start mariadb 2>/dev/null || \
-        $SERVICE_MANAGER start mysql 2>/dev/null || true
+    $SERVICE_MANAGER start mysql 2>/dev/null || true
 
     # Check MySQL access
     if ! command -v mysql &> /dev/null; then
@@ -475,8 +602,8 @@ setup_mysql() {
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         print_warn "Database creation skipped. Create manually:"
-        print_warn "  mysql -u root -p < /opt/Eye/docs/mysql/create_db.sql"
-        print_warn "  mysql -u root -p stat < /opt/Eye/docs/mysql/latest-mysql-en.sql"
+        print_warn "  mysql -u root -p < ${SQL_CREATE_FILE}"
+        print_warn "  mysql -u root -p stat < ${SQL_DATA_FILE}"
         if [[ -f "$MYSQL_CNF_FILE" ]]; then
             rm -f "$MYSQL_CNF_FILE"
         fi
@@ -490,7 +617,7 @@ setup_mysql() {
     print_info "Importing database structure..."
 
     # Import main SQL file
-    mysql $MYSQL_OPT < /opt/Eye/docs/mysql/create_db.sql
+    mysql $MYSQL_OPT < ${SQL_CREATE_FILE}
 
     if [[ $? -ne 0 ]]; then
         print_error "Error importing create_db.sql"
@@ -504,10 +631,10 @@ setup_mysql() {
 
     # Import data
     print_info "Importing initial data..."
-    mysql $MYSQL_OPT stat < /opt/Eye/docs/mysql/latest-mysql-en.sql
+    mysql $MYSQL_OPT stat < ${SQL_DATA_FILE}
 
     if [[ $? -ne 0 ]]; then
-        print_warn "Error importing latest-mysql-en.sql (data may already exist)"
+        print_warn "Error importing data.sql (data may already exist)"
     else
         print_info "Initial data imported"
     fi
@@ -545,6 +672,117 @@ EOF
     return 0
 }
 
+# Configure PostgreSQL
+setup_postgresql() {
+    print_step "Configuring PostgreSQL"
+
+    # Start and enable service
+    $SERVICE_MANAGER enable postgresql
+    $SERVICE_MANAGER start postgresql
+
+    # Check PostgreSQL access
+    if ! command -v psql &> /dev/null; then
+        print_error "PostgreSQL client not installed"
+        return 1
+    fi
+
+    # Switch to postgres user to execute commands
+    read -p "Create database and user for Eye? (y/n): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_warn "Database creation skipped. Create manually as postgres user:"
+        print_warn "  sudo -u postgres psql -f ${SQL_CREATE_FILE}"
+        print_warn "  sudo -u postgres psql -d stat -f ${SQL_DATA_FILE}"
+        return 0
+    fi
+
+    # Generate password for stat user
+    DB_PASSWORD=$(pwgen 16 1)
+    POSTGRES_PASSWORD=$DB_PASSWORD
+
+    print_info "Importing database structure..."
+
+    # Import main SQL file as postgres user
+    sudo -u postgres psql -f ${SQL_CREATE_FILE}
+
+    if [[ $? -ne 0 ]]; then
+        print_error "Error importing create_db.sql"
+        return 1
+    fi
+
+    print_info "Database structure imported"
+
+    # Set password for stat user
+    print_info "Setting password for user 'stat'..."
+    sudo -u postgres psql -c "ALTER USER stat WITH PASSWORD '$DB_PASSWORD';"
+
+    # Import data
+    print_info "Importing initial data..."
+    sudo -u postgres psql -d stat -f ${SQL_DATA_FILE}
+
+    if [[ $? -ne 0 ]]; then
+        print_warn "Error importing data.sql (data may already exist)"
+    else
+        print_info "Initial data imported"
+    fi
+
+    # Configure PostgreSQL for MD5 authentication
+    local pg_hba_file="/etc/postgresql/$(ls /etc/postgresql/ | head -1)/main/pg_hba.conf"
+    if [[ -f "$pg_hba_file" ]]; then
+        # Backup original
+        cp "$pg_hba_file" "${pg_hba_file}.backup"
+        
+        # Add local md5 authentication if not present
+        if ! grep -q "local.*stat.*md5" "$pg_hba_file"; then
+            echo "local   stat            stat                                    md5" >> "$pg_hba_file"
+            print_info "Added MD5 authentication for stat user in pg_hba.conf"
+        fi
+    fi
+
+    # Restart PostgreSQL to apply changes
+    $SERVICE_MANAGER restart postgresql
+
+    # Save password information
+    echo "PostgreSQL 'stat' user password: $DB_PASSWORD" > /root/eye_postgres_password.txt
+    chmod 600 /root/eye_postgres_password.txt
+
+    print_info "User 'stat' password: $DB_PASSWORD"
+    print_warn "Password saved in /root/eye_postgres_password.txt"
+
+    return 0
+}
+
+# Configure database based on selected type
+setup_database() {
+
+    # Выбор правильных SQL файлов для импорта данных
+    if [[ "$DB_TYPE" == "mysql" ]]; then
+        if [[ "$EYE_LANG" == "russian" && -d "/opt/Eye/docs/databases/mysql/ru" ]]; then
+            SQL_DATA_FILE="/opt/Eye/docs/databases/mysql/ru/data.sql"
+            SQL_CREATE_FILE="/opt/Eye/docs/databases/mysql/ru/create_db.sql"
+        else
+            SQL_DATA_FILE="/opt/Eye/docs/databases/mysql/en/data.sql"
+            SQL_CREATE_FILE="/opt/Eye/docs/databases/mysql/en/create_db.sql"
+        fi
+    elif [[ "$DB_TYPE" == "postgresql" ]]; then
+        if [[ "$EYE_LANG" == "russian" && -d "/opt/Eye/docs/databases/postgres/ru" ]]; then
+            SQL_DATA_FILE="/opt/Eye/docs/databases/postgres/ru/data.sql"
+            SQL_CREATE_FILE="/opt/Eye/docs/databases/postgres/ru/create_db.sql"
+        else
+            SQL_DATA_FILE="/opt/Eye/docs/databases/postgres/en/data.sql"
+            SQL_CREATE_FILE="/opt/Eye/docs/databases/postgres/en/create_db.sql"
+        fi
+    fi
+    
+    print_info "Using SQL files for $EYE_LANG language"
+
+    if [[ "$DB_TYPE" == "postgresql" ]]; then
+        setup_postgresql
+    else
+        setup_mysql
+    fi
+}
+
 # Configure configuration files
 setup_configs() {
     print_step "Configuring configuration files"
@@ -572,18 +810,28 @@ setup_configs() {
     if [[ -f "/opt/Eye/html/cfg/config.sample.php" ]]; then
         cp /opt/Eye/html/cfg/config.sample.php /opt/Eye/html/cfg/config.php
 
-        # Update database password
-        if [[ -n "$MYSQL_PASSWORD" ]]; then
-            sed -i "s/define(\"DB_PASS\",\"[^\"]*\");/define(\"DB_PASS\",\"$MYSQL_PASSWORD\");/" /opt/Eye/html/cfg/config.php
+        # Update database configuration based on type
+        if [[ "$DB_TYPE" == "postgresql" ]]; then
+            # PostgreSQL configuration
+            if [[ -n "$POSTGRES_PASSWORD" ]]; then
+                sed -i "s/define(\"DB_PASS\",\"[^\"]*\");/define(\"DB_PASS\",\"$POSTGRES_PASSWORD\");/" /opt/Eye/html/cfg/config.php
+            fi
+            sed -i "s/define(\"DB_TYPE\",\"[^\"]*\");/define(\"DB_TYPE\",\"postgresql\");/" /opt/Eye/html/cfg/config.php
+            sed -i "s/define(\"DB_HOST\",\"[^\"]*\");/define(\"DB_HOST\",\"localhost\");/" /opt/Eye/html/cfg/config.php
+            sed -i "s/define(\"DB_PORT\",\"[^\"]*\");/define(\"DB_PORT\",\"5432\");/" /opt/Eye/html/cfg/config.php
+            sed -i "s/define(\"DB_NAME\",\"[^\"]*\");/define(\"DB_NAME\",\"stat\");/" /opt/Eye/html/cfg/config.php
+            sed -i "s/define(\"DB_USER\",\"[^\"]*\");/define(\"DB_USER\",\"stat\");/" /opt/Eye/html/cfg/config.php
+        else
+            # MySQL configuration
+            if [[ -n "$MYSQL_PASSWORD" ]]; then
+                sed -i "s/define(\"DB_PASS\",\"[^\"]*\");/define(\"DB_PASS\",\"$MYSQL_PASSWORD\");/" /opt/Eye/html/cfg/config.php
+            fi
+            sed -i "s/define(\"DB_TYPE\",\"[^\"]*\");/define(\"DB_TYPE\",\"mysql\");/" /opt/Eye/html/cfg/config.php
+            sed -i "s/define(\"DB_HOST\",\"[^\"]*\");/define(\"DB_HOST\",\"localhost\");/" /opt/Eye/html/cfg/config.php
+            sed -i "s/define(\"DB_PORT\",\"[^\"]*\");/define(\"DB_PORT\",\"3306\");/" /opt/Eye/html/cfg/config.php
             sed -i "s/define(\"DB_NAME\",\"[^\"]*\");/define(\"DB_NAME\",\"stat\");/" /opt/Eye/html/cfg/config.php
             sed -i "s/define(\"DB_USER\",\"[^\"]*\");/define(\"DB_USER\",\"stat\");/" /opt/Eye/html/cfg/config.php
         fi
-
-        # Replacing the Russian locale with the English
-        sed -i "s/setlocale(LC_ALL, 'ru_RU\.UTF8');/setlocale(LC_ALL, 'en_US.UTF-8');/g" /opt/Eye/html/cfg/config.php
-
-        # Replacing HTML_LANG with English
-        sed -i "s/define(\"HTML_LANG\",\"russian\");/define(\"HTML_LANG\",\"english\");/g" /opt/Eye/html/cfg/config.php
 
         # Update encryption key
         sed -i "s/ENCRYPTION_KEY\",\"[^\"]*\"/ENCRYPTION_KEY\",\"$ENC_PASSWORD\"/" /opt/Eye/html/cfg/config.php
@@ -600,19 +848,40 @@ setup_configs() {
     if [[ -f "/opt/Eye/scripts/cfg/config.sample" ]]; then
         cp /opt/Eye/scripts/cfg/config.sample /opt/Eye/scripts/cfg/config
 
-        # Update database password
-        if [[ -n "$MYSQL_PASSWORD" ]]; then
-            sed -i "s/^DBPASS=.*/DBPASS=$MYSQL_PASSWORD/" /opt/Eye/scripts/cfg/config
-            sed -i "s/DBPASS=mysql_password/DBPASS=$MYSQL_PASSWORD/" /opt/Eye/scripts/cfg/config
+        # Update database configuration based on type
+        if [[ "$DB_TYPE" == "postgresql" ]]; then
+            # PostgreSQL configuration
+            sed -i "s/^DBTYPE=.*/DBTYPE=postgresql/" /opt/Eye/scripts/cfg/config
+            sed -i "s/DBTYPE=db_type/DBTYPE=postgresql/" /opt/Eye/scripts/cfg/config
+            
+            # Update database connection settings
+            sed -i "s/^DBHOST=.*/DBHOST=localhost/" /opt/Eye/scripts/cfg/config
+            sed -i "s/^DBPORT=.*/DBPORT=5432/" /opt/Eye/scripts/cfg/config
+            
+            if [[ -n "$POSTGRES_PASSWORD" ]]; then
+                sed -i "s/^DBPASS=.*/DBPASS=$POSTGRES_PASSWORD/" /opt/Eye/scripts/cfg/config
+                sed -i "s/DBPASS=db_password/DBPASS=$POSTGRES_PASSWORD/" /opt/Eye/scripts/cfg/config
+            fi
+        else
+            # MySQL configuration
+            sed -i "s/^DBTYPE=.*/DBTYPE=mysql/" /opt/Eye/scripts/cfg/config
+            sed -i "s/DBTYPE=db_type/DBTYPE=mysql/" /opt/Eye/scripts/cfg/config
+            
+            # Update database connection settings
+            sed -i "s/^DBHOST=.*/DBHOST=localhost/" /opt/Eye/scripts/cfg/config
+            sed -i "s/^DBPORT=.*/DBPORT=3306/" /opt/Eye/scripts/cfg/config
+            
+            if [[ -n "$MYSQL_PASSWORD" ]]; then
+                sed -i "s/^DBPASS=.*/DBPASS=$MYSQL_PASSWORD/" /opt/Eye/scripts/cfg/config
+                sed -i "s/DBPASS=db_password/DBPASS=$MYSQL_PASSWORD/" /opt/Eye/scripts/cfg/config
+            fi
         fi
 
-        # Update database username
-        sed -i "s/^DBUSER=.*/DBUSER=stat/" /opt/Eye/scripts/cfg/config
-        sed -i "s/DBUSER=mysql_user/DBUSER=stat/" /opt/Eye/scripts/cfg/config
-
-        # Update database name
+        # Common settings
         sed -i "s/^DBNAME=.*/DBNAME=stat/" /opt/Eye/scripts/cfg/config
-        sed -i "s/DBNAME=mysql_database/DBNAME=stat/" /opt/Eye/scripts/cfg/config
+        sed -i "s/DBNAME=db_database/DBNAME=stat/" /opt/Eye/scripts/cfg/config
+        sed -i "s/^DBUSER=.*/DBUSER=stat/" /opt/Eye/scripts/cfg/config
+        sed -i "s/DBUSER=db_user/DBUSER=stat/" /opt/Eye/scripts/cfg/config
 
         # Update encryption key
         sed -i "s/^encryption_key=.*/encryption_key=$ENC_PASSWORD/" /opt/Eye/scripts/cfg/config
@@ -633,6 +902,27 @@ setup_configs() {
     print_info "Encryption keys generated"
     print_info "Password: $ENC_PASSWORD"
     print_info "Vector: $ENC_VECTOR"
+}
+
+# Функция применения языковых настроек к конфигурации
+apply_language_settings() {
+    print_info "Applying language settings: $EYE_LANG"
+    
+    # Настройка config.php
+    if [[ -f "/opt/Eye/html/cfg/config.php" ]]; then
+        if [[ "$EYE_LANG" == "russian" ]]; then
+            # Установка русского языка
+            sed -i "s/define(\"HTML_LANG\",\"english\");/define(\"HTML_LANG\",\"russian\");/g" /opt/Eye/html/cfg/config.php
+            sed -i "s/setlocale(LC_ALL, 'en_US\.UTF-8');/setlocale(LC_ALL, 'ru_RU.UTF8');/g" /opt/Eye/html/cfg/config.php
+            print_info "Web interface language set to Russian"
+        else
+            # Установка английского языка (по умолчанию)
+            sed -i "s/define(\"HTML_LANG\",\"russian\");/define(\"HTML_LANG\",\"english\");/g" /opt/Eye/html/cfg/config.php
+            sed -i "s/setlocale(LC_ALL, 'ru_RU\.UTF8');/setlocale(LC_ALL, 'en_US.UTF-8');/g" /opt/Eye/html/cfg/config.php
+            print_info "Web interface language set to English"
+        fi
+    fi
+
 }
 
 # Configure Apache and PHP
@@ -692,7 +982,7 @@ setup_apache_php() {
         APACHE_SERVICE="apache2"
     fi
 
-#    usermod -a -G eye $APACHE_USER
+    #    usermod -a -G eye $APACHE_USER
 
     if [[ "$OS_FAMILY" == "debian" ]]; then
         a2dismod php${PHP_VERSION} 2>/dev/null
@@ -700,7 +990,7 @@ setup_apache_php() {
 
         a2enmod mpm_event 2>/dev/null
         a2enconf php${PHP_VERSION}-fpm  2>/dev/null
-        fi
+    fi
 
     mkdir -p /var/log/php-fpm/
 
@@ -717,11 +1007,11 @@ setup_apache_php() {
         print_info "Using prepared php-fpm template"
         if [[ "$OS_FAMILY" == "alt" ]]; then
             cp "/opt/Eye/docs/php-fpm/eye.conf" /etc/fpm${PHP_VERSION}/php-fpm.d/
-            else
+        else
             cp "/opt/Eye/docs/php-fpm/eye.conf" /etc/php/${PHP_VERSION}/fpm/pool.available/
             ln -sf "/etc/php/${PHP_VERSION}/fpm/pool.available/eye.conf" "/etc/php/${PHP_VERSION}/fpm/pool.d/eye.conf"
-            fi
         fi
+    fi
 
     $SERVICE_MANAGER enable "$APACHE_SERVICE"
     $SERVICE_MANAGER restart "$APACHE_SERVICE"
@@ -822,7 +1112,7 @@ setup_syslog() {
         # Check if conf.d inclusion already exists in main config
         if [[ -f "/etc/syslog-ng/syslog-ng.conf" ]]; then
             if ! grep -q "@include.*conf\.d" /etc/syslog-ng/syslog-ng.conf && \
-               ! grep -q "include.*conf\.d" /etc/syslog-ng/syslog-ng.conf; then
+                ! grep -q "include.*conf\.d" /etc/syslog-ng/syslog-ng.conf; then
                 # Add conf.d directory inclusion to end of file
                 echo "" >> /etc/syslog-ng/syslog-ng.conf
                 echo "# Include Eye monitoring configuration" >> /etc/syslog-ng/syslog-ng.conf
@@ -837,20 +1127,20 @@ setup_syslog() {
 
     # options block
     syslogng_options='options {
-        chain_hostnames(off);
-        flush_lines(0);
-        use_dns(no);
-        use_fqdn(no);
-        dns_cache(no);
-        owner("root");
-        group("adm");
-        perm(0640);
-        stats_freq(0);
-        time_reopen(10);
-        log_fifo_size(1000);
-        create_dirs(yes);
-        keep_hostname(no);
-    };'
+chain_hostnames(off);
+flush_lines(0);
+use_dns(no);
+use_fqdn(no);
+dns_cache(no);
+owner("root");
+group("adm");
+perm(0640);
+stats_freq(0);
+time_reopen(10);
+log_fifo_size(1000);
+create_dirs(yes);
+keep_hostname(no);
+};'
 
     # Check for options in main config
     if [[ -f "/etc/syslog-ng/syslog-ng.conf" ]]; then
@@ -893,8 +1183,8 @@ setup_syslog() {
             if [[ ${#missing_params[@]} -gt 0 ]]; then
                 # Find options block and add parameters to end of block
                 sed -i '/^options\s*{/,/^}/ {
-                    /^}/ i\    '"$(IFS='; '; echo "${missing_params[*]}")"';
-                }' /etc/syslog-ng/syslog-ng.conf
+/^}/ i\    '"$(IFS='; '; echo "${missing_params[*]}")"';
+}' /etc/syslog-ng/syslog-ng.conf
                 print_info "Added parameters to options block: ${missing_params[*]}"
             fi
         fi
@@ -1013,23 +1303,39 @@ show_final_instructions() {
     echo "SYSTEM INFORMATION:"
     echo "  Distribution:     $OS_NAME"
     echo "  Version:          $OS_VERSION"
+    echo "  Database:         $DB_TYPE"
+    echo "  Language:         $EYE_LANG"  # <-- Добавлено
     echo "  User:             eye"
     echo "  Directory:        /opt/Eye"
     echo ""
+    echo ""
     echo "TO COMPLETE SETUP, EXECUTE:"
     echo ""
-    echo "1. Configure MySQL security:"
-    echo "   mysql_secure_installation"
+    echo "1. Configure database security:"
+    if [[ "$DB_TYPE" == "postgresql" ]]; then
+        print_info "   PostgreSQL: Edit pg_hba.conf if needed"
+        if [[ -f "/root/eye_postgres_password.txt" ]]; then
+            echo ""
+            echo "3. PostgreSQL 'stat' user password saved in:"
+            echo "   /root/eye_postgres_password.txt"
+            echo ""
+        fi
+    else
+        echo "   mysql_secure_installation"
+        if [[ -f "/root/eye_mysql_password.txt" ]]; then
+            echo ""
+            echo "3. MySQL 'stat' user password saved in:"
+            echo "   /root/eye_mysql_password.txt"
+            echo ""
+        fi
+    fi
+    
     echo ""
     echo "2. Check and edit configuration files:"
     echo "   /opt/Eye/html/cfg/config.php"
     echo "   /opt/Eye/scripts/cfg/config"
     echo ""
-    if [[ -f "/root/eye_mysql_password.txt" ]]; then
-        echo "3. MySQL 'stat' user password saved in:"
-        echo "   /root/eye_mysql_password.txt"
-        echo ""
-    fi
+    
     echo "4. Configure cron jobs:"
     echo "   nano /etc/cron.d/eye"
     echo "   Uncomment required scripts"
@@ -1061,19 +1367,29 @@ main() {
     echo -e "${GREEN}===========================================${NC}"
     echo ""
 
-    # Global variables
+
+    # Глобальные переменные
     MYSQL_PASSWORD=""
+    POSTGRES_PASSWORD=""
+    DB_TYPE="mysql"
+    EYE_LANG="english"
+    EYE_LANG_SHORT="en"
+    SQL_DATA_FILE=
+    SQL_CREATE_FILE=
 
     # Execute installation steps
     check_root
     detect_distro
+    select_language_with_auto
+    select_database_type
     update_system
     install_packages
     create_user_group
     install_source_code
     download_additional_scripts
-    setup_mysql
+    setup_database
     setup_configs
+    apply_language_settings
     setup_apache_php
     setup_cron_logrotate
     setup_additional_services

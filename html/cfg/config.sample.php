@@ -8,6 +8,7 @@ define("HTML_LANG","russian");
 define("HTML_STYLE","white");
 
 define("DB_HOST","localhost");
+define("DB_TYPE","db_type");
 define("DB_NAME","stat");
 define("DB_USER","user");
 define("DB_PASS","password");

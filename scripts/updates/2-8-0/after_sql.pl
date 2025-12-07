@@ -13,6 +13,7 @@ use lib "/opt/Eye/scripts";
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 use strict;
 use warnings;
 use Data::Dumper;

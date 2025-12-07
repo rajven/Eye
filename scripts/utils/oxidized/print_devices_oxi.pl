@@ -14,6 +14,7 @@ use Socket;
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 
 my @router_list = get_records_sql($dbh,"SELECT D.*, DM.model_name, B.name AS building_name FROM devices D
 LEFT JOIN device_models DM ON D.device_model_id = DM.id

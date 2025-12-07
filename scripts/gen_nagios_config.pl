@@ -24,6 +24,7 @@ use eyelib::main;
 use eyelib::nagios;
 use eyelib::snmp;
 use eyelib::database;
+use eyelib::common;
 use Fcntl qw(:flock);
 
 open(SELF,"<",$0) or die "Cannot open $0 - $!";

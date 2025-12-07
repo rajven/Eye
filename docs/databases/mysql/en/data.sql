@@ -284,7 +284,7 @@ INSERT INTO `Filter_list` VALUES (3,'http',NULL,'tcp','0/0','80',NULL,0);
 INSERT INTO `Filter_list` VALUES (4,'https',NULL,'tcp','0/0','443',NULL,0);
 INSERT INTO `Filter_list` VALUES (5,'icq',NULL,'tcp','0/0','5190',NULL,0);
 INSERT INTO `Filter_list` VALUES (6,'jabber',NULL,'tcp','0/0','5222',NULL,0);
-INSERT INTO `Filter_list` VALUES (9,'allow_all','любой трафик','all','0/0','0','0',0);
+INSERT INTO `Filter_list` VALUES (9,'allow_all','any','all','0/0','0','0',0);
 INSERT INTO `Filter_list` VALUES (10,'icmp',NULL,'icmp','0/0','0',NULL,0);
 INSERT INTO `Filter_list` VALUES (11,'ftp',NULL,'tcp','0/0','20-21',NULL,0);
 INSERT INTO `Filter_list` VALUES (15,'telnet',NULL,'tcp','0/0','23',NULL,0);

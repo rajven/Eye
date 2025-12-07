@@ -15,6 +15,7 @@ use eyelib::config;
 use eyelib::main;
 use eyelib::net_utils;
 use eyelib::database;
+use eyelib::common;
 
 my $OU_ID=$ARGV[0];
 my $ou_filter=" and L.ou_id=$OU_ID ";

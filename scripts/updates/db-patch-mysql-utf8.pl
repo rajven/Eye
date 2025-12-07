@@ -11,6 +11,7 @@ use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 use strict;
 use warnings;
 

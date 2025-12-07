@@ -12,6 +12,7 @@ use vars qw(@EXPORT @ISA);
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 use eyelib::snmp;
 use Time::Local;
 use Data::Dumper;

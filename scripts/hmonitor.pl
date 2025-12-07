@@ -16,6 +16,7 @@ use Time::Local;
 use FileHandle;
 use eyelib::config;
 use eyelib::database;
+use eyelib::common;
 use eyelib::main;
 use eyelib::nagios;
 use Data::Dumper;

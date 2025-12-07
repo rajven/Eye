@@ -14,6 +14,7 @@ use eyelib::config;
 use eyelib::main;
 use eyelib::net_utils;
 use eyelib::database;
+use eyelib::common;
 use eyelib::snmp;
 use Net::SNMP qw(:snmp);
 
