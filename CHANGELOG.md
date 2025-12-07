@@ -1,4 +1,5 @@
 # Changelog 2.9.1 - release
+
 - Added PostgreSQL support (EXPERIMENTAL — DO NOT USE IN PRODUCTION!)
 - html: switched to use PDO
 - added perl-Net-SNMP module patch to support sha512 in AltLinux
@@ -25,6 +26,7 @@
 - bugfix: The address import script now handles dns name changes correctly.
 
 # Changelog 2.8.2 - release
+
 - html: The default interval is 1 hour for displaying logs and reports.
 - html: The search in the list of all addresses now takes into account the filters set
 - html: The IP address can be written using the russain letter Ю instead of a dot.
@@ -40,6 +42,7 @@
 - always remove dynamic user ip record by dhcp release request
 
 # Changelog 2.8.0 - draft
+
 - fixed upgrade script name
 - The rule of the only mac in the subnet has been implemented for dynamic records.
 - The ability to set a group has been added to mass editing from the address list.

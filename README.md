@@ -391,7 +391,13 @@ add name=download_root_bridge parent=bridge queue=pcq-download-default
 ### DHCP-скрипт (RouterOS 6):
 
 ```routeros
-/tool fetch mode=http keep-result=no url="http://<STAT_IP>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=\$leaseActMAC&ip=\$leaseActIP&action=\$leaseBound&hostname=\$lease-hostname"
+/tool fetch mode=http keep-result=no url="http://<EYE_IP>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=\$leaseActMAC&ip=\$leaseActIP&action=\$leaseBound&hostname=\$lease-hostname"
+```
+
+### DHCP-скрипт (RouterOS 7):
+
+```routeros
+/tool fetch url="http://<EYE_IP>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" mode=http keep-result=no
 ```
 
 ### NetFlow:
