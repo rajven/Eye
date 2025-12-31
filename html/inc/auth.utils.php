@@ -6,6 +6,16 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/cfg/config.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/sql.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/common.php");
 
+// исправление дублирующихся PHPSESSID <<<
+if (isset($_SERVER['HTTP_COOKIE'])) {
+    preg_match_all('/PHPSESSID=([^;\s]+)/', $_SERVER['HTTP_COOKIE'], $matches);
+    if (!empty($matches[1])) {
+        $real_session_id = end($matches[1]);
+        session_id($real_session_id);
+        $_COOKIE['PHPSESSID'] = $real_session_id;
+    }
+}
+
 // Включим подробное логирование сессий
 LOG_DEBUG($db_link, "=== SESSION DEBUG START ===");
 LOG_DEBUG($db_link, "Session status: " . session_status());
@@ -18,6 +28,18 @@ LOG_DEBUG($db_link, "HTTP_COOKIE: " . ($_SERVER['HTTP_COOKIE'] ?? 'no cookies'))
 $domain_parts = explode(':', $_SERVER['HTTP_HOST']);
 $clean_domain = $domain_parts[0];
 
+// Если прокси передаёт HTTPS
+if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+    $_SERVER['HTTPS'] = 'on';
+}
+
+ini_set('session.cookie_lifetime', SESSION_LIFETIME);
+ini_set('session.cookie_path', '/');
+ini_set('session.cookie_domain', $clean_domain);
+ini_set('session.cookie_secure', isset($_SERVER['HTTPS']));
+ini_set('session.cookie_httponly', true);
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
 //ini_set('session.use_trans_sid', true);
 //ini_set('session.use_only_cookies', false);
 
@@ -429,18 +451,8 @@ log_session_debug($db_link, "Before session_start check");
 if (session_status() !== PHP_SESSION_ACTIVE) {
     log_session_debug($db_link, "Starting session");
 
-    $domain_parts = explode(':', $_SERVER['HTTP_HOST']);
-    $clean_domain = $domain_parts[0];
+    session_start();
 
-    session_start([
-        'cookie_lifetime' => SESSION_LIFETIME,
-        'cookie_path' => '/',
-        'cookie_domain' => $clean_domain,
-        'cookie_secure' => isset($_SERVER['HTTPS']),
-        'cookie_httponly' => true,
-        'cookie_samesite' => 'Lax',
-        'gc_maxlifetime' => SESSION_LIFETIME,
-    ]);
     log_session_debug($db_link, "After session_start", [
         'session_status' => session_status(),
         'session_id' => session_id(),
