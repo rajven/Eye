@@ -1,7 +1,7 @@
 package eyelib::main;
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
 
 use utf8;

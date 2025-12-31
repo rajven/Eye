@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 #
-# Автор: Roman Dmitiriev <rnd@rajven.ru>
+# Автор: Roman Dmitriev <rnd@rajven.ru>
 # Назначение: Скрипт для обработки DHCP-логов, определения подключений клиентов
 #             через коммутаторы по данным из DHCP Option 82 (remote-id / circuit-id)
 #             и записи соединений в базу данных.

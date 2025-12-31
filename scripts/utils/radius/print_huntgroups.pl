@@ -1,6 +1,6 @@
 #!/usr/bin/perl 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
 use utf8;
 use open ":encoding(utf8)";
