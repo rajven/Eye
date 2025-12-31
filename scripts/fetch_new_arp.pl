@@ -54,15 +54,15 @@ foreach my $row (@u_ref) {
 }
 
 # Clean up empty non-permanent user accounts that have no authentications or auth rules
-if ($config_ref{clean_empty_user}) {
-    log_info($dbh, 'Clearing empty non-permanent user accounts and associated devices');
-    my $u_sql = "SELECT * FROM User_list AS U WHERE U.permanent = 0 AND (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted = 0 AND User_auth.user_id = U.id) = 0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id) = 0;";
-    my @u_ref = get_records_sql($dbh, $u_sql);
-    foreach my $row (@u_ref) {
-        db_log_info($dbh, "Remove empty user with id: $row->{id} login: $row->{login}");
-        delete_user($dbh, $row->{id});
-    }
-}
+#if ($config_ref{clean_empty_user}) {
+#    log_info($dbh, 'Clearing empty non-permanent user accounts and associated devices');
+#    my $u_sql = "SELECT * FROM User_list AS U WHERE U.permanent = 0 AND (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted = 0 AND User_auth.user_id = U.id) = 0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id) = 0;";
+#    my @u_ref = get_records_sql($dbh, $u_sql);
+#    foreach my $row (@u_ref) {
+#        db_log_info($dbh, "Remove empty user with id: $row->{id} login: $row->{login}");
+#        delete_user($dbh, $row->{id});
+#    }
+#}
 
 # Clean temporary (dynamic) user authentication records that have expired
 my $now = DateTime->now(time_zone => 'local');
