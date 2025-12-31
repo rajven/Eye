@@ -1,14 +1,3 @@
--- Создаем базу данных с русской локалью
-CREATE DATABASE stat
-WITH
-ENCODING = 'UTF8'
-LC_COLLATE = 'ru_RU.UTF-8'
-LC_CTYPE = 'ru_RU.UTF-8'
-TEMPLATE = template0
-CONNECTION LIMIT = -1;
-
-\c stat;
-
 -- Включаем необходимые расширения
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS btree_gin;
