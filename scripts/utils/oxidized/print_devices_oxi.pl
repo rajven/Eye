@@ -23,6 +23,8 @@ WHERE D.deleted = 0 and device_type<=2 ORDER BY building_name,ip");
 
 foreach my $device (@router_list) {
 next if (!$device->{password} or !$device->{login});
+next if (!$device->{ip});
+next if ($device->{protocol} eq '-1');
 $device = netdev_set_auth($device);
 my $oxi_model = 'dcnos';
 my $comware_cmdline = '';

@@ -148,6 +148,82 @@ select_database_type() {
     esac
 }
 
+# Function for remote database configuration
+configure_remote_database() {
+    echo ""
+    echo "Remote Database Configuration"
+    echo "============================="
+    
+    select_database_type
+    
+    read -p "Database server IP address: " DB_HOST
+#    read -p "Database port [default]: " DB_PORT
+    read -p "Database name: " DB_NAME
+    read -p "Database username: " DB_USER
+    read -sp "Database password: " DB_PASS
+    echo ""
+    
+    # Set defaults if empty
+    [[ -z "$DB_PORT" ]] && DB_PORT="3306"
+    [[ "$DB_TYPE" == "postgresql" ]] && [[ "$DB_PORT" == "3306" ]] && DB_PORT="5432"
+    
+    echo "Database configuration saved:"
+    echo "  Type: $DB_TYPE"
+    echo "  Host: $DB_HOST:$DB_PORT"
+    echo "  Name: $DB_NAME"
+    echo "  User: $DB_USER"
+}
+
+# Function for installation type selection
+select_installation_type() {
+    echo "Select installation type:"
+    echo "1. Web interface + network backend"
+    echo "2. Web interface only"
+    echo "3. Network backend only"
+    echo ""
+    
+    read -p "Enter selection number [1]: " install_type
+    
+    case $install_type in
+        1)
+            INSTALL_TYPE="full"
+            echo "Selected: Web interface + network backend"
+            
+            # Ask about database
+            read -p "Install database locally? (y/n) [y]: " install_db
+            
+            if [[ -z "$install_db" || "$install_db" =~ ^[Yy]$ ]]; then
+                DB_INSTALL="local"
+                echo "Local database will be installed"
+                select_database_type
+            else
+                DB_INSTALL="remote"
+                echo "Remote database configuration"
+                configure_remote_database
+            fi
+            ;;
+        2)
+            INSTALL_TYPE="web"
+            echo "Selected: Web interface only"
+            DB_INSTALL="remote"
+            configure_remote_database
+            ;;
+        3)
+            INSTALL_TYPE="backend"
+            echo "Selected: Network backend only"
+            DB_INSTALL="remote"
+            configure_remote_database
+            ;;
+        *)
+            INSTALL_TYPE="full"
+            echo "Default selected: Web interface + network backend"
+            DB_INSTALL="local"
+            echo "Local database will be installed"
+            select_database_type
+            ;;
+    esac
+}
+
 # Install dependencies for ALT Linux
 install_deps_altlinux() {
     print_step "Installing dependencies for ALT Linux"
@@ -1406,8 +1482,17 @@ show_final_instructions() {
     echo ""
 }
 
-# Main function
-main() {
+# Final instructions
+show_final_upgrade() {
+    echo ""
+    echo -e "${GREEN}===========================================${NC}"
+    echo -e "${GREEN}      UPGRADE COMPLETED SUCCESSFULLY!      ${NC}"
+    echo -e "${GREEN}===========================================${NC}"
+    echo ""
+}
+
+# Install function
+eye_install() {
     clear
     echo -e "${GREEN}===========================================${NC}"
     echo -e "${GREEN}   Installing Eye Monitoring System       ${NC}"
@@ -1424,6 +1509,8 @@ main() {
     EYE_LANG_SHORT="en"
     SQL_DATA_FILE=
     SQL_CREATE_FILE=
+    INSTALL_TYPE="full"
+    DB_INSTALL="local"
 
     # Execute installation steps
     check_root
@@ -1446,34 +1533,116 @@ main() {
     show_final_instructions
 }
 
+# Upgrade function
+eye_upgrade() {
+    clear
+    echo -e "${GREEN}===========================================${NC}"
+    echo -e "${GREEN}       Update Eye Monitoring System        ${NC}"
+    echo -e "${GREEN}===========================================${NC}"
+    echo ""
+
+    check_root
+    detect_distro
+    update_system
+    install_packages
+    install_source_code
+    import_mac_database
+    show_final_upgrade
+}
+
+# Function to display help
+show_help() {
+    echo "Usage: $0 [options]"
+    echo ""
+    echo "Options:"
+    echo "  --help, -h     Show this help"
+    echo "  --upgrade, -u  Automatic upgrade"
+    echo "  --install, -i  Interactive install"
+    echo ""
+    echo "Supported distributions:"
+    echo "  - ALT Linux 11.1+"
+    echo "  - Debian 11+"
+    echo "  - Ubuntu 20.04+"
+    echo ""
+}
+
+# Function to check user existence
+check_user() {
+    id "eye" &>/dev/null
+    return $?
+}
+
+# Function to check directory existence
+check_directory() {
+    [ -d "/opt/Eye" ]
+    return $?
+}
+
 # Handle command line arguments
 case "$1" in
     --help|-h)
-        echo "Usage: $0 [options]"
-        echo ""
-        echo "Options:"
-        echo "  --help, -h     Show this help"
-        echo "  --auto         Automatic installation (minimal interaction)"
-        echo ""
-        echo "Supported distributions:"
-        echo "  - ALT Linux 11.1+"
-        echo "  - Debian 11+"
-        echo "  - Ubuntu 20.04+"
-        echo ""
+        show_help
         exit 0
         ;;
-    --auto)
-        # Mode with minimal interaction
-        print_warn "Automatic mode. All confirmations will be accepted as 'yes'"
-        export DEBIAN_FRONTEND=noninteractive
+    --upgrade|-u)
+        mode="upgrade"
+        echo "Mode set to: upgrade"
+        ;;
+    --install|-i)
+        mode="install"
+        echo "Mode set to: install"
         ;;
     *)
-        # Interactive mode by default
+        # autodetect mode
+        echo "Auto-detecting installation status..."
+        
+        if check_user; then
+            user_exists=true
+            echo "✓ User 'eye' exists"
+        else
+            user_exists=false
+            echo "✗ User 'eye' does not exist"
+        fi
+        
+        if check_directory; then
+            dir_exists=true
+            echo "✓ Directory /opt/Eye exists"
+        else
+            dir_exists=false
+            echo "✗ Directory /opt/Eye does not exist"
+        fi
+
+        if $user_exists && $dir_exists; then
+            mode="upgrade"
+            echo "Existing installation detected. Switching to upgrade mode."
+        else
+            mode="install"
+            echo "No existing installation found. Switching to install mode."
+        fi
         ;;
 esac
 
-# Start installation
-main "$@"
+echo ""
+echo "Selected mode: $mode"
+
+# Main execution based on mode
+case "$mode" in
+    "upgrade")
+        echo "Starting upgrade process..."
+        # Start upgrade
+        eye_upgrade
+        ;;
+    "install")
+        echo "Starting installation process..."
+        # Start installation
+        eye_install
+        ;;
+    *)
+        echo "Error: Unknown mode '$mode'"
+        exit 1
+        ;;
+esac
+
 
 # Exit with success code
 exit 0
