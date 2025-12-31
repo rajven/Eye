@@ -27,32 +27,33 @@ use Fcntl qw(:flock);
 open(SELF, "<", $0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX | LOCK_NB) or exit 1;
 
-# List of database tables eligible for optimization
-my @db_tables = (
-    'connections',
-    'device_l3_interfaces',
-    'device_ports',
-    'User_list',
-    'User_auth',
-    'Unknown_mac',
-    'User_stats',
-    'User_stats_full',
-    'dhcp_log',
-    'worklog',
-    'remote_syslog',
-    'Traffic_detail',
-);
-
 # Number of days to retain debug-level log entries
 my $debug_history = 3;
 
+# List of database tables eligible for optimization
+#my @db_tables = (
+#    'connections',
+#    'device_l3_interfaces',
+#    'device_ports',
+#    'User_list',
+#    'User_auth',
+#    'Unknown_mac',
+#    'User_stats',
+#    'User_stats_full',
+#    'dhcp_log',
+#    'worklog',
+#    'remote_syslog',
+#    'Traffic_detail',
+#);
+
+
 # Optimization flag (disabled by default)
-my $optimize = 0;
+#my $optimize = 0;
 
 # Enable table optimization if "optimize" is passed as the first argument
-if ($ARGV[0] =~ /optimize/i) {
-    $optimize = 1;
-}
+#if ($ARGV[0] =~ /optimize/i) {
+#    $optimize = 1;
+#}
 
 log_info($dbh, 'Garbage collection started.');
 
