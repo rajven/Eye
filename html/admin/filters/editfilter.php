@@ -31,7 +31,7 @@ print "<br> <b>".WEB_title_filter."</b> <br>";
 print "<form name=def action='editfilter.php?id=".$id."' method=post>";
 print "<input type=hidden name=id value=$id>";
 
-if (isset($filter['type']) and $filter['type'] == 0) {
+if (isset($filter['filter_type']) and $filter['filter_type'] == 0) {
     print "<table class=\"data\" cellspacing=\"0\" cellpadding=\"4\">";
     print "<tr><td><b>".WEB_cell_forename."</b></td>";
     print "<td colspan=2><b>".WEB_cell_description."</b></td>";

@@ -107,7 +107,7 @@ unset_lock_discovery($db_link,$device_id);
 </tr>
 <?php
 print "<b>".WEB_device_port_mac_table_history."</b><br>\n";
-$d_sql = "select A.ip,A.ip_int,A.mac,A.id,A.dns_name,A.last_found from user_auth as A, connections as C where C.port_id=$port_id and A.id=C.auth_id order by A.ip_int";
+$d_sql = "select A.ip,A.ip_int,A.mac,A.id,A.dns_name,A.last_found from user_auth as A, connections as C where C.port_id=$port_id and A.id=C.auth_id ORDER BY A.ip_int";
 $t_device = get_records_sql($db_link, $d_sql);
 if (!empty($t_device)) {
     foreach ($t_device as $row) {
@@ -121,13 +121,13 @@ if (!empty($t_device)) {
     }
 }
 
-$maclist = get_records_sql($db_link, "SELECT mac,timestamp from unknown_mac where port_id=$port_id order by timestamp desc");
+$maclist = get_records_sql($db_link, "SELECT mac,ts from unknown_mac where port_id=$port_id ORDER BY ts desc");
 if (!empty($maclist)) {
     foreach ($maclist as $row) {
         print "<tr>";
         print "<td class=\"data\">" . expand_mac($db_link,$row['mac']) . "</td>\n";
         print "<td class=\"data\">Unknown</td>\n";
-        print "<td class=\"data\">".$row['timestamp']."</td>\n";
+        print "<td class=\"data\">".$row['ts']."</td>\n";
         print "</tr>";
     }
 }

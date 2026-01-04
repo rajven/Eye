@@ -89,7 +89,7 @@ print_control_submenu($page_url);
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[" . $row["option_id"] . "] value='" . $row['id'] . "'></td>\n";
                 print "<td class=\"data\"><input type=\"text\" value='" . $row['option_name'] . "' disabled=true readonly=true></td>\n";
-                $type = $row['type'];
+                $type = $row['option_type'];
                 print "<td class=\"data\">";
                 $option_value = $row['value'];
                 if ($row['option_id'] == 29) {

@@ -2,6 +2,110 @@
 if (! defined("CONFIG")) die("Not defined");
 if (! defined("SQL")) { die("Not defined"); }
 
+$numericFields = [
+    'id',
+    'option_id',
+    'min_value',
+    'max_value',
+    'draft',
+    'uniq',
+    'device_id',
+    'port_id',
+    'auth_id',
+    'rights',
+    'device_type',
+    'device_model_id',
+    'vendor_id',
+    'building_id',
+    'ip_int',
+    'control_port',
+    'port_count',
+    'snmp_version',
+    'fdb_snmp_index',
+    'discovery',
+    'netflow_save',
+    'user_acl',
+    'dhcp',
+    'nagios',
+    'active',
+    'queue_enabled',
+    'connected_user_only',
+    'user_id',
+    'deleted',
+    'discovery_locked',
+    'instance_id',
+    'snmpin',
+    'interface_type',
+    'poe_in',
+    'poe_out',
+    'snmp_index',
+    'port',
+    'target_port_id',
+    'last_mac_count',
+    'uplink',
+    'skip',
+    'vlan',
+    'ip_int_start',
+    'ip_int_stop',
+    'dhcp_start',
+    'dhcp_stop',
+    'dhcp_lease_time',
+    'gateway',
+    'office',
+    'hotspot',
+    'vpn',
+    'free',
+    'static',
+    'dhcp_update_hostname',
+    'notify',
+    'router_id',
+    'proto',
+    'src_ip',
+    'dst_ip',
+    'src_port',
+    'dst_port',
+    'bytes',
+    'pkt',
+    'filter_type',
+    'subnet_id',
+    'group_id',
+    'filter_id',
+    'order',
+    'action',
+    'default_users',
+    'default_hotspot',
+    'nagios_ping',
+    'enabled',
+    'filter_group_id',
+    'queue_id',
+    'dynamic',
+    'life_duration',
+    'parent_id',
+    'Download',
+    'Upload',
+    'byte_in',
+    'byte_out',
+    'pkt_in',
+    'pkt_out',
+    'step',
+    'bytes_in',
+    'bytes_out',
+    'forward_in',
+    'forward_out',
+    'level',
+    'last_activity',
+    'is_active',
+    'day_quota',
+    'month_quota',
+    'permanent',
+    'blocked',
+    'changed',
+    'dhcp_changed',
+    'link_check'
+];
+
+$numericFieldsSet = array_flip($numericFields);
+
 function db_escape($connection, $value) {
     // Обработка специальных значений
     if ($value === null) {
@@ -271,15 +375,12 @@ function is_assoc($array) {
  */
 function normalize_field_value($key, $value) {
     if ($value === null or $value === 'NULL') {
-        // Регулярное выражение для определения числовых полей
-        $numeric_field_pattern = '/\b(?:id|_id|count|_count|num|port|size|level|status|type|bytes|byte|_time|_timestamp|_at|time|timestamp|_in|_out|_int|forward|gateway|ip_int|quota|step|vlan|index|snmp|protocol|router|subnet|target|vendor|action|active|blocked|changed|connected|default|deleted|dhcp|discovery|draft|dynamic|enabled|free|hotspot|link|nagios|netflow|notify|office|permanent|poe|queue|rights|save|skip|static|uniq|uplink|vpn)\b/i';
-        if (preg_match($numeric_field_pattern, $key)) {
+	if (isset($numericFieldsSet[$key])) {
             return 0;
         } else {
             return '';
         }
     }
-    
     return $value;
 }
 
@@ -679,7 +780,7 @@ function update_record($db, $table, $filter, $newvalue)
             $del_dns['name_type'] = 'A';
             $del_dns['name'] = $old['dns_name'];
             $del_dns['value'] = $old['ip'];
-            $del_dns['type'] = 'del';
+            $del_dns['operation_type'] = 'del';
             if (!empty($rec_id)) {
                 $del_dns['auth_id'] = $rec_id;
             }
@@ -689,7 +790,7 @@ function update_record($db, $table, $filter, $newvalue)
             $del_dns['name_type'] = 'PTR';
             $del_dns['name'] = $old['dns_name'];
             $del_dns['value'] = $old['ip'];
-            $del_dns['type'] = 'del';
+            $del_dns['operation_type'] = 'del';
             if (!empty($rec_id)) {
                 $del_dns['auth_id'] = $rec_id;
             }
@@ -700,7 +801,7 @@ function update_record($db, $table, $filter, $newvalue)
             $new_dns['name_type'] = 'A';
             $new_dns['name'] = $newvalue['dns_name'];
             $new_dns['value'] = $newvalue['ip'];
-            $new_dns['type'] = 'add';
+            $new_dns['operation_type'] = 'add';
             if (!empty($rec_id)) {
                 $new_dns['auth_id'] = $rec_id;
             }
@@ -710,7 +811,7 @@ function update_record($db, $table, $filter, $newvalue)
             $new_dns['name_type'] = 'PTR';
             $new_dns['name'] = $newvalue['dns_name'];
             $new_dns['value'] = $newvalue['ip'];
-            $new_dns['type'] = 'add';
+            $new_dns['operation_type'] = 'add';
             if (!empty($rec_id)) {
                 $new_dns['auth_id'] = $rec_id;
             }
@@ -726,7 +827,7 @@ function update_record($db, $table, $filter, $newvalue)
         if (!empty($old['alias']) and !preg_match('/\.$/', $old['alias'])) {
             $del_dns['name_type'] = 'CNAME';
             $del_dns['name'] = $old['alias'];
-            $del_dns['type'] = 'del';
+            $del_dns['operation_type'] = 'del';
             if (!empty($auth_id)) {
                 $del_dns['auth_id'] = $auth_id;
                 $del_dns['value'] = get_dns_name($db, $auth_id);
@@ -736,7 +837,7 @@ function update_record($db, $table, $filter, $newvalue)
         if (!empty($newvalue['alias'])  and !preg_match('/\.$/', $newvalue['alias'])) {
             $new_dns['name_type'] = 'CNAME';
             $new_dns['name'] = $newvalue['alias'];
-            $new_dns['type'] = 'add';
+            $new_dns['operation_type'] = 'add';
             if (!empty($auth_id)) {
                 $new_dns['auth_id'] = $auth_id;
                 $new_dns['value'] = get_dns_name($db, $auth_id);
@@ -868,7 +969,7 @@ function delete_record($db, $table, $filter)
             $del_dns['name_type'] = 'A';
             $del_dns['name'] = $old['dns_name'];
             $del_dns['value'] = $old['ip'];
-            $del_dns['type'] = 'del';
+            $del_dns['operation_type'] = 'del';
             if (!empty($rec_id)) {
                 $del_dns['auth_id'] = $rec_id;
                 }
@@ -879,7 +980,7 @@ function delete_record($db, $table, $filter)
             $del_dns['name_type'] = 'PTR';
             $del_dns['name'] = $old['dns_name'];
             $del_dns['value'] = $old['ip'];
-            $del_dns['type'] = 'del';
+            $del_dns['operation_type'] = 'del';
             if (!empty($rec_id)) {
                 $del_dns['auth_id'] = $rec_id;
                 }
@@ -899,7 +1000,7 @@ function delete_record($db, $table, $filter)
             $del_dns['name_type'] = 'CNAME';
             $del_dns['name'] = $old['alias'];
             $del_dns['value'] = '';
-            $del_dns['type'] = 'del';
+            $del_dns['operation_type'] = 'del';
             if (!empty($old['auth_id'])) {
                 $del_dns['auth_id'] = $old['auth_id'];
                 $del_dns['value'] = get_dns_name($db, $old['auth_id']);
@@ -1013,7 +1114,7 @@ function insert_record($db, $table, $newvalue)
                 $add_dns['name_type'] = 'CNAME';
                 $add_dns['name'] = $newvalue['alias'];
                 $add_dns['value'] = get_dns_name($db, $newvalue['auth_id']);
-                $add_dns['type'] = 'add';
+                $add_dns['operation_type'] = 'add';
                 $add_dns['auth_id'] = $newvalue['auth_id'];
                 insert_record($db, 'dns_queue', $add_dns);
             }
@@ -1025,7 +1126,7 @@ function insert_record($db, $table, $newvalue)
                 $add_dns['name_type'] = 'A';
                 $add_dns['name'] = $newvalue['dns_name'];
                 $add_dns['value'] = $newvalue['ip'];
-                $add_dns['type'] = 'add';
+                $add_dns['operation_type'] = 'add';
                 $add_dns['auth_id'] = $last_id;
                 insert_record($db, 'dns_queue', $add_dns);
             }
@@ -1034,7 +1135,7 @@ function insert_record($db, $table, $newvalue)
                 $add_dns['name_type'] = 'PTR';
                 $add_dns['name'] = $newvalue['dns_name'];
                 $add_dns['value'] = $newvalue['ip'];
-                $add_dns['type'] = 'add';
+                $add_dns['operation_type'] = 'add';
                 $add_dns['auth_id'] = $last_id;
                 insert_record($db, 'dns_queue', $add_dns);
             }

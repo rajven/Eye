@@ -325,7 +325,7 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                 }
                 ?>
                 <td colspan=3 align=right><?php print WEB_cell_created . ":&nbsp";
-                                            print $user_info["timestamp"]; ?></td>
+                                            print $user_info["ts"]; ?></td>
             </tr>
             <tr>
                 <?php print "<td colspan=2>";
@@ -383,15 +383,21 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     if ($row["last_found"] == '0000-00-00 00:00:00') {
                         $row["last_found"] = '';
                     }
+                    if ($row["mac_found"] == '0000-00-00 00:00:00') {
+                        $row["mac_found"] = '';
+                    }
+                    if ($row["arp_found"] == '0000-00-00 00:00:00') {
+                        $row["arp_found"] = '';
+                    }
                     print "<tr align=center>";
                     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_auth_id[] value=" . $row["id"] . " ></td>";
 
                     print "<td class=\"data\" align=left><a href=editauth.php?id=" . $row["id"] . ">" . $row["ip"] . "</a>";
-                    if (!empty($row["arp_found"])) { print "<p class='timestamp'>".FormatDateStr('Y.m.d H:i', $row["arp_found"])."</p>"; }
+                    if (!empty($row["arp_found"])) { print "<p class='ts'>".FormatDateStr('Y.m.d H:i', $row["arp_found"])."</p>"; }
                     print "</td>";
 
                     print "<td class=\"data\" >" . expand_mac($db_link, $row["mac"]);
-                    if (!empty($row["last_found"])) { print "<p class='timestamp'>".FormatDateStr('Y.m.d H:i', $row["last_found"])."</p>"; }
+                    if (!empty($row["mac_found"])) { print "<p class='ts'>".FormatDateStr('Y.m.d H:i', $row["mac_found"])."</p>"; }
                     print "</td>";
 
                     if (isset($row["dhcp_hostname"]) and strlen($row["dhcp_hostname"]) > 0) {
@@ -415,13 +421,13 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     if (!$row["dhcp"]) { $cl = "data_red"; }
                     print "<td class=\"$cl\" >" . get_qa($row["dhcp"]);
                     if (!empty($row["dhcp_acl"]) or !empty($row["dhcp_option_set"])) {
-                            print "<p class='timestamp'>";
+                            print "<p class='ts'>";
                             if (!empty($row["dhcp_acl"])) { print $row["dhcp_acl"]; }
                             if (!empty($row["dhcp_acl"]) and !empty($row["dhcp_option_set"])) { print "&nbsp/&nbsp"; }
                             if (!empty($row["dhcp_option_set"])) { print $row["dhcp_option_set"]; }
                             print "</p>";
                             }
-                    if (!empty($dhcp_str)) { print "<p class='timestamp'>".$dhcp_str. "</p>"; }
+                    if (!empty($dhcp_str)) { print "<p class='ts'>".$dhcp_str. "</p>"; }
                     print "</td>";
 
                     print "<td class=\"data\" >" . get_group($db_link, $row["filter_group_id"]) . "</td>";
@@ -430,7 +436,7 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
 
                     if ($row['dynamic']) { $cl = "data_red"; } else { $cl = "data_green"; }
                     print "<td class=\"$cl\" >". get_qa($row['dynamic']);
-                    if ($row['dynamic'] and !empty($row["end_life"])) { print "<p class='timestamp'>".FormatDateStr('Y.m.d H:i', $row["end_life"])."</p>"; } else { print "&nbsp"; }
+                    if ($row['dynamic'] and !empty($row["end_life"])) { print "<p class='ts'>".FormatDateStr('Y.m.d H:i', $row["end_life"])."</p>"; } else { print "&nbsp"; }
                     print "</td>";
 
                     print "<td class=\"data\" >";

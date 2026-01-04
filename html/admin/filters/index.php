@@ -10,7 +10,7 @@ if (isset($_POST["create"])) {
     }
     if (isset($fname)) {
         $new['name'] = $fname;
-        $new['type'] = $ftype;
+        $new['filter_type'] = $ftype;
         $new_id = insert_record($db_link, "filter_list", $new);
         header("Location: editfilter.php?id=$new_id");
         exit;
@@ -69,7 +69,7 @@ print_filters_submenu($page_url);
                 if (empty($row['srcport'])) {
                     $row['srcport'] = '';
                 }
-                if ($row['type'] == 0) {
+                if ($row['filter_type'] == 0) {
                     print "<td class=\"data\">IP фильтр</td>\n";
                     print "<td class=\"data\">" . $row['proto'] . "</td>\n";
                     print "<td class=\"data\">" . $row['dst'] . "</td>\n";

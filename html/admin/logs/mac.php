@@ -27,7 +27,7 @@ print_log_submenu($page_url);
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM mac_history WHERE timestamp>='$date1' AND timestamp<'$date2' $mac_where ORDER BY id DESC";
+$countSQL="SELECT Count(*) FROM mac_history WHERE ts>='$date1' AND ts<'$date2' $mac_where ORDER BY id DESC";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -46,12 +46,12 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 
 <?php
 
-$sSQL = "SELECT * FROM mac_history WHERE timestamp>='$date1' AND timestamp<'$date2' $mac_where ORDER BY timestamp DESC LIMIT $start,$displayed";
+$sSQL = "SELECT * FROM mac_history WHERE ts>='$date1' AND ts<'$date2' $mac_where ORDER BY ts DESC LIMIT $start,$displayed";
 $maclog = get_records_sql($db_link, $sSQL);
 
 foreach ($maclog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
+    print "<td class=\"data\">" . $row['ts'] . "</td>\n";
     print "<td class=\"data\">" . expand_mac($db_link,mac_dotted($row['mac'])) . "</td>\n";
     print "<td class=\"data\">" . get_port($db_link, $row['port_id']) . "</td>\n";
     if (isset($row['auth_id']) and $row['auth_id'] > 0) {

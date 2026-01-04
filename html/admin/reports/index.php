@@ -43,8 +43,8 @@ user_list.login,user_list.ou_id,user_auth.user_id, user_stats.auth_id,
 user_stats.router_id, SUM( byte_in ) AS tin, SUM( byte_out ) AS tout 
 FROM user_stats,user_auth,user_list WHERE user_list.id=user_auth.user_id 
 AND user_stats.auth_id = user_auth.id 
-AND user_stats.timestamp>='$date1' 
-AND user_stats.timestamp<'$date2' 
+AND user_stats.ts>='$date1' 
+AND user_stats.ts<'$date2' 
 ";
 
 if ($rou !== 0) { $trafSQL = $trafSQL . " AND user_list.ou_id=$rou"; }

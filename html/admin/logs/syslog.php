@@ -42,7 +42,7 @@ if ($f_id>0) {
 
 if (!empty($fmessage)) { $log_filter .= " AND message LIKE '%" . addslashes($fmessage) . "%'"; }
 
-$countSQL="SELECT Count(*) FROM remote_syslog WHERE date>='$date1' AND date<'$date2' $log_filter";
+$countSQL="SELECT Count(*) FROM remote_syslog WHERE ts>='$date1' AND ts<'$date2' $log_filter";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -50,7 +50,7 @@ if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed; 
 print_navigation($page_url,$page,$displayed,$count_records,$total);
 #speedup pageing
-$sSQL = "SELECT * FROM (SELECT * FROM remote_syslog WHERE date>='$date1' AND date<'$date2' $log_filter) as R ORDER BY date DESC LIMIT $start,$displayed";
+$sSQL = "SELECT * FROM (SELECT * FROM remote_syslog WHERE ts>='$date1' AND ts<'$date2' $log_filter) as R ORDER BY ts DESC LIMIT $start,$displayed";
 ?>
 
 <br>
@@ -68,7 +68,7 @@ $syslog = get_records_sql($db_link, $sSQL);
 if (!empty($syslog)) {
     foreach ($syslog as $row) {
         print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-        print "<td class=\"data\">" . $row['date'] . "</td>\n";
+        print "<td class=\"data\">" . $row['ts'] . "</td>\n";
         print "<td class=\"data\">" . $row['ip'] . "</td>\n";
         print "<td class=\"data\">" . $row['message'] . "</td>\n";
         print "</tr>\n";

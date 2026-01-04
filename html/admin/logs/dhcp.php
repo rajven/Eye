@@ -56,7 +56,7 @@ print_log_submenu($page_url);
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM dhcp_log WHERE timestamp>='$date1' AND timestamp<'$date2' $dhcp_where";
+$countSQL="SELECT Count(*) FROM dhcp_log WHERE ts>='$date1' AND ts<'$date2' $dhcp_where";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -77,7 +77,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <?php
 
 #speedup dhcp log paging
-$sSQL = "SELECT * FROM dhcp_log as D JOIN (SELECT id FROM dhcp_log WHERE timestamp>='$date1' and timestamp<'$date2' $dhcp_where ORDER BY id DESC LIMIT $start,$displayed) AS I ON D.id = I.id";
+$sSQL = "SELECT * FROM dhcp_log as D JOIN (SELECT id FROM dhcp_log WHERE ts>='$date1' and ts<'$date2' $dhcp_where ORDER BY id DESC LIMIT $start,$displayed) AS I ON D.id = I.id";
 $userlog = get_records_sql($db_link, $sSQL);
 
 foreach ($userlog as $row) {
@@ -86,7 +86,7 @@ foreach ($userlog as $row) {
     if ($row['action'] == "del") { $row['action'] = WEB_log_dhcp_del.": "; }
     $l_msg = $row['action'] . " " . $row['mac'] . " " . $row['ip'];
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
+    print "<td class=\"data\">" . $row['ts'] . "</td>\n";
     print "<td class=\"data\">" . $row['action'] . "</td>\n";
     print "<td class=\"data\">" . $row['mac'] . "</td>\n";
     if (isset($row['auth_id']) and $row['auth_id'] > 0) {

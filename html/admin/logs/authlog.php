@@ -33,7 +33,7 @@ if (!empty($log_filter)) { $log_filter = $log_filter." and auth_id=".$auth_id; }
 if (!empty($fcustomer)) { $log_filter = $log_filter." and customer LIKE '%".$fcustomer."%'"; }
 if (!empty($fmessage)) { $log_filter = $log_filter." and message LIKE '%".$fmessage."%'"; }
 
-$countSQL="SELECT Count(*) FROM worklog WHERE timestamp>='$date1' AND timestamp<'$date2' $log_filter";
+$countSQL="SELECT Count(*) FROM worklog WHERE ts>='$date1' AND ts<'$date2' $log_filter";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -51,11 +51,11 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 	</tr>
 <?php
 #speedup paging
-$sSQL = "SELECT timestamp,customer,message,level FROM worklog as S JOIN (SELECT id FROM worklog WHERE timestamp>='$date1' AND timestamp<'$date2' $log_filter ORDER BY id DESC LIMIT $start,$displayed) AS I ON S.id = I.id";
+$sSQL = "SELECT ts,customer,message,level FROM worklog as S JOIN (SELECT id FROM worklog WHERE ts>='$date1' AND ts<'$date2' $log_filter ORDER BY id DESC LIMIT $start,$displayed) AS I ON S.id = I.id";
 $userlog = get_records_sql($db_link, $sSQL);
 foreach ($userlog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
+    print "<td class=\"data\">" . $row['ts'] . "</td>\n";
     print "<td class=\"data\">" . $row['customer'] . "</td>\n";
     $msg_level = 'INFO';
     if ($row['level'] == L_ERROR) { $msg_level='ERROR'; }

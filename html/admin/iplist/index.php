@@ -256,12 +256,15 @@ foreach ($users as $user) {
     print_td_qa($user['save_traf'],FALSE,$cl);
     print_td_qa($user['dhcp'],FALSE,$cl);
     print "<td class=\"$cl\" >".$user['dhcp_acl']."</td>\n";
-    if (empty($user['arp_found'])) {
-//        print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
-        print "<td class=\"$cl\" >-</td>\n";
-        } else {
-        print "<td class=\"$cl\" >".$user['arp_found']."</td>\n";
-        }
+    print "<td class=\"$cl\" >";
+    if (!empty($user['arp_found'])) {
+        print $user['arp_found'];
+        } else { print "-"; }
+    print "&nbsp/&nbsp";
+    if (!empty($user['mac_found'])) {
+        print $user['mac_found'];
+        } else { print "-"; }
+    print "</td>\n";
     print "<td class=\"$cl\" >" . get_connection($db_link, $user['id']) . "</td>\n";
     print "</tr>\n";
 }

@@ -200,6 +200,7 @@ define("WEB_cell_shaper","Шейпер");
 define("WEB_cell_connection","Подключен");
 define("WEB_cell_last_found","Был mac/arp");
 define("WEB_cell_arp_found","Был arp");
+define("WEB_cell_mac_found","Был mac");
 define("WEB_cell_dns_name","Имя в dns");
 define("WEB_cell_aliases","Альясы");
 define("WEB_cell_host_model","Модель устройства");

@@ -1172,7 +1172,7 @@ function print_device_model_select($db, $device_model_name, $device_model_value)
 function print_filter_group_select($db, $group_name, $group_value)
 {
     print "<select id=\"$group_name\" name=\"$group_name\">\n";
-    $t_group = get_records_sql($db, "SELECT id,group_name FROM group_list Order by group_name");
+    $t_group = get_records_sql($db, "SELECT id,group_name FROM group_list ORDER BY group_name");
     foreach ($t_group as $row) {
         print_select_item($row['group_name'], $row['id'], $group_value);
     }
@@ -1183,7 +1183,7 @@ function print_building_select($db, $building_name, $building_value)
 {
     print "<select id=\"$building_name\" name=\"$building_name\">\n";
     print_select_item(WEB_select_item_all, 0, $building_value);
-    $t_building = get_records_sql($db, "SELECT id,name FROM building Order by name");
+    $t_building = get_records_sql($db, "SELECT id,name FROM building ORDER BY name");
     foreach ($t_building as $row) {
         print_select_item($row['name'], $row['id'], $building_value);
     }
@@ -1326,7 +1326,7 @@ function get_gw_subnets($db, $device_id)
 function print_queue_select($db, $queue_name, $queue_value)
 {
     print "<select id=\"$queue_name\" name=\"$queue_name\">\n";
-    $t_queue = get_records_sql($db, "SELECT id,queue_name FROM queue_list Order by queue_name");
+    $t_queue = get_records_sql($db, "SELECT id,queue_name FROM queue_list ORDER BY queue_name");
     foreach ($t_queue as $row) {
         print_select_item($row['queue_name'], $row['id'], $queue_value);
     }
@@ -1624,7 +1624,7 @@ function print_ip_type_select($qa_name, $qa_value)
 function print_vendor_select($db, $qa_name, $qa_value)
 {
     print "<select id=\"$qa_name\" name=\"$qa_name\"  style=\"width: 100%\">\n";
-    $sSQL = "SELECT id,name FROM vendors order by name";
+    $sSQL = "SELECT id,name FROM vendors ORDER BY name";
     $vendors = get_records_sql($db, $sSQL);
     print_select_item(WEB_select_item_all, 0, $qa_value);
     foreach ($vendors as $row) {
@@ -1636,7 +1636,7 @@ function print_vendor_select($db, $qa_name, $qa_value)
 function print_vendor_set($db, $qa_name, $qa_value)
 {
     print "<select id=\"$qa_name\" name=\"$qa_name\" style=\"width: 100%\">\n";
-    $sSQL = "SELECT id,name FROM vendors order by name";
+    $sSQL = "SELECT id,name FROM vendors ORDER BY name";
     $vendors = get_records_sql($db, $sSQL);
     foreach ($vendors as $row) {
         print_select_item($row['name'], $row['id'], $qa_value);
@@ -1711,7 +1711,7 @@ function print_filter_select($db, $filter_name, $group_id)
     if (isset($group_id)) {
         $sSQL = "SELECT id,name FROM filter_list WHERE filter_list.id not in (Select filter_id FROM group_filters WHERE group_id=$group_id)";
     } else {
-        $sSQL = "SELECT id,name FROM filter_list Order by name";
+        $sSQL = "SELECT id,name FROM filter_list ORDER BY name";
     }
 
     $t_filters = get_records_sql($db, $sSQL);
@@ -1745,7 +1745,7 @@ function get_auth_count($db, $user_id)
 function print_login_select($db, $login_name, $current_login)
 {
     print "<select id=\"$login_name\" name=\"$login_name\" class=\"js-select-single\">\n";
-    $t_login = get_records_sql($db, "SELECT id,login FROM user_list Order by Login");
+    $t_login = get_records_sql($db, "SELECT id,login FROM user_list ORDER BY Login");
     print_select_item('None', 0, $current_login);
     foreach ($t_login as $row) {
         print_select_item($row['login'], $row['id'], $current_login);
@@ -1756,7 +1756,7 @@ function print_login_select($db, $login_name, $current_login)
 function print_auth_select($db, $login_name, $current_auth)
 {
     print "<select id=\"$login_name\" name=\"$login_name\" class=\"js-select-single\">\n";
-    $t_login = get_records_sql($db, "SELECT U.login,U.fio,A.ip,A.id FROM user_list as U, user_auth as A WHERE A.user_id=U.id and A.deleted=0 and (A.id not in (select device_ports.auth_id FROM device_ports) or A.id=$current_auth) order by U.login,U.fio,A.ip");
+    $t_login = get_records_sql($db, "SELECT U.login,U.fio,A.ip,A.id FROM user_list as U, user_auth as A WHERE A.user_id=U.id and A.deleted=0 and (A.id not in (select device_ports.auth_id FROM device_ports) or A.id=$current_auth) ORDER BY U.login,U.fio,A.ip");
     print_select_item('Empty', 0, $current_auth);
     foreach ($t_login as $row) {
         print_select_item($row['login'] . "[" . $row['fio'] . "] - " . $row['ip'], $row['id'], $current_auth);
@@ -1767,7 +1767,7 @@ function print_auth_select($db, $login_name, $current_auth)
 function print_auth_select_mac($db, $login_name, $current_auth)
 {
     print "<select id=\"$login_name\" name=\"$login_name\" class=\"js-select-single\">\n";
-    $t_login = get_records_sql($db, "SELECT U.login,U.fio,A.ip,A.mac,A.id FROM user_list as U, user_auth as A WHERE A.user_id=U.id and A.deleted=0 and (A.id not in (select device_ports.auth_id FROM device_ports) or A.id=$current_auth) order by U.login,U.fio,A.ip");
+    $t_login = get_records_sql($db, "SELECT U.login,U.fio,A.ip,A.mac,A.id FROM user_list as U, user_auth as A WHERE A.user_id=U.id and A.deleted=0 and (A.id not in (select device_ports.auth_id FROM device_ports) or A.id=$current_auth) ORDER BY U.login,U.fio,A.ip");
 
     print_select_item('Empty', 0, $current_auth);
     foreach ($t_login as $row) {
@@ -1809,7 +1809,7 @@ function print_device_port_select($db, $field_name, $device_id, $target_id)
 function print_device_select($db, $field_name, $device_id)
 {
     print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
-    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 order by D.device_name ASC";
+    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 ORDER BY D.device_name ASC";
     $t_device = get_records_sql($db, $d_sql);
     print_select_item(WEB_select_item_every, 0, $device_id);
     foreach ($t_device as $row) {
@@ -1821,7 +1821,7 @@ function print_device_select($db, $field_name, $device_id)
 function print_netdevice_select($db, $field_name, $device_id)
 {
     print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
-    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type<=2 order by D.device_name ASC";
+    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type<=2 ORDER BY D.device_name ASC";
     $t_device = get_records_sql($db, $d_sql);
     print_select_item(WEB_select_item_every, 0, $device_id);
     foreach ($t_device as $row) {
@@ -1851,7 +1851,7 @@ function print_vlan_select($db, $field_name, $vlan)
 function print_device_select_ip($db, $field_name, $device_ip)
 {
     print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
-    $d_sql = "SELECT D.device_name, D.ip FROM devices AS D Where D.deleted=0 order by D.device_name ASC";
+    $d_sql = "SELECT D.device_name, D.ip FROM devices AS D Where D.deleted=0 ORDER BY D.device_name ASC";
     $t_device = get_records_sql($db, $d_sql);
     print_select_item(WEB_select_item_every, '', $device_ip);
     foreach ($t_device as $row) {
@@ -1878,7 +1878,7 @@ function print_syslog_device_select($db, $field_name, $syslog_filter, $device_ip
 function print_gateway_select($db, $field_name, $device_id)
 {
     print "<select id=\"$field_name\" name=\"$field_name\" >\n";
-    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type=2 order by D.device_name ASC";
+    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type=2 ORDER BY D.device_name ASC";
     $t_device = get_records_sql($db, $d_sql);
     print_select_item(WEB_select_item_every, 0, $device_id);
     foreach ($t_device as $row) {
@@ -1889,7 +1889,7 @@ function print_gateway_select($db, $field_name, $device_id)
 
 function get_gateways($db)
 {
-    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type=2 order by D.device_name ASC";
+    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type=2 ORDER BY D.device_name ASC";
     $t_device = get_records_sql($db, $d_sql);
     unset($result);
     foreach ($t_device as $row) {
@@ -1980,7 +1980,7 @@ function get_device_by_auth($db, $id)
 
 function print_auth_port($db, $port_id, $new_window = FALSE)
 {
-    $d_sql = "SELECT A.ip, A.ip_int, A.mac, A.id, A.dns_name, A.user_id FROM user_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
+    $d_sql = "SELECT A.ip, A.ip_int, A.mac, A.id, A.dns_name, A.user_id FROM user_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 ORDER BY A.ip_int";
     $t_auth = get_records_sql($db, $d_sql);
     foreach ($t_auth as $row) {
         $name = $row['ip'];
@@ -2001,7 +2001,7 @@ function print_auth_port($db, $port_id, $new_window = FALSE)
 
 function get_port_description($db, $port_id, $port_description = '')
 {
-    $d_sql = "SELECT A.ip_int, A.description FROM user_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
+    $d_sql = "SELECT A.ip_int, A.description FROM user_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 ORDER BY A.ip_int";
     $t_auth = get_records_sql($db, $d_sql);
     $description_found = 0;
     $result = '';
@@ -2114,13 +2114,13 @@ function get_port($db, $port_id)
 function print_option_select($db, $option_name)
 {
     print "<select id=\"$option_name\" name=\"$option_name\">\n";
-    $t_option = get_records_sql($db, "SELECT id,option_name FROM config_options WHERE uniq=0 AND draft=0 order by option_name");
+    $t_option = get_records_sql($db, "SELECT id,option_name FROM config_options WHERE uniq=0 AND draft=0 ORDER BY option_name");
     if (!empty($t_option)) {
         foreach ($t_option as $row) {
             print "<option value=".$row['id'].">".$row['option_name']."</option>";
         }
     }
-    $t_option = get_records_sql($db, "SELECT id,option_name FROM config_options WHERE draft=0 AND uniq=1 AND id NOT IN (select option_id FROM config where draft=0) order by option_name");
+    $t_option = get_records_sql($db, "SELECT id,option_name FROM config_options WHERE draft=0 AND uniq=1 AND id NOT IN (select option_id FROM config where draft=0) ORDER BY option_name");
     if (!empty($t_option)) {
         foreach ($t_option as $row) {
             print "<option value=".$row['id'].">".$row['option_name']."</option>";
@@ -2154,7 +2154,7 @@ function clean_dns_cache($db)
     $date = $date - 86400;
     $date_clean = DateTimeImmutable::createFromFormat('U', $date);
     $clean_date = $date_clean->format('Y-m-d H:i:s');
-    run_sql($db, "DELETE FROM dns_cache WHERE timestamp<='" . $clean_date . "'");
+    run_sql($db, "DELETE FROM dns_cache WHERE ts<='" . $clean_date . "'");
 }
 
 function clean_unreferensed_rules($db)

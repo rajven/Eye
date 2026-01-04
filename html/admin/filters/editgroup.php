@@ -14,7 +14,7 @@ if (isset($_POST["editgroup"])) {
 
 if (isset($_POST["addfilter"])) {
     $filter_id = $_POST["newfilter"] * 1;
-    $max_record = get_record_sql($db_link, "SELECT MAX(G.order) as morder FROM group_filters as G where G.group_id='$id'");
+    $max_record = get_record_sql($db_link, "SELECT MAX(G.rule_order) as morder FROM group_filters as G where G.group_id='$id'");
     if (empty($max_record)) {
         $forder = 1;
     } else {
@@ -22,7 +22,7 @@ if (isset($_POST["addfilter"])) {
     }
     $new['group_id'] = $id;
     $new['filter_id'] = $filter_id;
-    $new['order'] = $forder;
+    $new['rule_order'] = $forder;
     $new['action'] = 1;
     insert_record($db_link, "group_filters", $new);
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -47,9 +47,9 @@ if (isset($_POST["updateFilters"])) {
         for ($i = 0; $i < count($f_group_filter); ++$i) {
             $group_filter_id = $f_group_filter[$i];
             if (empty($_POST["f_ord"][$group_filter_id])) {
-                $new['order'] = $i;
+                $new['rule_order'] = $i;
             } else {
-                $new['order'] = $_POST["f_ord"][$group_filter_id] * 1;
+                $new['rule_order'] = $_POST["f_ord"][$group_filter_id] * 1;
             }
             if (empty($_POST["f_action"][$group_filter_id])) {
                 $new['action'] = 0;
@@ -107,12 +107,12 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
             </tr>
 
             <?php
-            $sSQL = "SELECT G.id, G.filter_id, F.name, G.order, G.action, F.description FROM group_filters G, filter_list F WHERE F.id=G.filter_id and group_id=$id Order by G.order";
+            $sSQL = "SELECT G.id, G.filter_id, F.name, G.rule_order, G.action, F.description FROM group_filters G, filter_list F WHERE F.id=G.filter_id and group_id=$id ORDER BY G.rule_order";
             $flist = get_records_sql($db_link, $sSQL);
             foreach ($flist as $row) {
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_group_filter[] value=" . $row['id'] . "></td>\n";
-                print "<td class=\"data\" align=left><input type=text name=f_ord[" . $row['id'] . "] value=" . $row['order'] . " size=4 ></td>\n";
+                print "<td class=\"data\" align=left><input type=text name=f_ord[" . $row['id'] . "] value=" . $row['rule_order'] . " size=4 ></td>\n";
                 print "<td class=\"data\" align=left><a href=editfilter.php?id=" . $row['filter_id'] . ">" . $row['name'] . "</a></td>\n";
                 $cl = "data";
                 if ($row['action']) {

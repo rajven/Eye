@@ -70,7 +70,7 @@ foreach ($users as $row) {
             $f_index++;
             $user = get_record_sql($db_link,"SELECT * FROM user_auth WHERE id=".$f_id);
             if (empty($user['arp_found']) or $user['arp_found'] === '0000-00-00 00:00:00') { $user['arp_found'] = ''; }
-            if (empty($user['timestamp']) or $user['timestamp'] === '0000-00-00 00:00:00') { $user['timestamp'] = ''; }
+            if (empty($user['ts']) or $user['ts'] === '0000-00-00 00:00:00') { $user['ts'] = ''; }
             if (empty($user['changed_time']) or $user['changed_time'] === '0000-00-00 00:00:00') { $user['changed_time'] = ''; }
             print "<tr align=center>\n";
             $cl = "data";
@@ -86,8 +86,8 @@ foreach ($users as $row) {
                 print "<td class=\"$cl\" >".$user['description']."</td>\n";
                 }
             print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
-            print "<td class=\"$cl\" >".$user['timestamp']."</td>\n";
-            print "<td class=\"$cl\" >".$user['arp_found']."</td>\n";
+            print "<td class=\"$cl\" >".$user['ts']."</td>\n";
+            print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
             print "</tr>\n";
             $printed[$f_id] = 1;
             }
@@ -96,7 +96,7 @@ foreach ($users as $row) {
             $f_index++;
             $user = get_record_sql($db_link,"SELECT * FROM user_auth WHERE id=".$row['id']);
             if (empty($user['arp_found']) or $user['arp_found'] === '0000-00-00 00:00:00') { $user['arp_found'] = ''; }
-            if (empty($user['timestamp']) or $user['timestamp'] === '0000-00-00 00:00:00') { $user['timestamp'] = ''; }
+            if (empty($user['ts']) or $user['ts'] === '0000-00-00 00:00:00') { $user['ts'] = ''; }
             if (empty($user['changed_time']) or $user['changed_time'] === '0000-00-00 00:00:00') { $user['changed_time'] = ''; }
             print "<tr align=center>\n";
             $cl = "data";
@@ -112,8 +112,8 @@ foreach ($users as $row) {
                 print "<td class=\"$cl\" >".$user['description']."</td>\n";
                 }
             print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
-            print "<td class=\"$cl\" >".$user['timestamp']."</td>\n";
-            print "<td class=\"$cl\" >".$user['arp_found']."</td>\n";
+            print "<td class=\"$cl\" >".$user['ts']."</td>\n";
+            print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
             print "</tr>\n";
             $printed[$row['id']] = 1;
             }

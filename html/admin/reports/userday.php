@@ -37,7 +37,7 @@ $gateway_list = get_gateways($db_link);
 $gateway_filter='';
 if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(user_stats.router_id=$rgateway) AND"; }
 
-$sSQL = "SELECT id,ip,description FROM user_auth WHERE (user_auth.user_id=$id) Order by IP";
+$sSQL = "SELECT id,ip,description FROM user_auth WHERE (user_auth.user_id=$id) ORDER BY IP";
 $usersip = get_records_sql($db_link, $sSQL);
 
 $ipcount = 0;
@@ -50,7 +50,7 @@ foreach ($usersip as $row) {
     $fcomm = $row["description"];
 
     $sSQL = "SELECT SUM(byte_in)+SUM(byte_out) as t_sum FROM user_stats 
-    WHERE $gateway_filter user_stats.timestamp>='$date1' AND user_stats.timestamp<'$date2'AND auth_id=$fid";
+    WHERE $gateway_filter user_stats.ts>='$date1' AND user_stats.ts<'$date2'AND auth_id=$fid";
 
     $day_summary = get_record_sql($db_link, $sSQL);
     if (!empty($day_summary)) { $summ = $day_summary['t_sum']; } else { $summ = 0; }
@@ -70,16 +70,16 @@ foreach ($usersip as $row) {
         if ($days_shift >30 and $days_shift <=730) { $display_date_format='%Y-%m'; }
         if ($days_shift >730) { $display_date_format='%Y'; }
 
-        $sSQL = "SELECT user_stats.router_id, DATE_FORMAT(user_stats.timestamp,'$display_date_format') as tHour,
+        $sSQL = "SELECT user_stats.router_id, DATE_FORMAT(user_stats.ts,'$display_date_format') as tHour,
                 SUM(byte_in) as byte_in_sum, SUM(byte_out) as byte_out_sum 
                 FROM user_stats 
-                WHERE user_stats.timestamp>='$date1' AND user_stats.timestamp<'$date2' and auth_id=$fid";
+                WHERE user_stats.ts>='$date1' AND user_stats.ts<'$date2' and auth_id=$fid";
         if ($rgateway == 0) {
-            $sSQL = $sSQL . " GROUP BY DATE_FORMAT(user_stats.timestamp,'$display_date_format'),user_stats.router_id 
+            $sSQL = $sSQL . " GROUP BY DATE_FORMAT(user_stats.ts,'$display_date_format'),user_stats.router_id 
             ORDER BY tHour,user_stats.router_id";
         } else {
             $sSQL = $sSQL . " and user_stats.router_id=$rgateway 
-            GROUP BY DATE_FORMAT(user_stats.timestamp,'$display_date_format'),user_stats.router_id 
+            GROUP BY DATE_FORMAT(user_stats.ts,'$display_date_format'),user_stats.router_id 
             ORDER BY tHour";
         }
 

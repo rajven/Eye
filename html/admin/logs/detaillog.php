@@ -59,7 +59,7 @@ if (!empty($f_ip)) { $sort_url .='&f_ip="'.$f_ip.'"'; }
 $gateway_filter='';
 if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) AND"; }
 
-$countSQL="SELECT Count(*) FROM traffic_detail as A WHERE $gateway_filter $ip_where timestamp>='$date1' AND timestamp<'$date2'";
+$countSQL="SELECT Count(*) FROM traffic_detail as A WHERE $gateway_filter $ip_where ts>='$date1' AND ts<'$date2'";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -74,7 +74,7 @@ $gateway_list = get_gateways($db_link);
 <tr align="center">
 <td class="data" width=20><b><?php $url = $sort_url.'&sort=id&order='.$new_order."'>id</a>"; print $url; ?></b></td>
 <td class="data" width=20><b><?php echo WEB_cell_login; ?></b></td>
-<td class="data" width=150><b><?php $url = $sort_url.'&sort=timestamp&order='.$new_order."'>".WEB_date."</a>"; print $url; ?></b></td>
+<td class="data" width=150><b><?php $url = $sort_url.'&sort=ts&order='.$new_order."'>".WEB_date."</a>"; print $url; ?></b></td>
 <td class="data" width=30><b><?php echo WEB_cell_gateway; ?></b></td>
 <td class="data" width=30><b><?php echo WEB_traffic_proto; ?></b></td>
 <td class="data" width=150><b><?php $url = $sort_url.'&sort=src_ip&order='.$new_order."'>".WEB_traffic_source_address."</a>"; print $url; ?></b></td>
@@ -87,15 +87,15 @@ $gateway_list = get_gateways($db_link);
 <td class="data" width=80><b><?php $url = $sort_url.'&sort=pkt&order='.$new_order."'>Pkt</a>"; print $url; ?></b></td>
 </tr>
 <?php
-$fsql = "SELECT A.id, A.auth_id, A.timestamp, A.router_id, A.proto, A.src_ip, A.src_port, A.dst_ip, A.dst_port, A.bytes, A.pkt FROM traffic_detail as A JOIN (SELECT id FROM traffic_detail 
-        WHERE $gateway_filter $ip_where timestamp>='$date1' AND timestamp<'$date2'
-        ORDER BY timestamp ASC LIMIT $start,$displayed) as T ON A.id = T.id ORDER BY $sort_table.$sort_field $order";
+$fsql = "SELECT A.id, A.auth_id, A.ts, A.router_id, A.proto, A.src_ip, A.src_port, A.dst_ip, A.dst_port, A.bytes, A.pkt FROM traffic_detail as A JOIN (SELECT id FROM traffic_detail 
+        WHERE $gateway_filter $ip_where ts>='$date1' AND ts<'$date2'
+        ORDER BY ts ASC LIMIT $start,$displayed) as T ON A.id = T.id ORDER BY $sort_table.$sort_field $order";
 $userdata = get_records_sql($db_link, $fsql);
 foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['id'] . "</td>\n";
     print "<td class=\"data\">"; print_auth_simple($db_link, $row['auth_id']); print "</td>\n";
-    print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
+    print "<td class=\"data\">" . $row['ts'] . "</td>\n";
     print "<td class=\"data\">" . $gateway_list[$row['router_id']] . "</td>\n";
     $proto_name = getprotobynumber($row['proto']);
     if (!$proto_name) { $proto_name = $row['proto']; }

@@ -66,7 +66,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 		<td align=Center><?php print $sort_url . "sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
 		<td align=Center><?php print WEB_cell_description; ?></td>
 		<td align=Center><?php print WEB_cell_dns_name; ?></td>
-		<td align=Center><?php print $sort_url . "sort=timestamp&order=$new_order>".WEB_cell_created."</a>"; ?></td>
+		<td align=Center><?php print $sort_url . "sort=ts&order=$new_order>".WEB_cell_created."</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "sort=changed_time&order=$new_order>".WEB_cell_deleted."</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "sort=last_found&order=$new_order>".WEB_cell_last_found."</a>"; ?></td>
 	</tr>
@@ -74,13 +74,13 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 
 $sSQL = "SELECT 
 user_auth.id, user_auth.ip, user_auth.mac, user_auth.description, user_auth.dns_name, user_auth.dhcp_hostname, 
-user_auth.dhcp_time, user_auth.last_found, user_auth.timestamp, user_auth.changed_time
+user_auth.dhcp_time, user_auth.last_found, user_auth.ts, user_auth.changed_time
 FROM user_auth WHERE user_auth.deleted = 1 $ip_list_filter
 ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
 $users = get_records_sql($db_link,$sSQL);
 foreach ($users as $user) {
     if (empty($user['last_found']) or $user['last_found'] === '0000-00-00 00:00:00') { $user['last_found'] = ''; }
-    if (empty($user['timestamp']) or $user['timestamp'] === '0000-00-00 00:00:00') { $user['timestamp'] = ''; }
+    if (empty($user['ts']) or $user['ts'] === '0000-00-00 00:00:00') { $user['ts'] = ''; }
     if (empty($user['changed_time']) or $user['changed_time'] === '0000-00-00 00:00:00') { $user['changed_time'] = ''; }
     print "<tr align=center>\n";
     $cl = "data";
@@ -92,7 +92,7 @@ foreach ($users as $user) {
         print "<td class=\"$cl\" >".$user['description']."</td>\n";
     }
     print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
-    print "<td class=\"$cl\" >".$user['timestamp']."</td>\n";
+    print "<td class=\"$cl\" >".$user['ts']."</td>\n";
     print "<td class=\"$cl\" >".$user['changed_time']."</td>\n";
     print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
     print "</tr>\n";

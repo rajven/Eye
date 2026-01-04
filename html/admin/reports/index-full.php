@@ -35,8 +35,8 @@ user_list.login,user_list.ou_id,user_auth.user_id, user_auth.ip, user_stats_full
 user_stats_full.router_id, SUM( byte_in ) AS tin, SUM( byte_out ) AS tout, MAX(ROUND(pkt_in/step)) as pin, MAX(ROUND(pkt_out/step)) as pout 
 FROM user_stats_full,user_auth,user_list WHERE user_list.id=user_auth.user_id 
 AND user_stats_full.auth_id = user_auth.id 
-AND user_stats_full.timestamp>='$date1' 
-AND user_stats_full.timestamp<'$date2' 
+AND user_stats_full.ts>='$date1' 
+AND user_stats_full.ts<'$date2' 
 ";
 
 if ($rou !== 0) {

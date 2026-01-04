@@ -184,8 +184,8 @@ if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
     $changes = apply_auth_rule($db_link, $moved_auth, $new_parent_id);
     update_record($db_link, "user_auth", "id='$id'", $changes);
     LOG_WARNING($db_link, "IP-address moved to another user! Applyed: " . get_rec_str($changes), $id);
-    run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["mac"]."' AND type=2");
-    run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["ip"]."' AND type=1");
+    run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["mac"]."' AND rule_type=2");
+    run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["ip"]."' AND rule_type=1");
     LOG_INFO($db_link,"Autorules removed for user_id: ".$old_auth_info["user_id"]." login: ".$user_info["login"]." by mac and ip");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -294,11 +294,11 @@ if ($auth_info['dhcp_time'] == '0000-00-00 00:00:00') {
     $dhcp_str = $auth_info['dhcp_time'] . " (" . $auth_info['dhcp_action'] . ")";
 }
 if ($auth_info['last_found'] == '0000-00-00 00:00:00') { $auth_info['last_found'] = ''; }
-
+if ($auth_info['mac_found'] == '0000-00-00 00:00:00') { $auth_info['mac_found'] = ''; }
 if ($auth_info['arp_found'] == '0000-00-00 00:00:00') { $auth_info['arp_found'] = ''; }
 
 $now = DateTime::createFromFormat("Y-m-d H:i:s",date('Y-m-d H:i:s'));
-$created = DateTime::createFromFormat("Y-m-d H:i:s",$auth_info['timestamp']);
+$created = DateTime::createFromFormat("Y-m-d H:i:s",$auth_info['ts']);
 
 if (empty($auth_info['end_life']) or $auth_info['end_life'] == '0000-00-00 00:00:00') { 
     $now->modify('+1 day');
@@ -456,7 +456,7 @@ if (empty($auth_info['end_life']) or $auth_info['end_life'] == '0000-00-00 00:00
             </tr>
             <tr>
                 <td><?php print WEB_cell_created; ?></td>
-                <td class="data" align=right><?php print $auth_info['timestamp']; ?></td>
+                <td class="data" align=right><?php print $auth_info['ts']; ?></td>
                 <td><?php print WEB_cell_connection . ": "; ?></td>
                 <td class="data" align=right><?php print get_connection($db_link, $id) ; ?></td>
             </tr>
@@ -469,8 +469,8 @@ if (empty($auth_info['end_life']) or $auth_info['end_life'] == '0000-00-00 00:00
             <tr>
                 <td ><?php print WEB_cell_arp_found . ": "; ?></td>
                 <td class="data" align=right><?php print $auth_info['arp_found'] ; ?></td>
-                <td ><?php print WEB_cell_last_found . ": "; ?></td>
-                <td class="data" align=right><?php print $auth_info['last_found'] ; ?></td>
+                <td ><?php print WEB_cell_mac_found . ": "; ?></td>
+                <td class="data" align=right><?php print $auth_info['mac_found'] ; ?></td>
             </tr>
             <tr>
             </tr>

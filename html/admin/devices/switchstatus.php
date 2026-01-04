@@ -9,7 +9,7 @@ $device_model = get_record($db_link, 'device_models', "id=" . $device['device_mo
 
 if (isset($_POST["regensnmp"])) {
     $snmp_index = $_POST["f_snmp_start"] * 1;
-    $sSQL = "SELECT id,port from device_ports WHERE device_ports.device_id=$id order by id";
+    $sSQL = "SELECT id,port from device_ports WHERE device_ports.device_id=$id ORDER BY id";
     $flist = get_records_sql($db_link, $sSQL);
     LOG_DEBUG($db_link, "Recalc snmp_index for device id: $id with start $snmp_index");
     foreach ($flist as $row) {

@@ -52,7 +52,7 @@ $gateway_filter='';
 if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) AND"; }
 
 $fsql = "SELECT A.proto, A.src_ip, A.src_port, SUM(A.bytes) as tin FROM traffic_detail A
-            WHERE $gateway_filter (auth_id='$id') and  timestamp>='$date1' and timestamp<'$date2' and (A.dst_ip='$ip_aton')
+            WHERE $gateway_filter (auth_id='$id') and  ts>='$date1' and ts<'$date2' and (A.dst_ip='$ip_aton')
             GROUP BY A.src_ip, A.src_port, A.proto ORDER BY tin DESC LIMIT 0,10";
 $userdata = get_records_sql($db_link, $fsql);
 foreach ($userdata as $row) {
@@ -82,7 +82,7 @@ foreach ($userdata as $row) {
 </tr>
 <?php
 $fsql = "SELECT A.proto, A.dst_ip, A.dst_port, SUM(A.bytes) as tout FROM traffic_detail A
-        WHERE $gateway_filter (auth_id='$id') and  timestamp>='$date1' and timestamp<'$date2' and (A.src_ip='$ip_aton')
+        WHERE $gateway_filter (auth_id='$id') and  ts>='$date1' and ts<'$date2' and (A.src_ip='$ip_aton')
         GROUP BY A.dst_ip, A.dst_port, A.proto ORDER BY tout DESC LIMIT 0,10";
 $userdata = get_records_sql($db_link, $fsql);
 foreach ($userdata as $row) {
