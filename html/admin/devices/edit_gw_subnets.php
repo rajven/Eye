@@ -55,7 +55,7 @@ print_url($device['device_name'],"/admin/devices/editdevice.php?id=$id"); ?>
         </td>
 </tr>
 <?php
-$gateway_subnets = get_records_sql($db_link,'SELECT gateway_subnets.*,subnets.subnet,subnets.comment FROM gateway_subnets LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id WHERE gateway_subnets.device_id='.$id);
+$gateway_subnets = get_records_sql($db_link,'SELECT gateway_subnets.*,subnets.subnet,subnets.description FROM gateway_subnets LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id WHERE gateway_subnets.device_id='.$id);
 foreach ( $gateway_subnets as $row ) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0' width=30><input type=checkbox name=gs_id[] value='{$row['id']}'></td>\n";

@@ -130,13 +130,13 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
         <td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
         <td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
         <td align=Center><?php print $sort_url . "&sort=model_name&order=$new_order>".WEB_cell_host_model; ?></td>
-        <td align=Center><?php print WEB_cell_comment; ?></td>
+        <td align=Center><?php print WEB_cell_description; ?></td>
         <td align=Center><?php print WEB_cell_connection; ?></td>
         <td align=Center><?php print $sort_url . "&sort=last_found&order=$new_order>".WEB_cell_last_found."</a>"; ?></td>
     </tr>
 <?php
 
-$sSQL = "SELECT A.id, D.id as dev_id, D.device_type, A.ip, A.mac, A.user_id, L.login, D.comment, A.last_found, V.name, M.model_name
+$sSQL = "SELECT A.id, D.id as dev_id, D.device_type, A.ip, A.mac, A.user_id, L.login, D.description, A.last_found, V.name, M.model_name
 FROM user_auth A, user_list L, devices D, device_models M, vendors V
 WHERE D.user_id=L.id AND A.ip = D.ip AND D.device_model_id=M.id AND M.vendor_id=V.id AND A.deleted =0
 $u_filter $ip_list_filter $d_filter
@@ -152,7 +152,7 @@ foreach ($users as $user) {
     print "<td class='".$cl."' ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user['ip'] . "</a></td>\n";
     print "<td class='".$cl."' >" . expand_mac($db_link,$user['mac']) . "</td>\n";
     print "<td class='".$cl."' >".$user['name'].' '.$user['model_name']."</td>\n";
-    print "<td class='".$cl."' >".$user['comment']."</td>\n";
+    print "<td class='".$cl."' >".$user['description']."</td>\n";
     print "<td class='data'>" . get_connection($db_link, $user['id']) . "</td>\n";
     print "<td class='".$cl."' >".$user['last_found']."</td>\n";
     print "</tr>\n";

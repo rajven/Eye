@@ -33,7 +33,7 @@ if (empty($rcidr)) { $cidr_filter = ''; } else {
     <td align=Center><?php print WEB_cell_login; ?></td>
     <td align=Center><?php print WEB_cell_ip; ?></td>
     <td align=Center><?php print WEB_cell_mac ; ?></td>
-    <td align=Center><?php print WEB_cell_comment; ?></td>
+    <td align=Center><?php print WEB_cell_description; ?></td>
     <td align=Center><?php print WEB_cell_dns_name; ?></td>
     <td align=Center><?php print WEB_cell_created; ?></td>
     <td align=Center><?php print WEB_cell_last_found; ?></td>
@@ -81,9 +81,9 @@ foreach ($users as $row) {
             print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
             print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
             if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
-                print "<td class=\"$cl\" >".$user['comments']." [" . $user['dhcp_hostname'] . "]</td>\n";
+                print "<td class=\"$cl\" >".$user['description']." [" . $user['dhcp_hostname'] . "]</td>\n";
                 } else {
-                print "<td class=\"$cl\" >".$user['comments']."</td>\n";
+                print "<td class=\"$cl\" >".$user['description']."</td>\n";
                 }
             print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
             print "<td class=\"$cl\" >".$user['timestamp']."</td>\n";
@@ -107,9 +107,9 @@ foreach ($users as $row) {
             print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
             print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
             if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
-                print "<td class=\"$cl\" >".$user['comments']." [" . $user['dhcp_hostname'] . "]</td>\n";
+                print "<td class=\"$cl\" >".$user['description']." [" . $user['dhcp_hostname'] . "]</td>\n";
                 } else {
-                print "<td class=\"$cl\" >".$user['comments']."</td>\n";
+                print "<td class=\"$cl\" >".$user['description']."</td>\n";
                 }
             print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
             print "<td class=\"$cl\" >".$user['timestamp']."</td>\n";

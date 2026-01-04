@@ -12,7 +12,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 print_device_submenu($page_url);
 print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login']);
 
-$sSQL = "SELECT port, snmp_index FROM `device_ports` WHERE device_id=".$id;
+$sSQL = "SELECT port, snmp_index FROM device_ports WHERE device_id=".$id;
 $ports_info = get_records_sql($db_link, $sSQL);
 $ports_by_snmp_index=NULL;
 foreach ($ports_info as &$row) { $ports_by_snmp_index[$row["snmp_index"]]=$row["port"]; }

@@ -50,10 +50,10 @@ if ($rule_target>0) {
     }
 
 $type_filter='';
-if ($rule_type>0) { $type_filter = ' AND `type`='.$rule_type; }
+if ($rule_type>0) { $type_filter = ' AND type='.$rule_type; }
 
 $rule_filter='';
-if (!empty($f_rule)) { $rule_filter = ' AND `rule` LIKE "'.$f_rule.'%"'; }
+if (!empty($f_rule)) { $rule_filter = ' AND rule LIKE "'.$f_rule.'%"'; }
 
 $rule_filters = '';
 if (!empty($target_filter) or !empty($type_filter) or !empty($rule_filter)) {
@@ -77,7 +77,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <td><b><?php echo WEB_cell_type; ?></b></td>
 <td><b><?php echo WEB_ou_rule; ?></b></td>
 <td colspan=2><b><?php echo WEB_rules_target; ?></b></td>
-<td><b><?php echo WEB_cell_comment; ?></b></td>
+<td><b><?php echo WEB_cell_description; ?></b></td>
 <td align=right><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="removeRule" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
@@ -102,7 +102,7 @@ foreach ( $t_auth_rules as $row ) {
 	if (!empty($ou_info)) { print "Group: &nbsp"; print_url($ou_info['ou_name'],'/admin/groups/edit_group.php?id='.$ou_info['id']); }
 	}
     print "</td>";
-    print "<td class=\"data\" colspan=2>".$row['comment']."</td>\n";
+    print "<td class=\"data\" colspan=2>".$row['description']."</td>\n";
     print "</tr>\n";
 }
 ?>

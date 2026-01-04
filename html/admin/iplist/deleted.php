@@ -10,12 +10,12 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/enabledfilter.php");
 
-if (isset($_POST['searchComment'])) { $f_comment = $_POST['searchComment']; }
-if (isset($_GET['searchComment'])) { $f_comment = $_GET['searchComment']; }
-if (!isset($f_comment) and isset($_SESSION[$page_url]['comment'])) { $f_comment=$_SESSION[$page_url]['comment']; }
-if (!isset($f_comment)) { $f_comment=''; }
+if (isset($_POST['searchDescription'])) { $f_description = $_POST['searchDescription']; }
+if (isset($_GET['searchDescription'])) { $f_description = $_GET['searchDescription']; }
+if (!isset($f_description) and isset($_SESSION[$page_url]['description'])) { $f_description=$_SESSION[$page_url]['description']; }
+if (!isset($f_description)) { $f_description=''; }
 
-$_SESSION[$page_url]['comment']=$f_comment;
+$_SESSION[$page_url]['description']=$f_description;
 
 $sort_table = 'user_auth';
 
@@ -29,10 +29,10 @@ if ($rsubnet == 0) { $subnet_filter = ''; } else {
 $ip_list_filter = $subnet_filter;
 
 $ip_where = '';
-if (!empty($f_comment)) {
-    if (checkValidIp($f_comment)) { $ip_where = " and ip_int=inet_aton('" . $f_comment . "') "; }
-    if (checkValidMac($f_comment)) { $ip_where = " and mac='" . mac_dotted($f_comment) . "'  "; }
-    if (empty($ip_where)) { $ip_where=" and (user_auth.comments LIKE '$f_comment' OR user_auth.dhcp_hostname LIKE '$f_comment')"; }
+if (!empty($f_description)) {
+    if (checkValidIp($f_description)) { $ip_where = " and ip_int=inet_aton('" . $f_description . "') "; }
+    if (checkValidMac($f_description)) { $ip_where = " and mac='" . mac_dotted($f_description) . "'  "; }
+    if (empty($ip_where)) { $ip_where=" and (user_auth.description LIKE '$f_description' OR user_auth.dhcp_hostname LIKE '$f_description')"; }
     $ip_list_filter = $ip_where;
     } 
 
@@ -44,7 +44,7 @@ print_ip_submenu($page_url);
 <br>
 <div>
         <b><?php print WEB_network_subnet; ?> - </b><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?>
-        <?php echo WEB_ips_search_full; ?>: &nbsp <input type=text name=searchComment value="<?php print $f_comment; ?>">
+        <?php echo WEB_ips_search_full; ?>: &nbsp <input type=text name=searchDescription value="<?php print $f_description; ?>">
         <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
         <input type="submit" value="<?php echo WEB_btn_show; ?>">
 </div>
@@ -64,7 +64,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 	<tr>
 		<td align=Center><?php print $sort_url . "sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
-		<td align=Center><?php print WEB_cell_comment; ?></td>
+		<td align=Center><?php print WEB_cell_description; ?></td>
 		<td align=Center><?php print WEB_cell_dns_name; ?></td>
 		<td align=Center><?php print $sort_url . "sort=timestamp&order=$new_order>".WEB_cell_created."</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "sort=changed_time&order=$new_order>".WEB_cell_deleted."</a>"; ?></td>
@@ -73,7 +73,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <?php
 
 $sSQL = "SELECT 
-user_auth.id, user_auth.ip, user_auth.mac, user_auth.comments, user_auth.dns_name, user_auth.dhcp_hostname, 
+user_auth.id, user_auth.ip, user_auth.mac, user_auth.description, user_auth.dns_name, user_auth.dhcp_hostname, 
 user_auth.dhcp_time, user_auth.last_found, user_auth.timestamp, user_auth.changed_time
 FROM user_auth WHERE user_auth.deleted = 1 $ip_list_filter
 ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
@@ -87,9 +87,9 @@ foreach ($users as $user) {
     print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
     if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
-        print "<td class=\"$cl\" >".$user['comments']." [" . $user['dhcp_hostname'] . "]</td>\n";
+        print "<td class=\"$cl\" >".$user['description']." [" . $user['dhcp_hostname'] . "]</td>\n";
     } else {
-        print "<td class=\"$cl\" >".$user['comments']."</td>\n";
+        print "<td class=\"$cl\" >".$user['description']."</td>\n";
     }
     print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
     print "<td class=\"$cl\" >".$user['timestamp']."</td>\n";

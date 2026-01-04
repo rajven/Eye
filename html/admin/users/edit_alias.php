@@ -46,7 +46,7 @@ if (isset($_POST['s_save'])) {
                 }
             if (empty($f_dnsname) or !checkValidHostname($f_dnsname) or !checkUniqHostname($db_link,$id,$f_dnsname)) { continue; }
             $new['alias'] = $f_dnsname;
-            $new['description'] = trim($_POST['s_comment'][$j]);
+            $new['description'] = trim($_POST['s_description'][$j]);
             update_record($db_link, "user_auth_alias", "id='{$save_id}'", $new);
         }
     }
@@ -107,7 +107,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 	<td></td>
 	<td width=30><b>id</b></td>
 	<td><b><?php echo WEB_cell_name; ?></b></td>
-	<td><b><?php echo WEB_cell_comment; ?></b></td>
+	<td><b><?php echo WEB_cell_description; ?></b></td>
 	<td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="s_remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
@@ -118,7 +118,7 @@ foreach ( $t_user_auth_alias as $row ) {
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=s_id[] value='{$row['id']}'></td>\n";
     print "<td class=\"data\"><input type=\"hidden\" name='n_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_alias[]' value='{$row['alias']}' pattern=\"^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$\"></td>\n";
-    print "<td class=\"data\"><input type=\"text\" name='s_comment[]' value='{$row['description']}'></td>\n";
+    print "<td class=\"data\"><input type=\"text\" name='s_description[]' value='{$row['description']}'></td>\n";
     print "<td class=\"data\"><button name='s_save[]' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
     print "</tr>\n";
 }

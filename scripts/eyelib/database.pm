@@ -563,7 +563,7 @@ sub get_option_safe {
     my $sql = q{
         SELECT 
             COALESCE(c.value, co.default_value) as value,
-            co.type
+            co.option_type
         FROM config_options co
         LEFT JOIN config c ON c.option_id = co.id AND c.option_id = ?
         WHERE co.id = ?
@@ -580,7 +580,7 @@ sub get_option_safe {
     my $result = $record->{value};
     
     # Приводим к правильному типу
-    if ($record->{type} =~ /^(int|bool)/i) { 
+    if ($record->{option_type} =~ /^(int|bool)/i) { 
         $result = $result * 1; 
     }
     
@@ -752,7 +752,7 @@ if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_pt
 $del_dns->{'name_type'}='A';
 $del_dns->{'name'}=$old_record->{'dns_name'};
 $del_dns->{'value'}=$old_record->{'ip'};
-$del_dns->{'type'}='del';
+$del_dns->{'operation_type'}='del';
 if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
 insert_record($db,'dns_queue',$del_dns);
 }
@@ -760,7 +760,7 @@ if ($old_record->{'dns_name'} and $old_record->{'ip'} and $old_record->{'dns_ptr
 $del_dns->{'name_type'}='PTR';
 $del_dns->{'name'}=$old_record->{'dns_name'};
 $del_dns->{'value'}=$old_record->{'ip'};
-$del_dns->{'type'}='del';
+$del_dns->{'operation_type'}='del';
 if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
 insert_record($db,'dns_queue',$del_dns);
 }
@@ -773,7 +773,7 @@ if ($dns_rec_name and $dns_rec_ip and !$record->{'dns_ptr_only'} and $record->{'
 $new_dns->{'name_type'}='A';
 $new_dns->{'name'}=$dns_rec_name;
 $new_dns->{'value'}=$dns_rec_ip;
-$new_dns->{'type'}='add';
+$new_dns->{'operation_type'}='add';
 if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
 insert_record($db,'dns_queue',$new_dns);
 }
@@ -781,7 +781,7 @@ if ($dns_rec_name and $dns_rec_ip and $record->{'dns_ptr_only'} and $record->{'d
 $new_dns->{'name_type'}='PTR';
 $new_dns->{'name'}=$dns_rec_name;
 $new_dns->{'value'}=$dns_rec_ip;
-$new_dns->{'type'}='add';
+$new_dns->{'operation_type'}='add';
 if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
 insert_record($db,'dns_queue',$new_dns);
 }
@@ -793,7 +793,7 @@ my $del_dns;
 if ($old_record->{'alias'} and $old_record->{'alias'}!~/\.$/) {
 $del_dns->{'name_type'}='CNAME';
 $del_dns->{'name'}=$old_record->{'alias'};
-$del_dns->{'type'}='del';
+$del_dns->{'operation_type'}='del';
 $del_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
 $del_dns->{'auth_id'}=$old_record->{auth_id};
 insert_record($db,'dns_queue',$del_dns);
@@ -804,7 +804,7 @@ if ($record->{'alias'}) { $dns_rec_name = $record->{'alias'}; }
 if ($dns_rec_name and $record->{'alias'}!~/\.$/) {
 $new_dns->{'name_type'}='CNAME';
 $new_dns->{'name'}=$dns_rec_name;
-$new_dns->{'type'}='add';
+$new_dns->{'operation_type'}='add';
 $new_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
 $new_dns->{'auth_id'}=$rec_id;
 insert_record($db,'dns_queue',$new_dns);
@@ -879,7 +879,7 @@ my $add_dns;
 $add_dns->{'name_type'}='CNAME';
 $add_dns->{'name'}=$record->{'alias'};
 $add_dns->{'value'}=get_dns_name($db,$record->{'auth_id'});
-$add_dns->{'type'}='add';
+$add_dns->{'operation_type'}='add';
 $add_dns->{'auth_id'}=$record->{'auth_id'};
 insert_record($db,'dns_queue',$add_dns);
 }
@@ -890,7 +890,7 @@ my $add_dns;
 $add_dns->{'name_type'}='A';
 $add_dns->{'name'}=$record->{'dns_name'};
 $add_dns->{'value'}=$record->{'ip'};
-$add_dns->{'type'}='add';
+$add_dns->{'operation_type'}='add';
 $add_dns->{'auth_id'}=$result;
 insert_record($db,'dns_queue',$add_dns);
 }
@@ -899,7 +899,7 @@ my $add_dns;
 $add_dns->{'name_type'}='PTR';
 $add_dns->{'name'}=$record->{'dns_name'};
 $add_dns->{'value'}=$record->{'ip'};
-$add_dns->{'type'}='add';
+$add_dns->{'operation_type'}='add';
 $add_dns->{'auth_id'}=$result;
 insert_record($db,'dns_queue',$add_dns);
 }
@@ -949,7 +949,7 @@ my $del_dns;
 $del_dns->{'name_type'}='A';
 $del_dns->{'name'}=$old_record->{'dns_name'};
 $del_dns->{'value'}=$old_record->{'ip'};
-$del_dns->{'type'}='del';
+$del_dns->{'operation_type'}='del';
 $del_dns->{'auth_id'}=$old_record->{'id'};
 insert_record($db,'dns_queue',$del_dns);
 }
@@ -958,7 +958,7 @@ my $del_dns;
 $del_dns->{'name_type'}='PTR';
 $del_dns->{'name'}=$old_record->{'dns_name'};
 $del_dns->{'value'}=$old_record->{'ip'};
-$del_dns->{'type'}='del';
+$del_dns->{'operation_type'}='del';
 $del_dns->{'auth_id'}=$old_record->{'id'};
 insert_record($db,'dns_queue',$del_dns);
 }
@@ -973,7 +973,7 @@ my $del_dns;
 $del_dns->{'name_type'}='CNAME';
 $del_dns->{'name'}=$old_record->{'alias'};
 $del_dns->{'value'}=get_dns_name($db,$old_record->{'auth_id'});
-$del_dns->{'type'}='del';
+$del_dns->{'operation_type'}='del';
 $del_dns->{'auth_id'}=$old_record->{'auth_id'};
 insert_record($db,'dns_queue',$del_dns);
 }
@@ -994,9 +994,9 @@ my $default_option = get_record_sql($db,'SELECT * FROM config_options WHERE id='
 my $config_options = get_record_sql($db,'SELECT * FROM config WHERE option_id='.$option_id);
 my $result;
 if (!$config_options) {
-if ($default_option->{'type'}=~/^(int|bool)/i) { $result = $default_option->{'default_value'}*1; };
-if ($default_option->{'type'}=~/^(string|text)/i) { $result = $default_option->{'default_value'}; }
-if ($default_option->{'type'}=~/^list/i) { $result = $default_option->{'default_value'}; }
+if ($default_option->{'option_type'}=~/^(int|bool)/i) { $result = $default_option->{'default_value'}*1; };
+if ($default_option->{'option_type'}=~/^(string|text)/i) { $result = $default_option->{'default_value'}; }
+if ($default_option->{'option_type'}=~/^list/i) { $result = $default_option->{'default_value'}; }
 return $result;
 }
 $result = $config_options->{'value'};

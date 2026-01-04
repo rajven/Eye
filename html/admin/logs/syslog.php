@@ -19,7 +19,7 @@ $log_filter = "";
 
 if ($f_id>0) {
     $dev_ips=get_device_ips($db_link,$f_id);
-    $log_filter=' and `ip` IN (';
+    $log_filter=' and ip IN (';
     foreach ($dev_ips as $index => $ip) {
 	$log_filter=$log_filter."'".$ip."',";
         }
@@ -40,9 +40,9 @@ if ($f_id>0) {
 
 <?php
 
-if (!empty($fmessage)) { $log_filter .= " AND `message` LIKE '%" . addslashes($fmessage) . "%'"; }
+if (!empty($fmessage)) { $log_filter .= " AND message LIKE '%" . addslashes($fmessage) . "%'"; }
 
-$countSQL="SELECT Count(*) FROM `remote_syslog` WHERE `date`>='$date1' AND `date`<'$date2' $log_filter";
+$countSQL="SELECT Count(*) FROM remote_syslog WHERE date>='$date1' AND date<'$date2' $log_filter";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -50,7 +50,7 @@ if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed; 
 print_navigation($page_url,$page,$displayed,$count_records,$total);
 #speedup pageing
-$sSQL = "SELECT * FROM (SELECT * FROM `remote_syslog` WHERE `date`>='$date1' AND `date`<'$date2' $log_filter) as R ORDER BY `date` DESC LIMIT $start,$displayed";
+$sSQL = "SELECT * FROM (SELECT * FROM remote_syslog WHERE date>='$date1' AND date<'$date2' $log_filter) as R ORDER BY date DESC LIMIT $start,$displayed";
 ?>
 
 <br>

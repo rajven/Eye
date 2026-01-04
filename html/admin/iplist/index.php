@@ -72,7 +72,7 @@ if (!empty($f_search_str)) {
         } else {
         if (checkValidMac($f_search_str)) { $ip_where =" and mac='" . mac_dotted($f_search_str) ."'"; }
             else {
-            $ip_where =" and (mac like '" . mac_dotted($f_search) . "%' or login like '".$f_search."%' or comments like '".$f_search."%' or dns_name like '".$f_search."%' or dhcp_hostname like '".$f_search."%')"; 
+            $ip_where =" and (mac like '" . mac_dotted($f_search) . "%' or login like '".$f_search."%' or description like '".$f_search."%' or dns_name like '".$f_search."%' or dhcp_hostname like '".$f_search."%')"; 
             }
         }
     }
@@ -204,7 +204,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
                 <td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
                 <td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
                 <td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
-                <td align=Center><?php print WEB_cell_comment; ?></td>
+                <td align=Center><?php print WEB_cell_description; ?></td>
                 <td align=Center><?php print WEB_cell_dns_name; ?></td>
                 <td align=Center><?php print WEB_cell_filter; ?></td>
                 <td align=Center><?php print WEB_cell_shaper; ?></td>
@@ -246,9 +246,9 @@ foreach ($users as $user) {
     print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
     if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
-        print "<td class=\"$cl\" width=200 >".$user['comments']." [" . $user['dhcp_hostname'] . "]</td>\n";
+        print "<td class=\"$cl\" width=200 >".$user['description']." [" . $user['dhcp_hostname'] . "]</td>\n";
     } else {
-        print "<td class=\"$cl\" width=200 >".$user['comments']."</td>\n";
+        print "<td class=\"$cl\" width=200 >".$user['description']."</td>\n";
     }
     print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
     print "<td class=\"$cl\" >" . get_group($db_link, $user['filter_group_id']) . "</td>\n";

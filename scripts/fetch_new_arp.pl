@@ -67,12 +67,12 @@ foreach my $row (@u_ref) {
 # Clean temporary (dynamic) user authentication records that have expired
 my $now = DateTime->now(time_zone => 'local');
 my $clear_time = $dbh->quote($now->strftime('%Y-%m-%d %H:%M:%S'));
-my $users_sql = "SELECT * FROM user_auth WHERE deleted = 0 AND dynamic = 1 AND eof <= " . $clear_time;
+my $users_sql = "SELECT * FROM user_auth WHERE deleted = 0 AND dynamic = 1 AND end_life <= " . $clear_time;
 my @users_auth = get_records_sql($dbh, $users_sql);
 if (@users_auth and scalar @users_auth) {
     foreach my $row (@users_auth) {
         delete_user_auth($dbh, $row->{id});
-        db_log_info($dbh, "Removed dynamic user auth record for auth_id: $row->{'id'} by eof time: $row->{'eof'}", $row->{'id'});
+        db_log_info($dbh, "Removed dynamic user auth record for auth_id: $row->{'id'} by end_life time: $row->{'end_life'}", $row->{'id'});
         my $u_count = get_count_records($dbh, 'user_auth', 'deleted = 0 AND user_id = ' . $row->{user_id});
         if (!$u_count) {
             delete_user($dbh, $row->{'user_id'});
@@ -91,7 +91,7 @@ $year += 1900;
 # Set parallelization level: 5 processes per CPU core
 my $fork_count = $cpu_count * 5;
 
-# Optional: disable forking during debugging (currently commented out)
+# Optional: disable forking during debugging (currently descriptioned out)
 # if ($debug) { $fork_count = 0; }
 
 my $now_str = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $year, $month, $day, $hour, $min, $sec;
@@ -169,9 +169,9 @@ $dbh = init_db();
 # Load all active user authentications indexed by IP
 my @authlist_ref = get_records_sql($dbh, "SELECT * FROM user_auth WHERE deleted = 0 ORDER BY ip_int");
 
+# full user ip records
 my $users = Net::Patricia->new;
 my %ip_list;
-my %oper_arp_list;
 
 foreach my $row (@authlist_ref) {
     $users->add_string($row->{ip}, $row->{id});
@@ -219,9 +219,6 @@ foreach my $arp_table (@arp_array) {
         } else {
             $mac_history{$simple_mac}{auth_id} = $cur_auth_id;
             $arp_record->{auth_id} = $cur_auth_id;
-            $arp_record->{updated} = 0;
-            $oper_arp_list{$cur_auth_id} = $arp_record;
-
             # Mark as changed if IP-to-auth mapping differs from previous state
             if ($auth_id ne $cur_auth_id) {
                 $mac_history{$simple_mac}{changed} = 1;
@@ -432,12 +429,11 @@ foreach my $device (@device_list) {
 
             if (exists $connections{$auth_id}) {
                 if ($port_id == $connections{$auth_id}{port}) {
-                    # No port change: just update last seen time if in current ARP
+                    # No port change: just update last seen time if in current MAC
                     if (exists $auth_table{oper_table}{$simple_mac}) {
                         my $auth_rec;
                         $auth_rec->{last_found} = $now_str;
-                        $auth_rec->{arp_found}  = $now_str;
-                        $oper_arp_list{$auth_id}{updated} = 1;
+	                $auth_rec->{mac_found}  = $now_str;
                         update_record($dbh, 'user_auth', $auth_rec, "id = $auth_id");
                     }
                     next;
@@ -451,8 +447,7 @@ foreach my $device (@device_list) {
 
                 my $auth_rec;
                 $auth_rec->{last_found} = $now_str;
-                $auth_rec->{arp_found}  = $now_str if exists $auth_table{oper_table}{$simple_mac};
-                $oper_arp_list{$auth_id}{updated} = 1;
+                $auth_rec->{mac_found}  = $now_str;
                 update_record($dbh, 'user_auth', $auth_rec, "id = $auth_id");
 
                 my $conn_rec;
@@ -468,8 +463,7 @@ foreach my $device (@device_list) {
 
                 my $auth_rec;
                 $auth_rec->{last_found} = $now_str;
-                $auth_rec->{arp_found}  = $now_str if exists $auth_table{oper_table}{$simple_mac};
-                $oper_arp_list{$auth_id}{updated} = 1;
+                $auth_rec->{mac_found}  = $now_str;
                 update_record($dbh, 'user_auth', $auth_rec, "id = $auth_id");
 
                 my $conn_rec;
@@ -504,15 +498,6 @@ foreach my $device (@device_list) {
             }
         }
     }
-}
-
-# Ensure all active ARP-auth entries have their 'last_found' timestamp updated
-foreach my $auth_id (keys %oper_arp_list) {
-    next if ($oper_arp_list{$auth_id}->{updated});
-    my $auth_rec;
-    $auth_rec->{last_found} = $now_str;
-    update_record($dbh, 'user_auth', $auth_rec, "id = $auth_id");
-    db_log_debug($dbh, "Update by ARP at unknown connection location for: " . Dumper($oper_arp_list{$auth_id})) if ($debug);
 }
 
 # Log all MAC movement/history events

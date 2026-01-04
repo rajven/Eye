@@ -1,6 +1,5 @@
 <?php
 if (! defined("CONFIG")) die("Not defined");
-
 if (! defined("SQL")) { die("Not defined"); }
 
 function db_escape($connection, $value) {
@@ -8,47 +7,48 @@ function db_escape($connection, $value) {
     if ($value === null) {
         return '';
     }
-    
     if (is_bool($value)) {
         return $value ? 1 : 0;
     }
-    
     if (is_int($value) || is_float($value)) {
         return $value;
     }
-    
     // Для строковых значений
     $string = (string)$value;
-    
     if ($connection instanceof PDO) {
-        // PDO::quote() может вернуть false при ошибке
+        // Определяем тип базы данных
+        $driver = $connection->getAttribute(PDO::ATTR_DRIVER_NAME);
+        if ($driver === false) {
+            // Не удалось определить драйвер, используем универсальный метод
+            return addslashes($string);
+        }
         try {
             $quoted = $connection->quote($string);
             if ($quoted === false) {
-                // Если quote() не сработал, используем addslashes
                 return addslashes($string);
             }
-            // Убираем внешние кавычки
+            // Убираем внешние кавычки для совместимости
             if (strlen($quoted) >= 2 && $quoted[0] === "'" && $quoted[strlen($quoted)-1] === "'") {
                 return substr($quoted, 1, -1);
             }
             return $quoted;
         } catch (Exception $e) {
-            // В случае ошибки возвращаем addslashes
             return addslashes($string);
         }
     } elseif ($connection instanceof mysqli) {
         return mysqli_real_escape_string($connection, $string);
     } elseif (is_resource($connection) && get_resource_type($connection) === 'mysql link') {
         return mysql_real_escape_string($string, $connection);
-    } elseif ($connection instanceof PostgreSQL) {
+    } elseif (is_resource($connection) && get_resource_type($connection) === 'pgsql link') {
         return pg_escape_string($connection, $string);
     } else {
+        // Последнее средство
         return addslashes($string);
     }
 }
 
-function new_connection ($db_type, $db_host, $db_user, $db_password, $db_name)
+
+function new_connection ($db_type, $db_host, $db_user, $db_password, $db_name, $db_port = null)
 {
     // Создаем временный логгер для отладки до установки соединения
     $temp_debug_message = function($message) {
@@ -57,6 +57,14 @@ function new_connection ($db_type, $db_host, $db_user, $db_password, $db_name)
 
     $temp_debug_message("Starting new_connection function");
     $temp_debug_message("DB parameters - type: $db_type, host: $db_host, user: $db_user, db: $db_name");
+
+    if (function_exists('filter_var') && defined('FILTER_SANITIZE_FULL_SPECIAL_CHARS')) {
+        $db_host = filter_var($db_host, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+    } else {
+        // Для PHP < 8.1
+        $db_host = htmlspecialchars($db_host, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+    $db_name = preg_replace('/[^a-zA-Z0-9_-]/', '', $db_name);
 
     try {
         $temp_debug_message("Constructing DSN");
@@ -71,29 +79,31 @@ function new_connection ($db_type, $db_host, $db_user, $db_password, $db_name)
         
         if ($db_type === 'mysql') {
             $dsn = "mysql:host=$db_host;dbname=$db_name;charset=utf8mb4";
-            $options[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET NAMES utf8mb4";
+            if (!empty($db_port)) { $dsn .= ";port=$db_port"; }
         } elseif ($db_type === 'pgsql' || $db_type === 'postgresql') {
-            $dsn = "pgsql:host=$db_host;dbname=$db_name;options='--client_encoding=UTF8'";
-            $options[PDO::ATTR_PERSISTENT] = true; // Опционально: включение постоянных соединений для PostgreSQL
+            $dsn = "pgsql:host=$db_host;dbname=$db_name";
+            if (!empty($db_port)) { $dsn .= ";port=$db_port"; }
+            $options[PDO::PGSQL_ATTR_DISABLE_PREPARES] = false;
         } else {
             throw new Exception("Unsupported database type: $db_type. Supported types: mysql, pgsql");
         }
-        
+
         $temp_debug_message("DSN: $dsn");
         $temp_debug_message("PDO options: " . json_encode($options));
         $temp_debug_message("Attempting to create PDO connection");
 
         $result = new PDO($dsn, $db_user, $db_password, $options);
+        // Устанавливаем кодировку для PostgreSQL
+        if ($db_type === 'pgsql' || $db_type === 'postgresql') {
+                $result->exec("SET client_encoding TO 'UTF8'");
+            }
 
-        // Теперь у нас есть соединение, можем использовать LOG_DEBUG
         $temp_debug_message("PDO connection created successfully");
         $temp_debug_message("PDO connection info: " . ($result->getAttribute(PDO::ATTR_CONNECTION_STATUS) ?? 'N/A for PostgreSQL'));
-        
         // Проверяем наличие атрибутов перед использованием
         if ($db_type === 'mysql') {
             $temp_debug_message("PDO client version: " . $result->getAttribute(PDO::ATTR_CLIENT_VERSION));
             $temp_debug_message("PDO server version: " . $result->getAttribute(PDO::ATTR_SERVER_VERSION));
-            
             // Проверка кодировки для MySQL
             $stmt = $result->query("SHOW VARIABLES LIKE 'character_set_connection'");
             $charset = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -103,7 +113,6 @@ function new_connection ($db_type, $db_host, $db_user, $db_password, $db_name)
             $stmt = $result->query("SHOW server_encoding");
             $charset = $stmt->fetch(PDO::FETCH_ASSOC);
             $temp_debug_message("PostgreSQL server encoding: " . ($charset['server_encoding'] ?? 'not set'));
-            
             // Получаем версию PostgreSQL
             $stmt = $result->query("SELECT version()");
             $version = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -523,7 +532,7 @@ function allow_update($table, $action = 'update', $field = '')
     if ($action == 'update') {
         $operator_acl = [
             'user_auth' => [
-                'comments' => '1',
+                'description' => '1',
                 'dns_name' => '1',
                 'dns_ptr_only' => '1',
                 'firmware' => '1',
@@ -661,7 +670,7 @@ function update_record($db, $table, $filter, $newvalue)
         if (!preg_match('/password/i', $key)) {
             $changed_log = $changed_log . " $key => $value (old: " . ($old[$key] ?? '') . "),";
         }
-        $set_parts[] = "`$key` = ?";
+        $set_parts[] = "$key = ?";
         $params[] = $value;
     }
 
@@ -741,11 +750,11 @@ function update_record($db, $table, $filter, $newvalue)
     }
 
     if ($network_changed) {
-        $set_parts[] = "`changed` = '1'";
+        $set_parts[] = "changed = '1'";
     }
 
     if ($dhcp_changed) {
-        $set_parts[] = "`dhcp_changed` = '1'";
+        $set_parts[] = "dhcp_changed = '1'";
     }
 
     $changed_log = substr_replace($changed_log, "", -1);
@@ -753,7 +762,7 @@ function update_record($db, $table, $filter, $newvalue)
 
     if ($table === 'user_auth') {
         $changed_time = GetNowTimeString();
-        $run_sql .= ", `changed_time` = ?";
+        $run_sql .= ", changed_time = ?";
         $params[] = $changed_time;
     }
 
@@ -842,7 +851,7 @@ function delete_record($db, $table, $filter)
     if ($table === 'user_auth') {
         $delete_it = 0;
         $changed_time = GetNowTimeString();
-        $new_sql = "UPDATE $table SET deleted=1, changed=1, `changed_time`='" . $changed_time . "' WHERE $filter";
+        $new_sql = "UPDATE $table SET deleted=1, changed=1, changed_time='" . $changed_time . "' WHERE $filter";
         LOG_DEBUG($db, "Run sql: $new_sql");
         try {
             $sql_result = $db->exec($new_sql);
@@ -923,44 +932,65 @@ function delete_record($db, $table, $filter)
 function insert_record($db, $table, $newvalue)
 {
     if (!allow_update($table, 'add')) {
-#        LOG_WARNING($db, "User does not have write permission");
+        // LOG_WARNING($db, "User does not have write permission");
         return;
     }
-    if (!isset($table)) {
-#        LOG_WARNING($db, "Create record for unknown table! Skip command.");
+    if (!isset($table) || empty($table)) {
+        // LOG_WARNING($db, "Create record for unknown table! Skip command.");
         return;
     }
-    if (empty($newvalue)) {
-#        LOG_WARNING($db, "Create record ($table) with empty data! Skip command.");
+    if (empty($newvalue) || !is_array($newvalue)) {
+        // LOG_WARNING($db, "Create record ($table) with empty data! Skip command.");
+        return;
+    }
+
+    // Валидация имени таблицы (защита от SQL-инъекций через имя таблицы)
+    if (!preg_match('/^[a-z_][a-z0-9_]*$/', $table)) {
+        // LOG_WARNING($db, "Invalid table name: $table");
         return;
     }
 
     $changed_log = '';
-    $field_list = '';
-    $value_list = '';
+    $field_list = [];
+    $value_list = [];
     $params = [];
+
     foreach ($newvalue as $key => $value) {
-        if (empty($value) and $value != '0') {
-            $value = '';
+        // Валидация имени колонки
+        if (!preg_match('/^[a-z_][a-z0-9_]*$/', $key)) {
+            // Пропускаем недопустимые имена колонок
+            continue;
         }
+
+        // Обработка пустых значений
+        if ('' === $value && '0' !== $value) {
+            $value = null; // или оставить как '', но null безопаснее для SQL
+        } else {
+            $value = trim((string)$value);
+        }
+
+        // Логирование (без паролей)
         if (!preg_match('/password/i', $key)) {
-            $changed_log = $changed_log . " $key => $value,";
+            $changed_log .= " $key => " . ($value ?? 'NULL') . ",";
         }
-        $field_list = $field_list . "`" . $key . "`,";
-        $value = trim($value);
-        $value_list = $value_list . "?,";
+
+        $field_list[] = $key;
+        $value_list[] = '?';
         $params[] = $value;
     }
-    if (empty($value_list)) {
+
+    if (empty($field_list)) {
         return;
     }
 
-    $changed_log = substr_replace($changed_log, "", -1);
-    $field_list = substr_replace($field_list, "", -1);
-    $value_list = substr_replace($value_list, "", -1);
-    $new_sql = "insert into $table(" . $field_list . ") values(" . $value_list . ")";
+    // Формируем SQL
+    $field_list_str = implode(',', $field_list);
+    $value_list_str = implode(',', $value_list);
+    $new_sql = "INSERT INTO $table ($field_list_str) VALUES ($value_list_str)";
+
     LOG_DEBUG($db, "Run sql: $new_sql");
-    
+
+
     try {
         $stmt = $db->prepare($new_sql);
         $sql_result = $stmt->execute($params);
@@ -1044,7 +1074,7 @@ function get_diff_rec($db, $table, $filter, $newvalue, $only_changed = false)
     if (!isset($table) || !isset($filter) || !isset($newvalue)) {
         return '';
     }
-    $old_sql = "SELECT * FROM `$table` WHERE $filter";
+    $old_sql = "SELECT * FROM $table WHERE $filter";
     try {
         $stmt = $db->query($old_sql);
         $old = $stmt->fetch(PDO::FETCH_ASSOC);

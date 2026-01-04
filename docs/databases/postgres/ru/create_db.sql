@@ -29,19 +29,19 @@ CREATE TABLE auth_rules (
 id SERIAL PRIMARY KEY,
 user_id INTEGER,
 ou_id INTEGER,
-type SMALLINT NOT NULL,
+rule_type SMALLINT NOT NULL,
 rule VARCHAR(40) UNIQUE,
-comment VARCHAR(250)
+description VARCHAR(250)
 );
 COMMENT ON TABLE auth_rules IS 'Правила аутентификации и авторизации пользователей';
-COMMENT ON COLUMN auth_rules.type IS 'Тип правила: 0=разрешить, 1=запретить, и т.д.';
+COMMENT ON COLUMN auth_rules.rule_type IS 'Тип правила: 0=разрешить, 1=запретить, и т.д.';
 COMMENT ON COLUMN auth_rules.rule IS 'Идентификатор правила (уникальный)';
 
 -- Здания
 CREATE TABLE building (
 id SERIAL PRIMARY KEY,
 name VARCHAR(50) NOT NULL,
-comment VARCHAR(250)
+description VARCHAR(250)
 );
 COMMENT ON TABLE building IS 'Физические здания/локации';
 COMMENT ON COLUMN building.name IS 'Название здания';
@@ -62,7 +62,7 @@ description_russian TEXT,
 description_english TEXT,
 draft SMALLINT NOT NULL DEFAULT 0,
 uniq SMALLINT NOT NULL DEFAULT 1,
-type VARCHAR(100) NOT NULL,
+option_type VARCHAR(100) NOT NULL,
 default_value VARCHAR(250),
 min_value INTEGER NOT NULL DEFAULT 0,
 max_value INTEGER NOT NULL DEFAULT 0
@@ -90,7 +90,7 @@ COMMENT ON COLUMN connections.last_found IS 'Время последней ак�
 CREATE TABLE customers (
 id SERIAL PRIMARY KEY,
 Login VARCHAR(20),
-comment VARCHAR(100),
+description VARCHAR(100),
 password VARCHAR(255),
 api_key VARCHAR(255),
 rights SMALLINT NOT NULL DEFAULT 3
@@ -116,7 +116,7 @@ protocol SMALLINT NOT NULL DEFAULT 0,
 control_port INTEGER NOT NULL DEFAULT 23,
 port_count INTEGER NOT NULL DEFAULT 0,
 SN VARCHAR(80),
-comment VARCHAR(255),
+description VARCHAR(255),
 snmp_version SMALLINT NOT NULL DEFAULT 0,
 snmp3_auth_proto VARCHAR(10) NOT NULL DEFAULT 'sha512',
 snmp3_priv_proto VARCHAR(10) NOT NULL DEFAULT 'aes128',
@@ -188,7 +188,7 @@ snmp_index INTEGER,
 port INTEGER,
 ifName VARCHAR(40),
 port_name VARCHAR(40),
-comment VARCHAR(50),
+description VARCHAR(50),
 target_port_id INTEGER NOT NULL DEFAULT 0,
 auth_id BIGINT,
 last_mac_count INTEGER DEFAULT 0,
@@ -222,7 +222,7 @@ mac MACADDR NOT NULL,
 ip_int BIGINT NOT NULL,
 ip INET NOT NULL,
 action VARCHAR(10) NOT NULL,
-timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 auth_id BIGINT NOT NULL,
 dhcp_hostname VARCHAR(250),
 circuit_id VARCHAR(255),
@@ -239,7 +239,7 @@ id BIGSERIAL PRIMARY KEY,
 mac MACADDR NOT NULL,
 ip INET NOT NULL,
 action VARCHAR(10) NOT NULL,
-timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dhcp_hostname VARCHAR(250)
 );
 COMMENT ON TABLE dhcp_queue IS 'Очередь отложенных операций DHCP';
@@ -249,7 +249,7 @@ CREATE TABLE dns_cache (
 id BIGSERIAL PRIMARY KEY,
 dns VARCHAR(250),
 ip BIGINT,
-timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 COMMENT ON TABLE dns_cache IS 'Кэш DNS разрешений';
 
@@ -259,7 +259,7 @@ id SERIAL PRIMARY KEY,
 auth_id INTEGER,
 name_type VARCHAR(10) NOT NULL DEFAULT 'A',
 name VARCHAR(200),
-type VARCHAR(10) NOT NULL DEFAULT 'add',
+operation_type VARCHAR(10) NOT NULL DEFAULT 'add',
 value VARCHAR(100)
 );
 COMMENT ON TABLE dns_queue IS 'Очередь отложенных операций DNS';
@@ -270,7 +270,7 @@ COMMENT ON COLUMN dns_queue.type IS 'Тип операции: add, delete, updat
 CREATE TABLE filter_instances (
 id SERIAL PRIMARY KEY,
 name VARCHAR(50) UNIQUE,
-comment VARCHAR(200)
+description VARCHAR(200)
 );
 COMMENT ON TABLE filter_instances IS 'Экземпляры политик фильтрации';
 
@@ -278,17 +278,17 @@ COMMENT ON TABLE filter_instances IS 'Экземпляры политик фил
 CREATE TABLE filter_list (
 id SERIAL PRIMARY KEY,
 name VARCHAR(50),
-comment VARCHAR(250),
+description VARCHAR(250),
 proto VARCHAR(10),
 dst TEXT,
 dstport VARCHAR(20),
 srcport VARCHAR(20),
-type SMALLINT NOT NULL DEFAULT 0
+filter_type SMALLINT NOT NULL DEFAULT 0
 );
 COMMENT ON TABLE filter_list IS 'Правила firewall/фильтрации';
 COMMENT ON COLUMN filter_list.proto IS 'Протокол: tcp, udp, icmp и т.д.';
 COMMENT ON COLUMN filter_list.dst IS 'IP/CIDR назначения';
-COMMENT ON COLUMN filter_list.type IS 'Тип правила: 0=разрешить, 1=запретить';
+COMMENT ON COLUMN filter_list.filter_type IS 'Тип правила: 0=разрешить, 1=запретить';
 
 -- Шлюзы подсетей
 CREATE TABLE gateway_subnets (
@@ -315,7 +315,7 @@ CREATE TABLE group_list (
 id SERIAL PRIMARY KEY,
 instance_id INTEGER NOT NULL DEFAULT 1,
 group_name VARCHAR(50),
-comment VARCHAR(250)
+description VARCHAR(250)
 );
 COMMENT ON TABLE group_list IS 'Группы политик фильтрации';
 
@@ -323,7 +323,7 @@ COMMENT ON TABLE group_list IS 'Группы политик фильтрации
 CREATE TABLE mac_history (
 id BIGSERIAL PRIMARY KEY,
 mac VARCHAR(12),
-timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 device_id BIGINT,
 port_id BIGINT,
 ip VARCHAR(16) NOT NULL DEFAULT '',
@@ -348,7 +348,7 @@ COMMENT ON COLUMN mac_vendors.oui IS 'Organizationally Unique Identifier (пер
 CREATE TABLE OU (
 id SERIAL PRIMARY KEY,
 ou_name VARCHAR(40),
-comment VARCHAR(250),
+description VARCHAR(250),
 default_users SMALLINT NOT NULL DEFAULT 0,
 default_hotspot SMALLINT NOT NULL DEFAULT 0,
 nagios_dir VARCHAR(255),
@@ -380,7 +380,7 @@ COMMENT ON COLUMN queue_list.Upload IS 'Ограничение скорости 
 -- Удаленные syslog сообщения
 CREATE TABLE remote_syslog (
 id BIGSERIAL PRIMARY KEY,
-date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 device_id BIGINT NOT NULL,
 ip VARCHAR(15) NOT NULL,
 message TEXT NOT NULL
@@ -415,7 +415,7 @@ static SMALLINT NOT NULL DEFAULT 0,
 dhcp_update_hostname SMALLINT NOT NULL DEFAULT 0,
 discovery SMALLINT NOT NULL DEFAULT 1,
 notify SMALLINT NOT NULL DEFAULT 7,
-comment VARCHAR(250)
+description VARCHAR(250)
 );
 COMMENT ON TABLE subnets IS 'Конфигурация сетевых подсетей';
 COMMENT ON COLUMN subnets.subnet IS 'Сеть в нотации CIDR';
@@ -429,7 +429,7 @@ CREATE TABLE traffic_detail (
 id BIGSERIAL PRIMARY KEY,
 auth_id BIGINT,
 router_id INTEGER NOT NULL DEFAULT 0,
-timestamp TIMESTAMP,
+ts TIMESTAMP,
 proto SMALLINT,
 src_ip INTEGER NOT NULL,
 dst_ip INTEGER NOT NULL,
@@ -449,7 +449,7 @@ id BIGSERIAL PRIMARY KEY,
 mac VARCHAR(12),
 port_id BIGINT,
 device_id INTEGER,
-timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 COMMENT ON TABLE unknown_mac IS 'Недавно обнаруженные неизвестные MAC-адреса';
 
@@ -465,9 +465,9 @@ enabled SMALLINT NOT NULL DEFAULT 0,
 dhcp SMALLINT NOT NULL DEFAULT 1,
 filter_group_id SMALLINT NOT NULL DEFAULT 0,
 dynamic SMALLINT NOT NULL DEFAULT 0,
-eof TIMESTAMP,
+end_life TIMESTAMP,
 deleted SMALLINT NOT NULL DEFAULT 0,
-comments VARCHAR(250),
+description VARCHAR(250),
 dns_name VARCHAR(253),
 dns_ptr_only SMALLINT NOT NULL DEFAULT 0,
 WikiName VARCHAR(250),
@@ -480,12 +480,13 @@ dhcp_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dhcp_hostname VARCHAR(60),
 last_found TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 arp_found TIMESTAMP,
+mac_found TIMESTAMP,
 blocked SMALLINT NOT NULL DEFAULT 0,
 day_quota INTEGER NOT NULL DEFAULT 0,
 month_quota INTEGER NOT NULL DEFAULT 0,
 device_model_id INTEGER DEFAULT 87,
 firmware VARCHAR(100),
-timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 client_id VARCHAR(250),
 nagios SMALLINT NOT NULL DEFAULT 0,
 nagios_status VARCHAR(10) NOT NULL DEFAULT '',
@@ -508,14 +509,14 @@ id SERIAL PRIMARY KEY,
 auth_id INTEGER NOT NULL,
 alias VARCHAR(100),
 description VARCHAR(100),
-timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 COMMENT ON TABLE user_auth_alias IS 'Алиасы/DNS имена для записей авторизации';
 
 -- Список пользователей
 CREATE TABLE user_list (
 id BIGSERIAL PRIMARY KEY,
-timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 login VARCHAR(255),
 fio VARCHAR(255),
 enabled SMALLINT NOT NULL DEFAULT 1,
@@ -551,7 +552,7 @@ CREATE TABLE user_stats (
 id BIGSERIAL PRIMARY KEY,
 router_id BIGINT DEFAULT 0,
 auth_id BIGINT NOT NULL DEFAULT 0,
-timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 byte_in BIGINT NOT NULL DEFAULT 0,
 byte_out BIGINT NOT NULL DEFAULT 0
 );
@@ -562,7 +563,7 @@ CREATE TABLE user_stats_full (
 id BIGSERIAL PRIMARY KEY,
 router_id BIGINT DEFAULT 0,
 auth_id BIGINT NOT NULL DEFAULT 0,
-timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 byte_in BIGINT NOT NULL DEFAULT 0,
 byte_out BIGINT NOT NULL DEFAULT 0,
 pkt_in INTEGER,
@@ -614,7 +615,7 @@ COMMENT ON COLUMN wan_stats.bytes_out IS 'Байтов отправлено с W
 -- Журнал активности системы
 CREATE TABLE worklog (
 id BIGSERIAL PRIMARY KEY,
-timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 auth_id BIGINT NOT NULL DEFAULT 0,
 customer VARCHAR(50) NOT NULL DEFAULT 'system',
 ip VARCHAR(18) NOT NULL DEFAULT '127.0.0.1',
@@ -633,25 +634,25 @@ CREATE INDEX idx_device_ports_device_id ON device_ports(device_id);
 CREATE INDEX idx_device_ports_port ON device_ports(port);
 CREATE INDEX idx_device_ports_target_port_id ON device_ports(target_port_id);
 
-CREATE INDEX idx_dhcp_log_timestamp ON dhcp_log(timestamp, action);
-CREATE INDEX idx_dhcp_queue_timestamp ON dhcp_queue(timestamp, action);
+CREATE INDEX idx_dhcp_log_ts ON dhcp_log(ts, action);
+CREATE INDEX idx_dhcp_queue_ts ON dhcp_queue(ts, action);
 
 CREATE INDEX idx_dns_cache_dns ON dns_cache(dns, ip);
-CREATE INDEX idx_dns_cache_timestamp ON dns_cache(timestamp);
+CREATE INDEX idx_dns_cache_ts ON dns_cache(ts);
 
-CREATE INDEX idx_mac_history_mac ON mac_history(mac, timestamp);
-CREATE INDEX idx_mac_history_ip ON mac_history(ip, timestamp);
-CREATE INDEX idx_mac_history_timestamp ON mac_history(timestamp);
+CREATE INDEX idx_mac_history_mac ON mac_history(mac, ts);
+CREATE INDEX idx_mac_history_ip ON mac_history(ip, ts);
+CREATE INDEX idx_mac_history_ts ON mac_history(ts);
 
 CREATE INDEX idx_ou_ou_name_gin ON OU USING GIN(ou_name gin_trgm_ops);
 
 CREATE INDEX idx_subnets_ip_int_start ON subnets(ip_int_start, ip_int_stop);
 CREATE INDEX idx_subnets_dhcp ON subnets(dhcp, office, hotspot, static);
 
-CREATE INDEX idx_traffic_detail_src ON traffic_detail(auth_id, timestamp, router_id, src_ip);
-CREATE INDEX idx_traffic_detail_dst ON traffic_detail(auth_id, timestamp, router_id, dst_ip);
+CREATE INDEX idx_traffic_detail_src ON traffic_detail(auth_id, ts, router_id, src_ip);
+CREATE INDEX idx_traffic_detail_dst ON traffic_detail(auth_id, ts, router_id, dst_ip);
 
-CREATE INDEX idx_unknown_mac_timestamp ON unknown_mac(timestamp, device_id, port_id, mac);
+CREATE INDEX idx_unknown_mac_ts ON unknown_mac(ts, device_id, port_id, mac);
 
 CREATE INDEX idx_user_auth_main ON user_auth(id, user_id, ip_int, mac, ip, deleted);
 CREATE INDEX idx_user_auth_deleted ON user_auth(deleted) WHERE deleted = 0;
@@ -663,12 +664,12 @@ CREATE INDEX idx_user_sessions_session_id ON user_sessions(session_id);
 CREATE INDEX idx_user_sessions_user_id ON user_sessions(user_id);
 CREATE INDEX idx_user_sessions_is_active ON user_sessions(is_active) WHERE is_active = 1;
 
-CREATE INDEX idx_user_stats_timestamp ON user_stats(timestamp, auth_id, router_id);
-CREATE INDEX idx_user_stats_full_timestamp ON user_stats_full(timestamp, auth_id, router_id);
+CREATE INDEX idx_user_stats_ts ON user_stats(ts, auth_id, router_id);
+CREATE INDEX idx_user_stats_full_ts ON user_stats_full(ts, auth_id, router_id);
 
 CREATE INDEX idx_wan_stats_time ON wan_stats(time, router_id, interface_id);
 
-CREATE INDEX idx_worklog_customer ON worklog(customer, level, timestamp);
-CREATE INDEX idx_worklog_timestamp ON worklog(level, timestamp);
-CREATE INDEX idx_worklog_auth_id ON worklog(auth_id, level, timestamp);
+CREATE INDEX idx_worklog_customer ON worklog(customer, level, ts);
+CREATE INDEX idx_worklog_ts ON worklog(level, ts);
+CREATE INDEX idx_worklog_auth_id ON worklog(auth_id, level, ts);
 

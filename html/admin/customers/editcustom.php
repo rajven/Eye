@@ -8,7 +8,7 @@ $msg_error = "";
 if (isset($_POST["edituser"])) {
     global $salt;
     $new['Login'] = substr(trim($_POST["login"]), 0, 20);
-    $new['comment'] = substr(trim($_POST["comment"]), 0, 100);
+    $new['description'] = substr(trim($_POST["description"]), 0, 100);
     if (isset($_POST["pass"]) and (strlen(trim($_POST["pass"])) > 0)) {
         $new['password'] = password_hash($_POST["pass"], PASSWORD_BCRYPT);
 	}
@@ -40,8 +40,8 @@ $customer=get_record($db_link,'customers',"id=".$id);
 				<td><input type="text" name="login" value="<?php print $customer['Login']; ?>" size=20></td>
 			</tr>
 			<tr>
-				<td><?php echo WEB_cell_comment; ?></td>
-				<td><input type="text" name="comment" value="<?php print $customer['comment']; ?>" size=50></td>
+				<td><?php echo WEB_cell_description; ?></td>
+				<td><input type="text" name="description" value="<?php print $customer['description']; ?>" size=50></td>
 			</tr>
 			<tr>
 				<td><?php echo WEB_customer_password; ?></td>

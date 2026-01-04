@@ -47,7 +47,7 @@ if (isset($_POST['s_save'])) {
             if (intval($_POST['n_id'][$j]) != $save_id) { continue; }
             $new['type'] = $_POST['s_type'][$j];
             $new['rule'] = trim($_POST['s_rule'][$j]);
-            $new['comment'] = trim($_POST['s_comment'][$j]);
+            $new['description'] = trim($_POST['s_description'][$j]);
             update_record($db_link, "auth_rules", "id='{$save_id}'", $new);
         }
     }
@@ -130,7 +130,7 @@ if (!$ou_info['dynamic']) { print "disabled"; }; print " style=\"width:35%;\" ><
     <td width=30><b>id</b></td>
     <td><b><?php echo WEB_cell_type; ?></b></td>
     <td><b><?php echo WEB_ou_rule; ?></b></td>
-    <td><b><?php echo WEB_cell_comment; ?></b></td>
+    <td><b><?php echo WEB_cell_description; ?></b></td>
     <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="s_remove" value="<?php echo WEB_btn_delete; ?>"></td>
     <?php print "<td><button id='s_save' name='s_save'>".WEB_btn_save."</button></td>"; ?>
 </tr>
@@ -142,7 +142,7 @@ foreach ( $t_auth_rules as $row ) {
     print "<td class=\"data\"><input type=\"hidden\" name='n_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\">"; print_qa_rule_select("s_type[]","{$row['type']}"); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_rule[]' value='{$row['rule']}'></td>\n";
-    print "<td class=\"data\"><input type=\"text\" name='s_comment[]' value='{$row['comment']}'></td>\n";
+    print "<td class=\"data\"><input type=\"text\" name='s_description[]' value='{$row['description']}'></td>\n";
     print "<td colspan=2 class=\"data\"></td>\n";
     print "</tr>\n";
 }

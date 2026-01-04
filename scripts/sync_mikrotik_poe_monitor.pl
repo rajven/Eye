@@ -91,12 +91,12 @@ if (defined $work_list{$current_port}) {
     if ($work_list{$current_port}{ip} ne $current_list{$current_port}) {
         db_log_info($dbh,"Change settings poe monitor at $switch_name [$current_port] to ip: $work_list{$current_port}{ip}");
         push(@cmd_list,'/interface ethernet set [ find default-name='.$current_port.' ] power-cycle-ping-address='.$work_list{$current_port}{ip}.' power-cycle-ping-enabled=yes power-cycle-ping-timeout=5m'); 
-        push(@cmd_list,'/interface ethernet set [ find default-name='.$current_port.' ] comment='.$work_list{$current_port}{dns_name}); 
+        push(@cmd_list,'/interface ethernet set [ find default-name='.$current_port.' ] description='.$work_list{$current_port}{dns_name}); 
         }
     } else {
     db_log_info($dbh,"Disable poe monitor at $switch_name [$current_port]");
     push(@cmd_list,'/interface ethernet set [ find default-name='.$current_port.' ] power-cycle-ping-enabled=no');
-    push(@cmd_list,'/interface ethernet set [ find default-name='.$current_port.' ] comment=""'); 
+    push(@cmd_list,'/interface ethernet set [ find default-name='.$current_port.' ] description=""'); 
     }
 }
 
@@ -104,7 +104,7 @@ foreach my $work_port (keys %work_list) {
 if (!defined $current_list{$work_port}) {
     db_log_info($dbh,"Enable poe monitor at $switch_name [$work_port] for $work_list{$work_port}{ip}");
     push(@cmd_list,'/interface ethernet set [ find default-name='.$work_port.' ] power-cycle-ping-address='.$work_list{$work_port}{ip}.' power-cycle-ping-enabled=yes power-cycle-ping-timeout=5m');
-    push(@cmd_list,'/interface ethernet set [ find default-name='.$work_port.' ] comment='.$work_list{$work_port}{dns_name});
+    push(@cmd_list,'/interface ethernet set [ find default-name='.$work_port.' ] description='.$work_list{$work_port}{dns_name});
     }
 }
 

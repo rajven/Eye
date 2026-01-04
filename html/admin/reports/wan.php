@@ -32,8 +32,8 @@ $global_int_f_out = 0;
 print "<tr ><td class=\"info\" colspan=5><b>".$device_name."</b></td></tr>\n";
 
 foreach ($l3_interfaces as $row) {
-    if (!empty($row['comment'])) {
-        print "<tr ><td class=\"data\" colspan=5><b>".$row['name']." (".$row['comment'].")</b></td></tr>\n";
+    if (!empty($row['description'])) {
+        print "<tr ><td class=\"data\" colspan=5><b>".$row['name']." (".$row['description'].")</b></td></tr>\n";
         } else {
         print "<tr ><td class=\"data\" colspan=5><b>".$row['name']."</b></td></tr>\n";
         }
@@ -45,9 +45,9 @@ foreach ($l3_interfaces as $row) {
     print "<td >".WEB_title_forward_output."</td>\n";
     print "</tr>\n";
 
-    $trafSQL="SELECT DATE_FORMAT(`time`, '".$dt_template."'  ) AS dt,SUM(`in`) as byte_in,SUM(`out`) as byte_out, SUM(`forward_in`) as byte_f_in,SUM(`forward_out`) as byte_f_out FROM wan_stats ";
+    $trafSQL="SELECT DATE_FORMAT(ts, '".$dt_template."'  ) AS dt,SUM(bytes_in) as byte_in,SUM(bytes_out) as byte_out, SUM(forward_in) as byte_f_in,SUM(forward_out) as byte_f_out FROM wan_stats ";
     $trafSQL .=" WHERE router_id='".$device_id."' AND interface_id='".$row['snmpin']."' AND time>='$date1' AND time<'$date2'";
-    $trafSQL .=" GROUP BY DATE_FORMAT(`time`, '".$dt_template."' ) ORDER BY dt;";
+    $trafSQL .=" GROUP BY DATE_FORMAT(ts, '".$dt_template."' ) ORDER BY dt;";
 
     $int_statistics = get_records_sql($db,$trafSQL);
 

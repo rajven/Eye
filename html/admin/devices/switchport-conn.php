@@ -43,7 +43,7 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 
 <?php
 
-$connections = get_records_sql($db_link,"SELECT C.* FROM `connections` as C,`user_auth` as A WHERE A.id=C.auth_id AND A.deleted=0 AND C.device_id=$id ORDER BY C.port_id ASC");
+$connections = get_records_sql($db_link,"SELECT C.* FROM connections as C,user_auth as A WHERE A.id=C.auth_id AND A.deleted=0 AND C.device_id=$id ORDER BY C.port_id ASC");
 foreach ($connections as $key => $value) {
 print "<tr align=center>\n";
 print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$value['id']}'></td>\n";

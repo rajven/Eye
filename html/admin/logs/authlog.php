@@ -23,17 +23,17 @@ if (!isset($auth_id)) { header('Location: /admin/logs/index.php', true, 301); ex
 <?php
 $log_filter ='';
 
-if ($display_log_level == L_ERROR) { $log_filter = " and `level`=". L_ERROR." "; }
-if ($display_log_level == L_WARNING) { $log_filter = " and `level`<=".L_WARNING." "; }
-if ($display_log_level == L_INFO) { $log_filter = " and `level`<=".L_INFO." "; }
-if ($display_log_level == L_VERBOSE) { $log_filter = " and `level`<=".L_VERBOSE." "; }
+if ($display_log_level == L_ERROR) { $log_filter = " and level=". L_ERROR." "; }
+if ($display_log_level == L_WARNING) { $log_filter = " and level<=".L_WARNING." "; }
+if ($display_log_level == L_INFO) { $log_filter = " and level<=".L_INFO." "; }
+if ($display_log_level == L_VERBOSE) { $log_filter = " and level<=".L_VERBOSE." "; }
 if ($display_log_level == L_DEBUG) { $log_filter = ""; }
 
 if (!empty($log_filter)) { $log_filter = $log_filter." and auth_id=".$auth_id; } else { $log_filter = " and auth_id=".$auth_id; }
 if (!empty($fcustomer)) { $log_filter = $log_filter." and customer LIKE '%".$fcustomer."%'"; }
 if (!empty($fmessage)) { $log_filter = $log_filter." and message LIKE '%".$fmessage."%'"; }
 
-$countSQL="SELECT Count(*) FROM worklog WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $log_filter";
+$countSQL="SELECT Count(*) FROM worklog WHERE timestamp>='$date1' AND timestamp<'$date2' $log_filter";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -51,7 +51,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 	</tr>
 <?php
 #speedup paging
-$sSQL = "SELECT timestamp,customer,message,level FROM worklog as S JOIN (SELECT id FROM worklog WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $log_filter ORDER BY id DESC LIMIT $start,$displayed) AS I ON S.id = I.id";
+$sSQL = "SELECT timestamp,customer,message,level FROM worklog as S JOIN (SELECT id FROM worklog WHERE timestamp>='$date1' AND timestamp<'$date2' $log_filter ORDER BY id DESC LIMIT $start,$displayed) AS I ON S.id = I.id";
 $userlog = get_records_sql($db_link, $sSQL);
 foreach ($userlog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";

@@ -45,7 +45,7 @@ if (isset($_POST["edituser"])) {
         run_sql($db_link, "UPDATE user_auth SET enabled=0, changed=1 WHERE user_id=" . $id);
     }
     if (!empty($new["fio"])) {
-        run_sql($db_link, "UPDATE user_auth SET `comments`='" . db_escape($db_link, $new["fio"]) . "' WHERE `user_id`=" . $id . " AND `deleted`=0 AND (`comments` IS NULL or `comments`='' or `comments`='" . $user_info["fio"] . "')");
+        run_sql($db_link, "UPDATE user_auth SET description='" . db_escape($db_link, $new["fio"]) . "' WHERE user_id=" . $id . " AND deleted=0 AND (description IS NULL or description='' or description='" . $user_info["fio"] . "')");
     }
     run_sql($db_link, "UPDATE user_auth SET ou_id=" . $new["ou_id"] . " WHERE user_id=" . $id);
     run_sql($db_link, "UPDATE devices SET device_name='" . $new["login"] . "' WHERE user_id=" . $id);
@@ -120,11 +120,11 @@ if (isset($_POST["showDevice"])) {
 
 if (isset($_POST["addauth"])) {
     $fip = normalizeIpAddress(substr(trim($_POST["newip"]), 0, 18));
-    $fcomment = NULL;
+    $fdescription = NULL;
     $fmac = trim($_POST["newmac"]);
     if (!empty($fmac)) {
         if (!checkValidMac($fmac)) {
-                $fcomment = $fmac;
+                $fdescription = $fmac;
                 $fmac=NULL;
             } else {
             $fmac = mac_dotted($fmac);
@@ -155,7 +155,7 @@ if (isset($_POST["addauth"])) {
                 }
             }
             //search ip
-            $dup_ip_record = get_record_sql($db_link, "SELECT * FROM user_auth WHERE `ip_int`=$ip_aton AND user_id<>" . $id . " AND deleted=0");
+            $dup_ip_record = get_record_sql($db_link, "SELECT * FROM user_auth WHERE ip_int=$ip_aton AND user_id<>" . $id . " AND deleted=0");
             if (!empty($dup_ip_record)) {
                 $dup_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $dup_ip_record['user_id']);
                 $msg_error = "$fip already exists. Skip creating $fip [$fmac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
@@ -168,7 +168,7 @@ if (isset($_POST["addauth"])) {
             if (!empty($fid)) {
                 $new['dhcp'] = $f_dhcp;
                 $new['created_by'] = 'manual';
-                if (!empty($fcomment)) { $new['comments'] = $fcomment; }
+                if (!empty($fdescription)) { $new['description'] = $fdescription; }
                 update_record($db_link, "user_auth", "id=" . $fid, $new);
                 LOG_WARNING($db_link, "Add ip for login: " . $user_info["login"] . ": ip => $fip, mac => $fmac", $fid);
                 header("Location: /admin/users/editauth.php?id=" . $fid);
@@ -204,8 +204,8 @@ if (isset($_POST["new_user"])) {
             if (!empty($auth_info["dns_name"])) {
                 $login = $auth_info["dns_name"];
             }
-            if (empty($login) and !empty($auth_info["comments"])) {
-                $login = transliterate($auth_info["comments"]);
+            if (empty($login) and !empty($auth_info["description"])) {
+                $login = transliterate($auth_info["description"]);
             }
             if (empty($login) and !empty($auth_info["dhcp_hostname"])) {
                 $login = $auth_info["dhcp_hostname"];
@@ -228,7 +228,7 @@ if (isset($_POST["new_user"])) {
             } else {
                 $new["login"] = $login;
                 $new["ou_id"] = $ou_id;
-                if (!empty($auth_info["comments"])) { $new["fio"] = $auth_info["comments"]; }
+                if (!empty($auth_info["description"])) { $new["fio"] = $auth_info["description"]; }
                 if (!isset($new["fio"]) and !empty($auth_info["dns_name"])) { $new["fio"] = $auth_info["dns_name"]; }
                 if (!isset($new["fio"]) and !empty($auth_info["dhcp_hostname"])) { $new["fio"] = $auth_info["dhcp_hostname"]; }
                 $new["enabled"] = $auth_info["enabled"];
@@ -360,7 +360,7 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                 <td class="data"><input type="checkbox" onClick="checkAll(this.checked);"></td>
                 <td class="data"><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
                 <td class="data"><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
-                <td class="data"><?php print WEB_cell_comment; ?></td>
+                <td class="data"><?php print WEB_cell_description; ?></td>
                 <td class="data"><?php print $sort_url . "&sort=dns_name&order=$new_order>" . WEB_cell_dns_name . "</a>"; ?></td>
                 <td class="data"><?php print WEB_cell_enabled; ?></td>
                 <td class="data"><?php print WEB_cell_dhcp; ?></td>
@@ -395,9 +395,9 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     print "</td>";
 
                     if (isset($row["dhcp_hostname"]) and strlen($row["dhcp_hostname"]) > 0) {
-                        print "<td class=\"data\" >" . $row["comments"] . " [" . $row["dhcp_hostname"] . "]</td>";
+                        print "<td class=\"data\" >" . $row["description"] . " [" . $row["dhcp_hostname"] . "]</td>";
                     } else {
-                        print "<td class=\"data\" >" . $row["comments"] . "</td>";
+                        print "<td class=\"data\" >" . $row["description"] . "</td>";
                     }
                     $f_dns_type = 'A';
                     if ($row["dns_ptr_only"]) { $f_dns_type = 'ptr'; }
@@ -430,7 +430,7 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
 
                     if ($row['dynamic']) { $cl = "data_red"; } else { $cl = "data_green"; }
                     print "<td class=\"$cl\" >". get_qa($row['dynamic']);
-                    if ($row['dynamic'] and !empty($row["eof"])) { print "<p class='timestamp'>".FormatDateStr('Y.m.d H:i', $row["eof"])."</p>"; } else { print "&nbsp"; }
+                    if ($row['dynamic'] and !empty($row["end_life"])) { print "<p class='timestamp'>".FormatDateStr('Y.m.d H:i', $row["end_life"])."</p>"; } else { print "&nbsp"; }
                     print "</td>";
 
                     print "<td class=\"data\" >";

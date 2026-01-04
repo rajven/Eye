@@ -34,7 +34,7 @@ define("WEB_msg_login","Login");
 define("WEB_msg_username","Username");
 define("WEB_msg_password","Password");
 define("WEB_msg_fullname","Full name");
-define("WEB_msg_comment","Comment");
+define("WEB_msg_description","Description");
 define("WEB_msg_now","Now");
 define("WEB_msg_forbidden","Forbidden");
 define("WEB_msg_traffic_blocked","Blocked");
@@ -188,7 +188,7 @@ define("WEB_cell_mac","MAC");
 define("WEB_cell_clientid","Client-id");
 define("WEB_cell_host_firmware","Firmware");
 define("WEB_cell_sn","SN");
-define("WEB_cell_comment","Comment");
+define("WEB_cell_description","Description");
 define("WEB_cell_wikiname","Wiki Name");
 define("WEB_cell_filter","Filter");
 define("WEB_cell_proxy","Proxy");
@@ -232,7 +232,7 @@ define("WEB_cell_poe_in","POE In");
 define("WEB_cell_poe_out","POE");
 define("WEB_cell_dynamic","Dynamic");
 define("WEB_cell_temporary","Temporary record");
-define("WEB_cell_eof","EOF time");
+define("WEB_cell_end_life","The END time");
 define("WEB_cell_life_hours","Life duration,hours");
 
 /* lists name */
@@ -454,10 +454,10 @@ define("WEB_rules_type_hostname","Hostname");
 /* all ip list */
 define("WEB_ips_show_by_state","By activity");
 define("WEB_ips_show_by_ip_type","By ip type");
-define("WEB_ips_search_host","Search ip,mac or comment");
+define("WEB_ips_search_host","Search ip,mac or description");
 define("WEB_ips_search","Search");
 define("WEB_selection_title","Apply to Selection");
-define("WEB_ips_search_full","Search by comment/ip/mac/dhcp hostname");
+define("WEB_ips_search_full","Search by description/ip/mac/dhcp hostname");
 
 /* logs */
 define("WEB_log_start_date","Start");

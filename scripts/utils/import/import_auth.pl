@@ -128,9 +128,9 @@ if ($auth_record) {
         $device->{device_name}=$record->{dns_name};
         update_record($dbh,'devices',$device,"user_id=".$auth_record->{user_id});
         }
-    if (exists $record->{comments}) {
+    if (exists $record->{description}) {
         my $user_info;
-        $user_info->{fio}=$record->{comments};
+        $user_info->{fio}=$record->{description};
         update_record($dbh,'user_list',$user_info,"id=".$auth_record->{user_id});
         }
     next;
@@ -156,9 +156,9 @@ if ($auth_record) {
         $device->{device_name}=$record->{dns_name};
         update_record($dbh,'devices',$device,"user_id=".$auth_record->{user_id});
         }
-    if (exists $record->{comments}) {
+    if (exists $record->{description}) {
         my $user_info;
-        $user_info->{fio}=$record->{comments};
+        $user_info->{fio}=$record->{description};
         update_record($dbh,'user_list',$user_info,"id=".$auth_record->{user_id});
         }
     }

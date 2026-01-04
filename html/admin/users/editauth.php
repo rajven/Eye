@@ -40,7 +40,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             }
         }
         //search ip
-        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM user_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
+        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM user_auth WHERE ip_int=$ip_aton AND id<>$id AND deleted=0");
         if (!empty($dup_ip_record)) {
             $dup_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $dup_ip_record['user_id']);
             $msg_error = "$ip already exists. Skip creating $ip [$mac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
@@ -54,7 +54,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         $new['ou_id'] = $parent_ou_id;
         $new['ip_int'] = $ip_aton;
         $new['mac'] = mac_dotted($_POST["f_mac"]);
-        $new['comments'] = $_POST["f_comments"];
+        $new['description'] = $_POST["f_description"];
         $new['WikiName'] = $_POST["f_wiki"];
         $f_dnsname = trim($_POST["f_dns_name"]);
         $new['dns_ptr_only']=0;
@@ -128,7 +128,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         $new['dhcp_acl'] = trim($_POST["f_acl"]);
         $new['dhcp_option_set'] = trim($_POST["f_dhcp_option_set"]);
         $new['dynamic'] = trim($_POST["f_dynamic"]);
-        if ($new['dynamic']) { $new['eof'] =  trim($_POST["f_eof"]); }
+        if ($new['dynamic']) { $new['end_life'] =  trim($_POST["f_end_life"]); }
         if (get_const('default_user_ou_id') == $parent_ou_id or get_const('default_hotspot_ou_id') == $parent_ou_id) {
             $new['nagios_handler'] = '';
             $new['enabled'] = 0;
@@ -180,7 +180,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
 
 if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
     $new_parent_id = $_POST["f_new_parent"] * 1;
-    $moved_auth = get_record_sql($db_link,"SELECT comments FROM user_auth WHERE id=".$id);
+    $moved_auth = get_record_sql($db_link,"SELECT description FROM user_auth WHERE id=".$id);
     $changes = apply_auth_rule($db_link, $moved_auth, $new_parent_id);
     update_record($db_link, "user_auth", "id='$id'", $changes);
     LOG_WARNING($db_link, "IP-address moved to another user! Applyed: " . get_rec_str($changes), $id);
@@ -215,7 +215,7 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
             }
         }
         //search ip
-        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM user_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
+        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM user_auth WHERE ip_int=$ip_aton AND id<>$id AND deleted=0");
         if (!empty($dup_ip_record)) {
             $dup_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $dup_ip_record['user_id']);
             $msg_error = "$ip already exists. Skip creating $ip [$mac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
@@ -238,8 +238,8 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
             $new['user_id'] = $new_user_id;
             }
 
-        //save comments
-        $new['comments']=$old_parent['comments'];
+        //save description
+        $new['description']=$old_parent['description'];
 
         if (get_const('default_user_ou_id') == $parent_ou_id or get_const('default_hotspot_ou_id') == $parent_ou_id) {
             $new['nagios_handler'] = '';
@@ -300,9 +300,9 @@ if ($auth_info['arp_found'] == '0000-00-00 00:00:00') { $auth_info['arp_found'] 
 $now = DateTime::createFromFormat("Y-m-d H:i:s",date('Y-m-d H:i:s'));
 $created = DateTime::createFromFormat("Y-m-d H:i:s",$auth_info['timestamp']);
 
-if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') { 
+if (empty($auth_info['end_life']) or $auth_info['end_life'] == '0000-00-00 00:00:00') { 
     $now->modify('+1 day');
-    $auth_info['eof'] = $now->format('Y-m-d H:i:s');
+    $auth_info['end_life'] = $now->format('Y-m-d H:i:s');
     }
 
 ?>
@@ -328,7 +328,7 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
         <table class="data">
             <tr>
                 <td width=230><?php print WEB_cell_dns_name . " &nbsp | &nbsp "; print_url(WEB_cell_aliases, $alias_link); ?></td>
-                <td width=200><?php print WEB_cell_comment; ?></td>
+                <td width=200><?php print WEB_cell_description; ?></td>
                 <td width=70><?php print WEB_cell_enabled; ?></td>
                 <td><?php print WEB_cell_traf; ?></td>
                 <td></td>
@@ -337,7 +337,7 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
                 <td><input type="text" name="f_dns_name" size="14"  value="<?php echo $auth_info['dns_name']; ?>" pattern="^([a-zA-Z0-9-]{1,63})(\.[a-zA-Z0-9-]{1,63})*\.?$">
                     <input type="checkbox" id="f_dns_ptr" name="f_dns_ptr" value="1" <?php echo $f_dns_ptr; ?>> &nbsp ptr
                 </td>
-                <td><input type="text" name="f_comments" value="<?php echo $auth_info['comments']; ?>"></td>
+                <td><input type="text" name="f_description" value="<?php echo $auth_info['description']; ?>"></td>
                 <td><?php print_qa_select('f_enabled', $auth_info['enabled']); ?></td>
                 <td><?php print_qa_select('f_save_traf', $auth_info['save_traf']); ?></td>
                 <td></td>
@@ -416,14 +416,14 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
             <tr>
                 <td><?php print WEB_cell_temporary; ?></td>
                 <?php if ($auth_info['dynamic']) { print "<td class='cell_red'>"; } else { print "<td>"; } ?>
-                <?php print WEB_cell_eof; ?></td>
+                <?php print WEB_cell_end_life; ?></td>
                 <td></td>
                 <td></td>
                 <td></td>
             </tr>
             <tr>
                 <td><?php print_qa_select('f_dynamic',$auth_info['dynamic']); ?></td>
-                <td><input type="datetime-local" id="f_eof" name="f_eof" min="<?php print $created->format('Y-m-d H:i:s'); ?>" value="<?php print $auth_info['eof']; ?>" 
+                <td><input type="datetime-local" id="f_end_life" name="f_end_life" min="<?php print $created->format('Y-m-d H:i:s'); ?>" value="<?php print $auth_info['end_life']; ?>" 
                 <?php if (!$auth_info['dynamic']) { print "disabled"; } ?>
                 step=1 ></td>
                 <td></td>
@@ -489,7 +489,7 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
 <script>
 document.getElementById('f_dynamic').addEventListener('change', function(event) {
   const selectValue = this.value;
-  const inputField = document.getElementById('f_eof');
+  const inputField = document.getElementById('f_end_life');
   if (selectValue === '1') {
     inputField.disabled = false;
   } else {

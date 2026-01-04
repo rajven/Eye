@@ -12,8 +12,8 @@ USE `stat`;
 CREATE TABLE `acl` (
   `id` int(11) NOT NULL,
   `name` varchar(30) NOT NULL,
-  description_english varchar(250) NOT NULL,
-  description_russian varchar(250) NOT NULL
+  `description_english` varchar(250) NOT NULL,
+  `description_russian` varchar(250) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `ad_comp_cache` (
@@ -26,15 +26,15 @@ CREATE TABLE `auth_rules` (
   `id` int(11) NOT NULL,
   `user_id` int(11) DEFAULT NULL,
   `ou_id` int(11) DEFAULT NULL,
-  `type` int(11) NOT NULL,
+  `rule_type` int(11) NOT NULL,
   `rule` varchar(40) DEFAULT NULL,
-  `comment` varchar(250) DEFAULT NULL
+  `description` varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `building` (
   `id` int(11) NOT NULL,
   `name` varchar(50) NOT NULL,
-  `comment` varchar(250) DEFAULT NULL
+  `description` varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `config` (
@@ -46,11 +46,11 @@ CREATE TABLE `config` (
 CREATE TABLE `config_options` (
   `id` int(11) NOT NULL,
   `option_name` varchar(50) NOT NULL,
-  description_russian text DEFAULT NULL,
-  description_english text DEFAULT NULL,
+  `description_russian` text DEFAULT NULL,
+  `description_english` text DEFAULT NULL,
   `draft` tinyint(1) NOT NULL DEFAULT 0,
   `uniq` tinyint(1) NOT NULL DEFAULT 1,
-  `type` varchar(100) NOT NULL,
+  `option_type` varchar(100) NOT NULL,
   `default_value` varchar(250) DEFAULT NULL,
   `min_value` int(11) NOT NULL DEFAULT 0,
   `max_value` int(11) NOT NULL DEFAULT 0
@@ -67,7 +67,7 @@ CREATE TABLE `connections` (
 CREATE TABLE `customers` (
   `id` int(11) NOT NULL,
   `Login` varchar(20) DEFAULT 'NULL',
-  `comment` varchar(100) DEFAULT NULL,
+  `description` varchar(100) DEFAULT NULL,
   `password` varchar(255) DEFAULT 'NULL',
   `api_key` varchar(255) DEFAULT NULL,
   `rights` tinyint(1) NOT NULL DEFAULT 3
@@ -89,7 +89,7 @@ CREATE TABLE `devices` (
   `control_port` int(11) NOT NULL DEFAULT 23,
   `port_count` int(11) NOT NULL DEFAULT 0,
   `SN` varchar(80) DEFAULT NULL,
-  `comment` varchar(255) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
   `snmp_version` tinyint(4) NOT NULL DEFAULT 0,
   `snmp3_auth_proto` varchar(10) NOT NULL DEFAULT 'sha512',
   `snmp3_priv_proto` varchar(10) NOT NULL DEFAULT 'aes128',
@@ -145,7 +145,7 @@ CREATE TABLE `device_ports` (
   `port` int(11) DEFAULT NULL,
   `ifName` varchar(40) DEFAULT NULL,
   `port_name` varchar(40) DEFAULT NULL,
-  `comment` varchar(50) DEFAULT NULL,
+  `description` varchar(50) DEFAULT NULL,
   `target_port_id` int(11) NOT NULL DEFAULT 0,
   `auth_id` bigint(20) UNSIGNED DEFAULT NULL,
   `last_mac_count` int(11) DEFAULT 0,
@@ -173,9 +173,9 @@ CREATE TABLE `dhcp_log` (
   `ts` timestamp NOT NULL DEFAULT current_timestamp(),
   `auth_id` bigint(20) UNSIGNED NOT NULL,
   `dhcp_hostname` varchar(250) DEFAULT NULL,
-  circuit_id varchar(255) DEFAULT NULL,
-  remote_id varchar(255) DEFAULT NULL,
-  client_id varchar(250) DEFAULT NULL
+  `circuit_id` varchar(255) DEFAULT NULL,
+  `remote_id` varchar(255) DEFAULT NULL,
+  `client_id` varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci KEY_BLOCK_SIZE=8 ROW_FORMAT=COMPRESSED;
 
 CREATE TABLE `dhcp_queue` (
@@ -199,25 +199,25 @@ CREATE TABLE `dns_queue` (
   `auth_id` int(11) DEFAULT NULL,
   `name_type` varchar(10) NOT NULL DEFAULT 'A',
   `name` varchar(200) DEFAULT NULL,
-  `type` varchar(10) NOT NULL DEFAULT 'add',
+  `operation_type` varchar(10) NOT NULL DEFAULT 'add',
   `value` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `filter_instances` (
   `id` int(11) NOT NULL,
   `name` varchar(50) DEFAULT NULL,
-  `comment` varchar(200) DEFAULT NULL
+  `description` varchar(200) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `filter_list` (
   `id` int(11) NOT NULL,
   `name` varchar(50) DEFAULT NULL,
-  `comment` varchar(250) DEFAULT NULL,
+  `description` varchar(250) DEFAULT NULL,
   `proto` varchar(10) DEFAULT NULL,
   `dst` text DEFAULT NULL,
   `dstport` varchar(20) DEFAULT NULL,
   `srcport` varchar(20) DEFAULT NULL,
-  `type` int(10) UNSIGNED NOT NULL DEFAULT 0
+  `filter_type` int(10) UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `gateway_subnets` (
@@ -238,7 +238,7 @@ CREATE TABLE `group_list` (
   `id` int(11) NOT NULL,
   `instance_id` int(11) NOT NULL DEFAULT 1,
   `group_name` varchar(50) DEFAULT NULL,
-  `comment` varchar(250) DEFAULT NULL
+  `description` varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `mac_history` (
@@ -262,7 +262,7 @@ CREATE TABLE `mac_vendors` (
 CREATE TABLE `OU` (
   `id` int(11) NOT NULL,
   `ou_name` varchar(40) DEFAULT NULL,
-  `comment` varchar(250) DEFAULT NULL,
+  `description` varchar(250) DEFAULT NULL,
   `default_users` tinyint(1) NOT NULL DEFAULT 0,
   `default_hotspot` tinyint(1) NOT NULL DEFAULT 0,
   `nagios_dir` varchar(255) DEFAULT NULL,
@@ -286,7 +286,7 @@ CREATE TABLE `queue_list` (
 
 CREATE TABLE `remote_syslog` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `ts` timestamp NOT NULL DEFAULT current_timestamp(),
   `device_id` bigint(20) UNSIGNED NOT NULL,
   `ip` varchar(15) NOT NULL,
   `message` text NOT NULL
@@ -317,7 +317,7 @@ CREATE TABLE `subnets` (
   `dhcp_update_hostname` tinyint(1) NOT NULL DEFAULT 0,
   `discovery` tinyint(1) NOT NULL DEFAULT 1,
   `notify` tinyint(1) NOT NULL DEFAULT 7,
-  `comment` varchar(250) DEFAULT NULL
+  `description` varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `traffic_detail` (
@@ -353,9 +353,9 @@ CREATE TABLE `user_auth` (
   `dhcp` tinyint(1) NOT NULL DEFAULT 1,
   `filter_group_id` tinyint(1) NOT NULL DEFAULT 0,
   `dynamic` tinyint(1) NOT NULL DEFAULT 0,
-  `eof` datetime DEFAULT NULL,
+  `end_life` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
-  `comments` varchar(250) DEFAULT NULL,
+  `description` varchar(250) DEFAULT NULL,
   `dns_name` varchar(253) DEFAULT NULL,
   `dns_ptr_only` tinyint(1) NOT NULL DEFAULT 0,
   `WikiName` varchar(250) DEFAULT NULL,
@@ -368,13 +368,14 @@ CREATE TABLE `user_auth` (
   `dhcp_hostname` varchar(60) DEFAULT NULL,
   `last_found` datetime NOT NULL DEFAULT current_timestamp(),
   `arp_found` datetime DEFAULT NULL,
+  `mac_found` datetime DEFAULT NULL,
   `blocked` tinyint(1) NOT NULL DEFAULT 0,
   `day_quota` int(11) NOT NULL DEFAULT 0,
   `month_quota` int(11) NOT NULL DEFAULT 0,
   `device_model_id` int(11) DEFAULT 87,
   `firmware` varchar(100) DEFAULT NULL,
   `ts` timestamp NOT NULL DEFAULT current_timestamp(),
-  client_id varchar(250) DEFAULT NULL,
+  `client_id` varchar(250) DEFAULT NULL,
   `nagios` tinyint(1) NOT NULL DEFAULT 0,
   `nagios_status` varchar(10) NOT NULL DEFAULT '',
   `nagios_handler` varchar(50) NOT NULL DEFAULT '',
@@ -584,7 +585,6 @@ ALTER TABLE `mac_vendors`
 ALTER TABLE `OU`
   ADD PRIMARY KEY (`id`);
 ALTER TABLE `OU` ADD FULLTEXT KEY `ou_name` (`ou_name`);
-ALTER TABLE `OU` ADD FULLTEXT KEY `ou_name_2` (`ou_name`);
 
 ALTER TABLE `queue_list`
   ADD PRIMARY KEY (`id`),

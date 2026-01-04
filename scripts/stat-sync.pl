@@ -154,12 +154,12 @@ if (!$pid) {
             #clear temporary user auth records
             my $now = DateTime->now(time_zone=>'local');
             my $clear_time =$dbh->quote($now->strftime('%Y-%m-%d %H:%M:%S'));
-            my $users_sql = "SELECT * FROM user_auth WHERE deleted=0 AND dynamic=1 AND eof<=".$clear_time;
+            my $users_sql = "SELECT * FROM user_auth WHERE deleted=0 AND dynamic=1 AND end_life<=".$clear_time;
             my @users_auth = get_records_sql($hdb,$users_sql);
             if (@users_auth and scalar @users_auth) {
                     foreach my $row (@users_auth) {
                         delete_user_auth($hdb,$row->{id});
-                        db_log_info($hdb,"Removed dynamic user auth record for auth_id: $row->{'id'} by eof time: $row->{'eof'}",$row->{'id'});
+                        db_log_info($hdb,"Removed dynamic user auth record for auth_id: $row->{'id'} by end_life time: $row->{'end_life'}",$row->{'id'});
                         my $u_count=get_count_records($hdb,'user_auth','deleted=0 and user_id='.$row->{user_id});
                         if (!$u_count) { delete_user($hdb,$row->{'user_id'}); }
                         }

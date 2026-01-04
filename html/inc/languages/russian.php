@@ -34,7 +34,7 @@ define("WEB_msg_login","Вход");
 define("WEB_msg_username","Имя пользователя");
 define("WEB_msg_password","Пароль");
 define("WEB_msg_fullname","ФИО");
-define("WEB_msg_comment","Комментарий");
+define("WEB_msg_description","Комментарий");
 define("WEB_msg_now","Сейчас");
 define("WEB_msg_forbidden","Запрещено");
 define("WEB_msg_traffic_blocked","Блок по трафику");
@@ -188,7 +188,7 @@ define("WEB_cell_mac","MAC");
 define("WEB_cell_clientid","Client-id");
 define("WEB_cell_host_firmware","Прошивка");
 define("WEB_cell_sn","SN");
-define("WEB_cell_comment","Комментарий");
+define("WEB_cell_description","Комментарий");
 define("WEB_cell_wikiname","Wiki Name");
 define("WEB_cell_filter","Фильтр");
 define("WEB_cell_proxy","Proxy");
@@ -232,7 +232,7 @@ define("WEB_cell_poe_in","Питается по POE");
 define("WEB_cell_poe_out","POE");
 define("WEB_cell_dynamic","Динамическая");
 define("WEB_cell_temporary","Временная запись");
-define("WEB_cell_eof","Дата ликвидация");
+define("WEB_cell_end_life","Дата ликвидация");
 define("WEB_cell_life_hours","Часов жизни");
 
 /* lists name */

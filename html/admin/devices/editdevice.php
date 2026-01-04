@@ -56,8 +56,8 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     if (isset($_POST["f_devtype_id"])) {
         $new['device_type'] = $_POST["f_devtype_id"] * 1;
     }
-    if (isset($_POST["f_comment"])) {
-        $new['comment'] = $_POST["f_comment"];
+    if (isset($_POST["f_description"])) {
+        $new['description'] = $_POST["f_description"];
     }
     if (isset($_POST["f_SN"])) {
         $new['SN'] = $_POST["f_SN"];
@@ -225,12 +225,12 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             print "<td class='data' ><input type='text' name='f_firmware' value='" . $device['firmware'] . "'></td>\n";
             print "<td class='data' ><input type='text' name='f_SN' value='" . $device['SN'] . "'></td>\n";
             print "</tr>\n";
-            print "<tr><td colspan=2>" . WEB_location_name . "</td><td colspan=2>" . WEB_cell_comment . "</td>";
+            print "<tr><td colspan=2>" . WEB_location_name . "</td><td colspan=2>" . WEB_cell_description . "</td>";
             print "</tr><tr>";
             print "<td class='data'>";
             print_building_select($db_link, 'f_building_id', $device['building_id']);
             print "</td>\n";
-            print "<td class='data' colspan=3><input type='text' size=50 name='f_comment' value='" . $device['comment'] . "'></td>\n";
+            print "<td class='data' colspan=3><input type='text' size=50 name='f_description' value='" . $device['description'] . "'></td>\n";
             print "</tr>";
 
             //print gateway settings

@@ -27,11 +27,11 @@ if (isset($_POST['save'])) {
                 continue;
             }
             $value = $_POST['f_building_name'][$j];
-            $value_comment = $_POST['f_building_comment'][$j];
+            $value_description = $_POST['f_building_description'][$j];
             if (isset($value)) {
                 $new['name'] = $value;
-                $new['comment'] = $value_comment;
-                LOG_INFO($db_link,"Change building id='{$save_id}': name=".$value." comment=".$value_comment);
+                $new['description'] = $value_description;
+                LOG_INFO($db_link,"Change building id='{$save_id}': name=".$value." description=".$value_description);
                 update_record($db_link, "building", "id='{$save_id}'", $new);
             }
         }
@@ -62,7 +62,7 @@ print_control_submenu($page_url);
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b>id</b></td>
 <td><b><?php echo WEB_cell_name; ?></b></td>
-<td><b><?php echo WEB_cell_comment; ?></b></td>
+<td><b><?php echo WEB_cell_description; ?></b></td>
 <td>
 <input type="submit" onclick="return confirm('<?php print WEB_btn_delete; ?>?')" name="remove" value="<?php print WEB_btn_remove; ?>">
 </td>
@@ -74,7 +74,7 @@ foreach ($t_building as $row) {
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
     print "<td class=\"data\"><input type=\"hidden\" name='r_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_building_name[]' value='{$row['name']}'></td>\n";
-    print "<td class=\"data\"><input type=\"text\" name='f_building_comment[]' value='{$row['comment']}'></td>\n";
+    print "<td class=\"data\"><input type=\"text\" name='f_building_description[]' value='{$row['description']}'></td>\n";
     print "<td class=\"data\"><button name='save[]' value='{$row['id']}'>".WEB_btn_save."</button></td>\n";
     print "</tr>\n";
 }

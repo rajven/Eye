@@ -78,7 +78,7 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 <td><?php echo WEB_device_port_name; ?></td>
 <td><?php echo WEB_device_port_snmp_index; ?></td>
 <td><?php echo WEB_device_connected_endpoint; ?></td>
-<td><?php echo WEB_cell_comment; ?></td>
+<td><?php echo WEB_cell_description; ?></td>
 <td><?php echo WEB_device_port_uplink; ?></td>
 <td><?php echo WEB_nagios; ?></td>
 <td><?php echo WEB_cell_skip; ?></td>
@@ -104,7 +104,7 @@ foreach ($ports as $row) {
             print_auth_port($db_link, $row['id'],FALSE);
         }
         print "</td>\n";
-        print "<td class='".$cl."'>" . get_port_comment($db_link, $row['id'],$row['comment']) . "</td>\n";
+        print "<td class='".$cl."'>" . get_port_description($db_link, $row['id'],$row['description']) . "</td>\n";
         print_td_yes($row['uplink'],FALSE,$cl);
         print_td_yes($row['nagios'],FALSE,$cl);
         print_td_yes($row['skip'],FALSE,$cl);

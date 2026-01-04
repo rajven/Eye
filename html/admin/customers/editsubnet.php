@@ -19,7 +19,7 @@ if (isset($_POST['s_save'])) {
         $new['discovery'] = intval_or_zero($_POST['s_discovery']);
         $new['notify'] = intval_or_zero($_POST['s_notify']);
         $new['dhcp_update_hostname'] = intval_or_zero($_POST['s_dhcp_update']);
-        $new['comment'] = trim($_POST['s_comment']);
+        $new['description'] = trim($_POST['s_description']);
 
         // === CIDR / RANGE PROCESSING =============================================================================
 
@@ -128,9 +128,9 @@ $subnet_info = get_record_sql($db_link, $sSQL);
             
             <tr>
                 <td></td>
-                <td><b><?php echo WEB_cell_comment; ?></b></td>
+                <td><b><?php echo WEB_cell_description; ?></b></td>
                 <td colspan="2" class="data">
-                    <input type="text" name="s_comment" value="<?php echo $subnet_info['comment']; ?>">
+                    <input type="text" name="s_description" value="<?php echo $subnet_info['description']; ?>">
                 </td>
             </tr>
             

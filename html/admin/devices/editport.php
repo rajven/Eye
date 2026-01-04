@@ -8,7 +8,7 @@ if (isset($_POST["editport"])) {
     $new['uplink'] = $_POST["f_uplink"] * 1;
     $new['nagios'] = $_POST["f_nagios"] * 1;
     $new['skip'] = $_POST["f_skip"] * 1;
-    $new['comment'] = $_POST["f_comment"];
+    $new['description'] = $_POST["f_description"];
     update_record($db_link, "device_ports", "id='$id'", $new);
 
     $target_id = $_POST["f_target_port"];
@@ -58,8 +58,8 @@ print_editdevice_submenu($page_url, $device_id, $device['device_type'], $user_in
                 print_qa_select('f_skip', $port['skip']); ?>
             </div>
             <div class="field">
-                <?php print "<label for='f_comment'>" . WEB_cell_comment . "</label>";
-                print "<input type=\"text\" name='f_comment' value='" . $port['comment'] . "' size=38>"; ?>
+                <?php print "<label for='f_description'>" . WEB_cell_description . "</label>";
+                print "<input type=\"text\" name='f_description' value='" . $port['description'] . "' size=38>"; ?>
             </div>
             <div class="field">
                 <?php print "<label for='f_target_port'>" . WEB_device_port_uplink_device . "</label>";

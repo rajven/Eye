@@ -72,7 +72,7 @@ print_control_submenu($page_url);
                 <td width=20><input type="checkbox" onClick="checkAll(this.checked);"></td>
                 <td width=150><b><?php print WEB_config_option; ?></b></td>
                 <td width=150><b><?php print WEB_config_value; ?></b></td>
-                <td width=350><b><?php print WEB_msg_comment; ?></b></td>
+                <td width=350><b><?php print WEB_msg_description; ?></b></td>
                 <td class="warn">
                     <input type="submit" onclick="return confirm('<?php print WEB_btn_delete; ?>?')" name="remove" value="<?php print WEB_btn_remove; ?>">
                 </td>
@@ -82,8 +82,8 @@ print_control_submenu($page_url);
             </tr>
 
             <?php
-            $descr_field = "description." . HTML_LANG;
-            $config_sql = "SELECT `config`.`id`,`option_id`,`option_name`,`value`,`type`,`" . $descr_field . "`,`min_value`,`max_value` FROM `config`,`config_options` WHERE `config`.`option_id`=`config_options`.`id` AND `config_options`.`draft`=0 ORDER BY `option_name`";
+            $descr_field = "description_" . HTML_LANG;
+            $config_sql = "SELECT config.id,option_id,option_name,value,option_type," . $descr_field . ",min_value,max_value FROM config,config_options WHERE config.option_id=config_options.id AND config_options.draft=0 ORDER BY option_name";
             $t_config = get_records_sql($db_link, $config_sql);
             foreach ($t_config as $row) {
                 print "<tr align=center>\n";

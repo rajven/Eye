@@ -12,14 +12,14 @@ ON CONFLICT (id) DO UPDATE SET
     description_russian = EXCLUDED.description_russian;
 
 -- Buildings
-INSERT INTO building (id, name, comment)
+INSERT INTO building (id, name, description)
 VALUES (1, 'Earth', 'Somewhere')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
-    comment = EXCLUDED.comment;
+    description = EXCLUDED.description;
 
 -- Configuration options
-INSERT INTO config_options (id, option_name, description_russian, description_english, draft, uniq, type, default_value, min_value, max_value)
+INSERT INTO config_options (id, option_name, description_russian, description_english, draft, uniq, option_type, default_value, min_value, max_value)
 VALUES
 (1, 'KB', 'Еденица измерения трафика - Килобайт (0) или кибибайт (1,default)', 'Traffic measurement unit - Kilobyte (1000b) or kibibyte (1024b,default)', 0, 1, 'bool', '1024', 0, 1),
 (3, 'dns server', 'ip-адрес DNS-сервера', 'DNS server ip address', 0, 1, 'text', '127.0.0.1', 0, 0),
@@ -122,11 +122,11 @@ ON CONFLICT (id) DO UPDATE SET
     value = EXCLUDED.value;
 
 -- System users/administrators
-INSERT INTO customers (id, Login, comment, password, api_key, rights)
+INSERT INTO customers (id, Login, description, password, api_key, rights)
 VALUES (1, 'admin', 'Administrator', '$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG', 'c3284d0f94606de1fd2af172aba15bf31', 1)
 ON CONFLICT (id) DO UPDATE SET
     Login = EXCLUDED.Login,
-    comment = EXCLUDED.comment,
+    description = EXCLUDED.description,
     password = EXCLUDED.password,
     api_key = EXCLUDED.api_key,
     rights = EXCLUDED.rights;
@@ -270,14 +270,14 @@ ON CONFLICT (id) DO UPDATE SET
     name_english = EXCLUDED.name_english;
 
 -- Filter instances
-INSERT INTO filter_instances (id, name, comment)
+INSERT INTO filter_instances (id, name, description)
 VALUES (1, 'default', NULL)
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
-    comment = EXCLUDED.comment;
+    description = EXCLUDED.description;
 
 -- Filter groups
-INSERT INTO group_list (id, instance_id, group_name, comment)
+INSERT INTO group_list (id, instance_id, group_name, description)
 VALUES
 (0, 1, 'default', 'Forbidden all'),
 (1, 1, 'Allow all', 'Allowed all'),
@@ -285,10 +285,10 @@ VALUES
 ON CONFLICT (id) DO UPDATE SET
     instance_id = EXCLUDED.instance_id,
     group_name = EXCLUDED.group_name,
-    comment = EXCLUDED.comment;
+    description = EXCLUDED.description;
 
 -- Organizational Units
-INSERT INTO OU (id, ou_name, comment, default_users, default_hotspot, nagios_dir, nagios_host_use, nagios_ping, nagios_default_service, enabled, filter_group_id, queue_id, dynamic, life_duration, parent_id)
+INSERT INTO OU (id, ou_name, description, default_users, default_hotspot, nagios_dir, nagios_host_use, nagios_ping, nagios_default_service, enabled, filter_group_id, queue_id, dynamic, life_duration, parent_id)
 VALUES
 (0, '!Any', NULL, 0, 0, '/etc/nagios/any', 'generic-host', 1, NULL, 0, 0, 0, 0, 24.00, NULL),
 (1, 'Servers', NULL, 0, 0, NULL, NULL, 1, NULL, 1, 1, 0, 0, 24.00, NULL),
@@ -306,7 +306,7 @@ VALUES
 (13, 'Guests', NULL, 0, 0, NULL, NULL, 1, NULL, 1, 1, 4, 1, 24.00, NULL)
 ON CONFLICT (id) DO UPDATE SET
     ou_name = EXCLUDED.ou_name,
-    comment = EXCLUDED.comment,
+    description = EXCLUDED.description,
     default_users = EXCLUDED.default_users,
     default_hotspot = EXCLUDED.default_hotspot,
     nagios_dir = EXCLUDED.nagios_dir,
@@ -338,7 +338,7 @@ ON CONFLICT (id) DO UPDATE SET
     Upload = EXCLUDED.Upload;
 
 -- Network subnets
-INSERT INTO subnets (id, subnet, vlan_tag, ip_int_start, ip_int_stop, dhcp_start, dhcp_stop, dhcp_lease_time, gateway, office, hotspot, vpn, free, dhcp, static, dhcp_update_hostname, discovery, notify, comment)
+INSERT INTO subnets (id, subnet, vlan_tag, ip_int_start, ip_int_stop, dhcp_start, dhcp_stop, dhcp_lease_time, gateway, office, hotspot, vpn, free, dhcp, static, dhcp_update_hostname, discovery, notify, description)
 VALUES (1, '192.168.2.0/24', 2, 3232236032, 3232236287, 3232236132, 3232236182, 480, 3232236033, 1, 0, 0, 0, 1, 0, 1, 1, 7, 'LAN')
 ON CONFLICT (id) DO UPDATE SET
     subnet = EXCLUDED.subnet,
@@ -358,7 +358,7 @@ ON CONFLICT (id) DO UPDATE SET
     dhcp_update_hostname = EXCLUDED.dhcp_update_hostname,
     discovery = EXCLUDED.discovery,
     notify = EXCLUDED.notify,
-    comment = EXCLUDED.comment;
+    description = EXCLUDED.description;
 
 -- Device vendors
 INSERT INTO vendors (id, name)
@@ -422,7 +422,7 @@ ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name;
 
 -- Filter rules list
-INSERT INTO filter_list (id, name, comment, proto, dst, dstport, srcport, type)
+INSERT INTO filter_list (id, name, description, proto, dst, dstport, srcport, filter_type)
 VALUES
 (1, 'pop3', NULL, 'tcp', '0/0', '110', NULL, 0),
 (3, 'http', NULL, 'tcp', '0/0', '80', NULL, 0),
@@ -458,7 +458,7 @@ VALUES
 (108, 'gre', NULL, 'gre', '0/0', NULL, NULL, 0)
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
-    comment = EXCLUDED.comment,
+    description = EXCLUDED.description,
     proto = EXCLUDED.proto,
     dst = EXCLUDED.dst,
     dstport = EXCLUDED.dstport,
@@ -466,7 +466,7 @@ ON CONFLICT (id) DO UPDATE SET
     type = EXCLUDED.type;
 
 -- Filter group assignments
-INSERT INTO group_filters (id, group_id, filter_id, "order", action)
+INSERT INTO group_filters (id, group_id, filter_id, rule_order, action)
 VALUES
 (1, 2, 90, 1, 1),
 (2, 2, 91, 2, 1),

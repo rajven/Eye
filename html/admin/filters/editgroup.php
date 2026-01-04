@@ -6,7 +6,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 if (isset($_POST["editgroup"])) {
     $new['group_name'] = $_POST["f_group_name"];
     $new['instance_id'] = $_POST["f_instance_id"]*1;
-    $new['comment'] = $_POST["f_group_comment"];
+    $new['description'] = $_POST["f_group_description"];
     update_record($db_link, "group_list", "id='$id'", $new);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -85,8 +85,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
                 <td class='data' align=right><input type="submit" name="editgroup" value="<?php echo WEB_btn_save; ?>"></td>
             </tr>
             <tr>
-                <td><?php echo WEB_cell_comment; ?></td>
-                <td class='data'><input type="text" name="f_group_comment" value="<?php echo $group['comment']; ?>"></td>
+                <td><?php echo WEB_cell_description; ?></td>
+                <td class='data'><input type="text" name="f_group_description" value="<?php echo $group['description']; ?>"></td>
                 <td class='data'></td>
             </tr>
             <tr>
@@ -107,7 +107,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
             </tr>
 
             <?php
-            $sSQL = "SELECT G.id, G.filter_id, F.name, G.order, G.action, F.comment FROM group_filters G, filter_list F WHERE F.id=G.filter_id and group_id=$id Order by G.order";
+            $sSQL = "SELECT G.id, G.filter_id, F.name, G.order, G.action, F.description FROM group_filters G, filter_list F WHERE F.id=G.filter_id and group_id=$id Order by G.order";
             $flist = get_records_sql($db_link, $sSQL);
             foreach ($flist as $row) {
                 print "<tr align=center>\n";
@@ -123,7 +123,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
                 print "<td class=" . $cl . ">";
                 print_action_select('f_action[' . $row['id'] . ']', $row['action']);
                 print "</td>";
-                print "<td colspan=2 class=\"data\" align=left>" . $row['comment'] . "</a></td>\n";
+                print "<td colspan=2 class=\"data\" align=left>" . $row['description'] . "</a></td>\n";
                 print "</tr>";
             }
             ?>

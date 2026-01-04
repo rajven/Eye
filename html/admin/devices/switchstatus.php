@@ -119,7 +119,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
         print "<td>" . WEB_device_port_name . "</td>\n";
         print "<td>" . WEB_device_port_snmp_index . "</td>\n";
         print "<td>" . WEB_device_connected_endpoint . "</td>\n";
-        print "<td>" . WEB_cell_comment . "</td>\n";
+        print "<td>" . WEB_cell_description . "</td>\n";
         print "<td>" . WEB_device_port_uplink . "</td>\n";
         print "<td>" . WEB_nagios . "</td>\n";
         print "<td>" . WEB_cell_skip . "</td>\n";
@@ -190,7 +190,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 print_auth_port($db_link, $row['id'], TRUE);
             }
             print "</td>\n";
-            print "<td class='" . $cl . "' >" . get_port_comment($db_link, $row['id'], $row['comment']) . "</td>\n";
+            print "<td class='" . $cl . "' >" . get_port_description($db_link, $row['id'], $row['description']) . "</td>\n";
             print_td_yes($row['uplink'],FALSE,$cl);
             print_td_yes($row['nagios'],FALSE,$cl);
             print_td_yes($row['skip'],FALSE,$cl);

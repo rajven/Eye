@@ -60,7 +60,7 @@ print "dhcp-option=net:net-$subnet_name,option:router,$dhcp_conf{$subnet_name}->
 }
 
 #get userid list
-my $sSQL="SELECT id,ip,ip_int,mac,comments,dns_name,dhcp_option_set,dhcp_acl,ou_id FROM user_auth where dhcp=1 and deleted=0 ORDER by ip_int";
+my $sSQL="SELECT id,ip,ip_int,mac,description,dns_name,dhcp_option_set,dhcp_acl,ou_id FROM user_auth where dhcp=1 and deleted=0 ORDER by ip_int";
 my @users = get_records_sql($dbh,$sSQL);
 foreach my $row (@users) {
 next if (!$row);
@@ -83,7 +83,7 @@ if (exists $mac_subnets{$subnet}{macs}{$row->{mac}}) {
 
 $mac_subnets{$subnet}{macs}{$row->{mac}} = $row;
 
-print '#Comment:'.$row->{comments}."\n" if ($row->{comments});
+print '#Comment:'.$row->{description}."\n" if ($row->{description});
 my $dns_name = '';
 if ($row->{dns_name}) {
     print '#DNS:'.$row->{dns_name}."\n";
@@ -130,7 +130,7 @@ next if (!$dns_name);
 
 #if (!$row->{dns_ptr_only} and ($dns_name or $row->{dhcp_hostname})) {
 if (!$row->{dns_ptr_only} and $dns_name) {
-    print '#Comment:'.$row->{comments}."\n" if ($row->{comments});
+    print '#Comment:'.$row->{description}."\n" if ($row->{description});
     if ($dns_name) {
         print '#DNS A-record '.$dns_name."\n";
         print 'address=/'.$dns_name.'/'.$row->{ip}."\n";

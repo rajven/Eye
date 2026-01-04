@@ -41,7 +41,7 @@ $gateway_filter='';
 if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) AND"; }
 
 print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-print "<td class=\"data\" colspan=2>".$auth['comments']."</td>\n";
+print "<td class=\"data\" colspan=2>".$auth['description']."</td>\n";
 print "<td class=\"data\" colspan=2><a href=/admin/reports/userdaydetail.php?id=$id&date_start=$date1&date_stop=$date2>TOP 10</a></td>\n";
 print "<td class=\"data\" colspan=2><a href=/admin/reports/userdaydetaillog.php?id=$id&date_start=$date1&date_stop=$date2>".WEB_report_detail."</a></td>\n";
 print "</tr>\n";
@@ -53,14 +53,14 @@ if ($days_shift >1 and $days_shift <=30) { $display_date_format='%Y-%m-%d'; }
 if ($days_shift >30 and $days_shift <=730) { $display_date_format='%Y-%m'; }
 if ($days_shift >730) { $display_date_format='%Y'; }
 
-$sSQL = "SELECT router_id, DATE_FORMAT(`timestamp`,'$display_date_format') as tHour, 
-         SUM(`byte_in`) as byte_in_sum, SUM(`byte_out`) as byte_out_sum,
-         MAX(ROUND(`pkt_in`/`step`)) as pkt_in_max, MAX(ROUND(`pkt_out`/`step`)) as pkt_out_max
-         FROM user_stats_full WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' AND auth_id=$id";
+$sSQL = "SELECT router_id, DATE_FORMAT(timestamp,'$display_date_format') as tHour, 
+         SUM(byte_in) as byte_in_sum, SUM(byte_out) as byte_out_sum,
+         MAX(ROUND(pkt_in/step)) as pkt_in_max, MAX(ROUND(pkt_out/step)) as pkt_out_max
+         FROM user_stats_full WHERE timestamp>='$date1' AND timestamp<'$date2' AND auth_id=$id";
 if ($rgateway == 0) {
-    $sSQL = $sSQL . " GROUP BY DATE_FORMAT(`timestamp`,'$display_date_format'),router_id ORDER BY tHour,router_id";
+    $sSQL = $sSQL . " GROUP BY DATE_FORMAT(timestamp,'$display_date_format'),router_id ORDER BY tHour,router_id";
 } else {
-    $sSQL = $sSQL . " AND router_id=$rgateway GROUP BY DATE_FORMAT(`timestamp`,'$display_date_format'),router_id ORDER BY tHour";
+    $sSQL = $sSQL . " AND router_id=$rgateway GROUP BY DATE_FORMAT(timestamp,'$display_date_format'),router_id ORDER BY tHour";
 }
 
 $userdata = get_records_sql($db_link, $sSQL);

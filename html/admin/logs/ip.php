@@ -31,7 +31,7 @@ if (!empty($f_ip)) {
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM user_auth WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $ip_where";
+$countSQL="SELECT Count(*) FROM user_auth WHERE timestamp>='$date1' AND timestamp<'$date2' $ip_where";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -53,7 +53,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 
 <?php
 
-$sSQL = "SELECT * FROM user_auth WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $ip_where ORDER BY id DESC LIMIT $start,$displayed";
+$sSQL = "SELECT * FROM user_auth WHERE timestamp>='$date1' AND timestamp<'$date2' $ip_where ORDER BY id DESC LIMIT $start,$displayed";
 
 $iplog = get_records_sql($db_link, $sSQL);
 foreach ($iplog as $row) {

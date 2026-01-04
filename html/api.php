@@ -37,10 +37,10 @@ if (!empty($action)) {
           $sql='';
           LOG_VERBOSE($db_link,"API: Get User Auth record with ip: $ip mac: $mac id: $rec_id");
           if (!empty($mac) and !empty($ip_aton)) { 
-                $sql="SELECT * FROM user_auth WHERE `ip_int`=".$ip_aton." AND `mac`='".$mac."' AND deleted=0"; 
+                $sql="SELECT * FROM user_auth WHERE ip_int=".$ip_aton." AND mac='".$mac."' AND deleted=0"; 
               } else {
-              if (!empty($ip_aton)) { $sql = "SELECT * FROM user_auth WHERE `ip_int`=".$ip_aton." AND deleted=0"; }
-              if (!empty($mac)) { $sql="SELECT * FROM user_auth WHERE `mac`='".$mac."' AND deleted=0"; }
+              if (!empty($ip_aton)) { $sql = "SELECT * FROM user_auth WHERE ip_int=".$ip_aton." AND deleted=0"; }
+              if (!empty($mac)) { $sql="SELECT * FROM user_auth WHERE mac='".$mac."' AND deleted=0"; }
               }
           if (!empty($rec_id)) { $sql="SELECT * FROM user_auth WHERE id=".$rec_id; }
           if (!empty($sql)) {
@@ -100,7 +100,7 @@ if (!empty($action)) {
       if ($action ==='get_dhcp_all') {
             $result=[];
             LOG_VERBOSE($db_link,"API: Get all dhcp records");
-            $sql = "SELECT ua.id, ua.ip, ua.ip_int, ua.mac, ua.comments, ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id, SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
+            $sql = "SELECT ua.id, ua.ip, ua.ip_int, ua.mac, ua.description, ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id, SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
                 FROM  user_auth ua JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
                 WHERE ua.dhcp = 1 AND ua.deleted = 0 AND s.dhcp = 1 ORDER BY ua.ip_int";
             $result = get_records_sql($db_link, $sql);
@@ -126,7 +126,7 @@ if (!empty($action)) {
             $result=[];
             $f_subnet = trim($f_subnet, "'");
             LOG_VERBOSE($db_link,"API: Get dhcp records for subnet ".$f_subnet);
-            $sql = "SELECT ua.id, ua.ip, ua.ip_int, ua.mac, ua.comments, ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id, SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
+            $sql = "SELECT ua.id, ua.ip, ua.ip_int, ua.mac, ua.description, ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id, SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
                 FROM  user_auth ua JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
                 WHERE ua.dhcp = 1 AND ua.deleted = 0 AND s.dhcp = 1 AND SUBSTRING_INDEX(s.subnet, '/', 1) = '".$f_subnet."' ORDER BY ua.ip_int";
             $result = get_records_sql($db_link, $sql);

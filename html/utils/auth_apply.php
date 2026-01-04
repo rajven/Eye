@@ -67,8 +67,8 @@ if (isset($_POST["ApplyForAll"])) {
         if ($val) {
             unset($auth);
             //check user state
-            $cur_auth = get_record_sql($db_link, "SELECT * FROM user_auth WHERE `id`=" . $val);
-            if (!empty($cur_auth)) { $user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE `id`=" . $cur_auth["user_id"]); }
+            $cur_auth = get_record_sql($db_link, "SELECT * FROM user_auth WHERE id=" . $val);
+            if (!empty($cur_auth)) { $user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $cur_auth["user_id"]); }
 
 
             if (isset($_POST["e_enabled"])) {

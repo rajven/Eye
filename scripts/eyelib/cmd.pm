@@ -733,7 +733,7 @@ exit";
 if ($device->{vendor_id} eq '9') {
     $telnet_cmd_mode = 4;
     if (!$descr) { $descr='""'; } else { $descr='"'.$descr.'"'; }
-    $cmd = "/interface ethernet set [ find default-name=$port ] comment=".$descr;
+    $cmd = "/interface ethernet set [ find default-name=$port ] description=".$descr;
     }
 
 #cisco

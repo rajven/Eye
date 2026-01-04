@@ -27,7 +27,7 @@ print_log_submenu($page_url);
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM mac_history WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $mac_where ORDER BY id DESC";
+$countSQL="SELECT Count(*) FROM mac_history WHERE timestamp>='$date1' AND timestamp<'$date2' $mac_where ORDER BY id DESC";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -46,7 +46,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 
 <?php
 
-$sSQL = "SELECT * FROM mac_history WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $mac_where ORDER BY `timestamp` DESC LIMIT $start,$displayed";
+$sSQL = "SELECT * FROM mac_history WHERE timestamp>='$date1' AND timestamp<'$date2' $mac_where ORDER BY timestamp DESC LIMIT $start,$displayed";
 $maclog = get_records_sql($db_link, $sSQL);
 
 foreach ($maclog as $row) {

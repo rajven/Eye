@@ -56,7 +56,7 @@ print_log_submenu($page_url);
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM dhcp_log WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $dhcp_where";
+$countSQL="SELECT Count(*) FROM dhcp_log WHERE timestamp>='$date1' AND timestamp<'$date2' $dhcp_where";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -77,7 +77,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <?php
 
 #speedup dhcp log paging
-$sSQL = "SELECT * FROM dhcp_log as D JOIN (SELECT id FROM dhcp_log WHERE `timestamp`>='$date1' and `timestamp`<'$date2' $dhcp_where ORDER BY `id` DESC LIMIT $start,$displayed) AS I ON D.id = I.id";
+$sSQL = "SELECT * FROM dhcp_log as D JOIN (SELECT id FROM dhcp_log WHERE timestamp>='$date1' and timestamp<'$date2' $dhcp_where ORDER BY id DESC LIMIT $start,$displayed) AS I ON D.id = I.id";
 $userlog = get_records_sql($db_link, $sSQL);
 
 foreach ($userlog as $row) {

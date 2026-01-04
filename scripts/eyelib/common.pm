@@ -127,7 +127,7 @@ my $id = shift;
 my $record = get_record_sql($db,'SELECT * FROM user_auth WHERE id='.$id);
 my $auth_ident = $record->{ip};
 $auth_ident = $auth_ident . '['.$record->{dns_name} .']' if ($record->{dns_name});
-$auth_ident = $auth_ident . ' :: '.$record->{comments} if ($record->{dns_name});
+$auth_ident = $auth_ident . ' :: '.$record->{description} if ($record->{dns_name});
 my $msg = "";
 my $txt_record = hash_to_text($record);
 #remove aliases
@@ -175,7 +175,7 @@ if (@user_auth and scalar @user_auth) {
         $send_alert = ($send_alert or isNotifyUpdate(get_notify_subnet($db,$record->{ip})));
         my $auth_ident = $record->{ip};
         $auth_ident = $auth_ident . '['.$record->{dns_name} .']' if ($record->{dns_name});
-        $auth_ident = $auth_ident . ' :: '.$record->{comments} if ($record->{dns_name});
+        $auth_ident = $auth_ident . ' :: '.$record->{description} if ($record->{dns_name});
         my $new;
         $new->{'blocked'}=0;
         $new->{'changed'}=1;
@@ -297,14 +297,14 @@ if ($hotspot_users->match_string($ip)) { $result->{ou_id}=$hotspot_users->match_
 if (defined $ip and $ip) {
     my $users = new Net::Patricia;
     #check ip rules
-    my @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND user_id IS NOT NULL');
+    my @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE rule_type=1 and LENGTH(rule)>0 AND user_id IS NOT NULL');
     foreach my $row (@ip_rules) { eval { $users->add_string($row->{rule},$row->{user_id}); }; }
     if ($users->match_string($ip)) { $result->{user_id}=$users->match_string($ip); return $result; }
     }
 
 #check mac
 if (defined $mac and $mac) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0 AND user_id IS NOT NULL');
+    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE rule_type=2 AND LENGTH(rule)>0 AND user_id IS NOT NULL');
     foreach my $user (@user_rules) {
 	my $rule = mac_simplify($user->{rule});
         if ($mac=~/$rule/i) { $result->{user_id}=$user->{user_id}; return $result; }
@@ -312,7 +312,7 @@ if (defined $mac and $mac) {
     }
 #check hostname
 if (defined $hostname and $hostname) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0 AND user_id IS NOT NULL');
+    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE rule_type=3 AND LENGTH(rule)>0 AND user_id IS NOT NULL');
     foreach my $user (@user_rules) {
         if ($hostname=~/$user->{rule}/i) { $result->{user_id}=$user->{user_id}; return $result; }
         }
@@ -324,14 +324,14 @@ if (defined $hostname and $hostname) {
 if (defined $ip and $ip) {
     my $users = new Net::Patricia;
     #check ip rules
-    my @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND ou_id IS NOT NULL');
+    my @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE rule_type=1 and LENGTH(rule)>0 AND ou_id IS NOT NULL');
     foreach my $row (@ip_rules) { eval { $users->add_string($row->{rule},$row->{ou_id}); }; }
     if ($users->match_string($ip)) { $result->{ou_id}=$users->match_string($ip); return $result; }
     }
 
 #check mac
 if (defined $mac and $mac) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0 AND ou_id IS NOT NULL');
+    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE rule_type=2 AND LENGTH(rule)>0 AND ou_id IS NOT NULL');
     foreach my $user (@user_rules) {
 	my $rule = mac_simplify($user->{rule});
         if ($mac=~/$rule/i) { $result->{ou_id}=$user->{ou_id}; return $result; }
@@ -340,7 +340,7 @@ if (defined $mac and $mac) {
 
 #check hostname
 if (defined $hostname and $hostname) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0 AND ou_id IS NOT NULL');
+    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE rule_type=3 AND LENGTH(rule)>0 AND ou_id IS NOT NULL');
     foreach my $user (@user_rules) {
         if ($hostname=~/$user->{rule}/i) { $result->{ou_id}=$user->{ou_id}; return $result; }
         }
@@ -418,11 +418,11 @@ if ($dns_cmd->{name_type}=~/^cname$/i) {
     $fqdn_parent = $fqdn_parent.".".$ad_zone;
 
     #remove cname
-    if ($dns_cmd->{type} eq 'del') {
+    if ($dns_cmd->{operation_type} eq 'del') {
         delete_dns_cname($fqdn_parent,$fqdn,$ad_zone,$ad_dns,$hdb);
         }
     #create cname
-    if ($dns_cmd->{type} eq 'add') {
+    if ($dns_cmd->{operation_type} eq 'add') {
         create_dns_cname($fqdn_parent,$fqdn,$ad_zone,$ad_dns,$hdb);
         }
     }
@@ -445,7 +445,7 @@ if ($dns_cmd->{name_type}=~/^a$/i) {
     #get aliases
     my @aliases = get_records_sql($hdb,"SELECT * FROM user_auth_alias WHERE auth_id=".$auth_id);
     #remove A & PTR
-    if ($dns_cmd->{type} eq 'del') {
+    if ($dns_cmd->{operation_type} eq 'del') {
         #remove aliases
         if (@aliases and scalar @aliases) {
                 foreach my $alias (@aliases) {
@@ -458,7 +458,7 @@ if ($dns_cmd->{name_type}=~/^a$/i) {
         delete_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
         }
     #create A & PTR
-    if ($dns_cmd->{type} eq 'add') {
+    if ($dns_cmd->{operation_type} eq 'add') {
         my @dns_record=ResolveNames($fqdn,$dns_server);
         $static_exists = (scalar @dns_record>0);
         if ($static_exists) {
@@ -501,12 +501,12 @@ if ($dns_cmd->{name_type}=~/^ptr$/i) {
         next;
         }
     #remove A & PTR
-    if ($dns_cmd->{type} eq 'del') {
+    if ($dns_cmd->{operation_type} eq 'del') {
         #remove main record
         delete_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
         }
     #create A & PTR
-    if ($dns_cmd->{type} eq 'add') {
+    if ($dns_cmd->{operation_type} eq 'add') {
         #create record
         create_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
         }
@@ -1035,7 +1035,7 @@ my $result = insert_record($db,"user_list",$user);
 if ($result and $config_ref{auto_mac_rule} and $user_info->{mac}) {
     my $auth_rule;
     $auth_rule->{user_id} = $result;
-    $auth_rule->{type} = 2;
+    $auth_rule->{rule_type} = 2;
     $auth_rule->{rule} = mac_splitted($user_info->{mac});
     insert_record($db,"auth_rules",$auth_rule);
     }
@@ -1085,7 +1085,7 @@ my $ip = $ip_record->{'ip'};
 my $mac = $ip_record->{'mac'};
 my $action = $ip_record->{'type'};
 my $hostname = $ip_record->{'hostname_utf8'};
-my $client_id = $ip_record->{client_id};
+my $client_id = $ip_record->{'client_id'};
 
 if (!exists $ip_record->{ip_aton}) { $ip_record->{ip_aton}=StrToIp($ip); }
 if (!exists $ip_record->{hotspot}) { $ip_record->{hotspot}=is_hotspot($db,$ip); }
@@ -1104,7 +1104,7 @@ my $new_record;
 $new_record->{last_found}=$timestamp;
 $new_record->{arp_found}=$timestamp;
 
-if ($client_id) { $new_record->{client_id} = $client_id; }
+if ($client_id) { $new_record->{'client_id'} = $client_id; }
 
 #auth found?
 if ($record->{user_id}) {
@@ -1237,12 +1237,12 @@ if ($cur_auth_id) {
                     my $minutes = ($ou_info->{'life_duration'} - $hours) * 60;  # Дробная часть → минуты
                     # Создаём продолжительность с учётом дробных часов (в виде часов + минут)
                     my $duration = DateTime::Duration->new( hours   => $hours, minutes => $minutes);
-                    my $eof = $now + $duration;
+                    my $end_life = $now + $duration;
                     $new_record->{'dynamic'} = 1;
-                    $new_record->{'eof'} = $eof->strftime('%Y-%m-%d %H:%M:%S');
+                    $new_record->{'end_life'} = $end_life->strftime('%Y-%m-%d %H:%M:%S');
 		    }
 	    $new_record->{ou_id}=$user_record->{ou_id};
-	    $new_record->{comments}=$user_record->{fio};
+	    $new_record->{description}=$user_record->{fio};
 	    $new_record->{filter_group_id}=$user_record->{filter_group_id};
 	    $new_record->{queue_id}=$user_record->{queue_id};
 	    $new_record->{enabled}="$user_record->{enabled}";
@@ -1287,7 +1287,7 @@ $new_record->{ou_id}=$user_record->{ou_id};
 $new_record->{filter_group_id}=$user_record->{filter_group_id};
 $new_record->{queue_id}=$user_record->{queue_id};
 $new_record->{enabled}="$user_record->{enabled}";
-if ($user_record->{fio}) { $new_record->{comments}=$user_record->{fio}; }
+if ($user_record->{fio}) { $new_record->{description}=$user_record->{fio}; }
 
 my $cur_auth_id=insert_record($db,'user_auth',$new_record);
 if ($cur_auth_id) {
@@ -1511,11 +1511,11 @@ $dhcp_record->{'hostname'}=$client_hostname;
 $dhcp_record->{'network'}=$auth_network;
 $dhcp_record->{'type'}=$type;
 $dhcp_record->{'hostname_utf8'}=$client_hostname;
-$dhcp_record->{'timestamp'} = $timestamp;
+$dhcp_record->{'ts'} = $timestamp;
 $dhcp_record->{'last_time'} = time();
-$dhcp_record->{circuit_id} = $circuit_id;
-$dhcp_record->{client_id} = $client_id;
-$dhcp_record->{remote_id} = $remote_id;
+$dhcp_record->{'circuit_id'} = $circuit_id;
+$dhcp_record->{'client_id'} = $client_id;
+$dhcp_record->{'remote_id'} = $remote_id;
 $dhcp_record->{'hotspot'}=is_hotspot($dbh,$dhcp_record->{ip});
 
 #search actual record
@@ -1603,10 +1603,10 @@ $dhcp_log->{'ip_int'} = $dhcp_record->{'ip_aton'};
 $dhcp_log->{'mac'} = $dhcp_record->{'mac'};
 $dhcp_log->{'action'} = $type;
 $dhcp_log->{'dhcp_hostname'} = $dhcp_record->{'hostname_utf8'};
-$dhcp_log->{'timestamp'} = $dhcp_event_time;
-$dhcp_log->{circuit_id} = $circuit_id;
-$dhcp_log->{client_id} = $client_id;
-$dhcp_log->{remote_id} = $remote_id;
+$dhcp_log->{'ts'} = $dhcp_event_time;
+$dhcp_log->{'circuit_id'} = $circuit_id;
+$dhcp_log->{'client_id'} = $client_id;
+$dhcp_log->{'remote_id'} = $remote_id;
 
 insert_record($db,'dhcp_log',$dhcp_log);
 

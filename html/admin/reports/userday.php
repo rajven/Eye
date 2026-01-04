@@ -37,7 +37,7 @@ $gateway_list = get_gateways($db_link);
 $gateway_filter='';
 if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(user_stats.router_id=$rgateway) AND"; }
 
-$sSQL = "SELECT id,ip,comments FROM user_auth WHERE (user_auth.user_id=$id) Order by IP";
+$sSQL = "SELECT id,ip,description FROM user_auth WHERE (user_auth.user_id=$id) Order by IP";
 $usersip = get_records_sql($db_link, $sSQL);
 
 $ipcount = 0;
@@ -47,7 +47,7 @@ $itog_out = 0;
 foreach ($usersip as $row) {
     $fid = $row["id"];
     $fip = $row["ip"];
-    $fcomm = $row["comments"];
+    $fcomm = $row["description"];
 
     $sSQL = "SELECT SUM(byte_in)+SUM(byte_out) as t_sum FROM user_stats 
     WHERE $gateway_filter user_stats.timestamp>='$date1' AND user_stats.timestamp<'$date2'AND auth_id=$fid";

@@ -45,7 +45,7 @@ next if (!$row);
 my $new_user=get_new_user_id($dbh,$row->{'ip'},$row->{'mac'});
 if ($new_user->{ou_id} ne $group_id) { next; }
 if ($new_user->{ou_id} ne $row->{ou_id}) {
-    print "MOVED: $row->{ip} $row->{mac} $row->{comments} to $new_user->{ou_id}\n";
+    print "MOVED: $row->{ip} $row->{mac} $row->{description} to $new_user->{ou_id}\n";
     my $auth->{ou_id}=$new_user->{ou_id};
     update_record($dbh,"user_auth",$auth,"id=".$row->{id});
     my $user->{ou_id}=$new_user->{ou_id};

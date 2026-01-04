@@ -68,14 +68,14 @@ foreach my $scope (keys %dhcp_scope) {
         next if ($row!~/Add reservedip/i);
         $row=~s/\"//g;
         $row = $converter->convert($row);
-        my ($a1,$a2,$a3,$a4,$a5,$a6,$a7,$reserved_ip,$reserved_mac,$hostname,$comment,$dhcp_type)=split(/ /,$row);
+        my ($a1,$a2,$a3,$a4,$a5,$a6,$a7,$reserved_ip,$reserved_mac,$hostname,$description,$dhcp_type)=split(/ /,$row);
         if (length($reserved_mac)>12) {
             $dhcp_state_current{$scope}{$reserved_ip}{clientid}=$reserved_mac;
             } else {
             $dhcp_state_current{$scope}{$reserved_ip}{mac}=mac_simplify($reserved_mac);
             }
         $dhcp_state_current{$scope}{$reserved_ip}{hostname}=$hostname;
-        $dhcp_state_current{$scope}{$reserved_ip}{comment}=$comment;
+        $dhcp_state_current{$scope}{$reserved_ip}{description}=$description;
         }
     $run_cmd=$winexe." -U '".$domain_auth."' '//".$dhcp_server."' \"netsh Dhcp Server Scope ".$scope." show clients\" 2>/dev/null";
     @scope_dump=`$run_cmd`;

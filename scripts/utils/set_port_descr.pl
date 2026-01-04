@@ -29,7 +29,7 @@ use Fcntl qw(:flock);
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
-my @auth_list = get_records_sql($dbh,"SELECT A.id,A.user_id,A.ip,A.mac,A.dns_name,A.comments,A.dhcp_hostname,A.WikiName,K.login,K.ou_id FROM user_auth as A, user_list as K WHERE K.id=A.user_id AND A.deleted=0 ORDER BY A.id");
+my @auth_list = get_records_sql($dbh,"SELECT A.id,A.user_id,A.ip,A.mac,A.dns_name,A.description,A.dhcp_hostname,A.WikiName,K.login,K.ou_id FROM user_auth as A, user_list as K WHERE K.id=A.user_id AND A.deleted=0 ORDER BY A.id");
 
 my %auth_ref;
 foreach my $auth (@auth_list) {
@@ -38,7 +38,7 @@ $auth_ref{$auth->{id}}{ou_id}=$auth->{ou_id};
 $auth_ref{$auth->{id}}{ip}=$auth->{ip};
 $auth_ref{$auth->{id}}{mac}=$auth->{mac};
 $auth_ref{$auth->{id}}{dns_name}=$auth->{dns_name};
-$auth_ref{$auth->{id}}{comments}=$auth->{comments};
+$auth_ref{$auth->{id}}{description}=$auth->{description};
 $auth_ref{$auth->{id}}{dhcp_hostname}=$auth->{dhcp_hostname};
 $auth_ref{$auth->{id}}{WikiName}=$auth->{WikiName};
 $auth_ref{$auth->{id}}{login}=$auth->{login};
@@ -46,7 +46,7 @@ my $a_netdev = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id = ".$aut
 $auth_ref{$auth->{id}}{device}=$a_netdev;
 if ($auth->{dns_name}) { $auth_ref{$auth->{id}}{description} = $auth->{dns_name}; }
 if (!$auth_ref{$auth->{id}}{description} and $auth->{WikiName}) { $auth_ref{$auth->{id}}{description} = $auth->{WikiName}; }
-if (!$auth_ref{$auth->{id}}{description} and $auth->{comments}) { $auth_ref{$auth->{id}}{description} = translit($auth->{comments}); }
+if (!$auth_ref{$auth->{id}}{description} and $auth->{description}) { $auth_ref{$auth->{id}}{description} = translit($auth->{description}); }
 if (!$auth_ref{$auth->{id}}{description}) { $auth_ref{$auth->{id}}{description} = $auth->{ip}; }
 $auth_ref{$auth->{id}}{description}=~s/\./-/g;
 $auth_ref{$auth->{id}}{description}=~s/\(/_/g;
@@ -55,7 +55,7 @@ $auth_ref{$auth->{id}}{description}=~s/\)/_/g;
 
 my %port_info;
 
-my $d_sql="SELECT DP.id, D.ip, D.device_name, D.device_model_id, DP.port, DP.snmp_index, DP.comment, DP.target_port_id, D.vendor_id, D.device_type
+my $d_sql="SELECT DP.id, D.ip, D.device_name, D.device_model_id, DP.port, DP.snmp_index, DP.description, DP.target_port_id, D.vendor_id, D.device_type
 FROM devices AS D, device_ports AS DP
 WHERE D.id = DP.device_id AND (D.device_type <=1) AND D.deleted=0
 ORDER BY D.device_name,DP.port";
@@ -69,7 +69,7 @@ $port_info{$port->{id}}{ip}=$port->{ip};
 $port_info{$port->{id}}{device_model_id}=$port->{device_model_id};
 $port_info{$port->{id}}{port}=$port->{port};
 $port_info{$port->{id}}{snmp_index}=$port->{snmp_index};
-$port_info{$port->{id}}{comment}=$port->{comment};
+$port_info{$port->{id}}{description}=$port->{description};
 $port_info{$port->{id}}{target_port_id}=$port->{target_port_id};
 $port_info{$port->{id}}{vendor_id}=$port->{vendor_id};
 $port_info{$port->{id}}{device_type}=$port->{device_type};
@@ -116,7 +116,7 @@ foreach my $port_id (keys %port_info) {
 if ($port_info{$port_id}{target_port_id}) {
     $port_info{$port_id}{description}=$port_info{$port_info{$port_id}{target_port_id}}{device_name}." [".$port_info{$port_info{$port_id}{target_port_id}}{port}.']';
     }
-if (!$port_info{$port_id}{description} and $port_info{$port_id}{comment}) { $port_info{$port_id}{description}=translit($port_info{$port_id}{comment}); }
+if (!$port_info{$port_id}{description} and $port_info{$port_id}{description}) { $port_info{$port_id}{description}=translit($port_info{$port_id}{description}); }
 $devices{$port_info{$port_id}{device_name}}{ports}{$port_info{$port_id}{port}}{description}=$port_info{$port_id}{description};
 $devices{$port_info{$port_id}{device_name}}{ports}{$port_info{$port_id}{port}}{snmp_index}=$port_info{$port_id}{snmp_index};
 $devices{$port_info{$port_id}{device_name}}{device_name}=$port_info{$port_id}{device_name};

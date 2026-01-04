@@ -85,7 +85,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
-		<td align=Center><?php print WEB_cell_comment; ?></td>
+		<td align=Center><?php print WEB_cell_description; ?></td>
 		<td align=Center><?php print WEB_cell_wikiname; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=nagios&order=$new_order>" . WEB_cell_nagios; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=link_check&order=$new_order>" . WEB_cell_link; ?></td>
@@ -118,9 +118,9 @@ foreach ($users as $user) {
     print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
     if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
-        print "<td class=\"$cl\" width=200>".$user['comments']." [" . $user['dhcp_hostname'] . "]</td>\n";
+        print "<td class=\"$cl\" width=200>".$user['description']." [" . $user['dhcp_hostname'] . "]</td>\n";
     } else {
-        print "<td class=\"$cl\" width=200>".$user['comments']."</td>\n";
+        print "<td class=\"$cl\" width=200>".$user['description']."</td>\n";
     }
     if (!empty($user['WikiName'])) {
         $wiki_url = rtrim(get_option($db_link, 60),'/');

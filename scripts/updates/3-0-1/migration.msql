@@ -25,6 +25,10 @@ ALTER TABLE group_filters
 ALTER TABLE user_auth
   CHANGE COLUMN `client-id` client_id VARCHAR(250);
 
+-- Переименовываем eof → end_life в user_auth
+ALTER TABLE user_auth
+  CHANGE COLUMN `eof` end_life TIMESTAMP NULL DEFAULT NULL;
+
 ALTER TABLE dhcp_log
   CHANGE COLUMN `client-id` client_id VARCHAR(250),
   CHANGE COLUMN `circuit-id` circuit_id VARCHAR(255),
@@ -72,7 +76,15 @@ ALTER TABLE vendors         CHANGE COLUMN `comment` description VARCHAR(255);
 -- ⚠️ user_auth.comments → description
 ALTER TABLE user_auth       CHANGE COLUMN `comments` description VARCHAR(250);
 
+-- Добавляем поле mac_found в user_auth (аналог arp_found)
+ALTER TABLE user_auth
+  ADD COLUMN mac_found TIMESTAMP NULL DEFAULT NULL;
+
 -- type → уточнённые имена
 ALTER TABLE config_options  CHANGE COLUMN `type` option_type VARCHAR(100) NOT NULL;
 ALTER TABLE dns_queue       CHANGE COLUMN `type` operation_type VARCHAR(10) NOT NULL DEFAULT 'add';
 ALTER TABLE filter_list     CHANGE COLUMN `type` filter_type SMALLINT NOT NULL DEFAULT 0;
+
+UPDATE user_auth
+SET mac_found = last_found
+WHERE last_found IS NOT NULL;

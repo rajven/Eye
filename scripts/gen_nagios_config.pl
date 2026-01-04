@@ -71,7 +71,7 @@ if (scalar(@netdev_list)>0) {
 	setCommunity($router);
 	$devices{$device_id}{snmp} = $router->{snmp};
 
-        $devices{$device_id}{description}=translit($router->{'comment'});
+        $devices{$device_id}{description}=translit($router->{'description'});
         $devices{$device_id}{name} = $router->{'device_name'};
         $devices{$device_id}{device_model_id} = $router->{'device_model_id'};
         if ($router->{'device_model_id'}) { $devices{$device_id}{device_model} = $models{$router->{'device_model_id'}};  }
@@ -127,7 +127,7 @@ if (scalar(@netdev_list)>0) {
 	#custom ports
         my @custom_ports = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id=".$devices{$device_id}{device_id}." and target_port_id=0 and uplink=0 and nagios=1");
         foreach my $downlink_port (@custom_ports) {
-            #id,port,snmp_index,comment
+            #id,port,snmp_index,description
 	    push(@{$devices{$device_id}{downlinks}},$downlink_port);
     	    }
         }
@@ -185,7 +185,7 @@ if (scalar(@auth_list)>0) {
     		$devices{$device_id}{name} = "auth_id_".$auth->{id};
     		}
     	    }
-        $devices{$device_id}{description}=translit($auth->{'comments'}) || $devices{$device_id}{name};
+        $devices{$device_id}{description}=translit($auth->{'description'}) || $devices{$device_id}{name};
         $devices{$device_id}{auth_id} = $auth->{'id'};
         $devices{$device_id}{nagios_handler} = $auth->{'nagios_handler'};
         $devices{$device_id}{link_check} = $auth->{'link_check'};

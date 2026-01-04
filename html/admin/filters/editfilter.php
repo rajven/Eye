@@ -9,7 +9,7 @@ if (isset($_POST["editfilter"])) {
     $new['proto'] = $_POST["f_proto"];
     $new['dstport'] = str_replace(':', '-', $_POST["f_dstport"]);
     $new['srcport'] = str_replace(':', '-', $_POST["f_srcport"]);
-    $new['comment'] = $_POST["f_comment"];
+    $new['description'] = $_POST["f_description"];
     update_record($db_link, "filter_list", "id='$id'", $new);
     unset($_POST);
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -34,11 +34,11 @@ print "<input type=hidden name=id value=$id>";
 if (isset($filter['type']) and $filter['type'] == 0) {
     print "<table class=\"data\" cellspacing=\"0\" cellpadding=\"4\">";
     print "<tr><td><b>".WEB_cell_forename."</b></td>";
-    print "<td colspan=2><b>".WEB_cell_comment."</b></td>";
+    print "<td colspan=2><b>".WEB_cell_description."</b></td>";
     print "</tr>";
     print "<tr>";
     print "<td align=left><input type=text name=f_name value='".$filter['name']."'></td>";
-    print "<td colspan=2><input type=text name=f_comment value='".$filter['comment']."'></td>";
+    print "<td colspan=2><input type=text name=f_description value='".$filter['description']."'></td>";
     print "<td><input type=submit name=editfilter value='".WEB_btn_save."'></td>";
     print "</tr>";
     print "<tr>";
@@ -57,12 +57,12 @@ if (isset($filter['type']) and $filter['type'] == 0) {
 } else {
     print "<table class=\"data\" cellspacing=\"0\" cellpadding=\"4\">";
     print "<tr><td><b>".WEB_cell_forename."</b></td>";
-    print "<td><b>".WEB_cell_comment."</b></td>";
+    print "<td><b>".WEB_cell_description."</b></td>";
     print "<td><input type=submit name=editfilter value=".WEB_btn_save."></td>";
     print "</tr>";
     print "<tr>";
     print "<td align=left><input type=text name=f_name value='".$filter['name']."'></td>";
-    print "<td ><input type=text name=f_comment value='".$filter['comment']."'></td>";
+    print "<td ><input type=text name=f_description value='".$filter['description']."'></td>";
     print "<td ><input type=text name=f_dst value='".$filter['dst']."'></td>";
     print "</tr>";
     print "</table>";

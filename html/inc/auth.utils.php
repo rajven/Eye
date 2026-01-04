@@ -231,7 +231,7 @@ function authenticate_by_credentials($db, $login, $password) {
     log_session_debug($db, "Authenticating by credentials", ['login' => $login]);
 
     $login = trim($login);
-    $stmt = $db->prepare("SELECT * FROM `customers` WHERE Login = ?");
+    $stmt = $db->prepare("SELECT * FROM customers WHERE Login = ?");
     $stmt->execute([$login]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 

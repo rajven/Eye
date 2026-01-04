@@ -687,7 +687,7 @@ function decrypt_string($crypted_string)
 function print_instance_select($db, $instance_name, $instance_value)
 {
     print "<select id=\"$instance_name\" name=\"$instance_name\" >\n";
-    $t_instance = get_records_sql($db, "SELECT id,name,comment FROM filter_instances ORDER BY id");
+    $t_instance = get_records_sql($db, "SELECT id,name,description FROM filter_instances ORDER BY id");
     foreach ($t_instance as $row) {
         print_select_item($row['name'], $row['id'], $instance_value);
     }
@@ -703,7 +703,7 @@ function get_subnet_description($db, $subnet_id)
     if (empty($subnet)) {
         return '';
     }
-    $result = $subnet['subnet'] . '&nbsp(' . $subnet['comment'] . ')';
+    $result = $subnet['subnet'] . '&nbsp(' . $subnet['description'] . ')';
     return $result;
 }
 
@@ -716,17 +716,17 @@ function get_filter_instance_description($db, $instance_id)
     if (empty($instance)) {
         return '';
     }
-    $result = $instance['name'] . '&nbsp(' . $instance['comment'] . ')';
+    $result = $instance['name'] . '&nbsp(' . $instance['description'] . ')';
     return $result;
 }
 
 function print_add_gw_subnets($db, $device_id, $gs_name)
 {
     print "<select id=\"$gs_name\" name=\"$gs_name\" >\n";
-    $t_gs = get_records_sql($db, "SELECT id,subnet,comment FROM subnets WHERE subnets.free=0 AND subnets.id NOT IN (SELECT subnet_id FROM gateway_subnets WHERE gateway_subnets.device_id=" . $device_id . ") ORDER BY subnet");
+    $t_gs = get_records_sql($db, "SELECT id,subnet,description FROM subnets WHERE subnets.free=0 AND subnets.id NOT IN (SELECT subnet_id FROM gateway_subnets WHERE gateway_subnets.device_id=" . $device_id . ") ORDER BY subnet");
     if (!empty($t_gs)) {
         foreach ($t_gs as $row) {
-            print_select_item($row['subnet'] . '(' . $row['comment'] . ')', $row['id'], 0);
+            print_select_item($row['subnet'] . '(' . $row['description'] . ')', $row['id'], 0);
         }
     }
     print "</select>\n";
@@ -735,10 +735,10 @@ function print_add_gw_subnets($db, $device_id, $gs_name)
 function print_add_gw_instances($db, $device_id, $gs_name)
 {
     print "<select id=\"$gs_name\" name=\"$gs_name\" >\n";
-    $t_gs = get_records_sql($db, "SELECT id,name,comment FROM filter_instances WHERE filter_instances.id NOT IN (SELECT instance_id FROM device_filter_instances WHERE device_filter_instances.device_id=" . $device_id . ") ORDER BY name");
+    $t_gs = get_records_sql($db, "SELECT id,name,description FROM filter_instances WHERE filter_instances.id NOT IN (SELECT instance_id FROM device_filter_instances WHERE device_filter_instances.device_id=" . $device_id . ") ORDER BY name");
     if (!empty($t_gs)) {
         foreach ($t_gs as $row) {
-            print_select_item($row['name'] . '(' . $row['comment'] . ')', $row['id'], 0);
+            print_select_item($row['name'] . '(' . $row['description'] . ')', $row['id'], 0);
         }
     }
     print "</select>\n";
@@ -1086,8 +1086,8 @@ function get_nagios_name($auth)
     if (!empty($auth['dhcp_hostname'])) {
         return $auth['dhcp_hostname'];
     }
-    if (!empty($auth['comments'])) {
-        $result = transliterate($auth['comments']);
+    if (!empty($auth['description'])) {
+        $result = transliterate($auth['description']);
         $result = preg_replace('/\(/', '-', $result);
         $result = preg_replace('/\)/', '-', $result);
         $result = preg_replace('/--/', '-', $result);
@@ -1211,10 +1211,10 @@ function print_devtypes_select($db, $devtype_name, $devtype_value, $mode)
     if (!empty($mode)) {
         $filter = "WHERE $mode";
     }
-    $t_devtype = get_records_sql($db, "SELECT id,`name." . HTML_LANG . "` FROM device_types $filter ORDER BY `name." . HTML_LANG . "`");
+    $t_devtype = get_records_sql($db, "SELECT id,name_" . HTML_LANG . " FROM device_types $filter ORDER BY name_" . HTML_LANG );
     if (!empty($t_devtype)) {
         foreach ($t_devtype as $row) {
-            print_select_item($row['name.' . HTML_LANG ], $row['id'], $devtype_value);
+            print_select_item($row['name_' . HTML_LANG ], $row['id'], $devtype_value);
         }
     }
     print "</select>\n";
@@ -1223,9 +1223,9 @@ function print_devtypes_select($db, $devtype_name, $devtype_value, $mode)
 function print_devtype_select($db, $devtype_name, $devtype_value)
 {
     print "<select id=\"$devtype_name\" name=\"$devtype_name\">\n";
-    $t_devtype = get_records_sql($db, "SELECT id,`name." . HTML_LANG . "` FROM device_types ORDER BY `name." . HTML_LANG . "`");
+    $t_devtype = get_records_sql($db, "SELECT id,name_" . HTML_LANG . " FROM device_types ORDER BY name_" . HTML_LANG );
     foreach ($t_devtype as $row) {
-        print_select_item($row['name.'.HTML_LANG], $row['id'], $devtype_value);
+        print_select_item($row['name_'.HTML_LANG], $row['id'], $devtype_value);
     }
     print "</select>\n";
 }
@@ -1241,9 +1241,9 @@ function get_group($db, $group_value)
 
 function get_devtype_name($db, $device_type_id)
 {
-    $type = get_record_sql($db, "SELECT `name." . HTML_LANG . "` FROM device_types WHERE id=$device_type_id");
-    if (!empty($type) and isset($type['name.'.HTML_LANG])) {
-        return $type['name.'.HTML_LANG];
+    $type = get_record_sql($db, "SELECT name_" . HTML_LANG . " FROM device_types WHERE id=$device_type_id");
+    if (!empty($type) and isset($type['name_'.HTML_LANG])) {
+        return $type['name_'.HTML_LANG];
     }
     return '';
 }
@@ -1288,21 +1288,21 @@ function get_wan_interfaces($db, $device_id)
     
     // Обрабатываем каждый интерфейс
     foreach ($t_l3int as &$row) { // & - передача по ссылке для изменения исходного массива
-        $row['comment'] = '';
+        $row['description'] = '';
         
         if (empty($row['snmpin'])) {
             continue;
         }
         
-        $con_sql = "SELECT * FROM `device_ports` 
+        $con_sql = "SELECT * FROM device_ports 
                     WHERE device_id = '" . $device_id . "' 
                       AND snmp_index = '" . $row['snmpin'] . "'";
         
         $conn = get_record_sql($db, $con_sql);
         
         // Проверяем, есть ли комментарий в результатах запроса
-        if (!empty($conn) && !empty($conn['comment'])) {
-            $row['comment'] = $conn['comment'];
+        if (!empty($conn) && !empty($conn['description'])) {
+            $row['description'] = $conn['description'];
         }
     }
     unset($row); 
@@ -1311,7 +1311,7 @@ function get_wan_interfaces($db, $device_id)
 
 function get_gw_subnets($db, $device_id)
 {
-    $gw_subnets_sql = 'SELECT gateway_subnets.*,subnets.subnet,subnets.comment FROM gateway_subnets LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id WHERE gateway_subnets.device_id=' . $device_id . ' ORDER BY subnets.subnet ASC';
+    $gw_subnets_sql = 'SELECT gateway_subnets.*,subnets.subnet,subnets.description FROM gateway_subnets LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id WHERE gateway_subnets.device_id=' . $device_id . ' ORDER BY subnets.subnet ASC';
     $gw_subnets = get_records_sql($db, $gw_subnets_sql);
     if (empty($gw_subnets)) { return ''; }
     $result = '';
@@ -1484,7 +1484,7 @@ function print_dhcp_select($qa_name, $qa_value = 0)
 
 function print_nagios_handler_select($db,$qa_name)
 {
-$nagios_handler = get_records_sql($db,"SELECT DISTINCT `nagios_handler` FROM user_auth WHERE `nagios_handler` IS NOT NULL AND `nagios_handler` != '' AND  `deleted`=0");
+$nagios_handler = get_records_sql($db,"SELECT DISTINCT nagios_handler FROM user_auth WHERE nagios_handler IS NOT NULL AND nagios_handler != '' AND  deleted=0");
 if (!empty($nagios_handler) and count($nagios_handler)>0) {
     print "<select name=\"$qa_name\">\n";
     print_select_simple(WEB_select_item_no, '');
@@ -1499,7 +1499,7 @@ if (!empty($nagios_handler) and count($nagios_handler)>0) {
 
 function print_dhcp_acl($db,$qa_name)
 {
-$dhcp_acl = get_records_sql($db,"SELECT DISTINCT `dhcp_acl` FROM user_auth WHERE `dhcp_acl` IS NOT NULL AND `dhcp_acl` != '' AND  `deleted`=0");
+$dhcp_acl = get_records_sql($db,"SELECT DISTINCT dhcp_acl FROM user_auth WHERE dhcp_acl IS NOT NULL AND dhcp_acl != '' AND  deleted=0");
 if (!empty($dhcp_acl) and count($dhcp_acl)>0) {
     print "<select name=\"$qa_name\">\n";
     print_select_simple(WEB_select_item_no, '');
@@ -1514,7 +1514,7 @@ if (!empty($dhcp_acl) and count($dhcp_acl)>0) {
 
 function print_dhcp_option_set($db,$qa_name)
 {
-$dhcp_option_sets = get_records_sql($db,"SELECT DISTINCT `dhcp_option_set` FROM user_auth WHERE `dhcp_option_set` IS NOT NULL AND `dhcp_option_set` != '' AND `deleted`=0");
+$dhcp_option_sets = get_records_sql($db,"SELECT DISTINCT dhcp_option_set FROM user_auth WHERE dhcp_option_set IS NOT NULL AND dhcp_option_set != '' AND deleted=0");
 if (!empty($dhcp_option_sets) and count($dhcp_option_sets)>0) {
     print "<select name=\"$qa_name\">\n";
     print_select_simple(WEB_select_item_no, '');
@@ -1529,7 +1529,7 @@ if (!empty($dhcp_option_sets) and count($dhcp_option_sets)>0) {
 
 function print_dhcp_acl_list($db,$qa_name,$value='')
 {
-$dhcp_acl = get_records_sql($db,"SELECT DISTINCT `dhcp_acl` FROM user_auth WHERE `dhcp_acl` IS NOT NULL AND `dhcp_acl` != '' AND  `deleted`=0");
+$dhcp_acl = get_records_sql($db,"SELECT DISTINCT dhcp_acl FROM user_auth WHERE dhcp_acl IS NOT NULL AND dhcp_acl != '' AND  deleted=0");
 if (!empty($dhcp_acl) and count($dhcp_acl)>0) {
     print "<input list=\"dhcp_acl\" id=\"$qa_name\" name=\"$qa_name\" value=\"$value\"/>";
     print "<datalist id=\"dhcp_acl\">";
@@ -1545,7 +1545,7 @@ if (!empty($dhcp_acl) and count($dhcp_acl)>0) {
 
 function print_dhcp_option_set_list($db,$qa_name,$value='')
 {
-$dhcp_option_sets = get_records_sql($db,"SELECT DISTINCT `dhcp_option_set` FROM user_auth WHERE `dhcp_option_set` IS NOT NULL AND `dhcp_option_set` != '' AND `deleted`=0");
+$dhcp_option_sets = get_records_sql($db,"SELECT DISTINCT dhcp_option_set FROM user_auth WHERE dhcp_option_set IS NOT NULL AND dhcp_option_set != '' AND deleted=0");
 if (!empty($dhcp_option_sets) and count($dhcp_option_sets)>0) {
     print "<input list=\"dhcp_option_set\" id=\"$qa_name\" name=\"$qa_name\" value=\"$value\"/>";
     print "<datalist id=\"dhcp_option_set\">";
@@ -1624,7 +1624,7 @@ function print_ip_type_select($qa_name, $qa_value)
 function print_vendor_select($db, $qa_name, $qa_value)
 {
     print "<select id=\"$qa_name\" name=\"$qa_name\"  style=\"width: 100%\">\n";
-    $sSQL = "SELECT id,`name` FROM `vendors` order by `name`";
+    $sSQL = "SELECT id,name FROM vendors order by name";
     $vendors = get_records_sql($db, $sSQL);
     print_select_item(WEB_select_item_all, 0, $qa_value);
     foreach ($vendors as $row) {
@@ -1636,7 +1636,7 @@ function print_vendor_select($db, $qa_name, $qa_value)
 function print_vendor_set($db, $qa_name, $qa_value)
 {
     print "<select id=\"$qa_name\" name=\"$qa_name\" style=\"width: 100%\">\n";
-    $sSQL = "SELECT id,`name` FROM `vendors` order by `name`";
+    $sSQL = "SELECT id,name FROM vendors order by name";
     $vendors = get_records_sql($db, $sSQL);
     foreach ($vendors as $row) {
         print_select_item($row['name'], $row['id'], $qa_value);
@@ -1646,7 +1646,7 @@ function print_vendor_set($db, $qa_name, $qa_value)
 
 function get_vendor_name($db, $v_id)
 {
-    $vendor = get_record_sql($db, "SELECT * FROM `vendors` WHERE id=" . $v_id);
+    $vendor = get_record_sql($db, "SELECT * FROM vendors WHERE id=" . $v_id);
     if (!empty($vendor) and isset($vendor['name'])) {
         return $vendor['name'];
     }
@@ -1999,25 +1999,25 @@ function print_auth_port($db, $port_id, $new_window = FALSE)
     }
 }
 
-function get_port_comment($db, $port_id, $port_comment = '')
+function get_port_description($db, $port_id, $port_description = '')
 {
-    $d_sql = "SELECT A.ip_int, A.comments FROM user_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
+    $d_sql = "SELECT A.ip_int, A.description FROM user_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 order by A.ip_int";
     $t_auth = get_records_sql($db, $d_sql);
-    $comment_found = 0;
+    $description_found = 0;
     $result = '';
     foreach ($t_auth as $row) {
-        if (!empty($row['comments'])) {
-            $comment_found = 1;
+        if (!empty($row['description'])) {
+            $description_found = 1;
         } else {
-            $row['comments'] = '';
+            $row['description'] = '';
         }
-        $result .= $row['comments'] . '<br>';
+        $result .= $row['description'] . '<br>';
     }
-    if (!$comment_found) {
-        return $port_comment;
+    if (!$description_found) {
+        return $port_description;
     }
-    if (!empty($port_comment)) {
-        $result .= '(' . $port_comment . ')';
+    if (!empty($port_description)) {
+        $result .= '(' . $port_description . ')';
     }
     return $result;
 }
@@ -2027,7 +2027,7 @@ function print_auth_simple($db, $auth_id)
     $auth = get_record($db, "user_auth", "id=$auth_id");
     $name = $auth['dns_name'];
     if (empty($name)) {
-        $name = $auth['comments'];
+        $name = $auth['description'];
     }
     if (empty($name)) {
         $name = $auth['ip'];
@@ -2040,9 +2040,9 @@ function print_auth($db, $auth_id)
     $auth = get_record($db, "user_auth", "id=$auth_id");
     $name = $auth['dns_name'];
     if (empty($name)) {
-        $name = $auth['comments'];
+        $name = $auth['description'];
     } else {
-        $name .= " (" . $auth['comments'] . ")";
+        $name .= " (" . $auth['description'] . ")";
     }
     if (empty($name)) {
         $name = $auth['ip'];
@@ -2057,9 +2057,9 @@ function print_auth_detail($db, $auth_id)
     $auth = get_record($db, "user_auth", "id=$auth_id");
     $name = $auth['dns_name'];
     if (empty($name)) {
-        $name = $auth['comments'];
+        $name = $auth['description'];
     } else {
-        $name .= " (" . $auth['comments'] . ")";
+        $name .= " (" . $auth['description'] . ")";
     }
     if (empty($name)) {
         $name = $auth['ip'];
@@ -2154,12 +2154,12 @@ function clean_dns_cache($db)
     $date = $date - 86400;
     $date_clean = DateTimeImmutable::createFromFormat('U', $date);
     $clean_date = $date_clean->format('Y-m-d H:i:s');
-    run_sql($db, "DELETE FROM dns_cache WHERE `timestamp`<='" . $clean_date . "'");
+    run_sql($db, "DELETE FROM dns_cache WHERE timestamp<='" . $clean_date . "'");
 }
 
 function clean_unreferensed_rules($db)
 {
-    run_sql($db, "DELETE FROM `auth_rules` WHERE user_id NOT IN (SELECT id FROM user_list)");
+    run_sql($db, "DELETE FROM auth_rules WHERE user_id NOT IN (SELECT id FROM user_list)");
 }
 
 function FormatDateStr($format = 'Y-m-d H:i:s', $date_str)
@@ -2230,7 +2230,7 @@ function get_ip_subnet($db, $ip)
         return;
     }
     $ip_aton = ip2long($ip);
-    $user_subnet = get_record_sql($db, "SELECT * FROM `subnets` WHERE hotspot=1 or office=1 and ( $ip_aton >= ip_int_start and $ip_aton <= ip_int_stop)");
+    $user_subnet = get_record_sql($db, "SELECT * FROM subnets WHERE hotspot=1 or office=1 and ( $ip_aton >= ip_int_start and $ip_aton <= ip_int_stop)");
     if (empty($user_subnet)) {
         return;
     }
@@ -2285,9 +2285,9 @@ function apply_auth_rule($db, $auth_record, $user_id)
     $auth_record['queue_id'] = $user_rec['queue_id'];
     $auth_record['enabled'] = $user_rec['enabled'];
     $auth_record['changed'] = 1;
-    //maybe fill comments?
-    if (!empty($user_rec['fio']) and empty($auth_record['comments'])) {
-        $auth_record['comments'] = $user_rec['fio'];
+    //maybe fill description?
+    if (!empty($user_rec['fio']) and empty($auth_record['description'])) {
+        $auth_record['description'] = $user_rec['fio'];
     }
 
     return $auth_record;
@@ -2296,7 +2296,7 @@ function apply_auth_rule($db, $auth_record, $user_id)
 function fix_auth_rules($db)
 {
     //cleanup hotspot subnet rules
-    $t_hotspot = get_records_sql($db, "SELECT * FROM `OU` WHERE default_users=1 or default_hotspot=1");
+    $t_hotspot = get_records_sql($db, "SELECT * FROM OU WHERE default_users=1 or default_hotspot=1");
     if (!empty($t_hotspot)) {
         foreach ($t_hotspot as $row) {
             delete_record($db, "auth_rules", "ou_id='" . $row['id'] . "'");
@@ -3455,7 +3455,7 @@ function get_subnet_range($db, $subnet_id)
     if (empty($subnet_id)) {
         return;
     }
-    $t_option = get_record_sql($db, "SELECT ip_int_start,ip_int_stop FROM `subnets` WHERE id=$subnet_id");
+    $t_option = get_record_sql($db, "SELECT ip_int_start,ip_int_stop FROM subnets WHERE id=$subnet_id");
     if (!isset($t_option['ip_int_start'])) {
         $t_option['ip_int_start'] = 0;
     }
@@ -3495,7 +3495,7 @@ function is_hotspot($db, $ip)
     }
     LOG_DEBUG($db, "Check hotspot network for ip: $ip");
     $ip_aton = ip2long($ip);
-    $t_option = get_records_sql($db, "SELECT subnet,ip_int_start,ip_int_stop FROM `subnets` WHERE hotspot=1");
+    $t_option = get_records_sql($db, "SELECT subnet,ip_int_start,ip_int_stop FROM subnets WHERE hotspot=1");
     foreach ($t_option as $row) {
         if ($ip_aton >= $row['ip_int_start'] and $ip_aton <= $row['ip_int_stop']) {
             LOG_DEBUG($db, "ip: $ip [$ip_aton] found in hotspot network ".$row['subnet'].": [" . $row['ip_int_start'] . ".." . $row['ip_int_stop'] . "]");
@@ -3513,7 +3513,7 @@ function is_office($db, $ip)
     }
     LOG_DEBUG($db, "Check office network for ip: $ip");
     $ip_aton = ip2long($ip);
-    $t_option = get_records_sql($db, "SELECT subnet,ip_int_start,ip_int_stop FROM `subnets` WHERE office=1");
+    $t_option = get_records_sql($db, "SELECT subnet,ip_int_start,ip_int_stop FROM subnets WHERE office=1");
     foreach ($t_option as $row) {
         if ($ip_aton >= $row['ip_int_start'] and $ip_aton <= $row['ip_int_stop']) {
             LOG_DEBUG($db, "ip: $ip [$ip_aton] found in office network ".$row['subnet'].": [" . $row['ip_int_start'] . ".." . $row['ip_int_stop'] . "]");
@@ -3531,7 +3531,7 @@ function get_office_subnet($db, $ip)
     }
     LOG_DEBUG($db, "Check office network for ip: $ip");
     $ip_aton = ip2long($ip);
-    $subnets = get_records_sql($db, 'SELECT * FROM `subnets` WHERE office=1');
+    $subnets = get_records_sql($db, 'SELECT * FROM subnets WHERE office=1');
     foreach ($subnets as $row) {
         if ($ip_aton >= $row['ip_int_start'] and $ip_aton <= $row['ip_int_stop']) {
             LOG_DEBUG($db, "ip: $ip [$ip_aton] found in office {$row['subnet']}: [" . $row['ip_int_start'] . ".." . $row['ip_int_stop'] . "]");

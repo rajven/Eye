@@ -4,7 +4,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $port_id = $id;
-$sSQL = "SELECT DP.device_id, DP.port, DP.snmp_index, D.device_name, D.ip, D.vendor_id FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=$port_id";
+$sSQL = "SELECT DP.device_id, DP.port, DP.snmp_index, D.device_name, D.ip, D.vendor_id FROM device_ports AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=$port_id";
 $port_info = get_record_sql($db_link, $sSQL);
 if (empty($port_info)) {
     header("Location: /admin/devices/editdevice.php?id=".$device_id);
@@ -13,7 +13,7 @@ if (empty($port_info)) {
 
 $device_id = $port_info["device_id"];
 
-$sSQL = "SELECT port, snmp_index FROM `device_ports` WHERE device_id=".$device_id;
+$sSQL = "SELECT port, snmp_index FROM device_ports WHERE device_id=".$device_id;
 $ports_info = get_records_sql($db_link, $sSQL);
 if (empty($ports_info)) {
     header("Location: /admin/devices/editdevice.php?id=".$device_id);

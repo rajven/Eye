@@ -62,7 +62,7 @@ sub is_dhcp_pool {
     my $pools   = shift;
     my $ip_int  = shift;
     foreach my $subnet (keys %{$pools}) {
-        # Uncomment for debugging:
+        # Undescription for debugging:
         # print "net: $subnet ip: $ip_int pool: $pools->{$subnet}->{first_ip} .. $pools->{$subnet}->{last_ip}\n";
         if ($ip_int <= $pools->{$subnet}->{last_ip} && $ip_int >= $pools->{$subnet}->{first_ip}) {
             return $subnet;
@@ -291,7 +291,7 @@ if ($history_syslog_day) {
     my $clean_date = $now - $day_dur;
     my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
     log_info($dbh, "Cleaning syslog entries older than $clean_str");
-    do_sql($dbh, "DELETE FROM remote_syslog WHERE date < $clean_str");
+    do_sql($dbh, "DELETE FROM remote_syslog WHERE ts < $clean_str");
 }
 
 # Clean old aggregated traffic statistics
@@ -350,7 +350,7 @@ foreach my $auth (@auth_full_list) {
         $new->{auth_id}   = $auth->{id};
         $new->{ip}        = $auth->{ip};
         $new->{mac}       = $auth_mac;
-        $new->{timestamp} = $auth->{last_found};
+        $new->{ts}        = $auth->{mac_found};
         db_log_info($dbh, "Auth id: $auth->{id} ($auth_mac) found at location: device_id=$new->{device_id}, port_id=$new->{port_id}");
         insert_record($dbh, "mac_history", $new);
         next;
@@ -364,7 +364,7 @@ foreach my $auth (@auth_full_list) {
         $new->{auth_id}   = $auth->{id};
         $new->{ip}        = $auth->{ip};
         $new->{mac}       = $auth_mac;
-        $new->{timestamp} = $auth->{last_found};
+        $new->{ts}        = $auth->{mac_found};
         db_log_info($dbh, "Auth id: $auth->{id} ($auth_mac) moved to new location: device_id=$new->{device_id}, port_id=$new->{port_id}");
         insert_record($dbh, "mac_history", $new);
     }
@@ -377,7 +377,7 @@ foreach my $auth (@auth_full_list) {
 #        my $opt_sql = "OPTIMIZE TABLE $table";
 #        my $opt_rf = $dbh->prepare($opt_sql) or die "Unable to prepare $opt_sql: " . $dbh->errstr;
 #        $opt_rf->execute();
-#        # Alternative (manual rebuild) is commented out:
+#        # Alternative (manual rebuild) is descriptioned out:
 #        # CREATE TABLE $table.new LIKE $table;
 #        # INSERT INTO $table.new SELECT * FROM $table;
 #        # RENAME TABLE $table TO $table.backup, $table.new TO $table;

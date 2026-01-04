@@ -44,7 +44,7 @@ print_filters_submenu($page_url);
                 <td><b><?php echo WEB_traffic_dest_address; ?></b></td>
                 <td><b><?php echo WEB_traffic_dst_port; ?></b></td>
                 <td><b><?php echo WEB_traffic_src_port; ?></b></td>
-                <td><b><?php echo WEB_cell_comment; ?></b></td>
+                <td><b><?php echo WEB_cell_description; ?></b></td>
                 <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>"></td>
             </tr>
             <?php
@@ -54,8 +54,8 @@ print_filters_submenu($page_url);
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=" . $row['id'] . "></td>\n";
                 print "<td class=\"data\" ><input type=hidden name=\"id\" value=" . $row['id'] . ">" . $row['id'] . "</td>\n";
                 print "<td class=\"data\" align=left><a href=editfilter.php?id=" . $row['id'] . ">" . $row['name'] . "</a></td>\n";
-                if (empty($row['comment'])) {
-                    $row['comment'] = '';
+                if (empty($row['description'])) {
+                    $row['description'] = '';
                 }
                 if (empty($row['proto'])) {
                     $row['proto'] = '';
@@ -75,14 +75,14 @@ print_filters_submenu($page_url);
                     print "<td class=\"data\">" . $row['dst'] . "</td>\n";
                     print "<td class=\"data\">" . $row['dstport'] . "</td>\n";
                     print "<td class=\"data\">" . $row['srcport'] . "</td>\n";
-                    print "<td class=\"data\">" . $row['comment'] . "</td>\n";
+                    print "<td class=\"data\">" . $row['description'] . "</td>\n";
                 } else {
                     print "<td class=\"data\">Name фильтр</td>\n";
                     print "<td class=\"data\"></td>\n";
                     print "<td class=\"data\">" . $row['dst'] . "</td>\n";
                     print "<td class=\"data\"></td>\n";
                     print "<td class=\"data\"></td>\n";
-                    print "<td class=\"data\">" . $row['comment'] . "</td>\n";
+                    print "<td class=\"data\">" . $row['description'] . "</td>\n";
                 }
                 print "<td></td></tr>";
             }
