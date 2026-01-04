@@ -39,20 +39,20 @@ if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field
 $gateway_list = get_gateways($db_link);
 
 $trafSQL = "SELECT 
-User_list.login,User_list.ou_id,User_auth.user_id, User_stats.auth_id, 
-User_stats.router_id, SUM( byte_in ) AS tin, SUM( byte_out ) AS tout 
-FROM User_stats,User_auth,User_list WHERE User_list.id=User_auth.user_id 
-AND User_stats.auth_id = User_auth.id 
-AND User_stats.timestamp>='$date1' 
-AND User_stats.timestamp<'$date2' 
+user_list.login,user_list.ou_id,user_auth.user_id, user_stats.auth_id, 
+user_stats.router_id, SUM( byte_in ) AS tin, SUM( byte_out ) AS tout 
+FROM user_stats,user_auth,user_list WHERE user_list.id=user_auth.user_id 
+AND user_stats.auth_id = user_auth.id 
+AND user_stats.timestamp>='$date1' 
+AND user_stats.timestamp<'$date2' 
 ";
 
-if ($rou !== 0) { $trafSQL = $trafSQL . " AND User_list.ou_id=$rou"; }
+if ($rou !== 0) { $trafSQL = $trafSQL . " AND user_list.ou_id=$rou"; }
 
 if ($rgateway == 0) {
-    $trafSQL = $trafSQL . " GROUP by User_auth.user_id,User_stats.router_id";
+    $trafSQL = $trafSQL . " GROUP by user_auth.user_id,user_stats.router_id";
     } else {
-    $trafSQL = $trafSQL . " AND User_stats.router_id=$rgateway GROUP by User_auth.user_id,User_stats.router_id";
+    $trafSQL = $trafSQL . " AND user_stats.router_id=$rgateway GROUP by user_auth.user_id,user_stats.router_id";
     }
 
 #set sort

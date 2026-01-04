@@ -22,7 +22,7 @@ my $ou_filter=" and L.ou_id=$OU_ID ";
 if (!$OU_ID) { $ou_filter=''; }
 
 #get userid list
-my $user_auth_list = $dbh->prepare( "SELECT A.ip,A.ip_int,A.dns_name FROM User_auth as A, User_list as L where L.id=A.user_id and A.deleted=0 $ou_filter ORDER by ip_int" );
+my $user_auth_list = $dbh->prepare( "SELECT A.ip,A.ip_int,A.dns_name FROM user_auth as A, user_list as L where L.id=A.user_id and A.deleted=0 $ou_filter ORDER by ip_int" );
 if ( !defined $user_auth_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
 
 $user_auth_list->execute;

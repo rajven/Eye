@@ -481,7 +481,7 @@ function get_id_record($db, $table, $filter) {
 function set_changed($db, $id)
 {
     $auth['changed'] = 1;
-    update_record($db, "User_auth", "id=" . $id, $auth);
+    update_record($db, "user_auth", "id=" . $id, $auth);
 }
 
 //action: add,update,del
@@ -516,13 +516,13 @@ function allow_update($table, $action = 'update', $field = '')
     }
 
     //allow tables for Operator
-    if (preg_match('/(dns_queue|User_auth_alias)/i', $table)) {
+    if (preg_match('/(dns_queue|user_auth_alias)/i', $table)) {
         return 1;
     }
 
     if ($action == 'update') {
         $operator_acl = [
-            'User_auth' => [
+            'user_auth' => [
                 'comments' => '1',
                 'dns_name' => '1',
                 'dns_ptr_only' => '1',
@@ -532,7 +532,7 @@ function allow_update($table, $action = 'update', $field = '')
                 'nagios_handler' => '1',
                 'Wikiname' => '1'
             ],
-            'User_list' => [
+            'user_list' => [
                 'fio' => '1',
                 'login' => '1',
             ],
@@ -642,7 +642,7 @@ function update_record($db, $table, $filter, $newvalue)
         if (isset($old[$key]) && strcmp($old[$key], $value) == 0) {
             continue;
         }
-        if ($table === "User_auth") {
+        if ($table === "user_auth") {
             if (!empty($acl_fields["$key"])) {
                 $network_changed = 1;
             }
@@ -653,7 +653,7 @@ function update_record($db, $table, $filter, $newvalue)
                 $dns_changed = 1;
             }
         }
-        if ($table === "User_auth_alias") {
+        if ($table === "user_auth_alias") {
             if (!empty($dns_fields["$key"])) {
                 $dns_changed = 1;
             }
@@ -665,7 +665,7 @@ function update_record($db, $table, $filter, $newvalue)
         $params[] = $value;
     }
 
-    if ($table === "User_auth" and $dns_changed) {
+    if ($table === "user_auth" and $dns_changed) {
         if (!empty($old['dns_name']) and !empty($old['ip']) and !$old['dns_ptr_only'] and !preg_match('/\.$/', $old['dns_name'])) {
             $del_dns['name_type'] = 'A';
             $del_dns['name'] = $old['dns_name'];
@@ -709,7 +709,7 @@ function update_record($db, $table, $filter, $newvalue)
         }
     }
 
-    if ($table === "User_auth_alias" and $dns_changed) {
+    if ($table === "user_auth_alias" and $dns_changed) {
         $auth_id = NULL;
         if ($old['auth_id']) {
             $auth_id = $old['auth_id'];
@@ -751,7 +751,7 @@ function update_record($db, $table, $filter, $newvalue)
     $changed_log = substr_replace($changed_log, "", -1);
     $run_sql = implode(", ", $set_parts);
 
-    if ($table === 'User_auth') {
+    if ($table === 'user_auth') {
         $changed_time = GetNowTimeString();
         $run_sql .= ", `changed_time` = ?";
         $params[] = $changed_time;
@@ -839,7 +839,7 @@ function delete_record($db, $table, $filter)
     $delete_it = 1;
 
     //never delete user ip record
-    if ($table === 'User_auth') {
+    if ($table === 'user_auth') {
         $delete_it = 0;
         $changed_time = GetNowTimeString();
         $new_sql = "UPDATE $table SET deleted=1, changed=1, `changed_time`='" . $changed_time . "' WHERE $filter";
@@ -881,10 +881,10 @@ function delete_record($db, $table, $filter)
         }
 
     //never delete permanent user
-    if ($table === 'User_list' and $old['permanent']) { return; }
+    if ($table === 'user_list' and $old['permanent']) { return; }
 
     //remove aliases
-    if ($table === 'User_auth_alias') {
+    if ($table === 'user_auth_alias') {
         //dns
         if (!empty($old['alias'])  and !preg_match('/\.$/', $old['alias'])) {
             $del_dns['name_type'] = 'CNAME';
@@ -973,11 +973,11 @@ function insert_record($db, $table, $newvalue)
         if ($table !== "sessions") {
             LOG_VERBOSE($db, "Create record in table $table: $changed_log with id: $last_id");
         }
-        if ($table === 'User_auth') {
-            run_sql($db, "UPDATE User_auth SET changed=1, dhcp_changed=1 WHERE id=" . $last_id);
+        if ($table === 'user_auth') {
+            run_sql($db, "UPDATE user_auth SET changed=1, dhcp_changed=1 WHERE id=" . $last_id);
         }
 
-        if ($table === 'User_auth_alias') {
+        if ($table === 'user_auth_alias') {
             //dns
             if (!empty($newvalue['alias'])  and !preg_match('/\.$/', $newvalue['alias'])) {
                 $add_dns['name_type'] = 'CNAME';
@@ -989,7 +989,7 @@ function insert_record($db, $table, $newvalue)
             }
         }
 
-        if ($table === 'User_auth') {
+        if ($table === 'user_auth') {
             //dns - A-record
             if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and !$newvalue['dns_ptr_only']  and !preg_match('/\.$/', $newvalue['dns_name'])) {
                 $add_dns['name_type'] = 'A';
@@ -1093,14 +1093,14 @@ function get_diff_rec($db, $table, $filter, $newvalue, $only_changed = false)
 
 function delete_user_auth($db, $id) {
     $msg = '';
-    $record = get_record_sql($db, 'SELECT * FROM User_auth WHERE id=' . $id);
+    $record = get_record_sql($db, 'SELECT * FROM user_auth WHERE id=' . $id);
     $txt_record = hash_to_text($record);
     // remove aliases
-    $t_User_auth_alias = get_records_sql($db, 'SELECT * FROM User_auth_alias WHERE auth_id=' . $id);
-    if (!empty($t_User_auth_alias)) {
-        foreach ($t_User_auth_alias as $row) {
-            $alias_txt = record_to_txt($db, 'User_auth_alias', 'id=' . $row['id']);
-            if (delete_record($db, 'User_auth_alias', 'id=' . $row['id'])) {
+    $t_user_auth_alias = get_records_sql($db, 'SELECT * FROM user_auth_alias WHERE auth_id=' . $id);
+    if (!empty($t_user_auth_alias)) {
+        foreach ($t_user_auth_alias as $row) {
+            $alias_txt = record_to_txt($db, 'user_auth_alias', 'id=' . $row['id']);
+            if (delete_record($db, 'user_auth_alias', 'id=' . $row['id'])) {
                 $msg = "Deleting an alias: " . $alias_txt . "::Success!\n" . $msg;
             } else {
                 $msg = "Deleting an alias: " . $alias_txt . "::Fail!\n" . $msg;
@@ -1110,7 +1110,7 @@ function delete_user_auth($db, $id) {
     // remove connections
     run_sql($db, 'DELETE FROM connections WHERE auth_id=' . $id);
     // remove user auth record
-    $changes = delete_record($db, "User_auth", "id=" . $id);
+    $changes = delete_record($db, "user_auth", "id=" . $id);
     if ($changes) {
         $msg = "Deleting ip-record: " . $txt_record . "::Success!\n" . $msg;
     } else {
@@ -1125,13 +1125,13 @@ function delete_user_auth($db, $id) {
 function delete_user($db,$id)
 {
 //remove user record
-$changes = delete_record($db, "User_list", "id=" . $id);
+$changes = delete_record($db, "user_list", "id=" . $id);
 //if fail - exit
 if (!isset($changes) or empty($changes)) { return; }
 //remove auth records
-$t_User_auth = get_records($db,'User_auth',"user_id=$id");
-if (!empty($t_User_auth)) {
-    foreach ( $t_User_auth as $row ) { delete_user_auth($db,$row['id']); }
+$t_user_auth = get_records($db,'user_auth',"user_id=$id");
+if (!empty($t_user_auth)) {
+    foreach ( $t_user_auth as $row ) { delete_user_auth($db,$row['id']); }
     }
 //remove device
 $device = get_record($db, "devices", "user_id='$id'");

@@ -111,16 +111,16 @@ if (isset($_POST["ApplyForAll"])) {
                 $user['permanent'] = $a_permanent;
             }
 
-            $login = get_record($db_link, "User_list", "id='$val'");
+            $login = get_record($db_link, "user_list", "id='$val'");
             $msg .= " For all ip user id: " . $val . " login: " . $login['login'] . " set: ";
-            $msg .= get_diff_rec($db_link, "User_list", "id='$val'", $user, 1);
+            $msg .= get_diff_rec($db_link, "user_list", "id='$val'", $user, 1);
 
             if (!empty($user)) { 
-                $ret = update_record($db_link, "User_list", "id='" . $val . "'", $user);
+                $ret = update_record($db_link, "user_list", "id='" . $val . "'", $user);
                 if (!$ret) { $all_ok = 0; }
                 }
 
-            $auth_list = get_records_sql($db_link, "SELECT id, mac, ip FROM User_auth WHERE deleted=0 AND user_id=" . $val);
+            $auth_list = get_records_sql($db_link, "SELECT id, mac, ip FROM user_auth WHERE deleted=0 AND user_id=" . $val);
             $b_mac = '';
             $b_ip = '';
             if (!empty($auth_list)) {
@@ -129,7 +129,7 @@ if (isset($_POST["ApplyForAll"])) {
                     if (empty($b_mac) and !empty($row["mac"])) { $b_mac = $row["mac"]; }
                     if (empty($b_ip) and !empty($row["ip"])) { $b_ip = $row["ip"]; }
                     if (!empty($auth)) {
-                        $ret = update_record($db_link, "User_auth", "id='" . $row["id"] . "'", $auth);
+                        $ret = update_record($db_link, "user_auth", "id='" . $row["id"] . "'", $auth);
                         if (!$ret) { $all_ok = 0; }
                     }
                 }
@@ -184,7 +184,7 @@ if (isset($_POST["ApplyForAll"])) {
                 if ($a_create_netdev) {
                     if (!empty($b_ip)) {
                         $device = get_record_sql($db_link,"SELECT * FROM devices WHERE user_id=".$val);
-                        $auth = get_record_sql($db_link,"SELECT * FROM User_auth WHERE user_id=".$val." ORDER BY last_found DESC");
+                        $auth = get_record_sql($db_link,"SELECT * FROM user_auth WHERE user_id=".$val." ORDER BY last_found DESC");
                         if (empty($device) and !empty($auth)) {
                             $new['user_id']=$val;
                             $new['device_name'] = $login['login'];

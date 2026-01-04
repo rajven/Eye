@@ -106,7 +106,7 @@ if (!$test_only) {
 ######################################### configuration ###############################################
 
 #get userid list
-my $user_auth_list = $dbh->prepare( "SELECT id,ip,ip_int,mac,clientid,dns_name FROM User_auth where deleted=0 ORDER by ip_int" );
+my $user_auth_list = $dbh->prepare( "SELECT id,ip,ip_int,mac,clientid,dns_name FROM user_auth where deleted=0 ORDER by ip_int" );
 if ( !defined $user_auth_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
 
 $user_auth_list->execute;

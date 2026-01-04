@@ -231,7 +231,7 @@ function authenticate_by_credentials($db, $login, $password) {
     log_session_debug($db, "Authenticating by credentials", ['login' => $login]);
 
     $login = trim($login);
-    $stmt = $db->prepare("SELECT * FROM `Customers` WHERE Login = ?");
+    $stmt = $db->prepare("SELECT * FROM `customers` WHERE Login = ?");
     $stmt->execute([$login]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -371,7 +371,7 @@ function IsSilentAuthenticated($db) {
         return false;
     }
 
-    $stmt = $db->prepare("SELECT id, rights FROM Customers WHERE Login = ? AND api_key = ? LIMIT 1");
+    $stmt = $db->prepare("SELECT id, rights FROM customers WHERE Login = ? AND api_key = ? LIMIT 1");
     $stmt->execute([$login, $api_key]);
 
     if ($stmt->rowCount() === 0) {

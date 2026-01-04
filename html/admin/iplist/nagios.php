@@ -10,23 +10,23 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/enabledfilter.php");
 
-$sort_table = 'User_auth';
-if ($sort_field == 'login') { $sort_table = 'User_list'; }
-if ($sort_field == 'fio') { $sort_table = 'User_list'; }
+$sort_table = 'user_auth';
+if ($sort_field == 'login') { $sort_table = 'user_list'; }
+if ($sort_field == 'fio') { $sort_table = 'user_list'; }
 
 $sort_url = "<a href=nagios.php?ou=" . $rou; 
 
-if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and User_list.ou_id=$rou "; }
+if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and user_list.ou_id=$rou "; }
 
 if ($rsubnet == 0) { $subnet_filter = ''; } else {
     $subnet_range = get_subnet_range($db_link,$rsubnet);
-    if (!empty($subnet_range)) { $subnet_filter = " and User_auth.ip_int>=".$subnet_range['start']." and User_auth.ip_int<=".$subnet_range['stop']; }
+    if (!empty($subnet_range)) { $subnet_filter = " and user_auth.ip_int>=".$subnet_range['start']." and user_auth.ip_int<=".$subnet_range['stop']; }
     }
 
 $enabled_filter='';
 if ($enabled>0) {
-    if ($enabled===2) { $enabled_filter = ' and User_auth.nagios=1'; }
-    if ($enabled===1) { $enabled_filter = ' and User_auth.nagios=0'; }
+    if ($enabled===2) { $enabled_filter = ' and user_auth.nagios=1'; }
+    if ($enabled===1) { $enabled_filter = ' and user_auth.nagios=0'; }
     }
 
 $ip_list_filter = $ou_filter.$subnet_filter.$enabled_filter;
@@ -67,7 +67,7 @@ print_ip_submenu($page_url);
 </div>
 
 <?php
-$countSQL="SELECT Count(*) FROM User_auth, User_list WHERE User_auth.user_id = User_list.id AND User_auth.deleted =0 $ip_list_filter";
+$countSQL="SELECT Count(*) FROM user_auth, user_list WHERE user_auth.user_id = user_list.id AND user_auth.deleted =0 $ip_list_filter";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -95,8 +95,8 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 	</tr>
 <?php
 
-$sSQL = "SELECT User_auth.*, User_list.login FROM User_auth, User_list
-WHERE User_auth.user_id = User_list.id AND User_auth.deleted =0 $ip_list_filter
+$sSQL = "SELECT user_auth.*, user_list.login FROM user_auth, user_list
+WHERE user_auth.user_id = user_list.id AND user_auth.deleted =0 $ip_list_filter
 ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
 
 $users = get_records_sql($db_link,$sSQL);

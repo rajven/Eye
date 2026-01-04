@@ -6,8 +6,8 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["f_id"];
     foreach ($fid as $key => $val) {
         if (isset($val) and $val > 0) {
-            run_sql($db_link, "UPDATE User_list SET ou_id=0 WHERE ou_id=$val");
-            run_sql($db_link, "UPDATE User_auth SET ou_id=0 WHERE ou_id=$val");
+            run_sql($db_link, "UPDATE user_list SET ou_id=0 WHERE ou_id=$val");
+            run_sql($db_link, "UPDATE user_auth SET ou_id=0 WHERE ou_id=$val");
             run_sql($db_link, "DELETE FROM auth_rules WHERE ou_id=$val");
             delete_record($db_link, "OU", "id=" . $val);
             }

@@ -31,14 +31,14 @@ $date2 = $pdate_start->format('Y-m-d');
 $ip_aton = ip2long($auth_ip);
 if (! $ip_aton) { $ip_aton = 0; }
 
-$sSQL = "SELECT * FROM User_auth WHERE ip_int='".$ip_aton."' and deleted = 0";
+$sSQL = "SELECT * FROM user_auth WHERE ip_int='".$ip_aton."' and deleted = 0";
 $auth = get_record_sql($db_link,$sSQL);
 if (! isset($auth) or empty($auth)) { print "<font color=red><b>".WEB_cell_ip."&nbsp". $auth_ip ."&nbsp - ".WEB_unknown."!</b><br></font>"; die; }
 
 $id = $auth['id'];
 $user_id = $auth['user_id'];
 
-$uSQL = "SELECT * FROM User_list WHERE id='".$user_id."'";
+$uSQL = "SELECT * FROM user_list WHERE id='".$user_id."'";
 $user = get_record_sql($db_link,$uSQL);
 
 if (! isset($user) or empty($user)) { print "<font color=red><b>".WEB_cell_ip."&nbsp". $auth_ip .WEB_user_deleted."</b><br></font>"; die; }
@@ -88,7 +88,7 @@ if ($auth['blocked']) { print "<font color=red>".WEB_msg_traffic_blocked."</font
 <?php
 
 ####### day
-$sSQL = "SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM User_stats WHERE `timestamp`>='".$date1."' AND `timestamp`<'".$date2."' AND auth_id='".$id."'";
+$sSQL = "SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM user_stats WHERE `timestamp`>='".$date1."' AND `timestamp`<'".$date2."' AND auth_id='".$id."'";
 $day_auth_itog = get_record_sql($db_link,$sSQL);
 
 $day_auth_sum_in=0;
@@ -104,11 +104,11 @@ if (!empty($day_auth_itog)) {
 $day_user_sum_in=0;
 $day_user_sum_out=0;
 
-$auth_list = get_records_sql($db_link,"SELECT id FROM User_auth WHERE user_id='".$user_id."' AND deleted=0");
+$auth_list = get_records_sql($db_link,"SELECT id FROM user_auth WHERE user_id='".$user_id."' AND deleted=0");
 
 if (!empty($auth_list)) {
     foreach ($auth_list as $row) {
-        $auth_itog2 = get_record_sql($db_link,"SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM User_stats WHERE `timestamp`>='".$date1."' AND `timestamp`<'".$date2."' AND auth_id='".$row['id']."'");
+        $auth_itog2 = get_record_sql($db_link,"SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM user_stats WHERE `timestamp`>='".$date1."' AND `timestamp`<'".$date2."' AND auth_id='".$row['id']."'");
         if (!empty($auth_itog2)) { 
                 if (empty($auth_itog2['tin'])) { $auth_itog2['tin']=0; }
                 if (empty($auth_itog2['tout'])) { $auth_itog2['tout']=0; }
@@ -119,7 +119,7 @@ if (!empty($auth_list)) {
     }
 
 #### month
-$sSQL = "SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM User_stats WHERE `timestamp`>='".$date1m."' AND `timestamp`<'".$date2m."' AND auth_id='".$id."'";
+$sSQL = "SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM user_stats WHERE `timestamp`>='".$date1m."' AND `timestamp`<'".$date2m."' AND auth_id='".$id."'";
 $month_auth_itog = get_record_sql($db_link,$sSQL);
 
 $month_auth_sum_in=0;
@@ -137,7 +137,7 @@ $month_user_sum_out=0;
 
 if (!empty($auth_list)) {
     foreach ($auth_list as $row) {
-        $auth_itog2 = get_record_sql($db_link,"SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM User_stats WHERE `timestamp`>='".$date1m."' AND `timestamp`<'".$date2m."' AND auth_id='".$row['id']."'");
+        $auth_itog2 = get_record_sql($db_link,"SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM user_stats WHERE `timestamp`>='".$date1m."' AND `timestamp`<'".$date2m."' AND auth_id='".$row['id']."'");
         if (!empty($auth_itog2)) {
                 if (empty($auth_itog2['tin'])) { $auth_itog2['tin']=0; }
                 if (empty($auth_itog2['tout'])) { $auth_itog2['tout']=0; }

@@ -6,7 +6,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $device = get_record($db_link,'devices',"id=".$id);
 $snmp=getSnmpAccess($device);
-$user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
+$user_info = get_record_sql($db_link,"SELECT * FROM user_list WHERE id=".$device['user_id']);
 $int_list = getIpAdEntIfIndex($db_link,$device['ip'],$snmp);
 
 if (isset($_POST["s_remove"])) {

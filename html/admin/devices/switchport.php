@@ -56,7 +56,7 @@ if (isset($_POST['save'])) {
 unset($_POST);
 
 $device=get_record($db_link,'devices',"id=".$id);
-$user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
+$user_info = get_record_sql($db_link,"SELECT * FROM user_list WHERE id=".$device['user_id']);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 

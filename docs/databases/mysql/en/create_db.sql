@@ -12,8 +12,8 @@ USE `stat`;
 CREATE TABLE `acl` (
   `id` int(11) NOT NULL,
   `name` varchar(30) NOT NULL,
-  `description.english` varchar(250) NOT NULL,
-  `description.russian` varchar(250) NOT NULL
+  description_english varchar(250) NOT NULL,
+  description_russian varchar(250) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `ad_comp_cache` (
@@ -46,8 +46,8 @@ CREATE TABLE `config` (
 CREATE TABLE `config_options` (
   `id` int(11) NOT NULL,
   `option_name` varchar(50) NOT NULL,
-  `description.russian` text DEFAULT NULL,
-  `description.english` text DEFAULT NULL,
+  description_russian text DEFAULT NULL,
+  description_english text DEFAULT NULL,
   `draft` tinyint(1) NOT NULL DEFAULT 0,
   `uniq` tinyint(1) NOT NULL DEFAULT 1,
   `type` varchar(100) NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE `connections` (
   `last_found` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `Customers` (
+CREATE TABLE `customers` (
   `id` int(11) NOT NULL,
   `Login` varchar(20) DEFAULT 'NULL',
   `comment` varchar(100) DEFAULT NULL,
@@ -160,8 +160,8 @@ CREATE TABLE `device_ports` (
 
 CREATE TABLE `device_types` (
   `id` int(11) NOT NULL,
-  `name.russian` varchar(50) DEFAULT NULL,
-  `name.english` varchar(50) DEFAULT NULL
+  name_russian varchar(50) DEFAULT NULL,
+  name_english varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `dhcp_log` (
@@ -170,12 +170,12 @@ CREATE TABLE `dhcp_log` (
   `ip_int` bigint(20) UNSIGNED NOT NULL,
   `ip` varchar(15) NOT NULL,
   `action` varchar(10) NOT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
+  `ts` timestamp NOT NULL DEFAULT current_timestamp(),
   `auth_id` bigint(20) UNSIGNED NOT NULL,
   `dhcp_hostname` varchar(250) DEFAULT NULL,
-  `circuit-id` varchar(255) DEFAULT NULL,
-  `remote-id` varchar(255) DEFAULT NULL,
-  `client-id` varchar(250) DEFAULT NULL
+  circuit_id varchar(255) DEFAULT NULL,
+  remote_id varchar(255) DEFAULT NULL,
+  client_id varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci KEY_BLOCK_SIZE=8 ROW_FORMAT=COMPRESSED;
 
 CREATE TABLE `dhcp_queue` (
@@ -183,7 +183,7 @@ CREATE TABLE `dhcp_queue` (
   `mac` varchar(17) NOT NULL,
   `ip` varchar(15) NOT NULL,
   `action` varchar(10) NOT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
+  `ts` timestamp NOT NULL DEFAULT current_timestamp(),
   `dhcp_hostname` varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci KEY_BLOCK_SIZE=8 ROW_FORMAT=COMPRESSED;
 
@@ -191,7 +191,7 @@ CREATE TABLE `dns_cache` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `dns` varchar(250) DEFAULT NULL,
   `ip` bigint(20) UNSIGNED DEFAULT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp()
+  `ts` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `dns_queue` (
@@ -209,7 +209,7 @@ CREATE TABLE `filter_instances` (
   `comment` varchar(200) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `Filter_list` (
+CREATE TABLE `filter_list` (
   `id` int(11) NOT NULL,
   `name` varchar(50) DEFAULT NULL,
   `comment` varchar(250) DEFAULT NULL,
@@ -226,7 +226,7 @@ CREATE TABLE `gateway_subnets` (
   `subnet_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `Group_filters` (
+CREATE TABLE `group_filters` (
   `id` int(11) NOT NULL,
   `group_id` int(11) NOT NULL DEFAULT 0,
   `filter_id` int(11) NOT NULL DEFAULT 0,
@@ -234,7 +234,7 @@ CREATE TABLE `Group_filters` (
   `action` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `Group_list` (
+CREATE TABLE `group_list` (
   `id` int(11) NOT NULL,
   `instance_id` int(11) NOT NULL DEFAULT 1,
   `group_name` varchar(50) DEFAULT NULL,
@@ -244,7 +244,7 @@ CREATE TABLE `Group_list` (
 CREATE TABLE `mac_history` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `mac` varchar(12) DEFAULT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
+  `ts` timestamp NOT NULL DEFAULT current_timestamp(),
   `device_id` bigint(20) UNSIGNED DEFAULT NULL,
   `port_id` bigint(20) UNSIGNED DEFAULT NULL,
   `ip` varchar(16) NOT NULL DEFAULT '',
@@ -277,7 +277,7 @@ CREATE TABLE `OU` (
   `parent_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `Queue_list` (
+CREATE TABLE `queue_list` (
   `id` int(11) NOT NULL,
   `queue_name` varchar(20) NOT NULL,
   `Download` int(11) NOT NULL DEFAULT 0,
@@ -320,11 +320,11 @@ CREATE TABLE `subnets` (
   `comment` varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `Traffic_detail` (
+CREATE TABLE `traffic_detail` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `auth_id` bigint(20) UNSIGNED DEFAULT NULL,
   `router_id` int(11) NOT NULL DEFAULT 0,
-  `timestamp` timestamp NULL DEFAULT NULL,
+  `ts` timestamp NULL DEFAULT NULL,
   `proto` tinyint(3) UNSIGNED DEFAULT NULL,
   `src_ip` int(10) UNSIGNED NOT NULL,
   `dst_ip` int(10) UNSIGNED NOT NULL,
@@ -334,15 +334,15 @@ CREATE TABLE `Traffic_detail` (
   `pkt` int(10) UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `Unknown_mac` (
+CREATE TABLE `unknown_mac` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `mac` varchar(12) DEFAULT NULL,
   `port_id` bigint(20) UNSIGNED DEFAULT NULL,
   `device_id` int(11) DEFAULT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `ts` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `User_auth` (
+CREATE TABLE `user_auth` (
   `id` int(11) NOT NULL,
   `user_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
   `ou_id` int(11) DEFAULT NULL,
@@ -373,8 +373,8 @@ CREATE TABLE `User_auth` (
   `month_quota` int(11) NOT NULL DEFAULT 0,
   `device_model_id` int(11) DEFAULT 87,
   `firmware` varchar(100) DEFAULT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
-  `client-id` varchar(250) DEFAULT NULL,
+  `ts` timestamp NOT NULL DEFAULT current_timestamp(),
+  client_id varchar(250) DEFAULT NULL,
   `nagios` tinyint(1) NOT NULL DEFAULT 0,
   `nagios_status` varchar(10) NOT NULL DEFAULT '',
   `nagios_handler` varchar(50) NOT NULL DEFAULT '',
@@ -385,17 +385,17 @@ CREATE TABLE `User_auth` (
   `created_by` varchar(10) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `User_auth_alias` (
+CREATE TABLE `user_auth_alias` (
   `id` int(11) NOT NULL,
   `auth_id` int(11) NOT NULL,
   `alias` varchar(100) DEFAULT NULL,
   `description` varchar(100) DEFAULT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp()
+  `ts` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `User_list` (
+CREATE TABLE `user_list` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
+  `ts` timestamp NOT NULL DEFAULT current_timestamp(),
   `login` varchar(255) DEFAULT NULL,
   `fio` varchar(255) DEFAULT NULL,
   `enabled` tinyint(1) NOT NULL DEFAULT 1,
@@ -421,20 +421,20 @@ CREATE TABLE `user_sessions` (
   `is_active` tinyint(1) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `User_stats` (
+CREATE TABLE `user_stats` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `router_id` bigint(20) UNSIGNED DEFAULT 0,
   `auth_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
-  `timestamp` datetime NOT NULL DEFAULT current_timestamp(),
+  `ts` datetime NOT NULL DEFAULT current_timestamp(),
   `byte_in` bigint(20) NOT NULL DEFAULT 0,
   `byte_out` bigint(20) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `User_stats_full` (
+CREATE TABLE `user_stats_full` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `router_id` bigint(20) UNSIGNED DEFAULT 0,
   `auth_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
-  `timestamp` datetime NOT NULL DEFAULT current_timestamp(),
+  `ts` datetime NOT NULL DEFAULT current_timestamp(),
   `byte_in` bigint(20) NOT NULL DEFAULT 0,
   `byte_out` bigint(20) NOT NULL DEFAULT 0,
   `pkt_in` int(11) DEFAULT NULL,
@@ -460,20 +460,20 @@ CREATE TABLE `version` (
   `version` varchar(10) NOT NULL DEFAULT '2.4.14'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `Wan_stats` (
+CREATE TABLE `wan_stats` (
   `id` int(11) NOT NULL,
-  `time` datetime NOT NULL DEFAULT current_timestamp(),
+  `ts` datetime NOT NULL DEFAULT current_timestamp(),
   `router_id` int(11) DEFAULT NULL,
   `interface_id` int(11) DEFAULT NULL,
-  `in` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
-  `out` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
+  `bytes_in` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
+  `bytes_out` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
   `forward_in` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
   `forward_out` bigint(20) UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `worklog` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
+  `ts` timestamp NOT NULL DEFAULT current_timestamp(),
   `auth_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
   `customer` varchar(50) NOT NULL DEFAULT 'system',
   `ip` varchar(18) NOT NULL DEFAULT '127.0.0.1',
@@ -509,7 +509,7 @@ ALTER TABLE `connections`
   ADD KEY `auth_id` (`auth_id`),
   ADD KEY `device_id` (`device_id`,`port_id`);
 
-ALTER TABLE `Customers`
+ALTER TABLE `customers`
   ADD PRIMARY KEY (`id`);
 
 ALTER TABLE `devices`
@@ -537,16 +537,16 @@ ALTER TABLE `device_types`
 
 ALTER TABLE `dhcp_log`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `timestamp` (`timestamp`,`action`);
+  ADD KEY `ts` (`ts`,`action`);
 
 ALTER TABLE `dhcp_queue`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `timestamp` (`timestamp`,`action`);
+  ADD KEY `ts` (`ts`,`action`);
 
 ALTER TABLE `dns_cache`
   ADD PRIMARY KEY (`id`),
   ADD KEY `dns` (`dns`,`ip`),
-  ADD KEY `timestamp` (`timestamp`);
+  ADD KEY `ts` (`ts`);
 
 ALTER TABLE `dns_queue`
   ADD PRIMARY KEY (`id`);
@@ -555,25 +555,25 @@ ALTER TABLE `filter_instances`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `name` (`name`);
 
-ALTER TABLE `Filter_list`
+ALTER TABLE `filter_list`
   ADD PRIMARY KEY (`id`),
   ADD KEY `Name` (`name`);
 
 ALTER TABLE `gateway_subnets`
   ADD PRIMARY KEY (`id`);
 
-ALTER TABLE `Group_filters`
+ALTER TABLE `group_filters`
   ADD PRIMARY KEY (`id`),
   ADD KEY `GroupId` (`group_id`,`filter_id`);
 
-ALTER TABLE `Group_list`
+ALTER TABLE `group_list`
   ADD PRIMARY KEY (`id`);
 
 ALTER TABLE `mac_history`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `mac` (`mac`,`timestamp`),
-  ADD KEY `ip` (`ip`,`timestamp`),
-  ADD KEY `timestamp` (`timestamp`) USING BTREE,
+  ADD KEY `mac` (`mac`,`ts`),
+  ADD KEY `ip` (`ip`,`ts`),
+  ADD KEY `ts` (`ts`) USING BTREE,
   ADD KEY `mac_2` (`mac`),
   ADD KEY `ip_2` (`ip`);
 
@@ -586,7 +586,7 @@ ALTER TABLE `OU`
 ALTER TABLE `OU` ADD FULLTEXT KEY `ou_name` (`ou_name`);
 ALTER TABLE `OU` ADD FULLTEXT KEY `ou_name_2` (`ou_name`);
 
-ALTER TABLE `Queue_list`
+ALTER TABLE `queue_list`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `id` (`id`);
 
@@ -603,26 +603,26 @@ ALTER TABLE `subnets`
   ADD KEY `ip_int_start` (`ip_int_start`,`ip_int_stop`),
   ADD KEY `dhcp` (`dhcp`,`office`,`hotspot`,`static`);
 
-ALTER TABLE `Traffic_detail`
+ALTER TABLE `traffic_detail`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `src` (`auth_id`,`timestamp`,`router_id`,`src_ip`) USING BTREE,
-  ADD KEY `dst` (`auth_id`,`timestamp`,`router_id`,`dst_ip`) USING BTREE;
+  ADD KEY `src` (`auth_id`,`ts`,`router_id`,`src_ip`) USING BTREE,
+  ADD KEY `dst` (`auth_id`,`ts`,`router_id`,`dst_ip`) USING BTREE;
 
-ALTER TABLE `Unknown_mac`
+ALTER TABLE `unknown_mac`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `timestamp` (`timestamp`,`device_id`,`port_id`,`mac`);
+  ADD KEY `ts` (`ts`,`device_id`,`port_id`,`mac`);
 
-ALTER TABLE `User_auth`
+ALTER TABLE `user_auth`
   ADD PRIMARY KEY (`id`),
   ADD KEY `auth_index` (`id`,`user_id`,`ip_int`,`mac`,`ip`,`deleted`) USING BTREE,
   ADD KEY `deleted` (`deleted`),
   ADD KEY `ou_id` (`ou_id`);
 
-ALTER TABLE `User_auth_alias`
+ALTER TABLE `user_auth_alias`
   ADD PRIMARY KEY (`id`),
   ADD KEY `auth_id` (`auth_id`);
 
-ALTER TABLE `User_list`
+ALTER TABLE `user_list`
   ADD PRIMARY KEY (`id`),
   ADD KEY `users` (`id`,`ou_id`,`enabled`,`blocked`,`deleted`);
 
@@ -632,13 +632,13 @@ ALTER TABLE `user_sessions`
   ADD KEY `user_id` (`user_id`),
   ADD KEY `is_active` (`is_active`);
 
-ALTER TABLE `User_stats`
+ALTER TABLE `user_stats`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `timestamp` (`timestamp`,`auth_id`,`router_id`);
+  ADD KEY `ts` (`ts`,`auth_id`,`router_id`);
 
-ALTER TABLE `User_stats_full`
+ALTER TABLE `user_stats_full`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `timestamp` (`timestamp`,`auth_id`,`router_id`);
+  ADD KEY `ts` (`ts`,`auth_id`,`router_id`);
 
 ALTER TABLE `variables`
   ADD PRIMARY KEY (`id`),
@@ -651,16 +651,16 @@ ALTER TABLE `vendors`
 ALTER TABLE `version`
   ADD UNIQUE KEY `id` (`id`);
 
-ALTER TABLE `Wan_stats`
+ALTER TABLE `wan_stats`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `main` (`time`,`router_id`,`interface_id`),
   ADD KEY `times` (`time`);
 
 ALTER TABLE `worklog`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_customer` (`customer`,`level`,`timestamp`),
-  ADD KEY `idx_timestamp` (`level`,`timestamp`),
-  ADD KEY `idx_auth_id` (`auth_id`,`level`,`timestamp`);
+  ADD KEY `idx_customer` (`customer`,`level`,`ts`),
+  ADD KEY `idx_timestamp` (`level`,`ts`),
+  ADD KEY `idx_auth_id` (`auth_id`,`level`,`ts`);
 
 
 ALTER TABLE `acl`
@@ -684,7 +684,7 @@ ALTER TABLE `config_options`
 ALTER TABLE `connections`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `Customers`
+ALTER TABLE `customers`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `devices`
@@ -720,16 +720,16 @@ ALTER TABLE `dns_queue`
 ALTER TABLE `filter_instances`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `Filter_list`
+ALTER TABLE `filter_list`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `gateway_subnets`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `Group_filters`
+ALTER TABLE `group_filters`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `Group_list`
+ALTER TABLE `group_list`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `mac_history`
@@ -741,7 +741,7 @@ ALTER TABLE `mac_vendors`
 ALTER TABLE `OU`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `Queue_list`
+ALTER TABLE `queue_list`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `remote_syslog`
@@ -750,28 +750,28 @@ ALTER TABLE `remote_syslog`
 ALTER TABLE `subnets`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `Traffic_detail`
+ALTER TABLE `traffic_detail`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `Unknown_mac`
+ALTER TABLE `unknown_mac`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `User_auth`
+ALTER TABLE `user_auth`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `User_auth_alias`
+ALTER TABLE `user_auth_alias`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `User_list`
+ALTER TABLE `user_list`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `user_sessions`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `User_stats`
+ALTER TABLE `user_stats`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `User_stats_full`
+ALTER TABLE `user_stats_full`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `variables`
@@ -780,7 +780,7 @@ ALTER TABLE `variables`
 ALTER TABLE `vendors`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `Wan_stats`
+ALTER TABLE `wan_stats`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `worklog`

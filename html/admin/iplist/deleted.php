@@ -17,13 +17,13 @@ if (!isset($f_comment)) { $f_comment=''; }
 
 $_SESSION[$page_url]['comment']=$f_comment;
 
-$sort_table = 'User_auth';
+$sort_table = 'user_auth';
 
 $sort_url = "<a href=deleted.php?";
 
 if ($rsubnet == 0) { $subnet_filter = ''; } else {
     $subnet_range = get_subnet_range($db_link,$rsubnet);
-    $subnet_filter = " and User_auth.ip_int>=".$subnet_range['start']." and User_auth.ip_int<=".$subnet_range['stop'];
+    $subnet_filter = " and user_auth.ip_int>=".$subnet_range['start']." and user_auth.ip_int<=".$subnet_range['stop'];
     }
 
 $ip_list_filter = $subnet_filter;
@@ -32,7 +32,7 @@ $ip_where = '';
 if (!empty($f_comment)) {
     if (checkValidIp($f_comment)) { $ip_where = " and ip_int=inet_aton('" . $f_comment . "') "; }
     if (checkValidMac($f_comment)) { $ip_where = " and mac='" . mac_dotted($f_comment) . "'  "; }
-    if (empty($ip_where)) { $ip_where=" and (User_auth.comments LIKE '$f_comment' OR User_auth.dhcp_hostname LIKE '$f_comment')"; }
+    if (empty($ip_where)) { $ip_where=" and (user_auth.comments LIKE '$f_comment' OR user_auth.dhcp_hostname LIKE '$f_comment')"; }
     $ip_list_filter = $ip_where;
     } 
 
@@ -50,7 +50,7 @@ print_ip_submenu($page_url);
 </div>
 
 <?php
-$countSQL="SELECT Count(*) FROM User_auth WHERE User_auth.deleted = 1 $ip_list_filter";
+$countSQL="SELECT Count(*) FROM user_auth WHERE user_auth.deleted = 1 $ip_list_filter";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -73,9 +73,9 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <?php
 
 $sSQL = "SELECT 
-User_auth.id, User_auth.ip, User_auth.mac, User_auth.comments, User_auth.dns_name, User_auth.dhcp_hostname, 
-User_auth.dhcp_time, User_auth.last_found, User_auth.timestamp, User_auth.changed_time
-FROM User_auth WHERE User_auth.deleted = 1 $ip_list_filter
+user_auth.id, user_auth.ip, user_auth.mac, user_auth.comments, user_auth.dns_name, user_auth.dhcp_hostname, 
+user_auth.dhcp_time, user_auth.last_found, user_auth.timestamp, user_auth.changed_time
+FROM user_auth WHERE user_auth.deleted = 1 $ip_list_filter
 ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
 $users = get_records_sql($db_link,$sSQL);
 foreach ($users as $user) {

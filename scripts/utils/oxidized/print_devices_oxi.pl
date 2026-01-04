@@ -29,7 +29,7 @@ $device = netdev_set_auth($device);
 my $oxi_model = 'dcnos';
 my $comware_cmdline = '';
 my $vendor = get_record_sql($dbh,"SELECT * FROM vendors WHERE id=".$device->{vendor_id});
-my $model = get_record_sql($dbh,"SELECT * FROM `device_models` WHERE id=".$device->{device_model_id});
+my $model = get_record_sql($dbh,"SELECT * FROM device_models WHERE id=".$device->{device_model_id});
 my $building = get_record_sql($dbh,"SELECT * FROM building WHERE id=".$device->{building_id});
 if ($vendor->{name} =~/zyxel/i) { $oxi_model = 'zynoscli'; }
 if ($vendor->{name} =~/snr/i) { $oxi_model = 'dcnos'; }

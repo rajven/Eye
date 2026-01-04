@@ -75,7 +75,7 @@ my $IP_ATON=StrToIp($host_ip);
 print(TRAPFILE "$date [".$$."] search host by ip [$host_ip] aton: $IP_ATON\n");
 
 #get device
-my $sSQL="SELECT dns_name FROM User_auth where deleted=0 and ip_int='".$IP_ATON."'";
+my $sSQL="SELECT dns_name FROM user_auth where deleted=0 and ip_int='".$IP_ATON."'";
 my $ret=get_custom_record($dbh,$sSQL);
 my $device_name=$ret->{dns_name};
 print(TRAPFILE "$date [".$$."] name: $device_name\n");

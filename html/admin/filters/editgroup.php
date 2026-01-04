@@ -7,14 +7,14 @@ if (isset($_POST["editgroup"])) {
     $new['group_name'] = $_POST["f_group_name"];
     $new['instance_id'] = $_POST["f_instance_id"]*1;
     $new['comment'] = $_POST["f_group_comment"];
-    update_record($db_link, "Group_list", "id='$id'", $new);
+    update_record($db_link, "group_list", "id='$id'", $new);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
 if (isset($_POST["addfilter"])) {
     $filter_id = $_POST["newfilter"] * 1;
-    $max_record = get_record_sql($db_link, "SELECT MAX(G.order) as morder FROM Group_filters as G where G.group_id='$id'");
+    $max_record = get_record_sql($db_link, "SELECT MAX(G.order) as morder FROM group_filters as G where G.group_id='$id'");
     if (empty($max_record)) {
         $forder = 1;
     } else {
@@ -24,7 +24,7 @@ if (isset($_POST["addfilter"])) {
     $new['filter_id'] = $filter_id;
     $new['order'] = $forder;
     $new['action'] = 1;
-    insert_record($db_link, "Group_filters", $new);
+    insert_record($db_link, "group_filters", $new);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -33,7 +33,7 @@ if (isset($_POST["removefilter"])) {
     $f_group_filter = $_POST["f_group_filter"];
     foreach ($f_group_filter as $key => $val) {
         if (!empty($val)) {
-            delete_record($db_link, "Group_filters", "id=" . $val * 1);
+            delete_record($db_link, "group_filters", "id=" . $val * 1);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -57,7 +57,7 @@ if (isset($_POST["updateFilters"])) {
                 $new['action'] = $_POST["f_action"][$group_filter_id] * 1;
             }
             if (!empty($new)) {
-                update_record($db_link, "Group_filters", "id=" . $group_filter_id, $new);
+                update_record($db_link, "group_filters", "id=" . $group_filter_id, $new);
             }
         }
     }
@@ -67,7 +67,7 @@ if (isset($_POST["updateFilters"])) {
 
 unset($_POST);
 
-$group = get_record_sql($db_link, "SELECT * FROM Group_list WHERE id=" . $id);
+$group = get_record_sql($db_link, "SELECT * FROM group_list WHERE id=" . $id);
 
 print_filters_submenu($page_url);
 
@@ -107,7 +107,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
             </tr>
 
             <?php
-            $sSQL = "SELECT G.id, G.filter_id, F.name, G.order, G.action, F.comment FROM Group_filters G, Filter_list F WHERE F.id=G.filter_id and group_id=$id Order by G.order";
+            $sSQL = "SELECT G.id, G.filter_id, F.name, G.order, G.action, F.comment FROM group_filters G, filter_list F WHERE F.id=G.filter_id and group_id=$id Order by G.order";
             $flist = get_records_sql($db_link, $sSQL);
             foreach ($flist as $row) {
                 print "<tr align=center>\n";

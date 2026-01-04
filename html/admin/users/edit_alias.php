@@ -6,7 +6,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $msg_error = "";
 
-$sSQL = "SELECT * FROM User_auth WHERE id=$id";
+$sSQL = "SELECT * FROM user_auth WHERE id=$id";
 $auth_info = get_record_sql($db_link, $sSQL);
 
 if (empty($auth_info['dns_name']) or $auth_info['deleted']) {
@@ -14,14 +14,14 @@ if (empty($auth_info['dns_name']) or $auth_info['deleted']) {
     exit;
     }
 
-run_sql($db_link,"DELETE FROM User_auth_alias WHERE auth_id in (SELECT id FROM User_auth WHERE deleted=1)");
+run_sql($db_link,"DELETE FROM user_auth_alias WHERE auth_id in (SELECT id FROM user_auth WHERE deleted=1)");
 
 if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
     foreach ($s_id as $key => $val) {
         if (isset($val)) {
-            LOG_INFO($db_link, "Remove alias id: $val ".dump_record($db_link,'User_auth_alias','id='.$val));
-            delete_record($db_link, "User_auth_alias", "id=" . $val);
+            LOG_INFO($db_link, "Remove alias id: $val ".dump_record($db_link,'user_auth_alias','id='.$val));
+            delete_record($db_link, "user_auth_alias", "id=" . $val);
         }
     }
     header("Location: " . $page_url);
@@ -47,7 +47,7 @@ if (isset($_POST['s_save'])) {
             if (empty($f_dnsname) or !checkValidHostname($f_dnsname) or !checkUniqHostname($db_link,$id,$f_dnsname)) { continue; }
             $new['alias'] = $f_dnsname;
             $new['description'] = trim($_POST['s_comment'][$j]);
-            update_record($db_link, "User_auth_alias", "id='{$save_id}'", $new);
+            update_record($db_link, "user_auth_alias", "id='{$save_id}'", $new);
         }
     }
     header("Location: " . $page_url);
@@ -80,7 +80,7 @@ if (isset($_POST["s_create"])) {
         $new_rec['alias'] = $f_dnsname;
         $new_rec['auth_id'] = $id;
         LOG_INFO($db_link, "Create new alias $new_alias");
-        insert_record($db_link, "User_auth_alias", $new_rec);
+        insert_record($db_link, "user_auth_alias", $new_rec);
     }
     header("Location: " . $page_url);
     exit;
@@ -111,9 +111,9 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 	<td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="s_remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
-$t_User_auth_alias = get_records($db_link,'User_auth_alias',"auth_id=$id ORDER BY alias");
-if (!empty($t_User_auth_alias)) {
-foreach ( $t_User_auth_alias as $row ) {
+$t_user_auth_alias = get_records($db_link,'user_auth_alias',"auth_id=$id ORDER BY alias");
+if (!empty($t_user_auth_alias)) {
+foreach ( $t_user_auth_alias as $row ) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=s_id[] value='{$row['id']}'></td>\n";
     print "<td class=\"data\"><input type=\"hidden\" name='n_id[]' value='{$row['id']}'>{$row['id']}</td>\n";

@@ -35,15 +35,15 @@ my $debug_history = 3;
 #    'connections',
 #    'device_l3_interfaces',
 #    'device_ports',
-#    'User_list',
-#    'User_auth',
-#    'Unknown_mac',
-#    'User_stats',
-#    'User_stats_full',
+#    'user_list',
+#    'user_auth',
+#    'unknown_mac',
+#    'user_stats',
+#    'user_stats_full',
 #    'dhcp_log',
 #    'worklog',
 #    'remote_syslog',
-#    'Traffic_detail',
+#    'traffic_detail',
 #);
 
 
@@ -113,24 +113,24 @@ foreach my $subnet (@subnets) {
 if ($day == 1) {
     log_info($dbh, 'Monthly amnesty started');
     db_log_info($dbh, "Unblocking all users blocked due to traffic quota");
-    do_sql($dbh, "UPDATE User_list SET blocked = 0");
-    do_sql($dbh, "UPDATE User_auth SET blocked = 0, changed = 1 WHERE blocked = 1 AND deleted = 0");
+    do_sql($dbh, "UPDATE user_list SET blocked = 0");
+    do_sql($dbh, "UPDATE user_auth SET blocked = 0, changed = 1 WHERE blocked = 1 AND deleted = 0");
     log_info($dbh, 'Monthly amnesty completed');
 } else {
     # Daily: unblock users whose monthly traffic is now below quota
     log_info($dbh, 'Daily traffic-based unblocking started');
 
     my $month_sql = "
-        SELECT User_list.id, User_list.login, SUM(traf_all) AS traf_sum, User_list.month_quota AS uquota
+        SELECT user_list.id, user_list.login, SUM(traf_all) AS traf_sum, user_list.month_quota AS uquota
         FROM (
-            SELECT User_stats.auth_id, SUM(byte_in + byte_out) AS traf_all
-            FROM User_stats
-            WHERE User_stats.`timestamp` >= $month_start AND User_stats.`timestamp` < $month_stop
-            GROUP BY User_stats.auth_id
-        ) AS V, User_auth, User_list
-        WHERE V.auth_id = User_auth.id
-          AND User_auth.user_id = User_list.id
-          AND User_list.blocked = 1
+            SELECT user_stats.auth_id, SUM(byte_in + byte_out) AS traf_all
+            FROM user_stats
+            WHERE user_stats.ts >= $month_start AND user_stats.ts < $month_stop
+            GROUP BY user_stats.auth_id
+        ) AS V, user_auth, user_list
+        WHERE V.auth_id = user_auth.id
+          AND user_auth.user_id = user_list.id
+          AND user_list.blocked = 1
         GROUP BY login
     ";
 
@@ -146,7 +146,7 @@ if ($day == 1) {
 # Clean expired DHCP leases for dynamic users (hotspot and default OU only)
 log_info($dbh, 'Cleaning DHCP leases with overdue expiration for dynamic hosts');
 
-my $users_sql = "SELECT * FROM User_auth WHERE deleted = 0 AND (`ou_id` = " . $default_user_ou_id . " OR `ou_id` = " . $default_hotspot_ou_id . ")";
+my $users_sql = "SELECT * FROM user_auth WHERE deleted = 0 AND (ou_id = " . $default_user_ou_id . " OR ou_id = " . $default_hotspot_ou_id . ")";
 my @users_auth = get_records_sql($dbh, $users_sql);
 foreach my $row (@users_auth) {
     # Skip if IP is not in any DHCP pool
@@ -163,7 +163,7 @@ foreach my $row (@users_auth) {
             delete_user_auth($dbh, $row->{id});
 
             # Also delete parent user if no other active sessions remain
-            my $u_count = get_count_records($dbh, 'User_auth', "deleted = 0 AND user_id = " . $row->{user_id});
+            my $u_count = get_count_records($dbh, 'user_auth', "deleted = 0 AND user_id = " . $row->{user_id});
             if (!$u_count) {
                 delete_user($dbh, $row->{'user_id'});
                 db_log_info($dbh, "Removed dynamic user id: $row->{'user_id'} due to DHCP lease timeout");
@@ -180,7 +180,7 @@ if ($history_dhcp) {
     my $clean_date = $now - $day_dur;
     my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
     log_info($dbh, 'Clearing outdated DHCP log records');
-    do_sql($dbh, "DELETE FROM dhcp_log WHERE `timestamp` < $clean_str");
+    do_sql($dbh, "DELETE FROM dhcp_log WHERE ts < $clean_str");
     log_verbose($dbh, "Removed DHCP log entries older than $clean_str");
 }
 
@@ -190,7 +190,7 @@ if ($connections_history) {
     my $day_dur = DateTime::Duration->new(days => $connections_history);
     my $clean_date = $now - $day_dur;
     my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
-    $users_sql = "SELECT id FROM User_auth WHERE `last_found` < $clean_str AND last_found > 0";
+    $users_sql = "SELECT id FROM user_auth WHERE last_found < $clean_str AND last_found > 0";
     log_debug($dbh, $users_sql) if ($debug);
     @users_auth = get_records_sql($dbh, $users_sql);
     foreach my $row (@users_auth) {
@@ -228,7 +228,7 @@ foreach my $row (@conn_ref) {
 
 # Clean empty dynamic/hotspot user accounts (no active authentications)
 log_info($dbh, 'Clearing empty user accounts and associated devices for dynamic users and hotspot');
-my $u_sql = "SELECT * FROM User_list AS U WHERE (U.ou_id = " . $default_hotspot_ou_id . " OR U.ou_id = " . $default_user_ou_id . ") AND (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted = 0 AND User_auth.user_id = U.id) = 0";
+my $u_sql = "SELECT * FROM user_list AS U WHERE (U.ou_id = " . $default_hotspot_ou_id . " OR U.ou_id = " . $default_user_ou_id . ") AND (SELECT COUNT(*) FROM user_auth WHERE user_auth.deleted = 0 AND user_auth.user_id = U.id) = 0";
 my @u_ref = get_records_sql($dbh, $u_sql);
 foreach my $row (@u_ref) {
     db_log_info($dbh, "Removing empty dynamic user with id: $row->{id}, login: $row->{login}");
@@ -238,7 +238,7 @@ foreach my $row (@u_ref) {
 # Clean empty non-permanent user accounts (if enabled in config)
 if ($config_ref{clean_empty_user}) {
     log_info($dbh, 'Clearing empty non-permanent user accounts and associated devices');
-    my $u_sql = "SELECT * FROM User_list AS U WHERE U.permanent = 0 AND (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted = 0 AND User_auth.user_id = U.id) = 0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id) = 0;";
+    my $u_sql = "SELECT * FROM user_list AS U WHERE U.permanent = 0 AND (SELECT COUNT(*) FROM user_auth WHERE user_auth.deleted = 0 AND user_auth.user_id = U.id) = 0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id) = 0;";
     my @u_ref = get_records_sql($dbh, $u_sql);
     foreach my $row (@u_ref) {
         db_log_info($dbh, "Removing empty user with id: $row->{id}, login: $row->{login}");
@@ -247,15 +247,15 @@ if ($config_ref{clean_empty_user}) {
 }
 
 # Remove orphaned auth rules (no corresponding user)
-do_sql($dbh, "DELETE FROM `auth_rules` WHERE user_id NOT IN (SELECT id FROM User_list)");
+do_sql($dbh, "DELETE FROM auth_rules WHERE user_id NOT IN (SELECT id FROM user_list)");
 
 # Clean unknown MAC entries that now belong to known users
 log_info($dbh, 'Removing unknown MAC records that are now associated with active users');
-$users_sql = "SELECT mac FROM User_auth WHERE deleted = 0";
+$users_sql = "SELECT mac FROM user_auth WHERE deleted = 0";
 @users_auth = get_records_sql($dbh, $users_sql);
 foreach my $row (@users_auth) {
     next if (!$row->{mac});
-    do_sql($dbh, "DELETE FROM Unknown_mac WHERE mac = '" . mac_simplify($row->{mac}) . "'");
+    do_sql($dbh, "DELETE FROM unknown_mac WHERE mac = '" . mac_simplify($row->{mac}) . "'");
 }
 
 # Clean old detailed traffic records (based on global $history setting)
@@ -264,7 +264,7 @@ if ($history) {
     my $clean_date = $now - $day_dur;
     my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
     log_info($dbh, "Cleaning traffic detail records older than $clean_str");
-    do_sql($dbh, "DELETE FROM Traffic_detail WHERE `timestamp` < $clean_str");
+    do_sql($dbh, "DELETE FROM traffic_detail WHERE ts < $clean_str");
 }
 
 # Clean verbose (non-info) worklog entries
@@ -273,7 +273,7 @@ if ($history_log_day) {
     my $clean_date = $now - $day_dur;
     my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
     log_info($dbh, "Cleaning VERBOSE worklog entries older than $clean_str");
-    do_sql($dbh, "DELETE FROM worklog WHERE level > $L_INFO AND `timestamp` < $clean_str");
+    do_sql($dbh, "DELETE FROM worklog WHERE level > $L_INFO AND ts < $clean_str");
 }
 
 # Clean debug-level worklog entries older than $debug_history days (hardcoded to 3)
@@ -282,7 +282,7 @@ if ($debug_history) {
     my $clean_date = $now - $day_dur;
     my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
     log_info($dbh, "Cleaning debug worklog entries older than $clean_str");
-    do_sql($dbh, "DELETE FROM worklog WHERE level >= $L_DEBUG AND `timestamp` < $clean_str");
+    do_sql($dbh, "DELETE FROM worklog WHERE level >= $L_DEBUG AND ts < $clean_str");
 }
 
 # Clean old remote syslog entries
@@ -291,7 +291,7 @@ if ($history_syslog_day) {
     my $clean_date = $now - $day_dur;
     my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
     log_info($dbh, "Cleaning syslog entries older than $clean_str");
-    do_sql($dbh, "DELETE FROM remote_syslog WHERE `date` < $clean_str");
+    do_sql($dbh, "DELETE FROM remote_syslog WHERE date < $clean_str");
 }
 
 # Clean old aggregated traffic statistics
@@ -300,7 +300,7 @@ if ($history_trafstat_day) {
     my $clean_date = $now - $day_dur;
     my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
     log_info($dbh, "Cleaning traffic statistics older than $clean_str");
-    do_sql($dbh, "DELETE FROM User_stats WHERE `timestamp` < $clean_str");
+    do_sql($dbh, "DELETE FROM user_stats WHERE ts < $clean_str");
 }
 
 # Clean old per-IP full traffic statistics (if retention is configured)
@@ -310,11 +310,11 @@ if ($iptraf_history) {
     my $clean_date = $now - $day_dur;
     my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
     log_info($dbh, "Cleaning full traffic statistics older than $clean_str");
-    do_sql($dbh, "DELETE FROM User_stats_full WHERE `timestamp` < $clean_str");
+    do_sql($dbh, "DELETE FROM user_stats_full WHERE ts < $clean_str");
 }
 
-# Clean dangling User_auth records (deleted, but with no MAC — likely artifacts)
-do_sql($dbh, "DELETE FROM User_auth WHERE (mac IS NULL OR mac = '') AND deleted = 1");
+# Clean dangling user_auth records (deleted, but with no MAC — likely artifacts)
+do_sql($dbh, "DELETE FROM user_auth WHERE (mac IS NULL OR mac = '') AND deleted = 1");
 
 # Ensure current user locations are recorded in mac_history
 my %connections;
@@ -325,7 +325,7 @@ foreach my $connection (@connections_list) {
 }
 
 # Build a set of currently active, non-empty MACs with valid connections
-my $auth_sql = "SELECT * FROM User_auth WHERE mac IS NOT NULL AND mac != '' AND deleted = 0 ORDER BY last_found DESC";
+my $auth_sql = "SELECT * FROM user_auth WHERE mac IS NOT NULL AND mac != '' AND deleted = 0 ORDER BY last_found DESC";
 my %auth_table;
 my @auth_full_list = get_records_sql($dbh, $auth_sql);
 foreach my $auth (@auth_full_list) {
@@ -337,7 +337,7 @@ foreach my $auth (@auth_full_list) {
     $auth_table{$auth_mac} = 1;
 
     # Check if location history already exists
-    my $h_sql = "SELECT * FROM mac_history WHERE mac = '$auth_mac' ORDER BY `timestamp` DESC LIMIT 1";
+    my $h_sql = "SELECT * FROM mac_history WHERE mac = '$auth_mac' ORDER BY ts DESC LIMIT 1";
     my $history = get_record_sql($dbh, $h_sql);
 
     my $cur_conn = $connections{$auth->{id}};
@@ -378,10 +378,10 @@ foreach my $auth (@auth_full_list) {
 #        my $opt_rf = $dbh->prepare($opt_sql) or die "Unable to prepare $opt_sql: " . $dbh->errstr;
 #        $opt_rf->execute();
 #        # Alternative (manual rebuild) is commented out:
-#        # CREATE TABLE `$table.new` LIKE $table;
-#        # INSERT INTO `$table.new` SELECT * FROM $table;
-#        # RENAME TABLE $table TO `$table.backup`, `$table.new` TO $table;
-#        # DROP TABLE `$table.backup`;
+#        # CREATE TABLE $table.new LIKE $table;
+#        # INSERT INTO $table.new SELECT * FROM $table;
+#        # RENAME TABLE $table TO $table.backup, $table.new TO $table;
+#        # DROP TABLE $table.backup;
 #    }
 #    log_info($dbh, 'Table optimization completed.');
 #}

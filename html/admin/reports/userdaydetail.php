@@ -6,7 +6,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 
-$usersip = get_record_sql($db_link, "SELECT ip,user_id,comments FROM User_auth WHERE User_auth.id=$id");
+$usersip = get_record_sql($db_link, "SELECT ip,user_id,comments FROM user_auth WHERE user_auth.id=$id");
 if (empty($usersip)) {
     header("location: /admin/reports/index-full.php");
     exit;
@@ -51,7 +51,7 @@ $ip_aton = ip2long($fip);
 $gateway_filter='';
 if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) AND"; }
 
-$fsql = "SELECT A.proto, A.src_ip, A.src_port, SUM(A.bytes) as tin FROM Traffic_detail A
+$fsql = "SELECT A.proto, A.src_ip, A.src_port, SUM(A.bytes) as tin FROM traffic_detail A
             WHERE $gateway_filter (auth_id='$id') and  `timestamp`>='$date1' and `timestamp`<'$date2' and (A.dst_ip='$ip_aton')
             GROUP BY A.src_ip, A.src_port, A.proto ORDER BY tin DESC LIMIT 0,10";
 $userdata = get_records_sql($db_link, $fsql);
@@ -81,7 +81,7 @@ foreach ($userdata as $row) {
 <td class="data" width=80><b><?php echo WEB_bytes; ?></b></td>
 </tr>
 <?php
-$fsql = "SELECT A.proto, A.dst_ip, A.dst_port, SUM(A.bytes) as tout FROM Traffic_detail A
+$fsql = "SELECT A.proto, A.dst_ip, A.dst_port, SUM(A.bytes) as tout FROM traffic_detail A
         WHERE $gateway_filter (auth_id='$id') and  `timestamp`>='$date1' and `timestamp`<'$date2' and (A.src_ip='$ip_aton')
         GROUP BY A.dst_ip, A.dst_port, A.proto ORDER BY tout DESC LIMIT 0,10";
 $userdata = get_records_sql($db_link, $fsql);

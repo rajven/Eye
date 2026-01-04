@@ -70,7 +70,7 @@ $result->{text} = trim($result->{text});
 return $result;
 }
 
-my @auth_list=get_records_sql($dbh,'SELECT * FROM User_auth WHERE deleted=0 and nagios=1');
+my @auth_list=get_records_sql($dbh,'SELECT * FROM user_auth WHERE deleted=0 and nagios=1');
 
 ##################################### User auth analyze ################################################
 
@@ -80,7 +80,7 @@ if (scalar(@auth_list)>0) {
         my $ip = $auth->{'ip'};
         $ip =~s/\/\d+$//g;
         #get user
-        my $login = get_record_sql($dbh,"SELECT * FROM User_list WHERE id=".$auth->{'user_id'});
+        my $login = get_record_sql($dbh,"SELECT * FROM user_list WHERE id=".$auth->{'user_id'});
         next if ($login->{ou_id} ne 5);
 
         my $cam_dev = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=".$auth->{'user_id'});

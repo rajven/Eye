@@ -52,7 +52,7 @@ my $users = new Net::Patricia;
 InitSubnets();
 
 #get userid list
-my $user_auth_list = $dbh->prepare( "SELECT id,ip,user_id,save_traf FROM User_auth where deleted=0 ORDER by user_id,ip" );
+my $user_auth_list = $dbh->prepare( "SELECT id,ip,user_id,save_traf FROM user_auth where deleted=0 ORDER by user_id,ip" );
 if ( !defined $user_auth_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
 
 $user_auth_list->execute;
@@ -138,7 +138,7 @@ if ($office_networks->match_string($l_src_ip)) {
         $stats{line}{user}++;
         $stats{pkt}{user_out}+=$l_packets;
         if ($save_detail and $user_stats{$out_user}{save_traf}) {
-            my $dSQL="INSERT INTO Traffic_detail (auth_id,router_id,timestamp,proto,src_ip,dst_ip,src_port,dst_port,bytes,pkt) VALUES($out_user,$router_id,$dbtime,'$l_proto',$l_src_ip_aton,$l_dst_ip_aton,'$l_src_port','$l_dst_port','$l_bytes','$l_packets')";
+            my $dSQL="INSERT INTO traffic_detail (auth_id,router_id,timestamp,proto,src_ip,dst_ip,src_port,dst_port,bytes,pkt) VALUES($out_user,$router_id,$dbtime,'$l_proto',$l_src_ip_aton,$l_dst_ip_aton,'$l_src_port','$l_dst_port','$l_bytes','$l_packets')";
             push (@batch_sql_traf,$dSQL);
             }
         }
@@ -155,7 +155,7 @@ if ($office_networks->match_string($l_dst_ip)) {
         $stats{pkt}{user_in}+=$l_packets;
         $user_found = 1;
         if ($save_detail and $user_stats{$in_user}{save_traf}) {
-            my $dSQL="INSERT INTO Traffic_detail (auth_id,router_id,timestamp,proto,src_ip,dst_ip,src_port,dst_port,bytes,pkt) VALUES($in_user,$router_id,$dbtime,'$l_proto',$l_src_ip_aton,$l_dst_ip_aton,'$l_src_port','$l_dst_port','$l_bytes','$l_packets')";
+            my $dSQL="INSERT INTO traffic_detail (auth_id,router_id,timestamp,proto,src_ip,dst_ip,src_port,dst_port,bytes,pkt) VALUES($in_user,$router_id,$dbtime,'$l_proto',$l_src_ip_aton,$l_dst_ip_aton,'$l_src_port','$l_dst_port','$l_bytes','$l_packets')";
             push (@batch_sql_traf,$dSQL);
             }
         }
@@ -195,7 +195,7 @@ $user_ip_aton=StrToIp($user_ip);
 my $auth_id=new_auth($dbh,$user_ip);
 next if (!$auth_id);
 
-my $new_user = get_record_sql($dbh,"SELECT * FROM User_auth WHERE id=$auth_id");
+my $new_user = get_record_sql($dbh,"SELECT * FROM user_auth WHERE id=$auth_id");
 
 $users->add_string($user_ip,$auth_id);
 $user_stats{$auth_id}{net}=$user_ip;
@@ -210,7 +210,7 @@ db_log_info($dbh,"Added user_auth id: $auth_id ip: $user_ip user_id: $new_user->
 
 if ($auth_id) {
         if ($save_detail) {
-            my $dSQL="INSERT INTO Traffic_detail (auth_id,router_id,timestamp,proto,src_ip,dst_ip,src_port,dst_port,bytes) VALUES($auth_id,$router_id,$dbtime,'$l_proto',$l_src_ip_aton,$l_dst_ip_aton,'$l_src_port','$l_dst_port','$l_bytes')";
+            my $dSQL="INSERT INTO traffic_detail (auth_id,router_id,timestamp,proto,src_ip,dst_ip,src_port,dst_port,bytes) VALUES($auth_id,$router_id,$dbtime,'$l_proto',$l_src_ip_aton,$l_dst_ip_aton,'$l_src_port','$l_dst_port','$l_bytes')";
             push (@batch_sql_traf,$dSQL);
             }
         if ($l_src_ip eq $user_ip) {
@@ -244,17 +244,17 @@ next if (!$user_stats{$row}{htime});
 
 #current stats
 
-my $tSQL="INSERT INTO User_stats_full (timestamp,auth_id,router_id,byte_in,byte_out,pkt_in,pkt_out,step) VALUES($flow_date,'$user_stats{$row}{id}','$router_id','$user_stats{$row}{in}','$user_stats{$row}{out}','$user_stats{$row}{pkt_in}','$user_stats{$row}{pkt_out}','$timeshift')";
+my $tSQL="INSERT INTO user_stats_full (timestamp,auth_id,router_id,byte_in,byte_out,pkt_in,pkt_out,step) VALUES($flow_date,'$user_stats{$row}{id}','$router_id','$user_stats{$row}{in}','$user_stats{$row}{out}','$user_stats{$row}{pkt_in}','$user_stats{$row}{pkt_out}','$timeshift')";
 push (@batch_sql_traf,$tSQL);
 
 #hour stats
 
 # get current stats
-my $sql = "SELECT id, byte_in, byte_out FROM User_stats
-WHERE `timestamp`>=$hour_date1 AND `timestamp`<$hour_date2 AND router_id=$router_id AND auth_id=$user_stats{$row}{id}";
+my $sql = "SELECT id, byte_in, byte_out FROM user_stats
+WHERE ts>=$hour_date1 AND ts<$hour_date2 AND router_id=$router_id AND auth_id=$user_stats{$row}{id}";
 my $hour_stat = get_record_sql($dbh,$sql);
 if (!$hour_stat) {
-    my $dSQL="INSERT INTO User_stats (timestamp,auth_id,router_id,byte_in,byte_out,pkt_in,pkt_out) VALUES($user_stats{$row}{htime},'$user_stats{$row}{id}','$router_id','$user_stats{$row}{in}','$user_stats{$row}{out}','$user_stats{$row}{pkt_in}','$user_stats{$row}{pkt_out}')";
+    my $dSQL="INSERT INTO user_stats (timestamp,auth_id,router_id,byte_in,byte_out,pkt_in,pkt_out) VALUES($user_stats{$row}{htime},'$user_stats{$row}{id}','$router_id','$user_stats{$row}{in}','$user_stats{$row}{out}','$user_stats{$row}{pkt_in}','$user_stats{$row}{pkt_out}')";
     push (@batch_sql_traf,$dSQL);
     next;
     }
@@ -262,7 +262,7 @@ if (!$hour_stat->{byte_in}) { $hour_stat->{byte_in}=0; }
 if (!$hour_stat->{byte_out}) { $hour_stat->{byte_out}=0; }
 $hour_stat->{byte_in} += $user_stats{$row}{in};
 $hour_stat->{byte_out} += $user_stats{$row}{out};
-my $ssql="UPDATE User_stats SET byte_in='".$hour_stat->{byte_in}."', byte_out='".$hour_stat->{byte_out}."' WHERE id=".$hour_stat->{id};
+my $ssql="UPDATE user_stats SET byte_in='".$hour_stat->{byte_in}."', byte_out='".$hour_stat->{byte_out}."' WHERE id=".$hour_stat->{id};
 my $res = $dbh->do($ssql);
 }
 

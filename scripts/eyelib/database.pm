@@ -274,7 +274,7 @@ if ($level eq $L_VERBOSE and $log_level >= $L_VERBOSE) { log_verbose($msg); $db_
 if ($level eq $L_DEBUG and $log_level >= $L_DEBUG) { log_debug($msg); return; }
 
 if ($db_log) {
-#my $new_id = do_sql($dbh, 'INSERT INTO User_list (login) VALUES (?)', 'Ivan');
+#my $new_id = do_sql($dbh, 'INSERT INTO user_list (login) VALUES (?)', 'Ivan');
 do_sql($db,'INSERT INTO worklog(customer,message,level,auth_id,ip) VALUES( ?, ?, ?, ?, ?)',$MY_NAME,$msg,$level,$auth_id,$config_ref{self_ip});
 }
 }
@@ -560,7 +560,6 @@ sub get_option_safe {
     return if (!$option_id);
     return if (!$db);
     
-    # Один безопасный запрос вместо двух
     my $sql = q{
         SELECT 
             COALESCE(c.value, co.default_value) as value,
@@ -712,7 +711,7 @@ my $found_changed=0;
 my $rec_id = 0;
 my $dns_changed = 0;
 
-if ($table eq "User_auth") {
+if ($table eq "user_auth") {
 $rec_id = $old_record->{'id'} if ($old_record->{'id'});
 #disable update field 'created_by'
 if ($old_record->{'created_by'} and exists ($record->{'created_by'})) { delete $record->{'created_by'}; }
@@ -734,7 +733,7 @@ if ($new_value!~/^$old_value$/) {
 $diff = $diff." $field => $record->{$field} (old: $old_record->{$field}),";
 # Разные методы экранирования для разных БД
 if ($config_ref{DBTYPE} eq 'mysql') {
-$change_str = $change_str." `$field`=".$db->quote($record->{$field}).",";
+$change_str = $change_str." $field=".$db->quote($record->{$field}).",";
 } else {
 $change_str = $change_str." \"$field\"=".$db->quote($record->{$field}).",";
 }
@@ -745,7 +744,7 @@ $found_changed++;
 if ($found_changed) {
 $change_str=~s/\,$//;
 $diff=~s/\,$//;
-if ($table eq 'User_auth') {
+if ($table eq 'user_auth') {
 $change_str .= ", changed_time='".GetNowTime()."'";
 if ($dns_changed) {
 my $del_dns;
@@ -788,7 +787,7 @@ insert_record($db,'dns_queue',$new_dns);
 }
 }
 }
-if ($table eq 'User_auth_alias') {
+if ($table eq 'user_auth_alias') {
 if ($dns_changed) {
 my $del_dns;
 if ($old_record->{'alias'} and $old_record->{'alias'}!~/\.$/) {
@@ -841,7 +840,7 @@ log_error("No database connection available");
 return;
 }
 
-if ($table eq "User_auth") {
+if ($table eq "user_auth") {
 foreach my $field (keys %$record) {
 if (exists $acl_fields{$field}) { $record->{changed}="1"; }
 if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
@@ -857,7 +856,7 @@ $new_value=~s/\"//g;
 $record->{$field} = $new_value;
 # Разные методы экранирования имен полей для разных БД
 if ($config_ref{DBTYPE} eq 'mysql') {
-$fields = $fields."`$field`,";
+$fields = $fields."$field,";
 } else {
 $fields = $fields."\"$field\",";
 }
@@ -872,9 +871,9 @@ $new_str=~s/,$//;
 my $sSQL = "INSERT INTO $table($fields) VALUES($values)";
 my $result = do_sql($db,$sSQL);
 if ($result) {
-$rec_id = $result if ($table eq "User_auth");
+$rec_id = $result if ($table eq "user_auth");
 $new_str='id: '.$result.' '.$new_str;
-if ($table eq 'User_auth_alias' and $dns_changed) {
+if ($table eq 'user_auth_alias' and $dns_changed) {
 if ($record->{'alias'} and $record->{'alias'}!~/\.$/) {
 my $add_dns;
 $add_dns->{'name_type'}='CNAME';
@@ -885,7 +884,7 @@ $add_dns->{'auth_id'}=$record->{'auth_id'};
 insert_record($db,'dns_queue',$add_dns);
 }
 }
-if ($table eq 'User_auth' and $dns_changed) {
+if ($table eq 'user_auth' and $dns_changed) {
 if ($record->{'dns_name'} and $record->{'ip'} and $dns_changed and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
 my $add_dns;
 $add_dns->{'name_type'}='A';
@@ -936,14 +935,14 @@ $diff = $diff." $field => $old_record->{$field},";
 }
 $diff=~s/,$//;
 
-if ($table eq 'User_auth') {
+if ($table eq 'user_auth') {
 $rec_id = $old_record->{'id'} if ($old_record->{'id'});
 }
 
 db_log_debug($db,'Delete record from table  '.$table.' value: '.$diff, $rec_id);
 #never delete user ip record!
-if ($table eq 'User_auth') {
-my $sSQL = "UPDATE User_auth SET changed=1, deleted=1, changed_time='".GetNowTime()."' WHERE ".$filter;
+if ($table eq 'user_auth') {
+my $sSQL = "UPDATE user_auth SET changed=1, deleted=1, changed_time='".GetNowTime()."' WHERE ".$filter;
 my $ret = do_sql($db,$sSQL);
 if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
 my $del_dns;
@@ -966,9 +965,9 @@ insert_record($db,'dns_queue',$del_dns);
 return $ret;
 }
 
-if ($table eq 'User_list' and $old_record->{'permanent'}) { return; }
+if ($table eq 'user_list' and $old_record->{'permanent'}) { return; }
 
-if ($table eq 'User_auth_alias') {
+if ($table eq 'user_auth_alias') {
 if ($old_record->{'alias'} and $old_record->{'auth_id'} and $old_record->{'alias'}!~/\.$/) {
 my $del_dns;
 $del_dns->{'name_type'}='CNAME';

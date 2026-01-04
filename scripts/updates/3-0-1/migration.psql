@@ -1,0 +1,70 @@
+-- Переименование таблиц в нижний регистр (snake_case)
+
+ALTER TABLE "Customers" RENAME TO customers;
+ALTER TABLE "User_auth" RENAME TO user_auth;
+ALTER TABLE "User_list" RENAME TO user_list;
+ALTER TABLE "User_stats" RENAME TO user_stats;
+ALTER TABLE "User_stats_full" RENAME TO user_stats_full;
+ALTER TABLE "User_auth_alias" RENAME TO user_auth_alias;
+ALTER TABLE "Wan_stats" RENAME TO wan_stats;
+ALTER TABLE "Traffic_detail" RENAME TO traffic_detail;
+ALTER TABLE "Unknown_mac" RENAME TO unknown_mac;
+ALTER TABLE "Group_filters" RENAME TO group_filters;
+ALTER TABLE "Group_list" RENAME TO group_list;
+ALTER TABLE "Filter_list" RENAME TO filter_list;
+ALTER TABLE "Queue_list" RENAME TO queue_list;
+
+-- wan_stats: in/out → bytes_in/bytes_out
+ALTER TABLE wan_stats RENAME COLUMN "in" TO bytes_in;
+ALTER TABLE wan_stats RENAME COLUMN "out" TO bytes_out;
+
+-- group_filters: order → rule_order
+ALTER TABLE group_filters RENAME COLUMN "order" TO rule_order;
+
+-- user_auth: client-id → client_id
+ALTER TABLE user_auth RENAME COLUMN "client-id" TO client_id;
+
+-- dhcp_log: дефисы → подчёркивания
+ALTER TABLE dhcp_log RENAME COLUMN "client-id" TO client_id;
+ALTER TABLE dhcp_log RENAME COLUMN "circuit-id" TO circuit_id;
+ALTER TABLE dhcp_log RENAME COLUMN "remote-id" TO remote_id;
+
+-- Точки в именах → подчёркивания
+ALTER TABLE acl RENAME COLUMN "description.english" TO description_english;
+ALTER TABLE acl RENAME COLUMN "description.russian" TO description_russian;
+ALTER TABLE config_options RENAME COLUMN "description.english" TO description_english;
+ALTER TABLE config_options RENAME COLUMN "description.russian" TO description_russian;
+ALTER TABLE device_types RENAME COLUMN "name.russian" TO name_russian;
+ALTER TABLE device_types RENAME COLUMN "name.english" TO name_english;
+
+-- timestamp → ts
+ALTER TABLE dhcp_log RENAME COLUMN timestamp TO ts;
+ALTER TABLE dhcp_queue RENAME COLUMN timestamp TO ts;
+ALTER TABLE dns_cache RENAME COLUMN timestamp TO ts;
+ALTER TABLE mac_history RENAME COLUMN timestamp TO ts;
+ALTER TABLE user_auth RENAME COLUMN timestamp TO ts;
+ALTER TABLE user_stats RENAME COLUMN timestamp TO ts;
+ALTER TABLE user_stats_full RENAME COLUMN timestamp TO ts;
+ALTER TABLE worklog RENAME COLUMN timestamp TO ts;
+
+-- time/date → ts
+ALTER TABLE wan_stats RENAME COLUMN time TO ts;
+ALTER TABLE remote_syslog RENAME COLUMN date TO ts;
+
+-- comment → description (во всех таблицах)
+ALTER TABLE acl RENAME COLUMN comment TO description;
+ALTER TABLE building RENAME COLUMN comment TO description;
+ALTER TABLE devices RENAME COLUMN comment TO description;
+ALTER TABLE filter_instances RENAME COLUMN comment TO description;
+ALTER TABLE filter_list RENAME COLUMN comment TO description;
+ALTER TABLE group_list RENAME COLUMN comment TO description;
+ALTER TABLE ou RENAME COLUMN comment TO description;
+ALTER TABLE subnets RENAME COLUMN comment TO description;
+ALTER TABLE user_auth RENAME COLUMN comments TO description;
+ALTER TABLE user_list RENAME COLUMN comment TO description;
+ALTER TABLE vendors RENAME COLUMN comment TO description;
+
+-- type → уточнённые имена
+ALTER TABLE config_options RENAME COLUMN type TO option_type;
+ALTER TABLE dns_queue RENAME COLUMN type TO operation_type;
+ALTER TABLE filter_list RENAME COLUMN type TO filter_type;

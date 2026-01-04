@@ -23,7 +23,7 @@ unset($_POST);
 $port = get_record($db_link, 'device_ports', "id=" . $id);
 $device_id = $port['device_id'];
 $device = get_record($db_link, 'devices', "id=" . $device_id);
-$user_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=" . $device['user_id']);
+$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $device['user_id']);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
 

@@ -1,15 +1,15 @@
 -- Импорт данных в PostgreSQL (сохранены оригинальные названия)
 
 -- ACL (Access Control List)
-INSERT INTO acl (id, name, "description.english", "description.russian") 
+INSERT INTO acl (id, name, description_english, description_russian) 
 VALUES 
 (1, 'Full access', 'Full access', 'Полный доступ'),
 (2, 'Operator', 'Editing parameters that are not related to access rights', 'Редактирование параметров, не связанных с правами доступа'),
 (3, 'View only', 'View only', 'Только просмотр')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
-    "description.english" = EXCLUDED."description.english",
-    "description.russian" = EXCLUDED."description.russian";
+    description_english = EXCLUDED.description_english,
+    description_russian = EXCLUDED.description_russian;
 
 -- Buildings
 INSERT INTO building (id, name, comment)
@@ -19,7 +19,7 @@ ON CONFLICT (id) DO UPDATE SET
     comment = EXCLUDED.comment;
 
 -- Configuration options
-INSERT INTO config_options (id, option_name, "description.russian", "description.english", draft, uniq, type, default_value, min_value, max_value)
+INSERT INTO config_options (id, option_name, description_russian, description_english, draft, uniq, type, default_value, min_value, max_value)
 VALUES
 (1, 'KB', 'Еденица измерения трафика - Килобайт (0) или кибибайт (1,default)', 'Traffic measurement unit - Kilobyte (1000b) or kibibyte (1024b,default)', 0, 1, 'bool', '1024', 0, 1),
 (3, 'dns server', 'ip-адрес DNS-сервера', 'DNS server ip address', 0, 1, 'text', '127.0.0.1', 0, 0),
@@ -83,8 +83,8 @@ VALUES
 (73, 'check_computer_exists', 'Проверять существование компьютера в домене перед обновлением DNS по DHCP запросу', 'Verify the existence of a computer in the domain before updating DNS by DHCP request', 0, 1, 'bool', '1', 0, 0)
 ON CONFLICT (id) DO UPDATE SET
     option_name = EXCLUDED.option_name,
-    "description.russian" = EXCLUDED."description.russian",
-    "description.english" = EXCLUDED."description.english",
+    description_russian = EXCLUDED.description_russian,
+    description_english = EXCLUDED.description_english,
     draft = EXCLUDED.draft,
     uniq = EXCLUDED.uniq,
     type = EXCLUDED.type,
@@ -122,7 +122,7 @@ ON CONFLICT (id) DO UPDATE SET
     value = EXCLUDED.value;
 
 -- System users/administrators
-INSERT INTO Customers (id, Login, comment, password, api_key, rights)
+INSERT INTO customers (id, Login, comment, password, api_key, rights)
 VALUES (1, 'admin', 'Administrator', '$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG', 'c3284d0f94606de1fd2af172aba15bf31', 1)
 ON CONFLICT (id) DO UPDATE SET
     Login = EXCLUDED.Login,
@@ -257,7 +257,7 @@ ON CONFLICT (id) DO UPDATE SET
     nagios_template = EXCLUDED.nagios_template;
 
 -- Device types
-INSERT INTO device_types (id, "name.russian", "name.english")
+INSERT INTO device_types (id, name_russian, name_english)
 VALUES
 (0, 'Роутер', 'Router'),
 (1, 'Свич', 'Switch'),
@@ -266,8 +266,8 @@ VALUES
 (4, 'Точка доступа', 'WiFi Access Point'),
 (5, 'Сетевое устройство', 'Network device')
 ON CONFLICT (id) DO UPDATE SET
-    "name.russian" = EXCLUDED."name.russian",
-    "name.english" = EXCLUDED."name.english";
+    name_russian = EXCLUDED.name_russian,
+    name_english = EXCLUDED.name_english;
 
 -- Filter instances
 INSERT INTO filter_instances (id, name, comment)
@@ -277,7 +277,7 @@ ON CONFLICT (id) DO UPDATE SET
     comment = EXCLUDED.comment;
 
 -- Filter groups
-INSERT INTO Group_list (id, instance_id, group_name, comment)
+INSERT INTO group_list (id, instance_id, group_name, comment)
 VALUES
 (0, 1, 'default', 'Forbidden all'),
 (1, 1, 'Allow all', 'Allowed all'),
@@ -321,7 +321,7 @@ ON CONFLICT (id) DO UPDATE SET
     parent_id = EXCLUDED.parent_id;
 
 -- Traffic shaping queues
-INSERT INTO Queue_list (id, queue_name, Download, Upload)
+INSERT INTO queue_list (id, queue_name, Download, Upload)
 VALUES
 (0, 'unlimited', 0, 0),
 (1, '2M/2M', 2048, 2048),
@@ -422,7 +422,7 @@ ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name;
 
 -- Filter rules list
-INSERT INTO Filter_list (id, name, comment, proto, dst, dstport, srcport, type)
+INSERT INTO filter_list (id, name, comment, proto, dst, dstport, srcport, type)
 VALUES
 (1, 'pop3', NULL, 'tcp', '0/0', '110', NULL, 0),
 (3, 'http', NULL, 'tcp', '0/0', '80', NULL, 0),
@@ -466,7 +466,7 @@ ON CONFLICT (id) DO UPDATE SET
     type = EXCLUDED.type;
 
 -- Filter group assignments
-INSERT INTO Group_filters (id, group_id, filter_id, "order", action)
+INSERT INTO group_filters (id, group_id, filter_id, "order", action)
 VALUES
 (1, 2, 90, 1, 1),
 (2, 2, 91, 2, 1),
@@ -500,17 +500,17 @@ SELECT setval(pg_get_serial_sequence('acl', 'id'), COALESCE((SELECT MAX(id) FROM
 SELECT setval(pg_get_serial_sequence('building', 'id'), COALESCE((SELECT MAX(id) FROM building), 0) + 1);
 SELECT setval(pg_get_serial_sequence('config_options', 'id'), COALESCE((SELECT MAX(id) FROM config_options), 0) + 1);
 SELECT setval(pg_get_serial_sequence('config', 'id'), COALESCE((SELECT MAX(id) FROM config), 0) + 1);
-SELECT setval(pg_get_serial_sequence('Customers', 'id'), COALESCE((SELECT MAX(id) FROM Customers), 0) + 1);
+SELECT setval(pg_get_serial_sequence('customers', 'id'), COALESCE((SELECT MAX(id) FROM customers), 0) + 1);
 SELECT setval(pg_get_serial_sequence('device_models', 'id'), COALESCE((SELECT MAX(id) FROM device_models), 0) + 1);
 SELECT setval(pg_get_serial_sequence('device_types', 'id'), COALESCE((SELECT MAX(id) FROM device_types), 0) + 1);
 SELECT setval(pg_get_serial_sequence('filter_instances', 'id'), COALESCE((SELECT MAX(id) FROM filter_instances), 0) + 1);
-SELECT setval(pg_get_serial_sequence('Group_list', 'id'), COALESCE((SELECT MAX(id) FROM Group_list), 0) + 1);
+SELECT setval(pg_get_serial_sequence('group_list', 'id'), COALESCE((SELECT MAX(id) FROM group_list), 0) + 1);
 SELECT setval(pg_get_serial_sequence('OU', 'id'), COALESCE((SELECT MAX(id) FROM OU), 0) + 1);
-SELECT setval(pg_get_serial_sequence('Queue_list', 'id'), COALESCE((SELECT MAX(id) FROM Queue_list), 0) + 1);
+SELECT setval(pg_get_serial_sequence('queue_list', 'id'), COALESCE((SELECT MAX(id) FROM queue_list), 0) + 1);
 SELECT setval(pg_get_serial_sequence('subnets', 'id'), COALESCE((SELECT MAX(id) FROM subnets), 0) + 1);
 SELECT setval(pg_get_serial_sequence('vendors', 'id'), COALESCE((SELECT MAX(id) FROM vendors), 0) + 1);
-SELECT setval(pg_get_serial_sequence('Filter_list', 'id'), COALESCE((SELECT MAX(id) FROM Filter_list), 0) + 1);
-SELECT setval(pg_get_serial_sequence('Group_filters', 'id'), COALESCE((SELECT MAX(id) FROM Group_filters), 0) + 1);
+SELECT setval(pg_get_serial_sequence('filter_list', 'id'), COALESCE((SELECT MAX(id) FROM filter_list), 0) + 1);
+SELECT setval(pg_get_serial_sequence('group_filters', 'id'), COALESCE((SELECT MAX(id) FROM group_filters), 0) + 1);
 
 -- Информация о завершении импорта
 DO $$
@@ -522,16 +522,16 @@ BEGIN
     RAISE NOTICE '  - building: %', (SELECT COUNT(*) FROM building);
     RAISE NOTICE '  - config_options: %', (SELECT COUNT(*) FROM config_options);
     RAISE NOTICE '  - config: %', (SELECT COUNT(*) FROM config);
-    RAISE NOTICE '  - Customers: %', (SELECT COUNT(*) FROM Customers);
+    RAISE NOTICE '  - customers: %', (SELECT COUNT(*) FROM customers);
     RAISE NOTICE '  - device_models: %', (SELECT COUNT(*) FROM device_models);
     RAISE NOTICE '  - device_types: %', (SELECT COUNT(*) FROM device_types);
     RAISE NOTICE '  - filter_instances: %', (SELECT COUNT(*) FROM filter_instances);
-    RAISE NOTICE '  - Group_list: %', (SELECT COUNT(*) FROM Group_list);
+    RAISE NOTICE '  - group_list: %', (SELECT COUNT(*) FROM group_list);
     RAISE NOTICE '  - OU: %', (SELECT COUNT(*) FROM OU);
-    RAISE NOTICE '  - Queue_list: %', (SELECT COUNT(*) FROM Queue_list);
+    RAISE NOTICE '  - queue_list: %', (SELECT COUNT(*) FROM queue_list);
     RAISE NOTICE '  - subnets: %', (SELECT COUNT(*) FROM subnets);
     RAISE NOTICE '  - vendors: %', (SELECT COUNT(*) FROM vendors);
-    RAISE NOTICE '  - Filter_list: %', (SELECT COUNT(*) FROM Filter_list);
-    RAISE NOTICE '  - Group_filters: %', (SELECT COUNT(*) FROM Group_filters);
+    RAISE NOTICE '  - filter_list: %', (SELECT COUNT(*) FROM filter_list);
+    RAISE NOTICE '  - group_filters: %', (SELECT COUNT(*) FROM group_filters);
     RAISE NOTICE '  - version: %', (SELECT COUNT(*) FROM version);
 END $$;

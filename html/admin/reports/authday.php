@@ -6,8 +6,8 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
-$auth=get_record_sql($db_link,'SELECT * FROM User_auth WHERE id='.$id);
-$user=get_record_sql($db_link,'SELECT * FROM User_list WHERE id='.$auth['user_id']);
+$auth=get_record_sql($db_link,'SELECT * FROM user_auth WHERE id='.$id);
+$user=get_record_sql($db_link,'SELECT * FROM user_list WHERE id='.$auth['user_id']);
 
 ?>
 <div id="cont">
@@ -56,7 +56,7 @@ if ($days_shift >730) { $display_date_format='%Y'; }
 $sSQL = "SELECT router_id, DATE_FORMAT(`timestamp`,'$display_date_format') as tHour, 
          SUM(`byte_in`) as byte_in_sum, SUM(`byte_out`) as byte_out_sum,
          MAX(ROUND(`pkt_in`/`step`)) as pkt_in_max, MAX(ROUND(`pkt_out`/`step`)) as pkt_out_max
-         FROM User_stats_full WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' AND auth_id=$id";
+         FROM user_stats_full WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' AND auth_id=$id";
 if ($rgateway == 0) {
     $sSQL = $sSQL . " GROUP BY DATE_FORMAT(`timestamp`,'$display_date_format'),router_id ORDER BY tHour,router_id";
 } else {

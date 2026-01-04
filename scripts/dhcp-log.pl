@@ -211,7 +211,7 @@ sub run {
                         $t_remote_id = mac_splitted(isc_mac_simplify($t_remote_id));
 
                         my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
-                                     "FROM `devices` AS D, `User_auth` AS A " .
+                                     "FROM devices AS D, user_auth AS A " .
                                      "WHERE D.user_id = A.User_id AND D.ip = A.ip AND A.deleted = 0 " .
                                      "AND A.mac = '$t_remote_id'";
                         log_debug("SQL (по decoded_remote_id): $devSQL");
@@ -220,8 +220,8 @@ sub run {
                         if ($switch) {
                             $remote_id = $t_remote_id;
                             $circuit_id = $decoded_circuit_id;
-                            $dhcp_record->{'circuit-id'} = $circuit_id;
-                            $dhcp_record->{'remote-id'} = $remote_id;
+                            $dhcp_record->{circuit_id} = $circuit_id;
+                            $dhcp_record->{remote_id} = $remote_id;
                             log_debug("Коммутатор найден по decoded_remote_id: " . $switch->{device_name});
                         }
                     }
@@ -233,7 +233,7 @@ sub run {
                         $t_remote_id = mac_splitted(isc_mac_simplify($t_remote_id));
 
                         my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
-                                     "FROM `devices` AS D, `User_auth` AS A " .
+                                     "FROM devices AS D, user_auth AS A " .
                                      "WHERE D.user_id = A.User_id AND D.ip = A.ip AND A.deleted = 0 " .
                                      "AND A.mac = '$t_remote_id'";
                         log_debug("SQL (по remote_id): $devSQL");
@@ -241,8 +241,8 @@ sub run {
 
                         if ($switch) {
                             $remote_id = $t_remote_id;
-                            $dhcp_record->{'circuit-id'} = $circuit_id;
-                            $dhcp_record->{'remote-id'} = $remote_id;
+                            $dhcp_record->{circuit_id} = $circuit_id;
+                            $dhcp_record->{remote_id} = $remote_id;
                             log_debug("Коммутатор найден по remote_id: " . $switch->{device_name});
                         }
                     }
@@ -252,7 +252,7 @@ sub run {
                         my @id_words = split(/ /, $remote_id);
                         if ($id_words[0]) {
                             my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
-                                         "FROM `devices` AS D, `User_auth` AS A " .
+                                         "FROM devices AS D, user_auth AS A " .
                                          "WHERE D.user_id = A.User_id AND D.ip = A.ip AND A.deleted = 0 " .
                                          "AND D.device_name LIKE '$id_words[0]%'";
                             log_debug("SQL (по имени устройства из remote_id): $devSQL");
@@ -268,7 +268,7 @@ sub run {
                         my @id_words = split(/ /, $circuit_id);
                         if ($id_words[0]) {
                             my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
-                                         "FROM `devices` AS D, `User_auth` AS A " .
+                                         "FROM devices AS D, user_auth AS A " .
                                          "WHERE D.user_id = A.User_id AND D.ip = A.ip AND A.deleted = 0 " .
                                          "AND D.device_name LIKE '$id_words[0]%'";
                             log_debug("SQL (по имени из circuit_id — MikroTik?): $devSQL");
@@ -276,8 +276,8 @@ sub run {
                             if ($switch) {
                                 # MikroTik часто путает remote-id и circuit-id — меняем местами
                                 ($circuit_id, $remote_id) = ($remote_id, $t_circuit_id);
-                                $dhcp_record->{'circuit-id'} = $circuit_id;
-                                $dhcp_record->{'remote-id'} = $remote_id;
+                                $dhcp_record->{circuit_id} = $circuit_id;
+                                $dhcp_record->{remote_id} = $remote_id;
                                 log_debug("Обнаружен MikroTik — поменяли местами circuit-id и remote-id");
                             }
                         }

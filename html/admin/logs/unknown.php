@@ -25,7 +25,7 @@ if ($f_id > 0) { $where_dev = " and D.id=$f_id "; }
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM Unknown_mac AS U, devices AS D, device_ports AS DP  WHERE D.device_type<=2 and U.device_id = D.id  AND U.port_id = DP.id AND U.timestamp>='$date1' AND U.timestamp<'$date2' $where_dev";
+$countSQL="SELECT Count(*) FROM unknown_mac AS U, devices AS D, device_ports AS DP  WHERE D.device_type<=2 and U.device_id = D.id  AND U.port_id = DP.id AND U.timestamp>='$date1' AND U.timestamp<'$date2' $where_dev";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -43,7 +43,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 </tr>
 <?php
 
-$sSQL = "SELECT U.mac, U.timestamp, DP.port, D.device_name FROM Unknown_mac AS U, devices AS D, device_ports AS DP  WHERE D.device_type<=2 and U.device_id = D.id  AND U.port_id = DP.id AND U.timestamp>='$date1' AND U.timestamp<'$date2' $where_dev ORDER BY U.mac LIMIT $start,$displayed";
+$sSQL = "SELECT U.mac, U.timestamp, DP.port, D.device_name FROM unknown_mac AS U, devices AS D, device_ports AS DP  WHERE D.device_type<=2 and U.device_id = D.id  AND U.port_id = DP.id AND U.timestamp>='$date1' AND U.timestamp<'$date2' $where_dev ORDER BY U.mac LIMIT $start,$displayed";
 $maclog = get_records_sql($db_link, $sSQL);
 foreach ($maclog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";

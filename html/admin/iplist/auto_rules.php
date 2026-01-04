@@ -94,7 +94,7 @@ foreach ( $t_auth_rules as $row ) {
     print "<td class=\"data\">".$row['rule']."</td>\n";
     print "<td colspan=2 class=\"data\" align=left>";
     if (!empty($row['user_id'])) {
-	$user_info=get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$row['user_id']);
+	$user_info=get_record_sql($db_link,"SELECT * FROM user_list WHERE id=".$row['user_id']);
 	if (!empty($user_info)) { print "User: &nbsp"; print_url($user_info['login'],'/admin/users/edituser.php?id='.$user_info['id']); }
 	}
     if (!empty($row['ou_id'])) {

@@ -11,7 +11,7 @@ if (isset($_POST["create"])) {
     if (isset($fname)) {
         $new['name'] = $fname;
         $new['type'] = $ftype;
-        $new_id = insert_record($db_link, "Filter_list", $new);
+        $new_id = insert_record($db_link, "filter_list", $new);
         header("Location: editfilter.php?id=$new_id");
         exit;
     }
@@ -21,8 +21,8 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["fid"];
     foreach ($fid as $key => $val) {
         if ($val) {
-            run_sql($db_link, "DELETE FROM Group_filters WHERE filter_id=" . $val);
-            delete_record($db_link, "Filter_list", "id=$val");
+            run_sql($db_link, "DELETE FROM group_filters WHERE filter_id=" . $val);
+            delete_record($db_link, "filter_list", "id=$val");
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -48,7 +48,7 @@ print_filters_submenu($page_url);
                 <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>"></td>
             </tr>
             <?php
-            $filters = get_records_sql($db_link, 'SELECT * FROM Filter_list ORDER BY name');
+            $filters = get_records_sql($db_link, 'SELECT * FROM filter_list ORDER BY name');
             foreach ($filters as $row) {
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=" . $row['id'] . "></td>\n";

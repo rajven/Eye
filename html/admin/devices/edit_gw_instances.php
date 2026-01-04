@@ -5,7 +5,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $device=get_record($db_link,'devices',"id=".$id);
-$user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
+$user_info = get_record_sql($db_link,"SELECT * FROM user_list WHERE id=".$device['user_id']);
 
 if (isset($_POST["s_remove"])) {
     $s_id = $_POST["gs_id"];

@@ -50,6 +50,10 @@ if ($eye_release eq $config_ref{version}) { print "Already updated!\n"; exit; }
 
 print 'Current version: '.$config_ref{version}.' upgrade to: '.$eye_release."\n";
 
+#1 - mysql
+#0 - pgsql
+my $db_type = ($config_ref{DBTYPE} eq 'mysql');
+
 my $old_version_index = $old_releases_h{$config_ref{version}} + 1;
 my $stage = 1;
 
@@ -73,7 +77,15 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
             }
         }
     #change database schema
-    my @sql_patches = glob($dir_name.'/*.sql');
+    my @sql_patches;
+    if ($db_type) {
+        my @sql_patches1 = glob($dir_name.'/*.sql');
+        my @sql_patches1 = glob($dir_name.'/*.msql');
+        push(@sql_patches,@sql_patches1);
+        push(@sql_patches,@sql_patches2);
+        } else {
+        @sql_patches = glob($dir_name.'/*.psql');
+        }
     if (@sql_patches and scalar @sql_patches) {
         foreach my $patch (@sql_patches) {
             next if (!$patch or ! -e $patch);
@@ -102,7 +114,7 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
             }
         }
     #change version
-    do_sql($dbh,'UPDATE version SET `version`="'.$old_releases[$i].'"');
+    do_sql($dbh,'UPDATE version SET version="'.$old_releases[$i].'"');
 }
 
 print "Done!\n";

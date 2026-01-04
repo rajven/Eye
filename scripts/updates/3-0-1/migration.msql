@@ -1,0 +1,78 @@
+-- Переименование таблиц в нижний регистр
+
+RENAME TABLE
+  Customers TO customers,
+  User_auth TO user_auth,
+  User_list TO user_list,
+  User_stats TO user_stats,
+  User_stats_full TO user_stats_full,
+  User_auth_alias TO user_auth_alias,
+  Wan_stats TO wan_stats,
+  Traffic_detail TO traffic_detail,
+  Unknown_mac TO unknown_mac,
+  Group_filters TO group_filters,
+  Group_list TO group_list,
+  Filter_list TO filter_list,
+  Queue_list TO queue_list;
+
+ALTER TABLE wan_stats
+  CHANGE COLUMN `in` bytes_in BIGINT NOT NULL DEFAULT 0,
+  CHANGE COLUMN `out` bytes_out BIGINT NOT NULL DEFAULT 0;
+
+ALTER TABLE group_filters
+  CHANGE COLUMN `order` rule_order INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE user_auth
+  CHANGE COLUMN `client-id` client_id VARCHAR(250);
+
+ALTER TABLE dhcp_log
+  CHANGE COLUMN `client-id` client_id VARCHAR(250),
+  CHANGE COLUMN `circuit-id` circuit_id VARCHAR(255),
+  CHANGE COLUMN `remote-id` remote_id VARCHAR(255);
+
+-- Точки в именах
+ALTER TABLE acl
+  CHANGE COLUMN `description.english` description_english VARCHAR(250) NOT NULL,
+  CHANGE COLUMN `description.russian` description_russian VARCHAR(250) NOT NULL;
+
+ALTER TABLE config_options
+  CHANGE COLUMN `description.english` description_english TEXT,
+  CHANGE COLUMN `description.russian` description_russian TEXT;
+
+ALTER TABLE device_types
+  CHANGE COLUMN `name.russian` name_russian VARCHAR(50),
+  CHANGE COLUMN `name.english` name_english VARCHAR(50);
+
+-- timestamp → ts
+ALTER TABLE dhcp_log        CHANGE COLUMN `timestamp` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE dhcp_queue      CHANGE COLUMN `timestamp` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE dns_cache       CHANGE COLUMN `timestamp` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE mac_history     CHANGE COLUMN `timestamp` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE user_auth       CHANGE COLUMN `timestamp` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE user_stats      CHANGE COLUMN `timestamp` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE user_stats_full CHANGE COLUMN `timestamp` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE worklog         CHANGE COLUMN `timestamp` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- time/date → ts
+ALTER TABLE wan_stats       CHANGE COLUMN `time` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE remote_syslog   CHANGE COLUMN `date` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- comment → description
+ALTER TABLE acl             CHANGE COLUMN `comment` description VARCHAR(250);
+ALTER TABLE building        CHANGE COLUMN `comment` description VARCHAR(250);
+ALTER TABLE devices         CHANGE COLUMN `comment` description VARCHAR(255);
+ALTER TABLE filter_instances CHANGE COLUMN `comment` description VARCHAR(200);
+ALTER TABLE filter_list     CHANGE COLUMN `comment` description VARCHAR(250);
+ALTER TABLE group_list      CHANGE COLUMN `comment` description VARCHAR(250);
+ALTER TABLE ou              CHANGE COLUMN `comment` description VARCHAR(250);
+ALTER TABLE subnets         CHANGE COLUMN `comment` description VARCHAR(250);
+ALTER TABLE user_list       CHANGE COLUMN `comment` description VARCHAR(255);
+ALTER TABLE vendors         CHANGE COLUMN `comment` description VARCHAR(255);
+
+-- ⚠️ user_auth.comments → description
+ALTER TABLE user_auth       CHANGE COLUMN `comments` description VARCHAR(250);
+
+-- type → уточнённые имена
+ALTER TABLE config_options  CHANGE COLUMN `type` option_type VARCHAR(100) NOT NULL;
+ALTER TABLE dns_queue       CHANGE COLUMN `type` operation_type VARCHAR(10) NOT NULL DEFAULT 'add';
+ALTER TABLE filter_list     CHANGE COLUMN `type` filter_type SMALLINT NOT NULL DEFAULT 0;

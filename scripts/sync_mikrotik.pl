@@ -77,7 +77,7 @@ $dhcp_conf{$subnet->{subnet}}->{last_ip_aton}=StrToIp($dhcp_info->{last_ip});
 my $pm = Parallel::ForkManager->new($fork_count);
 
 #save changed records
-my @changes_found = get_records_sql($dbh,"SELECT id FROM User_auth WHERE changed=1");
+my @changes_found = get_records_sql($dbh,"SELECT id FROM user_auth WHERE changed=1");
 
 foreach my $gate (@gateways) {
 next if (!$gate);
@@ -231,7 +231,7 @@ my @auth_records=();
 foreach my $dhcp_subnet (@dhcp_subnets) {
     next if (!$dhcp_subnet);
     next if (!exists $dhcp_conf{$dhcp_subnet});
-    my @tmp1=get_records_sql($dbh,"SELECT * from User_auth WHERE dhcp=1 and `ip_int`>=".$dhcp_conf{$dhcp_subnet}->{first_ip_aton}." and `ip_int`<=".$dhcp_conf{$dhcp_subnet}->{last_ip_aton}." and deleted=0 and ou_id !=".$default_user_ou_id." and ou_id !=".$default_hotspot_ou_id." ORDER BY ip_int");
+    my @tmp1=get_records_sql($dbh,"SELECT * from user_auth WHERE dhcp=1 and ip_int>=".$dhcp_conf{$dhcp_subnet}->{first_ip_aton}." and ip_int<=".$dhcp_conf{$dhcp_subnet}->{last_ip_aton}." and deleted=0 and ou_id !=".$default_user_ou_id." and ou_id !=".$default_hotspot_ou_id." ORDER BY ip_int");
     push(@auth_records,@tmp1);
     undef @tmp1;
 }
@@ -455,15 +455,15 @@ if ($gate->{user_acl}) {
 db_log_verbose($dbh,$gate_ident."Sync user state at router $router_name [".$router_ip."] started.");
 
 #get userid list
-my $user_auth_sql="SELECT User_auth.ip, User_auth.filter_group_id, User_auth.queue_id, User_auth.id
-FROM User_auth, User_list
-WHERE User_auth.user_id = User_list.id
-AND User_auth.deleted =0
-AND User_auth.enabled =1
-AND User_auth.blocked =0
-AND User_list.blocked =0
-AND User_list.enabled =1
-AND User_auth.ou_id <> $default_hotspot_ou_id
+my $user_auth_sql="SELECT user_auth.ip, user_auth.filter_group_id, user_auth.queue_id, user_auth.id
+FROM user_auth, user_list
+WHERE user_auth.user_id = user_list.id
+AND user_auth.deleted =0
+AND user_auth.enabled =1
+AND user_auth.blocked =0
+AND user_list.blocked =0
+AND user_list.enabled =1
+AND user_auth.ou_id <> $default_hotspot_ou_id
 ORDER BY ip_int";
 
 my @authlist_ref = get_records_sql($dbh,$user_auth_sql);
@@ -490,7 +490,7 @@ log_debug($gate_ident."Users status:".Dumper(\%users));
 $lists{'group_all'}=1;
 
 #get queue list
-my @queuelist_ref = get_records_sql($dbh,"SELECT * FROM Queue_list");
+my @queuelist_ref = get_records_sql($dbh,"SELECT * FROM queue_list");
 
 my %queues;
 foreach my $row (@queuelist_ref) {
@@ -505,12 +505,12 @@ log_debug($gate_ident."Queues status:".Dumper(\%queues));
 
 my @filter_instances = get_records_sql($dbh,"SELECT * FROM filter_instances");
 
-my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM Filter_list where type=0");
+my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM filter_list where type=0");
 
 my %filters;
 my %dyn_filters;
 
-my $max_filter_rec = get_record_sql($dbh,"SELECT MAX(id) FROM Filter_list");
+my $max_filter_rec = get_record_sql($dbh,"SELECT MAX(id) FROM filter_list");
 my $max_filter_id = $max_filter_rec->{id};
 
 my $dyn_filters_base = $max_filter_id+1000;
@@ -553,14 +553,14 @@ log_debug($gate_ident."Filters status:". Dumper(\%filters));
 log_debug($gate_ident."DNS-filters status:". Dumper(\%dyn_filters));
 
 #clean unused filter records
-do_sql($dbh,"DELETE FROM Group_filters WHERE group_id NOT IN (SELECT id FROM Group_list)");
-do_sql($dbh,"DELETE FROM Group_filters WHERE filter_id NOT IN (SELECT id FROM Filter_list)");
+do_sql($dbh,"DELETE FROM group_filters WHERE group_id NOT IN (SELECT id FROM group_list)");
+do_sql($dbh,"DELETE FROM group_filters WHERE filter_id NOT IN (SELECT id FROM filter_list)");
 
-my @groups_list = get_records_sql($dbh,"SELECT * FROM Group_list");
+my @groups_list = get_records_sql($dbh,"SELECT * FROM group_list");
 my %groups;
 foreach my $group (@groups_list) { $groups{'group_'.$group->{id}}=$group; }
 
-my @grouplist_ref = get_records_sql($dbh,"SELECT `group_id`,`filter_id`,`order`,`action` FROM Group_filters ORDER BY Group_filters.group_id,Group_filters.order");
+my @grouplist_ref = get_records_sql($dbh,"SELECT group_id,filter_id,rule_order,action FROM group_filters ORDER BY group_filters.group_id,group_filters.rule_order");
 
 my %group_filters;
 my $index = 0;
@@ -1041,7 +1041,7 @@ $pm->wait_all_children;
 #clear changed
 if ($all_ok) {
     foreach my $row (@changes_found) {
-        do_sql($dbh,"UPDATE User_auth SET changed=0 WHERE id=".$row->{id});
+        do_sql($dbh,"UPDATE user_auth SET changed=0 WHERE id=".$row->{id});
         }
     }
 

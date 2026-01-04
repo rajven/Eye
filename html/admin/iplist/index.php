@@ -14,36 +14,36 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/dynfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/dhcpfilter.php");
 
 
-$sort_table = 'User_auth';
-if ($sort_field == 'login') { $sort_table = 'User_list'; }
-if ($sort_field == 'fio') { $sort_table = 'User_list'; }
+$sort_table = 'user_auth';
+if ($sort_field == 'login') { $sort_table = 'user_list'; }
+if ($sort_field == 'fio') { $sort_table = 'user_list'; }
 if ($sort_field == 'ou_name') { $sort_table = 'OU'; }
 
 $sort_url = "<a href=index.php?ou=" . $rou;
 
-if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and User_list.ou_id=$rou "; }
+if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and user_list.ou_id=$rou "; }
 
 if (empty($rcidr)) { $cidr_filter = ''; } else {
     $cidr_range = cidrToRange($rcidr);
-    if (!empty($cidr_range)) { $cidr_filter = " and User_auth.ip_int>=".ip2long($cidr_range[0])." and User_auth.ip_int<=".ip2long($cidr_range[1]); }
+    if (!empty($cidr_range)) { $cidr_filter = " and user_auth.ip_int>=".ip2long($cidr_range[0])." and user_auth.ip_int<=".ip2long($cidr_range[1]); }
     }
 
 $enabled_filter='';
 if ($enabled>0) {
-    if ($enabled===2) { $enabled_filter = ' and (User_auth.enabled=1 and User_list.enabled=1)'; }
-    if ($enabled===1) { $enabled_filter = ' and (User_auth.enabled=0 or User_list.enabled=0)'; }
+    if ($enabled===2) { $enabled_filter = ' and (user_auth.enabled=1 and user_list.enabled=1)'; }
+    if ($enabled===1) { $enabled_filter = ' and (user_auth.enabled=0 or user_list.enabled=0)'; }
     }
 
 $dynamic_filter='';
 if ($dynamic_enabled>0) {
-    if ($dynamic_enabled ==1) { $dynamic_filter = ' and User_auth.dynamic=1'; }
-    if ($dynamic_enabled ==2) { $dynamic_filter = ' and User_auth.dynamic=0'; }
+    if ($dynamic_enabled ==1) { $dynamic_filter = ' and user_auth.dynamic=1'; }
+    if ($dynamic_enabled ==2) { $dynamic_filter = ' and user_auth.dynamic=0'; }
     }
 
 $dhcp_filter='';
 if ($dhcp_enabled>0) {
-    if ($dhcp_enabled ==1) { $dhcp_filter = ' and User_auth.dhcp=1'; }
-    if ($dhcp_enabled ==2) { $dhcp_filter = ' and User_auth.dhcp=0'; }
+    if ($dhcp_enabled ==1) { $dhcp_filter = ' and user_auth.dhcp=1'; }
+    if ($dhcp_enabled ==2) { $dhcp_filter = ' and user_auth.dhcp=0'; }
     }
 
 if (isset($_POST['search_str'])) { $f_search_str = trim($_POST['search_str']); }
@@ -56,11 +56,11 @@ $f_search=replaceSpecialChars($f_search_str);
 $ip_list_type_filter='';
 if ($ip_type>0) {
     //suspicious - dhcp not found 3 last days
-    if ($ip_type===3) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('add', 'old', 'del') and (ABS(User_auth.dhcp_time - User_auth.arp_found)>259200) and (UNIX_TIMESTAMP()-User_auth.arp_found)<259200)"; }
+    if ($ip_type===3) { $ip_list_type_filter = " and (user_auth.dhcp_action IN ('add', 'old', 'del') and (ABS(user_auth.dhcp_time - user_auth.arp_found)>259200) and (UNIX_TIMESTAMP()-user_auth.arp_found)<259200)"; }
     //dhcp
-    if ($ip_type===2) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('add', 'old', 'del'))"; }
+    if ($ip_type===2) { $ip_list_type_filter = " and (user_auth.dhcp_action IN ('add', 'old', 'del'))"; }
     //static
-    if ($ip_type===1) { $ip_list_type_filter = " and (User_auth.dhcp_action NOT IN ('add', 'old', 'del'))"; }
+    if ($ip_type===1) { $ip_list_type_filter = " and (user_auth.dhcp_action NOT IN ('add', 'old', 'del'))"; }
     }
 
 $ip_where = '';
@@ -181,12 +181,12 @@ print_ip_submenu($page_url);
 <form id="def" name="def">
 
 <?php
-$countSQL="SELECT Count(*) FROM User_auth
-LEFT JOIN User_list
-ON User_auth.user_id = User_list.id
+$countSQL="SELECT Count(*) FROM user_auth
+LEFT JOIN user_list
+ON user_auth.user_id = user_list.id
 LEFT JOIN OU
-ON OU.id=User_list.ou_id
-WHERE User_auth.deleted =0 $ip_list_filter";
+ON OU.id=user_list.ou_id
+WHERE user_auth.deleted =0 $ip_list_filter";
 
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
@@ -216,13 +216,13 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
         </tr>
 <?php
 
-$sSQL = "SELECT User_auth.*, User_list.login, User_list.enabled as UEnabled, User_list.blocked as UBlocked, OU.ou_name
-FROM User_auth
-LEFT JOIN User_list
-ON User_auth.user_id = User_list.id
+$sSQL = "SELECT user_auth.*, user_list.login, user_list.enabled as UEnabled, user_list.blocked as UBlocked, OU.ou_name
+FROM user_auth
+LEFT JOIN user_list
+ON user_auth.user_id = user_list.id
 LEFT JOIN OU
-ON OU.id=User_list.ou_id
-WHERE User_auth.deleted =0 $ip_list_filter
+ON OU.id=user_list.ou_id
+WHERE user_auth.deleted =0 $ip_list_filter
 ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
 
 $users = get_records_sql($db_link,$sSQL);

@@ -37,12 +37,12 @@ if (!empty($action)) {
           $sql='';
           LOG_VERBOSE($db_link,"API: Get User Auth record with ip: $ip mac: $mac id: $rec_id");
           if (!empty($mac) and !empty($ip_aton)) { 
-                $sql="SELECT * FROM User_auth WHERE `ip_int`=".$ip_aton." AND `mac`='".$mac."' AND deleted=0"; 
+                $sql="SELECT * FROM user_auth WHERE `ip_int`=".$ip_aton." AND `mac`='".$mac."' AND deleted=0"; 
               } else {
-              if (!empty($ip_aton)) { $sql = "SELECT * FROM User_auth WHERE `ip_int`=".$ip_aton." AND deleted=0"; }
-              if (!empty($mac)) { $sql="SELECT * FROM User_auth WHERE `mac`='".$mac."' AND deleted=0"; }
+              if (!empty($ip_aton)) { $sql = "SELECT * FROM user_auth WHERE `ip_int`=".$ip_aton." AND deleted=0"; }
+              if (!empty($mac)) { $sql="SELECT * FROM user_auth WHERE `mac`='".$mac."' AND deleted=0"; }
               }
-          if (!empty($rec_id)) { $sql="SELECT * FROM User_auth WHERE id=".$rec_id; }
+          if (!empty($rec_id)) { $sql="SELECT * FROM user_auth WHERE id=".$rec_id; }
           if (!empty($sql)) {
               $result=get_record_sql($db_link,$sql);
               if (!empty($result)) {
@@ -71,11 +71,11 @@ if (!empty($action)) {
           $sql='';
           LOG_VERBOSE($db_link,"API: Get User record with id: $rec_id");
           if (!empty($rec_id)) {
-                $sql="SELECT * FROM User_list WHERE id=$rec_id";
+                $sql="SELECT * FROM user_list WHERE id=$rec_id";
                 $result=get_record_sql($db_link,$sql);
                 if (!empty($result)) {
                     LOG_VERBOSE($db_link,"API: User record found.");
-                    $sql="SELECT * FROM User_auth WHERE deleted=0 AND user_id=".$rec_id;
+                    $sql="SELECT * FROM user_auth WHERE deleted=0 AND user_id=".$rec_id;
                     $result_auth=get_records_sql($db_link,$sql);
                     try {
                         if (!empty($result_auth)) { $result["auth"]=$result_auth; } else { $result["auth"]=''; }
@@ -101,7 +101,7 @@ if (!empty($action)) {
             $result=[];
             LOG_VERBOSE($db_link,"API: Get all dhcp records");
             $sql = "SELECT ua.id, ua.ip, ua.ip_int, ua.mac, ua.comments, ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id, SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
-                FROM  User_auth ua JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
+                FROM  user_auth ua JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
                 WHERE ua.dhcp = 1 AND ua.deleted = 0 AND s.dhcp = 1 ORDER BY ua.ip_int";
             $result = get_records_sql($db_link, $sql);
             if (!empty($result)) {
@@ -127,7 +127,7 @@ if (!empty($action)) {
             $f_subnet = trim($f_subnet, "'");
             LOG_VERBOSE($db_link,"API: Get dhcp records for subnet ".$f_subnet);
             $sql = "SELECT ua.id, ua.ip, ua.ip_int, ua.mac, ua.comments, ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id, SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
-                FROM  User_auth ua JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
+                FROM  user_auth ua JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
                 WHERE ua.dhcp = 1 AND ua.deleted = 0 AND s.dhcp = 1 AND SUBSTRING_INDEX(s.subnet, '/', 1) = '".$f_subnet."' ORDER BY ua.ip_int";
             $result = get_records_sql($db_link, $sql);
             if (!empty($result)) {

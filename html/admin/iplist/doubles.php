@@ -40,7 +40,7 @@ if (empty($rcidr)) { $cidr_filter = ''; } else {
     <td align=right><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="removeauth" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
-$sSQL = "SELECT U.id, U.ip, U.mac, U.arp_found, S.subnet as net FROM User_auth U, subnets S WHERE (U.mac IS NOT NULL AND U.mac<>'') AND (U.ip_int BETWEEN S.ip_int_start AND S.ip_int_stop) $cidr_filter AND S.office=1 AND U.deleted=0 ORDER BY net,mac,arp_found";
+$sSQL = "SELECT U.id, U.ip, U.mac, U.arp_found, S.subnet as net FROM user_auth U, subnets S WHERE (U.mac IS NOT NULL AND U.mac<>'') AND (U.ip_int BETWEEN S.ip_int_start AND S.ip_int_stop) $cidr_filter AND S.office=1 AND U.deleted=0 ORDER BY net,mac,arp_found";
 $users = get_records_sql($db_link,$sSQL);
 $f_subnet=NULL;
 $f_mac=NULL;
@@ -63,12 +63,12 @@ foreach ($users as $row) {
         //если первая запись не выводилась - выводим на печать
         if (!isset($printed[$f_id])) {
             //считаем сколько у нас дублей
-            $dSQL = "SELECT  U.id, U.ip, U.mac, U.arp_found FROM User_auth U WHERE U.mac='".$f_mac."' $cidr_filter AND U.deleted=0";
+            $dSQL = "SELECT  U.id, U.ip, U.mac, U.arp_found FROM user_auth U WHERE U.mac='".$f_mac."' $cidr_filter AND U.deleted=0";
             $doubles = get_records_sql($db_link,$dSQL);
             $f_count = count($doubles);
 
             $f_index++;
-            $user = get_record_sql($db_link,"SELECT * FROM User_auth WHERE id=".$f_id);
+            $user = get_record_sql($db_link,"SELECT * FROM user_auth WHERE id=".$f_id);
             if (empty($user['arp_found']) or $user['arp_found'] === '0000-00-00 00:00:00') { $user['arp_found'] = ''; }
             if (empty($user['timestamp']) or $user['timestamp'] === '0000-00-00 00:00:00') { $user['timestamp'] = ''; }
             if (empty($user['changed_time']) or $user['changed_time'] === '0000-00-00 00:00:00') { $user['changed_time'] = ''; }
@@ -94,7 +94,7 @@ foreach ($users as $row) {
         //проверяем текущую запись
         if (!isset($printed[$row['id']])) {
             $f_index++;
-            $user = get_record_sql($db_link,"SELECT * FROM User_auth WHERE id=".$row['id']);
+            $user = get_record_sql($db_link,"SELECT * FROM user_auth WHERE id=".$row['id']);
             if (empty($user['arp_found']) or $user['arp_found'] === '0000-00-00 00:00:00') { $user['arp_found'] = ''; }
             if (empty($user['timestamp']) or $user['timestamp'] === '0000-00-00 00:00:00') { $user['timestamp'] = ''; }
             if (empty($user['changed_time']) or $user['changed_time'] === '0000-00-00 00:00:00') { $user['changed_time'] = ''; }

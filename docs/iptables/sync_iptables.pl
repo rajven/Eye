@@ -67,15 +67,15 @@ if ($connected_users_only) {
 db_log_verbose($dbh,"Sync user state at router $router_name started.");
 
 #get userid list
-my $user_auth_sql="SELECT User_auth.ip, User_auth.filter_group_id, User_auth.queue_id, User_auth.id
-FROM User_auth, User_list
-WHERE User_auth.user_id = User_list.id
-AND User_auth.deleted =0
-AND User_auth.enabled =1
-AND User_auth.blocked =0
-AND User_list.blocked =0
-AND User_list.enabled =1
-AND User_auth.ou_id <> $default_hotspot_ou_id
+my $user_auth_sql="SELECT user_auth.ip, user_auth.filter_group_id, user_auth.queue_id, user_auth.id
+FROM user_auth, user_list
+WHERE user_auth.user_id = user_list.id
+AND user_auth.deleted =0
+AND user_auth.enabled =1
+AND user_auth.blocked =0
+AND user_list.blocked =0
+AND user_list.enabled =1
+AND user_auth.ou_id <> $default_hotspot_ou_id
 ORDER BY ip_int";
 
 my @authlist_ref = get_records_sql($dbh,$user_auth_sql);
@@ -102,7 +102,7 @@ log_debug("Users status:".Dumper(\%users));
 $lists{'group_all'}=1;
 
 #get queue list
-my @queuelist_ref = get_records_sql($dbh,"SELECT * FROM Queue_list");
+my @queuelist_ref = get_records_sql($dbh,"SELECT * FROM queue_list");
 
 my %queues;
 foreach my $row (@queuelist_ref) {
@@ -115,12 +115,12 @@ $queues{'queue_'.$row->{id}}{up}=$row->{Upload};
 
 log_debug("Queues status:".Dumper(\%queues));
 
-my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM Filter_list where type=0");
+my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM filter_list where type=0");
 
 my %filters;
 my %dyn_filters;
 
-my $max_filter_rec = get_record_sql($dbh,"SELECT MAX(id) FROM Filter_list");
+my $max_filter_rec = get_record_sql($dbh,"SELECT MAX(id) FROM filter_list");
 my $max_filter_id = $max_filter_rec->{id};
 
 my $dyn_filters_base = $max_filter_id+1000;
@@ -163,10 +163,10 @@ log_debug("Filters status:". Dumper(\%filters));
 log_debug("DNS-filters status:". Dumper(\%dyn_filters));
 
 #clean unused filter records
-do_sql($dbh,"DELETE FROM Group_filters WHERE group_id NOT IN (SELECT id FROM Group_list)");
-do_sql($dbh,"DELETE FROM Group_filters WHERE filter_id NOT IN (SELECT id FROM Filter_list)");
+do_sql($dbh,"DELETE FROM group_filters WHERE group_id NOT IN (SELECT id FROM group_list)");
+do_sql($dbh,"DELETE FROM group_filters WHERE filter_id NOT IN (SELECT id FROM filter_list)");
 
-my @grouplist_ref = get_records_sql($dbh,"SELECT `group_id`,`filter_id`,`order`,`action` FROM Group_filters ORDER BY Group_filters.group_id,Group_filters.order");
+my @grouplist_ref = get_records_sql($dbh,"SELECT group_id,filter_id,rule_order,action FROM group_filters ORDER BY group_filters.group_id,group_filters.rule_order");
 
 my %group_filters;
 my $index=0;

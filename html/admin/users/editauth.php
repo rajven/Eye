@@ -5,14 +5,14 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 
 $msg_error = "";
 
-$old_auth_info = get_record_sql($db_link, "SELECT * FROM User_auth WHERE id=" . $id);
+$old_auth_info = get_record_sql($db_link, "SELECT * FROM user_auth WHERE id=" . $id);
 if (empty($old_auth_info)) {
     header("Location: /admin/");
     }
 
 $parent_id = $old_auth_info['user_id'];
 
-$user_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=" . $parent_id);
+$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $parent_id);
 $parent_ou_id = $user_info['ou_id'];
 $user_enabled = $user_info['enabled'];
 
@@ -24,7 +24,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         //search mac
         $mac_exists = find_mac_in_subnet($db_link, $ip, $mac);
         if (isset($mac_exists) and $mac_exists['count'] >= 1 and !in_array($parent_id, $mac_exists['users_id'])) {
-            $dup_sql = "SELECT * FROM User_list WHERE id=" . $mac_exists['users_id']['0'];
+            $dup_sql = "SELECT * FROM user_list WHERE id=" . $mac_exists['users_id']['0'];
             $dup_info = get_record_sql($db_link, $dup_sql);
             $msg_error = "Mac already exists at another user in this subnet! Skip creating $ip [$mac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
             $_SESSION[$page_url]['msg'] = $msg_error;
@@ -40,9 +40,9 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             }
         }
         //search ip
-        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
+        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM user_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
         if (!empty($dup_ip_record)) {
-            $dup_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=" . $dup_ip_record['user_id']);
+            $dup_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $dup_ip_record['user_id']);
             $msg_error = "$ip already exists. Skip creating $ip [$mac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
             $_SESSION[$page_url]['msg'] = $msg_error;
             LOG_ERROR($db_link, $msg_error);
@@ -68,7 +68,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             update_record($db_link,"devices","id=".$device['id'],$dev);
             }
 
-        $dns_alias_count = get_count_records($db_link,'User_auth_alias','auth_id='.$id);
+        $dns_alias_count = get_count_records($db_link,'user_auth_alias','auth_id='.$id);
         if (!empty($f_dnsname) and !$new['dns_ptr_only']) {
             $domain_zone = get_option($db_link, 33);
             $domain_zone = ltrim($domain_zone, '.');
@@ -101,11 +101,11 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
         if (empty($f_dnsname) or $new['dns_ptr_only']) {
             //remove all dns aliases
             $new['dns_name'] = '';
-            $t_User_auth_alias = get_records($db_link,'User_auth_alias',"auth_id=$id ORDER BY alias");
-            if (!empty($t_User_auth_alias)) {
-                foreach ( $t_User_auth_alias as $row ) {
-                    LOG_INFO($db_link, "Remove alias id: ".$row['id']." for auth_id: $id :: ".dump_record($db_link,'User_auth_alias','id='.$row['id']));
-                    delete_record($db_link,'User_auth_alias','id='.$row['id']);
+            $t_user_auth_alias = get_records($db_link,'user_auth_alias',"auth_id=$id ORDER BY alias");
+            if (!empty($t_user_auth_alias)) {
+                foreach ( $t_user_auth_alias as $row ) {
+                    LOG_INFO($db_link, "Remove alias id: ".$row['id']." for auth_id: $id :: ".dump_record($db_link,'user_auth_alias','id='.$row['id']));
+                    delete_record($db_link,'user_auth_alias','id='.$row['id']);
                     }
                 }
             }
@@ -155,7 +155,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             $new['nagios_status'] = 'UP';
             }
         if (!$user_enabled) { $new['enabled']=0; }
-        $changes = get_diff_rec($db_link, "User_auth", "id='$id'", $new, 0);
+        $changes = get_diff_rec($db_link, "user_auth", "id='$id'", $new, 0);
         if (!empty($changes)) {
             LOG_WARNING($db_link, "Changed record for $ip! Log: " . $changes, $id);
             }
@@ -168,7 +168,7 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
                 }
             exit;
             } else {
-            update_record($db_link, "User_auth", "id='$id'", $new);
+            update_record($db_link, "user_auth", "id='$id'", $new);
             }
     } else {
         $msg_error = "$msg_ip_error xxx.xxx.xxx.xxx";
@@ -180,9 +180,9 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
 
 if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
     $new_parent_id = $_POST["f_new_parent"] * 1;
-    $moved_auth = get_record_sql($db_link,"SELECT comments FROM User_auth WHERE id=".$id);
+    $moved_auth = get_record_sql($db_link,"SELECT comments FROM user_auth WHERE id=".$id);
     $changes = apply_auth_rule($db_link, $moved_auth, $new_parent_id);
-    update_record($db_link, "User_auth", "id='$id'", $changes);
+    update_record($db_link, "user_auth", "id='$id'", $changes);
     LOG_WARNING($db_link, "IP-address moved to another user! Applyed: " . get_rec_str($changes), $id);
     run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["mac"]."' AND type=2");
     run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["ip"]."' AND type=1");
@@ -199,7 +199,7 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
         //search mac
         $mac_exists = find_mac_in_subnet($db_link, $ip, $mac);
         if (isset($mac_exists) and $mac_exists['count'] >= 1 and !in_array($parent_id, $mac_exists['users_id'])) {
-            $dup_sql = "SELECT * FROM User_list WHERE id=" . $mac_exists['users_id']['0'];
+            $dup_sql = "SELECT * FROM user_list WHERE id=" . $mac_exists['users_id']['0'];
             $dup_info = get_record_sql($db_link, $dup_sql);
             $msg_error = "Mac already exists at another user in this subnet! Skip creating $ip [$mac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
             $_SESSION[$page_url]['msg'] = $msg_error;
@@ -215,9 +215,9 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
             }
         }
         //search ip
-        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
+        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM user_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
         if (!empty($dup_ip_record)) {
-            $dup_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=" . $dup_ip_record['user_id']);
+            $dup_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $dup_ip_record['user_id']);
             $msg_error = "$ip already exists. Skip creating $ip [$mac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
             $_SESSION[$page_url]['msg'] = $msg_error;
             LOG_ERROR($db_link, $msg_error);
@@ -230,7 +230,7 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
 
         $parent_id = $old_auth_info['user_id'];
 
-        $old_parent = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=".$parent_id);
+        $old_parent = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=".$parent_id);
         if (empty($old_parent)) {
             $new_user_info = get_new_user_id($db_link, $ip, $mac, NULL);
             if ($new_user_info['user_id']) { $new_user_id = $new_user_info['user_id']; }
@@ -263,12 +263,12 @@ if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
             $new['queue_id'] = get_int($_POST["f_queue_id"]);
             $new['filter_group_id'] = get_int($_POST["f_group_id"]);
         }
-        $changes = get_diff_rec($db_link, "User_auth", "id='$id'", $new, 0);
+        $changes = get_diff_rec($db_link, "user_auth", "id='$id'", $new, 0);
         if (!empty($changes)) {
             LOG_WARNING($db_link, "Recovered ip-address. Applyed: $changes", $id);
         }
         $new = apply_auth_rule($db_link, $new, $new['user_id']);
-        update_record($db_link, "User_auth", "id='$id'", $new);
+        update_record($db_link, "user_auth", "id='$id'", $new);
     } else {
         $msg_error = "$msg_ip_error xxx.xxx.xxx.xxx/xx";
         $_SESSION[$page_url]['msg'] = $msg_error;
@@ -281,7 +281,7 @@ unset($_POST);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
 
-$sSQL = "SELECT * FROM User_auth WHERE id=$id";
+$sSQL = "SELECT * FROM user_auth WHERE id=$id";
 $auth_info = get_record_sql($db_link, $sSQL);
 $device = get_record_sql($db_link, "SELECT * FROM devices WHERE user_id=" . $auth_info['user_id']);
 

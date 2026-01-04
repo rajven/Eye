@@ -729,7 +729,7 @@
 00:02:D9;ReliableCont;Reliable Controls
 00:02:DA;ExiOCommunic;ExiO Communications, Inc.
 00:02:DB;Netsec;Netsec
-00:02:DC;FujitsuGener;Fujitsu General Limited
+00:02:DC;GENERAL;GENERAL Inc.
 00:02:DD;BromaxCommun;Bromax Communications, Ltd.
 00:02:DE;Astrodesign;Astrodesign, Inc.
 00:02:DF;NetCom;Net Com Systems, Inc.
@@ -1496,7 +1496,7 @@
 00:05:D8;Arescom;Arescom, Inc.
 00:05:D9;TechnoValley;Techno Valley, Inc.
 00:05:DA;ApexAutomati;Apex Automationstechnik
-00:05:DB;PSINentec;PSI Nentec GmbH
+00:05:DB;PSISoftwareS;PSI Software SE,
 00:05:DC;Cisco;Cisco Systems, Inc
 00:05:DD;Cisco;Cisco Systems, Inc
 00:05:DE;GiFoneKorea;Gi Fone Korea, Inc.
@@ -4656,7 +4656,7 @@
 00:12:4C;BBWM;BBWM Corporation
 00:12:4D;Inducon;Inducon BV
 00:12:4E;XacAutomatio;Xac Automation Corp.
-00:12:4F;nVent;nVent
+00:12:4F;Chemelex;Chemelex LLC
 00:12:50;TokyoAircaft;Tokyo Aircaft Instrument Co., Ltd.
 00:12:51;Silink;Silink
 00:12:52;Citronix;Citronix, LLC
@@ -8023,7 +8023,7 @@
 00:1E:AB;TeleWell;TeleWell Oy
 00:1E:AC;Armadeus;Armadeus Systems
 00:1E:AD;WingtechGrou;Wingtech Group Limited
-00:1E:AE;ContinentalA;Continental Automotive Systems Inc.
+00:1E:AE;AUMOVIO;AUMOVIO Systems, Inc.
 00:1E:AF;OphirOptroni;Ophir Optronics Ltd
 00:1E:B0;ImesDElectro;ImesD Electronica S.L.
 00:1E:B1;Cryptsoft;Cryptsoft Pty Ltd
@@ -10026,7 +10026,7 @@
 00:26:86;QuantennaCom;Quantenna Communcations, Inc.
 00:26:87;corega;corega K.K
 00:26:88;JuniperNetwo;Juniper Networks
-00:26:89;GeneralDynam;General Dynamics Robotic Systems
+00:26:89;GeneralDynam;General Dynamics Land Systems Inc.
 00:26:8A;TerrierSC;Terrier SC Ltd
 00:26:8B;GuangzhouEsc;Guangzhou Escene Computer Technology Limited
 00:26:8C;StarLeaf;StarLeaf Ltd.
@@ -15108,7 +15108,7 @@
 00:52:C2;peikeracusti;peiker acustic GmbH
 00:52:C8;MadeStudioDe;Made Studio Design Ltd.
 00:54:9F;Avaya;Avaya Inc
-00:54:AF;ContinentalA;Continental Automotive Systems Inc.
+00:54:AF;AUMOVIO;AUMOVIO Systems, Inc.
 00:54:BD;Swelaser;Swelaser AB
 00:55:B1;BaudDataComm;Shanghai Baud Data Communication Co.,Ltd.
 00:55:DA:00;ShinkoTechno;Shinko Technos co.,ltd.
@@ -15451,7 +15451,7 @@
 00:6A:5E:80;Hilti;Hilti Corporation
 00:6A:5E:90;Annapurnalab;Annapurna labs
 00:6A:5E:A0;Annapurnalab;Annapurna labs
-00:6A:5E:B0;ContinentalB;Continental Brasil Indústria Automotiva Ltda.
+00:6A:5E:B0;AUMOVIOBrazi;AUMOVIO Brazil Industry Ltda.
 00:6A:5E:C0;CybertelBrid;Cybertel Bridge
 00:6A:5E:D0;LingjiInnova;Beijing Lingji Innovations technology Co,LTD.
 00:6A:5E:E0;OppermannReg;Oppermann Regelgeräte GmbH
@@ -16419,6 +16419,7 @@
 00:B3:38;KontronAsiaP;Kontron Asia Pacific Design Sdn. Bhd
 00:B3:42;MacroSANTech;MacroSAN Technologies Co., Ltd.
 00:B3:62;Apple;Apple, Inc.
+00:B4:63;Ring;Ring LLC
 00:B4:F5;DongGuanSiyo;DongGuan Siyoto Electronics Co., Ltd
 00:B5:6D;DavidElectro;David Electronics Co., LTD.
 00:B5:D0;SamsungElect;Samsung Electronics Co.,Ltd
@@ -17580,6 +17581,7 @@
 04:6E:02;OpenRTLSGrou;OpenRTLS Group
 04:6E:49;TaiYearElect;TaiYear Electronic Technology (Suzhou) Co., Ltd
 04:6E:CB;zte;zte corporation
+04:6F:00;LGElectronic;LG Electronics
 04:70:56;Arcadyan;Arcadyan Corporation
 04:70:BC;Globalstar;Globalstar Inc.
 04:71:4B:00;NeurioTechno;Neurio Technology Inc.
@@ -17702,6 +17704,7 @@
 04:B0:E7;HuaweiTechno;Huawei Technologies Co.,Ltd
 04:B1:67;XiaomiCommun;Xiaomi Communications Co Ltd
 04:B1:A1;SamsungElect;Samsung Electronics Co.,Ltd
+04:B2:47;Espressif;Espressif Inc.
 04:B3:B6;Seamap;Seamap (UK) Ltd
 04:B4:29;SamsungElect;Samsung Electronics Co.,Ltd
 04:B4:66;BSP;BSP Co., Ltd.
@@ -17868,6 +17871,7 @@
 04:ED:62;DaikinEurope;Daikin Europe NV
 04:EE:03;TexasInstrum;Texas Instruments
 04:EE:91;xfabric;x-fabric GmbH
+04:EE:CD;HikvisionDig;Hangzhou Hikvision Digital Technology Co.,Ltd.
 04:EE:E8:00;ZoomlionHuan;Zoomlion Huanuo(Beijing)Technology Co.,Ltd
 04:EE:E8:10;ZLANInformat;Shanghai ZLAN Information Technology Co.,Ltd
 04:EE:E8:20;HengkeTechno;Hengke Technology Industry Co., Ltd.
@@ -18059,6 +18063,7 @@
 08:02:05;HuaweiTechno;Huawei Technologies Co.,Ltd
 08:02:3C;SamsungElect;Samsung Electronics Co.,Ltd
 08:02:8E;Netgear;Netgear
+08:02:99;HC;HC Corporation
 08:03:42;PaloAltoNetw;Palo Alto Networks
 08:03:71;Krg;Krg Corporate
 08:04:B4;TexasInstrum;Texas Instruments
@@ -18093,6 +18098,7 @@
 08:16:E3;HuaweiTechno;Huawei Technologies Co.,Ltd
 08:17:35;Cisco;Cisco Systems, Inc
 08:17:F4;IBM;IBM Corp
+08:18:14;HewlettPacka;Hewlett Packard Enterprise
 08:18:1A;zte;zte corporation
 08:18:4C;ASThomas;A. S. Thomas, Inc.
 08:19:A6;HuaweiTechno;Huawei Technologies Co.,Ltd
@@ -18243,6 +18249,7 @@
 08:68:D0;JapanSystemD;Japan System Design
 08:68:EA;EitoElectron;Eito Electronics Co., Ltd.
 08:6A:0A;AskeyCompute;Askey Computer Corp
+08:6A:0B;CiscoMeraki;Cisco Meraki
 08:6A:C5;Intel;Intel Corporate
 08:6A:E5;AmazonTechno;Amazon Technologies Inc.
 08:6B:D1;SuperElectro;Shenzhen SuperElectron Technology Co.,Ltd.
@@ -18253,6 +18260,7 @@
 08:6F:48;iCommSemicon;Shenzhen iComm Semiconductor CO.,LTD
 08:70:45;Apple;Apple, Inc.
 08:70:73;HuaweiTechno;Huawei Technologies Co.,Ltd
+08:71:1C;CiscoMeraki;Cisco Meraki
 08:71:58;HanshowTechn;Hanshow Technology Co.,Ltd.
 08:71:90;Intel;Intel Corporate
 08:73:6F;EMMicroelect;EM Microelectronic
@@ -18318,6 +18326,7 @@
 08:9B:4B;iKuaiNetwork;iKuai Networks
 08:9B:B9;NokiaSolutio;Nokia Solutions and Networks GmbH & Co. KG
 08:9B:F1;eero;eero inc.
+08:9C:74;UnionmanTech;Unionman Technology Co.,Ltd
 08:9C:86;NokiaShangha;Nokia Shanghai Bell Co., Ltd.
 08:9D:F4;Intel;Intel Corporate
 08:9E:01;QuantaComput;Quanta Computer Inc.
@@ -18535,6 +18544,7 @@
 0C:0A:DF;TexasInstrum;Texas Instruments
 0C:0E:76;DLinkInterna;D-Link International
 0C:0E:CB;HuaweiDevice;Huawei Device Co., Ltd.
+0C:0F:D8;GsdVietNamTe;Gsd Viet Nam Technology Company Limited
 0C:11:05;AkuvoxNetwor;Akuvox (Xiamen) Networks Co., Ltd
 0C:11:67;Cisco;Cisco Systems, Inc
 0C:12:62;zte;zte corporation
@@ -18677,6 +18687,7 @@
 0C:61:11;AndaTechnolo;Anda Technologies SAC
 0C:61:27;ActiontecEle;Actiontec Electronics, Inc
 0C:61:CF;TexasInstrum;Texas Instruments
+0C:61:F9;TozedKangwei;Tozed Kangwei Tech Co., Ltd
 0C:62:A6;HuiZhouGaosh;Hui Zhou Gaoshengda Technology Co.,LTD
 0C:63:FC;NanjingSignw;Nanjing Signway Technology Co., Ltd
 0C:64:22;WiseasyTechn;Beijing Wiseasy Technology Co.,Ltd.
@@ -18831,6 +18842,7 @@
 0C:A0:6C;IndustrialCy;Industrial Cyber Sensing Inc.
 0C:A1:38;BLiNQNetwork;BLiNQ Networks Inc.
 0C:A2:F4;ChameleonTec;Chameleon Technology (UK) Limited
+0C:A3:B2;Apple;Apple, Inc.
 0C:A4:02;AlcatelLucen;Alcatel-Lucent IPD
 0C:A4:2A;OBTelecomEle;OB Telecom Electronic Technology Co., Ltd
 0C:A6:4C;EzvizSoftwar;Hangzhou Ezviz Software Co.,Ltd.
@@ -18902,6 +18914,7 @@
 0C:C6:CC;HuaweiTechno;Huawei Technologies Co.,Ltd
 0C:C6:FD;XiaomiCommun;Xiaomi Communications Co Ltd
 0C:C7:31;Currant;Currant, Inc.
+0C:C7:63;eero;eero inc.
 0C:C8:1F;SummerInfant;Summer Infant, Inc.
 0C:C8:44;CambridgeMob;Cambridge Mobile Telematics, Inc.
 0C:C9:C6;SamwinHongKo;Samwin Hong Kong Limited
@@ -18961,6 +18974,7 @@
 0C:E1:59;iStartekTech;Shenzhen iStartek Technology Co., Ltd.
 0C:E4:41;Apple;Apple, Inc.
 0C:E4:A0;HuaweiDevice;Huawei Device Co., Ltd.
+0C:E5:A1;Apple;Apple, Inc.
 0C:E5:A3;SharkNinja;SharkNinja
 0C:E5:B5;HuaweiTechno;Huawei Technologies Co.,Ltd
 0C:E5:D3;DHelectronic;DH electronics GmbH
@@ -19043,6 +19057,7 @@
 10:01:77;HuaweiTechno;Huawei Technologies Co.,Ltd
 10:01:CA;AshleyButter;Ashley Butterworth
 10:02:B5;Intel;Intel Corporate
+10:03:CD;Calix;Calix Inc.
 10:04:C1;JDCloudCompu;JD Cloud Computing Co., Ltd.
 10:05:01;Pegatron;Pegatron Corporation
 10:05:B1;Commscope;Commscope
@@ -19342,8 +19357,10 @@
 10:93:E9;Apple;Apple, Inc.
 10:94:97;LogitechHong;Logitech Hong Kong
 10:94:BB;Apple;Apple, Inc.
+10:94:EF;HuaweiTechno;Huawei Technologies Co.,Ltd
 10:95:4B;Megabyte;Megabyte Ltd.
 10:96:1A;ChipseaTechn;Chipsea Technologies (Shenzhen) Corp.
+10:96:1D;NXPUSA;NXP USA, Inc
 10:96:93;AmazonTechno;Amazon Technologies Inc.
 10:96:C6;Cisco;Cisco Systems, Inc
 10:97:BD;Espressif;Espressif Inc.
@@ -19439,6 +19456,7 @@
 10:C9:CA;AceTechnolog;Ace Technology Corp.
 10:CA:81;Precia;Precia
 10:CA:BF;TexasInstrum;Texas Instruments
+10:CB:33;NXPSemicondu;NXP Semiconductors Taiwan Ltd.
 10:CC:1B;Liverocktech;Liverock technologies,INC
 10:CC:DB;AximumProdui;Aximum Produits Electroniques
 10:CD:6E;Fisys;Fisys
@@ -19548,6 +19566,7 @@
 14:09:DC;HuaweiTechno;Huawei Technologies Co.,Ltd
 14:0A:29;Tiinlab;Tiinlab Corporation
 14:0A:C5;AmazonTechno;Amazon Technologies Inc.
+14:0B:9E;SamsungElect;Samsung Electronics Co.,Ltd
 14:0C:5B;PLNetworks;PLNetworks
 14:0C:76;FreeboxSas;Freebox Sas
 14:0D:4F;FlextronicsI;Flextronics International
@@ -19575,6 +19594,7 @@
 14:18:44;XenonSmartTe;Xenon Smart Teknoloji Ltd.
 14:18:77;Dell;Dell Inc.
 14:18:C3;Intel;Intel Corporate
+14:19:23;Cisco;Cisco Systems, Inc
 14:19:73;YunyiTimesTe;Beijing Yunyi Times Technology Co.,Ltd
 14:1A:51;TreetechSist;Treetech Sistemas Digitais
 14:1A:97;Apple;Apple, Inc.
@@ -19601,6 +19621,7 @@
 14:1F:BA:D0;AJISco;AJIS(DALIAN)co.,LTD
 14:1F:BA:E0;POSSystema;POS Systema LLC
 14:1F:BA:F0;Private;Private
+14:20:04;zte;zte corporation
 14:20:5E;Apple;Apple, Inc.
 14:21:03;Calix;Calix Inc.
 14:22:33;FiberhomeTel;Fiberhome Telecommunication Technologies Co.,LTD
@@ -19693,6 +19714,7 @@
 14:4F:D7:C0;D&SCableIndu;D&S Cable Industries (HK) Limited
 14:4F:D7:D0;B&ATechnolog;Shanghai B&A Technology Co., Ltd
 14:4F:D7:E0;EdanInstrume;Edan Instruments, Inc.
+14:4F:F0;NXPSemicondu;NXP Semiconductors Taiwan Ltd.
 14:50:51;SHARP;SHARP Corporation
 14:51:20;HuaweiDevice;Huawei Device Co., Ltd.
 14:51:7E;NewH3CTechno;New H3C Technologies Co., Ltd
@@ -19850,6 +19872,7 @@
 14:AE:85:D0;iSolutionTec;iSolution Technologies Co.,Ltd.
 14:AE:85:E0;Sercomm;Sercomm Corporation.
 14:AE:DB;VTechTelecom;VTech Telecommunications Ltd.
+14:AE:E0;EthernexionN;Ethernexion Networks Pte. Ltd.
 14:B1:26;IndustrialSo;Industrial Software Co
 14:B1:C8;InfiniWing;InfiniWing, Inc.
 14:B2:E5;iCommSemicon;Shenzhen iComm Semiconductor CO.,LTD
@@ -19875,6 +19898,7 @@
 14:C0:A1;UCloudTechno;UCloud Technology Co., Ltd.
 14:C1:26;Nokia;Nokia Corporation
 14:C1:4E;Google;Google, Inc.
+14:C1:9F;Espressif;Espressif Inc.
 14:C1:FF;QianHaiComla;ShenZhen QianHai Comlan communication Co.,LTD
 14:C2:13;Apple;Apple, Inc.
 14:C2:1D;SabtechIndus;Sabtech Industries
@@ -19915,11 +19939,13 @@
 14:DC:51;XiamenCheerz;Xiamen Cheerzing IOT Technology Co.,Ltd.
 14:DC:E2;THALESAVSFra;THALES AVS France
 14:DD:02;LiangangOpto;Liangang Optoelectronic Technology CO., Ltd.
+14:DD:48;ShieldAI;Shield AI
 14:DD:9C;vivoMobileCo;vivo Mobile Communication Co., Ltd.
 14:DD:A9;ASUSTekCOMPU;ASUSTek COMPUTER INC.
 14:DD:E5;Mpmkvvcl;Mpmkvvcl
 14:DE:39;HuaweiDevice;Huawei Device Co., Ltd.
 14:E0:1D;SamsungElect;Samsung Electronics Co.,Ltd
+14:E2:2A;Cisco;Cisco Systems, Inc
 14:E2:89;Abietec;Abietec Inc.
 14:E4:EC;mLogic;mLogic LLC
 14:E6:E4;TpLinkTechno;Tp-Link Technologies Co.,Ltd.
@@ -19927,6 +19953,7 @@
 14:E9:B2;FiberhomeTel;Fiberhome Telecommunication Technologies Co.,LTD
 14:EA:63;HuiZhouGaosh;Hui Zhou Gaoshengda Technology Co.,LTD
 14:EA:A1;Micronetunio;Micronet union Technology (chengdu) co., Ltd
+14:EB:03;IpComNetwork;Shenzhen Ip-Com Networks Co.,Ltd.
 14:EB:08;HuaweiTechno;Huawei Technologies Co.,Ltd
 14:EB:33;BSMediasoft;BSMediasoft Co., Ltd.
 14:EB:B6;TPLink;TP-Link Systems Inc
@@ -20086,7 +20113,7 @@
 18:4B:0D;RuckusWirele;Ruckus Wireless
 18:4B:DF;Caavo;Caavo Inc
 18:4C:08;RockwellAuto;Rockwell Automation
-18:4C:AE;Continental;Continental
+18:4C:AE;AUMOVIOFranc;AUMOVIO France S.A.S.
 18:4E:03;HMDGlobal;HMD Global Oy
 18:4E:16;SamsungElect;Samsung Electronics Co.,Ltd
 18:4E:94;MessoaTechno;Messoa Technologies Inc.
@@ -20158,11 +20185,13 @@
 18:68:82;BewardR&D;Beward R&D Co., Ltd.
 18:68:CB;HikvisionDig;Hangzhou Hikvision Digital Technology Co.,Ltd.
 18:69:0A;SiliconLabor;Silicon Laboratories
+18:69:45;TPLink;TP-Link Systems Inc.
 18:69:D4;SamsungElect;Samsung Electronics Co.,Ltd
 18:69:D8;TuyaSmart;Tuya Smart Inc.
 18:69:DA;ChinaMobileG;China Mobile Group Device Co.,Ltd.
 18:6A:81;SagemcomBroa;Sagemcom Broadband SAS
 18:6B:E2;Lylink;Lylink Limited
+18:6C:60;JifelineNetw;Jifeline Networks B.V.
 18:6D:99;Adanis;Adanis Inc.
 18:6F:2D;SundrayTechn;Shenzhen Sundray Technologies company Limited
 18:70:3B;HuaweiDevice;Huawei Device Co., Ltd.
@@ -20446,6 +20475,7 @@
 18:F6:50;MultimediaPa;Multimedia Pacific Limited
 18:F6:97;AxiomMemoryS;Axiom Memory Solutions, Inc.
 18:F7:6B;ZhejiangWins;Zhejiang Winsight Technology CO.,LTD
+18:F7:F6;Ericsson;Ericsson AB
 18:F8:7A;i3Internatio;i3 International Inc.
 18:F8:7F;WhaYuIndustr;Wha Yu Industrial Co., Ltd.
 18:F9:35;Cisco;Cisco Systems, Inc
@@ -21043,6 +21073,7 @@
 1C:FD:08:E0;MeshboxFound;Meshbox Foundation Pte. Ltd.
 1C:FE:2B;AmazonTechno;Amazon Technologies Inc.
 1C:FE:A7;IDentytechSo;IDentytech Solutins Ltd.
+1C:FF:3F;Cust2mate;Cust2mate
 1C:FF:59;SichuanTiany;Sichuan Tianyi Comheart Telecom Co.,LTD
 1C:FF:AD;HuaweiTechno;Huawei Technologies Co.,Ltd
 20:01:4F;LineaResearc;Linea Research Ltd
@@ -21360,7 +21391,7 @@
 20:AB:37;Apple;Apple, Inc.
 20:AB:48;HuaweiTechno;Huawei Technologies Co.,Ltd
 20:AC:9C;ChinaTelecom;China Telecom Corporation Limited
-20:AD:56;ContinentalA;Continental Automotive Systems Inc.
+20:AD:56;AUMOVIO;AUMOVIO Systems, Inc.
 20:AF:1B;SteelSeriesA;SteelSeries ApS
 20:B0:01;VantivaTechn;Vantiva Technologies Belgium
 20:B0:F7;Enclustra;Enclustra GmbH
@@ -21498,7 +21529,7 @@
 24:05:F5;IntegratedDe;Integrated Device Technology (Malaysia) Sdn. Bhd.
 24:06:AA;OppoMobileTe;Guangdong Oppo Mobile Telecommunications Corp.,Ltd
 24:06:F2;SichuanTiany;Sichuan Tianyi Comheart Telecom Co.,LTD
-24:08:5D;ContinentalA;Continental Aftermarket & Services GmbH
+24:08:5D;AUMOVIOAfter;AUMOVIO Aftermarket GmbH
 24:09:17;DevlinElectr;Devlin Electronics Limited
 24:09:35;SamsungElect;Samsung Electronics Co.,Ltd
 24:09:95;HuaweiTechno;Huawei Technologies Co.,Ltd
@@ -21579,6 +21610,7 @@
 24:29:B0;HuaweiTechno;Huawei Technologies Co.,Ltd
 24:29:FE;KYOCERA;KYOCERA Corporation
 24:2A:04;Cisco;Cisco Systems, Inc
+24:2A:EA;Apple;Apple, Inc.
 24:2B:D6;Ring;Ring LLC
 24:2C:FE;ZhejiangTmal;Zhejiang Tmall Technology Co., Ltd.
 24:2D:4B;F5;F5 Inc.
@@ -21710,6 +21742,7 @@
 24:6E:96;Dell;Dell Inc.
 24:6F:28;Espressif;Espressif Inc.
 24:6F:8C;HuaweiDevice;Huawei Device Co., Ltd.
+24:71:21;Cisco;Cisco Systems, Inc
 24:71:52;Dell;Dell Inc.
 24:71:89;TexasInstrum;Texas Instruments
 24:72:4A;NileGlobal;Nile Global Inc
@@ -21739,6 +21772,7 @@
 24:7F:3C;HuaweiTechno;Huawei Technologies Co.,Ltd
 24:80:00;WestcontrolA;Westcontrol AS
 24:81:3B;Cisco;Cisco Systems, Inc
+24:81:85;ExtremeNetwo;Extreme Networks Headquarters
 24:81:AA;KSHInternati;KSH International Co., Ltd.
 24:81:C7;HuaweiDevice;Huawei Device Co., Ltd.
 24:82:8A;ProwaveTechn;Prowave Technologies Ltd.
@@ -21825,6 +21859,7 @@
 24:A4:95;ThalesCanada;Thales Canada Inc.
 24:A5:2C;HuaweiTechno;Huawei Technologies Co.,Ltd
 24:A5:34;SynTrustTech;SynTrust Tech International Ltd.
+24:A5:FF;FairbanksSca;Fairbanks Scales
 24:A6:5E;zte;zte corporation
 24:A6:FA;WeifangGoert;Weifang Goertek Electronics Co.,Ltd
 24:A7:99;HuaweiDevice;Huawei Device Co., Ltd.
@@ -21836,6 +21871,7 @@
 24:AE:CC;HonorDevice;Honor Device Co., Ltd.
 24:AF:4A;AlcatelLucen;Alcatel-Lucent IPD
 24:AF:54;NEXGENMediat;NEXGEN Mediatech Inc.
+24:AF:CC;ChiunMaiComm;Chiun Mai Communication System, Inc
 24:B0:A9;MobiletekCom;Shanghai Mobiletek Communication Ltd.
 24:B1:05;PramaHikvisi;Prama Hikvision India Private Limited
 24:B2:09;Avaya;Avaya Inc
@@ -22137,6 +22173,7 @@
 28:48:46;GridCentric;GridCentric Inc.
 28:48:E7;HuaweiDevice;Huawei Device Co., Ltd.
 28:49:92;LuminatorTec;Luminator Technology Group Global LLC
+28:49:E9;Apple;Apple, Inc.
 28:4B:54;Apple;Apple, Inc.
 28:4C:53;IntuneNetwor;Intune Networks
 28:4D:7D;zte;zte corporation
@@ -22369,12 +22406,14 @@
 28:D4:36;Jiangsudewos;Jiangsu dewosi electric co., LTD
 28:D5:76;PremierWirel;Premier Wireless, Inc.
 28:D5:B1;Apple;Apple, Inc.
+28:D6:EC;HuaweiTechno;Huawei Technologies Co.,Ltd
 28:D9:3E;Telecor;Telecor Inc.
 28:D9:8A;KonkeTechnol;Hangzhou Konke Technology Co.,Ltd.
 28:D9:97;YuduanMobile;Yuduan Mobile Co., Ltd.
 28:DB:02;zte;zte corporation
 28:DB:81;GuaoElectron;Shanghai Guao Electronic Technology Co., Ltd
 28:DB:A7;SiliconLabor;Silicon Laboratories
+28:DC:C3;HuaweiTechno;Huawei Technologies Co.,Ltd
 28:DE:1C;SamsungElect;Samsung Electronics Co.,Ltd
 28:DE:59;DomusNTW;Domus NTW CORP.
 28:DE:65;HewlettPacka;Hewlett Packard Enterprise
@@ -22495,6 +22534,7 @@
 2A:A1:39;Pointguard;Pointguard, Llc
 2A:A1:47;Distribucion;Distribuciones Cantilever
 2A:AC:53;WolfspyreLab;Wolfspyre Labs
+2A:BF:3F;LinkplayTech;Linkplay Technology Inc
 2A:DB:D7;VesperTechno;Vesper Technologies
 2A:EA:15;TibitCommuni;Tibit Communications
 2A:FD:6A;CharterCommu;Charter Communications
@@ -22844,6 +22884,7 @@
 2C:9D:4B;LavelleNetwo;Lavelle Networks Private Limited
 2C:9D:5A;FlaircommMic;Flaircomm Microelectronics,Inc.
 2C:9D:65;vivoMobileCo;vivo Mobile Communication Co., Ltd.
+2C:9D:90;MellanoxTech;Mellanox Technologies, Inc.
 2C:9E:00;SonyInteract;Sony Interactive Entertainment Inc.
 2C:9E:5F;Commscope;Commscope
 2C:9E:E0;Cavli;Cavli Inc.
@@ -23209,6 +23250,7 @@
 30:45:11;TexasInstrum;Texas Instruments
 30:45:96;HuaweiTechno;Huawei Technologies Co.,Ltd
 30:46:9A;Netgear;Netgear
+30:48:7D;TuyaSmart;Tuya Smart Inc.
 30:49:3B;NanjingZComW;Nanjing Z-Com Wireless Co.,Ltd
 30:49:50:00;GuangzhouLia;Guangzhou Lian-med Technology Co.,Ltd.
 30:49:50:10;AtliWorld;Atli World Limited
@@ -23289,6 +23331,7 @@
 30:76:6F;LGElectronic;LG Electronics (Mobile Communications)
 30:76:F5;Espressif;Espressif Inc.
 30:77:CB;MaikeIndustr;Maike Industry(Shenzhen)CO.,LTD
+30:77:DF;Terex;Terex Corporation
 30:78:5C;PartowTamasN;Partow Tamas Novin (Parman)
 30:78:6B;TIANJINGolde;TIANJIN Golden Pentagon Electronics Co., Ltd.
 30:78:C2;Innowireless;Innowireless / QUCELL Networks
@@ -23324,6 +23367,7 @@
 30:89:A6;HuaweiTechno;Huawei Technologies Co.,Ltd
 30:89:D3;HongkongUclo;Hongkong Ucloudlink Network Technology Limited
 30:8A:F7;HuaweiDevice;Huawei Device Co., Ltd.
+30:8B:23;Annapurnalab;Annapurna labs
 30:8B:B2;Cisco;Cisco Systems, Inc
 30:8C:FB;Dropcam;Dropcam
 30:8D:99;HewlettPacka;Hewlett Packard
@@ -23349,6 +23393,7 @@
 30:9E:62;HuaweiTechno;Huawei Technologies Co.,Ltd
 30:9F:FB;ArdomusNetwo;Ardomus Networks Corporation
 30:A0:23;RockPath;Rock Path S.R.L
+30:A0:33;Apple;Apple, Inc.
 30:A1:76;FiberhomeTel;Fiberhome Telecommunication Technologies Co.,LTD
 30:A1:FA;HuaweiTechno;Huawei Technologies Co.,Ltd
 30:A2:20;ARGTelecom;ARG Telecom
@@ -23472,6 +23517,7 @@
 30:ED:A0;Espressif;Espressif Inc.
 30:EF:D1;AlstomStrong;Alstom Strongwish (Shenzhen) Co., Ltd.
 30:F0:28;BoschSicherh;Bosch Sicherheitssysteme GmbH
+30:F0:3A;UEIElectroni;UEI Electronics Private Ltd.
 30:F2:3C;TecnoMobile;Tecno Mobile Limited
 30:F3:1D;zte;zte corporation
 30:F3:35;HuaweiTechno;Huawei Technologies Co.,Ltd
@@ -23575,6 +23621,7 @@
 34:15:93;RuckusWirele;Ruckus Wireless
 34:15:9E;Apple;Apple, Inc.
 34:17:36;iCommSemicon;Shenzhen iComm Semiconductor CO.,LTD
+34:17:DD;SercommFranc;Sercomm France Sarl
 34:17:EB;Dell;Dell Inc.
 34:19:4D;Arcadyan;Arcadyan Corporation
 34:1A:35;FiberhomeTel;Fiberhome Telecommunication Technologies Co.,LTD
@@ -23697,6 +23744,7 @@
 34:55:06;GeniusTechno;Guangdong Genius Technology Co., Ltd.
 34:55:94;FujianStarNe;Fujian Star-Net Communication Co.,Ltd
 34:55:E5;SJIT;SJIT Co., Ltd.
+34:56:ED;GoerdynaGrou;Goerdyna Group Co., Ltd
 34:56:FE;CiscoMeraki;Cisco Meraki
 34:57:60;MitraStarTec;MitraStar Technology Corp.
 34:58:40;HuaweiTechno;Huawei Technologies Co.,Ltd
@@ -23784,6 +23832,7 @@
 34:86:5D;Espressif;Espressif Inc.
 34:86:DA;HonorDevice;Honor Device Co., Ltd.
 34:87:3D;QuectelWirel;Quectel Wireless Solutions Co.,Ltd.
+34:87:FB;Gtai;Gtai
 34:88:18;Cisco;Cisco Systems, Inc
 34:88:5D;LogitechFarE;Logitech Far East
 34:8A:12;HewlettPacka;Hewlett Packard Enterprise
@@ -23819,6 +23868,7 @@
 34:9D:90;Heinzmann;Heinzmann GmbH & CO. KG
 34:9E:34;EvervictoryE;Evervictory Electronic Co.Ltd
 34:9F:7B;Canon;Canon Inc.
+34:A1:37;HuaweiTechno;Huawei Technologies Co.,Ltd
 34:A1:83;AWare;AWare, Inc
 34:A2:A2;HuaweiTechno;Huawei Technologies Co.,Ltd
 34:A3:4E;NevadaNano;NevadaNano
@@ -24019,6 +24069,7 @@
 34:EF:44;2Wire;2Wire Inc
 34:EF:8B;NTTDOCOMOBUS;NTT DOCOMO BUSINESS, Inc.
 34:EF:B6;EdgecoreNetw;Edgecore Networks Corporation
+34:F0:15;XiaomiMobile;Beijing Xiaomi Mobile Software Co., Ltd
 34:F0:43;SamsungElect;Samsung Electronics Co.,Ltd
 34:F0:CA;Linghangyuan;Shenzhen Linghangyuan Digital Technology Co.,Ltd.
 34:F1:50;HuiZhouGaosh;Hui Zhou Gaoshengda Technology Co.,LTD
@@ -24164,6 +24215,7 @@
 38:2C:E5;TuyaSmart;Tuya Smart Inc.
 38:2D:D1;SamsungElect;Samsung Electronics Co.,Ltd
 38:2D:E8;SamsungElect;Samsung Electronics Co.,Ltd
+38:2F:B0;GDMideaAirCo;GD Midea Air-Conditioning Equipment Co.,Ltd.
 38:30:F9;LGElectronic;LG Electronics (Mobile Communications)
 38:31:5A;Rinnai;Rinnai
 38:31:AC;Weg;Weg
@@ -24480,6 +24532,7 @@
 38:DE:35;GuangzhouYua;Guangzhou Yuandianhe Communication Technology Co.,Ltd
 38:DE:60;Mohlenhoff;Mohlenhoff GmbH
 38:DE:AD;Intel;Intel Corporate
+38:E0:54;SecurityDesi;Security Design, Inc.
 38:E0:8E;MitsubishiEl;Mitsubishi Electric Corporation
 38:E1:3D;Apple;Apple, Inc.
 38:E1:AA;zte;zte corporation
@@ -25264,6 +25317,7 @@
 40:58:46;vivoMobileCo;vivo Mobile Communication Co., Ltd.
 40:58:99;LogitechFarE;Logitech Far East
 40:5A:9B;Anovo;Anovo
+40:5A:DD;ActionsMicro;Actions Microelectronics
 40:5B:7F;Broadcom;Broadcom Limited
 40:5B:D8;ChongqingFug;Chongqing Fugui Electronics Co.,Ltd.
 40:5C:FD;Dell;Dell Inc.
@@ -25292,6 +25346,7 @@
 40:6A:8E;PuwellOETech;Hangzhou Puwell OE Tech Ltd.
 40:6A:AB;Rim;Rim
 40:6C:8F;Apple;Apple, Inc.
+40:6E:0F;SkyastarTech;Skyastar Technologles(Zhuhai) Ltd
 40:6F:27;HuaweiTechno;Huawei Technologies Co.,Ltd
 40:6F:2A;BlackBerryRT;BlackBerry RTS
 40:70:09;Commscope;Commscope
@@ -25319,13 +25374,13 @@
 40:7F:5F;JuniperNetwo;Juniper Networks
 40:7F:E0;GloryStarTec;Glory Star Technics (ShenZhen) Limited
 40:80:E1;FNLINKTECHNO;FN-LINK TECHNOLOGY Ltd.
-40:82:56;ContinentalA;Continental Automotive GmbH
+40:82:56;AUMOVIOGerma;AUMOVIO Germany GmbH
 40:82:7B;STMicroelect;STMicroelectronics Rousset SAS
 40:83:1D;Apple;Apple, Inc.
 40:83:DE;ZebraTechnol;Zebra Technologies Inc
 40:84:32;MicrochipTec;Microchip Technology Inc.
 40:84:93;Clavister;Clavister AB
-40:85:56;ContinentalA;Continental Automotive Romania SLR
+40:85:56;AUMOVIOTechn;AUMOVIO Technologies Romania S.R.L.
 40:86:2E;JdmMobileInt;Jdm Mobile Internet Solution Co., Ltd.
 40:86:CB;DLink;D-Link Corporation
 40:87:E5;WuQiTechnolo;Wu Qi Technologies,Inc.
@@ -25984,6 +26039,7 @@
 40:E3:D6;HewlettPacka;Hewlett Packard Enterprise
 40:E6:4B;Apple;Apple, Inc.
 40:E7:30;DEYStorage;DEY Storage Systems, Inc.
+40:E7:62;Calix;Calix Inc.
 40:E7:93;SivitonTechn;Shenzhen Siviton Technology Co.,Ltd
 40:E9:9B;SamsungElect;Samsung Electro-Mechanics(Thailand)
 40:EA:CE;FounderBroad;Founder Broadband Network Service Co.,Ltd
@@ -26087,6 +26143,7 @@
 44:0B:AB;PositivoTecn;Positivo Tecnologia S.A.
 44:0C:EE;RobertBoschE;Robert Bosch Elektronikai Kft.
 44:0C:FD;NetMan;NetMan Co., Ltd.
+44:0F:B4;GsdVietNamTe;Gsd Viet Nam Technology Company Limited
 44:10:FE;HuizhouForyo;Huizhou Foryou General Electronics Co., Ltd.
 44:11:02;EDMIEurope;EDMI Europe Ltd
 44:11:46;ChamberlainG;The Chamberlain Group, Inc
@@ -26119,7 +26176,7 @@
 44:1E:91;ARVIDAIntell;ARVIDA Intelligent Electronics Technology Co.,Ltd.
 44:1E:98;RuckusWirele;Ruckus Wireless
 44:1E:A1;HewlettPacka;Hewlett Packard
-44:20:63;ContinentalA;Continental Automotive Technologies GmbH
+44:20:63;AUMOVIOGerma;AUMOVIO Germany GmbH
 44:22:7C;HuaweiTechno;Huawei Technologies Co.,Ltd
 44:22:95;ChinaMobileI;China Mobile Iot Limited company
 44:22:F1;SFac;S.Fac, Inc
@@ -26177,6 +26234,7 @@
 44:42:2F;Testop;Testop Co.,Ltd.
 44:44:50;OttoQ;OttoQ
 44:45:6F;OnegaTechnol;Shenzhen Onega Technology Co.,Ltd
+44:45:BA;EdgecoreAmer;Edgecore Americas Networking Corporation
 44:46:48;HonHaiPrecis;Hon Hai Precision Industry Co.,LTD
 44:46:87;RealmeChongq;Realme Chongqing MobileTelecommunications Corp Ltd
 44:47:CC;HikvisionDig;Hangzhou Hikvision Digital Technology Co.,Ltd.
@@ -26275,6 +26333,7 @@
 44:7B:BB;YOUHUATechno;Shenzhen YOUHUA Technology Co., Ltd
 44:7B:C4;DualShineTec;DualShine Technology(SZ)Co.,Ltd
 44:7C:7F;InnolightTec;Innolight Technology Corporation
+44:7C:AC;InvictusAV;Invictus-AV
 44:7D:A5;VtionInforma;Vtion Information Technology (Fujian) Co.,Ltd
 44:7E:76;TrekTechnolo;Trek Technology (S) Pte Ltd
 44:7E:95;AlphaandOmeg;Alpha and Omega, Inc
@@ -26384,6 +26443,7 @@
 44:B9:94;DouglasLight;Douglas Lighting Controls
 44:BA:46;SichuanTiany;Sichuan Tianyi Comheart Telecom Co.,LTD
 44:BB:3B;Google;Google, Inc.
+44:BD:C8;XiaomiCommun;Xiaomi Communications Co Ltd
 44:BD:DE;BHTC;BHTC GmbH
 44:BE:0B;HuaweiTechno;Huawei Technologies Co.,Ltd
 44:BF:E3;LongtechElec;Shenzhen Longtech Electronics Co.,Ltd
@@ -26737,6 +26797,7 @@
 48:74:6E;Apple;Apple, Inc.
 48:75:83;Intellion;Intellion AG
 48:76:04;Private;Private
+48:76:96;HuaanZhongyu;Huaan Zhongyun Co., Ltd.
 48:77:06;NXPSemicondu;NXP Semiconductor (Tianjin) LTD.
 48:77:46;Calix;Calix Inc.
 48:77:BD;OppoMobileTe;Guangdong Oppo Mobile Telecommunications Corp.,Ltd
@@ -26796,6 +26857,7 @@
 48:9B:E2;SCIInnovatio;SCI Innovations Ltd
 48:9D:18;Flashbay;Flashbay Limited
 48:9D:24;BlackBerryRT;BlackBerry RTS
+48:9D:31;Espressif;Espressif Inc.
 48:9D:D1;SamsungElect;Samsung Electronics Co.,Ltd
 48:9E:9D;HuiZhouGaosh;Hui Zhou Gaoshengda Technology Co.,LTD
 48:9E:BD;HP;HP Inc.
@@ -27112,6 +27174,7 @@
 4C:40:88;SanshinElect;Sanshin Electronics Co.,Ltd.
 4C:42:1E;Cisco;Cisco Systems, Inc
 4C:43:41;Calix;Calix Inc.
+4C:43:F6;SzDjiTechnol;Sz Dji Technology Co.,Ltd
 4C:44:5B;Intel;Intel Corporate
 4C:45:76;ChinaMobileI;China Mobile(Hangzhou) Information Technology Co.,Ltd.
 4C:46:D1;GuangzhouVSo;Guangzhou V-Solution Telecommunication Technology Co.,Ltd.
@@ -27152,6 +27215,7 @@
 4C:54:27;LineproSp;Linepro Sp. z o.o.
 4C:54:99;HuaweiTechno;Huawei Technologies Co.,Ltd
 4C:55:85;Hamilton;Hamilton Systems
+4C:55:B2;XiaomiCommun;Xiaomi Communications Co Ltd
 4C:55:B8;TurkcellTekn;Turkcell Teknoloji
 4C:55:CC;Zentri;Zentri Pty Ltd
 4C:56:9D;Apple;Apple, Inc.
@@ -27492,6 +27556,7 @@
 4C:EA:AE;OppoMobileTe;Guangdong Oppo Mobile Telecommunications Corp.,Ltd
 4C:EB:42;Intel;Intel Corporate
 4C:EB:76;Murrelektron;Murrelektronik GmbH
+4C:EB:B0;SamsungElect;Samsung Electronics Co.,Ltd
 4C:EB:BD;ChongqingFug;Chongqing Fugui Electronics Co.,Ltd.
 4C:EB:D6;Espressif;Espressif Inc.
 4C:EC:0F;Cisco;Cisco Systems, Inc
@@ -28268,6 +28333,7 @@
 54:78:F0;zte;zte corporation
 54:79:75;Nokia;Nokia Corporation
 54:7A:52;CTEInternati;CTE International srl
+54:7A:F4;BouffaloLab;Bouffalo Lab (Nanjing) Co., Ltd.
 54:7C:69;Cisco;Cisco Systems, Inc
 54:7D:40;PowervisionT;Powervision Tech Inc.
 54:7D:CD;TexasInstrum;Texas Instruments
@@ -28391,6 +28457,7 @@
 54:AF:97;TPLink;TP-Link Systems Inc
 54:B1:21;HuaweiTechno;Huawei Technologies Co.,Ltd
 54:B2:03;Pegatron;Pegatron Corporation
+54:B2:7E;SagemcomBroa;Sagemcom Broadband SAS
 54:B2:9D;YOUHUATechno;Shenzhen YOUHUA Technology Co., Ltd
 54:B5:6C;XianNovaStar;Xi'an NovaStar Tech Co., Ltd
 54:B6:20;SUHDOLE&C;SUHDOL E&C Co.Ltd.
@@ -28663,6 +28730,7 @@
 58:4C:EE;DigitalOneTe;Digital One Technologies, Limited
 58:4D:42;Dragos;Dragos, Inc.
 58:50:76;LinearEquipa;Linear Equipamentos Eletronicos SA
+58:50:9F;CloudNetwork;Cloud Network Technology Singapore Pte. Ltd.
 58:50:AB;TLS;TLS Corporation
 58:50:E6;BestBuy;Best Buy Corporation
 58:50:ED;HikvisionDig;Hangzhou Hikvision Digital Technology Co.,Ltd.
@@ -28820,6 +28888,21 @@
 58:A8:7B;Fitbit;Fitbit, Inc.
 58:A8:E8;AmazonTechno;Amazon Technologies Inc.
 58:AC:78;Cisco;Cisco Systems, Inc
+58:AD:08:00;NEOiD;NEOiD
+58:AD:08:10;AinosTaiwanB;Ainos Inc. Taiwan Branch
+58:AD:08:20;ShiYanTechno;Beijing ShiYan Technology Co., Ltd
+58:AD:08:30;FujianRuiheT;Fujian Ruihe Technology Co., Ltd.
+58:AD:08:40;Yumutek;Shenzhen Yumutek co.,ltd
+58:AD:08:50;VanguardProt;Vanguard Protex Global
+58:AD:08:60;Acksys;Acksys
+58:AD:08:70;JiangsuDelia;Jiangsu Delianda Intelligent Technology Co., Ltd.
+58:AD:08:80;MobileyeVisi;Mobileye Vision Technologies LTD
+58:AD:08:90;WuxiQinghexi;Wuxi Qinghexiaobei Technology Co., Ltd.
+58:AD:08:A0;GateviewTech;Gateview Technologies
+58:AD:08:B0;TritonSensor;Triton Sensors
+58:AD:08:C0;Also;Also, Inc.
+58:AD:08:D0;SuzhouHuichu;Suzhou Huichuan United Power System Co.,Ltd
+58:AD:08:E0;MileOneTechn;MileOne Technologies Inc
 58:AD:12;Apple;Apple, Inc.
 58:AE:2B;HuaweiDevice;Huawei Device Co., Ltd.
 58:AE:A8;HuaweiTechno;Huawei Technologies Co.,Ltd
@@ -28845,6 +28928,7 @@
 58:BA:D4;HuaweiTechno;Huawei Technologies Co.,Ltd
 58:BC:27;Cisco;Cisco Systems, Inc
 58:BC:8F;Cognitive;Cognitive Systems Corp.
+58:BD:35;XiangchengCo;Shanghai Xiangcheng Communication Technology Co., Ltd
 58:BD:A3;Nintendo;Nintendo Co., Ltd.
 58:BD:F9;Sigrand;Sigrand
 58:BE:72;HuaweiTechno;Huawei Technologies Co.,Ltd
@@ -28898,6 +28982,7 @@
 58:D6:97;OppoMobileTe;Guangdong Oppo Mobile Telecommunications Corp.,Ltd
 58:D6:D3;DairyCheq;Dairy Cheq Inc
 58:D7:59;HuaweiTechno;Huawei Technologies Co.,Ltd
+58:D8:12;TPLink;TP-Link Systems Inc.
 58:D8:A7;BirdHomeAuto;Bird Home Automation GmbH
 58:D9:C3;MotorolaMobi;Motorola Mobility LLC, a Lenovo Company
 58:D9:D5;TendaTechnol;Tenda Technology Co.,Ltd.Dongguan branch
@@ -29019,6 +29104,7 @@
 5C:10:1E;zte;zte corporation
 5C:10:C5;SamsungElect;Samsung Electronics Co.,Ltd
 5C:11:93;SealOne;Seal One AG
+5C:13:AC;Apple;Apple, Inc.
 5C:13:CC;Apple;Apple, Inc.
 5C:14:37;Thyssenkrupp;Thyssenkrupp Aufzugswerke GmbH
 5C:14:EB;TridentIoT;Trident IoT
@@ -29037,6 +29123,7 @@
 5C:18:DD;CigShanghai;Cig Shanghai Co Ltd
 5C:19:23;LanlyTechnol;Hangzhou Lanly Technology Co., Ltd.
 5C:1A:6F;CambridgeInd;Cambridge Industries(Group) Co.,Ltd.
+5C:1B:17;BoschAutomot;Bosch Automotive Electronics India Pvt. Ltd.
 5C:1B:F4;Apple;Apple, Inc.
 5C:1C:B9;vivoMobileCo;vivo Mobile Communication Co., Ltd.
 5C:1D:D9;Apple;Apple, Inc.
@@ -29081,6 +29168,7 @@
 5C:39:77;JuniperNetwo;Juniper Networks
 5C:3A:3D;zte;zte corporation
 5C:3A:45;ChongqingFug;Chongqing Fugui Electronics Co.,Ltd.
+5C:3A:A2;SiliconLabor;Silicon Laboratories
 5C:3B:35;Gehirn;Gehirn Inc.
 5C:3C:27;SamsungElect;Samsung Electronics Co.,Ltd
 5C:3E:06;Cisco;Cisco Systems, Inc
@@ -29107,6 +29195,7 @@
 5C:4E:EE;AltoBeam;AltoBeam Inc.
 5C:50:15;Cisco;Cisco Systems, Inc
 5C:50:D9;Apple;Apple, Inc.
+5C:51:36;SamsungElect;Samsung Electronics Co.,Ltd
 5C:51:4F;Intel;Intel Corporate
 5C:51:81;SamsungElect;Samsung Electronics Co.,Ltd
 5C:51:88;MotorolaMobi;Motorola Mobility LLC, a Lenovo Company
@@ -29145,14 +29234,21 @@
 5C:5A:EA;Ford;Ford
 5C:5B:35;Mist;Mist Systems, Inc.
 5C:5B:C2;YIK;YIK Corporation
+5C:5C:75:00;EliteLink;Elite Link
 5C:5C:75:10;Tectoy;Tectoy S.A
 5C:5C:75:20;youyeetoo;youyeetoo
 5C:5C:75:30;OcubesShangh;O-cubes Shanghai Microelectronics Technology Co., Ltd
 5C:5C:75:40;BkeenInterna;Bkeen International Corporated
+5C:5C:75:50;YingKeSongPe;YingKeSong Pen Industry Technology R&D Center Shenzhen Co Ltd
+5C:5C:75:60;Ebet;Ebet Systems
+5C:5C:75:70;UoiTechnolog;Uoi Technology Corporation
 5C:5C:75:80;hassounGulfI;hassoun Gulf Industrial Company
 5C:5C:75:90;SpectrumFift;Spectrum FiftyNine BV
+5C:5C:75:A0;InoxSmartbyU;InoxSmart by Unison Hardware
+5C:5C:75:B0;AnhuiHaimaCl;Anhui Haima Cloud Technology Co.,Ltd
 5C:5C:75:C0;SiemensSenso;Siemens Sensors & Communication Ltd.
 5C:5C:75:D0;JooanTechnol;Shenzhen Jooan Technology Co., Ltd
+5C:5C:75:E0;DeutaAmerica;Deuta America
 5C:5D:EC;JiangSuNewco;JiangSu Newcom Optical&Electrical Communication CO Ltd
 5C:5E:0A;SamsungElect;Samsung Electronics Co.,Ltd
 5C:5E:AB;JuniperNetwo;Juniper Networks
@@ -29381,6 +29477,7 @@
 5C:D1:35;XtremePower;Xtreme Power Systems
 5C:D2:0B;Yytek;Yytek Co., Ltd.
 5C:D2:E4;Intel;Intel Corporate
+5C:D3:3D;SamsungElect;Samsung Electronics Co.,Ltd
 5C:D4:1B;UCZOONTechno;UCZOON Technology Co., LTD
 5C:D4:AB;Zektor;Zektor
 5C:D5:B5;WiSiYiLinkTe;Shenzhen WiSiYiLink Technology Co.,Ltd
@@ -29532,6 +29629,21 @@
 60:15:92:C0;PSS;PSS Co., Ltd
 60:15:92:D0;Remowireless;Remowireless Communication International Co.,Limited
 60:15:92:E0;Annapurnalab;Annapurna labs
+60:15:9F:00;yst;yst
+60:15:9F:10;Klaric;Klaric GmbH & Co. KG
+60:15:9F:20;VoxaiTechnol;Voxai Technology Co.,Ltd.
+60:15:9F:30;HubeiHanRuiJ;Hubei HanRui Jing Automotive Intelligent System Co.,Ltd
+60:15:9F:40;MicroTexPte;Micro-Tex Pte.Ltd.
+60:15:9F:50;YillionDeepc;Beijing Yillion Deepcompute Technology Co., Ltd
+60:15:9F:60;DaerxinTechn;Shenzhen Daerxin Technology Co.,Ltd
+60:15:9F:70;CriticalLoop;Critical Loop
+60:15:9F:80;HuizhouBohui;Huizhou Bohui Connection Technology Co., Ltd
+60:15:9F:90;NTSTechnolog;Shenzhen NTS Technology Co.,Ltd
+60:15:9F:A0;QingDaoHiinc;QingDao Hiincom Electronics Co., Ltd
+60:15:9F:B0;LensTechnolo;Lens Technology(Xiangtan) Co.,Ltd
+60:15:9F:C0;TerrestarSol;Terrestar Solutions Inc
+60:15:9F:D0;FFVideosiste;FF Videosistemas SL
+60:15:9F:E0;MaiaSpace;MaiaSpace
 60:15:C7;IdaTech;IdaTech
 60:18:03;DaikinAircon;Daikin Air-conditioning (Shanghai) Co., Ltd.
 60:18:2E;ProtrulyElec;ShenZhen Protruly Electronic Ltd co.
@@ -29706,6 +29818,7 @@
 60:83:34;HuaweiTechno;Huawei Technologies Co.,Ltd
 60:83:73;Apple;Apple, Inc.
 60:83:B2;GkWareeK;GkWare e.K.
+60:83:DA;SiliconLabor;Silicon Laboratories
 60:83:E2;NotionInform;Shanghai Notion Information Technology Co., Ltd
 60:83:E7;TPLink;TP-Link Systems Inc
 60:83:F8;SichuanHuaku;Sichuan Huakun Zhenyu Intelligent Technology Co.,Ltd
@@ -29806,6 +29919,7 @@
 60:B1:85;ATHsystem;ATH system
 60:B3:87;SynergicsTec;Synergics Technologies GmbH
 60:B3:C4;Elber;Elber Srl
+60:B4:A2;SamsungElect;Samsung Electronics Co.,Ltd
 60:B4:F7;PlumeDesign;Plume Design Inc
 60:B5:8D;AVMAudiovisu;AVM Audiovisuelles Marketing und Computersysteme GmbH
 60:B6:06;Phorus;Phorus
@@ -29998,6 +30112,7 @@
 64:16:F0;HuaweiTechno;Huawei Technologies Co.,Ltd
 64:17:59;Intellivisio;Intellivision Holdings, LLC
 64:17:CD;SamsungElect;Samsung Electronics Co.,Ltd
+64:18:DF;SagemcomBroa;Sagemcom Broadband SAS
 64:1A:22;Heliospectra;Heliospectra AB
 64:1A:BA;DryadNetwork;Dryad Networks GmbH
 64:1B:2F;SamsungElect;Samsung Electronics Co.,Ltd
@@ -30281,6 +30396,7 @@
 64:BB:1E;EardaTechnol;Earda Technologies co Ltd
 64:BC:0C;LGElectronic;LG Electronics (Mobile Communications)
 64:BC:11;CombiQ;CombiQ AB
+64:BC:43;HuaweiTechno;Huawei Technologies Co.,Ltd
 64:BC:58;Intel;Intel Corporate
 64:BD:6D;Apple;Apple, Inc.
 64:BE:63;STORDIS;STORDIS GmbH
@@ -30309,6 +30425,7 @@
 64:CC:2E;XiaomiCommun;Xiaomi Communications Co Ltd
 64:CD:C2;AmazonTechno;Amazon Technologies Inc.
 64:CD:F1;KOAL;KO & AL Co., Ltd
+64:CE:0C;FunshionOnli;Funshion Online Technologies Co.,Ltd
 64:CE:6E;SierraWirele;Sierra Wireless, ULC
 64:CF:13;WeigaoNikkis;Weigao Nikkiso(Weihai)Dialysis Equipment Co.,Ltd
 64:CF:D9;TexasInstrum;Texas Instruments
@@ -30321,6 +30438,7 @@
 64:D3:15;HMDGlobal;HMD Global Oy
 64:D4:BD;Alpsalpine;Alpsalpine Co,.Ltd
 64:D4:DA;Intel;Intel Corporate
+64:D4:F0;Netvue，Inc;Netvue，Inc.
 64:D6:9A;Intel;Intel Corporate
 64:D7:C0;HuaweiDevice;Huawei Device Co., Ltd.
 64:D8:14;Cisco;Cisco Systems, Inc
@@ -30437,6 +30555,7 @@
 68:18:D9;HillAFBCAPRE;Hill AFB - CAPRE Group
 68:19:3F;DigitalAirwa;Digital Airways
 68:19:AC;GuangzhouXia;Guangzhou Xianyou Intelligent Technogoly CO., LTD
+68:1A:47;Apple;Apple, Inc.
 68:1A:7C;SichuanTiany;Sichuan Tianyi Comheart Telecom Co.,LTD
 68:1A:A4;SkyworthDigi;Shenzhen Skyworth Digital Technology CO., Ltd
 68:1A:B2;zte;zte corporation
@@ -30688,6 +30807,7 @@
 68:A4:7D;SunCupidTech;Sun Cupid Technology (HK) LTD
 68:A5:93;Apple;Apple, Inc.
 68:A6:82;YOUHUATechno;Shenzhen YOUHUA Technology Co., Ltd
+68:A7:29;Apple;Apple, Inc.
 68:A7:B4;HonorDevice;Honor Device Co., Ltd.
 68:A8:28;HuaweiTechno;Huawei Technologies Co.,Ltd
 68:A8:6D;Apple;Apple, Inc.
@@ -30710,6 +30830,7 @@
 68:B4:1E;ZeasnTechnol;Zeasn Technology Private Limited
 68:B4:3A;WaterFurnace;WaterFurnace International, Inc.
 68:B5:99;HewlettPacka;Hewlett Packard
+68:B5:E3;HuaweiTechno;Huawei Technologies Co.,Ltd
 68:B6:91;AmazonTechno;Amazon Technologies Inc.
 68:B6:B3;Espressif;Espressif Inc.
 68:B6:FC;HitronTechno;Hitron Technologies. Inc
@@ -31023,6 +31144,7 @@
 6C:4D:51;CeresTechnol;Shenzhen Ceres Technology Co., Ltd.
 6C:4D:73;Apple;Apple, Inc.
 6C:4E:86;ThirdMillenn;Third Millennium Systems Ltd.
+6C:4E:B0;Castelion;Castelion Corporation
 6C:4E:F6;Cisco;Cisco Systems, Inc
 6C:4F:89;ZyxelCommuni;Zyxel Communications Corporation
 6C:4F:A1;Cisco;Cisco Systems, Inc
@@ -31110,6 +31232,7 @@
 6C:7F:0C;CiscoMeraki;Cisco Meraki
 6C:7F:49;HuaweiDevice;Huawei Device Co., Ltd.
 6C:80:AB;ifanr;ifanr Inc
+6C:81:66;Private;Private
 6C:81:FE;Mitsuba;Mitsuba Corporation
 6C:82:43;HuaweiDevice;Huawei Device Co., Ltd.
 6C:83:36;SamsungElect;Samsung Electronics Co.,Ltd
@@ -31250,6 +31373,7 @@
 6C:D1:E5;HuaweiTechno;Huawei Technologies Co.,Ltd
 6C:D2:BA;zte;zte corporation
 6C:D3:EE;Zimi;Zimi Corporation
+6C:D5:52;BilianElectr;Shenzhen Bilian Electronic Co.，Ltd
 6C:D6:30;RootousSyste;Rootous System Co.,Ltd
 6C:D6:3F;HuaweiTechno;Huawei Technologies Co.,Ltd
 6C:D6:8A;LGElectronic;LG Electronics (Mobile Communications)
@@ -31310,6 +31434,7 @@
 6C:F2:D8;Canon;Canon Inc.
 6C:F3:73;SamsungElect;Samsung Electronics Co.,Ltd
 6C:F3:7F;HewlettPacka;Hewlett Packard Enterprise
+6C:F4:3D;VusionGroup;VusionGroup
 6C:F5:E8;Mooredoll;Mooredoll Inc.
 6C:F6:DA;Intel;Intel Corporate
 6C:F7:12;NokiaSolutio;Nokia Solutions and Networks GmbH & Co. KG
@@ -31434,6 +31559,7 @@
 70:3A:2D;VLinkTechnol;Shenzhen V-Link Technology CO., LTD.
 70:3A:51;XiaomiCommun;Xiaomi Communications Co Ltd
 70:3A:73;SundrayTechn;Shenzhen Sundray Technologies company Limited
+70:3A:8C;SkyworthDigi;Shenzhen Skyworth Digital Technology CO., Ltd
 70:3A:A6;NewH3CTechno;New H3C Technologies Co., Ltd
 70:3A:CB;Google;Google, Inc.
 70:3A:D8;AfoundryElec;Shenzhen Afoundry Electronic Co., Ltd
@@ -31469,6 +31595,7 @@
 70:4E:01;KwangwonTech;Kwangwon Tech Co., Ltd.
 70:4E:66;FastTechnolo;Shenzhen Fast Technologies Co.,Ltd
 70:4E:6B;HuaweiTechno;Huawei Technologies Co.,Ltd
+70:4E:E0;SamsungElect;Samsung Electronics Co.,Ltd
 70:4F:08;HuishengInfo;Shenzhen Huisheng Information Technology Co., Ltd.
 70:4F:57;TpLinkTechno;Tp-Link Technologies Co.,Ltd.
 70:4F:B8;Commscope;Commscope
@@ -31650,6 +31777,7 @@
 70:93:C1;eero;eero inc.
 70:93:F8;SpaceMonkey;Space Monkey, Inc.
 70:97:41;Arcadyan;Arcadyan Corporation
+70:97:51;XiaomiMobile;Beijing Xiaomi Mobile Software Co., Ltd
 70:97:56;Happyelectro;Happyelectronics Co.,Ltd
 70:98:83;KayanElectro;Shenzhen Kayan Electronics., Ltd.
 70:99:1C;HonestyElect;Shenzhen Honesty Electronics Co.,Ltd
@@ -31682,6 +31810,7 @@
 70:AA:B2;BlackBerryRT;BlackBerry RTS
 70:AC:08;SiliconLabor;Silicon Laboratories
 70:AC:D7;YOUHUATechno;Shenzhen YOUHUA Technology Co., Ltd
+70:AD:43;BlinkbyAmazo;Blink by Amazon
 70:AD:54;MalvernInstr;Malvern Instruments Ltd
 70:AE:D5;Apple;Apple, Inc.
 70:AF:24;TPVisionBelg;TP Vision Belgium NV
@@ -36014,6 +36143,8 @@
 74:27:EA;ElitegroupCo;Elitegroup Computer Systems Co.,Ltd.
 74:28:57;MayfieldRobo;Mayfield Robotics
 74:28:69;HuaweiDevice;Huawei Device Co., Ltd.
+74:29:17;Apple;Apple, Inc.
+74:29:20;MCXPROKft;MCX-PRO Kft.
 74:29:59;Apple;Apple, Inc.
 74:29:72;JuniperNetwo;Juniper Networks
 74:29:81;TexasInstrum;Texas Instruments
@@ -36669,6 +36800,7 @@
 78:5F:6C;AristaNetwor;Arista Networks
 78:5F:A4;Ciena;Ciena Corporation
 78:60:5B;TpLinkTechno;Tp-Link Technologies Co.,Ltd.
+78:60:89;SamsungElect;Samsung Electronics Co.,Ltd
 78:61:7C;MitsumiElect;Mitsumi Electric Co.,Ltd.
 78:62:56;HuaweiTechno;Huawei Technologies Co.,Ltd
 78:62:99;BITSTREAMsp;BITSTREAM sp. z o.o.
@@ -36678,6 +36810,7 @@
 78:65:3B;ShaoxingOurt;Shaoxing Ourten Electronics Co., Ltd.
 78:65:59;SagemcomBroa;Sagemcom Broadband SAS
 78:66:9D;HuiZhouGaosh;Hui Zhou Gaoshengda Technology Co.,LTD
+78:66:A5;ChipseaTechn;Chipsea Technologies (Shenzhen) Crop.
 78:66:AE;ZTECInstrume;ZTEC Instruments, Inc.
 78:66:D7;GenstoraigeT;Genstoraige Technology Co.Ltd.
 78:66:F3;worldeliteel;shenzhen worldelite electronics co., LTD
@@ -36776,6 +36909,7 @@
 78:94:B4;Sercomm;Sercomm Corporation.
 78:94:E8;RadioBridge;Radio Bridge
 78:95:EB;ItelMobile;Itel Mobile Limited
+78:96:0D;Apple;Apple, Inc.
 78:96:82;zte;zte corporation
 78:96:84;Commscope;Commscope
 78:96:A3;ExtremeNetwo;Extreme Networks Headquarters
@@ -37243,6 +37377,7 @@
 7C:6C:8F;AmsNeve;Ams Neve Ltd
 7C:6C:E1;HonestyElect;Shenzhen Honesty Electronics Co.,Ltd.
 7C:6C:F0;TINNOMobileT;Shenzhen TINNO Mobile Technology Corp.
+7C:6D:12;Microsoft;Microsoft Corporation
 7C:6D:62;Apple;Apple, Inc.
 7C:6D:A6;SuperwaveGro;Superwave Group LLC
 7C:6D:F8;Apple;Apple, Inc.
@@ -37313,6 +37448,7 @@
 7C:83:34:E0;Balter;Balter GmbH
 7C:84:37;ChinaPostCom;China Post Communications Equipment Co., Ltd.
 7C:85:30;Nokia;Nokia
+7C:87:67;Cisco;Cisco Systems, Inc
 7C:87:CE;Espressif;Espressif Inc.
 7C:88:99;FNLINKTECHNO;FN-LINK TECHNOLOGY Ltd.
 7C:89:31;HuaweiDevice;Huawei Device Co., Ltd.
@@ -37414,7 +37550,7 @@
 7C:BC:84:10;XiamenMageIn;Xiamen Mage Information Technology Co.,Ltd.
 7C:BC:84:20;3STechnology;3S Technology Co., Ltd.
 7C:BC:84:30;YituTechnolo;Shanghai Yitu Technology Co. Ltd
-7C:BC:84:40;Continental;Continental
+7C:BC:84:40;AUMOVIOFranc;AUMOVIO France S.A.S.
 7C:BC:84:50;Nanningautod;Nanning auto digital technology co.,LTD
 7C:BC:84:60;SociétédeTra;Société de Transport de Montréal
 7C:BC:84:70;XujiChangnan;Xuji Changnan Communication Equipment Co., Ltd.
@@ -37483,6 +37619,7 @@
 7C:CD:3C;GuangzhouJuz;Guangzhou Juzing Technology Co., Ltd
 7C:CF:4E;FineTriumphT;Fine Triumph Technology Corp.,Ltd.
 7C:CF:CF;SEARIIntelli;Shanghai SEARI Intelligent System Co., Ltd
+7C:D1:AD;Apple;Apple, Inc.
 7C:D1:C3;Apple;Apple, Inc.
 7C:D2:DA;Apple;Apple, Inc.
 7C:D3:0A;Inventec;Inventec Corporation
@@ -37613,6 +37750,7 @@
 80:0B:51;XGimiTechnol;Chengdu XGimi Technology Co.,Ltd
 80:0C:67;Apple;Apple, Inc.
 80:0C:F9;AmazonTechno;Amazon Technologies Inc.
+80:0D:3F;SamsungElect;Samsung Electronics Co.,Ltd
 80:0D:D7;Latticework;Latticework, Inc
 80:0E:24;ForgetBox;ForgetBox
 80:0E:A9;TCLYuxinZhix;TCL Yuxin Zhixing Technology (Huizhou) Co.,Ltd
@@ -37633,6 +37771,7 @@
 80:19:67;ReallytekInf;Shanghai Reallytek Information Technology Co.,Ltd
 80:19:70;SamsungElect;Samsung Electronics Co.,Ltd
 80:19:FE;JianLingTech;JianLing Technology CO., LTD
+80:1D:39;Apple;Apple, Inc.
 80:1D:AA;Avaya;Avaya Inc
 80:1F:02;EdimaxTechno;Edimax Technology Co. Ltd.
 80:1F:12;MicrochipTec;Microchip Technology Inc.
@@ -37696,6 +37835,7 @@
 80:43:3F;JuniperNetwo;Juniper Networks
 80:44:FD;ChinaMobileI;China Mobile (Hangzhou) Information Technology Co., Ltd.
 80:45:DD;Intel;Intel Corporate
+80:47:15;Apple;Apple, Inc.
 80:47:31;PacketDesign;Packet Design, Inc.
 80:47:86;SamsungElect;Samsung Electronics Co.,Ltd
 80:48:2C;WyzeLabs;Wyze Labs Inc
@@ -37777,6 +37917,7 @@
 80:76:77;puwellcloudt;hangzhou puwell cloud tech co., ltd.
 80:76:93;Newag;Newag SA
 80:76:C2;GDMideaAirCo;GD Midea Air-Conditioning Equipment Co.,Ltd.
+80:77:86:20;Wintec;Wintec Co., Ltd
 80:77:A4;TecnoMobile;Tecno Mobile Limited
 80:78:71;AskeyCompute;Askey Computer Corp
 80:79:33;AigentecTech;Aigentec Technology(Zhejiang) Co., Ltd.
@@ -37849,6 +37990,7 @@
 80:96:CA;HonHaiPrecis;Hon Hai Precision Ind. Co.,Ltd.
 80:97:1B;AltenergyPow;Altenergy Power System,Inc.
 80:97:33;ElebaoTechno;Shenzhen Elebao Technology Co., Ltd
+80:99:9B;MurataManufa;Murata Manufacturing Co., Ltd.
 80:99:E7;Sony;Sony Corporation
 80:9B:20;Intel;Intel Corporate
 80:9D:65;FNLINKTECHNO;FN-LINK TECHNOLOGY Ltd.
@@ -37919,6 +38061,7 @@
 80:BC:37;RuckusWirele;Ruckus Wireless
 80:BE:05;Apple;Apple, Inc.
 80:BE:AF;HikvisionDig;Hangzhou Hikvision Digital Technology Co.,Ltd.
+80:BF:21;vivoMobileCo;vivo Mobile Communication Co., Ltd.
 80:C0:1E;Intel;Intel Corporate
 80:C1:6E;HewlettPacka;Hewlett Packard
 80:C3:BA;SonovaConsum;Sonova Consumer Hearing GmbH
@@ -37989,6 +38132,7 @@
 80:E4:DA:E0;AkenoriPTE;Akenori PTE LTD
 80:E4:DA:F0;Private;Private
 80:E5:40;Commscope;Commscope
+80:E6:3C;XiaomiCommun;Xiaomi Communications Co Ltd
 80:E6:50;Apple;Apple, Inc.
 80:E7:69;RealmeChongq;Realme Chongqing Mobile Telecommunications Corp.,Ltd.
 80:E8:2C;HewlettPacka;Hewlett Packard
@@ -38164,6 +38308,7 @@
 84:47:09;IP3CenturyIn;Shenzhen IP3 Century Intelligent Technology CO.,Ltd
 84:47:65;HuaweiTechno;Huawei Technologies Co.,Ltd
 84:48:23;WOXTERTECHNO;WOXTER TECHNOLOGY Co. Ltd
+84:48:80;AmazonTechno;Amazon Technologies Inc.
 84:49:15;vArmourNetwo;vArmour Networks, Inc.
 84:49:EE;DemantEnterp;Demant Enterprise A/S
 84:4B:B7;SankuaiOnlin;Beijing Sankuai Online Technology Co.,Ltd
@@ -38397,6 +38542,7 @@
 84:C7:27;Gnodal;Gnodal Ltd
 84:C7:8F;APSNetworks;APS Networks GmbH
 84:C7:A9;C3Po;C3Po S.A.
+84:C7:E2;VusionGroup;VusionGroup
 84:C7:EA;Sony;Sony Corporation
 84:C8:07;ADVAOpticalN;ADVA Optical Networking Ltd.
 84:C8:A0;HuiZhouGaosh;Hui Zhou Gaoshengda Technology Co.,LTD
@@ -38535,6 +38681,7 @@
 88:12:7D;MelonElectro;Shenzhen Melon Electronics Co.,Ltd
 88:12:AC;HunanFnLinkT;Hunan Fn-Link Technology Limited
 88:13:BF;Espressif;Espressif Inc.
+88:13:C2;Tendyron;Tendyron Corporation
 88:14:2B;ProtonicHoll;Protonic Holland
 88:15:44;CiscoMeraki;Cisco Meraki
 88:15:66;HuaweiDevice;Huawei Device Co., Ltd.
@@ -38629,9 +38776,11 @@
 88:41:57;AtsmartTechn;Shenzhen Atsmart Technology Co.,Ltd.
 88:41:C1;OrbisatDaAma;Orbisat Da Amazonia Ind E Aerol Sa
 88:41:FC;AirTiesWirel;AirTies Wireless Networks
+88:42:D0;EardaTechnol;Earda Technologies co Ltd
 88:43:E1;Cisco;Cisco Systems, Inc
 88:44:77;HuaweiTechno;Huawei Technologies Co.,Ltd
 88:44:F6;Nokia;Nokia Corporation
+88:45:58;AmicroTechno;Amicro Technology Co., Ltd.
 88:45:F0;GeniusTechno;Guangdong Genius Technology Co., Ltd.
 88:46:04;XiaomiCommun;Xiaomi Communications Co Ltd
 88:46:2A;Telechips;Telechips Inc.
@@ -38685,6 +38834,7 @@
 88:5D:90:E0;UnitacTechno;Unitac Technology Limited
 88:5D:90:F0;Private;Private
 88:5D:FB;zte;zte corporation
+88:5E:54;SamsungElect;Samsung Electronics Co.,Ltd
 88:5E:BD;NCKOREA;NCKOREA Co.,Ltd.
 88:5F:E8:00;Jungheinrich;Jungheinrich Norderstedt AG & Co. KG
 88:5F:E8:10;ApoideaTechn;Apoidea Technology Co., Ltd.
@@ -39012,6 +39162,7 @@
 8C:02:FA;COMMANDONetw;COMMANDO Networks Limited
 8C:04:BA;Dell;Dell Inc.
 8C:04:FF;VantivaUSA;Vantiva USA LLC
+8C:05:28;ShenZhenTend;Shen Zhen Tenda Technology Co.,Ltd
 8C:05:51;Koubachi;Koubachi AG
 8C:05:72;HuaweiDevice;Huawei Device Co., Ltd.
 8C:06:CB;Toradex;Toradex AG
@@ -39198,6 +39349,7 @@
 8C:1F:64:09:70;FoMa;FoMa Systems GmbH
 8C:1F:64:09:80;Agvolution;Agvolution GmbH
 8C:1F:64:09:90;PantherunTec;Pantherun Technologies Pvt Ltd
+8C:1F:64:09:A0;ShinetechEle;Shinetech Electronics Co., Ltd.
 8C:1F:64:09:B0;Taiv;Taiv
 8C:1F:64:09:D0;FlextronicsI;Flextronics International Kft
 8C:1F:64:09:E0;IWSGlobal;IWS Global Pty Ltd
@@ -39311,6 +39463,7 @@
 8C:1F:64:15:10;GogoBusiness;Gogo Business Aviation
 8C:1F:64:15:40;FlextronicsI;Flextronics International Kft
 8C:1F:64:15:50;Slat;Slat
+8C:1F:64:15:60;GrinnSp;Grinn Sp. z o.o.
 8C:1F:64:15:90;Mediana;Mediana Co., Ltd.
 8C:1F:64:15:A0;ASHIDAElectr;ASHIDA Electronics Pvt. Ltd
 8C:1F:64:15:C0;TronFutureTe;Tron Future Tech Inc.
@@ -39340,6 +39493,7 @@
 8C:1F:64:18:50;BiotageGb;Biotage Gb Ltd
 8C:1F:64:18:60;BreasMedical;Breas Medical AB
 8C:1F:64:18:70;Sicon;Sicon srl
+8C:1F:64:18:A0;NetworkRail;Network Rail
 8C:1F:64:18:B0;MPulse;M-Pulse GmbH & Co.KG
 8C:1F:64:18:E0;J1LEDIntelli;J1-LED Intelligent Transport Systems Pty Ltd
 8C:1F:64:19:30;Sicon;Sicon srl
@@ -39355,6 +39509,7 @@
 8C:1F:64:1A:50;Dialtronics;Dialtronics Systems Pvt Ltd
 8C:1F:64:1A:70;aelettronica;aelettronica group srl
 8C:1F:64:1A:80;Private;Private
+8C:1F:64:1A:C0;Unitron;Unitron Systems b.v.
 8C:1F:64:1A:D0;NexxtoServic;Nexxto Servicos Em Tecnologia da Informacao SA
 8C:1F:64:1A:E0;BounceImagin;Bounce Imaging
 8C:1F:64:1A:F0;EnviroNodeIo;EnviroNode IoT Solutions
@@ -39364,6 +39519,7 @@
 8C:1F:64:1B:60;RedSensors;Red Sensors Limited
 8C:1F:64:1B:70;RaxTechInter;Rax-Tech International
 8C:1F:64:1B:90;DTSIlluminaz;D.T.S Illuminazione Srl
+8C:1F:64:1B:A0;InnovativeSi;Innovative Signal Analysis
 8C:1F:64:1B:B0;RenweiElectr;Renwei Electronics Technology (Shenzhen) Co.,LTD.
 8C:1F:64:1B:C0;TransitSolut;Transit Solutions, LLC.
 8C:1F:64:1B:D0;DorletSau;Dorlet Sau
@@ -39371,6 +39527,7 @@
 8C:1F:64:1B:F0;Ossia;Ossia Inc
 8C:1F:64:1C:00;INVENTIASp;INVENTIA Sp. z o.o.
 8C:1F:64:1C:20;SolidInventL;Solid Invent Ltda.
+8C:1F:64:1C:40;EDGX;EDGX bv
 8C:1F:64:1C:90;Pneumax;Pneumax Spa
 8C:1F:64:1C:A0;PowerElectro;Power Electronics Espana, S.L.
 8C:1F:64:1C:B0;SASYSeK;SASYS e.K.
@@ -39393,8 +39550,10 @@
 8C:1F:64:1E:60;RadianResear;Radian Research, Inc.
 8C:1F:64:1E:70;CanonElectro;Canon Electron Tubes & Devices Co., Ltd.
 8C:1F:64:1E:80;HaptechDefen;Haptech Defense Systems
+8C:1F:64:1E:90;RC;RC Systems
 8C:1F:64:1E:A0;AsteelflashD;Asteelflash Design Solutions Hamburg GmbH
 8C:1F:64:1E:D0;Lichtwart;Lichtwart GmbH
+8C:1F:64:1E:E0;Kneron;Kneron (Taiwan) Co., Ltd.
 8C:1F:64:1E:F0;Tantronic;Tantronic AG
 8C:1F:64:1F:00;AVCOMMTechno;AVCOMM Technologies Inc
 8C:1F:64:1F:40;EiffageEnerg;Eiffage Energie Electronique
@@ -39580,6 +39739,7 @@
 8C:1F:64:31:A0;Asiga;Asiga Pty Ltd
 8C:1F:64:31:B0;jointanalyti;joint analytical systems GmbH
 8C:1F:64:31:C0;Accumetrics;Accumetrics
+8C:1F:64:31:D0;TechMobility;Tech Mobility Aps
 8C:1F:64:31:F0;STVElectroni;STV Electronic GmbH
 8C:1F:64:32:40;KineticTechn;Kinetic Technologies
 8C:1F:64:32:70;DeutescherWe;Deutescher Wetterdienst
@@ -39703,6 +39863,7 @@
 8C:1F:64:3D:90;UnlimitedBan;Unlimited Bandwidth LLC
 8C:1F:64:3D:B0;BRSSistemasE;BRS Sistemas Eletrônicos
 8C:1F:64:3D:D0;DorletSau;Dorlet Sau
+8C:1F:64:3D:F0;LimeSoft;LimeSoft Co., Ltd.
 8C:1F:64:3E:00;YPP;YPP Corporation
 8C:1F:64:3E:20;Agrico;Agrico
 8C:1F:64:3E:30;FMTecFutureM;FMTec GmbH - Future Management Technologies
@@ -39774,6 +39935,7 @@
 8C:1F:64:45:40;KJKlimatekni;KJ Klimateknik A/S
 8C:1F:64:45:50;Weigl;Weigl GmbH & Co KG
 8C:1F:64:45:70;AngweiInform;Shanghai Angwei Information Technology Co.,Ltd.
+8C:1F:64:45:80;AooGeeContro;AooGee Controls Co., LTD.
 8C:1F:64:45:90;GreenTally;GreenTally LLC
 8C:1F:64:45:A0;InspurDigita;Inspur Digital Enterprise Technology Co., Ltd.
 8C:1F:64:45:B0;AoxingTechno;Beijing Aoxing Technology Co.,Ltd
@@ -39809,6 +39971,7 @@
 8C:1F:64:48:C0;ElectronicEq;Electronic Equipment Company Pvt. Ltd.
 8C:1F:64:48:D0;Private;Private
 8C:1F:64:48:F0;Mecos;Mecos AG
+8C:1F:64:49:00;Samson;Samson Co.,Ltd.
 8C:1F:64:49:10;PhospecIndus;Phospec Industries Inc.
 8C:1F:64:49:30;SecurityProd;Security Products International, LLC
 8C:1F:64:49:50;Dave;Dave Srl
@@ -39816,6 +39979,7 @@
 8C:1F:64:49:70;Primalucelab;Primalucelab S.p.A.
 8C:1F:64:49:80;YUYAMAMFG;YUYAMA MFG Co.,Ltd
 8C:1F:64:49:90;Tiama;Tiama
+8C:1F:64:49:A0;SigmannElekt;Sigmann Elektronik GmbH
 8C:1F:64:49:B0;WartsilaVoya;Wartsila Voyage Oy
 8C:1F:64:49:C0;RedLionEurop;Red Lion Europe GmbH
 8C:1F:64:49:F0;DongmanTechn;Shenzhen Dongman Technology Co.,Ltd
@@ -39871,6 +40035,7 @@
 8C:1F:64:4F:10;AbbottDiagno;Abbott Diagnostics Technologies AS
 8C:1F:64:4F:20;AutomationDi;Automation Displays Inc.
 8C:1F:64:4F:40;StacoEnergyP;Staco Energy Products
+8C:1F:64:4F:50;BSTsecurity;BSTsecurity
 8C:1F:64:4F:60;Private;Private
 8C:1F:64:4F:70;SmartDTechno;SmartD Technologies Inc
 8C:1F:64:4F:90;PhotonicScie;Photonic Science and Engineering Ltd
@@ -39906,6 +40071,7 @@
 8C:1F:64:52:50;UnitedStates;United States Technologies Inc.
 8C:1F:64:52:60;CAITRON;CAITRON GmbH
 8C:1F:64:52:70;Pdw;Pdw
+8C:1F:64:52:80;LuxshareElec;Luxshare Electronic Technology (KunShan) Ltd
 8C:1F:64:52:A0;HiwinMikrosy;Hiwin Mikrosystem Corp.
 8C:1F:64:52:D0;CubicITSdbaG;Cubic ITS, Inc. dba GRIDSMART Technologies
 8C:1F:64:52:E0;CLOUDTELECOM;CLOUD TELECOM Inc.
@@ -40040,6 +40206,7 @@
 8C:1F:64:60:10;Camius;Camius
 8C:1F:64:60:30;FukuEnergyTe;Fuku Energy Technology Co., Ltd.
 8C:1F:64:60:50;Xacti;Xacti Corporation
+8C:1F:64:60:60;NodOnSAS;NodOn SAS
 8C:1F:64:60:70;NanjingAoton;Nanjing Aotong Intelligent Technology Co.,Ltd
 8C:1F:64:60:80;CongTyPhanKy;Cong Ty Co Phan Ky Thuat Moi Truong Viet An
 8C:1F:64:60:A0;Rfengine;Rfengine Co., Ltd.
@@ -40081,6 +40248,7 @@
 8C:1F:64:64:80;Gridpulsecoo;Gridpulse c.o.o.
 8C:1F:64:64:D0;Newone;Newone Co.,Ltd.
 8C:1F:64:64:E0;NilfiskFood;Nilfisk Food
+8C:1F:64:64:F0;InvixiumAcce;Invixium Access Inc
 8C:1F:64:65:00;Ltec;L tec Co.,Ltd
 8C:1F:64:65:10;TeledyneCeta;Teledyne Cetac
 8C:1F:64:65:20;TokyoInterph;Tokyo Interphone Co.,Ltd.
@@ -40154,6 +40322,8 @@
 8C:1F:64:6B:B0;SeasonElectr;Season Electronics Ltd
 8C:1F:64:6B:D0;IoTWaterAnal;IoT Water Analytics S.L.
 8C:1F:64:6B:F0;Automata;Automata GmbH & Co. KG
+8C:1F:64:6C:10;GogoBA;Gogo BA
+8C:1F:64:6C:40;inmediQ;inmediQ GmbH
 8C:1F:64:6C:60;Fit;Fit
 8C:1F:64:6C:80;TaikoAudio;Taiko Audio B.V.
 8C:1F:64:6C:A0;MelissaClima;Melissa Climate Jsc
@@ -40224,6 +40394,7 @@
 8C:1F:64:72:F0;GMVAerospace;GMV Aerospace and Defence SAU
 8C:1F:64:73:10;ehoosys;ehoosys Co.,LTD.
 8C:1F:64:73:30;VideoNetwork;Video Network Security
+8C:1F:64:73:40;ZktecoEurope;Zkteco Europe
 8C:1F:64:73:70;VytahyVymysl;Vytahy-Vymyslicky s.r.o.
 8C:1F:64:73:80;ssolgrid;ssolgrid
 8C:1F:64:73:90;Monnit;Monnit Corporation
@@ -40300,6 +40471,7 @@
 8C:1F:64:7A:50;PotterElectr;Potter Electric Signal Co. LLC
 8C:1F:64:7A:60;OTMetric;OTMetric
 8C:1F:64:7A:70;TimegateInst;Timegate Instruments Ltd.
+8C:1F:64:7A:90;FemtoTools;FemtoTools AG
 8C:1F:64:7A:A0;XSENSORTechn;XSENSOR Technology Corp.
 8C:1F:64:7A:B0;DEUTAWerke;DEUTA Werke GmbH
 8C:1F:64:7A:E0;DEK;D-E-K GmbH & Co.KG
@@ -40356,6 +40528,7 @@
 8C:1F:64:7F:80;FleetSafeInd;FleetSafe India Private Limited
 8C:1F:64:7F:90;CopelionInte;Copelion International Inc
 8C:1F:64:7F:C0;MitsubishiEl;Mitsubishi Electric Klimat Transportation Systems S.p.A.
+8C:1F:64:7F:E0;KonvisonTech;Shenzhen Konvison Technology Co.,Ltd.
 8C:1F:64:80:00;SDGTelecomEq;Shenzhen SDG Telecom Equipment Co.,Ltd.
 8C:1F:64:80:10;ZhejiangLaol;Zhejiang Laolan Information Technology Co., Ltd
 8C:1F:64:80:20;DaiichiElect;Daiichi Electric Industry Co., Ltd
@@ -40388,6 +40561,7 @@
 8C:1F:64:82:C0;PowerElectro;Power Electronics Espana, S.L.
 8C:1F:64:82:F0;AnySignal;AnySignal
 8C:1F:64:83:00;Vtron;Vtron Pty Ltd
+8C:1F:64:83:50;AdetecSas;Adetec Sas
 8C:1F:64:83:70;runZero;runZero, Inc
 8C:1F:64:83:80;Drimaes;Drimaes Inc.
 8C:1F:64:83:90;CEDARAudio;CEDAR Audio Ltd
@@ -40416,6 +40590,7 @@
 8C:1F:64:85:C0;Zing5gCommun;Zing 5g Communications Canada Inc.
 8C:1F:64:85:E0;ApenGroup;Apen Group S.p.A. (VAT IT08767740155)
 8C:1F:64:85:F0;NECAsiaPacif;NEC Asia Pacific Pte Ltd
+8C:1F:64:86:10;AvioNovaTech;AvioNova (Chengdu) Technology Company Limited
 8C:1F:64:86:30;EngiNe;EngiNe srl
 8C:1F:64:86:40;IMIThomsonVa;IMI Thomson Valves
 8C:1F:64:86:60;Unitron;Unitron Systems b.v.
@@ -40506,6 +40681,7 @@
 8C:1F:64:8F:40;Loadrite;Loadrite (Auckland) Limited
 8C:1F:64:8F:50;Dave;Dave Srl
 8C:1F:64:8F:60;IdneoTechnol;Idneo Technologies S.A.U.
+8C:1F:64:8F:70;BORMANNEDVun;BORMANN EDV und Zubehoer
 8C:1F:64:8F:80;HIGHVOLTPrüf;HIGHVOLT Prüftechnik
 8C:1F:64:8F:B0;TelevicRail;Televic Rail GmbH
 8C:1F:64:8F:E0;PotterElectr;Potter Electric Signal Co. LLC
@@ -40589,6 +40765,7 @@
 8C:1F:64:98:30;BakerHughesE;Baker Hughes EMEA
 8C:1F:64:98:40;AbacusPeriph;Abacus Peripherals Pvt Ltd
 8C:1F:64:98:70;PeterHuberKa;Peter Huber Kaeltemaschinenbau SE
+8C:1F:64:98:80;NortekMeasur;Nortek(QingDao) Measuring Equipment Co., Ltd
 8C:1F:64:98:90;PhenX;Phe-nX B.V.
 8C:1F:64:98:A0;Ligpt;Ligpt
 8C:1F:64:98:B0;SyscomInstru;Syscom Instruments SA
@@ -40612,6 +40789,7 @@
 8C:1F:64:9A:90;Tiama;Tiama
 8C:1F:64:9A:B0;Dave;Dave Srl
 8C:1F:64:9A:C0;JingtangComm;Hangzhou Jingtang Communication Technology Co.,Ltd.
+8C:1F:64:9A:D0;PotterElectr;Potter Electric Signal Co. LLC
 8C:1F:64:9B:20;EmersonRosem;Emerson Rosemount Analytical
 8C:1F:64:9B:30;Böckelt;Böckelt GmbH
 8C:1F:64:9B:50;BerkeleyNucl;Berkeley Nucleonics Corp
@@ -40667,8 +40845,10 @@
 8C:1F:64:A0:60;secutech;secutech Co.,Ltd.
 8C:1F:64:A0:70;GJDManufactu;GJD Manufacturing
 8C:1F:64:A0:80;StatconElect;Statcon Electronics India Ltd.
+8C:1F:64:A0:90;Raycon;Raycon
 8C:1F:64:A0:A0;WiseTechInte;Shanghai Wise-Tech Intelligent Technology Co.,Ltd.
 8C:1F:64:A0:B0;ChannelMaste;Channel Master LLC
+8C:1F:64:A0:C0;Produkcijast;Produkcija studio C.P.G d.o.o.
 8C:1F:64:A0:D0;LumiplanDuha;Lumiplan Duhamel
 8C:1F:64:A0:E0;ElacAmericas;Elac Americas Inc.
 8C:1F:64:A0:F0;DorletSau;Dorlet Sau
@@ -40680,6 +40860,7 @@
 8C:1F:64:A1:70;Pneumax;Pneumax Spa
 8C:1F:64:A1:B0;Zilica;Zilica Limited
 8C:1F:64:A1:C0;manageon;manageon
+8C:1F:64:A1:D0;MYIRElectron;MYIR Electronics Limited
 8C:1F:64:A1:F0;HitachiEnerg;Hitachi Energy India Limited
 8C:1F:64:A2:00;Intenseye;Intenseye Inc.
 8C:1F:64:A2:60;Automatic;Automatic Pty Ltd
@@ -40731,6 +40912,7 @@
 8C:1F:64:A6:F0;CardinalScal;Cardinal Scales Manufacturing Co
 8C:1F:64:A7:00;VteknikElekt;V-teknik Elektronik AB
 8C:1F:64:A7:10;Martec;Martec S.p.A.
+8C:1F:64:A7:20;FirstDesignS;First Design System Inc.
 8C:1F:64:A7:40;HiwinMikrosy;Hiwin Mikrosystem Corp.
 8C:1F:64:A7:50;ProconElectr;Procon Electronics Pty Ltd
 8C:1F:64:A7:60;DEUTAWERKE;DEUTA-WERKE GmbH
@@ -40766,6 +40948,7 @@
 8C:1F:64:AA:80;axelife;axelife
 8C:1F:64:AA:A0;LederElektro;Leder Elektronik Design GmbH
 8C:1F:64:AA:B0;BlueSwordInt;BlueSword Intelligent Technology Co., Ltd.
+8C:1F:64:AA:C0;Cdr;Cdr Srl
 8C:1F:64:AB:00;Etm;Etm Co Ltd
 8C:1F:64:AB:30;VelvuTechnol;Velvu Technologies Private Limited
 8C:1F:64:AB:40;ZhongchenMic;Beijing Zhongchen Microelectronics Co.,Ltd
@@ -40862,6 +41045,7 @@
 8C:1F:64:B4:70;LineagePower;Lineage Power Pvt Ltd.,
 8C:1F:64:B4:C0;PicocomTechn;Picocom Technology Ltd
 8C:1F:64:B4:F0;VaunixTechno;Vaunix Technology Corporation
+8C:1F:64:B5:00;Kinemetrics;Kinemetrics, Inc.
 8C:1F:64:B5:40;Framatome;Framatome Inc.
 8C:1F:64:B5:50;SancharTeles;Sanchar Telesystems limited
 8C:1F:64:B5:60;Arcvideo;Arcvideo
@@ -40952,6 +41136,7 @@
 8C:1F:64:BC:C0;SoundHealth;Sound Health Systems
 8C:1F:64:BC:D0;ALSE;A.L.S.E.
 8C:1F:64:BC:E0;BESOsp;BESO sp. z o.o.
+8C:1F:64:BD:00;MesaLabs;Mesa Labs, Inc.
 8C:1F:64:BD:20;attocube;attocube systems AG
 8C:1F:64:BD:30;IOMasterTech;IO Master Technology
 8C:1F:64:BD:50;ProCustomGro;Pro-Custom Group
@@ -41005,6 +41190,7 @@
 8C:1F:64:C1:F0;Esys;Esys Srl
 8C:1F:64:C2:20;Pulcroio;Pulcro.io LLC
 8C:1F:64:C2:40;Alifax;Alifax S.r.l.
+8C:1F:64:C2:60;IronwoodElec;Ironwood Electronics
 8C:1F:64:C2:70;LiftVentures;Lift Ventures, Inc
 8C:1F:64:C2:80;TornadoSpect;Tornado Spectral Systems Inc.
 8C:1F:64:C2:90;BRSSistemasE;BRS Sistemas Eletrônicos
@@ -41063,6 +41249,7 @@
 8C:1F:64:C8:00;VECOSEurope;VECOS Europe B.V.
 8C:1F:64:C8:10;TaolinkTechn;Taolink Technologies Corporation
 8C:1F:64:C8:30;PowerElectro;Power Electronics Espana, S.L.
+8C:1F:64:C8:40;Luceor;Luceor
 8C:1F:64:C8:50;PotterElectr;Potter Electric Signal Co. LLC
 8C:1F:64:C8:D0;Aeronautics;Aeronautics Ltd.
 8C:1F:64:C8:F0;JWFroehlichM;JW Froehlich Maschinenfabrik GmbH
@@ -41073,6 +41260,7 @@
 8C:1F:64:C9:90;VinfastTradi;Vinfast Trading and Production JSC
 8C:1F:64:C9:A0;InfosoftDigi;Infosoft Digital Design and Services P L
 8C:1F:64:C9:B0;JMVoithSE;J.M. Voith SE & Co. KG
+8C:1F:64:C9:D0;CreatingClou;Creating Cloud Technology Co.,Ltd.,CT-CLOUD
 8C:1F:64:C9:E0;CytoTronics;CytoTronics
 8C:1F:64:C9:F0;PeachCreek;PeachCreek
 8C:1F:64:CA:00;SarvWebsPriv;Sarv Webs Private Limited
@@ -41100,6 +41288,7 @@
 8C:1F:64:CC:20;Toyogiken;Toyogiken Co.,Ltd.
 8C:1F:64:CC:50;PotterElectr;Potter Electric Signal Co. LLC
 8C:1F:64:CC:60;GeniusVision;Genius Vision Digital Private Limited
+8C:1F:64:CC:80;Sicon;Sicon srl
 8C:1F:64:CC:90;BenchmarkEle;Benchmark Electronics BV
 8C:1F:64:CC:B0;suzhouyuecro;suzhou yuecrown Electronic Technology Co.,LTD
 8C:1F:64:CC:E0;Tesollo;Tesollo
@@ -41149,6 +41338,7 @@
 8C:1F:64:D1:10;Benetel;Benetel
 8C:1F:64:D1:20;QuanzhouRadi;Quanzhou Radioboss Technology Co., Ltd
 8C:1F:64:D1:30;EYatskoIndiv;EYatsko Individual
+8C:1F:64:D1:40;AnadoluTrafi;Anadolu Trafi̇k Kontrol Si̇s.Taş.San.Ve Ti̇c. Ltd.Şti̇
 8C:1F:64:D1:50;MBconnectlin;MB connect line GmbH
 8C:1F:64:D1:70;IAltanovagro;I.S.A. - Altanova group srl
 8C:1F:64:D1:80;WuxiTongxinH;Wuxi Tongxin Hengtong Technology Co., Ltd.
@@ -41160,6 +41350,7 @@
 8C:1F:64:D1:F0;FreeTalkEngi;Free Talk Engineering Co., Ltd
 8C:1F:64:D2:00;NASEngineeri;NAS Engineering PRO
 8C:1F:64:D2:10;AmetekCts;Ametek Cts Gmbh
+8C:1F:64:D2:20;NineFives;Nine Fives LLC
 8C:1F:64:D2:30;PLX;PLX Inc.
 8C:1F:64:D2:40;R3IoT;R3 IoT Ltd.
 8C:1F:64:D2:70;Taiv;Taiv Inc
@@ -41341,6 +41532,7 @@
 8C:1F:64:E4:D0;SanTelequip;San Telequip (P) Ltd.,
 8C:1F:64:E4:E0;TrivediAdvan;Trivedi Advanced Technologies LLC
 8C:1F:64:E4:F0;Sabl;Sabl Systems Pty Ltd
+8C:1F:64:E5:00;INVENTIASp;INVENTIA Sp. z o.o.
 8C:1F:64:E5:20;LcmVelociApS;LcmVeloci ApS
 8C:1F:64:E5:30;TProjeMuhend;T Proje Muhendislik Dis Tic. Ltd. Sti.
 8C:1F:64:E5:80;Heitec;Heitec Ag
@@ -41385,6 +41577,7 @@
 8C:1F:64:E9:90;PantherunTec;Pantherun Technologies Pvt Ltd
 8C:1F:64:E9:A0;SiFive;SiFive Inc
 8C:1F:64:E9:B0;DiscoverEner;Discover Energy Systems Corp.
+8C:1F:64:E9:D0;ZhuhaiLonlel;Zhuhai Lonl electric Co., Ltd.
 8C:1F:64:E9:F0;LumiplanDuha;Lumiplan Duhamel
 8C:1F:64:EA:60;DialPlan;Dial Plan Limited
 8C:1F:64:EA:80;ZumbachElect;Zumbach Electronic AG
@@ -41394,6 +41587,7 @@
 8C:1F:64:EA:E0;TrafficPolsk;Traffic Polska sp. z o. o.
 8C:1F:64:EB:00;ExyteTechnol;Exyte Technology GmbH
 8C:1F:64:EB:20;AquaBroadcas;Aqua Broadcast Ltd
+8C:1F:64:EB:40;1Finity;1Finity Inc.
 8C:1F:64:EB:50;MeiryoDenshi;Meiryo Denshi Corp.
 8C:1F:64:EB:70;DeltaSolutio;Delta Solutions LLC
 8C:1F:64:EB:80;PowerElectro;Power Electronics Espana, S.L.
@@ -41453,6 +41647,7 @@
 8C:1F:64:F1:B0;Nextep;Nextep Co.,Ltd.
 8C:1F:64:F1:C0;RigelEnginee;Rigel Engineering, LLC
 8C:1F:64:F1:D0;MBconnectlin;MB connect line GmbH Fernwartungssysteme
+8C:1F:64:F1:E0;EngageTechno;Engage Technologies
 8C:1F:64:F2:00;Thermaco;Thermaco Incorporated
 8C:1F:64:F2:10;nanoTRONIXCo;nanoTRONIX Computing Inc.
 8C:1F:64:F2:20;VoyageAudio;Voyage Audio LLC
@@ -41761,7 +41956,7 @@
 8C:5D:B2:E0;SurbhiSatcom;Surbhi Satcom Pvt Ltd
 8C:5E:4D;DragonWaveTe;DragonWave Technologies DMCC
 8C:5E:BD;HuaweiDevice;Huawei Device Co., Ltd.
-8C:5F:48;ContinentalI;Continental Intelligent Transportation Systems LLC
+8C:5F:48;AUMOVIO;AUMOVIO Systems, Inc.
 8C:5F:AD;FiberhomeTel;Fiberhome Telecommunication Technologies Co.,LTD
 8C:5F:DF;RailwaySigna;Beijing Railway Signal Factory
 8C:60:4F;Cisco;Cisco Systems, Inc
@@ -41881,6 +42076,7 @@
 8C:A0:48;NeTopChipTec;Beijing NeTopChip Technology Co.,LTD
 8C:A2:FD;Starry;Starry, Inc.
 8C:A3:99;ServercomPri;Servercom (India) Private Limited
+8C:A3:EC;SamsungElect;Samsung Electronics Co.,Ltd
 8C:A4:01;NewChipIntel;Shenzhen New Chip Intelligence Co.,LTD
 8C:A4:54;Private;Private
 8C:A5:A1;OreganoDesig;Oregano Systems - Design & Consulting GmbH
@@ -41998,6 +42194,7 @@
 8C:DC:02;zte;zte corporation
 8C:DC:D4;HewlettPacka;Hewlett Packard
 8C:DD:0B;eero;eero inc.
+8C:DD:30;RuijieNetwor;Ruijie Networks Co.,LTD
 8C:DD:8D;WiflyCitySys;Wifly-City System Inc.
 8C:DE:52;ISSCTechnolo;ISSC Technologies Corp.
 8C:DE:99;Comlab;Comlab Inc.
@@ -42124,6 +42321,7 @@
 90:1C:9E;AlcatelLucen;Alcatel-Lucent Enterprise
 90:1D:27;zte;zte corporation
 90:1E:DD;GreatCompute;Great Computer Corporation
+90:1F:09;SiliconLabor;Silicon Laboratories
 90:20:3A;BYDPrecision;BYD Precision Manufacture Co.,Ltd
 90:20:83;GeneralEngin;General Engine Management Systems Ltd.
 90:20:C2;HewlettPacka;Hewlett Packard Enterprise
@@ -42222,6 +42420,7 @@
 90:50:7B;AdvancedPANM;Advanced PANMOBIL Systems GmbH & Co. KG
 90:50:CA;HitronTechno;Hitron Technologies. Inc
 90:51:3F;ElettronicaS;Elettronica Santerno SpA
+90:51:F8;HewlettPacka;Hewlett Packard Enterprise
 90:52:BF;SichuanTiany;Sichuan Tianyi Comheart Telecom Co.,LTD
 90:54:46;TesElectroni;Tes Electronic Solutions
 90:54:B7;EltexEnterpr;Eltex Enterprise LTD
@@ -42266,6 +42465,7 @@
 90:6D:C8;DLGAutomação;DLG Automação Industrial Ltda
 90:6E:BB;HonHaiPrecis;Hon Hai Precision Ind. Co.,Ltd.
 90:6F:18;Private;Private
+90:6F:A7;FunshionOnli;Funshion Online Technologies Co.,Ltd
 90:6F:A9;NanjingPutia;Nanjing Putian Telecommunications Technology Co.,Ltd.
 90:70:25;GareaMicrosy;Garea Microsys Co.,Ltd.
 90:70:65;TexasInstrum;Texas Instruments
@@ -42277,6 +42477,7 @@
 90:73:5A;MotorolaMobi;Motorola Mobility LLC, a Lenovo Company
 90:74:2E;NewH3CTechno;New H3C Technologies Co., Ltd
 90:74:9D;IRayTechnolo;IRay Technology Co., Ltd.
+90:74:AE;AzureWaveTec;AzureWave Technology Inc.
 90:75:BC;NokiaShangha;Nokia Shanghai Bell Co., Ltd.
 90:75:DE;ZebraTechnol;Zebra Technologies Inc.
 90:76:9F;MercuryCommu;Shenzhen Mercury Communication Technologies Co.,Ltd.
@@ -42290,6 +42491,7 @@
 90:7A:28;MorncloudInf;Beijing Morncloud Information And Technology Co. Ltd.
 90:7A:58;ZegnaDaidong;Zegna-Daidong Limited
 90:7A:BE;GsdVietNamTe;Gsd Viet Nam Technology Company Limited
+90:7A:DA;ChinaDragonT;China Dragon Technology Limited
 90:7A:F1;Wally;Wally
 90:7B:C6;TexasInstrum;Texas Instruments
 90:7E:30;Lars;Lars
@@ -42330,6 +42532,7 @@
 90:88:A9:E0;TeeJetTechno;TeeJet Technologies
 90:89:38;HefeiLinkinT;Hefei Linkin Technology Co., Ltd.
 90:89:5F;WeifangGoert;Weifang Goertek Electronics Co.,Ltd
+90:8A:80;Cisco;Cisco Systems, Inc
 90:8C:09;TotalPhase;Total Phase
 90:8C:43;Apple;Apple, Inc.
 90:8C:44;HKZongmuTech;H.K Zongmu Technology Co., Ltd.
@@ -42429,6 +42632,7 @@
 90:B9:31;Apple;Apple, Inc.
 90:B9:42;zte;zte corporation
 90:B9:7D;JohnsonOutdo;Johnson Outdoors Marine Electronics d/b/a Minnkota
+90:B9:F9;MotorolaMobi;Motorola Mobility LLC, a Lenovo Company
 90:BD:E6;QuectelWirel;Quectel Wireless Solutions Co.,Ltd.
 90:BF:D9;SmartInnovat;Smart Innovation LLC
 90:C1:15;Sony;Sony Corporation
@@ -42563,6 +42767,7 @@
 90:F7:2F;PhillipsMach;Phillips Machine & Welding Co., Inc.
 90:F7:B2;NewH3CTechno;New H3C Technologies Co., Ltd
 90:F8:2E;AmazonTechno;Amazon Technologies Inc.
+90:F8:61;ublox;u-blox AG
 90:F8:91;KaonGroup;Kaon Group Co., Ltd.
 90:F9:64;Rawasi;Rawasi Co
 90:F9:70;HuaweiTechno;Huawei Technologies Co.,Ltd
@@ -42663,6 +42868,7 @@
 94:2A:6F;Ubiquiti;Ubiquiti Inc
 94:2B:68;Apple;Apple, Inc.
 94:2C:B3;HUMAX;HUMAX Co., Ltd.
+94:2D:3A;PrizorViztec;Prizor Viztech Limited
 94:2D:DC;SamsungElect;Samsung Electronics Co.,Ltd
 94:2E:17;SchneiderEle;Schneider Electric Canada Inc
 94:2E:63;Finsécur;Finsécur
@@ -43006,6 +43212,7 @@
 94:E9:8C;Nokia;Nokia
 94:E9:EE;HuaweiDevice;Huawei Device Co., Ltd.
 94:EA:32;Apple;Apple, Inc.
+94:EA:E7;LynqTechnolo;Lynq Technologies
 94:EA:EA;TellescomInd;Tellescom Industria E Comercio Em Telecomunicacao
 94:EB:2C;Google;Google, Inc.
 94:EB:CD;BlackBerryRT;BlackBerry RTS
@@ -43320,6 +43527,7 @@
 98:77:CB;VorteksED;Vorteks ED
 98:77:D5;WiZ;WiZ
 98:77:E7;KaonGroup;Kaon Group Co., Ltd.
+98:78:00;TCTmobile;TCT mobile ltd
 98:7A:10;Ericsson;Ericsson AB
 98:7A:14;Microsoft;Microsoft Corporation
 98:7A:9B;TCLMOKAInter;TCL MOKA International Limited
@@ -43416,7 +43624,7 @@
 98:A8:29;AltoBeam;AltoBeam Inc.
 98:A8:78;AgnigateTech;Agnigate Technologies Private Limited
 98:A9:2D;NewH3CTechno;New H3C Technologies Co., Ltd
-98:A9:42;GuangzhouToz;Guangzhou Tozed Kangwei Intelligent Technology Co., LTD
+98:A9:42;TozedKangwei;Tozed Kangwei Tech Co., Ltd
 98:A9:65;AVMAudiovisu;AVM Audiovisuelles Marketing und Computersysteme GmbH
 98:AA:3C;Willitech;Will i-tech Co., Ltd.
 98:AA:D7;BlueWaveNetw;Blue Wave Networking Co Ltd
@@ -43518,6 +43726,7 @@
 98:E7:F4;HewlettPacka;Hewlett Packard
 98:E7:F5;HuaweiTechno;Huawei Technologies Co.,Ltd
 98:E8:48;Axiim;Axiim
+98:E8:59;Apple;Apple, Inc.
 98:E8:FA;Nintendo;Nintendo Co.,Ltd
 98:EC:65;CosesyApS;Cosesy ApS
 98:ED:5C;Tesla;Tesla,Inc.
@@ -43653,7 +43862,7 @@
 9C:25:BE;WildlifeAcou;Wildlife Acoustics, Inc.
 9C:28:40;DiscoveryTec;Discovery Technology,LTD..
 9C:28:B3;Apple;Apple, Inc.
-9C:28:BF;ContinentalA;Continental Automotive Czech Republic s.r.o.
+9C:28:BF;AUMOVIOCzech;AUMOVIO Czech Republic s.r.o.
 9C:28:EF;HuaweiTechno;Huawei Technologies Co.,Ltd
 9C:28:F7;XiaomiCommun;Xiaomi Communications Co Ltd
 9C:29:3F;Apple;Apple, Inc.
@@ -43676,6 +43885,7 @@
 9C:31:C3;SkyUk;Sky Uk Limited
 9C:32:A9;SichuanTiany;Sichuan Tianyi Comheart Telecom Co.,LTD
 9C:32:CE;Canon;Canon Inc.
+9C:33:12;Treon;Treon Oy
 9C:34:26;Commscope;Commscope
 9C:35:83;NiproDiagnos;Nipro Diagnostics, Inc
 9C:35:EB;Apple;Apple, Inc.
@@ -43861,6 +44071,7 @@
 9C:90:19;Beyless;Beyless
 9C:92:4F;Apple;Apple, Inc.
 9C:93:4E;Xerox;Xerox Corporation
+9C:93:5C;UnisyueTechn;Unisyue Technologies Co;LTD
 9C:93:B0;MegatronixTe;Megatronix (Beijing) Technology Co., Ltd.
 9C:93:E4;Private;Private
 9C:95:61;HuiZhouGaosh;Hui Zhou Gaoshengda Technology Co.,LTD
@@ -44288,6 +44499,8 @@ A0:56:2C;SamsungElect;Samsung Electronics Co.,Ltd
 A0:56:B2;HarmanBecker;Harman/Becker Automotive Systems GmbH
 A0:56:F3;Apple;Apple, Inc.
 A0:57:E3;HuaweiTechno;Huawei Technologies Co.,Ltd
+A0:58:66;QorvoUtrecht;Qorvo Utrecht B.V.
+A0:59:11;CiscoMeraki;Cisco Meraki
 A0:59:3A;VDSVideoDisp;V.D.S. Video Display Systems srl
 A0:59:50;Intel;Intel Corporate
 A0:5A:A4;GrandProduct;Grand Products Nevada, Inc.
@@ -44554,6 +44767,7 @@ A0:EE:1A;Apple;Apple, Inc.
 A0:EE:EE;CigShanghai;Cig Shanghai Co Ltd
 A0:EF:84;SeineImageIn;Seine Image Int'l Co., Ltd
 A0:F2:17;GEMedicalSys;GE Medical System(China) Co., Ltd.
+A0:F2:62;Espressif;Espressif Inc.
 A0:F3:C1;TpLinkTechno;Tp-Link Technologies Co.,Ltd.
 A0:F3:E4;AlcatelLucen;Alcatel-Lucent IPD
 A0:F4:19;Nokia;Nokia Corporation
@@ -44651,6 +44865,7 @@ A4:1E:E1;TaicangT&WEl;Taicang T&W Electronics
 A4:1F:72;Dell;Dell Inc.
 A4:21:8A;NortelNetwor;Nortel Networks
 A4:22:49;SagemcomBroa;Sagemcom Broadband SAS
+A4:22:B6;MotorolaMobi;Motorola Mobility LLC, a Lenovo Company
 A4:23:05;OpenNetworki;Open Networking Laboratory
 A4:24:B3;FlatFrogLabo;FlatFrog Laboratories AB
 A4:24:DD;Cambrionix;Cambrionix Ltd
@@ -44913,6 +45128,7 @@ A4:9B:4F;HuaweiTechno;Huawei Technologies Co.,Ltd
 A4:9B:CD;Cisco;Cisco Systems, Inc
 A4:9B:F5;Hybridserver;Hybridserver Tec GmbH
 A4:9D:49;Ketra;Ketra, Inc.
+A4:9D:B8;TecnoTechnol;Shenzhen Tecno Technology
 A4:9D:DD;SamsungElect;Samsung Electronics Co.,Ltd
 A4:9E:69;SiliconLabor;Silicon Laboratories
 A4:9E:DB;AutoCrib;AutoCrib, Inc.
@@ -44934,6 +45150,7 @@ A4:A6:A9;Private;Private
 A4:A8:0F;CoshipElectr;Shenzhen Coship Electronics Co., Ltd.
 A4:A9:30;XiaomiMobile;Beijing Xiaomi Mobile Software Co., Ltd
 A4:AA:FE;HuaweiDevice;Huawei Device Co., Ltd.
+A4:AB:39;TaichiTechno;Shenzhen Taichi Technology Limited
 A4:AC:0F;HuaweiDevice;Huawei Device Co., Ltd.
 A4:AD:00;RagsdaleTech;Ragsdale Technology
 A4:AD:9E;Nexaiot;Nexaiot
@@ -45089,6 +45306,7 @@ A4:EE:57;SeikoEpson;Seiko Epson Corporation
 A4:EF:15;AltoBeam;AltoBeam (China) Inc.
 A4:EF:52;Telewave;Telewave Co., Ltd.
 A4:F0:0F;Espressif;Espressif Inc.
+A4:F0:1F;Canon;Canon Inc.
 A4:F0:5E;OppoMobileTe;Guangdong Oppo Mobile Telecommunications Corp.,Ltd
 A4:F1:E8;Apple;Apple, Inc.
 A4:F3:3B;zte;zte corporation
@@ -45246,6 +45464,7 @@ A8:54:A2;HeimgardTech;Heimgard Technologies AS
 A8:54:B2;WNC;WNC Corporation
 A8:55:6A;3SSystemTech;3S System Technology Inc.
 A8:57:4E;TpLinkTechno;Tp-Link Technologies Co.,Ltd.
+A8:57:BA;YOUHUATechno;Shenzhen YOUHUA Technology Co., Ltd
 A8:58:40;CambridgeInd;Cambridge Industries(Group) Co.,Ltd.
 A8:58:4E;PkVega;Pk Vega
 A8:58:7C;Shoogee;Shoogee GmbH & Co. KG
@@ -45448,6 +45667,7 @@ A8:CF:E0;GDNEnterpris;GDN Enterprises Private Limited
 A8:D0:81;HuaweiDevice;Huawei Device Co., Ltd.
 A8:D0:E3;SystechElect;Systech Electronics Ltd
 A8:D0:E5;JuniperNetwo;Juniper Networks
+A8:D1:62;SamsungElect;Samsung Electronics Co.,Ltd
 A8:D2:36;LightwareVis;Lightware Visual Engineering
 A8:D3:C8;WachendorffA;Wachendorff Automation GmbH & CO.KG
 A8:D3:F7;ArcadyanTech;Arcadyan Technology Corporation
@@ -45628,6 +45848,7 @@ AC:39:3D;eero;eero inc.
 AC:39:71;RealmeChongq;Realme Chongqing Mobile Telecommunications Corp.,Ltd.
 AC:3A:67;Cisco;Cisco Systems, Inc
 AC:3A:7A;Roku;Roku, Inc.
+AC:3A:E2;NVIDIA;NVIDIA Corporation
 AC:3B:77;SagemcomBroa;Sagemcom Broadband SAS
 AC:3B:96;NXPSemicondu;NXP Semiconductor (Tianjin) LTD.
 AC:3C:0B;Apple;Apple, Inc.
@@ -45640,6 +45861,7 @@ AC:3D:CB;Intel;Intel Corporate
 AC:3D:FA;HuachengNetw;Hangzhou Huacheng Network Technology Co.,Ltd
 AC:3E:B1;Google;Google, Inc.
 AC:3F:A4;TaiyoYuden;Taiyo Yuden Co.,Ltd
+AC:40:1E;vivoMobileCo;vivo Mobile Communication Co., Ltd.
 AC:40:EA;C&TSolution;C&T Solution Inc.
 AC:41:22;EclipseElect;Eclipse Electronic Systems Inc.
 AC:41:6A;AmazonTechno;Amazon Technologies Inc.
@@ -45882,7 +46104,7 @@ AC:C1:EE;XiaomiCommun;Xiaomi Communications Co Ltd
 AC:C2:5D;FiberhomeTel;Fiberhome Telecommunication Technologies Co.,LTD
 AC:C2:EC;CltIntLInd;Clt Int'L Ind. Corp.
 AC:C3:3A;SamsungElect;Samsung Electronics Co.,Ltd
-AC:C3:58;ContinentalA;Continental Automotive Czech Republic s.r.o.
+AC:C3:58;AUMOVIOCzech;AUMOVIO Czech Republic s.r.o.
 AC:C3:E5;CiscoMeraki;Cisco Meraki
 AC:C4:A9;FiberhomeTel;Fiberhome Telecommunication Technologies Co.,LTD
 AC:C4:BD;OppoMobileTe;Guangdong Oppo Mobile Telecommunications Corp.,Ltd
@@ -45916,6 +46138,7 @@ AC:D1:80;CrexendoBusi;Crexendo Business Solutions, Inc.
 AC:D1:B8;HonHaiPrecis;Hon Hai Precision Ind. Co.,Ltd.
 AC:D3:1D;CiscoMeraki;Cisco Meraki
 AC:D3:64;AbbAbbSaceDi;Abb Spa, Abb Sace Div.
+AC:D3:FB;ArycsTechnol;Arycs Technologies Inc
 AC:D5:64;ChongqingFug;Chongqing Fugui Electronics Co.,Ltd.
 AC:D6:18;OnePlusTechn;OnePlus Technology (Shenzhen) Co., Ltd
 AC:D6:57;ShaanxiGuoLi;Shaanxi GuoLian Digital TV Technology Co.,Ltd.
@@ -45929,10 +46152,12 @@ AC:DB:48;Commscope;Commscope
 AC:DB:DA;Geniatech;Shenzhen Geniatech Inc, Ltd
 AC:DC:CA;HuaweiTechno;Huawei Technologies Co.,Ltd
 AC:DC:E5;ProcterGambl;Procter & Gamble Company
+AC:DE:01;RuckusWirele;Ruckus Wireless
 AC:DE:48;Private;Private
 AC:DF:9F;Arcadyan;Arcadyan Corporation
 AC:DF:A1;Apple;Apple, Inc.
 AC:E0:10;LiteonTechno;Liteon Technology Corporation
+AC:E0:11;HuaweiTechno;Huawei Technologies Co.,Ltd
 AC:E0:69;ISAACInstrum;ISAAC Instruments
 AC:E0:D6;koreabts;koreabts
 AC:E1:4F;AutonomicCon;Autonomic Controls, Inc.
@@ -46100,6 +46325,7 @@ B0:3F:64;Apple;Apple, Inc.
 B0:40:89;Senient;Senient Systems LTD
 B0:41:1D;ITTIMTechnol;ITTIM Technologies
 B0:41:6F;MaxtangCompu;Shenzhen Maxtang Computer Co.,Ltd
+B0:42:B7;HuaweiTechno;Huawei Technologies Co.,Ltd
 B0:43:5D;MechoShade;MechoShade
 B0:44:14;NewH3CTechno;New H3C Technologies Co., Ltd
 B0:44:9C;AssaAbloyYal;Assa Abloy AB - Yale
@@ -46162,6 +46388,7 @@ B0:5C:DA;HP;HP Inc.
 B0:5C:E5;Nokia;Nokia Corporation
 B0:5D:D4;Commscope;Commscope
 B0:60:88;Intel;Intel Corporate
+B0:61:A9;YealinkNetwo;Yealink(Xiamen) Network Technology Co.,Ltd.
 B0:61:C7;EricssonLGEn;Ericsson-LG Enterprise
 B0:65:3A;MurataManufa;Murata Manufacturing Co., Ltd.
 B0:65:63;RailwayCommu;Shanghai Railway Communication Factory
@@ -46585,6 +46812,7 @@ B4:37:D1:D0;ZXYSportTrac;ZXY Sport Tracking
 B4:37:D1:E0;UnionTecnolo;Union Tecnologica Noxium S.L.
 B4:37:D1:F0;Private;Private
 B4:37:D8;DLink;D-Link (Shanghai) Limited Corp.
+B4:38:36;HuaweiTechno;Huawei Technologies Co.,Ltd
 B4:39:34;PenGeneratio;Pen Generations, Inc.
 B4:39:39;TINNOMobileT;Shenzhen TINNO Mobile Technology Corp.
 B4:39:4C;HuaweiTechno;Huawei Technologies Co.,Ltd
@@ -46692,6 +46920,7 @@ B4:6E:08;HuaweiTechno;Huawei Technologies Co.,Ltd
 B4:6E:10;vivoMobileCo;vivo Mobile Communication Co., Ltd.
 B4:6F:2D;WahooFitness;Wahoo Fitness
 B4:70:64;SamsungElect;Samsung Electronics Co.,Ltd
+B4:72:D4;zte;zte corporation
 B4:73:56;TreebearNetw;Hangzhou Treebear Networking Co., Ltd.
 B4:74:43;SamsungElect;Samsung Electronics Co.,Ltd
 B4:74:47;CoreOS;CoreOS
@@ -46787,6 +47016,21 @@ B4:A9:FC;QuantaComput;Quanta Computer Inc.
 B4:A9:FE;GHIATechnolo;GHIA Technology (Shenzhen) LTD
 B4:AA:4D;Ensequence;Ensequence, Inc.
 B4:AB:2C;MtMTechnolog;MtM Technology Corporation
+B4:AB:F3:00;VoomaxTechno;Voomax Technology Limited
+B4:AB:F3:10;NtrRrl;Ntr-Rrl Llc
+B4:AB:F3:20;UnicairCommu;Shenzhen Unicair Communication Technology Co., Ltd.
+B4:AB:F3:30;NubiCubi;NubiCubi
+B4:AB:F3:40;ShenyangTian;Shenyang Tianwei Technology Co., Ltd
+B4:AB:F3:50;QuanzhixinIn;Shenzhen Quanzhixin Information Technology Co.,Ltd
+B4:AB:F3:60;Snsys;Snsys
+B4:AB:F3:70;FrontGradeTe;FrontGrade Technologies
+B4:AB:F3:80;StravikTechn;Stravik Technologies LLC
+B4:AB:F3:90;RuggedVideo;Rugged Video LLC
+B4:AB:F3:A0;zhuomiSmartH;Shenzhen zhuomi SmartHome Technology Co., Ltd.
+B4:AB:F3:B0;VissonicElec;Vissonic Electronics Limited
+B4:AB:F3:C0;Annapurnalab;Annapurna labs
+B4:AB:F3:D0;AtlasTech;Atlas Tech Inc
+B4:AB:F3:E0;RangDongLigh;Rang Dong Light Source & Vacuum Flask J.S.C
 B4:AC:8C;BernUniversi;Bern University of Applied Sciences
 B4:AC:9D;TexasInstrum;Texas Instruments
 B4:AD:A3;GuangzhouShi;Guangzhou Shiyuan Electronic Technology Company Limited
@@ -46818,6 +47062,7 @@ B4:BA:12;ChinaMobileI;China Mobile (Hangzhou) Information Technology Co.,Ltd.
 B4:BA:6A;TecnoMobile;Tecno Mobile Limited
 B4:BA:9D;SkyUk;Sky Uk Limited
 B4:BC:7C;TexasInstrum;Texas Instruments
+B4:BF:E9;Espressif;Espressif Inc.
 B4:BF:F6;SamsungElect;Samsung Electronics Co.,Ltd
 B4:C0:F5;TINNOMobileT;Shenzhen TINNO Mobile Technology Corp.
 B4:C1:70;YichipMicroe;Yi chip Microelectronics (Hangzhou) Co., Ltd
@@ -46858,7 +47103,7 @@ B4:D8:DE;iotaComputin;iota Computing, Inc.
 B4:DB:91;Celestica;Celestica Inc.
 B4:DC:09;GuangzhouDaw;Guangzhou Dawei Communication Co.,Ltd
 B4:DD:15;ControlThing;ControlThings Oy Ab
-B4:DD:D0;ContinentalA;Continental Automotive Hungary Kft
+B4:DD:D0;AUMOVIOHunga;AUMOVIO Hungary Kft.
 B4:DD:E0;AmphenolAirw;Shanghai Amphenol Airwave Communication Electronics Co.,Ltd.
 B4:DE:31;Cisco;Cisco Systems, Inc
 B4:DE:DF;zte;zte corporation
@@ -46871,6 +47116,7 @@ B4:E0:CD;Fusionio;Fusion-io, Inc
 B4:E1:0F;Dell;Dell Inc.
 B4:E1:C4;MicrosoftMob;Microsoft Mobile Oy
 B4:E1:EB;Private;Private
+B4:E2:5B;HP;HP Inc.
 B4:E2:65;SDMCTechnolo;Shenzhen SDMC Technology CO.,Ltd.
 B4:E3:D0;LGElectronic;LG Electronics
 B4:E3:F9;SiliconLabor;Silicon Laboratories
@@ -46958,6 +47204,7 @@ B8:19:04;NokiaShangha;Nokia Shanghai Bell Co., Ltd.
 B8:19:99;Nesys;Nesys
 B8:1D:1F;HuaweiTechno;Huawei Technologies Co.,Ltd
 B8:1D:AA;LGElectronic;LG Electronics (Mobile Communications)
+B8:1E:61;TellescomInd;Tellescom Industria E Comercio Em Telecomunicacao
 B8:1E:9E;HuaweiTechno;Huawei Technologies Co.,Ltd
 B8:1E:A4;LiteonTechno;Liteon Technology Corporation
 B8:1F:5E;ApptionLabs;Apption Labs Limited
@@ -47044,6 +47291,7 @@ B8:4F:A7;Apple;Apple, Inc.
 B8:4F:D5;Microsoft;Microsoft Corporation
 B8:50:01;ExtremeNetwo;Extreme Networks Headquarters
 B8:50:D8;XiaomiMobile;Beijing Xiaomi Mobile Software Co., Ltd
+B8:51:1D;Telechips;Telechips, Inc
 B8:51:A9;Nokia;Nokia
 B8:52:13;zte;zte corporation
 B8:52:E0;XiaomiElectr;Beijing Xiaomi Electronics Co.,Ltd
@@ -47055,6 +47303,7 @@ B8:56:BD;Itt;Itt Llc
 B8:57:76;lignex1;lignex1
 B8:57:D8;SamsungElect;Samsung Electronics Co.,Ltd
 B8:58:10;Numera;Numera, Inc.
+B8:58:FF;AristaNetwor;Arista Networks
 B8:59:9F;MellanoxTech;Mellanox Technologies, Inc.
 B8:59:C8;70mai;70mai Co.,Ltd.
 B8:59:CE;EardaTechnol;Earda Technologies co Ltd
@@ -47078,6 +47327,7 @@ B8:62:1F;Cisco;Cisco Systems, Inc
 B8:63:4D;Apple;Apple, Inc.
 B8:63:92;GeniusTechno;Guangdong Genius Technology Co., Ltd.
 B8:63:BC;ROBOTIS;ROBOTIS, Co, Ltd
+B8:64:68;BBSakuraNetw;BBSakura Networks, Inc.
 B8:64:91;CKTelecom;CK Telecom Ltd
 B8:65:3B;Bolymin;Bolymin, Inc.
 B8:66:85;SagemcomBroa;Sagemcom Broadband SAS
@@ -47236,6 +47486,7 @@ B8:C7:4A;OppoMobileTe;Guangdong Oppo Mobile Telecommunications Corp.,Ltd
 B8:C7:5D;Apple;Apple, Inc.
 B8:C8:55;GBCOMCommuni;Shanghai GBCOM Communication Technology Co.,Ltd.
 B8:C8:EB;ItelMobile;Itel Mobile Limited
+B8:C9:24;Cisco;Cisco Systems, Inc
 B8:C9:B5;OppoMobileTe;Guangdong Oppo Mobile Telecommunications Corp.,Ltd
 B8:CA:04;HoltekSemico;Holtek Semiconductor Inc.
 B8:CA:3A;Dell;Dell Inc.
@@ -47417,6 +47668,7 @@ BC:26:1D;HongKongTeco;Hong Kong Tecon Technology
 BC:26:43;Elprotronic;Elprotronic Inc.
 BC:26:A1;FACTORYFIVE;FACTORY FIVE Corporation
 BC:26:C7;Cisco;Cisco Systems, Inc
+BC:27:7A;SamsungElect;Samsung Electronics Co.,Ltd
 BC:28:2C;eSmart;e-Smart Systems Pvt. Ltd
 BC:28:46;NextBITCompu;NextBIT Computing Pvt. Ltd.
 BC:28:D6;RowleyAssoci;Rowley Associates Limited
@@ -47697,11 +47949,13 @@ BC:A9:93;CambiumNetwo;Cambium Networks Limited
 BC:A9:D6;CyberRain;Cyber-Rain, Inc.
 BC:AA:82;FiberhomeTel;Fiberhome Telecommunication Technologies Co.,LTD
 BC:AB:7C;TRnPKOREA;TRnP KOREA Co Ltd
+BC:AB:F5;Cisco;Cisco Systems, Inc
 BC:AD:28;HikvisionDig;Hangzhou Hikvision Digital Technology Co.,Ltd.
 BC:AD:90;KymetaPurcha;Kymeta Purchasing
 BC:AD:AB;Avaya;Avaya Inc
 BC:AD:AE;AltoBeam;AltoBeam Inc.
 BC:AE:C5;ASUSTekCOMPU;ASUSTek COMPUTER INC.
+BC:AF:6E;Arcadyan;Arcadyan Corporation
 BC:AF:87;smartACcom;smartAC.com, Inc.
 BC:AF:91;TEConnectivi;TE Connectivity Sensor Solutions
 BC:B0:E7;HuaweiTechno;Huawei Technologies Co.,Ltd
@@ -48122,7 +48376,7 @@ C0:9B:F4:A0;Inveo;Inveo
 C0:9B:F4:B0;Nuctech;Nuctech Company Limited
 C0:9B:F4:C0;Pinpark;Pinpark Inc.
 C0:9B:F4:D0;Professional;The Professional Monitor Company Ltd
-C0:9B:F4:E0;ContinentalA;Continental Automotive Component Malaysia Sdn.Bhd.
+C0:9B:F4:E0;AUMOVIOCompo;AUMOVIO Components Malaysia Sdn.Bhd.
 C0:9C:04;ShaanxiGuoLi;Shaanxi GuoLian Digital TV Technology Co.,Ltd.
 C0:9C:92;Coby;Coby
 C0:9D:26;TopiconHKLmd;Topicon HK Lmd.
@@ -48142,6 +48396,7 @@ C0:A3:6E;SkyUk;Sky Uk Limited
 C0:A3:9E;EarthCam;EarthCam, Inc.
 C0:A3:C7;TelinkMicro;Telink Micro LLC
 C0:A4:76;RuijieNetwor;Ruijie Networks Co.,LTD
+C0:A4:B9;SichuanAILin;Sichuan AI-Link Technology Co., Ltd.
 C0:A5:3E;Apple;Apple, Inc.
 C0:A5:DD;MercuryCommu;Shenzhen Mercury Communication Technologies Co.,Ltd.
 C0:A5:E8;Intel;Intel Corporate
@@ -48162,6 +48417,7 @@ C0:B3:39;Comigo;Comigo Ltd.
 C0:B3:57;YoshikiElect;Yoshiki Electronics Industry Ltd.
 C0:B3:C8;LLCNTCRotek;LLC 'NTC Rotek'
 C0:B4:7D;HuaweiDevice;Huawei Device Co., Ltd.
+C0:B5:50;Broadcom;Broadcom Limited
 C0:B5:CD;HuaweiDevice;Huawei Device Co., Ltd.
 C0:B5:D7;ChongqingFug;Chongqing Fugui Electronics Co.,Ltd.
 C0:B6:58;Apple;Apple, Inc.
@@ -48200,6 +48456,7 @@ C0:CC:42;SichuanTiany;Sichuan Tianyi Comheart Telecom Co.,LTD
 C0:CC:F8;Apple;Apple, Inc.
 C0:CD:D6;Espressif;Espressif Inc.
 C0:CE:CD;Apple;Apple, Inc.
+C0:CF:64;ZenithElectr;Hangzhou Zenith Electron Co.,Ltd
 C0:CF:A3;CreativeElec;Creative Electronics & Software, Inc.
 C0:D0:12;Apple;Apple, Inc.
 C0:D0:26;HuaweiDevice;Huawei Device Co., Ltd.
@@ -48432,6 +48689,7 @@ C4:47:3F;HuaweiTechno;Huawei Technologies Co.,Ltd
 C4:47:4E;Intel;Intel Corporate
 C4:48:38;SatcomDirect;Satcom Direct, Inc.
 C4:48:FA;TaicangT&WEl;Taicang T&W Electronics
+C4:49:1B;Apple;Apple, Inc.
 C4:49:3E;MotorolaMobi;Motorola Mobility LLC, a Lenovo Company
 C4:49:BB;MitsumiElect;Mitsumi Electric Co.,Ltd.
 C4:4A:D0;Fireflies;Fireflies Systems
@@ -48495,6 +48753,7 @@ C4:69:3E;TurbulenceDe;Turbulence Design Inc.
 C4:69:F0;HuaweiTechno;Huawei Technologies Co.,Ltd
 C4:6A:B7;XiaomiCommun;Xiaomi Communications Co Ltd
 C4:6B:B4;myIDkey;myIDkey
+C4:6D:D1;HuaweiTechno;Huawei Technologies Co.,Ltd
 C4:6D:F1;DataGravity;DataGravity
 C4:6E:1F;TpLinkTechno;Tp-Link Technologies Co.,Ltd.
 C4:6E:33;ZhongGeSmart;Zhong Ge Smart Technology Co., Ltd.
@@ -48687,6 +48946,7 @@ C4:AD:21;MEDIAEDGE;MEDIAEDGE Corporation
 C4:AD:34;Routerboardc;Routerboard.com
 C4:AD:F1;GOPEACE;GOPEACE Inc.
 C4:AE:12;SamsungElect;Samsung Electronics Co.,Ltd
+C4:B1:6B;AdvantechCze;Advantech Czech
 C4:B1:D9;HuaweiTechno;Huawei Technologies Co.,Ltd
 C4:B2:39;Cisco;Cisco Systems, Inc
 C4:B2:5B;RuijieNetwor;Ruijie Networks Co.,LTD
@@ -49044,6 +49304,7 @@ C8:63:14:B0;LiheweiElect;Shenzhen Lihewei Electronics Co.,Ltd.Hunan Branch
 C8:63:14:C0;Freeus;Freeus LLC
 C8:63:14:D0;Telematix;Telematix AG
 C8:63:14:E0;TaylorDynamo;Taylor Dynamometer
+C8:63:40;CiscoMeraki;Cisco Meraki
 C8:63:F1;SonyInteract;Sony Interactive Entertainment Inc.
 C8:63:FC;Commscope;Commscope
 C8:64:C7;zte;zte corporation
@@ -49216,6 +49477,7 @@ C8:AD:E7;ShengxiIndus;Shenzhen Shengxi Industrial Co.,Ltd
 C8:AE:9C;TYDElecronic;Shanghai TYD Elecronic Technology Co. Ltd
 C8:AF:40;marcoSystema;marco Systemanalyse und Entwicklung GmbH
 C8:AF:E3;HefeiRadioCo;Hefei Radio Communication Technology Co., Ltd
+C8:AF:F0;CDVIWireless;CDVI Wireless SpA
 C8:B1:CD;Apple;Apple, Inc.
 C8:B1:EE;Qorvo;Qorvo
 C8:B2:1E;ChipseaTechn;Chipsea Technologies (Shenzhen) Corp.
@@ -49624,6 +49886,7 @@ CC:6E:A4;SamsungElect;Samsung Electronics Co.,Ltd
 CC:70:ED;Cisco;Cisco Systems, Inc
 CC:71:90;VietnamPostA;Vietnam Post And Telecommunication Industry Technology Joint Stock Company
 CC:72:0F;Viscount;Viscount Systems Inc.
+CC:72:2A;Apple;Apple, Inc.
 CC:72:86;XianFengyuIn;Xi'an Fengyu Information Technology Co., Ltd.
 CC:73:14;HongKongWhea;Hong Kong Wheatek Technology Limited
 CC:74:98;Filmetrics;Filmetrics Inc.
@@ -49647,6 +49910,7 @@ CC:7E:0F;Theben;Theben AG
 CC:7E:E7;PanasonicAVC;Panasonic Corporation AVC Networks Company
 CC:7F:75;Cisco;Cisco Systems, Inc
 CC:7F:76;Cisco;Cisco Systems, Inc
+CC:80:8F;Apple;Apple, Inc.
 CC:81:2A;vivoMobileCo;vivo Mobile Communication Co., Ltd.
 CC:81:7D;Apple;Apple, Inc.
 CC:81:DA;Phicomm;Phicomm (Shanghai) Co., Ltd.
@@ -49708,6 +49972,7 @@ CC:A7:C1;Google;Google, Inc.
 CC:AB:2C;HUMAX;HUMAX Co., Ltd.
 CC:AC:FE;TelinkSemico;Telink Semiconductor (Shanghai) Co., Ltd.
 CC:AF:78;HonHaiPrecis;Hon Hai Precision Ind. Co.,Ltd.
+CC:AF:E3;AmazonTechno;Amazon Technologies Inc.
 CC:B0:71;FiberhomeTel;Fiberhome Telecommunication Technologies Co.,LTD
 CC:B0:A8;HuaweiDevice;Huawei Device Co., Ltd.
 CC:B0:B3;Microsoft;Microsoft Corporation
@@ -49759,6 +50024,7 @@ CC:C2:61:D0;DspreadTechn;Dspread Technology (Beijing) Inc.
 CC:C2:61:E0;ToongInElect;Toong In Electronic Corp.
 CC:C2:E0;RaisecomTech;Raisecom Technology CO., LTD
 CC:C3:EA;MotorolaMobi;Motorola Mobility LLC, a Lenovo Company
+CC:C4:B2;TrolinkTechn;Shenzhen Trolink Technology Co.,LTD
 CC:C5:0A;DajiahaoTech;Shenzhen Dajiahao Technology Co.,Ltd
 CC:C5:E5;Dell;Dell Inc.
 CC:C5:EF;CoCommServic;Co-Comm Servicios Telecomunicaciones S.L.
@@ -49998,6 +50264,7 @@ D0:27:88;HonHaiPrecis;Hon Hai Precision Ind. Co.,Ltd.
 D0:28:BA;RealmeChongq;Realme Chongqing MobileTelecommunications Corp Ltd
 D0:2A:AA;Infinixmobil;Infinix mobility limited
 D0:2B:20;Apple;Apple, Inc.
+D0:2C:39;Cisco;Cisco Systems, Inc
 D0:2C:45;littleBitsEl;littleBits Electronics, Inc.
 D0:2D:B3;HuaweiTechno;Huawei Technologies Co.,Ltd
 D0:2E:AB;TexasInstrum;Texas Instruments
@@ -50299,6 +50566,7 @@ D0:B1:CA;SkyworthDigi;Shenzhen Skyworth Digital Technology CO., Ltd
 D0:B2:14;PoeWit;PoeWit Inc
 D0:B2:70;VisteonPortu;Visteon Portuguesa, Ltd
 D0:B2:C4;VantivaUSA;Vantiva USA LLC
+D0:B3:24;Apple;Apple, Inc.
 D0:B3:3F;TINNOMobileT;Shenzhen TINNO Mobile Technology Corp.
 D0:B3:C2;MetaPlatform;Meta Platforms, Inc.
 D0:B4:5D;HuaweiDevice;Huawei Device Co., Ltd.
@@ -50353,6 +50621,7 @@ D0:C8:57:E0;ETAElektrote;E-T-A Elektrotechnische Apparate GmbH
 D0:C9:01;GlaElectroni;Gla Electronics Pvt Ltd
 D0:C9:07;Private;Private
 D0:CB:DD;eero;eero inc.
+D0:CD:BF;LGElectronic;LG Electronics
 D0:CD:E1;ScientechEle;Scientech Electronics
 D0:CE:C0;XiaomiCommun;Xiaomi Communications Co Ltd
 D0:CE:C9;HanChang;Han Chang
@@ -50408,6 +50677,7 @@ D0:E5:4D;Commscope;Commscope
 D0:E5:81;Apple;Apple, Inc.
 D0:E7:82;AzureWaveTec;AzureWave Technology Inc.
 D0:E8:28;RadiantIndus;Radiant Industries Incorporated
+D0:EA:11;Routerboardc;Routerboard.com
 D0:EB:03;Zhehuatechno;Zhehua technology limited
 D0:EB:9E;Seowoo;Seowoo Inc.
 D0:EC:35;Cisco;Cisco Systems, Inc
@@ -50437,7 +50707,7 @@ D0:FF:98;HuaweiTechno;Huawei Technologies Co.,Ltd
 D4:00:0D;PhoenixBroad;Phoenix Broadband Technologies, LLC.
 D4:00:57;MCTechnologi;MC Technologies GmbH
 D4:00:68;FiberhomeTel;Fiberhome Telecommunication Technologies Co.,LTD
-D4:00:CA;ContinentalA;Continental Automotive Systems S.R.L
+D4:00:CA;AUMOVIORoman;AUMOVIO Systems Romania S.R.L.
 D4:01:29;Broadcom;Broadcom
 D4:01:45;AtwTechnolog;Atw Technology, Inc.
 D4:01:6D;TpLinkTechno;Tp-Link Technologies Co.,Ltd.
@@ -50466,6 +50736,7 @@ D4:11:D6;ShotSpotter;ShotSpotter, Inc.
 D4:12:43;AMPAKTechnol;AMPAK Technology, Inc.
 D4:12:96;AnobitTechno;Anobit Technologies Ltd.
 D4:12:BB;QuadrantComp;Quadrant Components Inc. Ltd
+D4:13:68;Intellirocks;Shenzhen Intellirocks Tech. Co. Ltd.
 D4:13:6F;AsiaPacificB;Asia Pacific Brands
 D4:13:B3;WuQiTechnolo;Wu Qi Technologies,Inc.
 D4:13:F8;PeplinkInter;Peplink International Ltd.
@@ -50751,7 +51022,7 @@ D4:94:5A;Cosmo;Cosmo Co., Ltd
 D4:94:A1;TexasInstrum;Texas Instruments
 D4:94:A9;Intel;Intel Corporate
 D4:94:E8;HuaweiTechno;Huawei Technologies Co.,Ltd
-D4:94:FB;ContinentalA;Continental Automotive Systems Inc.
+D4:94:FB;AUMOVIO;AUMOVIO Systems, Inc.
 D4:95:24;CloverNetwor;Clover Network, Inc.
 D4:95:5D;zte;zte corporation
 D4:95:8E;UniversalEle;Universal Electronics, Inc.
@@ -50858,6 +51129,7 @@ D4:BE:DC;Roku;Roku, Inc
 D4:BF:2D;SEControlsAs;SE Controls Asia Pacific Ltd
 D4:BF:7F;Upvel;Upvel
 D4:C1:9E;RuckusWirele;Ruckus Wireless
+D4:C1:A8;KYKXCOM;KYKXCOM Co., Ltd.
 D4:C1:C8;zte;zte corporation
 D4:C1:FC;Nokia;Nokia Corporation
 D4:C3:B0;Gearlinx;Gearlinx Pty Ltd
@@ -51035,6 +51307,7 @@ D8:2F:E6;ZhejiangTmal;Zhejiang Tmall Technology Co., Ltd.
 D8:30:62;Apple;Apple, Inc.
 D8:31:2C;zte;zte corporation
 D8:31:34;Roku;Roku, Inc
+D8:31:39;zte;zte corporation
 D8:31:CF;SamsungElect;Samsung Electronics Co.,Ltd
 D8:32:14;TendaTechnol;Tenda Technology Co.,Ltd.Dongguan branch
 D8:32:5A;YOUHUATechno;Shenzhen YOUHUA Technology Co., Ltd
@@ -51216,6 +51489,7 @@ D8:97:60;C2Developmen;C2 Development, Inc.
 D8:97:7C;GreyInnovati;Grey Innovation
 D8:97:90;Commonwealth;Commonwealth Scientific and Industrial Research Organisation
 D8:97:BA;Pegatron;Pegatron Corporation
+D8:99:99;TecnoMobile;Tecno Mobile Limited
 D8:9A:0D;zte;zte corporation
 D8:9A:34;SHENQITechno;Beijing SHENQI Technology Co., Ltd.
 D8:9A:C1;Nokia;Nokia
@@ -51374,6 +51648,7 @@ D8:FB:5E;AskeyCompute;Askey Computer Corp
 D8:FB:68;CloudCorner;Cloud Corner Ltd.
 D8:FB:D6;AmazonTechno;Amazon Technologies Inc.
 D8:FC:38;GiantecSemic;Giantec Semiconductor Inc
+D8:FC:92;TuyaSmart;Tuya Smart Inc.
 D8:FC:93;Intel;Intel Corporate
 D8:FE:8F;IDFone;IDFone Co., Ltd.
 D8:FE:E3;DLinkInterna;D-Link International
@@ -51440,6 +51715,7 @@ DC:21:48;Intel;Intel Corporate
 DC:21:5C;Intel;Intel Corporate
 DC:21:B9;Sentec;Sentec Co.Ltd
 DC:21:E2;HuaweiTechno;Huawei Technologies Co.,Ltd
+DC:22:6F;NanoICTechno;HangZhou Nano IC Technologies Co., Ltd
 DC:23:3B;ExtremeNetwo;Extreme Networks Headquarters
 DC:27:27;HuaweiDevice;Huawei Device Co., Ltd.
 DC:28:34;HAKKO;HAKKO Corporation
@@ -51606,6 +51882,7 @@ DC:72:9B;HuaweiTechno;Huawei Technologies Co.,Ltd
 DC:73:06;VantivaConne;Vantiva Connected Home - Home Networks
 DC:73:85;HuaweiDevice;Huawei Device Co., Ltd.
 DC:74:A8;SamsungElect;Samsung Electronics Co.,Ltd
+DC:74:CE;ITOCHUTechno;ITOCHU Techno-Solutions Corporation
 DC:76:C3:00;GeniusVision;Genius Vision Digital Private Limited
 DC:76:C3:10;BangyanTechn;Bangyan Technology Co., Ltd
 DC:76:C3:20;IreSolution;Ire Solution
@@ -52079,6 +52356,7 @@ E0:6D:18;Pioneercorpo;Pioneercorporation
 E0:70:EA;HP;HP Inc.
 E0:72:0A;SuperElectro;Shenzhen SuperElectron Technology Co.,Ltd.
 E0:72:56;Intel;Intel Corporate
+E0:72:91;SiliconLabor;Silicon Laboratories
 E0:72:A1;Espressif;Espressif Inc.
 E0:73:5F;Nucom;Nucom
 E0:73:E7;HP;HP Inc.
@@ -52195,6 +52473,7 @@ E0:B9:8A;Taikeindustr;Shenzhen Taike industrial automation company,Ltd
 E0:B9:A5;AzureWaveTec;AzureWave Technology Inc.
 E0:B9:BA;Apple;Apple, Inc.
 E0:B9:E5;VantivaTechn;Vantiva Technologies Belgium
+E0:BA:78;Apple;Apple, Inc.
 E0:BA:AD;HikvisionDig;Hangzhou Hikvision Digital Technology Co.,Ltd.
 E0:BA:B4;Arrcus;Arrcus, Inc
 E0:BB:0C;Synertau;Synertau LLC
@@ -52327,7 +52606,7 @@ E4:10:88;SamsungElect;Samsung Electronics Co.,Ltd
 E4:11:5B;HewlettPacka;Hewlett Packard
 E4:12:18;RapooTechnol;ShenZhen Rapoo Technology Co., Ltd.
 E4:12:1D;SamsungElect;Samsung Electronics Co.,Ltd
-E4:12:26;ContinentalA;Continental Automotive Romania SLR
+E4:12:26;AUMOVIOTechn;AUMOVIO Technologies Romania S.R.L.
 E4:12:89;topsystem;topsystem GmbH
 E4:15:F6;TexasInstrum;Texas Instruments
 E4:16:13;ExtremeNetwo;Extreme Networks Headquarters
@@ -52355,7 +52634,7 @@ E4:1E:0A:B0;SafetyVision;Safety Vision, LLC
 E4:1E:0A:C0;TeletaskBelg;Teletask Belgium
 E4:1E:0A:D0;ROMOWind;ROMO Wind A/S
 E4:1E:0A:E0;LeXiangTechn;Shanghai LeXiang Technology Co., Ltd
-E4:1E:33;ContinentalA;Continental Automotive Technologies GmbH
+E4:1E:33;AUMOVIOGerma;AUMOVIO Germany GmbH
 E4:1F:13;IBM;IBM Corp
 E4:1F:7B;Cisco;Cisco Systems, Inc
 E4:1F:D5;Intel;Intel Corporate
@@ -52453,6 +52732,7 @@ E4:50:9A;HWCommunicat;HW Communications Ltd
 E4:50:EB;Apple;Apple, Inc.
 E4:51:A9;NanjingXinli;Nanjing Xinlian Electronics Co., Ltd
 E4:52:1E;TexasInstrum;Texas Instruments
+E4:53:41;Apple;Apple, Inc.
 E4:54:E5;HuaweiDevice;Huawei Device Co., Ltd.
 E4:54:E8;Dell;Dell Inc.
 E4:55:A8;CiscoMeraki;Cisco Meraki
@@ -52501,6 +52781,7 @@ E4:6A:35;RealmeChongq;Realme Chongqing Mobile Telecommunications Corp.,Ltd.
 E4:6C:21;messMa;messMa GmbH
 E4:6C:D1;Calix;Calix Inc.
 E4:6D:7F;Ciena;Ciena Corporation
+E4:6D:AB;MellanoxTech;Mellanox Technologies, Inc.
 E4:6E:8A;BYDLithiumBa;BYD Lithium Battery Co., Ltd.
 E4:6F:13;DLinkInterna;D-Link International
 E4:70:B8;Intel;Intel Corporate
@@ -52716,6 +52997,7 @@ E4:F9:39;MinxonHotelT;Minxon Hotel Technology INC.
 E4:FA:1D;PADPeriphera;PAD Peripheral Advanced Design Inc.
 E4:FA:5B;TexasInstrum;Texas Instruments
 E4:FA:C4;TPLink;TP-Link Systems Inc
+E4:FA:E4;SDMCTechnolo;Shenzhen SDMC Technology CP,.LTD
 E4:FA:ED;SamsungElect;Samsung Electronics Co.,Ltd
 E4:FA:FD;Intel;Intel Corporate
 E4:FB:5D;HuaweiTechno;Huawei Technologies Co.,Ltd
@@ -52811,6 +53093,7 @@ E8:2A:44;LiteonTechno;Liteon Technology Corporation
 E8:2A:EA;Intel;Intel Corporate
 E8:2B:C5;HuaweiDevice;Huawei Device Co., Ltd.
 E8:2C:6D;SmartRG;SmartRG, Inc.
+E8:2D:79;AltoBeam;AltoBeam Inc.
 E8:2E:0C;NETINTTechno;NETINT Technologies Inc.
 E8:2E:24;OutFogResear;Out of the Fog Research LLC
 E8:31:CD;Espressif;Espressif Inc.
@@ -52826,6 +53109,7 @@ E8:39:DF;AskeyCompute;Askey Computer Corp
 E8:3A:12;SamsungElect;Samsung Electronics Co.,Ltd
 E8:3A:4B;ChinaMobileG;China Mobile Group Device Co.,Ltd.
 E8:3A:97;Toshiba;Toshiba Corporation
+E8:3D:C1;Espressif;Espressif Inc.
 E8:3E:B6;Rim;Rim
 E8:3E:FB;Geodesic;Geodesic Ltd.
 E8:3E:FC;Commscope;Commscope
@@ -53580,6 +53864,7 @@ EC:B1:D7;HewlettPacka;Hewlett Packard
 EC:B1:E0;EltexEnterpr;Eltex Enterprise LTD
 EC:B3:13;GongjinElect;Shenzhen Gongjin Electronics Co.,Lt
 EC:B4:E8;WistronMexic;Wistron Mexico SA de CV
+EC:B5:0A;QuectelWirel;Quectel Wireless Solutions Co.,Ltd.
 EC:B5:41;SHINANOEandE;SHINANO E and E Co.Ltd.
 EC:B5:50;SamsungElect;Samsung Electronics Co.,Ltd
 EC:B5:FA;PhilipsLight;Philips Lighting BV
@@ -53724,6 +54009,7 @@ F0:15:A0;KyungDongOne;KyungDong One Co., Ltd.
 F0:15:B9;PlayFusion;PlayFusion Limited
 F0:16:1D;Espressif;Espressif Inc.
 F0:16:28;TechnicolorT;Technicolor (China) Technology Co., Ltd.
+F0:16:53;YealinkNetwo;Yealink(Xiamen) Network Technology Co.,Ltd.
 F0:18:2B;LGChem;LG Chem
 F0:18:98;Apple;Apple, Inc.
 F0:1A:A0;HewlettPacka;Hewlett Packard Enterprise
@@ -53816,7 +54102,7 @@ F0:2F:9E;AmazonTechno;Amazon Technologies Inc.
 F0:2F:A7;HuaweiTechno;Huawei Technologies Co.,Ltd
 F0:2F:BA;Apple;Apple, Inc.
 F0:2F:D8;Bi2Vision;Bi2-Vision
-F0:30:12;ContinentalA;Continental Autonomous Mobility Germany
+F0:30:12;AUMOVIOAuton;AUMOVIO Autonomous Mobility Germany GmbH
 F0:32:1A;MitaTeknik;Mita-Teknik A/S
 F0:33:E5;HuaweiTechno;Huawei Technologies Co.,Ltd
 F0:34:04;TCTmobile;TCT mobile ltd
@@ -54453,6 +54739,7 @@ F4:70:0C:B0;RisingpoElec;Shanghai Risingpo Electronics CO.,LTD
 F4:70:0C:C0;GSDGroup;G.S.D Group Inc.
 F4:70:0C:D0;Freeus;Freeus LLC
 F4:70:0C:E0;WeProTalkTec;Shenzhen WeProTalk Technology Co., Ltd.
+F4:70:18;EzvizSoftwar;Hangzhou Ezviz Software Co.,Ltd.
 F4:70:AB;vivoMobileCo;vivo Mobile Communication Co., Ltd.
 F4:71:90;SamsungElect;Samsung Electronics Co.,Ltd
 F4:72:57;JiangxiRemot;Jiangxi Remote lntelligence Technology Co.,Ltd
@@ -55317,6 +55604,7 @@ FC:22:F4;ZyxelCommuni;Zyxel Communications Corporation
 FC:23:25;EosTek;EosTek (Shenzhen) Co., Ltd.
 FC:23:CD;BilianElectr;Shenzhen Bilian Electronic Co.，Ltd
 FC:25:3F;Apple;Apple, Inc.
+FC:26:8C;Signify;Signify B.V.
 FC:27:A2;TransElectri;Trans Electric Co., Ltd.
 FC:29:E3;Infinixmobil;Infinix mobility limited
 FC:29:F3;McPay;McPay Co.,LTD.
@@ -55399,6 +55687,7 @@ FC:53:9E;WindTechnolo;Shanghai Wind Technologies Co.,Ltd
 FC:55:57;Apple;Apple, Inc.
 FC:55:DC;BalticLatvia;Baltic Latvian Universal Electronics LLC
 FC:57:03;Hisensebroad;Hisense broadband multimedia technology Co.,Ltd
+FC:57:08;Broadcom;Broadcom Limited
 FC:58:4A;xiamenshicch;xiamenshi c-chip technology co., ltd
 FC:58:9A;Cisco;Cisco Systems, Inc
 FC:58:DF;InterphoneSe;Interphone Service

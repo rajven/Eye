@@ -12,7 +12,7 @@ $msg_error = "";
 if (isset($_POST["create"])) {
     $login = trim($_POST["newlogin"]);
     if (!empty($login)) {
-        $lcount = get_count_records($db_link,"User_list","LCase(login)=LCase('$login')");
+        $lcount = get_count_records($db_link,"user_list","LCase(login)=LCase('$login')");
         if ($lcount > 0) {
             $msg_error = WEB_cell_login." ".$login." ".$msg_exists."!";
             unset($_POST);
@@ -28,7 +28,7 @@ if (isset($_POST["create"])) {
 	        $new['queue_id'] = $ou_info['queue_id'];
 	        $new['filter_group_id'] = $ou_info['filter_group_id'];
 	        }
-            $lid=insert_record($db_link, "User_list", $new);
+            $lid=insert_record($db_link, "user_list", $new);
             LOG_WARNING($db_link,"Создан новый пользователь: Login => $login");
             header("Location: edituser.php?id=$lid");
             exit;
@@ -105,7 +105,7 @@ $sort_url = "<a href=/admin/users/index.php?";
 
 if ($rou == 0) { $filter = "U.ou_id=O.id and U.deleted=0"; } else { $filter = "U.OU_id=O.id and U.deleted=0 and U.ou_id=$rou"; }
 
-$countSQL = "SELECT Count(*) FROM User_list U, OU O WHERE $filter";
+$countSQL = "SELECT Count(*) FROM user_list U, OU O WHERE $filter";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -113,7 +113,7 @@ if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
 print_navigation($page_url,$page,$displayed,$count_records,$total);
 
-$sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month_quota, U.blocked, U.permanent FROM User_list U, OU O WHERE $filter ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
+$sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month_quota, U.blocked, U.permanent FROM user_list U, OU O WHERE $filter ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
 
 ?>
 
@@ -137,7 +137,7 @@ $sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month
 $users = get_records_sql($db_link, $sSQL);
 
 foreach ($users as $row) {
-    $auth_customs = get_count_records($db_link,"User_auth","user_id=".$row['id']." AND deleted=0 AND enabled <>'".$row['enabled']."'");
+    $auth_customs = get_count_records($db_link,"user_auth","user_id=".$row['id']." AND deleted=0 AND enabled <>'".$row['enabled']."'");
     $cl = "data";
     if (! $row['enabled']) {
         $cl = "off";

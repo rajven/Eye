@@ -40,7 +40,7 @@ $nets{$scope_name}->add_string($net);
 }
 
 #get userid list
-my $user_auth_list = $dbh->prepare( "SELECT id,ip,ip_int,mac,dns_name FROM User_auth where deleted=0 $time_filter ORDER by ip_int" );
+my $user_auth_list = $dbh->prepare( "SELECT id,ip,ip_int,mac,dns_name FROM user_auth where deleted=0 $time_filter ORDER by ip_int" );
 if ( !defined $user_auth_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
 
 $user_auth_list->execute;

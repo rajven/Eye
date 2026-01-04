@@ -76,7 +76,7 @@ if (!apply_device_lock($db_link, $id)) {
     exit;
 }
 
-$user_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=" . $device['user_id']);
+$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $device['user_id']);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
 

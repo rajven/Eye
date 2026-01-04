@@ -6,7 +6,7 @@ if (isset($_POST["create"])) {
     $fname = $_POST["newgroup"];
     if ($fname) {
         $new['group_name'] = $fname;
-        $new_id = insert_record($db_link, "Group_list", $new);
+        $new_id = insert_record($db_link, "group_list", $new);
         header("location: editgroup.php?id=$new_id");
         exit;
     }
@@ -18,9 +18,9 @@ if (isset($_POST["remove"])) {
     $fgid = $_POST["fid"];
     foreach ($fgid as $key => $val) {
         if (!empty($val)) {
-            run_sql($db_link, "UPDATE User_auth SET filter_group_id=0, changed = 1 WHERE deleted=0 AND filter_group_id=" . $val * 1);
-            run_sql($db_link, "DELETE FROM Group_filters WHERE group_id=" . $val * 1);
-            delete_record($db_link, "Group_list", "id=" . $val * 1);
+            run_sql($db_link, "UPDATE user_auth SET filter_group_id=0, changed = 1 WHERE deleted=0 AND filter_group_id=" . $val * 1);
+            run_sql($db_link, "DELETE FROM group_filters WHERE group_id=" . $val * 1);
+            delete_record($db_link, "group_list", "id=" . $val * 1);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -44,7 +44,7 @@ print_filters_submenu($page_url);
                 <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>"></td>
             </tr>
             <?php
-            $groups = get_records_sql($db_link, 'SELECT * FROM Group_list ORDER BY id');
+            $groups = get_records_sql($db_link, 'SELECT * FROM group_list ORDER BY id');
             foreach ($groups as $row) {
 		$filter_instance = get_record_sql($db_link,'SELECT * FROM filter_instances WHERE id='.$row["instance_id"]);
                 print "<tr align=center>\n";

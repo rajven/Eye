@@ -30,7 +30,7 @@ if (empty($device)) {
 }
 
 $snmp = getSnmpAccess($device);
-$user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
+$user_info = get_record_sql($db_link,"SELECT * FROM user_list WHERE id=".$device['user_id']);
 if (empty($user_info)) {
     header("Location: /admin/devices/index.php");
     exit;
@@ -57,7 +57,7 @@ print "<b>".$port_info['device_name']." [".$port_info['port']."] </b><br>\n";
 $sw_auth=NULL;
 $sw_mac=NULL;
 
-$sw_auth = get_record_sql($db_link,"SELECT mac FROM User_auth WHERE deleted=0 and ip='".$port_info['ip']."'");
+$sw_auth = get_record_sql($db_link,"SELECT mac FROM user_auth WHERE deleted=0 and ip='".$port_info['ip']."'");
 if (!empty($sw_auth)) {
     $sw_mac = mac_simplify($sw_auth['mac']);
     $sw_mac = preg_replace("/.{2}$/","",$sw_mac);
@@ -107,7 +107,7 @@ unset_lock_discovery($db_link,$device_id);
 </tr>
 <?php
 print "<b>".WEB_device_port_mac_table_history."</b><br>\n";
-$d_sql = "select A.ip,A.ip_int,A.mac,A.id,A.dns_name,A.last_found from User_auth as A, connections as C where C.port_id=$port_id and A.id=C.auth_id order by A.ip_int";
+$d_sql = "select A.ip,A.ip_int,A.mac,A.id,A.dns_name,A.last_found from user_auth as A, connections as C where C.port_id=$port_id and A.id=C.auth_id order by A.ip_int";
 $t_device = get_records_sql($db_link, $d_sql);
 if (!empty($t_device)) {
     foreach ($t_device as $row) {
@@ -121,7 +121,7 @@ if (!empty($t_device)) {
     }
 }
 
-$maclist = get_records_sql($db_link, "SELECT mac,timestamp from Unknown_mac where port_id=$port_id order by timestamp desc");
+$maclist = get_records_sql($db_link, "SELECT mac,timestamp from unknown_mac where port_id=$port_id order by timestamp desc");
 if (!empty($maclist)) {
     foreach ($maclist as $row) {
         print "<tr>";

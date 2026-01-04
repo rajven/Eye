@@ -45,7 +45,7 @@ foreach ($l3_interfaces as $row) {
     print "<td >".WEB_title_forward_output."</td>\n";
     print "</tr>\n";
 
-    $trafSQL="SELECT DATE_FORMAT(`time`, '".$dt_template."'  ) AS dt,SUM(`in`) as byte_in,SUM(`out`) as byte_out, SUM(`forward_in`) as byte_f_in,SUM(`forward_out`) as byte_f_out FROM Wan_stats ";
+    $trafSQL="SELECT DATE_FORMAT(`time`, '".$dt_template."'  ) AS dt,SUM(`in`) as byte_in,SUM(`out`) as byte_out, SUM(`forward_in`) as byte_f_in,SUM(`forward_out`) as byte_f_out FROM wan_stats ";
     $trafSQL .=" WHERE router_id='".$device_id."' AND interface_id='".$row['snmpin']."' AND time>='$date1' AND time<'$date2'";
     $trafSQL .=" GROUP BY DATE_FORMAT(`time`, '".$dt_template."' ) ORDER BY dt;";
 

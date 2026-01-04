@@ -7,12 +7,12 @@ CREATE EXTENSION IF NOT EXISTS ip4r;
 CREATE TABLE acl (
 id SERIAL PRIMARY KEY,
 name VARCHAR(30) NOT NULL,
-"description.english" VARCHAR(250) NOT NULL,
-"description.russian" VARCHAR(250) NOT NULL
+description_english VARCHAR(250) NOT NULL,
+description_russian VARCHAR(250) NOT NULL
 );
 COMMENT ON TABLE acl IS 'Список контроля доступа - роли и разрешения';
-COMMENT ON COLUMN acl."description.english" IS 'Описание на английском языке';
-COMMENT ON COLUMN acl."description.russian" IS 'Описание на русском языке';
+COMMENT ON COLUMN acl.description_english IS 'Описание на английском языке';
+COMMENT ON COLUMN acl.description_russian IS 'Описание на русском языке';
 
 -- Кэш компьютеров из Active Directory
 CREATE TABLE ad_comp_cache (
@@ -58,8 +58,8 @@ COMMENT ON TABLE config IS 'Значения системной конфигур
 CREATE TABLE config_options (
 id SERIAL PRIMARY KEY,
 option_name VARCHAR(50) NOT NULL,
-"description.russian" TEXT,
-"description.english" TEXT,
+description_russian TEXT,
+description_english TEXT,
 draft SMALLINT NOT NULL DEFAULT 0,
 uniq SMALLINT NOT NULL DEFAULT 1,
 type VARCHAR(100) NOT NULL,
@@ -87,7 +87,7 @@ COMMENT ON COLUMN connections.auth_id IS 'ID авторизации пользо
 COMMENT ON COLUMN connections.last_found IS 'Время последней активности соединения';
 
 -- Пользователи системы
-CREATE TABLE Customers (
+CREATE TABLE customers (
 id SERIAL PRIMARY KEY,
 Login VARCHAR(20),
 comment VARCHAR(100),
@@ -95,9 +95,9 @@ password VARCHAR(255),
 api_key VARCHAR(255),
 rights SMALLINT NOT NULL DEFAULT 3
 );
-COMMENT ON TABLE Customers IS 'Пользователи/администраторы системы';
-COMMENT ON COLUMN Customers.Login IS 'Логин пользователя';
-COMMENT ON COLUMN Customers.rights IS 'Уровень прав доступа: 0=просмотр, 1=оператор, 2=админ, 3=суперадмин';
+COMMENT ON TABLE customers IS 'Пользователи/администраторы системы';
+COMMENT ON COLUMN customers.Login IS 'Логин пользователя';
+COMMENT ON COLUMN customers.rights IS 'Уровень прав доступа: 0=просмотр, 1=оператор, 2=админ, 3=суперадмин';
 
 -- Сетевые устройства
 CREATE TABLE devices (
@@ -208,12 +208,12 @@ COMMENT ON COLUMN device_ports.vlan IS 'VLAN по умолчанию/натив�
 -- Типы устройств
 CREATE TABLE device_types (
 id SERIAL PRIMARY KEY,
-"name.russian" VARCHAR(50),
-"name.english" VARCHAR(50)
+name_russian VARCHAR(50),
+name_english VARCHAR(50)
 );
 COMMENT ON TABLE device_types IS 'Классификация типов устройств';
-COMMENT ON COLUMN device_types."name.russian" IS 'Название типа устройства на русском';
-COMMENT ON COLUMN device_types."name.english" IS 'Название типа устройства на английском';
+COMMENT ON COLUMN device_types.name_russian IS 'Название типа устройства на русском';
+COMMENT ON COLUMN device_types.name_english IS 'Название типа устройства на английском';
 
 -- Логи DHCP
 CREATE TABLE dhcp_log (
@@ -225,13 +225,13 @@ action VARCHAR(10) NOT NULL,
 timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 auth_id BIGINT NOT NULL,
 dhcp_hostname VARCHAR(250),
-"circuit-id" VARCHAR(255),
-"remote-id" VARCHAR(255),
-"client-id" VARCHAR(250)
+circuit_id VARCHAR(255),
+remote_id VARCHAR(255),
+client_id VARCHAR(250)
 );
 COMMENT ON TABLE dhcp_log IS 'Логи транзакций DHCP сервера';
 COMMENT ON COLUMN dhcp_log.action IS 'Действие DHCP: DISCOVER, REQUEST, ACK, NAK, RELEASE';
-COMMENT ON COLUMN dhcp_log."circuit-id" IS 'DHCP опция 82 circuit ID';
+COMMENT ON COLUMN dhcp_log.circuit_id IS 'DHCP опция 82 circuit ID';
 
 -- Очередь DHCP
 CREATE TABLE dhcp_queue (
@@ -275,7 +275,7 @@ comment VARCHAR(200)
 COMMENT ON TABLE filter_instances IS 'Экземпляры политик фильтрации';
 
 -- Список правил фильтрации
-CREATE TABLE Filter_list (
+CREATE TABLE filter_list (
 id SERIAL PRIMARY KEY,
 name VARCHAR(50),
 comment VARCHAR(250),
@@ -285,10 +285,10 @@ dstport VARCHAR(20),
 srcport VARCHAR(20),
 type SMALLINT NOT NULL DEFAULT 0
 );
-COMMENT ON TABLE Filter_list IS 'Правила firewall/фильтрации';
-COMMENT ON COLUMN Filter_list.proto IS 'Протокол: tcp, udp, icmp и т.д.';
-COMMENT ON COLUMN Filter_list.dst IS 'IP/CIDR назначения';
-COMMENT ON COLUMN Filter_list.type IS 'Тип правила: 0=разрешить, 1=запретить';
+COMMENT ON TABLE filter_list IS 'Правила firewall/фильтрации';
+COMMENT ON COLUMN filter_list.proto IS 'Протокол: tcp, udp, icmp и т.д.';
+COMMENT ON COLUMN filter_list.dst IS 'IP/CIDR назначения';
+COMMENT ON COLUMN filter_list.type IS 'Тип правила: 0=разрешить, 1=запретить';
 
 -- Шлюзы подсетей
 CREATE TABLE gateway_subnets (
@@ -299,25 +299,25 @@ subnet_id INTEGER
 COMMENT ON TABLE gateway_subnets IS 'Какие устройства являются шлюзами для каких подсетей';
 
 -- Назначения фильтров группам
-CREATE TABLE Group_filters (
+CREATE TABLE group_filters (
 id SERIAL PRIMARY KEY,
 group_id INTEGER NOT NULL DEFAULT 0,
 filter_id INTEGER NOT NULL DEFAULT 0,
-"order" INTEGER NOT NULL DEFAULT 0,
+rule_order INTEGER NOT NULL DEFAULT 0,
 action SMALLINT NOT NULL DEFAULT 0
 );
-COMMENT ON TABLE Group_filters IS 'Правила фильтрации, назначенные группам';
-COMMENT ON COLUMN Group_filters."order" IS 'Порядок обработки правил';
-COMMENT ON COLUMN Group_filters.action IS 'Действие: 1=разрешить, 0=запретить';
+COMMENT ON TABLE group_filters IS 'Правила фильтрации, назначенные группам';
+COMMENT ON COLUMN group_filters.rule_order IS 'Порядок обработки правил';
+COMMENT ON COLUMN group_filters.action IS 'Действие: 1=разрешить, 0=запретить';
 
 -- Группы фильтров
-CREATE TABLE Group_list (
+CREATE TABLE group_list (
 id SERIAL PRIMARY KEY,
 instance_id INTEGER NOT NULL DEFAULT 1,
 group_name VARCHAR(50),
 comment VARCHAR(250)
 );
-COMMENT ON TABLE Group_list IS 'Группы политик фильтрации';
+COMMENT ON TABLE group_list IS 'Группы политик фильтрации';
 
 -- История MAC-адресов
 CREATE TABLE mac_history (
@@ -367,15 +367,15 @@ COMMENT ON COLUMN OU.ou_name IS 'Имя/идентификатор OU';
 COMMENT ON COLUMN OU.life_duration IS 'Время жизни по умолчанию в часах для динамических OU';
 
 -- Очереди шейпинга трафика
-CREATE TABLE Queue_list (
+CREATE TABLE queue_list (
 id SERIAL PRIMARY KEY,
 queue_name VARCHAR(20) NOT NULL,
 Download INTEGER NOT NULL DEFAULT 0,
 Upload INTEGER NOT NULL DEFAULT 0
 );
-COMMENT ON TABLE Queue_list IS 'Профили полосы пропускания для шейпинга трафика';
-COMMENT ON COLUMN Queue_list.Download IS 'Ограничение скорости скачивания в Кбит/с';
-COMMENT ON COLUMN Queue_list.Upload IS 'Ограничение скорости отдачи в Кбит/с';
+COMMENT ON TABLE queue_list IS 'Профили полосы пропускания для шейпинга трафика';
+COMMENT ON COLUMN queue_list.Download IS 'Ограничение скорости скачивания в Кбит/с';
+COMMENT ON COLUMN queue_list.Upload IS 'Ограничение скорости отдачи в Кбит/с';
 
 -- Удаленные syslog сообщения
 CREATE TABLE remote_syslog (
@@ -425,7 +425,7 @@ COMMENT ON COLUMN subnets.hotspot IS 'Это публичная/гостевая
 COMMENT ON COLUMN subnets.notify IS 'Битовая маска для уведомлений: 1=email, 2=sms, 4=telegram';
 
 -- Подробные логи трафика
-CREATE TABLE Traffic_detail (
+CREATE TABLE traffic_detail (
 id BIGSERIAL PRIMARY KEY,
 auth_id BIGINT,
 router_id INTEGER NOT NULL DEFAULT 0,
@@ -438,23 +438,23 @@ dst_port INTEGER NOT NULL,
 bytes BIGINT NOT NULL,
 pkt INTEGER NOT NULL DEFAULT 0
 );
-COMMENT ON TABLE Traffic_detail IS 'Подробные записи потоков трафика (NetFlow)';
-COMMENT ON COLUMN Traffic_detail.proto IS 'Номер IP протокола';
-COMMENT ON COLUMN Traffic_detail.src_ip IS 'Исходный IP в виде целого числа';
-COMMENT ON COLUMN Traffic_detail.bytes IS 'Байтов переданно в этом потоке';
+COMMENT ON TABLE traffic_detail IS 'Подробные записи потоков трафика (NetFlow)';
+COMMENT ON COLUMN traffic_detail.proto IS 'Номер IP протокола';
+COMMENT ON COLUMN traffic_detail.src_ip IS 'Исходный IP в виде целого числа';
+COMMENT ON COLUMN traffic_detail.bytes IS 'Байтов переданно в этом потоке';
 
 -- Неизвестные MAC-адреса
-CREATE TABLE Unknown_mac (
+CREATE TABLE unknown_mac (
 id BIGSERIAL PRIMARY KEY,
 mac VARCHAR(12),
 port_id BIGINT,
 device_id INTEGER,
 timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-COMMENT ON TABLE Unknown_mac IS 'Недавно обнаруженные неизвестные MAC-адреса';
+COMMENT ON TABLE unknown_mac IS 'Недавно обнаруженные неизвестные MAC-адреса';
 
 -- Записи авторизации пользователей
-CREATE TABLE User_auth (
+CREATE TABLE user_auth (
 id SERIAL PRIMARY KEY,
 user_id BIGINT NOT NULL DEFAULT 0,
 ou_id INTEGER,
@@ -486,7 +486,7 @@ month_quota INTEGER NOT NULL DEFAULT 0,
 device_model_id INTEGER DEFAULT 87,
 firmware VARCHAR(100),
 timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-"client-id" VARCHAR(250),
+client_id VARCHAR(250),
 nagios SMALLINT NOT NULL DEFAULT 0,
 nagios_status VARCHAR(10) NOT NULL DEFAULT '',
 nagios_handler VARCHAR(50) NOT NULL DEFAULT '',
@@ -496,24 +496,24 @@ dhcp_changed SMALLINT NOT NULL DEFAULT 0,
 changed_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 created_by VARCHAR(10)
 );
-COMMENT ON TABLE User_auth IS 'Записи авторизации пользователей/устройств в сети';
-COMMENT ON COLUMN User_auth.enabled IS 'Эта авторизация активна';
-COMMENT ON COLUMN User_auth.dynamic IS 'Это динамически созданная запись';
-COMMENT ON COLUMN User_auth.day_quota IS 'Дневная квота трафика в байтах';
-COMMENT ON COLUMN User_auth.nagios IS 'Включить мониторинг Nagios для этого хоста';
+COMMENT ON TABLE user_auth IS 'Записи авторизации пользователей/устройств в сети';
+COMMENT ON COLUMN user_auth.enabled IS 'Эта авторизация активна';
+COMMENT ON COLUMN user_auth.dynamic IS 'Это динамически созданная запись';
+COMMENT ON COLUMN user_auth.day_quota IS 'Дневная квота трафика в байтах';
+COMMENT ON COLUMN user_auth.nagios IS 'Включить мониторинг Nagios для этого хоста';
 
 -- Алиасы авторизации пользователей
-CREATE TABLE User_auth_alias (
+CREATE TABLE user_auth_alias (
 id SERIAL PRIMARY KEY,
 auth_id INTEGER NOT NULL,
 alias VARCHAR(100),
 description VARCHAR(100),
 timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-COMMENT ON TABLE User_auth_alias IS 'Алиасы/DNS имена для записей авторизации';
+COMMENT ON TABLE user_auth_alias IS 'Алиасы/DNS имена для записей авторизации';
 
 -- Список пользователей
-CREATE TABLE User_list (
+CREATE TABLE user_list (
 id BIGSERIAL PRIMARY KEY,
 timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 login VARCHAR(255),
@@ -529,9 +529,9 @@ day_quota INTEGER NOT NULL DEFAULT 0,
 month_quota INTEGER NOT NULL DEFAULT 0,
 permanent SMALLINT NOT NULL DEFAULT 0
 );
-COMMENT ON TABLE User_list IS 'Учетные записи пользователей в системе';
-COMMENT ON COLUMN User_list.fio IS 'Фамилия Имя Отчество';
-COMMENT ON COLUMN User_list.permanent IS 'Это постоянный пользователь (не динамический)';
+COMMENT ON TABLE user_list IS 'Учетные записи пользователей в системе';
+COMMENT ON COLUMN user_list.fio IS 'Фамилия Имя Отчество';
+COMMENT ON COLUMN user_list.permanent IS 'Это постоянный пользователь (не динамический)';
 
 -- Сессии пользователей (веб-интерфейс)
 CREATE TABLE user_sessions (
@@ -547,7 +547,7 @@ is_active SMALLINT DEFAULT 1
 COMMENT ON TABLE user_sessions IS 'Сессии пользователей веб-интерфейса';
 
 -- Статистика трафика пользователей
-CREATE TABLE User_stats (
+CREATE TABLE user_stats (
 id BIGSERIAL PRIMARY KEY,
 router_id BIGINT DEFAULT 0,
 auth_id BIGINT NOT NULL DEFAULT 0,
@@ -555,10 +555,10 @@ timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 byte_in BIGINT NOT NULL DEFAULT 0,
 byte_out BIGINT NOT NULL DEFAULT 0
 );
-COMMENT ON TABLE User_stats IS 'Статистика трафика пользователей (агрегированная)';
+COMMENT ON TABLE user_stats IS 'Статистика трафика пользователей (агрегированная)';
 
 -- Подробная статистика пользователей
-CREATE TABLE User_stats_full (
+CREATE TABLE user_stats_full (
 id BIGSERIAL PRIMARY KEY,
 router_id BIGINT DEFAULT 0,
 auth_id BIGINT NOT NULL DEFAULT 0,
@@ -569,8 +569,8 @@ pkt_in INTEGER,
 pkt_out INTEGER,
 step SMALLINT NOT NULL DEFAULT 600
 );
-COMMENT ON TABLE User_stats_full IS 'Подробная статистика трафика пользователей';
-COMMENT ON COLUMN User_stats_full.step IS 'Интервал сбора статистики в секундах';
+COMMENT ON TABLE user_stats_full IS 'Подробная статистика трафика пользователей';
+COMMENT ON COLUMN user_stats_full.step IS 'Интервал сбора статистики в секундах';
 
 -- Временные переменные
 CREATE TABLE variables (
@@ -597,19 +597,19 @@ version VARCHAR(10) NOT NULL DEFAULT '2.4.14'
 COMMENT ON TABLE version IS 'Информация о версии системы';
 
 -- Статистика WAN интерфейсов
-CREATE TABLE Wan_stats (
+CREATE TABLE wan_stats (
 id SERIAL PRIMARY KEY,
-time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 router_id INTEGER,
 interface_id INTEGER,
-"in" BIGINT NOT NULL DEFAULT 0,
-"out" BIGINT NOT NULL DEFAULT 0,
+bytes_in BIGINT NOT NULL DEFAULT 0,
+bytes_out BIGINT NOT NULL DEFAULT 0,
 forward_in BIGINT NOT NULL DEFAULT 0,
 forward_out BIGINT NOT NULL DEFAULT 0
 );
-COMMENT ON TABLE Wan_stats IS 'Статистика трафика WAN интерфейсов';
-COMMENT ON COLUMN Wan_stats."in" IS 'Байтов получено на WAN интерфейсе';
-COMMENT ON COLUMN Wan_stats."out" IS 'Байтов отправлено с WAN интерфейса';
+COMMENT ON TABLE wan_stats IS 'Статистика трафика WAN интерфейсов';
+COMMENT ON COLUMN wan_stats.bytes_in IS 'Байтов получено на WAN интерфейсе';
+COMMENT ON COLUMN wan_stats.bytes_out IS 'Байтов отправлено с WAN интерфейса';
 
 -- Журнал активности системы
 CREATE TABLE worklog (
@@ -648,25 +648,25 @@ CREATE INDEX idx_ou_ou_name_gin ON OU USING GIN(ou_name gin_trgm_ops);
 CREATE INDEX idx_subnets_ip_int_start ON subnets(ip_int_start, ip_int_stop);
 CREATE INDEX idx_subnets_dhcp ON subnets(dhcp, office, hotspot, static);
 
-CREATE INDEX idx_traffic_detail_src ON Traffic_detail(auth_id, timestamp, router_id, src_ip);
-CREATE INDEX idx_traffic_detail_dst ON Traffic_detail(auth_id, timestamp, router_id, dst_ip);
+CREATE INDEX idx_traffic_detail_src ON traffic_detail(auth_id, timestamp, router_id, src_ip);
+CREATE INDEX idx_traffic_detail_dst ON traffic_detail(auth_id, timestamp, router_id, dst_ip);
 
-CREATE INDEX idx_unknown_mac_timestamp ON Unknown_mac(timestamp, device_id, port_id, mac);
+CREATE INDEX idx_unknown_mac_timestamp ON unknown_mac(timestamp, device_id, port_id, mac);
 
-CREATE INDEX idx_user_auth_main ON User_auth(id, user_id, ip_int, mac, ip, deleted);
-CREATE INDEX idx_user_auth_deleted ON User_auth(deleted) WHERE deleted = 0;
-CREATE INDEX idx_user_auth_ou_id ON User_auth(ou_id);
+CREATE INDEX idx_user_auth_main ON user_auth(id, user_id, ip_int, mac, ip, deleted);
+CREATE INDEX idx_user_auth_deleted ON user_auth(deleted) WHERE deleted = 0;
+CREATE INDEX idx_user_auth_ou_id ON user_auth(ou_id);
 
-CREATE INDEX idx_user_list_main ON User_list(id, ou_id, enabled, blocked, deleted);
+CREATE INDEX idx_user_list_main ON user_list(id, ou_id, enabled, blocked, deleted);
 
 CREATE INDEX idx_user_sessions_session_id ON user_sessions(session_id);
 CREATE INDEX idx_user_sessions_user_id ON user_sessions(user_id);
 CREATE INDEX idx_user_sessions_is_active ON user_sessions(is_active) WHERE is_active = 1;
 
-CREATE INDEX idx_user_stats_timestamp ON User_stats(timestamp, auth_id, router_id);
-CREATE INDEX idx_user_stats_full_timestamp ON User_stats_full(timestamp, auth_id, router_id);
+CREATE INDEX idx_user_stats_timestamp ON user_stats(timestamp, auth_id, router_id);
+CREATE INDEX idx_user_stats_full_timestamp ON user_stats_full(timestamp, auth_id, router_id);
 
-CREATE INDEX idx_wan_stats_time ON Wan_stats(time, router_id, interface_id);
+CREATE INDEX idx_wan_stats_time ON wan_stats(time, router_id, interface_id);
 
 CREATE INDEX idx_worklog_customer ON worklog(customer, level, timestamp);
 CREATE INDEX idx_worklog_timestamp ON worklog(level, timestamp);

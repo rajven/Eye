@@ -39,7 +39,7 @@ my $HOST_IP = $ARGV[0];
 
 my $IP_ATON=StrToIp($HOST_IP);
 
-my $auth_rec = get_record_sql($dbh,'SELECT * FROM User_auth WHERE deleted=0 and ip_int='.$IP_ATON);
+my $auth_rec = get_record_sql($dbh,'SELECT * FROM user_auth WHERE deleted=0 and ip_int='.$IP_ATON);
 if (!$auth_rec) { db_log_error("Record with ip $HOST_IP not found! Bye."); exit; }
 
 my $auth_id = $auth_rec->{id};

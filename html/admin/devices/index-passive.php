@@ -109,7 +109,7 @@ if ($unknown and $f_vendor_select==0) { $u_filter=' AND V.id<>1 '; } else {
         }
     }
 
-$countSQL="SELECT Count(*) FROM User_auth A, User_list L, devices D, device_models M, vendors V
+$countSQL="SELECT Count(*) FROM user_auth A, user_list L, devices D, device_models M, vendors V
 WHERE D.user_id=L.id AND A.ip = D.ip AND D.device_model_id=M.id AND M.vendor_id=V.id AND A.deleted =0
 $u_filter $ip_list_filter $d_filter";
 $count_records = get_single_field($db_link,$countSQL);
@@ -137,7 +137,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <?php
 
 $sSQL = "SELECT A.id, D.id as dev_id, D.device_type, A.ip, A.mac, A.user_id, L.login, D.comment, A.last_found, V.name, M.model_name
-FROM User_auth A, User_list L, devices D, device_models M, vendors V
+FROM user_auth A, user_list L, devices D, device_models M, vendors V
 WHERE D.user_id=L.id AND A.ip = D.ip AND D.device_model_id=M.id AND M.vendor_id=V.id AND A.deleted =0
 $u_filter $ip_list_filter $d_filter
 ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";

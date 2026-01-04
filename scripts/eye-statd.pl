@@ -115,7 +115,7 @@ $save_path = get_option($dbh,72);
 $timeshift = get_option($hdb,55)*60;
 
 @router_ref = get_records_sql($hdb,"SELECT * FROM devices WHERE deleted=0 AND device_type=2 AND snmp_version>0 ORDER by ip" );
-@interfaces = get_records_sql($hdb,"SELECT * FROM `device_l3_interfaces` ORDER by device_id" );
+@interfaces = get_records_sql($hdb,"SELECT * FROM device_l3_interfaces ORDER by device_id" );
 
 #router device_id by known device ip
 foreach my $row (@router_ref) {
@@ -141,7 +141,7 @@ foreach my $row (@interfaces) {
     }
 
 #get userid list
-my @auth_list_ref = get_records_sql($hdb,"SELECT id,ip,save_traf FROM User_auth where deleted=0 ORDER by id");
+my @auth_list_ref = get_records_sql($hdb,"SELECT id,ip,save_traf FROM user_auth where deleted=0 ORDER by id");
 
 foreach my $row (@auth_list_ref) {
     $user_stats{$row->{ip}}{auth_id}=$row->{id};
@@ -779,7 +779,7 @@ foreach my $user_ip (keys %user_stats) {
     my $flow_date = $hdb->quote(sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year+1900,$month+1,$day,$hour,$min,$sec);
 
     #last found timestamp
-    my $tSQL="UPDATE User_auth SET `last_found`=$flow_date WHERE id='$auth_id'";
+    my $tSQL="UPDATE user_auth SET last_found=$flow_date WHERE id='$auth_id'";
     push (@batch_sql_traf,$tSQL);
 
     #per router stats
@@ -793,14 +793,14 @@ foreach my $user_ip (keys %user_stats) {
 	if (!exists $user_stats{$user_ip}{$router_id}{pkt_in})  { $user_stats{$user_ip}{$router_id}{pkt_in} = 0; }
 	if (!exists $user_stats{$user_ip}{$router_id}{pkt_out}) { $user_stats{$user_ip}{$router_id}{pkt_out} = 0; }
 	#current stats
-	my $tSQL="INSERT INTO User_stats_full (timestamp,auth_id,router_id,byte_in,byte_out,pkt_in,pkt_out,step) VALUES($flow_date,'$auth_id','$router_id','$user_stats{$user_ip}{$router_id}{in}','$user_stats{$user_ip}{$router_id}{out}','$user_stats{$user_ip}{$router_id}{pkt_in}','$user_stats{$user_ip}{$router_id}{pkt_out}','$timeshift')";
+	my $tSQL="INSERT INTO user_stats_full (ts,auth_id,router_id,byte_in,byte_out,pkt_in,pkt_out,step) VALUES($flow_date,'$auth_id','$router_id','$user_stats{$user_ip}{$router_id}{in}','$user_stats{$user_ip}{$router_id}{out}','$user_stats{$user_ip}{$router_id}{pkt_in}','$user_stats{$user_ip}{$router_id}{pkt_out}','$timeshift')";
 	push (@batch_sql_traf,$tSQL);
 	#hour stats
 	# get current stats
-	my $sql = "SELECT id, byte_in, byte_out FROM User_stats WHERE `timestamp`>=$hour_date1 AND `timestamp`<$hour_date2 AND router_id=$router_id AND auth_id=$auth_id";
+	my $sql = "SELECT id, byte_in, byte_out FROM user_stats WHERE ts>=$hour_date1 AND ts<$hour_date2 AND router_id=$router_id AND auth_id=$auth_id";
 	my $hour_stat = get_record_sql($hdb,$sql);
 	if (!$hour_stat) {
-	    my $dSQL="INSERT INTO User_stats (timestamp,auth_id,router_id,byte_in,byte_out) VALUES($flow_date,'$auth_id','$router_id','$user_stats{$user_ip}{$router_id}{in}','$user_stats{$user_ip}{$router_id}{out}')";
+	    my $dSQL="INSERT INTO user_stats (ts,auth_id,router_id,byte_in,byte_out) VALUES($flow_date,'$auth_id','$router_id','$user_stats{$user_ip}{$router_id}{in}','$user_stats{$user_ip}{$router_id}{out}')";
 	    push (@batch_sql_traf,$dSQL);
 	    next;
 	    }
@@ -808,7 +808,7 @@ foreach my $user_ip (keys %user_stats) {
 	if (!$hour_stat->{byte_out}) { $hour_stat->{byte_out}=0; }
 	$hour_stat->{byte_in} += $user_stats{$user_ip}{$router_id}{in};
 	$hour_stat->{byte_out} += $user_stats{$user_ip}{$router_id}{out};
-	$tSQL="UPDATE User_stats SET byte_in='".$hour_stat->{byte_in}."', byte_out='".$hour_stat->{byte_out}."' WHERE id='".$auth_id."' AND router_id='".$router_id."'";
+	$tSQL="UPDATE user_stats SET byte_in='".$hour_stat->{byte_in}."', byte_out='".$hour_stat->{byte_out}."' WHERE id='".$auth_id."' AND router_id='".$router_id."'";
 	push (@batch_sql_traf,$tSQL);
 	}
     }
@@ -830,7 +830,7 @@ foreach my $router_id (keys %wan_stats) {
 	#skip empty stats
         if ($wan_stats{$router_id}{$int_id}{in} + $wan_stats{$router_id}{$int_id}{out} + $wan_stats{$router_id}{$int_id}{forward_in} + $wan_stats{$router_id}{$int_id}{forward_out} ==0) { next; }
 	#current stats
-	my $tSQL="INSERT INTO Wan_stats (`time`,`router_id`,`interface_id`,`in`,`out`,`forward_in`,`forward_out`) VALUES($flow_date,'$router_id','$int_id','$wan_stats{$router_id}{$int_id}{in}','$wan_stats{$router_id}{$int_id}{out}','$wan_stats{$router_id}{$int_id}{forward_in}','$wan_stats{$router_id}{$int_id}{forward_out}')";
+	my $tSQL="INSERT INTO wan_stats (ts,router_id,interface_id,bytes_in,bytes_out,forward_in,forward_out) VALUES($flow_date,'$router_id','$int_id','$wan_stats{$router_id}{$int_id}{in}','$wan_stats{$router_id}{$int_id}{out}','$wan_stats{$router_id}{$int_id}{forward_in}','$wan_stats{$router_id}{$int_id}{forward_out}')";
 	push (@batch_sql_traf,$tSQL);
 	}
     }
@@ -849,7 +849,7 @@ if ($config_ref{enable_quotes}) {
 if (scalar(@detail_traffic)) {
     db_log_debug($hdb,"Start write traffic detail to DB. ".scalar @detail_traffic." lines count") if ($debug);
     #mysql dont work at parallel table lock
-    batch_db_sql_csv("Traffic_detail", \@detail_traffic);
+    batch_db_sql_csv("traffic_detail", \@detail_traffic);
     @detail_traffic = ();
     db_log_debug($hdb,"Write traffic detail to DB stopped") if ($debug);
     }

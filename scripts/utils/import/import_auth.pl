@@ -93,13 +93,13 @@ if (!$auth_network) {
     next;
     }
 
-my $search_sql = 'SELECT * FROM User_auth WHERE ip="'.$record->{ip}.'" and deleted=0 ORDER BY last_found DESC';
+my $search_sql = 'SELECT * FROM user_auth WHERE ip="'.$record->{ip}.'" and deleted=0 ORDER BY last_found DESC';
 $record->{ip_int}=StrToIp($record->{ip});
 if (!exists($record->{'mac'})) {
     delete $record->{'mac'};
     } else {
     $record->{mac}=mac_splitted(isc_mac_simplify($record->{mac}));
-    $search_sql = 'SELECT * FROM User_auth WHERE ip="'.$record->{ip}.'" and mac="'.$record->{mac}.'" and deleted=0 ORDER BY last_found DESC';
+    $search_sql = 'SELECT * FROM user_auth WHERE ip="'.$record->{ip}.'" and mac="'.$record->{mac}.'" and deleted=0 ORDER BY last_found DESC';
     }
 
 print "Импортируем:\n";
@@ -118,12 +118,12 @@ if (exists $record->{dns_name}) {
 #search actual record
 my $auth_record = get_record_sql($dbh,$search_sql);
 if ($auth_record) {
-    update_record($dbh,'User_auth',$record,"id=".$auth_record->{id});
+    update_record($dbh,'user_auth',$record,"id=".$auth_record->{id});
     print "URL: <a href='".$config_ref{stat_url}."/admin/users/edituser.php?id=".$auth_record->{user_id}."'>".$auth_record->{user_id}."</a><br>\n";
     if (exists $record->{dns_name}) {
         my $user_info;
         $user_info->{login}=$record->{dns_name};
-        update_record($dbh,'User_list',$user_info,"id=".$auth_record->{user_id});
+        update_record($dbh,'user_list',$user_info,"id=".$auth_record->{user_id});
         my $device;
         $device->{device_name}=$record->{dns_name};
         update_record($dbh,'devices',$device,"user_id=".$auth_record->{user_id});
@@ -131,7 +131,7 @@ if ($auth_record) {
     if (exists $record->{comments}) {
         my $user_info;
         $user_info->{fio}=$record->{comments};
-        update_record($dbh,'User_list',$user_info,"id=".$auth_record->{user_id});
+        update_record($dbh,'user_list',$user_info,"id=".$auth_record->{user_id});
         }
     next;
     }
@@ -144,14 +144,14 @@ if (!$res_id) {
     db_log_error($dbh,"Error creating an ip address record for:\t\t".Dumper($dhcp_record));
     next;
     }
-update_record($dbh,'User_auth',$record,"id=".$res_id);
-$auth_record = get_record_sql($dbh,'SELECT * FROM User_auth where id='.$res_id);
+update_record($dbh,'user_auth',$record,"id=".$res_id);
+$auth_record = get_record_sql($dbh,'SELECT * FROM user_auth where id='.$res_id);
 if ($auth_record) {
     print "URL: <a href='".$config_ref{stat_url}."/admin/users/edituser.php?id=".$auth_record->{user_id}."'>".$auth_record->{user_id}."</a><br>\n";
     if (exists $record->{dns_name}) {
         my $user_info;
         $user_info->{login}=$record->{dns_name};
-        update_record($dbh,'User_list',$user_info,"id=".$auth_record->{user_id});
+        update_record($dbh,'user_list',$user_info,"id=".$auth_record->{user_id});
         my $device;
         $device->{device_name}=$record->{dns_name};
         update_record($dbh,'devices',$device,"user_id=".$auth_record->{user_id});
@@ -159,7 +159,7 @@ if ($auth_record) {
     if (exists $record->{comments}) {
         my $user_info;
         $user_info->{fio}=$record->{comments};
-        update_record($dbh,'User_list',$user_info,"id=".$auth_record->{user_id});
+        update_record($dbh,'user_list',$user_info,"id=".$auth_record->{user_id});
         }
     }
 }

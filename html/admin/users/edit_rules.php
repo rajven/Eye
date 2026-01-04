@@ -6,7 +6,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $msg_error = "";
 
-$sSQL = "SELECT * FROM User_list WHERE id=$id";
+$sSQL = "SELECT * FROM user_list WHERE id=$id";
 $auth_info = get_record_sql($db_link, $sSQL);
 
 if (isset($_POST["s_remove"])) {

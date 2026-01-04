@@ -58,7 +58,7 @@ $dhcp_conf{$subnet_name}->{dhcp_pool_size}=$subnet->{dhcp_stop}-$subnet->{dhcp_s
 }
 
 #get userid list
-my $sSQL="SELECT id,ip,ip_int,mac,comments,dns_name FROM User_auth where dhcp=1 and deleted=0 and ou_id<>$default_hotspot_ou_id and ou_id<>$default_user_ou_id ORDER by ip_int";
+my $sSQL="SELECT id,ip,ip_int,mac,comments,dns_name FROM user_auth where dhcp=1 and deleted=0 and ou_id<>$default_hotspot_ou_id and ou_id<>$default_user_ou_id ORDER by ip_int";
 my @users = get_records_sql($dbh,$sSQL);
 foreach my $row (@users) {
 next if (!$row);

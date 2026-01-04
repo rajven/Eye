@@ -44,7 +44,7 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     $cur_device = get_record_sql($db_link, "SELECT * FROM devices WHERE id=" . $id);
     //main device info
     if (!empty($new['ip'])) {
-        $cur_auth = get_record_sql($db_link, "SELECT * FROM User_auth WHERE deleted=0 AND ip='" . $new['ip'] . "'");
+        $cur_auth = get_record_sql($db_link, "SELECT * FROM user_auth WHERE deleted=0 AND ip='" . $new['ip'] . "'");
     }
     if (isset($_POST["f_device_model_id"])) {
         $new['device_model_id'] = $_POST["f_device_model_id"] * 1;
@@ -164,7 +164,7 @@ if (isset($_POST["editdevice"]) and isset($id)) {
 }
 
 $device = get_record($db_link, 'devices', "id=" . $id);
-$user_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=" . $device['user_id']);
+$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $device['user_id']);
 unset($_POST);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");

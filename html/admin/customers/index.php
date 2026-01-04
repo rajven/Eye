@@ -7,7 +7,7 @@ $msg_error = "";
 if (isset($_POST["create"])) {
     $login = $_POST["newlogin"];
     if ($login) {
-	$customer = get_record_sql($db_link,"Select * from Customers WHERE LCase(Login)=LCase('$login')");
+	$customer = get_record_sql($db_link,"Select * from customers WHERE LCase(Login)=LCase('$login')");
         if (!empty($customer)) {
             $msg_error = "Login $login already exists!";
             LOG_ERROR($db_link, $msg_error);
@@ -17,7 +17,7 @@ if (isset($_POST["create"])) {
 	    $new['api_key'] = randomPassword(20);
             $new['rights'] = 3;
             LOG_INFO($db_link, "Create new login: $login");
-            $id = insert_record($db_link, "Customers", $new);
+            $id = insert_record($db_link, "customers", $new);
 	    if (!empty($id)) { header("Location: editcustom.php?id=$id"); exit; }
         }
     }
@@ -29,8 +29,8 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["fid"];
     foreach ($fid as $key => $val) {
         if ($val) {
-            LOG_INFO($db_link, "Remove login with id: $val ". dump_record($db_link,'Customers','id='.$val));
-            delete_record($db_link, "Customers", "id=" . $val);
+            LOG_INFO($db_link, "Remove login with id: $val ". dump_record($db_link,'customers','id='.$val));
+            delete_record($db_link, "customers", "id=" . $val);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -54,7 +54,7 @@ print_control_submenu($page_url);
 <td><b><?php echo WEB_customer_mode;?></b></td>
 </tr>
 <?php
-$users = get_records($db_link,'Customers','True ORDER BY Login');
+$users = get_records($db_link,'customers','True ORDER BY Login');
 foreach ($users as $row) {
     $cl = "data";
     $acl = get_record_sql($db_link,'SELECT * FROM acl WHERE id='.$row['rights']);

@@ -29,7 +29,7 @@ use Fcntl qw(:flock);
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
-my @auth_list = get_records_sql($dbh,"SELECT A.id,A.user_id,A.ip,A.mac,A.dns_name,A.comments,A.dhcp_hostname,A.WikiName,K.login,K.ou_id FROM User_auth as A, User_list as K WHERE K.id=A.user_id AND A.deleted=0 ORDER BY A.id");
+my @auth_list = get_records_sql($dbh,"SELECT A.id,A.user_id,A.ip,A.mac,A.dns_name,A.comments,A.dhcp_hostname,A.WikiName,K.login,K.ou_id FROM user_auth as A, user_list as K WHERE K.id=A.user_id AND A.deleted=0 ORDER BY A.id");
 
 my %auth_ref;
 foreach my $auth (@auth_list) {
@@ -77,7 +77,7 @@ $port_info{$port->{id}}{device_type}=$port->{device_type};
 
 my %conn_info;
 
-$d_sql="SELECT C.id, C.port_id, C.auth_id FROM connections AS C, User_auth as A WHERE A.id=C.auth_id AND A.deleted=0 ORDER BY C.id";
+$d_sql="SELECT C.id, C.port_id, C.auth_id FROM connections AS C, user_auth as A WHERE A.id=C.auth_id AND A.deleted=0 ORDER BY C.id";
 my @conn_list = get_records_sql($dbh,$d_sql);
 
 foreach my $conn (@conn_list) {

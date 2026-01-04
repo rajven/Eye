@@ -15,6 +15,8 @@ use eyelib::common;
 use strict;
 use warnings;
 
+exit 100 if ($config_ref{DBTYPE} and $config_ref{DBTYPE} ne 'mysql');
+
 my @tables = get_records_sql($dbh,"SHOW TABLES");
 my @db_tables=();
 foreach my $table_ref (@tables) {

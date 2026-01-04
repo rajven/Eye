@@ -52,7 +52,7 @@ my $users = new Net::Patricia;
 InitSubnets();
 
 #get userid list
-my @auth_list_ref = get_records_sql($dbh,"SELECT id,ip,user_id,save_traf FROM User_auth where deleted=0 ORDER by user_id");
+my @auth_list_ref = get_records_sql($dbh,"SELECT id,ip,user_id,save_traf FROM user_auth where deleted=0 ORDER by user_id");
 
 my %user_stats;
 
@@ -261,7 +261,7 @@ db_log_debug($f_dbh,"Stopped child $child_count analyze data") if ($debug);
 
 if (scalar(@detail_traffic)) {
         db_log_debug($f_dbh,"Start write traffic detail to DB. ".scalar @detail_traffic." lines count") if ($debug);
-	batch_db_sql_cached("INSERT INTO Traffic_detail (auth_id,router_id,timestamp,proto,src_ip,dst_ip,src_port,dst_port,bytes,pkt) VALUES(?,?,?,?,?,?,?,?,?,?)",\@detail_traffic);
+	batch_db_sql_cached("INSERT INTO traffic_detail (auth_id,router_id,ts,proto,src_ip,dst_ip,src_port,dst_port,bytes,pkt) VALUES(?,?,?,?,?,?,?,?,?,?)",\@detail_traffic);
         db_log_debug($f_dbh,"Write traffic detail to DB stopped") if ($debug);
 	}
 
@@ -295,27 +295,27 @@ if (!$auth_id) {
     $auth_id=new_auth($m_dbh,$user_ip);
     $user_stats{$user_ip}{auth_id}=$auth_id;
     #fix traffic detail for new users
-    push(@batch_sql_traf,"UPDATE Traffic_detail set auth_id=$auth_id WHERE auth_id=0 AND `timestamp`>=$hour_date1 AND `timestamp`<$hour_date2 AND (src_ip=$user_ip_aton OR dst_ip=$user_ip_aton)");
+    push(@batch_sql_traf,"UPDATE traffic_detail set auth_id=$auth_id WHERE auth_id=0 AND ts>=$hour_date1 AND ts<$hour_date2 AND (src_ip=$user_ip_aton OR dst_ip=$user_ip_aton)");
     }
 
 #skip empty stats
 if ($user_stats{$user_ip}{in} + $user_stats{$user_ip}{out} ==0) { next; }
 
 #current stats
-my $tSQL="INSERT INTO User_stats_full (timestamp,auth_id,router_id,byte_in,byte_out,pkt_in,pkt_out,step) VALUES($flow_date,'$auth_id','$router_id','$user_stats{$user_ip}{in}','$user_stats{$user_ip}{out}','$user_stats{$user_ip}{pkt_in}','$user_stats{$user_ip}{pkt_out}','$timeshift')";
+my $tSQL="INSERT INTO user_stats_full (ts,auth_id,router_id,byte_in,byte_out,pkt_in,pkt_out,step) VALUES($flow_date,'$auth_id','$router_id','$user_stats{$user_ip}{in}','$user_stats{$user_ip}{out}','$user_stats{$user_ip}{pkt_in}','$user_stats{$user_ip}{pkt_out}','$timeshift')";
 push (@batch_sql_traf,$tSQL);
 
 #last found timestamp
-$tSQL="UPDATE User_auth SET `last_found`=$flow_date WHERE id='$auth_id'";
+$tSQL="UPDATE user_auth SET last_found=$flow_date WHERE id='$auth_id'";
 push (@batch_sql_traf,$tSQL);
 
 #hour stats
 # get current stats
-my $sql = "SELECT id, byte_in, byte_out FROM User_stats WHERE `timestamp`>=$hour_date1 AND `timestamp`<$hour_date2 AND router_id=$router_id AND auth_id=$auth_id";
+my $sql = "SELECT id, byte_in, byte_out FROM user_stats WHERE ts>=$hour_date1 AND ts<$hour_date2 AND router_id=$router_id AND auth_id=$auth_id";
 my $hour_stat = get_record_sql($m_dbh,$sql);
 
 if (!$hour_stat) {
-    my $dSQL="INSERT INTO User_stats (timestamp,auth_id,router_id,byte_in,byte_out) VALUES($flow_date,'$auth_id','$router_id','$user_stats{$user_ip}{in}','$user_stats{$user_ip}{out}')";
+    my $dSQL="INSERT INTO user_stats (ts,auth_id,router_id,byte_in,byte_out) VALUES($flow_date,'$auth_id','$router_id','$user_stats{$user_ip}{in}','$user_stats{$user_ip}{out}')";
     push (@batch_sql_traf,$dSQL);
     next;
     }
@@ -324,7 +324,7 @@ if (!$hour_stat->{byte_in}) { $hour_stat->{byte_in}=0; }
 if (!$hour_stat->{byte_out}) { $hour_stat->{byte_out}=0; }
 $hour_stat->{byte_in} += $user_stats{$user_ip}{in};
 $hour_stat->{byte_out} += $user_stats{$user_ip}{out};
-$tSQL="UPDATE User_stats SET byte_in='".$hour_stat->{byte_in}."', byte_out='".$hour_stat->{byte_out}."' WHERE id='".$auth_id."' AND router_id='".$router_id."'";
+$tSQL="UPDATE user_stats SET byte_in='".$hour_stat->{byte_in}."', byte_out='".$hour_stat->{byte_out}."' WHERE id='".$auth_id."' AND router_id='".$router_id."'";
 push (@batch_sql_traf,$tSQL);
 }
 

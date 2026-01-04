@@ -46,7 +46,7 @@ if ($config_ref{config_mode}) {
 db_log_verbose($dbh, 'Clearing empty records.');
 
 log_info($dbh, 'Clearing empty user accounts and associated devices for dynamic users and hotspot');
-my $u_sql = "SELECT * FROM User_list AS U WHERE (U.ou_id = " . $default_hotspot_ou_id . " OR U.ou_id = " . $default_user_ou_id . ") AND (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted = 0 AND User_auth.user_id = U.id) = 0";
+my $u_sql = "SELECT * FROM user_list AS U WHERE (U.ou_id = " . $default_hotspot_ou_id . " OR U.ou_id = " . $default_user_ou_id . ") AND (SELECT COUNT(*) FROM user_auth WHERE user_auth.deleted = 0 AND user_auth.user_id = U.id) = 0";
 my @u_ref = get_records_sql($dbh, $u_sql);
 foreach my $row (@u_ref) {
     db_log_info($dbh, "Remove empty dynamic user with id: $row->{id} login: $row->{login}");
@@ -56,7 +56,7 @@ foreach my $row (@u_ref) {
 # Clean up empty non-permanent user accounts that have no authentications or auth rules
 #if ($config_ref{clean_empty_user}) {
 #    log_info($dbh, 'Clearing empty non-permanent user accounts and associated devices');
-#    my $u_sql = "SELECT * FROM User_list AS U WHERE U.permanent = 0 AND (SELECT COUNT(*) FROM User_auth WHERE User_auth.deleted = 0 AND User_auth.user_id = U.id) = 0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id) = 0;";
+#    my $u_sql = "SELECT * FROM user_list AS U WHERE U.permanent = 0 AND (SELECT COUNT(*) FROM user_auth WHERE user_auth.deleted = 0 AND user_auth.user_id = U.id) = 0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id) = 0;";
 #    my @u_ref = get_records_sql($dbh, $u_sql);
 #    foreach my $row (@u_ref) {
 #        db_log_info($dbh, "Remove empty user with id: $row->{id} login: $row->{login}");
@@ -67,13 +67,13 @@ foreach my $row (@u_ref) {
 # Clean temporary (dynamic) user authentication records that have expired
 my $now = DateTime->now(time_zone => 'local');
 my $clear_time = $dbh->quote($now->strftime('%Y-%m-%d %H:%M:%S'));
-my $users_sql = "SELECT * FROM User_auth WHERE deleted = 0 AND dynamic = 1 AND `eof` <= " . $clear_time;
+my $users_sql = "SELECT * FROM user_auth WHERE deleted = 0 AND dynamic = 1 AND eof <= " . $clear_time;
 my @users_auth = get_records_sql($dbh, $users_sql);
 if (@users_auth and scalar @users_auth) {
     foreach my $row (@users_auth) {
         delete_user_auth($dbh, $row->{id});
         db_log_info($dbh, "Removed dynamic user auth record for auth_id: $row->{'id'} by eof time: $row->{'eof'}", $row->{'id'});
-        my $u_count = get_count_records($dbh, 'User_auth', 'deleted = 0 AND user_id = ' . $row->{user_id});
+        my $u_count = get_count_records($dbh, 'user_auth', 'deleted = 0 AND user_id = ' . $row->{user_id});
         if (!$u_count) {
             delete_user($dbh, $row->{'user_id'});
         }
@@ -167,7 +167,7 @@ $pm_arp->wait_all_children;
 $dbh = init_db();
 
 # Load all active user authentications indexed by IP
-my @authlist_ref = get_records_sql($dbh, "SELECT * FROM User_auth WHERE deleted = 0 ORDER BY ip_int");
+my @authlist_ref = get_records_sql($dbh, "SELECT * FROM user_auth WHERE deleted = 0 ORDER BY ip_int");
 
 my $users = Net::Patricia->new;
 my %ip_list;
@@ -243,7 +243,7 @@ foreach my $connection (@connections_list) {
 
 # Build operational and full MAC-to-auth lookup tables
 my $auth_filter = " AND last_found >= '" . $now_day . "' ";
-my $auth_sql = "SELECT id, mac FROM User_auth WHERE mac IS NOT NULL AND deleted = 0 $auth_filter ORDER BY id ASC";
+my $auth_sql = "SELECT id, mac FROM user_auth WHERE mac IS NOT NULL AND deleted = 0 $auth_filter ORDER BY id ASC";
 my @auth_list = get_records_sql($dbh, $auth_sql);
 
 my %auth_table;
@@ -253,7 +253,7 @@ foreach my $auth (@auth_list) {
     $auth_table{oper_table}{$auth_mac} = $auth->{id};
 }
 
-$auth_sql = "SELECT id, mac FROM User_auth WHERE mac IS NOT NULL AND deleted = 0 ORDER BY last_found DESC";
+$auth_sql = "SELECT id, mac FROM user_auth WHERE mac IS NOT NULL AND deleted = 0 ORDER BY last_found DESC";
 my @auth_full_list = get_records_sql($dbh, $auth_sql);
 foreach my $auth (@auth_full_list) {
     next if (!$auth);
@@ -263,7 +263,7 @@ foreach my $auth (@auth_full_list) {
 }
 
 # Load unknown MAC addresses from the database
-my @unknown_list = get_records_sql($dbh, "SELECT id, mac, port_id, device_id FROM Unknown_mac WHERE mac != '' ORDER BY mac");
+my @unknown_list = get_records_sql($dbh, "SELECT id, mac, port_id, device_id FROM unknown_mac WHERE mac != '' ORDER BY mac");
 my %unknown_table;
 foreach my $unknown (@unknown_list) {
     next if (!$unknown);
@@ -373,7 +373,7 @@ foreach my $device (@device_list) {
     # Special handling for MikroTik: skip device's own MAC addresses
     my $sw_mac;
     if ($device->{vendor_id} eq '9') {
-        my $sw_auth = get_record_sql($dbh, "SELECT mac FROM User_auth WHERE deleted = 0 AND ip = '" . $device->{ip} . "'");
+        my $sw_auth = get_record_sql($dbh, "SELECT mac FROM user_auth WHERE deleted = 0 AND ip = '" . $device->{ip} . "'");
         $sw_mac = mac_simplify($sw_auth->{mac});
         $sw_mac =~ s/.{2}$//s;  # Strip last two hex chars for prefix match
     }
@@ -438,7 +438,7 @@ foreach my $device (@device_list) {
                         $auth_rec->{last_found} = $now_str;
                         $auth_rec->{arp_found}  = $now_str;
                         $oper_arp_list{$auth_id}{updated} = 1;
-                        update_record($dbh, 'User_auth', $auth_rec, "id = $auth_id");
+                        update_record($dbh, 'user_auth', $auth_rec, "id = $auth_id");
                     }
                     next;
                 }
@@ -453,7 +453,7 @@ foreach my $device (@device_list) {
                 $auth_rec->{last_found} = $now_str;
                 $auth_rec->{arp_found}  = $now_str if exists $auth_table{oper_table}{$simple_mac};
                 $oper_arp_list{$auth_id}{updated} = 1;
-                update_record($dbh, 'User_auth', $auth_rec, "id = $auth_id");
+                update_record($dbh, 'user_auth', $auth_rec, "id = $auth_id");
 
                 my $conn_rec;
                 $conn_rec->{port_id}   = $port_id;
@@ -470,7 +470,7 @@ foreach my $device (@device_list) {
                 $auth_rec->{last_found} = $now_str;
                 $auth_rec->{arp_found}  = $now_str if exists $auth_table{oper_table}{$simple_mac};
                 $oper_arp_list{$auth_id}{updated} = 1;
-                update_record($dbh, 'User_auth', $auth_rec, "id = $auth_id");
+                update_record($dbh, 'user_auth', $auth_rec, "id = $auth_id");
 
                 my $conn_rec;
                 $conn_rec->{port_id}   = $port_id;
@@ -490,7 +490,7 @@ foreach my $device (@device_list) {
                 my $unknown_rec;
                 $unknown_rec->{port_id}   = $port_id;
                 $unknown_rec->{device_id} = $dev_id;
-                update_record($dbh, 'Unknown_mac', $unknown_rec, "id = $unknown_table{$simple_mac}{unknown_id}");
+                update_record($dbh, 'unknown_mac', $unknown_rec, "id = $unknown_table{$simple_mac}{unknown_id}");
             } else {
                 # Brand new unknown MAC
                 $mac_history{$simple_mac}{changed} = 1;
@@ -500,7 +500,7 @@ foreach my $device (@device_list) {
                 $unknown_rec->{port_id} = $port_id;
                 $unknown_rec->{device_id} = $dev_id;
                 $unknown_rec->{mac} = $simple_mac;
-                insert_record($dbh, 'Unknown_mac', $unknown_rec);
+                insert_record($dbh, 'unknown_mac', $unknown_rec);
             }
         }
     }
@@ -511,7 +511,7 @@ foreach my $auth_id (keys %oper_arp_list) {
     next if ($oper_arp_list{$auth_id}->{updated});
     my $auth_rec;
     $auth_rec->{last_found} = $now_str;
-    update_record($dbh, 'User_auth', $auth_rec, "id = $auth_id");
+    update_record($dbh, 'user_auth', $auth_rec, "id = $auth_id");
     db_log_debug($dbh, "Update by ARP at unknown connection location for: " . Dumper($oper_arp_list{$auth_id})) if ($debug);
 }
 

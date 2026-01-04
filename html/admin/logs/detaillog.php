@@ -59,7 +59,7 @@ if (!empty($f_ip)) { $sort_url .='&f_ip="'.$f_ip.'"'; }
 $gateway_filter='';
 if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) AND"; }
 
-$countSQL="SELECT Count(*) FROM Traffic_detail as A WHERE $gateway_filter $ip_where `timestamp`>='$date1' AND `timestamp`<'$date2'";
+$countSQL="SELECT Count(*) FROM traffic_detail as A WHERE $gateway_filter $ip_where `timestamp`>='$date1' AND `timestamp`<'$date2'";
 $count_records = get_single_field($db_link,$countSQL);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
@@ -87,7 +87,7 @@ $gateway_list = get_gateways($db_link);
 <td class="data" width=80><b><?php $url = $sort_url.'&sort=pkt&order='.$new_order."'>Pkt</a>"; print $url; ?></b></td>
 </tr>
 <?php
-$fsql = "SELECT A.id, A.auth_id, A.`timestamp`, A.router_id, A.proto, A.src_ip, A.src_port, A.dst_ip, A.dst_port, A.bytes, A.pkt FROM Traffic_detail as A JOIN (SELECT id FROM Traffic_detail 
+$fsql = "SELECT A.id, A.auth_id, A.`timestamp`, A.router_id, A.proto, A.src_ip, A.src_port, A.dst_ip, A.dst_port, A.bytes, A.pkt FROM traffic_detail as A JOIN (SELECT id FROM traffic_detail 
         WHERE $gateway_filter $ip_where `timestamp`>='$date1' AND `timestamp`<'$date2'
         ORDER BY `timestamp` ASC LIMIT $start,$displayed) as T ON A.id = T.id ORDER BY $sort_table.$sort_field $order";
 $userdata = get_records_sql($db_link, $fsql);

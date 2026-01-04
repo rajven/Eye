@@ -88,7 +88,7 @@ if (scalar(@netdev_list)>0) {
             }
 	if ($router->{'user_id'}) {
             #get user
-	    my $login = get_record_sql($dbh,"SELECT * FROM User_list WHERE id=".$router->{'user_id'});
+	    my $login = get_record_sql($dbh,"SELECT * FROM user_list WHERE id=".$router->{'user_id'});
 	    if ($login and $login->{ou_id} and $ou{$login->{ou_id}}->{nagios_dir}) { $devices{$device_id}{ou_id} = $login->{ou_id}; }
             }
         $devices{$device_id}{ou}=$ou{$devices{$device_id}{ou_id}};
@@ -133,7 +133,7 @@ if (scalar(@netdev_list)>0) {
         }
     }
 
-my @auth_list=get_records_sql($dbh,'SELECT * FROM User_auth WHERE deleted=0 and nagios=1');
+my @auth_list=get_records_sql($dbh,'SELECT * FROM user_auth WHERE deleted=0 and nagios=1');
 
 ##################################### User auth analyze ################################################
 
@@ -148,7 +148,7 @@ if (scalar(@auth_list)>0) {
         next if ($devices{$device_id});
 
 	#skip user device with few ip
-        my $auth_count = get_count_records($dbh,"User_auth","user_id=".$auth->{'user_id'}." AND deleted=0");
+        my $auth_count = get_count_records($dbh,"user_auth","user_id=".$auth->{'user_id'}." AND deleted=0");
         next if ($auth_count>1);
 
 	#skip switches and routers
@@ -162,7 +162,7 @@ if (scalar(@auth_list)>0) {
         $devices{$device_id}{ip}=$ip;
 
         #get user
-        my $login = get_record_sql($dbh,"SELECT * FROM User_list WHERE id=".$auth->{'user_id'});
+        my $login = get_record_sql($dbh,"SELECT * FROM user_list WHERE id=".$auth->{'user_id'});
     
         $devices{$device_id}{user_login} = $login->{login};
         $devices{$device_id}{user_fio} = $login->{fio};
