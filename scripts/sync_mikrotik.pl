@@ -505,7 +505,7 @@ log_debug($gate_ident."Queues status:".Dumper(\%queues));
 
 my @filter_instances = get_records_sql($dbh,"SELECT * FROM filter_instances");
 
-my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM filter_list where type=0");
+my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM filter_list where filter_type=0");
 
 my %filters;
 my %dyn_filters;
