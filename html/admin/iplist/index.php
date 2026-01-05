@@ -252,7 +252,7 @@ foreach ($users as $user) {
         print "<td class=\"$cl\" width=200 >".$user['description']."</td>\n";
     }
 
-    $aliases = get_records_sql($db, 'SELECT * FROM user_auth_alias WHERE auth_id='.$user['id']);
+    $aliases = get_records_sql($db_link, 'SELECT * FROM user_auth_alias WHERE auth_id='.$user['id']);
     $dns_display = $user['dns_name'];
     if ($user["dns_ptr_only"]) { $dns_display.='&nbsp(ptr)'; }
     if (!empty($aliases)) {
