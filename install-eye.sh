@@ -302,17 +302,18 @@ install_deps_altlinux() {
 }
 
 # Install dependencies for Debian/Ubuntu
-install_deps_altlinux() {
-    print_step "Installing dependencies for ALT Linux"
+install_deps_debian() {
+    print_step "Installing dependencies for Debian/Ubuntu"
     apt-get update
 
     # Общие утилиты (всегда нужны)
-    apt-get install -y git wget rsync xxd hwdata pwgen
+    apt-get install -y git wget rsync xxd hwdata pwgen bsdmainutils
 
     # === Локальная база данных (если выбрана) ===
     if [[ "$DB_INSTALL" == "local" ]]; then
         if [[ "$DB_TYPE" == "postgresql" ]]; then
-            apt-get install -y postgresql17 postgresql17-server postgresql17-contrib postgresql17-perl
+            # Устанавливаем generic-пакеты PostgreSQL
+            apt-get install -y postgresql postgresql-contrib postgresql-server-dev-all
         else
             apt-get install -y mariadb-server mariadb-client
         fi
@@ -320,40 +321,44 @@ install_deps_altlinux() {
 
     # === Веб-интерфейс (если нужен) ===
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "web" ]]; then
-        apt-get install -y apache2 php8.2 php8.2-fpm-fcgi apache2-mod_fcgid \
-            php8.2-intl php8.2-mbstring php8.2-snmp php8.2-zip pear-Mail
+        apt-get install -y apache2 libapache2-mod-fcgid \
+            php php-fpm \
+            php-bcmath php-intl php-mbstring php-snmp php-zip php-mail \
+            php-date php-db
 
         if [[ "$DB_TYPE" == "postgresql" ]]; then
-            apt-get install -y php8.2-pgsql php8.2-pdo_pgsql
+            apt-get install -y php-pgsql
         else
-            apt-get install -y php8.2-mysqlnd php8.2-pdo_mysql php8.2-mysqlnd-mysqli
+            apt-get install -y php-mysql
         fi
     fi
 
     # === Сетевой бэкенд (если нужен) ===
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
-        apt-get install -y fping dnsmasq syslog-ng syslog-ng-journal
+        apt-get install -y fping dnsmasq syslog-ng
 
-        # Общие Perl-модули (независимо от СУБД)
+        # Perl и обязательные модули (имена корректны для Ubuntu 24.04)
         apt-get install -y perl \
-            perl-Net-Patricia perl-NetAddr-IP perl-Config-Tiny \
-            perl-Net-DNS perl-DateTime perl-Net-Ping \
-            perl-Net-Netmask perl-Text-Iconv perl-Net-SNMP \
-            perl-Net-Telnet perl-DBI \
-            perl-Parallel-ForkManager perl-Proc-Daemon \
-            perl-DateTime-Format-DateParse \
-            perl-Net-OpenSSH perl-File-Tail \
-            perl-Crypt-Rijndael perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
-            perl-File-Path-Tiny perl-Expect perl-Proc-ProcessTable
+            libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl \
+            libnet-dns-perl libdatetime-perl libnet-netmask-perl \
+            libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl \
+            libdbi-perl libparallel-forkmanager-perl libproc-daemon-perl \
+            libdatetime-format-dateparse-perl libnetwork-ipv4addr-perl \
+            libnet-openssh-perl libfile-tail-perl \
+            libcrypt-rijndael-perl libcrypt-cbc-perl libcryptx-perl \
+            libcrypt-des-perl libfile-path-tiny-perl libexpect-perl
 
-        # Специфичные DBD-драйверы
+        # DBD-драйверы
         if [[ "$DB_TYPE" == "postgresql" ]]; then
-            apt-get install -y perl-DBD-Pg
+            apt-get install -y libdbd-pg-perl
         else
-            apt-get install -y perl-DBD-mysql
+            apt-get install -y libdbd-mysql-perl
         fi
     fi
 
+    # === Дополнительно (если нужно) ===
+    # Раскомментируйте, если требуется DNS-сервер
+    # apt-get install -y bind9 bind9-utils bind9-host
 }
 
 # System update

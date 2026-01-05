@@ -281,7 +281,7 @@ ON CONFLICT (id) DO UPDATE SET
     description = EXCLUDED.description;
 
 -- Organizational Units (русские названия)
-INSERT INTO OU (id, ou_name, description, default_users, default_hotspot, nagios_dir, nagios_host_use, nagios_ping, nagios_default_service, enabled, filter_group_id, queue_id, dynamic, life_duration, parent_id)
+INSERT INTO ou (id, ou_name, description, default_users, default_hotspot, nagios_dir, nagios_host_use, nagios_ping, nagios_default_service, enabled, filter_group_id, queue_id, dynamic, life_duration, parent_id)
 VALUES
 (0, '!Всё', NULL, 0, 0, '/etc/nagios/any', 'generic-host', 1, NULL, 0, 0, 0, 0, 24.00, NULL),
 (1, 'Сервера', NULL, 0, 0, NULL, NULL, 1, NULL, 1, 1, 0, 0, 24.00, NULL),
@@ -498,7 +498,7 @@ SELECT setval(pg_get_serial_sequence('device_models', 'id'), COALESCE((SELECT MA
 SELECT setval(pg_get_serial_sequence('device_types', 'id'), COALESCE((SELECT MAX(id) FROM device_types), 0) + 1);
 SELECT setval(pg_get_serial_sequence('filter_instances', 'id'), COALESCE((SELECT MAX(id) FROM filter_instances), 0) + 1);
 SELECT setval(pg_get_serial_sequence('group_list', 'id'), COALESCE((SELECT MAX(id) FROM group_list), 0) + 1);
-SELECT setval(pg_get_serial_sequence('OU', 'id'), COALESCE((SELECT MAX(id) FROM OU), 0) + 1);
+SELECT setval(pg_get_serial_sequence('ou', 'id'), COALESCE((SELECT MAX(id) FROM ou), 0) + 1);
 SELECT setval(pg_get_serial_sequence('queue_list', 'id'), COALESCE((SELECT MAX(id) FROM queue_list), 0) + 1);
 SELECT setval(pg_get_serial_sequence('subnets', 'id'), COALESCE((SELECT MAX(id) FROM subnets), 0) + 1);
 SELECT setval(pg_get_serial_sequence('vendors', 'id'), COALESCE((SELECT MAX(id) FROM vendors), 0) + 1);
@@ -520,7 +520,7 @@ BEGIN
     RAISE NOTICE '  - device_types: %', (SELECT COUNT(*) FROM device_types);
     RAISE NOTICE '  - filter_instances: %', (SELECT COUNT(*) FROM filter_instances);
     RAISE NOTICE '  - group_list: %', (SELECT COUNT(*) FROM group_list);
-    RAISE NOTICE '  - OU: %', (SELECT COUNT(*) FROM OU);
+    RAISE NOTICE '  - ou: %', (SELECT COUNT(*) FROM ou);
     RAISE NOTICE '  - queue_list: %', (SELECT COUNT(*) FROM queue_list);
     RAISE NOTICE '  - subnets: %', (SELECT COUNT(*) FROM subnets);
     RAISE NOTICE '  - vendors: %', (SELECT COUNT(*) FROM vendors);

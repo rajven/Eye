@@ -1,6 +1,7 @@
 -- Переименование таблиц в нижний регистр (snake_case)
 
 ALTER TABLE "Customers" RENAME TO customers;
+ALTER TABLE "OU" RENAME TO ou;
 ALTER TABLE "User_auth" RENAME TO user_auth;
 ALTER TABLE "User_list" RENAME TO user_list;
 ALTER TABLE "User_stats" RENAME TO user_stats;

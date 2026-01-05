@@ -344,7 +344,7 @@ COMMENT ON TABLE mac_vendors IS 'MAC address vendor database';
 COMMENT ON COLUMN mac_vendors.oui IS 'Organizationally Unique Identifier (first 6 MAC characters)';
 
 -- Organizational Units
-CREATE TABLE OU (
+CREATE TABLE ou (
 id SERIAL PRIMARY KEY,
 ou_name VARCHAR(40),
 description VARCHAR(250),
@@ -361,9 +361,9 @@ dynamic SMALLINT NOT NULL DEFAULT 0,
 life_duration DECIMAL(10,2) NOT NULL DEFAULT 24.00,
 parent_id INTEGER
 );
-COMMENT ON TABLE OU IS 'Organizational Units (departments/groups)';
-COMMENT ON COLUMN OU.ou_name IS 'OU name/identifier';
-COMMENT ON COLUMN OU.life_duration IS 'Default lifetime in hours for dynamic OUs';
+COMMENT ON TABLE ou IS 'Organizational Units (departments/groups)';
+COMMENT ON COLUMN ou.ou_name IS 'ou name/identifier';
+COMMENT ON COLUMN ou.life_duration IS 'Default lifetime in hours for dynamic OUs';
 
 -- Traffic shaping queues
 CREATE TABLE queue_list (

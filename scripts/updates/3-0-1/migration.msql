@@ -1,6 +1,7 @@
 -- Переименование таблиц в нижний регистр
 
 RENAME TABLE Customers TO customers;
+RENAME TABLE OU TO ou;
 RENAME TABLE User_auth TO user_auth;
 RENAME TABLE User_list TO user_list;
 RENAME TABLE User_stats TO user_stats;
@@ -53,6 +54,19 @@ ALTER TABLE wan_stats       CHANGE COLUMN `time` ts TIMESTAMP NOT NULL DEFAULT C
 ALTER TABLE remote_syslog   CHANGE COLUMN `date` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 -- comment → description
+-- fallback - add comment if not exists
+ALTER TABLE acl ADD COLUMN comment VARCHAR(250);
+ALTER TABLE building ADD COLUMN comment VARCHAR(250);
+ALTER TABLE devices ADD COLUMN comment VARCHAR(255);
+ALTER TABLE filter_instances ADD COLUMN comment VARCHAR(200);
+ALTER TABLE filter_list ADD COLUMN comment VARCHAR(250);
+ALTER TABLE group_list ADD COLUMN comment VARCHAR(250);
+ALTER TABLE ou ADD COLUMN comment VARCHAR(250);
+ALTER TABLE subnets ADD COLUMN comment VARCHAR(250);
+ALTER TABLE user_list ADD COLUMN comment VARCHAR(255);
+ALTER TABLE vendors ADD COLUMN comment VARCHAR(255);
+
+-- rename comment
 ALTER TABLE acl             CHANGE COLUMN `comment` description VARCHAR(250);
 ALTER TABLE building        CHANGE COLUMN `comment` description VARCHAR(250);
 ALTER TABLE devices         CHANGE COLUMN `comment` description VARCHAR(255);

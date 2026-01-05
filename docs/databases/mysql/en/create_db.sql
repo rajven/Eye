@@ -256,7 +256,7 @@ CREATE TABLE `mac_vendors` (
   `companyAddress` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `OU` (
+CREATE TABLE `ou` (
   `id` int(11) NOT NULL,
   `ou_name` varchar(40) DEFAULT NULL,
   `description` varchar(250) DEFAULT NULL,
@@ -579,9 +579,9 @@ ALTER TABLE `mac_vendors`
   ADD PRIMARY KEY (`id`),
   ADD KEY `oui` (`oui`);
 
-ALTER TABLE `OU`
+ALTER TABLE `ou`
   ADD PRIMARY KEY (`id`);
-ALTER TABLE `OU` ADD FULLTEXT KEY `ou_name` (`ou_name`);
+ALTER TABLE `ou` ADD FULLTEXT KEY `ou_name` (`ou_name`);
 
 ALTER TABLE `queue_list`
   ADD PRIMARY KEY (`id`),
@@ -735,7 +735,7 @@ ALTER TABLE `mac_history`
 ALTER TABLE `mac_vendors`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `OU`
+ALTER TABLE `ou`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `queue_list`

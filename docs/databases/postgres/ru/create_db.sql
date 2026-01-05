@@ -344,7 +344,7 @@ COMMENT ON TABLE mac_vendors IS 'База данных производител�
 COMMENT ON COLUMN mac_vendors.oui IS 'Organizationally Unique Identifier (первые 6 символов MAC)';
 
 -- Организационные единицы
-CREATE TABLE OU (
+CREATE TABLE ou (
 id SERIAL PRIMARY KEY,
 ou_name VARCHAR(40),
 description VARCHAR(250),
@@ -362,8 +362,8 @@ life_duration DECIMAL(10,2) NOT NULL DEFAULT 24.00,
 parent_id INTEGER
 );
 COMMENT ON TABLE OU IS 'Организационные единицы (отделы/группы)';
-COMMENT ON COLUMN OU.ou_name IS 'Имя/идентификатор OU';
-COMMENT ON COLUMN OU.life_duration IS 'Время жизни по умолчанию в часах для динамических OU';
+COMMENT ON COLUMN ou.ou_name IS 'Имя/идентификатор ou';
+COMMENT ON COLUMN ou.life_duration IS 'Время жизни по умолчанию в часах для динамических записей';
 
 -- Очереди шейпинга трафика
 CREATE TABLE queue_list (
