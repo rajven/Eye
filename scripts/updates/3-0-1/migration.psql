@@ -51,6 +51,9 @@ ALTER TABLE user_stats RENAME COLUMN timestamp TO ts;
 ALTER TABLE user_stats_full RENAME COLUMN timestamp TO ts;
 ALTER TABLE worklog RENAME COLUMN timestamp TO ts;
 ALTER TABLE user_list RENAME COLUMN timestamp TO ts;
+ALTER TABLE traffic_detail RENAME COLUMN timestamp TO ts;
+ALTER TABLE unknown_mac RENAME COLUMN timestamp TO ts;
+ALTER TABLE user_auth_alias RENAME COLUMN timestamp TO ts;
 
 -- time/date → ts
 ALTER TABLE wan_stats RENAME COLUMN time TO ts;
