@@ -112,11 +112,31 @@ function sess_write($sessionId, $data) {
     log_session_debug($db_link, "Writing session", ['sessionId' => $sessionId, 'data_length' => strlen($data)]);
 
     $time = time();
-    $stmt = $db_link->prepare("INSERT INTO " . SESSION_TABLE . " (id, data, last_accessed)
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE data = ?, last_accessed = ?");
+    $driver = $db_link->getAttribute(PDO::ATTR_DRIVER_NAME);
+    $sql = '';
+    $params = [$sessionId, $data, $time];
 
-    $success = $stmt->execute([$sessionId, $data, $time, $data, $time]);
+    switch ($driver) {
+        case 'mysql':
+            $sql = "INSERT INTO " . SESSION_TABLE . " (id, data, last_accessed)
+                    VALUES (?, ?, ?)
+                    ON DUPLICATE KEY UPDATE data = VALUES(data), last_accessed = VALUES(last_accessed)";
+            break;
+
+        case 'pgsql':
+            $sql = "INSERT INTO " . SESSION_TABLE . " (id, data, last_accessed)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, last_accessed = EXCLUDED.last_accessed";
+            break;
+
+        default:
+            LOG_DEBUG($db_link, "Unsupported database driver: $driver");
+            log_session_debug($db_link, "Session write failed: unsupported driver");
+            return false;
+    }
+
+    $stmt = $db_link->prepare($sql);
+    $success = $stmt->execute($params);
 
     if (!$success) {
         $error = $stmt->errorInfo();
