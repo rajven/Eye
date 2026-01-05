@@ -211,7 +211,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
                 <td align=Center><?php print WEB_cell_traf; ?></td>
                 <td align=Center><?php print WEB_cell_dhcp; ?></td>
                 <td align=Center><?php print WEB_cell_acl; ?></td>
-                <td align=Center><?php print $sort_url . "&sort=arp_found&order=$new_order>Last</a>"; ?></td>
+                <td align=Center><?php print $sort_url . "&sort=arp_found&order=$new_order>Arp/Mac</a>"; ?></td>
                 <td align=Center><?php print WEB_cell_connection; ?></td>
         </tr>
 <?php
@@ -234,6 +234,7 @@ foreach ($users as $user) {
     }
     if ($user['last_found'] == '0000-00-00 00:00:00') { $user['last_found'] = ''; }
     if ($user['arp_found'] == '0000-00-00 00:00:00') { $user['arp_found'] = ''; }
+    if ($user['mac_found'] == '0000-00-00 00:00:00') { $user['mac_found'] = ''; }
     print "<tr align=center>\n";
     $cl = "data";
     if (!$user['enabled']) { $cl = "warn"; }
@@ -250,7 +251,18 @@ foreach ($users as $user) {
     } else {
         print "<td class=\"$cl\" width=200 >".$user['description']."</td>\n";
     }
-    print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
+
+    $aliases = get_records_sql($db, 'SELECT * FROM user_auth_alias WHERE auth_id='.$user['id']);
+    $dns_display = $user['dns_name'];
+    if (!empty($aliases)) {
+        $dns_display .= '<hr>';
+        $alias_list = [];
+        foreach ($aliases as $alias) {
+            $alias_list[] = htmlspecialchars($alias['alias'], ENT_QUOTES, 'UTF-8');
+        }
+        $dns_display .= implode('<br>', $alias_list);
+    }
+    print "<td class=\"$cl\" >".$dns_display."</td>\n";
     print "<td class=\"$cl\" >" . get_group($db_link, $user['filter_group_id']) . "</td>\n";
     print "<td class=\"$cl\" >" . get_queue($db_link, $user['queue_id']) . "</td>\n";
     print_td_qa($user['save_traf'],FALSE,$cl);

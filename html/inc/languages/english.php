@@ -201,6 +201,7 @@ define("WEB_cell_connection","Connected");
 define("WEB_cell_last_found","Last MAC/ARP activity");
 define("WEB_cell_arp_found","Last ARP activity");
 define("WEB_cell_mac_found","Last MAC activity");
+define("WEB_cell_ptr_only","Create only PTR");
 define("WEB_cell_dns_name","Dns Name");
 define("WEB_cell_aliases","Aliases");
 define("WEB_cell_host_model","Device Model");

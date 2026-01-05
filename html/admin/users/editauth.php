@@ -335,7 +335,7 @@ if (empty($auth_info['end_life']) or $auth_info['end_life'] == '0000-00-00 00:00
             </tr>
             <tr>
                 <td><input type="text" name="f_dns_name" size="14"  value="<?php echo $auth_info['dns_name']; ?>" pattern="^([a-zA-Z0-9-]{1,63})(\.[a-zA-Z0-9-]{1,63})*\.?$">
-                    <input type="checkbox" id="f_dns_ptr" name="f_dns_ptr" value="1" <?php echo $f_dns_ptr; ?>> &nbsp ptr
+                    <input type="checkbox" id="f_dns_ptr" name="f_dns_ptr" value="1" <?php echo $f_dns_ptr; ?>> &nbsp <?php print WEB_cell_ptr_only; ?>
                 </td>
                 <td><input type="text" name="f_description" value="<?php echo $auth_info['description']; ?>"></td>
                 <td><?php print_qa_select('f_enabled', $auth_info['enabled']); ?></td>

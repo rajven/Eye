@@ -588,7 +588,6 @@ install_source_code() {
             cp -R html/* /opt/Eye/html/ 2>/dev/null || true
         fi
         download_additional_scripts
-        chmod -R 755 /opt/Eye/html
         chown -R eye:eye /opt/Eye/html
     fi
 
