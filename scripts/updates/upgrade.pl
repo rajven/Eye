@@ -15,6 +15,7 @@ use eyelib::config;
 use eyelib::main;
 use eyelib::database;
 use eyelib::common;
+use Data::Dumper;
 use strict;
 use warnings;
 
@@ -80,7 +81,7 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
     my @sql_patches;
     if ($db_type) {
         my @sql_patches1 = glob($dir_name.'/*.sql');
-        my @sql_patches1 = glob($dir_name.'/*.msql');
+        my @sql_patches2 = glob($dir_name.'/*.msql');
         push(@sql_patches,@sql_patches1);
         push(@sql_patches,@sql_patches2);
         } else {
@@ -92,6 +93,8 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
             next if ($patch=~/version.sql/);
             my @sql_cmd=read_file($patch);
             foreach my $sql (@sql_cmd) {
+                next if ($sql=~/^(--|#)/);
+                next if (!$sql);
                 my $sql_prep = $dbh->prepare($sql) or die "Unable to prepare $sql: " . $dbh->errstr."\n";
                 my $sql_ref;
                 my $rv = $sql_prep->execute();

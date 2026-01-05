@@ -1,7 +1,6 @@
 -- Включаем необходимые расширения
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS btree_gin;
-CREATE EXTENSION IF NOT EXISTS ip4r;
 
 -- Access Control List
 CREATE TABLE acl (
@@ -264,7 +263,7 @@ value VARCHAR(100)
 );
 COMMENT ON TABLE dns_queue IS 'Очередь отложенных операций DNS';
 COMMENT ON COLUMN dns_queue.name_type IS 'Тип DNS записи: A, AAAA, PTR, CNAME';
-COMMENT ON COLUMN dns_queue.type IS 'Тип операции: add, delete, update';
+COMMENT ON COLUMN dns_queue.operation_type IS 'Тип операции: add, delete, update';
 
 -- Экземпляры фильтров
 CREATE TABLE filter_instances (
@@ -667,7 +666,7 @@ CREATE INDEX idx_user_sessions_is_active ON user_sessions(is_active) WHERE is_ac
 CREATE INDEX idx_user_stats_ts ON user_stats(ts, auth_id, router_id);
 CREATE INDEX idx_user_stats_full_ts ON user_stats_full(ts, auth_id, router_id);
 
-CREATE INDEX idx_wan_stats_time ON wan_stats(time, router_id, interface_id);
+CREATE INDEX idx_wan_stats_time ON wan_stats(ts, router_id, interface_id);
 
 CREATE INDEX idx_worklog_customer ON worklog(customer, level, ts);
 CREATE INDEX idx_worklog_ts ON worklog(level, ts);

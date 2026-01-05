@@ -25,8 +25,7 @@ ALTER TABLE group_filters RENAME COLUMN "order" TO rule_order;
 ALTER TABLE user_auth RENAME COLUMN "client-id" TO client_id;
 
 -- Переименовываем eof → end_life в user_auth
-ALTER TABLE user_auth
-  RENAME COLUMN eof TO end_life;
+ALTER TABLE user_auth RENAME COLUMN eof TO end_life;
 
 -- dhcp_log: дефисы → подчёркивания
 ALTER TABLE dhcp_log RENAME COLUMN "client-id" TO client_id;
@@ -69,14 +68,11 @@ ALTER TABLE user_list RENAME COLUMN comment TO description;
 ALTER TABLE vendors RENAME COLUMN comment TO description;
 
 -- Добавляем поле mac_found в user_auth (аналог arp_found)
-ALTER TABLE user_auth
-  ADD COLUMN mac_found TIMESTAMP;
+ALTER TABLE user_auth ADD COLUMN mac_found TIMESTAMP;
 
 -- type → уточнённые имена
 ALTER TABLE config_options RENAME COLUMN type TO option_type;
 ALTER TABLE dns_queue RENAME COLUMN type TO operation_type;
 ALTER TABLE filter_list RENAME COLUMN type TO filter_type;
 
-UPDATE user_auth
-SET mac_found = last_found
-WHERE last_found IS NOT NULL;
+UPDATE user_auth SET mac_found = last_found WHERE last_found IS NOT NULL;

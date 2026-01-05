@@ -87,7 +87,7 @@ ON CONFLICT (id) DO UPDATE SET
     description_english = EXCLUDED.description_english,
     draft = EXCLUDED.draft,
     uniq = EXCLUDED.uniq,
-    type = EXCLUDED.type,
+    option_type = EXCLUDED.option_type,
     default_value = EXCLUDED.default_value,
     min_value = EXCLUDED.min_value,
     max_value = EXCLUDED.max_value;
@@ -463,7 +463,7 @@ ON CONFLICT (id) DO UPDATE SET
     dst = EXCLUDED.dst,
     dstport = EXCLUDED.dstport,
     srcport = EXCLUDED.srcport,
-    type = EXCLUDED.type;
+    filter_type = EXCLUDED.filter_type;
 
 -- Filter group assignments
 INSERT INTO group_filters (id, group_id, filter_id, rule_order, action)

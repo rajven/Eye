@@ -845,11 +845,16 @@ local   all             postgres                                peer\
 
     print_info "Creating database '$DB_NAME' with locale '$LC_TYPE'..."
 
+    # Set password for stat user
+    print_info "Setting password for user $DB_USER ..."
+    sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';"
+
     sudo -u postgres createdb \
       --encoding=UTF8 \
       --lc-collate="$LC_TYPE" \
       --lc-ctype="$LC_TYPE" \
       --template=template0 \
+      --owner="$DB_USER" \
       "$DB_NAME"
 
     if [[ $? -ne 0 ]]; then
@@ -857,51 +862,56 @@ local   all             postgres                                peer\
         return 1
     fi
 
-    print_info "Database created successfully"
+    print_info "Database created successfully with owner '$DB_USER'"
 
-    # Import main SQL file as postgres user
-    print_info "Importing database structure..."
-    sudo -u postgres psql -d "$DB_NAME" -f "$SQL_CREATE_FILE"
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+
+    # Теперь подключаемся как новый владелец для импорта
+    print_info "Importing database structure as '$DB_USER'..."
+
+    # Вариант 1: Используя sudo и переключение пользователя в psql
+    sudo -u postgres psql -d "$DB_NAME" <<EOF
+SET ROLE "$DB_USER";
+\i $SQL_CREATE_FILE
+EOF
 
     if [[ $? -ne 0 ]]; then
         print_error "Error importing create_db.sql"
         return 1
     fi
 
-    # Импортируем структуру и данные
-    print_info "Importing database structure and initial data..."
-    sudo -u postgres psql -d "$DB_NAME" -f "$SQL_DATA_FILE"
-    if [[ $? -ne 0 ]]; then
-        print_warn "Warning: failed to import data (may already exist or non-critical)"
-    else
-        print_info "Database structure and data imported successfully"
-    fi
+    print_info "Database structure imported successfully"
 
-    # Set password for stat user
-    print_info "Setting password for user 'stat'..."
-    sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';"
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
-
-    # Import data
-    print_info "Importing initial data..."
-    sudo -u postgres psql -d ${DB_NAME} -f ${SQL_DATA_FILE}
-
-    if [[ $? -ne 0 ]]; then
-        print_warn "Error importing data.sql (data may already exist)"
-    else
-        print_info "Initial data imported"
-    fi
-
-    # Grant privileges on all tables to stat user
-    print_info "Granting privileges on all tables to user 'stat'..."
-    sudo -u postgres psql -d ${DB_NAME} <<EOF
-GRANT ALL ON ALL TABLES IN SCHEMA public TO ${DB_USER};
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO ${DB_USER};
-GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO ${DB_USER};
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ${DB_USER};
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO ${DB_USER};
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO ${DB_USER};
+    # Импортируем данные тоже как владелец
+    if [[ -f "$SQL_DATA_FILE" ]]; then
+        print_info "Importing database data as '$DB_USER'..."
+        sudo -u postgres psql -d "$DB_NAME" <<EOF
+SET ROLE "$DB_USER";
+\i $SQL_DATA_FILE
 EOF
+
+        if [[ $? -ne 0 ]]; then
+            print_warn "Warning: failed to import data (may already exist or non-critical)"
+        else
+            print_info "Database data imported successfully"
+        fi
+    fi
+
+    # Дополнительные привилегии 
+    print_info "Setting up additional privileges..."
+
+    # Дать доступ пользователю postgres к БД
+    sudo -u postgres psql -c "GRANT CONNECT ON DATABASE $DB_NAME TO postgres;"
+
+    # Дать полные права пользователю postgres на все объекты
+    sudo -u postgres psql -d "$DB_NAME" <<EOF
+GRANT ALL ON SCHEMA public TO postgres;
+ALTER DEFAULT PRIVILEGES FOR USER "$DB_USER" IN SCHEMA public GRANT ALL ON TABLES TO postgres;
+ALTER DEFAULT PRIVILEGES FOR USER "$DB_USER" IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres;
+ALTER DEFAULT PRIVILEGES FOR USER "$DB_USER" IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres;
+EOF
+
+    print_info "Database setup completed successfully"
 
     # Configure PostgreSQL for MD5 authentication
     if [[ "$OS_FAMILY" == "alt" ]]; then
