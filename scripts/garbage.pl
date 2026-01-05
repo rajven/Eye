@@ -337,7 +337,7 @@ foreach my $auth (@auth_full_list) {
     $auth_table{$auth_mac} = 1;
 
     # Check if location history already exists
-    my $h_sql = "SELECT * FROM mac_history WHERE mac = '$auth_mac' ORDER BY ts DESC LIMIT 1";
+    my $h_sql = "SELECT * FROM mac_history WHERE mac = '$auth_mac' ORDER BY ts";
     my $history = get_record_sql($dbh, $h_sql);
 
     my $cur_conn = $connections{$auth->{id}};
