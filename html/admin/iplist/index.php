@@ -254,6 +254,7 @@ foreach ($users as $user) {
 
     $aliases = get_records_sql($db, 'SELECT * FROM user_auth_alias WHERE auth_id='.$user['id']);
     $dns_display = $user['dns_name'];
+    if ($user["dns_ptr_only"]) { $dns_display.='&nbsp(ptr)'; }
     if (!empty($aliases)) {
         $dns_display .= '<hr>';
         $alias_list = [];
