@@ -787,7 +787,7 @@ function print_ou_select_recursive($db, $ou_name, $ou_value, $parent_id = null, 
     
     $where = implode(" AND ", $conditions);
     
-    $sql = "SELECT id, parent_id, ou_name FROM OU 
+    $sql = "SELECT id, parent_id, ou_name FROM ou 
             WHERE $where 
             ORDER BY ou_name";
     
@@ -1104,7 +1104,7 @@ function get_ou($db, $ou_value)
     if (!isset($ou_value)) {
         return;
     }
-    $ou_name = get_record_sql($db, "SELECT ou_name FROM OU WHERE id=$ou_value");
+    $ou_name = get_record_sql($db, "SELECT ou_name FROM ou WHERE id=$ou_value");
     if (empty($ou_name)) {
         return;
     }
@@ -2296,7 +2296,7 @@ function apply_auth_rule($db, $auth_record, $user_id)
 function fix_auth_rules($db)
 {
     //cleanup hotspot subnet rules
-    $t_hotspot = get_records_sql($db, "SELECT * FROM OU WHERE default_users=1 or default_hotspot=1");
+    $t_hotspot = get_records_sql($db, "SELECT * FROM ou WHERE default_users=1 or default_hotspot=1");
     if (!empty($t_hotspot)) {
         foreach ($t_hotspot as $row) {
             delete_record($db, "auth_rules", "ou_id='" . $row['id'] . "'");
@@ -2332,7 +2332,7 @@ function new_user($db, $user_info)
     }
 
     $user['ou_id'] = $user_info['ou_id'];
-    $ou_info = get_record_sql($db, "SELECT * FROM OU WHERE id=" . $user_info['ou_id']);
+    $ou_info = get_record_sql($db, "SELECT * FROM ou WHERE id=" . $user_info['ou_id']);
     if (!empty($ou_info)) {
         $user['enabled'] = $ou_info['enabled'];
         if (empty($user['enabled'])) {
@@ -3773,14 +3773,14 @@ if (preg_match('/127.0.0.1/', $config["torrus_url"])) {
 $config["dns_server"] = get_option($db_link, 3);
 $config["dns_server_type"] = get_option($db_link, 70);
 
-$ou = get_record_sql($db_link, "SELECT id FROM OU WHERE default_users = 1");
+$ou = get_record_sql($db_link, "SELECT id FROM ou WHERE default_users = 1");
 if (empty($ou)) {
     $config["default_user_ou_id"] = 0;
 } else {
     $config["default_user_ou_id"] = $ou['id'];
 }
 
-$ou = get_record_sql($db_link, "SELECT id FROM OU WHERE default_hotspot=1");
+$ou = get_record_sql($db_link, "SELECT id FROM ou WHERE default_hotspot=1");
 if (empty($ou)) {
     $config["default_hotspot_ou_id"] = $config["default_user_ou_id"];
 } else {

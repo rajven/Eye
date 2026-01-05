@@ -94,7 +94,7 @@ if ($conn->{auth_id}) {
 foreach my $conn_id (keys %conn_info) {
 if (exists $port_info{$conn_info{$conn_id}{port_id}}{count}) {
     $port_info{$conn_info{$conn_id}{port_id}}{count}++;
-    #OU: Switches, Routers, WiFi AP
+    #ou: Switches, Routers, WiFi AP
     if ($conn_info{$conn_id}{device} and $conn_info{$conn_id}{description}) {
         if ($conn_info{$conn_id}{device}{device_name}) {
             $port_info{$conn_info{$conn_id}{port_id}}{description} = $conn_info{$conn_id}{device}{device_name};

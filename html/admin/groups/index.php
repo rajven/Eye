@@ -9,7 +9,7 @@ if (isset($_POST["remove"])) {
             run_sql($db_link, "UPDATE user_list SET ou_id=0 WHERE ou_id=$val");
             run_sql($db_link, "UPDATE user_auth SET ou_id=0 WHERE ou_id=$val");
             run_sql($db_link, "DELETE FROM auth_rules WHERE ou_id=$val");
-            delete_record($db_link, "OU", "id=" . $val);
+            delete_record($db_link, "ou", "id=" . $val);
             }
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -20,7 +20,7 @@ if (isset($_POST["create"])) {
     $ou_name = $_POST["new_ou"];
     if (isset($ou_name)) {
         $new['ou_name'] = $ou_name;
-        insert_record($db_link, "OU", $new);
+        insert_record($db_link, "ou", $new);
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -44,7 +44,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 </td>
 </tr>
 <?php
-$t_ou = get_records($db_link,'OU','TRUE ORDER BY ou_name');
+$t_ou = get_records($db_link,'ou','TRUE ORDER BY ou_name');
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";

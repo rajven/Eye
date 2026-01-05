@@ -17,7 +17,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/dhcpfilter.php");
 $sort_table = 'user_auth';
 if ($sort_field == 'login') { $sort_table = 'user_list'; }
 if ($sort_field == 'fio') { $sort_table = 'user_list'; }
-if ($sort_field == 'ou_name') { $sort_table = 'OU'; }
+if ($sort_field == 'ou_name') { $sort_table = 'ou'; }
 
 $sort_url = "<a href=index.php?ou=" . $rou;
 
@@ -184,8 +184,8 @@ print_ip_submenu($page_url);
 $countSQL="SELECT Count(*) FROM user_auth
 LEFT JOIN user_list
 ON user_auth.user_id = user_list.id
-LEFT JOIN OU
-ON OU.id=user_list.ou_id
+LEFT JOIN ou
+ON ou.id=user_list.ou_id
 WHERE user_auth.deleted =0 $ip_list_filter";
 
 $count_records = get_single_field($db_link,$countSQL);
@@ -216,12 +216,12 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
         </tr>
 <?php
 
-$sSQL = "SELECT user_auth.*, user_list.login, user_list.enabled as UEnabled, user_list.blocked as UBlocked, OU.ou_name
+$sSQL = "SELECT user_auth.*, user_list.login, user_list.enabled as UEnabled, user_list.blocked as UBlocked, ou.ou_name
 FROM user_auth
 LEFT JOIN user_list
 ON user_auth.user_id = user_list.id
-LEFT JOIN OU
-ON OU.id=user_list.ou_id
+LEFT JOIN ou
+ON ou.id=user_list.ou_id
 WHERE user_auth.deleted =0 $ip_list_filter
 ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
 

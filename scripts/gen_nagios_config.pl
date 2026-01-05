@@ -37,7 +37,7 @@ my %dependency;
 
 my $nagios_devices = "/etc/snmp/devices.cfg";
 
-my @OU_list = get_records_sql($dbh,"SELECT * FROM OU");
+my @OU_list = get_records_sql($dbh,"SELECT * FROM ou");
 my %ou;
 my @cfg_dirs = ();
 foreach my $row (@OU_list) {

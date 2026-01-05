@@ -98,7 +98,7 @@ foreach ( $t_auth_rules as $row ) {
 	if (!empty($user_info)) { print "User: &nbsp"; print_url($user_info['login'],'/admin/users/edituser.php?id='.$user_info['id']); }
 	}
     if (!empty($row['ou_id'])) {
-	$ou_info=get_record_sql($db_link,"SELECT * FROM OU WHERE id=".$row['ou_id']);
+	$ou_info=get_record_sql($db_link,"SELECT * FROM ou WHERE id=".$row['ou_id']);
 	if (!empty($ou_info)) { print "Group: &nbsp"; print_url($ou_info['ou_name'],'/admin/groups/edit_group.php?id='.$ou_info['id']); }
 	}
     print "</td>";

@@ -19,9 +19,9 @@ if (isset($_POST['save'])) {
             $tmp_life_duration = str_replace(',', '.',$_POST['f_life_duration']*1);
             if (!empty($tmp_life_duration) and is_numeric($tmp_life_duration)) { $new['life_duration'] = $tmp_life_duration; }
             } else { $new['life_duration']=0; }
-        if ($new['default_users'] == TRUE) { run_sql($db_link,"UPDATE OU set default_users=0 WHERE id!='{$id}'"); }
-        if ($new['default_hotspot'] == TRUE) { run_sql($db_link,"UPDATE OU set default_hotspot=0 WHERE id!='{$id}'"); }
-        update_record($db_link, "OU", "id='{$id}'", $new);
+        if ($new['default_users'] == TRUE) { run_sql($db_link,"UPDATE ou set default_users=0 WHERE id!='{$id}'"); }
+        if ($new['default_hotspot'] == TRUE) { run_sql($db_link,"UPDATE ou set default_hotspot=0 WHERE id!='{$id}'"); }
+        update_record($db_link, "ou", "id='{$id}'", $new);
         header("Location: " . $_SERVER["REQUEST_URI"]);
 	exit;
 	}
@@ -84,7 +84,7 @@ fix_auth_rules($db_link);
 <td><b><?php print WEB_cell_dynamic; ?></b></td>
 </tr>
 <?php
-$ou_info = get_record_sql($db_link,'SELECT * FROM OU WHERE id='.$id);
+$ou_info = get_record_sql($db_link,'SELECT * FROM ou WHERE id='.$id);
 print "<tr align=center>\n";
 print "<td colspan=2 class=\"data\"><input type=\"text\" name='f_group_name' value='{$ou_info['ou_name']}' style=\"width:95%;\"></td>\n";
 if ($ou_info['default_users']) { $cl = "up"; } else { $cl="data"; }

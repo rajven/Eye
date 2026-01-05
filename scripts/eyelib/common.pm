@@ -1024,7 +1024,7 @@ my $login_count = get_count_records($db,"user_list","(login LIKE '".$user->{logi
 if ($login_count) { $login_count++; $user->{login} .="(".$login_count.")"; }
 
 $user->{ou_id} = $user_info->{ou_id};
-my $ou_info = get_record_sql($db,"SELECT * FROM OU WHERE id=".$user_info->{'ou_id'});
+my $ou_info = get_record_sql($db,"SELECT * FROM ou WHERE id=".$user_info->{'ou_id'});
 if ($ou_info) {
     $user->{'enabled'} = $ou_info->{'enabled'};
     $user->{'queue_id'} = $ou_info->{'queue_id'};
@@ -1225,7 +1225,7 @@ $cur_auth_id=get_id_record($db,'user_auth',"ip='$ip' and mac='$mac' and deleted=
 if ($cur_auth_id) {
     my $user_record=get_record_sql($db,"SELECT * FROM user_list WHERE id=".$new_user_id);
     if ($user_record) {
-	    my $ou_info = get_record_sql($db,'SELECT * FROM OU WHERE id='.$user_record->{ou_id});
+	    my $ou_info = get_record_sql($db,'SELECT * FROM ou WHERE id='.$user_record->{ou_id});
 	    if ($ou_info and $ou_info->{'dynamic'}) {
                     # Устанавливаем значение по умолчанию, если не задано
                     if (!$ou_info->{'life_duration'}) { 
@@ -1303,7 +1303,7 @@ return $cur_auth_id;
 sub get_dynamic_ou {
 my $db = shift;
 my @dynamic=();
-my @ou_list = get_records_sql($db,"SELECT id FROM OU WHERE dynamic = 1");
+my @ou_list = get_records_sql($db,"SELECT id FROM ou WHERE dynamic = 1");
 foreach my $group (@ou_list) {
     next if (!$group);
     push(@dynamic,$group->{id});
@@ -1316,9 +1316,9 @@ return wantarray ? @dynamic : \@dynamic;
 sub get_default_ou {
 my $db = shift;
 my @dynamic=();
-my $ou = get_record_sql($db,"SELECT id FROM OU WHERE default_users = 1");
+my $ou = get_record_sql($db,"SELECT id FROM ou WHERE default_users = 1");
 if (!$ou) { push(@dynamic,0); } else { push(@dynamic,$ou->{'id'}); }
-$ou = get_record_sql($db,"SELECT id FROM OU WHERE default_hotspot = 1");
+$ou = get_record_sql($db,"SELECT id FROM ou WHERE default_hotspot = 1");
 if ($ou) { push(@dynamic,$ou->{id}); }
 return wantarray ? @dynamic : \@dynamic;
 }
