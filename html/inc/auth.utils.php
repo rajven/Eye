@@ -6,6 +6,17 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/cfg/config.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/sql.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/common.php");
 
+define('SESSION_TABLE', 'sessions');
+define('USER_SESSIONS_TABLE', 'user_sessions');
+
+//set default const values
+if (!defined('SESSION_LIFETIME') || SESSION_LIFETIME < 60) { define('SESSION_LIFETIME', 86400); }
+if (!defined("HTML_LANG")) { define("HTML_LANG","english"); }
+if (!defined("HTML_STYLE")) { define("HTML_STYLE","white"); }
+if (!defined("IPCAM_GROUP_ID")) { define("IPCAM_GROUP_ID","5"); }
+if (!defined("SNMP_timeout")) { define("SNMP_timeout","500000"); }
+if (!defined("SNMP_retry")) { define("SNMP_retry","1"); }
+
 // исправление дублирующихся PHPSESSID <<<
 if (isset($_SERVER['HTTP_COOKIE'])) {
     preg_match_all('/PHPSESSID=([^;\s]+)/', $_SERVER['HTTP_COOKIE'], $matches);
@@ -43,16 +54,6 @@ ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
 //ini_set('session.use_trans_sid', true);
 //ini_set('session.use_only_cookies', false);
 
-define('SESSION_TABLE', 'sessions');
-define('USER_SESSIONS_TABLE', 'user_sessions');
-
-//set default const values
-if (!defined('SESSION_LIFETIME') || SESSION_LIFETIME < 60) { define('SESSION_LIFETIME', 86400); }
-if (!defined("HTML_LANG")) { define("HTML_LANG","english"); }
-if (!defined("HTML_STYLE")) { define("HTML_STYLE","white"); }
-if (!defined("IPCAM_GROUP_ID")) { define("IPCAM_GROUP_ID","5"); }
-if (!defined("SNMP_timeout")) { define("SNMP_timeout","500000"); }
-if (!defined("SNMP_retry")) { define("SNMP_retry","1"); }
 
 // Функция для логирования отладки сессий
 function log_session_debug($db, $message, $data = null) {
