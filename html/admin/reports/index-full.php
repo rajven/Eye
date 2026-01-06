@@ -57,7 +57,7 @@ if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
 
 #set sort
-$trafSQL=$trafSQL ." $sort_sql LIMIT $start,$displayed";
+$trafSQL=$trafSQL ." $sort_sql LIMIT $displayed OFFSET $start";
 
 print_navigation($page_url,$page,$displayed,$count_records,$total);
 
@@ -108,7 +108,7 @@ print "</tr>\n";
 </table>
 
 <?php
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 
 <script>

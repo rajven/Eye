@@ -97,7 +97,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 
 $sSQL = "SELECT user_auth.*, user_list.login FROM user_auth, user_list
 WHERE user_auth.user_id = user_list.id AND user_auth.deleted =0 $ip_list_filter
-ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
+ORDER BY $sort_table.$sort_field $order LIMIT $displayed OFFSET $start";
 
 $users = get_records_sql($db_link,$sSQL);
 foreach ($users as $user) {
@@ -150,7 +150,7 @@ foreach ($users as $user) {
     print "</tr>\n";
 }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 <br>
 <table class="data">

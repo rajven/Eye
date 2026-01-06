@@ -43,7 +43,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 </tr>
 <?php
 
-$sSQL = "SELECT U.mac, U.ts, DP.port, D.device_name FROM unknown_mac AS U, devices AS D, device_ports AS DP  WHERE D.device_type<=2 and U.device_id = D.id  AND U.port_id = DP.id AND U.ts>='$date1' AND U.ts<'$date2' $where_dev ORDER BY U.mac LIMIT $start,$displayed";
+$sSQL = "SELECT U.mac, U.ts, DP.port, D.device_name FROM unknown_mac AS U, devices AS D, device_ports AS DP  WHERE D.device_type<=2 and U.device_id = D.id  AND U.port_id = DP.id AND U.ts>='$date1' AND U.ts<'$date2' $where_dev ORDER BY U.mac LIMIT $displayed OFFSET $start";
 $maclog = get_records_sql($db_link, $sSQL);
 foreach ($maclog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
@@ -54,6 +54,6 @@ foreach ($maclog as $row) {
     print "</tr>\n";
 }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

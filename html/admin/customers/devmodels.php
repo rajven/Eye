@@ -146,7 +146,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <td><input id='remove' type="submit" name='remove' value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
-$t_ou = get_records_sql($db_link,'SELECT * FROM device_models '.$v_filter." ORDER BY vendor_id, model_name LIMIT $start,$displayed");
+$t_ou = get_records_sql($db_link,'SELECT * FROM device_models '.$v_filter." ORDER BY vendor_id, model_name LIMIT $displayed OFFSET $start");
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";

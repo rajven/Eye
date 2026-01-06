@@ -89,7 +89,7 @@ $gateway_list = get_gateways($db_link);
 <?php
 $fsql = "SELECT A.id, A.auth_id, A.ts, A.router_id, A.proto, A.src_ip, A.src_port, A.dst_ip, A.dst_port, A.bytes, A.pkt FROM traffic_detail as A JOIN (SELECT id FROM traffic_detail 
         WHERE $gateway_filter $ip_where ts>='$date1' AND ts<'$date2'
-        ORDER BY ts ASC LIMIT $start,$displayed) as T ON A.id = T.id ORDER BY $sort_table.$sort_field $order";
+        ORDER BY ts ASC LIMIT $displayed OFFSET $start) as T ON A.id = T.id ORDER BY $sort_table.$sort_field $order";
 $userdata = get_records_sql($db_link, $fsql);
 foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
@@ -116,7 +116,7 @@ foreach ($userdata as $row) {
 }
 ?>
 </table>
-<?php print_navigation($page_url,$page,$displayed,$count_records[0],$total); ?>
+<?php print_navigation($page_url,$page,$displayed,$count_records,$total); ?>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

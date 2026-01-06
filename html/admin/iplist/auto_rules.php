@@ -81,7 +81,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <td align=right><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="removeRule" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
-$rulesSQL = "SELECT * FROM auth_rules $rule_filters ORDER BY id LIMIT $start,$displayed";
+$rulesSQL = "SELECT * FROM auth_rules $rule_filters ORDER BY id LIMIT $displayed OFFSET $start";
 $t_auth_rules = get_records_sql($db_link,$rulesSQL);
 foreach ( $t_auth_rules as $row ) {
     print "<tr align=center>\n";
@@ -126,6 +126,6 @@ document.getElementById('rows').addEventListener('change', function(event) {
 </script>
 
 <?php
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php"); 
 ?>

@@ -53,7 +53,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 
 <?php
 
-$sSQL = "SELECT * FROM user_auth WHERE ts>='$date1' AND ts<'$date2' $ip_where ORDER BY id DESC LIMIT $start,$displayed";
+$sSQL = "SELECT * FROM user_auth WHERE ts>='$date1' AND ts<'$date2' $ip_where ORDER BY id DESC LIMIT $displayed OFFSET $start";
 
 $iplog = get_records_sql($db_link, $sSQL);
 foreach ($iplog as $row) {
@@ -72,6 +72,6 @@ foreach ($iplog as $row) {
     print "</tr>\n";
 }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

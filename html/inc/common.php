@@ -749,7 +749,7 @@ function print_add_dev_interface($db, $device_id, $int_list, $int_name)
     print "&nbsp<select id=\"$int_name\" name=\"$int_name\" >\n";
     $t_int = get_records_sql($db, "SELECT * FROM device_l3_interfaces WHERE device_id=" . $device_id);
     $int_exists = [];
-    if (!empty(t_int)) {
+    if (!empty($t_int)) {
         foreach ($t_int as $interface) {
             $int_exists[$interface['snmpin']] = $interface;
         }
@@ -2955,6 +2955,7 @@ function set_port_for_group($db, $group_id, $place_id, $state)
 
 function get_vendor($db, $mac)
 {
+    if (empty($mac)) { return ''; }
     $mac = mac_dotted($mac);
     $mac5 = substr($mac, 0, 14);
     $mac4 = substr($mac, 0, 11);

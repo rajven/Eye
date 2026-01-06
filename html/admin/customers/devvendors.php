@@ -91,7 +91,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <td><input type="submit" name='save' value="<?php echo WEB_btn_save; ?>"></td>
 </tr>
 <?php
-$t_ou = get_records_sql($db_link,"SELECT * FROM vendors ORDER BY name LIMIT $start,$displayed");
+$t_ou = get_records_sql($db_link,"SELECT * FROM vendors ORDER BY name LIMIT $displayed OFFSET $start");
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";

@@ -50,7 +50,7 @@ if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed; 
 print_navigation($page_url,$page,$displayed,$count_records,$total);
 #speedup pageing
-$sSQL = "SELECT * FROM (SELECT * FROM remote_syslog WHERE ts>='$date1' AND ts<'$date2' $log_filter) as R ORDER BY ts DESC LIMIT $start,$displayed";
+$sSQL = "SELECT * FROM (SELECT * FROM remote_syslog WHERE ts>='$date1' AND ts<'$date2' $log_filter) as R ORDER BY ts DESC LIMIT $displayed OFFSET $start";
 ?>
 
 <br>
@@ -75,6 +75,6 @@ if (!empty($syslog)) {
         }
     }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

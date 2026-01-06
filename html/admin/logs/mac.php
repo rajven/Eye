@@ -46,7 +46,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 
 <?php
 
-$sSQL = "SELECT * FROM mac_history WHERE ts>='$date1' AND ts<'$date2' $mac_where ORDER BY ts DESC LIMIT $start,$displayed";
+$sSQL = "SELECT * FROM mac_history WHERE ts>='$date1' AND ts<'$date2' $mac_where ORDER BY ts DESC LIMIT $displayed OFFSET $start";
 $maclog = get_records_sql($db_link, $sSQL);
 
 foreach ($maclog as $row) {
@@ -62,6 +62,6 @@ foreach ($maclog as $row) {
     print "</tr>\n";
 }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

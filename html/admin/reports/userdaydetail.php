@@ -53,7 +53,7 @@ if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) 
 
 $fsql = "SELECT A.proto, A.src_ip, A.src_port, SUM(A.bytes) as tin FROM traffic_detail A
             WHERE $gateway_filter (auth_id='$id') and  ts>='$date1' and ts<'$date2' and (A.dst_ip='$ip_aton')
-            GROUP BY A.src_ip, A.src_port, A.proto ORDER BY tin DESC LIMIT 0,10";
+            GROUP BY A.src_ip, A.src_port, A.proto ORDER BY tin DESC LIMIT 10 OFFSET 0";
 $userdata = get_records_sql($db_link, $fsql);
 foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
@@ -83,7 +83,7 @@ foreach ($userdata as $row) {
 <?php
 $fsql = "SELECT A.proto, A.dst_ip, A.dst_port, SUM(A.bytes) as tout FROM traffic_detail A
         WHERE $gateway_filter (auth_id='$id') and  ts>='$date1' and ts<'$date2' and (A.src_ip='$ip_aton')
-        GROUP BY A.dst_ip, A.dst_port, A.proto ORDER BY tout DESC LIMIT 0,10";
+        GROUP BY A.dst_ip, A.dst_port, A.proto ORDER BY tout DESC LIMIT 10 OFFSET 0";
 $userdata = get_records_sql($db_link, $fsql);
 foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";

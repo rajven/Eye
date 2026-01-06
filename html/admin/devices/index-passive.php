@@ -140,7 +140,7 @@ $sSQL = "SELECT A.id, D.id as dev_id, D.device_type, A.ip, A.mac, A.user_id, L.l
 FROM user_auth A, user_list L, devices D, device_models M, vendors V
 WHERE D.user_id=L.id AND A.ip = D.ip AND D.device_model_id=M.id AND M.vendor_id=V.id AND A.deleted =0
 $u_filter $ip_list_filter $d_filter
-ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
+ORDER BY $sort_table.$sort_field $order LIMIT $displayed OFFSET $start";
 
 $users = get_records_sql($db_link,$sSQL);
 foreach ($users as $user) {
@@ -158,7 +158,7 @@ foreach ($users as $user) {
     print "</tr>\n";
 }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 <br>
 <table class="data">

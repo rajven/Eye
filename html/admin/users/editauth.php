@@ -431,7 +431,8 @@ if (empty($auth_info['end_life']) or $auth_info['end_life'] == '0000-00-00 00:00
                 <td></td>
             </tr>
             <tr>
-                <td colspan=3><input type="submit" name="moveauth" value=<?php print WEB_btn_move; ?>><?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?></td>
+                <td colspan=3><input type="submit" name="moveauth" value=<?php print WEB_btn_move; ?>>
+                <?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?></td>
                 <?php
                 if ($auth_info['deleted']) {
                     print "<td ><font color=red>" . WEB_deleted . ": " . $auth_info['changed_time'] . "</font></td>";

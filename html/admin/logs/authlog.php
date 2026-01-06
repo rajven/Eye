@@ -51,7 +51,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 	</tr>
 <?php
 #speedup paging
-$sSQL = "SELECT ts,customer,message,level FROM worklog as S JOIN (SELECT id FROM worklog WHERE ts>='$date1' AND ts<'$date2' $log_filter ORDER BY id DESC LIMIT $start,$displayed) AS I ON S.id = I.id";
+$sSQL = "SELECT ts,customer,message,level FROM worklog as S JOIN (SELECT id FROM worklog WHERE ts>='$date1' AND ts<'$date2' $log_filter ORDER BY id DESC LIMIT $displayed OFFSET $start) AS I ON S.id = I.id";
 $userlog = get_records_sql($db_link, $sSQL);
 foreach ($userlog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
@@ -67,6 +67,6 @@ foreach ($userlog as $row) {
     print "</tr>\n";
 }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

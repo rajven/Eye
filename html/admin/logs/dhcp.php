@@ -77,7 +77,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <?php
 
 #speedup dhcp log paging
-$sSQL = "SELECT * FROM dhcp_log as D JOIN (SELECT id FROM dhcp_log WHERE ts>='$date1' and ts<'$date2' $dhcp_where ORDER BY id DESC LIMIT $start,$displayed) AS I ON D.id = I.id";
+$sSQL = "SELECT * FROM dhcp_log as D JOIN (SELECT id FROM dhcp_log WHERE ts>='$date1' and ts<'$date2' $dhcp_where ORDER BY id DESC LIMIT $displayed OFFSET $start) AS I ON D.id = I.id";
 $userlog = get_records_sql($db_link, $sSQL);
 
 foreach ($userlog as $row) {
@@ -98,6 +98,6 @@ foreach ($userlog as $row) {
     print "</tr>\n";
     }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

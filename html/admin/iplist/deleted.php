@@ -76,7 +76,7 @@ $sSQL = "SELECT
 user_auth.id, user_auth.ip, user_auth.mac, user_auth.description, user_auth.dns_name, user_auth.dhcp_hostname, 
 user_auth.dhcp_time, user_auth.last_found, user_auth.ts, user_auth.changed_time
 FROM user_auth WHERE user_auth.deleted = 1 $ip_list_filter
-ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
+ORDER BY $sort_table.$sort_field $order LIMIT $displayed OFFSET $start";
 $users = get_records_sql($db_link,$sSQL);
 foreach ($users as $user) {
     if (empty($user['last_found']) or $user['last_found'] === '0000-00-00 00:00:00') { $user['last_found'] = ''; }
@@ -98,7 +98,7 @@ foreach ($users as $user) {
     print "</tr>\n";
 }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");

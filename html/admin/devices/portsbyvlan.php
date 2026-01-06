@@ -41,6 +41,6 @@ foreach ($ports_info as $row) {
 }
 ?>
 </table>
-<?php print_navigation($page_url,$page,$displayed,$count_records[0],$total); 
+<?php print_navigation($page_url,$page,$displayed,$count_records,$total); 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

@@ -48,7 +48,7 @@ $start = ($page * $displayed) - $displayed;
 print_navigation($page_url,$page,$displayed,$count_records,$total);
 
 #speedup paging
-$sSQL = "SELECT * FROM (SELECT * FROM worklog WHERE ts>='$date1' AND ts<'$date2' $log_filter ) AS W ORDER BY ts DESC LIMIT $start,$displayed";
+$sSQL = "SELECT * FROM (SELECT * FROM worklog WHERE ts>='$date1' AND ts<'$date2' $log_filter ) AS W ORDER BY ts DESC LIMIT $displayed OFFSET $start";
 
 ?>
 <br>
@@ -64,6 +64,7 @@ $sSQL = "SELECT * FROM (SELECT * FROM worklog WHERE ts>='$date1' AND ts<'$date2'
 
 <?php
 $userlog = get_records_sql($db_link, $sSQL);
+
 foreach ($userlog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['ts'] . "</td>\n";
@@ -80,6 +81,6 @@ foreach ($userlog as $row) {
     print "</tr>\n";
 }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

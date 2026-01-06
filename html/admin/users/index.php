@@ -113,7 +113,7 @@ if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
 print_navigation($page_url,$page,$displayed,$count_records,$total);
 
-$sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month_quota, U.blocked, U.permanent FROM user_list U, ou O WHERE $filter ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
+$sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month_quota, U.blocked, U.permanent FROM user_list U, ou O WHERE $filter ORDER BY $sort_table.$sort_field $order LIMIT $displayed OFFSET $start";
 
 ?>
 
@@ -171,7 +171,7 @@ foreach ($users as $row) {
 </table>
 
 <?php
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 
 </form>

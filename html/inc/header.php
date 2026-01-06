@@ -43,7 +43,10 @@ if(check) {
 }
 
 $(document).ready(function() {
-$('.js-select-single').select2();
+$('.js-select-single').select2({
+    width: 'auto',
+    dropdownAutoWidth: true
+});
 });
 </script>
 
