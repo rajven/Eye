@@ -699,22 +699,60 @@ if ($fqdn ne '' and !$dynamic_ok) {
 
 #------------------------------------------------------------------------------------------------------------
 
+use DateTime::Format::Strptime;
+
 sub apply_device_lock {
     my $db = shift;
     my $device_id = shift;
     my $iteration = shift || 0;
     $iteration++;
-    if ($iteration>2) { return 0; }
-    my $dev = get_record_sql($db,"SELECT discovery_locked, locked_timestamp, UNIX_TIMESTAMP(locked_timestamp) as u_locked_timestamp  FROM devices WHERE id=".$device_id);
+    if ($iteration > 2) { return 0; }
+
+    my $dev = get_record_sql($db, "SELECT discovery_locked, locked_timestamp FROM devices WHERE id = " . int($device_id));
+
     if (!$dev) { return 0; }
-    if (!$dev->{'discovery_locked'}) { return set_lock_discovery($db,$device_id); }
-    #if timestamp undefined, set and return
-    if (!$dev->{'locked_timestamp'}) { return set_lock_discovery($db,$device_id); }
-    #wait for discovery
-    my $wait_time = $dev->{'locked_timestamp'} + 30 - time();
-    if ($wait_time<0) { return set_lock_discovery($db,$device_id); }
+
+    if (!$dev->{'discovery_locked'}) {
+        return set_lock_discovery($db, $device_id);
+    }
+
+    my $ts_str = $dev->{'locked_timestamp'};
+
+    # Если locked_timestamp NULL или пустой — устанавливаем блокировку
+    if (!defined $ts_str || $ts_str eq '' || $ts_str eq '0000-00-00 00:00:00') {
+        return set_lock_discovery($db, $device_id);
+    }
+
+    # Удаляем микросекунды (PostgreSQL) для совместимости с форматом
+    $ts_str =~ s/\.\d+$//;
+
+    # Парсим строку в DateTime
+    my $parser = DateTime::Format::Strptime->new(
+        pattern   => '%Y-%m-%d %H:%M:%S',
+        on_error  => 'croak',
+    );
+
+    my $dt;
+    eval {
+        $dt = $parser->parse_datetime($ts_str);
+    };
+
+    if ($@ || !$dt) {
+        # Ошибка парсинга — считаем блокировку недействительной
+        return set_lock_discovery($db, $device_id);
+    }
+
+    # Получаем Unix timestamp
+    my $u_locked_timestamp = $dt->epoch;
+
+    # Ждём окончания блокировки (30 секунд)
+    my $wait_time = ($u_locked_timestamp + 30) - time();
+    if ($wait_time <= 0) {
+        return set_lock_discovery($db, $device_id);
+    }
+
     sleep($wait_time);
-    return apply_device_lock($db,$device_id,$iteration);
+    return apply_device_lock($db, $device_id, $iteration);
 }
 
 #------------------------------------------------------------------------------------------------------------
@@ -1098,7 +1136,7 @@ my $ip_aton=$ip_record->{ip_aton};
 
 my $timestamp=GetNowTime();
 
-my $record=get_record_sql($db,'SELECT * FROM user_auth WHERE deleted=0 AND ip_int='.$ip_aton.' AND mac="'.$mac.'"');
+my $record=get_record_sql($db,'SELECT * FROM user_auth WHERE deleted=0 AND ip_int='.$ip_aton." AND mac='".$mac."'");
 
 my $new_record;
 $new_record->{last_found}=$timestamp;
@@ -1361,9 +1399,9 @@ return $list_ref;
 sub get_device_by_ip {
 my $db = shift;
 my $ip = shift;
-my $netdev=get_record_sql($db,'SELECT * FROM devices WHERE ip="'.$ip.'"');
+my $netdev=get_record_sql($db,"SELECT * FROM devices WHERE ip='".$ip."'");
 if ($netdev and $netdev->{id}>0) { return $netdev; }
-my $auth_rec=get_record_sql($db,'SELECT user_id FROM user_auth WHERE ip="'.$ip.'" and deleted=0');
+my $auth_rec=get_record_sql($db,"SELECT user_id FROM user_auth WHERE ip='".$ip."' and deleted=0");
 if ($auth_rec and $auth_rec->{user_id}>0) {
     $netdev=get_record_sql($db,'SELECT * FROM devices WHERE user_id='.$auth_rec->{user_id});
     return $netdev;
@@ -1519,7 +1557,7 @@ $dhcp_record->{'remote_id'} = $remote_id;
 $dhcp_record->{'hotspot'}=is_hotspot($dbh,$dhcp_record->{ip});
 
 #search actual record
-my $auth_record = get_record_sql($db,'SELECT * FROM user_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
+my $auth_record = get_record_sql($db,"SELECT * FROM user_auth WHERE ip='".$dhcp_record->{ip}."' and mac='".$mac."' and deleted=0 ORDER BY last_found DESC");
 
 #if record not found and type del => next event
 if (!$auth_record and $type eq 'del') { return; }

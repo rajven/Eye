@@ -2837,22 +2837,42 @@ function apply_device_lock($db, $device_id, $iteration = 0)
     if ($iteration > 2) {
         return false;
     }
-    $dev = get_record_sql($db, 'SELECT discovery_locked,UNIX_TIMESTAMP(locked_timestamp) as u_locked_timestamp FROM devices WHERE id=' . $device_id . ' AND discovery_locked > 0');
-    if (empty($dev) or empty($dev['u_locked_timestamp'])) {
+
+    // Извлекаем исходную временную метку (без UNIX_TIMESTAMP)
+    $dev = get_record_sql($db, 'SELECT discovery_locked, locked_timestamp FROM devices WHERE id = ? AND discovery_locked > 0', [$device_id]);
+
+    // Проверяем, есть ли запись и валидна ли временная метка
+    if (empty($dev) || empty($dev['locked_timestamp']) || $dev['locked_timestamp'] === '0000-00-00 00:00:00') {
         LOG_DEBUG($db, "Snmp discovery lock not found. Set and discovery.");
         return set_lock_discovery($db, $device_id);
     }
-    //wait for discovery
+
+    // Преобразуем строку даты в Unix timestamp
+    try {
+        // Удаляем микросекунды (если есть, как в PostgreSQL)
+        $ts_str = preg_replace('/\.\d+$/', '', $dev['locked_timestamp']);
+        $dt = new DateTime($ts_str);
+        $u_locked_timestamp = $dt->getTimestamp();
+    } catch (Exception $e) {
+        // Если парсинг не удался — считаем блокировку недействительной
+        LOG_DEBUG($db, "Invalid lock timestamp format. Resetting lock.");
+        return set_lock_discovery($db, $device_id);
+    }
+
     $now = time();
-    $wait_time = ($dev['u_locked_timestamp'] + SNMP_LOCK_TIMEOUT) - $now;
-    LOG_DEBUG($db, "Check snmp lock for device id: " . $device_id . ". Lock timestamp: " . $dev['u_locked_timestamp'] . ", now: " . $now);
-    if ($wait_time < 0) {
+    $wait_time = ($u_locked_timestamp + SNMP_LOCK_TIMEOUT) - $now;
+
+    LOG_DEBUG($db, "Check snmp lock for device id: " . $device_id . ". Lock timestamp: " . $u_locked_timestamp . ", now: " . $now);
+
+    if ($wait_time <= 0) {
         LOG_DEBUG($db, "The lock is already expired. Set new lock.");
         return set_lock_discovery($db, $device_id);
     }
+
     LOG_VERBOSE($db, "Snmp discovery lock for device id: $device_id found! Need wait " . $wait_time . " sec.");
     sleep($wait_time);
-    LOG_VERBOSE($db, "Try set new lock and continue discovery for device id:" . $device_id);
+    LOG_VERBOSE($db, "Try set new lock and continue discovery for device id: " . $device_id);
+
     return apply_device_lock($db, $device_id, $iteration);
 }
 

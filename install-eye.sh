@@ -280,7 +280,7 @@ install_deps_altlinux() {
             perl-Net-Netmask perl-Text-Iconv perl-Net-SNMP \
             perl-Net-Telnet perl-DBI \
             perl-Parallel-ForkManager perl-Proc-Daemon \
-            perl-DateTime-Format-DateParse \
+            perl-DateTime-Format-DateParse perl-DateTime-Format-Strptime \
             perl-Net-OpenSSH perl-File-Tail \
             perl-Crypt-Rijndael perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
             perl-File-Path-Tiny perl-Expect perl-Proc-ProcessTable
@@ -344,7 +344,7 @@ install_deps_debian() {
             libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl \
             libdbi-perl libparallel-forkmanager-perl libproc-daemon-perl \
             libdatetime-format-dateparse-perl libnetwork-ipv4addr-perl \
-            libnet-openssh-perl libfile-tail-perl \
+            libnet-openssh-perl libfile-tail-perl libdatetime-format-strptime-perl \
             libcrypt-rijndael-perl libcrypt-cbc-perl libcryptx-perl \
             libcrypt-des-perl libfile-path-tiny-perl libexpect-perl
 

@@ -518,55 +518,62 @@ function get_records($db, $table, $filter = '') {
 
 /**
  * Получить одну запись по произвольному SQL-запросу
+ *
+ * @param PDO $db
+ * @param string $sql
+ * @param array|null $params
+ * @return array|null
  */
-function get_record_sql($db, $sql) {
+function get_record_sql($db, $sql, $params = null) {
     if (empty($sql)) {
         return null;
     }
-    
-    // Добавляем LIMIT 1, если его нет
-    if (!preg_match('/\bLIMIT\s+\d+$/i', $sql)) {
+
+    // Добавляем LIMIT 1, если его нет (только если нет параметризованных запросов!)
+    // Важно: не трогаем запрос, если он уже содержит LIMIT с placeholder'ом
+    if (!preg_match('/\bLIMIT\s+(\?|\d+)/i', $sql) && !preg_match('/\bLIMIT\s+\d+\s*(?:OFFSET\s+\d+)?\s*$/i', $sql)) {
         $sql .= " LIMIT 1";
     }
-    
-    $result = get_records_sql($db, $sql);
-    
-    // Возвращаем первую запись или null
+
+    $result = get_records_sql($db, $sql, $params);
+
     return !empty($result) ? $result[0] : null;
 }
 
 /**
  * Получить несколько записей по произвольному SQL-запросу
+ *
+ * @param PDO $db
+ * @param string $sql
+ * @param array|null $params
+ * @return array
  */
-function get_records_sql($db, $sql) {
-    $result = [];
-    
+function get_records_sql($db, $sql, $params = null) {
     if (empty($sql)) {
-        return $result;
+        return [];
     }
-    
+
     try {
-        $stmt = $db->query($sql);
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params ?: []);
         $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         if (!empty($records)) {
-            $result = normalize_records($records);
+            return normalize_records($records);
         }
-        
-        return $result;
-        
+
+        return [];
     } catch (PDOException $e) {
         LOG_ERROR($db, "SQL: $sql : " . $e->getMessage());
-        return $result;
+        return [];
     }
 }
-
 
 /**
  * Получить одно значение поля по SQL-запросу
  */
-function get_single_field($db, $sql) {
-    $record = get_record_sql($db, $sql);
+function get_single_field($db, $sql, $params = null) {
+    $record = get_record_sql($db, $sql, $params);
     
     if (!empty($record) && is_array($record)) {
         // Получаем первое значение из записи
