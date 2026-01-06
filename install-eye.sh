@@ -1733,6 +1733,7 @@ eye_upgrade() {
     install_packages
     install_source_code
     import_mac_database
+    /opt/Eye/scripts/updates/upgrade.pl
     show_final_upgrade
 }
 

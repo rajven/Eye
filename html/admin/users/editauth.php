@@ -298,7 +298,7 @@ if ($auth_info['mac_found'] == '0000-00-00 00:00:00') { $auth_info['mac_found'] 
 if ($auth_info['arp_found'] == '0000-00-00 00:00:00') { $auth_info['arp_found'] = ''; }
 
 $now = DateTime::createFromFormat("Y-m-d H:i:s",date('Y-m-d H:i:s'));
-$created = DateTime::createFromFormat("Y-m-d H:i:s",$auth_info['ts']);
+$created = new DateTime($auth_info['ts']);
 
 if (empty($auth_info['end_life']) or $auth_info['end_life'] == '0000-00-00 00:00:00') { 
     $now->modify('+1 day');

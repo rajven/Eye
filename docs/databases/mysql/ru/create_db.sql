@@ -63,7 +63,7 @@ CREATE TABLE `connections` (
 
 CREATE TABLE `customers` (
   `id` int(11) NOT NULL,
-  `Login` varchar(20) DEFAULT 'NULL',
+  `login` varchar(20) DEFAULT 'NULL',
   `description` varchar(100) DEFAULT NULL,
   `password` varchar(255) DEFAULT 'NULL',
   `api_key` varchar(255) DEFAULT NULL,

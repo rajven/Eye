@@ -231,10 +231,6 @@ function login($db) {
         if (authenticate_by_credentials($db, $_POST['login'], $_POST['password'])) {
             LOG_INFO($db, "Logged in customer id: ".$_SESSION['user_id']." name: ".$_SESSION['login']." from ".$_SESSION['ip']." with acl: ".$_SESSION['acl']." url: ".$redirect_url);
             log_session_debug($db, "Login successful via credentials");
-
-            session_write_close();
-            session_start();
-
             return true;
         }
         log_session_debug($db, "Login failed via credentials");
@@ -252,7 +248,7 @@ function authenticate_by_credentials($db, $login, $password) {
     log_session_debug($db, "Authenticating by credentials", ['login' => $login]);
 
     $login = trim($login);
-    $stmt = $db->prepare("SELECT * FROM customers WHERE Login = ?");
+    $stmt = $db->prepare("SELECT * FROM customers WHERE login = ?");
     $stmt->execute([$login]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -272,54 +268,64 @@ function authenticate_by_credentials($db, $login, $password) {
 
     log_session_debug($db, "Password verified, creating session");
 
-    $regenerate_result = session_regenerate_id(true);
-    log_session_debug($db, "Session regenerate result", ['success' => $regenerate_result, 'new_sid' => session_id()]);
+    $old_session_id = session_id();
+    session_regenerate_id(true);
+    $new_session_id = session_id();
 
+    // Обновляем данные сессии
     $_SESSION = [
         'user_id'    => $user['id'],
-        'login'      => $user['Login'],
+        'login'      => $user['login'],
         'acl'        => $user['rights'],
         'ip'         => get_client_ip(),
         'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
         'created'    => time()
     ];
 
-    log_session_debug($db, "Session data populated", $_SESSION);
-
-    $sessionId = session_id();
-    $ip = $_SESSION['ip'];
-    $userAgent = $_SESSION['user_agent'];
-    $time = time();
+    // Обновляем запись в user_sessions (удаляем старую, создаём новую)
+    $stmt = $db->prepare("DELETE FROM " . USER_SESSIONS_TABLE . " WHERE session_id = ?");
+    $stmt->execute([$old_session_id]);
 
     $stmt = $db->prepare("INSERT INTO " . USER_SESSIONS_TABLE . "
         (session_id, user_id, ip_address, user_agent, created_at, last_activity)
         VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$new_session_id, $user['id'], $_SESSION['ip'], $_SESSION['user_agent'], time(), time()]);
 
-    $success = $stmt->execute([$sessionId, $user['id'], $ip, $userAgent, $time, $time]);
-
-    if (!$success) {
-        $error = $stmt->errorInfo();
-        LOG_DEBUG($db, "Session DB error: " . print_r($error, true));
-        log_session_debug($db, "User session insert failed", $error);
-        return false;
-    }
-
-    log_session_debug($db, "User session record created successfully");
     return true;
 }
 
 function validate_session($db) {
-    log_session_debug($db, "Validating session", [
+    // Подготовка данных для логирования
+    $log_context = [
         'session_data' => $_SESSION,
         'current_ip' => get_client_ip(),
         'current_ua' => ($_SERVER['HTTP_USER_AGENT'] ?? '')
-    ]);
+    ];
+    
+    log_session_debug($db, "Validating session", $log_context);
 
-    if ($_SESSION['ip'] !== get_client_ip() ||
-        $_SESSION['user_agent'] !== ($_SERVER['HTTP_USER_AGENT'] ?? '')) {
-        log_session_debug($db, "Session validation failed - IP or User-Agent mismatch", [
+    // Проверка наличия обязательных данных в сессии
+    if (!isset($_SESSION['user_id']) || 
+        !isset($_SESSION['ip']) || 
+        !isset($_SESSION['user_agent'])) {
+        log_session_debug($db, "Session validation failed - missing required session data");
+        logout($db);
+        return false;
+    }
+
+    // Проверка соответствия IP-адреса
+    if ($_SESSION['ip'] !== get_client_ip()) {
+        log_session_debug($db, "Session validation failed - IP mismatch", [
             'session_ip' => $_SESSION['ip'],
-            'current_ip' => get_client_ip(),
+            'current_ip' => get_client_ip()
+        ]);
+        logout($db);
+        return false;
+    }
+
+    // Проверка соответствия User-Agent
+    if ($_SESSION['user_agent'] !== ($_SERVER['HTTP_USER_AGENT'] ?? '')) {
+        log_session_debug($db, "Session validation failed - User-Agent mismatch", [
             'session_ua' => $_SESSION['user_agent'],
             'current_ua' => ($_SERVER['HTTP_USER_AGENT'] ?? '')
         ]);
@@ -327,21 +333,39 @@ function validate_session($db) {
         return false;
     }
 
-    $sessionId = session_id();
-    $stmt = $db->prepare("SELECT 1
-        FROM " . USER_SESSIONS_TABLE . "
-        WHERE session_id = ? AND user_id = ? AND is_active = 1
-        LIMIT 1");
-
-    $stmt->execute([$sessionId, $_SESSION['user_id']]);
-    if ($stmt->rowCount() === 0) {
-        log_session_debug($db, "Session validation failed - no active session in database");
+    // Проверка наличия активной записи в user_sessions
+    try {
+        $sessionId = session_id();
+        $stmt = $db->prepare("SELECT 1
+            FROM " . USER_SESSIONS_TABLE . "
+            WHERE session_id = ? AND user_id = ? AND is_active = 1
+            LIMIT 1");
+        
+        $stmt->execute([$sessionId, $_SESSION['user_id']]);
+        
+        if ($stmt->rowCount() === 0) {
+            log_session_debug($db, "Session validation failed - no active session record in database");
+            logout($db);
+            return false;
+        }
+        
+    } catch (PDOException $e) {
+        LOG_ERROR($db, "Session validation DB error: " . $e->getMessage());
+        log_session_debug($db, "Session validation failed - database error", ['error' => $e->getMessage()]);
         logout($db);
         return false;
     }
 
-    $stmt = $db->prepare("UPDATE " . USER_SESSIONS_TABLE . " SET last_activity = ? WHERE session_id = ?");
-    $stmt->execute([time(), $sessionId]);
+    // Обновление времени последней активности
+    try {
+        $stmt = $db->prepare("UPDATE " . USER_SESSIONS_TABLE . " 
+            SET last_activity = ? WHERE session_id = ?");
+        $stmt->execute([time(), $sessionId]);
+        
+    } catch (PDOException $e) {
+        // Не критично - продолжаем работу
+        LOG_DEBUG($db, "Failed to update last_activity: " . $e->getMessage());
+    }
 
     log_session_debug($db, "Session validation successful");
     return true;
@@ -392,7 +416,7 @@ function IsSilentAuthenticated($db) {
         return false;
     }
 
-    $stmt = $db->prepare("SELECT id, rights FROM customers WHERE Login = ? AND api_key = ? LIMIT 1");
+    $stmt = $db->prepare("SELECT id, rights FROM customers WHERE login = ? AND api_key = ? LIMIT 1");
     $stmt->execute([$login, $api_key]);
 
     if ($stmt->rowCount() === 0) {

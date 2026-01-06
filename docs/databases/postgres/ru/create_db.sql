@@ -88,14 +88,14 @@ COMMENT ON COLUMN connections.last_found IS 'Время последней ак�
 -- Пользователи системы
 CREATE TABLE customers (
 id SERIAL PRIMARY KEY,
-Login VARCHAR(20),
+login VARCHAR(20),
 description VARCHAR(100),
 password VARCHAR(255),
 api_key VARCHAR(255),
 rights SMALLINT NOT NULL DEFAULT 3
 );
 COMMENT ON TABLE customers IS 'Пользователи/администраторы системы';
-COMMENT ON COLUMN customers.Login IS 'Логин пользователя';
+COMMENT ON COLUMN customers.login IS 'Логин пользователя';
 COMMENT ON COLUMN customers.rights IS 'Уровень прав доступа: 0=просмотр, 1=оператор, 2=админ, 3=суперадмин';
 
 -- Сетевые устройства

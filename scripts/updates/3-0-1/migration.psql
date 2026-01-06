@@ -25,6 +25,9 @@ ALTER TABLE group_filters RENAME COLUMN "order" TO rule_order;
 -- user_auth: client-id → client_id
 ALTER TABLE user_auth RENAME COLUMN "client-id" TO client_id;
 
+-- customers: Login to lower case
+ALTER TABLE customers RENAME COLUMN Login TO login;
+
 -- Переименовываем eof → end_life в user_auth
 ALTER TABLE user_auth RENAME COLUMN eof TO end_life;
 

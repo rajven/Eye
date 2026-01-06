@@ -594,72 +594,80 @@ function set_changed($db, $id)
     update_record($db, "user_auth", "id=" . $id, $auth);
 }
 
-//action: add,update,del
 function allow_update($table, $action = 'update', $field = '')
 {
-    //always allow modification for tables
-    if (preg_match('/(variables|dns_cache|worklog|sessions)/i', $table)) {
+    // 1. Таблицы с полным доступом (регистронезависимо, но без regex)
+    static $full_access_tables = [
+        'variables' => true,
+        'dns_cache' => true,
+        'worklog' => true,
+        'sessions' => true
+    ];
+    if (isset($full_access_tables[strtolower($table)])) {
         return 1;
     }
 
-    if (isset($_SESSION['login'])) {
-        $work_user = $_SESSION['login'];
-    }
-    if (isset($_SESSION['user_id'])) {
-        $work_id = $_SESSION['user_id'];
-    }
-    if (isset($_SESSION['acl'])) {
-        $user_level = $_SESSION['acl'];
-    }
-    if (!isset($work_user) or !isset($work_id) or empty($user_level)) {
+    // 2. Получение данных сессии (единая точка)
+    $login = $_SESSION['login'] ?? null;
+    $user_id = $_SESSION['user_id'] ?? null;
+    $acl = $_SESSION['acl'] ?? null;
+
+    // Проверка аутентификации
+    if (!$login || !$user_id || !$acl) {
         return 0;
     }
 
-    //always allow Administrator
-    if ($user_level == 1) {
+    // Приведение ACL к целому числу
+    $user_level = (int)$acl;
+
+    // 3. Права по уровням
+    if ($user_level === 1) {        // Администратор
         return 1;
     }
-
-    //always forbid ViewOnly
-    if ($user_level == 3) {
+    if ($user_level === 3) {        // ViewOnly
         return 0;
     }
 
-    //allow tables for Operator
-    if (preg_match('/(dns_queue|user_auth_alias)/i', $table)) {
+    // 4. Таблицы с полным доступом для оператора
+    static $operator_tables = [
+        'dns_queue' => true,
+        'user_auth_alias' => true
+    ];
+    if (isset($operator_tables[strtolower($table)])) {
         return 1;
     }
 
-    if ($action == 'update') {
-        $operator_acl = [
+    // 5. Проверка полей для оператора (только при update)
+    if ($action === 'update') {
+        static $operator_acl = [
             'user_auth' => [
-                'description' => '1',
-                'dns_name' => '1',
-                'dns_ptr_only' => '1',
-                'firmware' => '1',
-                'link_check' => '1',
-                'nagios' => '1',
-                'nagios_handler' => '1',
-                'Wikiname' => '1'
+                'description' => true,
+                'dns_name' => true,
+                'dns_ptr_only' => true,
+                'firmware' => true,
+                'link_check' => true,
+                'nagios' => true,
+                'nagios_handler' => true,
+                'Wikiname' => true
             ],
             'user_list' => [
-                'fio' => '1',
-                'login' => '1',
-            ],
+                'fio' => true,
+                'login' => true
+            ]
         ];
+
+        // Проверка существования таблицы в ACL
         if (!isset($operator_acl[$table])) {
             return 0;
         }
-        if (isset($operator_acl[$table]) and empty($field)) {
+
+        // Если поле не указано — разрешаем (полный доступ к таблице)
+        if ($field === '') {
             return 1;
         }
-        if (!isset($operator_acl[$table][$field])) {
-            return 0;
-        }
-        if (empty($operator_acl[$table][$field]) or $operator_acl[$table][$field] == '0') {
-            return 0;
-        }
-        return 1;
+
+        // Проверка прав на конкретное поле
+        return $operator_acl[$table][$field] ?? 0;
     }
 
     return 0;
@@ -667,6 +675,7 @@ function allow_update($table, $action = 'update', $field = '')
 
 function update_record($db, $table, $filter, $newvalue)
 {
+
     if (!isset($table)) {
 #        LOG_WARNING($db, "Change record for unknown table! Skip command.");
         return;
@@ -683,6 +692,7 @@ function update_record($db, $table, $filter, $newvalue)
 #        LOG_WARNING($db, "Change record ($table [ $filter ]) with empty data! Skip command.");
         return;
     }
+
 
     if (!allow_update($table, 'update')) {
         LOG_INFO($db, "Access denied: $table [ $filter ]");

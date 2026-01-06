@@ -1745,7 +1745,7 @@ function get_auth_count($db, $user_id)
 function print_login_select($db, $login_name, $current_login)
 {
     print "<select id=\"$login_name\" name=\"$login_name\" class=\"js-select-single\">\n";
-    $t_login = get_records_sql($db, "SELECT id,login FROM user_list ORDER BY Login");
+    $t_login = get_records_sql($db, "SELECT id,login FROM user_list ORDER BY login");
     print_select_item('None', 0, $current_login);
     foreach ($t_login as $row) {
         print_select_item($row['login'], $row['id'], $current_login);
@@ -2391,7 +2391,7 @@ function new_auth($db, $ip, $mac, $user_id)
         $auth['user_id'] = $user_id;
         $auth['ip'] = $ip;
         $auth['ip_int'] = $ip_aton;
-        $auth['mac'] = $mac;
+        if (!empty($mac)) { $auth['mac'] = $mac; }
         $auth['save_traf'] = $save_traf * 1;
         $resurrection_id = insert_record($db, "user_auth", $auth);
     }

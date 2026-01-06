@@ -7,13 +7,13 @@ $msg_error = "";
 if (isset($_POST["create"])) {
     $login = $_POST["newlogin"];
     if ($login) {
-	$customer = get_record_sql($db_link,"Select * from customers WHERE LCase(Login)=LCase('$login')");
+	$customer = get_record_sql($db_link,"Select * from customers WHERE LCase(login)=LCase('$login')");
         if (!empty($customer)) {
             $msg_error = "Login $login already exists!";
             LOG_ERROR($db_link, $msg_error);
             unset($_POST);
         } else {
-            $new['Login'] = $login;
+            $new['login'] = $login;
 	    $new['api_key'] = randomPassword(20);
             $new['rights'] = 3;
             LOG_INFO($db_link, "Create new login: $login");
@@ -54,13 +54,13 @@ print_control_submenu($page_url);
 <td><b><?php echo WEB_customer_mode;?></b></td>
 </tr>
 <?php
-$users = get_records($db_link,'customers','True ORDER BY Login');
+$users = get_records($db_link,'customers','True ORDER BY login');
 foreach ($users as $row) {
     $cl = "data";
     $acl = get_record_sql($db_link,'SELECT * FROM acl WHERE id='.$row['rights']);
     print "<tr align=center>\n";
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
-    print "<td class=\"$cl\" align=left width=200><a href=editcustom.php?id=".$row['id'].">" . $row['Login'] . "</a></td>\n";
+    print "<td class=\"$cl\" align=left width=200><a href=editcustom.php?id=".$row['id'].">" . $row['login'] . "</a></td>\n";
     print "<td class=\"$cl\" >". $row['description']. "</a></td>\n";
     print "<td class=\"$cl\" >". $acl['name']. "</a></td>\n";
 }

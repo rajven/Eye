@@ -88,14 +88,14 @@ COMMENT ON COLUMN connections.last_found IS 'Last connection activity time';
 -- System users
 CREATE TABLE customers (
 id SERIAL PRIMARY KEY,
-Login VARCHAR(20),
+login VARCHAR(20),
 description VARCHAR(100),
 password VARCHAR(255),
 api_key VARCHAR(255),
 rights SMALLINT NOT NULL DEFAULT 3
 );
 COMMENT ON TABLE customers IS 'System users/administrators';
-COMMENT ON COLUMN customers.Login IS 'User login';
+COMMENT ON COLUMN customers.login IS 'User login';
 COMMENT ON COLUMN customers.rights IS 'Access level: 0=view, 1=operator, 2=admin, 3=superadmin';
 
 -- Network devices
