@@ -88,7 +88,7 @@ if (scalar(@netdev_list)>0) {
             }
 	if ($router->{'user_id'}) {
             #get user
-	    my $login = get_record_sql($dbh,"SELECT * FROM user_list WHERE id=".$router->{'user_id'});
+	    my $login = get_record_sql($dbh,"SELECT * FROM user_list WHERE id= ?", $router->{'user_id'});
 	    if ($login and $login->{ou_id} and $ou{$login->{ou_id}}->{nagios_dir}) { $devices{$device_id}{ou_id} = $login->{ou_id}; }
             }
         $devices{$device_id}{ou}=$ou{$devices{$device_id}{ou_id}};
@@ -99,33 +99,33 @@ if (scalar(@netdev_list)>0) {
     	    }
         $devices{$device_id}{user_id}=$router->{'user_id'};
         #get uplinks
-        my $uplink_port = get_record_sql($dbh,"SELECT * FROM device_ports WHERE uplink=1 AND device_id=".$devices{$device_id}{device_id}." AND target_port_id>0 ORDER BY port DESC");
+        my $uplink_port = get_record_sql($dbh,"SELECT * FROM device_ports WHERE uplink=1 AND device_id= ? AND target_port_id>0 ORDER BY port DESC",$devices{$device_id}{device_id});
         if ($uplink_port and $uplink_port->{target_port_id}) {
-            my $parent_uplink = get_record_sql($dbh,"SELECT * FROM device_ports WHERE id=".$uplink_port->{target_port_id}." ORDER BY id DESC");
+            my $parent_uplink = get_record_sql($dbh,"SELECT * FROM device_ports WHERE id= ? ORDER BY id DESC",$uplink_port->{target_port_id});
             if ($parent_uplink and $parent_uplink->{device_id}) {
-        	my $uplink_device = get_record_sql($dbh,"SELECT * FROM devices WHERE id=".$parent_uplink->{device_id}." AND nagios=1 AND deleted=0");
+        	my $uplink_device = get_record_sql($dbh,"SELECT * FROM devices WHERE id= ? AND nagios=1 AND deleted=0",$parent_uplink->{device_id});
         	if ($uplink_device) {
         	    $devices{$device_id}{parent}='netdev_'.$uplink_device->{'id'}; 
         	    $devices{$device_id}{parent_name}=$uplink_device->{'device_name'};
         	    }
         	}
-            my $uplink = get_record_sql($dbh,"SELECT * FROM device_ports WHERE id=".$uplink_port->{id}." ORDER BY id DESC");
+            my $uplink = get_record_sql($dbh,"SELECT * FROM device_ports WHERE id=? ORDER BY id DESC",$uplink_port->{id});
     	    $devices{$device_id}{parent_downlink}=$parent_uplink;
     	    $devices{$device_id}{uplink}=$uplink;
             }
         #downlinks
-        my @downlinks = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id=".$devices{$device_id}{device_id}." and target_port_id>0 and uplink=0");
+        my @downlinks = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id= ? and target_port_id>0 and uplink=0", $devices{$device_id}{device_id});
         foreach my $downlink_port (@downlinks) {
-    	    my $downlink = get_record_sql($dbh,"SELECT * FROM device_ports WHERE id=".$downlink_port->{target_port_id});
+    	    my $downlink = get_record_sql($dbh,"SELECT * FROM device_ports WHERE id= ?", $downlink_port->{target_port_id});
     	    if ($downlink) {
-    		my $downlink_device = get_record_sql($dbh,"SELECT * FROM devices WHERE id=".$downlink->{device_id});
+    		my $downlink_device = get_record_sql($dbh,"SELECT * FROM devices WHERE id= ?", $downlink->{device_id});
     		if ($downlink_device) { $downlink_port->{downlink_name}=$downlink_device->{device_name}; }
 		}
 	    #id,port,snmp_index
             push(@{$devices{$device_id}{downlinks}},$downlink_port);
     	    }
 	#custom ports
-        my @custom_ports = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id=".$devices{$device_id}{device_id}." and target_port_id=0 and uplink=0 and nagios=1");
+        my @custom_ports = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id= ? and target_port_id=0 and uplink=0 and nagios=1", $devices{$device_id}{device_id});
         foreach my $downlink_port (@custom_ports) {
             #id,port,snmp_index,description
 	    push(@{$devices{$device_id}{downlinks}},$downlink_port);
@@ -148,11 +148,11 @@ if (scalar(@auth_list)>0) {
         next if ($devices{$device_id});
 
 	#skip user device with few ip
-        my $auth_count = get_count_records($dbh,"user_auth","user_id=".$auth->{'user_id'}." AND deleted=0");
+        my $auth_count = get_count_records($dbh,"user_auth","user_id= ? AND deleted=0",$auth->{'user_id'});
         next if ($auth_count>1);
 
 	#skip switches and routers
-        my $auth_device = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=".$auth->{'user_id'});
+        my $auth_device = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=?",$auth->{'user_id'});
 	next if ($auth_device and $auth_device->{device_type}<=2);
 
 	#snmp parameters
@@ -162,7 +162,7 @@ if (scalar(@auth_list)>0) {
         $devices{$device_id}{ip}=$ip;
 
         #get user
-        my $login = get_record_sql($dbh,"SELECT * FROM user_list WHERE id=".$auth->{'user_id'});
+        my $login = get_record_sql($dbh,"SELECT * FROM user_list WHERE id=?",$auth->{'user_id'});
     
         $devices{$device_id}{user_login} = $login->{login};
         $devices{$device_id}{user_fio} = $login->{fio};
@@ -192,9 +192,9 @@ if (scalar(@auth_list)>0) {
         $devices{$device_id}{type}='3';
         $devices{$device_id}{user_id}=$auth->{'user_id'};
         #get uplinks
-        my $uplink_port = get_record_sql($dbh,"SELECT * FROM connections WHERE auth_id=".$auth->{'id'});
+        my $uplink_port = get_record_sql($dbh,"SELECT * FROM connections WHERE auth_id=?",$auth->{'id'});
         if ($uplink_port and $uplink_port->{port_id}) {
-            my $uplink = get_record_sql($dbh,"SELECT * FROM device_ports WHERE id=".$uplink_port->{port_id});
+            my $uplink = get_record_sql($dbh,"SELECT * FROM device_ports WHERE id=?",$uplink_port->{port_id});
             if ($uplink and $uplink->{device_id} and $devices{'netdev_'.$uplink->{'device_id'}}) {
         	$devices{$device_id}{parent}='netdev_'.$uplink->{'device_id'};
                 $devices{$device_id}{parent_port} = $uplink->{port};

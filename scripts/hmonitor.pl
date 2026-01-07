@@ -121,23 +121,23 @@ my $login;
 my $nagios_handler;
 
 if (!$hostid or $hostid !~ /^[0-9]/) {
-    $auth = get_record_sql($hdb,"SELECT * FROM user_auth WHERE deleted=0 AND ip='".$hostip."'");
+    $auth = get_record_sql($hdb,"SELECT * FROM user_auth WHERE deleted=0 AND ip=?",$hostip);
     next if (!$auth);
     $hostid = $auth->{id};
-    $login = get_record_sql($hdb,'SELECT * FROM user_list WHERE id='.$auth->{user_id});
-    $device = get_record_sql($hdb,'SELECT * FROM devices WHERE user_id='.$auth->{user_id});
+    $login = get_record_sql($hdb,'SELECT * FROM user_list WHERE id=?',$auth->{user_id});
+    $device = get_record_sql($hdb,'SELECT * FROM devices WHERE user_id=?',$auth->{user_id});
     if ($auth->{nagios_status}) { $old_state = $auth->{nagios_status}; }
     db_log_verbose($hdb,"Manual host: $hostname [$hostip] => $hoststate, old: $old_state");
     } else {
     if ($hosttype=~/device/i) {
-        $device = get_record_sql($hdb,'SELECT * FROM devices WHERE id='.$hostid);
-        $login = get_record_sql($hdb,'SELECT * FROM user_list WHERE id='.$device->{user_id});
-        $auth = get_record_sql($hdb,'SELECT * FROM user_auth WHERE user_id='.$device->{user_id}." AND deleted=0 AND ip='".$hostip."'");
+        $device = get_record_sql($hdb,'SELECT * FROM devices WHERE id=?',$hostid);
+        $login = get_record_sql($hdb,'SELECT * FROM user_list WHERE id=?',$device->{user_id});
+        $auth = get_record_sql($hdb,'SELECT * FROM user_auth WHERE user_id=? AND deleted=0 AND ip=?',$device->{user_id},$hostip);
         if ($device->{nagios_status}) { $old_state = $device->{nagios_status}; }
         } else {
-        $auth = get_record_sql($hdb,'SELECT * FROM user_auth WHERE id='.$hostid);
-        $login = get_record_sql($hdb,'SELECT * FROM user_list WHERE id='.$auth->{user_id});
-        $device = get_record_sql($hdb,'SELECT * FROM devices WHERE user_id='.$auth->{user_id});
+        $auth = get_record_sql($hdb,'SELECT * FROM user_auth WHERE id=?',$hostid);
+        $login = get_record_sql($hdb,'SELECT * FROM user_list WHERE id=?',$auth->{user_id});
+        $device = get_record_sql($hdb,'SELECT * FROM devices WHERE user_id=?',$auth->{user_id});
         if ($auth->{nagios_status}) { $old_state = $auth->{nagios_status}; }
         }
     }
@@ -154,8 +154,8 @@ if ($hoststate ne $old_state) {
     #Change device state
     db_log_verbose($hdb,"Host changed! $hostname [$hostip] => $hoststate, old: $old_state");
     my $ip_aton=StrToIp($hostip);
-    if ($device->{id}) { do_sql($hdb,"UPDATE devices SET nagios_status='".$hoststate."' WHERE id=".$device->{id}); }
-    if ($auth->{id}) { do_sql($hdb,"UPDATE user_auth SET nagios_status='".$hoststate."' WHERE id=".$auth->{id}); }
+    if ($device->{id}) { do_sql($hdb,"UPDATE devices SET nagios_status=? WHERE id=?", $hoststate, $device->{id}); }
+    if ($auth->{id}) { do_sql($hdb,"UPDATE user_auth SET nagios_status=? WHERE id=?",$hoststate, $auth->{id}); }
     if ($hoststate=~/UP/i) {
         nagios_host_svc_enable($hostname,1);
         db_log_debug($hdb,"Enable notifications for host $hostname [$hostip] id: $hostid services");

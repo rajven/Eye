@@ -25,7 +25,7 @@ my $named_db_path='/etc/bind/masters';
 my $DNS1=$config_ref{dns_server};
 my $DNS1_IP=$config_ref{dns_server};
 
-my $dns_server_record = get_record_sql($dbh,"SELECT id,ip,dns_name FROM user_auth WHERE deleted=0 AND ip='".$DNS1_IP."'");
+my $dns_server_record = get_record_sql($dbh,"SELECT id,ip,dns_name FROM user_auth WHERE deleted=0 AND ip=?",$DNS1_IP);
 
 if ($dns_server_record and $dns_server_record->{dns_name}) { 
     my $ns1=$dns_server_record->{dns_name};

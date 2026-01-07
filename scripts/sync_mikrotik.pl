@@ -46,7 +46,7 @@ my $all_ok = 1;
 my @gateways =();
 #select undeleted mikrotik routers only
 if ($ARGV[0]) {
-    my $router = get_record_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) and protocol>=0 and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9 and id='.$ARGV[0]);
+    my $router = get_record_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) and protocol>=0 and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9 and id=?',$ARGV[0]);
     if ($router) { push(@gateways,$router); }
     } else {
     @gateways = get_records_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) and protocol>=0 and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9');
@@ -116,7 +116,7 @@ my %hotspot_exceptions;
 my @lan_int=();
 my @wan_int=();
 
-my @l3_int = get_records_sql($dbh,'SELECT * FROM device_l3_interfaces WHERE device_id='.$gate->{'id'});
+my @l3_int = get_records_sql($dbh,'SELECT * FROM device_l3_interfaces WHERE device_id=?',$gate->{'id'});
 foreach my $l3 (@l3_int) {
 $l3->{'name'}=~s/\"//g;
 if ($l3->{'interface_type'} eq '0') { push(@lan_int,$l3->{'name'}); }
@@ -124,7 +124,7 @@ if ($l3->{'interface_type'} eq '1') { push(@wan_int,$l3->{'name'}); }
 }
 
 #формируем список подключенных к роутеру сетей
-my @gw_subnets = get_records_sql($dbh,"SELECT gateway_subnets.*,subnets.subnet FROM gateway_subnets LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id WHERE gateway_subnets.device_id=".$gate->{'id'});
+my @gw_subnets = get_records_sql($dbh,"SELECT gateway_subnets.*,subnets.subnet FROM gateway_subnets LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id WHERE gateway_subnets.device_id=?",$gate->{'id'});
 if (@gw_subnets and scalar @gw_subnets) {
     foreach my $gw_subnet (@gw_subnets) {
         if ($gw_subnet and $gw_subnet->{'subnet'}) {
@@ -231,7 +231,8 @@ my @auth_records=();
 foreach my $dhcp_subnet (@dhcp_subnets) {
     next if (!$dhcp_subnet);
     next if (!exists $dhcp_conf{$dhcp_subnet});
-    my @tmp1=get_records_sql($dbh,"SELECT * from user_auth WHERE dhcp=1 and ip_int>=".$dhcp_conf{$dhcp_subnet}->{first_ip_aton}." and ip_int<=".$dhcp_conf{$dhcp_subnet}->{last_ip_aton}." and deleted=0 and ou_id !=".$default_user_ou_id." and ou_id !=".$default_hotspot_ou_id." ORDER BY ip_int");
+    my $a_sql = "SELECT * from user_auth WHERE dhcp=1 and ip_int>= ? AND ip_int<= ? and deleted=0 and ou_id != ? and ou_id != ? ORDER BY ip_int");
+    my @tmp1=get_records_sql($dbh,$a_sql,$dhcp_conf{$dhcp_subnet}->{first_ip_aton},$dhcp_conf{$dhcp_subnet}->{last_ip_aton},$default_user_ou_id, $default_hotspot_ou_id);
     push(@auth_records,@tmp1);
     undef @tmp1;
 }
@@ -463,10 +464,10 @@ AND user_auth.enabled =1
 AND user_auth.blocked =0
 AND user_list.blocked =0
 AND user_list.enabled =1
-AND user_auth.ou_id <> $default_hotspot_ou_id
+AND user_auth.ou_id <> ?
 ORDER BY ip_int";
 
-my @authlist_ref = get_records_sql($dbh,$user_auth_sql);
+my @authlist_ref = get_records_sql($dbh,$user_auth_sql,$default_hotspot_ou_id);
 my %users;
 my %lists;
 my %found_users;
@@ -645,7 +646,7 @@ my $instance_name = 'Users';
 if ($filter_instance->{id}>1) {
     $instance_name = 'Users-'.$filter_instance->{name};
     #check filter instance exist at gateway
-    my $instance_ok = get_record_sql($dbh,"SELECT * FROM device_filter_instances WHERE device_id=$gate->{'id'} AND instance_id=$filter_instance->{id}");
+    my $instance_ok = get_record_sql($dbh,"SELECT * FROM device_filter_instances WHERE device_id= ? AND instance_id=?", $gate->{'id'}, $filter_instance->{id});
     #skip insatnce if not found
     if (!$instance_ok) { next; }
     }
@@ -1041,7 +1042,7 @@ $pm->wait_all_children;
 #clear changed
 if ($all_ok) {
     foreach my $row (@changes_found) {
-        do_sql($dbh,"UPDATE user_auth SET changed=0 WHERE id=".$row->{id});
+        do_sql($dbh,"UPDATE user_auth SET changed=0 WHERE id=?",$row->{id});
         }
     }
 

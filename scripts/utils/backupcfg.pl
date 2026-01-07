@@ -30,7 +30,7 @@ $|=1;
 my $debug = 1;
 
 if ($ARGV[0]) {
-    my $device=get_record_sql($dbh,'SELECT * FROM devices WHERE id='.$ARGV[0]);
+    my $device=get_record_sql($dbh,'SELECT * FROM devices WHERE id=?',$ARGV[0]);
     $device = netdev_set_auth($device);
     print "Backup switch $device->{device_name} ip: $device->{ip} ...";
     netdev_backup($device,$tftp_server);

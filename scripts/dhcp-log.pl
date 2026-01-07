@@ -209,14 +209,11 @@ sub run {
                         $t_remote_id = $decoded_remote_id;
                         $t_remote_id .= "0" x (12 - length($t_remote_id)) if length($t_remote_id) < 12;
                         $t_remote_id = mac_splitted(isc_mac_simplify($t_remote_id));
-
                         my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
                                      "FROM devices AS D, user_auth AS A " .
                                      "WHERE D.user_id = A.User_id AND D.ip = A.ip AND A.deleted = 0 " .
-                                     "AND A.mac = '$t_remote_id'";
-                        log_debug("SQL (по decoded_remote_id): $devSQL");
-                        $switch = get_record_sql($hdb, $devSQL);
-
+                                     "AND A.mac = ?";
+                        $switch = get_record_sql($hdb, $devSQL, $t_remote_id);
                         if ($switch) {
                             $remote_id = $t_remote_id;
                             $circuit_id = $decoded_circuit_id;
@@ -231,14 +228,11 @@ sub run {
                         $t_remote_id = $remote_id;
                         $t_remote_id .= "0" x (12 - length($t_remote_id)) if length($t_remote_id) < 12;
                         $t_remote_id = mac_splitted(isc_mac_simplify($t_remote_id));
-
                         my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
                                      "FROM devices AS D, user_auth AS A " .
                                      "WHERE D.user_id = A.User_id AND D.ip = A.ip AND A.deleted = 0 " .
-                                     "AND A.mac = '$t_remote_id'";
-                        log_debug("SQL (по remote_id): $devSQL");
-                        $switch = get_record_sql($hdb, $devSQL);
-
+                                     "AND A.mac = ?";
+                        $switch = get_record_sql($hdb, $devSQL, $t_remote_id);
                         if ($switch) {
                             $remote_id = $t_remote_id;
                             $dhcp_record->{circuit_id} = $circuit_id;
@@ -254,9 +248,8 @@ sub run {
                             my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
                                          "FROM devices AS D, user_auth AS A " .
                                          "WHERE D.user_id = A.User_id AND D.ip = A.ip AND A.deleted = 0 " .
-                                         "AND D.device_name LIKE '$id_words[0]%'";
-                            log_debug("SQL (по имени устройства из remote_id): $devSQL");
-                            $switch = get_record_sql($hdb, $devSQL);
+                                         "AND D.device_name LIKE ?";
+                            $switch = get_record_sql($hdb, $devSQL, $id_words[0] . '%');
                             if ($switch) {
                                 log_debug("Коммутатор найден по имени: " . $switch->{device_name});
                             }
@@ -270,9 +263,8 @@ sub run {
                             my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
                                          "FROM devices AS D, user_auth AS A " .
                                          "WHERE D.user_id = A.User_id AND D.ip = A.ip AND A.deleted = 0 " .
-                                         "AND D.device_name LIKE '$id_words[0]%'";
-                            log_debug("SQL (по имени из circuit_id — MikroTik?): $devSQL");
-                            $switch = get_record_sql($hdb, $devSQL);
+                                         "AND D.device_name LIKE ?";
+                            $switch = get_record_sql($hdb, $devSQL, $id_words[0] . '%');
                             if ($switch) {
                                 # MikroTik часто путает remote-id и circuit-id — меняем местами
                                 ($circuit_id, $remote_id) = ($remote_id, $t_circuit_id);
@@ -289,7 +281,8 @@ sub run {
                         $t_circuit_id =~ s/[\+\-\s]+/ /g;
 
                         # Загружаем порты коммутатора
-                        my @device_ports = get_records_sql($hdb, "SELECT * FROM device_ports WHERE device_id = " . $switch->{id});
+                        my @device_ports = get_records_sql($hdb, "SELECT * FROM device_ports WHERE device_id = ?", $switch->{id});
+
                         my %device_ports_h;
                         foreach my $port_data (@device_ports) {
                             $port_data->{snmp_index} //= $port_data->{port};
@@ -321,7 +314,7 @@ sub run {
                             db_log_verbose($hdb, "DHCP $type: IP=$ip, MAC=$mac " . $switch->{device_name} . " / " . $switch_port->{ifName});
 
                             # Проверяем, существует ли уже соединение
-                            my $connection = get_records_sql($hdb, "SELECT * FROM connections WHERE auth_id = $auth_id");
+                            my $connection = get_records_sql($hdb, "SELECT * FROM connections WHERE auth_id = ?", $auth_id);
                             if (!$connection || !@{$connection}) {
                                 my $new_connection = {
                                     port_id    => $switch_port->{id},

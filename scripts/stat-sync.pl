@@ -103,7 +103,7 @@ if (!$pid) {
                 process_dhcp_request($hdb, $dhcp->{action}, $dhcp->{mac}, $dhcp->{ip}, $dhcp->{dhcp_hostname}, '', '', '')
                         unless exists $leases{$dhcp->{ip}} && $leases{$dhcp->{ip}}{'action'} ne $dhcp->{action} && time() - $leases{$dhcp->{ip}}{'last_time'} <= $mute_time;
                 $leases{$dhcp->{ip}}=$dhcp;
-                do_sql($hdb,"DELETE FROM dhcp_queue WHERE id=".$dhcp->{id});
+                do_sql($hdb,"DELETE FROM dhcp_queue WHERE id=?",$dhcp->{id});
                 }
             }
 
@@ -116,13 +116,13 @@ if (!$pid) {
             $urgent_sync=get_option($hdb,50);
             if ($urgent_sync) {
                     #clean changed for dynamic clients or hotspot
-        	    do_sql($hdb,"UPDATE user_auth SET changed=0 WHERE ou_id=".$default_user_ou_id." OR ou_id=".$default_hotspot_ou_id);
-                    do_sql($hdb,"UPDATE user_auth SET dhcp_changed=0 WHERE ou_id=".$default_user_ou_id." OR ou_id=".$default_hotspot_ou_id);
+        	    do_sql($hdb,"UPDATE user_auth SET changed=0 WHERE ou_id=? OR ou_id=?",$default_user_ou_id,$default_hotspot_ou_id);
+                    do_sql($hdb,"UPDATE user_auth SET dhcp_changed=0 WHERE ou_id=? OR ou_id=?",$default_user_ou_id,$default_hotspot_ou_id);
         	    #clean unmanagment ip changed
 	            my @all_changed = get_records_sql($hdb,"SELECT id, ip FROM user_auth WHERE changed = 1 OR dhcp_changed = 1");
         	    foreach my $row(@all_changed) {
 	        	    next if ($office_networks->match_string($row->{ip}));
-		            do_sql($hdb,"UPDATE user_auth SET changed = 0, dhcp_changed = 0  WHERE id=".$row->{id});
+		            do_sql($hdb,"UPDATE user_auth SET changed = 0, dhcp_changed = 0  WHERE id=?",$row->{id});
 		            }
                     #dhcp changed records
                     my $changed = get_record_sql($hdb,"SELECT COUNT(*) as c_count from user_auth WHERE dhcp_changed=1");
@@ -148,19 +148,19 @@ if (!$pid) {
                     foreach my $auth (@dns_changed) {
                         update_dns_record($hdb,$auth->{auth_id});
                         log_info("Clear changed dns for auth id: ".$auth->{auth_id});
-                        do_sql($hdb,"DELETE FROM dns_queue WHERE auth_id=".$auth->{auth_id});
+                        do_sql($hdb,"DELETE FROM dns_queue WHERE auth_id=?",$auth->{auth_id});
                         }
 	            }
             #clear temporary user auth records
             my $now = DateTime->now(time_zone=>'local');
             my $clear_time =$dbh->quote($now->strftime('%Y-%m-%d %H:%M:%S'));
-            my $users_sql = "SELECT * FROM user_auth WHERE deleted=0 AND dynamic=1 AND end_life<=".$clear_time;
-            my @users_auth = get_records_sql($hdb,$users_sql);
+            my $users_sql = "SELECT * FROM user_auth WHERE deleted=0 AND dynamic=1 AND end_life<=?";
+            my @users_auth = get_records_sql($hdb,$users_sql,$clear_time);
             if (@users_auth and scalar @users_auth) {
                     foreach my $row (@users_auth) {
                         delete_user_auth($hdb,$row->{id});
                         db_log_info($hdb,"Removed dynamic user auth record for auth_id: $row->{'id'} by end_life time: $row->{'end_life'}",$row->{'id'});
-                        my $u_count=get_count_records($hdb,'user_auth','deleted=0 and user_id='.$row->{user_id});
+                        my $u_count=get_count_records($hdb,'user_auth','deleted=0 and user_id=?',$row->{user_id});
                         if (!$u_count) { delete_user($hdb,$row->{'user_id'}); }
                         }
                     }

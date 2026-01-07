@@ -28,7 +28,6 @@ our @ISA = qw(Exporter);
 our @EXPORT = qw(
 StrToIp
 IpToStr
-batch_db_sql
 batch_db_sql_cached
 batch_db_sql_csv
 reconnect_db
@@ -42,10 +41,6 @@ init_db
 do_sql
 _execute_param
 do_sql_param
-get_record_sql_param
-get_records_sql_param
-get_scalar_sql_param
-get_count_sql_param
 get_option_safe
 get_count_records
 get_id_record
@@ -84,32 +79,32 @@ our $L_VERBOSE = 3;
 our $L_DEBUG = 255;
 
 our %acl_fields = (
-'ip' => '1',
-'ip_int' => '1',
-'enabled'=>'1',
-'dhcp'=>'1',
-'filter_group_id'=>'1',
-'deleted'=>'1',
-'dhcp_acl'=>'1',
-'queue_id'=>'1',
-'mac'=>'1',
-'blocked'=>'1'
+    'ip' => '1',
+    'ip_int' => '1',
+    'enabled'=>'1',
+    'dhcp'=>'1',
+    'filter_group_id'=>'1',
+    'deleted'=>'1',
+    'dhcp_acl'=>'1',
+    'queue_id'=>'1',
+    'mac'=>'1',
+    'blocked'=>'1'
 );
 
 our %dhcp_fields = (
-'ip' => '1',
-'dhcp_acl'=>'1',
-'dhcp_option_set'=>'1',
-'dhcp'=>'1',
-'deleted'=>'1',
-'mac'=>'1',
+    'ip' => '1',
+    'dhcp_acl'=>'1',
+    'dhcp_option_set'=>'1',
+    'dhcp'=>'1',
+    'deleted'=>'1',
+    'mac'=>'1',
 );
 
 our %dns_fields = (
-'ip' => '1',
-'dns_name'=>'1',
-'dns_ptr_only'=>'1',
-'alias'=>'1',
+    'ip' => '1',
+    'dns_name'=>'1',
+    'dns_ptr_only'=>'1',
+    'alias'=>'1',
 );
 
 #---------------------------------------------------------------------------------------------------------------
@@ -127,94 +122,70 @@ return $res;
 }
 
 #---------------------------------------------------------------------------------------------------------------
-
-sub batch_db_sql {
-my $db=shift;
-my $batch_sql=shift;
-return if (!$db);
-$db->{AutoCommit} = 0;
-my $apply = 0;
-my $sth;
-my @msg = ();
-if (ref($batch_sql) eq 'ARRAY') { @msg = @$batch_sql; } else { @msg = split("\n",$batch_sql); }
-foreach my $sSQL (@msg) {
-next if (!$sSQL);
-$sth = $db->prepare($sSQL) or die "Unable to prepare $sSQL" . $db->errstr;
-$sth->execute() or die "Unable to prepare $sSQL" . $db->errstr;
-$apply = 1;
-}
-if ($apply) { $sth->finish(); }
-$db->{AutoCommit} = 1;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
 sub batch_db_sql_cached {
-my $db = DBI->connect("dbi:$config_ref{DBTYPE}:dbname=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 0 });
-if ( !defined $db ) { die "Cannot connect to $config_ref{DBTYPE} server: $DBI::errstr\n"; }
-if ($config_ref{DBTYPE} eq 'mysql') {
-$db->do('SET NAMES utf8mb4');
-$db->{'mysql_enable_utf8'} = 1;
-}
-my $table= shift;
-my $batch_sql=shift;
-return if (!$db);
-my @msg = ();
-if (ref($batch_sql) eq 'ARRAY') { @msg = @$batch_sql; } else { @msg = split("\n",$batch_sql); }
-my $sth = $db->prepare_cached($table) or die "Unable to prepare:" . $db->errstr;
-foreach my $sSQL (@msg) {
-next if (!$sSQL);
-$sth->execute(@$sSQL) or die "Unable to execute:" . $db->errstr;
-}
-$db->commit();
-$db->disconnect();
+    my ($sql, $data) = @_;
+
+    my $db=init_db();
+
+    eval {
+        my $sth = $db->prepare_cached($sql)
+            or die "Unable to prepare SQL: " . $db->errstr;
+
+        for my $params (@$data) {
+            next unless @$params;
+            $sth->execute(@$params)
+                or die "Unable to execute with params [" . join(',', @$params) . "]: " . $sth->errstr;
+        }
+
+        $db->commit();
+        1;
+    } or do {
+        my $err = $@ || 'Unknown error';
+        eval { $db->rollback() };
+        $db->disconnect();
+        die "batch_db_sql_cached failed: $err";
+    };
+
+    $db->disconnect();
+    return 1;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub batch_db_sql_csv {
-my $db;
-if ($config_ref{DBTYPE} eq 'mysql') {
-$db = DBI->connect("dbi:$config_ref{DBTYPE}:dbname=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 1, mysql_local_infile=> 1 });
-} else {
-$db = DBI->connect("dbi:$config_ref{DBTYPE}:dbname=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 1 });
-}
-if ( !defined $db ) { die "Cannot connect to $config_ref{DBTYPE} server: $DBI::errstr\n"; }
+    my ($table, $data) = @_;
+    my $db = init_db();
+    if ($config_ref{DBTYPE} eq 'mysql') {
+        my $fh = File::Temp->new(UNLINK => 1);
+        binmode($fh, ':utf8');
+        for my $row (@$data) {
+            next unless $row && @$row;
+            my $line = 'NULL';  # автоинкремент
+            for my $val (@$row) {
+                $line .= defined($val) ? ',' . $val : ',NULL';
+            }
+            print $fh $line . "\r\n";
+        }
+        close $fh;
+        my $query = "LOAD DATA LOCAL INFILE '" . $fh->filename . "' INTO TABLE `$table` FIELDS TERMINATED BY ',' LINES TERMINATED BY '\r\n'";
+        $db->do($query);
+    } else {
+        # PostgreSQL: используем COPY ... FROM STDIN
+        my $copy_sql = "COPY $table FROM STDIN WITH (FORMAT CSV, DELIMITER ',', NULL 'NULL')";
+        $db->do($copy_sql);  # Переключает соединение в режим копирования
+        for my $row (@$data) {
+            next unless $row && @$row;
+            my $line = 'NULL';  # автоинкремент
+            for my $val (@$row) {
+                $line .= defined($val) ? ',' . $val : ',NULL';
+            }
+            $line .= "\n";
+            $db->pg_put_copy_data($line);
+        }
+        $db->pg_put_copy_end();  # Завершаем копирование
 
-return if (!$db);
-
-if ($config_ref{DBTYPE} eq 'mysql') {
-$db->do('SET NAMES utf8mb4');
-$db->{'mysql_enable_utf8'} = 1;
-}
-
-my $table= shift;
-my $data = shift;
-my $fh = File::Temp->new(UNLINK=>1);
-my $fname = $fh->filename;
-binmode($fh,':utf8');
-foreach my $row (@$data) {
-next if (!$row);
-my @tmp = @$row;
-my $values = 'NULL';
-for (my $i = 0; $i <@tmp ; $i++) {
-$values.=',"'.$tmp[$i].'"';
-}
-$values =~s/,$//;
-print $fh $values."\r\n";
-}
-close $fh;
-
-if ($config_ref{DBTYPE} eq 'mysql') {
-my $query = qq{ LOAD DATA LOCAL INFILE '$fname' INTO TABLE $table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n'; };
-$db->do($query);
-} else {
-# PostgreSQL использует COPY
-my $query = qq{ COPY $table FROM STDIN WITH (FORMAT CSV, DELIMITER ',', QUOTE '"', NULL 'NULL'); };
-$db->do($query, undef, $fh);
-}
-$db->disconnect;
-File::Temp::cleanup();
+    }
+    $db->disconnect();
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -223,28 +194,28 @@ sub reconnect_db {
 my $db_ref = shift;
 # Если соединение активно, ничего не делаем
 if ($$db_ref && $$db_ref->ping) {
-return 1;
-}
+    return 1;
+    }
 # Переподключаемся
 eval {
 # Закрываем старое соединение если есть
 if ($$db_ref) {
-$$db_ref->disconnect;
-$$db_ref = undef;
-}
+    $$db_ref->disconnect;
+    $$db_ref = undef;
+    }
 # Создаем новое соединение
 $$db_ref = init_db();
 # Проверяем что соединение установлено
 unless ($$db_ref && $$db_ref->ping) {
-die "Failed to establish database connection";
-}
+    die "Failed to establish database connection";
+    }
 1;  # возвращаем истину при успехе
 } or do {
-my $error = $@ || 'Unknown error';
-warn "Database reconnection failed: $error";
-$$db_ref = undef;
-return 0;
-};
+    my $error = $@ || 'Unknown error';
+    warn "Database reconnection failed: $error";
+    $$db_ref = undef;
+    return 0;
+    };
 return 1;
 }
 
@@ -350,53 +321,51 @@ sub do_sql {
 my ($db, $sql, @bind_values) = @_;
 return 0 unless $db;
 return 0 unless $sql;
-
 unless (reconnect_db(\$db)) {
-log_error("No database connection available for SQL: $sql");
-return 0;
-}
-
+    log_error("No database connection available for SQL: $sql");
+    return 0;
+    }
 # Логируем не-SELECT-запросы
 log_debug( $sql . (@bind_values ? ' | bind: [' . join(', ', map { defined $_ ? $_ : 'undef' } @bind_values) . ']' : '')) unless $sql =~ /^select /i;
 # Подготовка запроса
 my $sth = $db->prepare($sql) or do {
-log_error("Unable to prepare SQL [$sql]: " . $db->errstr);
-return 0;
-};
+    log_error("Unable to prepare SQL [$sql]: " . $db->errstr);
+    return 0;
+    };
 # Выполнение запроса
 my $rv;
 if (@bind_values) {
-$rv = $sth->execute(@bind_values) or do {
-log_error("Unable to execute SQL [$sql] with bind: [" . join(', ', map { defined $_ ? $_ : 'undef' } @bind_values) . "]: " . $sth->errstr);
-return 0;
-};
-} else {
-$rv = $sth->execute() or do {
-log_error("Unable to execute SQL [$sql]: " . $sth->errstr);
-return 0;
-};
-}
+    $rv = $sth->execute(@bind_values) or do {
+	log_error("Unable to execute SQL [$sql] with bind: [" . join(', ', map { defined $_ ? $_ : 'undef' } @bind_values) . "]: " . $sth->errstr);
+	return 0;
+	};
+    } else {
+    $rv = $sth->execute() or do {
+	log_error("Unable to execute SQL [$sql]: " . $sth->errstr);
+	return 0;
+	};
+    }
 # Обработка результатов по типу запроса
 if ($sql =~ /^insert/i) {
-my $id;
-if ($config_ref{DBTYPE} and $config_ref{DBTYPE} eq 'mysql') {
-$id = $sth->{mysql_insertid};
-} else {
-($id) = $db->selectrow_array("SELECT lastval()");
-}
-$sth->finish();
-return $id || 0;  # Возвращаем ID или 0 если ID нет
-}
-elsif ($sql =~ /^select /i) {
-my $data = $sth->fetchall_arrayref({});
-$sth->finish();
-return $data;  # возвращаем ссылку на массив
-}
-else {
-# UPDATE, DELETE, CREATE, ALTER и т.д.
-$sth->finish();
-return 1;
-}
+    my $id;
+    if ($config_ref{DBTYPE} and $config_ref{DBTYPE} eq 'mysql') {
+	$id = $sth->{mysql_insertid};
+	} else {
+	($id) = $db->selectrow_array("SELECT lastval()");
+	}
+    $sth->finish();
+    return $id || 0;  # Возвращаем ID или 0 если ID нет
+    }
+    elsif ($sql =~ /^select /i) {
+	my $data = $sth->fetchall_arrayref({});
+	$sth->finish();
+	return $data;  # возвращаем ссылку на массив
+    }
+    else {
+    # UPDATE, DELETE, CREATE, ALTER и т.д.
+    $sth->finish();
+    return 1;
+    }
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -411,23 +380,18 @@ sub _execute_param {
     unless ($sql =~ /^\s*SELECT/i) {
         log_debug( $sql . ($params ? ' | params: [' . join(', ', map { defined $_ ? $_ : 'undef' } @$params) . ']' : ''));
     }
-    
     # Переподключение
     unless (reconnect_db(\$db)) {
         log_error("No database connection available");
         return wantarray ? () : undef;
     }
-    
     my $mode = $options->{mode} || 'execute';
-    
     eval {
         my $sth = $db->prepare($sql) or die "Unable to prepare SQL [$sql]: " . $db->errstr;
-        
         my $rv = $params ? $sth->execute(@$params) : $sth->execute();
         unless ($rv) {
             die "Unable to execute SQL [$sql]" . ($params ? " with params: [" . join(', ', @$params) . "]" : "") . ": " . $sth->errstr;
         }
-        
         if ($mode eq 'single') {
             my $row = $sth->fetchrow_hashref();
             $sth->finish();
@@ -470,7 +434,6 @@ sub _execute_param {
             return 1;
         }
     };
-    
     if ($@) {
         log_error("Error executing SQL [$sql]: " . $@);
         return wantarray ? () : undef;
@@ -479,82 +442,8 @@ sub _execute_param {
 
 #---------------------------------------------------------------------------------------------------------------
 
-# Выполнение SQL с параметрами (новая безопасная версия)
-sub do_sql_param {
-    my ($db, $sql, @params) = @_;
-    return 0 unless $db && $sql;
-    
-    # Определяем режим по типу запроса
-    my $mode = 'execute';
-    if ($sql =~ /^\s*SELECT/i) {
-        $mode = 'arrayref';
-    } elsif ($sql =~ /^\s*INSERT/i) {
-        $mode = 'id';
-    }
-    
-    return _execute_param($db, $sql, \@params, { mode => $mode });
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-# Получение одной записи с параметрами
-sub get_record_sql_param {
-    my ($db, $sql, @params) = @_;
-    return unless $db && $sql;
-    
-    # Добавляем LIMIT только если его еще нет в запросе
-    if ($sql !~ /\bLIMIT\s+\d+/i && $sql !~ /\bFETCH\s+FIRST\s+\d+/i) {
-        $sql .= ' LIMIT 1';
-    }
-    
-    return _execute_param($db, $sql, \@params, { mode => 'single' });
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-# Получение нескольких записей с параметрами
-sub get_records_sql_param {
-    my ($db, $sql, @params) = @_;
-    return unless $db && $sql;
-    return _execute_param($db, $sql, \@params, { mode => 'array' });
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-# Получение скалярного значения с параметрами
-sub get_scalar_sql_param {
-    my ($db, $sql, @params) = @_;
-    return unless $db && $sql;
-    
-    # Добавляем LIMIT только если его еще нет в запросе
-    if ($sql !~ /\bLIMIT\s+\d+/i && $sql !~ /\bFETCH\s+FIRST\s+\d+/i) {
-        $sql .= ' LIMIT 1';
-    }
-    
-    return _execute_param($db, $sql, \@params, { mode => 'scalar' });
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-# Получение количества записей с параметрами
-sub get_count_sql_param {
-    my ($db, $sql, @params) = @_;
-    return 0 unless $db && $sql;
-    
-    # Если это простой SELECT COUNT(*), используем скаляр
-    if ($sql =~ /SELECT\s+COUNT\(/i) {
-        return _execute_param($db, $sql, \@params, { mode => 'scalar' });
-    }
-    
-    # Иначе получаем запись и извлекаем count
-    my $record = get_record_sql_param($db, $sql, @params);
-    return $record ? $record->{count} || $record->{cnt} || $record->{total} || 0 : 0;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-# Обновленная функция get_option с параметризованными запросами (опционально)
-sub get_option_safe {
+# Обновленная функция get_option с параметризованными запросами
+sub get_option {
     my $db = shift;
     my $option_id = shift;
     return if (!$option_id);
@@ -570,7 +459,7 @@ sub get_option_safe {
         LIMIT 1
     };
     
-    my $record = get_record_sql_param($db, $sql, $option_id, $option_id);
+    my $record = get_record_sql($db, $sql, $option_id, $option_id);
     
     unless ($record) {
         log_error("Option ID $option_id not found in config_options table");
@@ -589,17 +478,14 @@ sub get_option_safe {
 
 #---------------------------------------------------------------------------------------------------------------
 
-
 sub get_count_records {
-my $db = shift;
-my $table = shift;
-my $filter = shift;
+my ($db, $table, $filter, @params) = @_;
 my $result = 0;
 return $result if (!$db);
 return $result if (!$table);
 my $sSQL='SELECT COUNT(*) as rec_cnt FROM '.$table;
 if ($filter) { $sSQL=$sSQL." WHERE ".$filter; }
-my $record = get_record_sql($db,$sSQL);
+my $record = get_record_sql($db,$sSQL, @params);
 if ($record->{rec_cnt}) { $result = $record->{rec_cnt}; }
 return $result;
 }
@@ -607,13 +493,11 @@ return $result;
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_id_record {
-my $db = shift;
-my $table = shift;
-my $filter = shift;
+my ($db, $table, $filter, @params) = @_;
 my $result = 0;
 return $result if (!$db);
 return $result if (!$table);
-my $record = get_record_sql($db,"SELECT id FROM $table WHERE $filter");
+my $record = get_record_sql($db,"SELECT id FROM $table WHERE $filter", @params);
 if ($record->{id}) { $result = $record->{id}; }
 return $result;
 }
@@ -621,386 +505,344 @@ return $result;
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_records_sql {
-my $db = shift;
-my $table = shift;
+my ($db, $sql, @params) = @_;
 my @result;
 return @result if (!$db);
-return @result if (!$table);
+return @result if (!$sql);
 unless (reconnect_db(\$db)) {
-log_error("No database connection available");
-return 0;
-}
-my $list = $db->prepare( $table ) or die "Unable to prepare $table:" . $db->errstr;
-$list->execute() or die "Unable to execute $table: " . $db->errstr;
-while(my $row_ref = $list->fetchrow_hashref()) { push(@result,$row_ref); }
-$list->finish();
-return @result;
+    log_error("No database connection available");
+    return @result;
+    }
+return _execute_param($db, $sql, \@params, { mode => 'array' });
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_record_sql {
-my $db = shift;
-my $tsql = shift;
+my ($db, $sql, @params) = @_;
 my @result;
 return @result if (!$db);
-return @result if (!$tsql);
-$tsql.=' LIMIT 1';
-my $row_ref;
+return @result if (!$sql);
+# Добавляем LIMIT только если его еще нет в запросе
+if ($sql !~ /\bLIMIT\s+\d+/i && $sql !~ /\bFETCH\s+FIRST\s+\d+/i) {
+        $sql .= ' LIMIT 1';
+    }
 # Переподключение
 unless (reconnect_db(\$db)) {
-log_error("No database connection available");
-return;
-}
-eval {
-my $list = $db->prepare($tsql) or die "Unable to prepare $tsql: " . $db->errstr;
-$list->execute() or die "Unable to execute $tsql: " . $db->errstr;
-$row_ref = $list->fetchrow_hashref();
-$list->finish();
-};
-if ($@) {
-log_error("Error apply sql: $tsql err:".$@);
-die "Error apply sql: $tsql";
-}
-return $row_ref;
+    log_error("No database connection available");
+    return;
+    }
+return _execute_param($db, $sql, \@params, { mode => 'single' });
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_diff_rec {
-my $db = shift;
-my $table = shift;
-my $value = shift;
-my $filter = shift;
-return if (!$db);
-return if (!$table);
-return if (!$filter);
-my $old_value = get_record_sql($db,"SELECT * FROM $table WHERE $filter");
+my ($db, $table, $record, $filter_sql, @filter_params) = @_;
+return unless $db && $table && $filter_sql;
+
+unless (reconnect_db(\$db)) {
+    log_error("No database connection available");
+    return;
+    }
+my $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter_sql",@filter_params);
+return unless $old_record;
 my $result;
-foreach my $field (keys %$value) {
-if (!$value->{$field}) { $value->{$field}=''; }
-if (!$old_value->{$field}) { $old_value->{$field}=''; }
-if ($value->{$field}!~/^$old_value->{$field}$/) { $result->{$field} = "$value->{$field} [ old: " . $old_value->{$field} . "]"; }
-}
+foreach my $field (keys %$record) {
+    if (!$record->{$field}) { $record->{$field}=''; }
+    if (!$old_record->{$field}) { $old_record->{$field}=''; }
+    if ($record->{$field}!~/^$old_record->{$field}$/) { $result->{$field} = "$record->{$field} [ old: " . $old_record->{$field} . "]"; }
+    }
 return hast_to_txt($result);
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub update_record {
-my $db = shift;
-my $table = shift;
-my $record = shift;
-my $filter = shift;
-
-return if (!$db);
-return if (!$table);
-return if (!$filter);
-
-# Переподключение
-unless (reconnect_db(\$db)) {
-log_error("No database connection available");
-return;
-}
-
-my $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter");
-my $diff='';
-my $change_str='';
-my $found_changed=0;
-
-my $rec_id = 0;
-my $dns_changed = 0;
-
-if ($table eq "user_auth") {
-$rec_id = $old_record->{'id'} if ($old_record->{'id'});
-#disable update field 'created_by'
-if ($old_record->{'created_by'} and exists ($record->{'created_by'})) { delete $record->{'created_by'}; }
-foreach my $field (keys %$record) {
-if (exists $acl_fields{$field}) { $record->{changed}="1"; }
-if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
-if (exists $dns_fields{$field}) { $dns_changed=1; }
-}
-}
-
-foreach my $field (keys %$record) {
-if (!defined $record->{$field}) { $record->{$field}=''; }
-if (!defined $old_record->{$field}) { $old_record->{$field}=''; }
-my $old_value = quotemeta($old_record->{$field});
-my $new_value = $record->{$field};
-$new_value=~s/\'//g;
-$new_value=~s/\"//g;
-if ($new_value!~/^$old_value$/) {
-$diff = $diff." $field => $record->{$field} (old: $old_record->{$field}),";
-# Разные методы экранирования для разных БД
-if ($config_ref{DBTYPE} eq 'mysql') {
-$change_str = $change_str." $field=".$db->quote($record->{$field}).",";
-} else {
-$change_str = $change_str." \"$field\"=".$db->quote($record->{$field}).",";
-}
-$found_changed++;
-}
-}
-
-if ($found_changed) {
-$change_str=~s/\,$//;
-$diff=~s/\,$//;
-if ($table eq 'user_auth') {
-$change_str .= ", changed_time='".GetNowTime()."'";
-if ($dns_changed) {
-my $del_dns;
-if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
-$del_dns->{'name_type'}='A';
-$del_dns->{'name'}=$old_record->{'dns_name'};
-$del_dns->{'value'}=$old_record->{'ip'};
-$del_dns->{'operation_type'}='del';
-if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
-insert_record($db,'dns_queue',$del_dns);
-}
-if ($old_record->{'dns_name'} and $old_record->{'ip'} and $old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
-$del_dns->{'name_type'}='PTR';
-$del_dns->{'name'}=$old_record->{'dns_name'};
-$del_dns->{'value'}=$old_record->{'ip'};
-$del_dns->{'operation_type'}='del';
-if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
-insert_record($db,'dns_queue',$del_dns);
-}
-my $new_dns;
-my $dns_rec_ip = $old_record->{ip};
-my $dns_rec_name = $old_record->{dns_name};
-if ($record->{'dns_name'}) { $dns_rec_name = $record->{'dns_name'}; }
-if ($record->{'ip'}) { $dns_rec_ip = $record->{'ip'}; }
-if ($dns_rec_name and $dns_rec_ip and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
-$new_dns->{'name_type'}='A';
-$new_dns->{'name'}=$dns_rec_name;
-$new_dns->{'value'}=$dns_rec_ip;
-$new_dns->{'operation_type'}='add';
-if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
-insert_record($db,'dns_queue',$new_dns);
-}
-if ($dns_rec_name and $dns_rec_ip and $record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
-$new_dns->{'name_type'}='PTR';
-$new_dns->{'name'}=$dns_rec_name;
-$new_dns->{'value'}=$dns_rec_ip;
-$new_dns->{'operation_type'}='add';
-if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
-insert_record($db,'dns_queue',$new_dns);
-}
-}
-}
-if ($table eq 'user_auth_alias') {
-if ($dns_changed) {
-my $del_dns;
-if ($old_record->{'alias'} and $old_record->{'alias'}!~/\.$/) {
-$del_dns->{'name_type'}='CNAME';
-$del_dns->{'name'}=$old_record->{'alias'};
-$del_dns->{'operation_type'}='del';
-$del_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
-$del_dns->{'auth_id'}=$old_record->{auth_id};
-insert_record($db,'dns_queue',$del_dns);
-}
-my $new_dns;
-my $dns_rec_name = $old_record->{alias};
-if ($record->{'alias'}) { $dns_rec_name = $record->{'alias'}; }
-if ($dns_rec_name and $record->{'alias'}!~/\.$/) {
-$new_dns->{'name_type'}='CNAME';
-$new_dns->{'name'}=$dns_rec_name;
-$new_dns->{'operation_type'}='add';
-$new_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
-$new_dns->{'auth_id'}=$rec_id;
-insert_record($db,'dns_queue',$new_dns);
-}
-}
-}
-my $sSQL = "UPDATE $table SET $change_str WHERE $filter";
-db_log_debug($db,'Change table '.$table.' for '.$filter.' set: '.$diff, $rec_id);
-do_sql($db,$sSQL);
-}
-return 1;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
 sub insert_record {
-my $db = shift;
-my $table = shift;
-my $record = shift;
-return if (!$db);
-return if (!$table);
-my $change_str='';
-my $fields='';
-my $values='';
-my $new_str='';
+my ($db, $table, $record) = @_;
+return unless $db && $table;
 
-my $rec_id = 0;
-my $dns_changed = 0;
-
-# Переподключение
 unless (reconnect_db(\$db)) {
-log_error("No database connection available");
-return;
-}
+    log_error("No database connection available");
+    return;
+    }
+
+my $dns_changed = 0;
+my $rec_id = 0;
 
 if ($table eq "user_auth") {
-foreach my $field (keys %$record) {
-if (exists $acl_fields{$field}) { $record->{changed}="1"; }
-if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
-if (exists $dns_fields{$field}) { $dns_changed=1; }
-}
-}
+    foreach my $field (keys %$record) {
+	if (exists $acl_fields{$field}) { $record->{changed}="1"; }
+	if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
+	if (exists $dns_fields{$field}) { $dns_changed=1; }
+	}
+    }
+
+my @insert_params;
+my $fields = '';
+my $values = '';
+my $new_str = '';
 
 foreach my $field (keys %$record) {
-if (!defined $record->{$field}) { $record->{$field}=''; }
-my $new_value = $record->{$field};
-$new_value=~s/\'//g;
-$new_value=~s/\"//g;
-$record->{$field} = $new_value;
-# Разные методы экранирования имен полей для разных БД
-if ($config_ref{DBTYPE} eq 'mysql') {
-$fields = $fields."$field,";
-} else {
-$fields = $fields."\"$field\",";
-}
-$values = $values." ".$db->quote($record->{$field}).",";
-$new_str = $new_str." $field => $record->{$field},";
+    my $val = defined $record->{$field} ? $record->{$field} : undef;
+    # Экранируем имя поля в зависимости от СУБД
+    my $quoted_field = $config_ref{DBTYPE} eq 'mysql'
+        ? '`' . $field . '`'
+        : '"' . $field . '"';
+    $fields .= "$quoted_field, ";
+    $values .= "?, ";
+    push @insert_params, $val;
+    # Для лога — безопасное представление
+    my $log_val = defined $val ? substr($val, 0, 200) : 'NULL';
+    $log_val =~ s/[^[:print:]]/_/g;
+    $new_str .= " $field => $log_val,";
 }
 
-$fields=~s/,$//;
-$values=~s/,$//;
-$new_str=~s/,$//;
+$fields =~ s/,\s*$//;
+$values =~ s/,\s*$//;
 
 my $sSQL = "INSERT INTO $table($fields) VALUES($values)";
-my $result = do_sql($db,$sSQL);
+my $result = do_sql($db,$sSQL,@insert_params);
 if ($result) {
-$rec_id = $result if ($table eq "user_auth");
-$new_str='id: '.$result.' '.$new_str;
-if ($table eq 'user_auth_alias' and $dns_changed) {
-if ($record->{'alias'} and $record->{'alias'}!~/\.$/) {
-my $add_dns;
-$add_dns->{'name_type'}='CNAME';
-$add_dns->{'name'}=$record->{'alias'};
-$add_dns->{'value'}=get_dns_name($db,$record->{'auth_id'});
-$add_dns->{'operation_type'}='add';
-$add_dns->{'auth_id'}=$record->{'auth_id'};
-insert_record($db,'dns_queue',$add_dns);
-}
-}
-if ($table eq 'user_auth' and $dns_changed) {
-if ($record->{'dns_name'} and $record->{'ip'} and $dns_changed and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
-my $add_dns;
-$add_dns->{'name_type'}='A';
-$add_dns->{'name'}=$record->{'dns_name'};
-$add_dns->{'value'}=$record->{'ip'};
-$add_dns->{'operation_type'}='add';
-$add_dns->{'auth_id'}=$result;
-insert_record($db,'dns_queue',$add_dns);
-}
-if ($record->{'dns_name'} and $record->{'ip'} and $dns_changed and $record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
-my $add_dns;
-$add_dns->{'name_type'}='PTR';
-$add_dns->{'name'}=$record->{'dns_name'};
-$add_dns->{'value'}=$record->{'ip'};
-$add_dns->{'operation_type'}='add';
-$add_dns->{'auth_id'}=$result;
-insert_record($db,'dns_queue',$add_dns);
-}
-}
-}
+    $rec_id = $result if ($table eq "user_auth");
+    $new_str='id: '.$result.' '.$new_str;
+    if ($table eq 'user_auth_alias' and $dns_changed) {
+	if ($record->{'alias'} and $record->{'alias'}!~/\.$/) {
+	    my $add_dns;
+	    $add_dns->{'name_type'}='CNAME';
+	    $add_dns->{'name'}=$record->{'alias'};
+	    $add_dns->{'value'}=get_dns_name($db,$record->{'auth_id'});
+	    $add_dns->{'operation_type'}='add';
+	    $add_dns->{'auth_id'}=$record->{'auth_id'};
+	    insert_record($db,'dns_queue',$add_dns);
+	    }
+	}
+    if ($table eq 'user_auth' and $dns_changed) {
+	if ($record->{'dns_name'} and $record->{'ip'} and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+	    my $add_dns;
+	    $add_dns->{'name_type'}='A';
+	    $add_dns->{'name'}=$record->{'dns_name'};
+	    $add_dns->{'value'}=$record->{'ip'};
+	    $add_dns->{'operation_type'}='add';
+	    $add_dns->{'auth_id'}=$result;
+	    insert_record($db,'dns_queue',$add_dns);
+	    }
+	if ($record->{'dns_name'} and $record->{'ip'} and $record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+	    my $add_dns;
+	    $add_dns->{'name_type'}='PTR';
+	    $add_dns->{'name'}=$record->{'dns_name'};
+	    $add_dns->{'value'}=$record->{'ip'};
+	    $add_dns->{'operation_type'}='add';
+	    $add_dns->{'auth_id'}=$result;
+	    insert_record($db,'dns_queue',$add_dns);
+	    }
+	}
+    }
 db_log_debug($db,'Add record to table '.$table.' '.$new_str,$rec_id);
 return $result;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub delete_record {
-my $db = shift;
-my $table = shift;
-my $filter = shift;
-return if (!$db);
-return if (!$table);
-return if (!$filter);
-my $rec_id = 0;
+sub update_record {
+my ($db, $table, $record, $filter_sql, @filter_params) = @_;
 
-# Переподключение
+return unless $db && $table && $filter_sql;
+
 unless (reconnect_db(\$db)) {
-log_error("No database connection available");
-return;
+    log_error("No database connection available");
+    return;
+    }
+
+my $select_sql = "SELECT * FROM $table WHERE $filter_sql";
+my $old_record = get_record_sql($db, $select_sql, @filter_params);
+return unless $old_record;
+
+my @update_params;
+my $set_clause = '';
+my $dns_changed = 0;
+my $rec_id = $old_record->{id} || 0;
+
+if ($table eq "user_auth") {
+    $rec_id = $old_record->{'id'} if ($old_record->{'id'});
+    #disable update field 'created_by'
+    if ($old_record->{'created_by'} and exists ($record->{'created_by'})) { delete $record->{'created_by'}; }
+    foreach my $field (keys %$record) {
+	if (exists $acl_fields{$field}) { $record->{changed}="1"; }
+        if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
+	if (exists $dns_fields{$field}) { $dns_changed=1; }
+        }
+    }
+
+my $diff = '';
+for my $field (keys %$record) {
+        my $old_val = defined $old_record->{$field} ? $old_record->{$field} : '';
+        my $new_val = defined $record->{$field} ? $record->{$field} : '';
+        if ($new_val ne $old_val) {
+            $diff .= " $field => $new_val (old: $old_val),";
+            $set_clause .= " $field = ?, ";
+            push @update_params, $new_val;
+        }
+    }
+
+return 1 unless $set_clause;
+
+# Добавляем служебные поля
+if ($table eq 'user_auth') {
+        $set_clause .= "changed_time = ?, ";
+        push @update_params, GetNowTime();
+    }
+
+$set_clause =~ s/,\s*$//;
+$diff =~ s/,\s*$//;
+
+if ($table eq 'user_auth') {
+	if ($dns_changed) {
+	    my $del_dns;
+	    if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
+		    $del_dns->{'name_type'}='A';
+		    $del_dns->{'name'}=$old_record->{'dns_name'};
+		    $del_dns->{'value'}=$old_record->{'ip'};
+		    $del_dns->{'operation_type'}='del';
+		    if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
+		    insert_record($db,'dns_queue',$del_dns);
+		    }
+	    if ($old_record->{'dns_name'} and $old_record->{'ip'} and $old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
+		    $del_dns->{'name_type'}='PTR';
+		    $del_dns->{'name'}=$old_record->{'dns_name'};
+		    $del_dns->{'value'}=$old_record->{'ip'};
+		    $del_dns->{'operation_type'}='del';
+		    if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
+		    insert_record($db,'dns_queue',$del_dns);
+		    }
+	    my $new_dns;
+	    my $dns_rec_ip = $old_record->{ip};
+	    my $dns_rec_name = $old_record->{dns_name};
+	    if ($record->{'dns_name'}) { $dns_rec_name = $record->{'dns_name'}; }
+	    if ($record->{'ip'}) { $dns_rec_ip = $record->{'ip'}; }
+	    if ($dns_rec_name and $dns_rec_ip and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+		$new_dns->{'name_type'}='A';
+		$new_dns->{'name'}=$dns_rec_name;
+		$new_dns->{'value'}=$dns_rec_ip;
+		$new_dns->{'operation_type'}='add';
+		if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
+		insert_record($db,'dns_queue',$new_dns);
+		}
+	    if ($dns_rec_name and $dns_rec_ip and $record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+		$new_dns->{'name_type'}='PTR';
+		$new_dns->{'name'}=$dns_rec_name;
+		$new_dns->{'value'}=$dns_rec_ip;
+		$new_dns->{'operation_type'}='add';
+		if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
+		insert_record($db,'dns_queue',$new_dns);
+		}
+	    }
+	}
+
+if ($table eq 'user_auth_alias') {
+	if ($dns_changed) {
+	    my $del_dns;
+	    if ($old_record->{'alias'} and $old_record->{'alias'}!~/\.$/) {
+	    $del_dns->{'name_type'}='CNAME';
+	    $del_dns->{'name'}=$old_record->{'alias'};
+	    $del_dns->{'operation_type'}='del';
+	    $del_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
+	    $del_dns->{'auth_id'}=$old_record->{auth_id};
+	    insert_record($db,'dns_queue',$del_dns);
+	    }
+	    my $new_dns;
+	    my $dns_rec_name = $old_record->{alias};
+	    if ($record->{'alias'}) { $dns_rec_name = $record->{'alias'}; }
+	    if ($dns_rec_name and $record->{'alias'}!~/\.$/) {
+		$new_dns->{'name_type'}='CNAME';
+		$new_dns->{'name'}=$dns_rec_name;
+		$new_dns->{'operation_type'}='add';
+		$new_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
+		$new_dns->{'auth_id'}=$rec_id;
+		insert_record($db,'dns_queue',$new_dns);
+		}
+	    }
+	}
+
+# Формируем полный список параметров: сначала SET, потом WHERE
+my @all_params = (@update_params, @filter_params);
+my $update_sql = "UPDATE $table SET $set_clause WHERE $filter_sql";
+db_log_debug($db, "Change table $table for $filter_sql set: $diff", $rec_id);
+return do_sql($db, $update_sql, @all_params);
 }
 
-my $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter");
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub delete_record {
+my ($db, $table, $filter_sql, @filter_params) = @_;
+return unless $db && $table && $filter_sql;
+
+unless (reconnect_db(\$db)) {
+    log_error("No database connection available");
+    return;
+    }
+
+my $select_sql = "SELECT * FROM $table WHERE $filter_sql";
+my $old_record = get_record_sql($db, $select_sql, @filter_params);
+return unless $old_record;
+
+my $rec_id = 0;
 
 my $diff='';
 foreach my $field (keys %$old_record) {
-if (!$old_record->{$field}) { $old_record->{$field}=''; }
-$diff = $diff." $field => $old_record->{$field},";
-}
-$diff=~s/,$//;
+    if (!$old_record->{$field}) { $old_record->{$field}=''; }
+    $diff = $diff." $field => $old_record->{$field},";
+    }
+$diff=~s/,\s*$//;
 
 if ($table eq 'user_auth') {
-$rec_id = $old_record->{'id'} if ($old_record->{'id'});
-}
+    $rec_id = $old_record->{'id'} if ($old_record->{'id'});
+    }
 
-db_log_debug($db,'Delete record from table  '.$table.' value: '.$diff, $rec_id);
+db_log_debug($db,'Delete record from table '.$table.' value: '.$diff, $rec_id);
+
 #never delete user ip record!
 if ($table eq 'user_auth') {
-my $sSQL = "UPDATE user_auth SET changed=1, deleted=1, changed_time='".GetNowTime()."' WHERE ".$filter;
-my $ret = do_sql($db,$sSQL);
-if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
-my $del_dns;
-$del_dns->{'name_type'}='A';
-$del_dns->{'name'}=$old_record->{'dns_name'};
-$del_dns->{'value'}=$old_record->{'ip'};
-$del_dns->{'operation_type'}='del';
-$del_dns->{'auth_id'}=$old_record->{'id'};
-insert_record($db,'dns_queue',$del_dns);
-}
-if ($old_record->{'dns_name'} and $old_record->{'ip'} and $old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
-my $del_dns;
-$del_dns->{'name_type'}='PTR';
-$del_dns->{'name'}=$old_record->{'dns_name'};
-$del_dns->{'value'}=$old_record->{'ip'};
-$del_dns->{'operation_type'}='del';
-$del_dns->{'auth_id'}=$old_record->{'id'};
-insert_record($db,'dns_queue',$del_dns);
-}
-return $ret;
-}
+    my $sSQL = "UPDATE user_auth SET changed = 1, deleted = 1, changed_time = ? WHERE $filter_sql";
+    my $ret = do_sql($db, $sSQL, GetNowTime(), @filter_params);
+    if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
+	my $del_dns;
+	$del_dns->{'name_type'}='A';
+	$del_dns->{'name'}=$old_record->{'dns_name'};
+	$del_dns->{'value'}=$old_record->{'ip'};
+	$del_dns->{'operation_type'}='del';
+	$del_dns->{'auth_id'}=$old_record->{'id'};
+	insert_record($db,'dns_queue',$del_dns);
+	}
+    if ($old_record->{'dns_name'} and $old_record->{'ip'} and $old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
+	my $del_dns;
+	$del_dns->{'name_type'}='PTR';
+	$del_dns->{'name'}=$old_record->{'dns_name'};
+	$del_dns->{'value'}=$old_record->{'ip'};
+	$del_dns->{'operation_type'}='del';
+	$del_dns->{'auth_id'}=$old_record->{'id'};
+	insert_record($db,'dns_queue',$del_dns);
+	}
+    return $ret;
+    }
 
 if ($table eq 'user_list' and $old_record->{'permanent'}) { return; }
 
 if ($table eq 'user_auth_alias') {
-if ($old_record->{'alias'} and $old_record->{'auth_id'} and $old_record->{'alias'}!~/\.$/) {
-my $del_dns;
-$del_dns->{'name_type'}='CNAME';
-$del_dns->{'name'}=$old_record->{'alias'};
-$del_dns->{'value'}=get_dns_name($db,$old_record->{'auth_id'});
-$del_dns->{'operation_type'}='del';
-$del_dns->{'auth_id'}=$old_record->{'auth_id'};
-insert_record($db,'dns_queue',$del_dns);
-}
-}
+    if ($old_record->{'alias'} and $old_record->{'auth_id'} and $old_record->{'alias'}!~/\.$/) {
+	my $del_dns;
+	$del_dns->{'name_type'}='CNAME';
+	$del_dns->{'name'}=$old_record->{'alias'};
+	$del_dns->{'value'}=get_dns_name($db,$old_record->{'auth_id'});
+	$del_dns->{'operation_type'}='del';
+	$del_dns->{'auth_id'}=$old_record->{'auth_id'};
+	insert_record($db,'dns_queue',$del_dns);
+	}
+    }
 
-my $sSQL = "DELETE FROM ".$table." WHERE ".$filter;
-return do_sql($db,$sSQL);
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_option {
-my $db=shift;
-my $option_id=shift;
-return if (!$option_id);
-return if (!$db);
-my $default_option = get_record_sql($db,'SELECT * FROM config_options WHERE id='.$option_id);
-my $config_options = get_record_sql($db,'SELECT * FROM config WHERE option_id='.$option_id);
-my $result;
-if (!$config_options) {
-if ($default_option->{'option_type'}=~/^(int|bool)/i) { $result = $default_option->{'default_value'}*1; };
-if ($default_option->{'option_type'}=~/^(string|text)/i) { $result = $default_option->{'default_value'}; }
-if ($default_option->{'option_type'}=~/^list/i) { $result = $default_option->{'default_value'}; }
-return $result;
-}
-$result = $config_options->{'value'};
-return $result;
+my $sSQL = "DELETE FROM ".$table." WHERE ".$filter_sql;
+return do_sql($db,$sSQL,@filter_params);
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -1016,11 +858,11 @@ if ($version_record) { $config_ref{version}=$version_record->{version}; }
 
 $config_ref{self_ip} = '127.0.0.1';
 if ($DBHOST ne '127.0.0.1') {
-my $ip_route = qx(ip r get $DBHOST 2>&1 | head -1);
-if ($? == 0) {
-if ($ip_route =~ /src\s+(\d+\.\d+\.\d+\.\d+)/) { $config_ref{self_ip} = $1; }
-}
-}
+    my $ip_route = qx(ip r get $DBHOST 2>&1 | head -1);
+    if ($? == 0) {
+	if ($ip_route =~ /src\s+(\d+\.\d+\.\d+\.\d+)/) { $config_ref{self_ip} = $1; }
+        }
+    }
 
 $config_ref{dbh}=$db;
 $config_ref{save_detail}=get_option($db,23);
@@ -1164,100 +1006,98 @@ $all_networks = new Net::Patricia;
 @all_network_list=();
 
 foreach my $net (@subnets) {
-next if (!$net->{subnet});
-$subnets_ref{$net->{subnet}}=$net;
-if ($net->{office}) {
-push(@office_network_list,$net->{subnet});
-$office_networks->add_string($net->{subnet},$net);
-}
-
-if ($net->{free}) {
-push(@free_network_list,$net->{subnet});
-$free_networks->add_string($net->{subnet},$net);
-}
-
-if ($net->{vpn}) {
-push(@vpn_network_list,$net->{subnet});
-$vpn_networks->add_string($net->{subnet},$net);
-}
-
-if ($net->{hotspot}) {
-push(@hotspot_network_list,$net->{subnet});
-push(@all_network_list,$net->{subnet});
-$hotspot_networks->add_string($net->{subnet},$net);
-}
-push(@all_network_list,$net->{subnet});
-$all_networks->add_string($net->{subnet},$net);
-}
-
+    next if (!$net->{subnet});
+    $subnets_ref{$net->{subnet}}=$net;
+    if ($net->{office}) {
+	push(@office_network_list,$net->{subnet});
+	$office_networks->add_string($net->{subnet},$net);
+	}
+    if ($net->{free}) {
+	push(@free_network_list,$net->{subnet});
+	$free_networks->add_string($net->{subnet},$net);
+	}
+    if ($net->{vpn}) {
+	push(@vpn_network_list,$net->{subnet});
+	$vpn_networks->add_string($net->{subnet},$net);
+	}
+    if ($net->{hotspot}) {
+	push(@hotspot_network_list,$net->{subnet});
+	push(@all_network_list,$net->{subnet});
+	$hotspot_networks->add_string($net->{subnet},$net);
+	}
+    push(@all_network_list,$net->{subnet});
+    $all_networks->add_string($net->{subnet},$net);
+    }
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub Set_Variable {
-my $db = shift;
-my $name = shift || $MY_NAME;
-my $value = shift || $$;
-my $timeshift = shift || 60;
+    my ($db, $name, $value, $timeshift) = @_;
+    $name //= $MY_NAME;
+    $value //= $$;
+    $timeshift //= 60;
 
-Del_Variable($db,$name);
-my $clean_variables = time() + $timeshift;
-my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_variables);
-$month++;
-$year += 1900;
-my $clean_str=sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
-my $clean_variables_date=$db->quote($clean_str);
-do_sql($db,"INSERT INTO variables(name,value,clear_time) VALUES('".$name."','".$value."',".$clean_variables_date.");");
+    Del_Variable($db, $name);
+
+    my $clean_time = time() + $timeshift;
+    my ($sec, $min, $hour, $day, $month, $year) = localtime($clean_time);
+    $month++;
+    $year += 1900;
+    my $clear_time_str = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $year, $month, $day, $hour, $min, $sec;
+
+    my $sql = "INSERT INTO variables (name, value, clear_time) VALUES (?, ?, ?)";
+    do_sql($db, $sql, $name, $value, $clear_time_str);
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub Get_Variable {
-my $db = shift;
-my $name = shift || $MY_NAME;
-my $variable=get_record_sql($db,'SELECT value FROM variables WHERE name=\''.$name.'\'');
-if ($variable and $variable->{'value'}) { return $variable->{'value'}; }
-return;
+    my $db = shift;
+    my $name = shift || $MY_NAME;
+    my $variable = get_record_sql($db, 'SELECT value FROM variables WHERE name = ?', $name);
+    if ($variable and $variable->{'value'}) { return $variable->{'value'}; }
+    return;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub Del_Variable {
-my $db = shift;
-my $name = shift || $MY_NAME;
-do_sql($db,"DELETE FROM variables WHERE name='".$name."';");
+    my ($db, $name) = @_;
+    $name //= $MY_NAME;
+    do_sql($db, "DELETE FROM variables WHERE name = ?", $name);
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub clean_variables {
-my $db = shift;
-#clean temporary variables
-my $clean_variables = time();
-my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_variables);
-$month++;
-$year += 1900;
-my $now_str=sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
-my $clean_variables_date=$db->quote($now_str);
-do_sql($db,"DELETE FROM variables WHERE clear_time<=$clean_variables_date");
+    my ($db) = @_;
 
-#clean old AD computer cache
-my $now = DateTime->now(time_zone=>'local');
-my $day_dur = DateTime::Duration->new( days => 1 );
-my $clean_date = $now - $day_dur;
-my $clean_str = $db->quote($clean_date->ymd("-")." 00:00:00");
-do_sql($db,"DELETE FROM ad_comp_cache WHERE last_found<=$clean_str");
+    # 1. Clean temporary variables
+    my $now = time();
+    my ($sec, $min, $hour, $day, $month, $year) = localtime($now);
+    $month++;
+    $year += 1900;
+    my $now_str = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $year, $month, $day, $hour, $min, $sec;
+
+    do_sql($db, "DELETE FROM variables WHERE clear_time <= ?", $now_str);
+
+    # 2. Clean old AD computer cache
+    my $yesterday = DateTime->now(time_zone => 'local')->subtract(days => 1);
+    my $clean_str = $yesterday->strftime("%Y-%m-%d 00:00:00");
+
+    do_sql($db, "DELETE FROM ad_comp_cache WHERE last_found <= ?", $clean_str);
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 #skip init for upgrade
 if ($MY_NAME!~/upgrade.pl/) {
-$dbh=init_db();
-init_option($dbh);
-clean_variables($dbh);
-Set_Variable($dbh);
-}
+    $dbh=init_db();
+    init_option($dbh);
+    clean_variables($dbh);
+    Set_Variable($dbh);
+    }
 
 1;
 }

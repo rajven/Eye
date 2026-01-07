@@ -34,7 +34,7 @@ my %huntgroups=(
 
 my @device_list = get_records_sql($dbh,"SELECT * FROM devices WHERE device_type<=2 ORDER BY device_name" );
 foreach my $device (sort @device_list) {
-my @auth_list = get_records_sql($dbh,"SELECT * FROM user_auth WHERE deleted=0 AND user_id=".$device->{user_id});
+my @auth_list = get_records_sql($dbh,"SELECT * FROM user_auth WHERE deleted=0 AND user_id=?",$device->{user_id});
     print "#$device->{device_name}\n";
     foreach my $auth (sort @auth_list) {
     if (exists $huntgroups{$device->{vendor_id}}) {

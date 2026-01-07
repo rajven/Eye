@@ -261,7 +261,7 @@ db_log_debug($f_dbh,"Stopped child $child_count analyze data") if ($debug);
 
 if (scalar(@detail_traffic)) {
         db_log_debug($f_dbh,"Start write traffic detail to DB. ".scalar @detail_traffic." lines count") if ($debug);
-	batch_db_sql_cached("INSERT INTO traffic_detail (auth_id,router_id,ts,proto,src_ip,dst_ip,src_port,dst_port,bytes,pkt) VALUES(?,?,?,?,?,?,?,?,?,?)",\@detail_traffic);
+	batch_db_sql_cached($f_dbh,"INSERT INTO traffic_detail (auth_id,router_id,ts,proto,src_ip,dst_ip,src_port,dst_port,bytes,pkt) VALUES(?,?,?,?,?,?,?,?,?,?)",\@detail_traffic);
         db_log_debug($f_dbh,"Write traffic detail to DB stopped") if ($debug);
 	}
 

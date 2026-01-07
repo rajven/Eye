@@ -165,8 +165,8 @@ eval {
             }
 
         my $q_msg=$db->quote($message);
-        my $ssql="INSERT INTO remote_syslog(device_id,ip,message) values('".$id."','".$host_ip."',".$q_msg.")";
-        do_sql($db,$ssql);
+        my $ssql="INSERT INTO remote_syslog(device_id,ip,message) values(?,?,?)";
+        do_sql($db,$ssql,$id,$host_ip,$q_msg);
 
         foreach my $pattern (keys %warning_patterns) {
             next if (!$pattern);
