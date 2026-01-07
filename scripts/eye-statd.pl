@@ -861,17 +861,20 @@ batch_db_sql_cached($tSQL,\@batch_auth_status);
 $tSQL="INSERT INTO user_stats_full (ts,auth_id,router_id,byte_in,byte_out,pkt_in,pkt_out,step) VALUES( ?, ?, ?, ?, ?, ?, ?, ?)";
 batch_db_sql_cached($tSQL,\@batch_user_stats_full);
 
-my $dSQL="INSERT INTO user_stats (ts,auth_id,router_id,byte_in,byte_out)  VALUES( ?, ?, ?, ?, ?, ?)";
+$tSQL="INSERT INTO user_stats (ts,auth_id,router_id,byte_in,byte_out)  VALUES( ?, ?, ?, ?, ?, ?)";
 batch_db_sql_cached($tSQL,\@batch_user_stats);
 
 $tSQL="UPDATE user_stats SET byte_in= ?, byte_out= ? WHERE id= ? AND router_id= ?";
 batch_db_sql_cached($tSQL,\@batch_user_stats_update);
 
-#update statistics in DB
-my $tSQL="INSERT INTO wan_stats (ts,router_id,interface_id,bytes_in,bytes_out,forward_in,forward_out) VALUES( ?, ?, ?, ?, ?, ?, ?)";
+$tSQL="INSERT INTO wan_stats (ts,router_id,interface_id,bytes_in,bytes_out,forward_in,forward_out) VALUES( ?, ?, ?, ?, ?, ?, ?)";
 batch_db_sql_cached($tSQL,\@batch_wan_stats);
 
-@batch_sql_traf = ();
+@batch_user_stats=();
+@batch_user_stats_update=();
+@batch_user_stats_full=();
+@batch_auth_status=();
+@batch_wan_stats=();
 
 if ($config_ref{enable_quotes}) {
     db_log_debug($hdb,"Recalc quotes started");

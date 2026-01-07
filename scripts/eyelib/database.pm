@@ -370,78 +370,6 @@ if ($sql =~ /^insert/i) {
 
 #---------------------------------------------------------------------------------------------------------------
 
-# Внутренняя функция для выполнения параметризованных запросов
-sub _execute_param {
-    my ($db, $sql, $params, $options) = @_;
-    
-    return unless $db && $sql;
-    
-    # Логируем не-SELECT-запросы
-    unless ($sql =~ /^\s*SELECT/i) {
-        log_debug( $sql . ($params ? ' | params: [' . join(', ', map { defined $_ ? $_ : 'undef' } @$params) . ']' : ''));
-    }
-    # Переподключение
-    unless (reconnect_db(\$db)) {
-        log_error("No database connection available");
-        return wantarray ? () : undef;
-    }
-    my $mode = $options->{mode} || 'execute';
-    eval {
-        my $sth = $db->prepare($sql) or die "Unable to prepare SQL [$sql]: " . $db->errstr;
-        my $rv = $params ? $sth->execute(@$params) : $sth->execute();
-        unless ($rv) {
-            die "Unable to execute SQL [$sql]" . ($params ? " with params: [" . join(', ', @$params) . "]" : "") . ": " . $sth->errstr;
-        }
-        if ($mode eq 'single') {
-            my $row = $sth->fetchrow_hashref();
-            $sth->finish();
-            return $row;
-        }
-        elsif ($mode eq 'array') {
-            my @rows;
-            while (my $row = $sth->fetchrow_hashref()) {
-                push @rows, $row;
-            }
-            $sth->finish();
-            return @rows;
-        }
-        elsif ($mode eq 'arrayref') {
-            my $rows = $sth->fetchall_arrayref({});
-            $sth->finish();
-            return $rows;
-        }
-        elsif ($mode eq 'scalar') {
-            my $row = $sth->fetchrow_arrayref();
-            $sth->finish();
-            return $row ? $row->[0] : undef;
-        }
-        elsif ($mode eq 'id') {
-            if ($sql =~ /^\s*INSERT/i) {
-                my $id;
-                if ($config_ref{DBTYPE} and $config_ref{DBTYPE} eq 'mysql') {
-                    $id = $sth->{mysql_insertid};
-                } else {
-                    ($id) = $db->selectrow_array("SELECT lastval()");
-                }
-                $sth->finish();
-                return $id || 0;
-            }
-            $sth->finish();
-            return 1;
-        }
-        else {
-            $sth->finish();
-            return 1;
-        }
-    };
-    if ($@) {
-        log_error("Error executing SQL [$sql]: " . $@);
-        return wantarray ? () : undef;
-    }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
 # Обновленная функция get_option с параметризованными запросами
 sub get_option {
     my $db = shift;
@@ -476,6 +404,120 @@ sub get_option {
     return $result;
 }
 
+
+#---------------------------------------------------------------------------------------------------------------
+
+# Внутренняя функция для выполнения параметризованных запросов
+sub _execute_param {
+    my ($db, $sql, $params, $options) = @_;
+    return unless $db && $sql;
+    
+    # Логируем не-SELECT-запросы
+    unless ($sql =~ /^\s*SELECT/i) {
+        log_debug( $sql . ($params ? ' | params: [' . join(', ', map { defined $_ ? $_ : 'undef' } @$params) . ']' : ''));
+    }
+    
+    # Переподключение
+    unless (reconnect_db(\$db)) {
+        log_error("No database connection available");
+        return wantarray ? () : undef;
+    }
+    
+    my $mode = $options->{mode} || 'execute';
+    
+    my $sth = $db->prepare($sql) or do {
+        log_error("Unable to prepare SQL [$sql]: " . $db->errstr);
+        return wantarray ? () : undef;
+    };
+    
+    my $rv = $params ? $sth->execute(@$params) : $sth->execute();
+    
+    unless ($rv) {
+        log_error("Unable to execute SQL [$sql]" . ($params ? " with params: [" . join(', ', @$params) . "]" : "") . ": " . $sth->errstr);
+        $sth->finish();
+        return wantarray ? () : undef;
+    }
+    
+    if ($mode eq 'single') {
+        my $row = $sth->fetchrow_hashref();
+        $sth->finish();
+        return $row;
+    }
+    elsif ($mode eq 'array') {
+        my @rows;
+        while (my $row = $sth->fetchrow_hashref()) {
+            push @rows, $row;
+        }
+        $sth->finish();
+        return \@rows;
+    }
+    elsif ($mode eq 'arrayref') {
+        my $rows = $sth->fetchall_arrayref({});
+        $sth->finish();
+        return $rows;
+    }
+    elsif ($mode eq 'scalar') {
+        my $row = $sth->fetchrow_arrayref();
+        $sth->finish();
+        return $row ? $row->[0] : undef;
+    }
+    elsif ($mode eq 'id') {
+        if ($sql =~ /^\s*INSERT/i) {
+            my $id;
+            if ($config_ref{DBTYPE} and $config_ref{DBTYPE} eq 'mysql') {
+                $id = $sth->{mysql_insertid};
+            } else {
+                ($id) = $db->selectrow_array("SELECT lastval()");
+            }
+            $sth->finish();
+            return $id || 0;
+        }
+        $sth->finish();
+        return 1;
+    }
+    else {
+        $sth->finish();
+        return 1;
+    }
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_records_sql {
+my ($db, $sql, @params) = @_;
+my @result;
+return @result if (!$db);
+return @result if (!$sql);
+unless (reconnect_db(\$db)) {
+    log_error("No database connection available");
+    return @result;
+    }
+my $result_ref = _execute_param($db, $sql, \@params, { mode => 'array' });
+if (ref($result_ref) eq 'ARRAY') {
+        @result = @$result_ref;
+    }
+return @result;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_record_sql {
+my ($db, $sql, @params) = @_;
+my @result;
+return @result if (!$db);
+return @result if (!$sql);
+# Добавляем LIMIT только если его еще нет в запросе
+if ($sql !~ /\bLIMIT\s+\d+/i && $sql !~ /\bFETCH\s+FIRST\s+\d+/i) {
+        $sql .= ' LIMIT 1';
+    }
+# Переподключение
+unless (reconnect_db(\$db)) {
+    log_error("No database connection available");
+    return;
+    }
+return _execute_param($db, $sql, \@params, { mode => 'single' });
+}
+
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_count_records {
@@ -503,37 +545,6 @@ return $result;
 }
 
 #---------------------------------------------------------------------------------------------------------------
-
-sub get_records_sql {
-my ($db, $sql, @params) = @_;
-my @result;
-return @result if (!$db);
-return @result if (!$sql);
-unless (reconnect_db(\$db)) {
-    log_error("No database connection available");
-    return @result;
-    }
-return _execute_param($db, $sql, \@params, { mode => 'array' });
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_record_sql {
-my ($db, $sql, @params) = @_;
-my @result;
-return @result if (!$db);
-return @result if (!$sql);
-# Добавляем LIMIT только если его еще нет в запросе
-if ($sql !~ /\bLIMIT\s+\d+/i && $sql !~ /\bFETCH\s+FIRST\s+\d+/i) {
-        $sql .= ' LIMIT 1';
-    }
-# Переподключение
-unless (reconnect_db(\$db)) {
-    log_error("No database connection available");
-    return;
-    }
-return _execute_param($db, $sql, \@params, { mode => 'single' });
-}
 
 #---------------------------------------------------------------------------------------------------------------
 
@@ -791,7 +802,7 @@ my $rec_id = 0;
 
 my $diff='';
 foreach my $field (keys %$old_record) {
-    if (!$old_record->{$field}) { $old_record->{$field}=''; }
+    next if (!$old_record->{$field});
     $diff = $diff." $field => $old_record->{$field},";
     }
 $diff=~s/,\s*$//;
