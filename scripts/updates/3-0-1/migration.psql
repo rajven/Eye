@@ -84,3 +84,19 @@ ALTER TABLE dns_queue RENAME COLUMN type TO operation_type;
 ALTER TABLE filter_list RENAME COLUMN type TO filter_type;
 
 UPDATE user_auth SET mac_found = last_found WHERE last_found IS NOT NULL;
+
+-- user_stats - set default value 0
+
+ALTER TABLE user_stats ADD COLUMN pkt_in integer NOT NULL DEFAULT 0;
+ALTER TABLE user_stats ADD COLUMN pkt_out integer NOT NULL DEFAULT 0;
+ALTER TABLE user_stats ADD COLUMN step integer NOT NULL DEFAULT 3600;
+
+-- Сначала обновите NULL-значения на 0 (если они есть)
+UPDATE user_stats_full SET pkt_in = 0 WHERE pkt_in IS NULL;
+UPDATE user_stats_full SET pkt_out = 0 WHERE pkt_out IS NULL;
+
+-- Затем измените столбцы
+ALTER TABLE user_stats_full ALTER COLUMN pkt_in SET NOT NULL;
+ALTER TABLE user_stats_full ALTER COLUMN pkt_in SET DEFAULT 0;
+ALTER TABLE user_stats_full ALTER COLUMN pkt_out SET NOT NULL;
+ALTER TABLE user_stats_full ALTER COLUMN pkt_out SET DEFAULT 0;

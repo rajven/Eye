@@ -425,7 +425,10 @@ CREATE TABLE `user_stats` (
   `auth_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
   `ts` datetime NOT NULL DEFAULT current_timestamp(),
   `byte_in` bigint(20) NOT NULL DEFAULT 0,
-  `byte_out` bigint(20) NOT NULL DEFAULT 0
+  `byte_out` bigint(20) NOT NULL DEFAULT 0,
+  `pkt_in` int(11) NOT NULL DEFAULT 0,
+  `pkt_out` int(11) NOT NULL DEFAULT 0,
+  `step` int(11) NOT NULL DEFAULT 3600
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `user_stats_full` (
@@ -435,8 +438,8 @@ CREATE TABLE `user_stats_full` (
   `ts` datetime NOT NULL DEFAULT current_timestamp(),
   `byte_in` bigint(20) NOT NULL DEFAULT 0,
   `byte_out` bigint(20) NOT NULL DEFAULT 0,
-  `pkt_in` int(11) DEFAULT NULL,
-  `pkt_out` int(11) DEFAULT NULL,
+  `pkt_in` int(11) NOT NULL DEFAULT 0,
+  `pkt_out` int(11) NOT NULL DEFAULT 0,
   `step` int(11) NOT NULL DEFAULT 600
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

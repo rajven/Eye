@@ -96,3 +96,12 @@ ALTER TABLE dns_queue       CHANGE COLUMN `type` operation_type VARCHAR(10) NOT 
 ALTER TABLE filter_list     CHANGE COLUMN `type` filter_type SMALLINT NOT NULL DEFAULT 0;
 
 UPDATE user_auth SET mac_found = last_found WHERE last_found IS NOT NULL;
+
+-- user_stats - add pkt counters
+
+ALTER TABLE `user_stats` ADD COLUMN `pkt_in` int(11) NOT NULL DEFAULT 0;
+ALTER TABLE `user_stats` ADD COLUMN `pkt_out` int(11) NOT NULL DEFAULT 0;
+ALTER TABLE `user_stats` ADD COLUMN `step` int(11) NOT NULL DEFAULT 3600;
+
+ALTER TABLE `user_stats_full` MODIFY COLUMN `pkt_in` int(11) NOT NULL DEFAULT 0;
+ALTER TABLE `user_stats_full` MODIFY COLUMN `pkt_out` int(11) NOT NULL DEFAULT 0;

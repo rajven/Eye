@@ -758,10 +758,10 @@ undef %saved_netflow;
 #save statistics
 
 #start stat time
-my $hour_date1 = sprintf "%04d-%02d-%02d %02d:00:00",$year+1900,$month+1,$day,$hour;
+#my $hour_date1 = sprintf "%04d-%02d-%02d %02d:00:00",$year+1900,$month+1,$day,$hour;
 #end hour
-($hour,$day,$month,$year) = (localtime($last_time+3600))[2,3,4,5];
-my $hour_date2 = sprintf "%04d-%02d-%02d %02d:00:00",$year+1900,$month+1,$day,$hour;
+#($hour,$day,$month,$year) = (localtime($last_time+3600))[2,3,4,5];
+#my $hour_date2 = sprintf "%04d-%02d-%02d %02d:00:00",$year+1900,$month+1,$day,$hour;
 
 my @batch_user_stats=();
 my @batch_user_stats_update=();
@@ -781,6 +781,7 @@ foreach my $user_ip (keys %user_stats) {
     my ($sec,$min,$hour,$day,$month,$year) = (localtime($user_stats{$user_ip}{last_found}))[0,1,2,3,4,5];
     #flow time string
     my $flow_date = sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year+1900,$month+1,$day,$hour,$min,$sec;
+    my $flow_hour_start = sprintf "%04d-%02d-%02d %02d:00:00", $year + 1900, $month + 1, $day, $hour;
 
     #last found timestamp
     push @batch_auth_status, [ $flow_date, $flow_date, $auth_id ];
@@ -807,22 +808,40 @@ foreach my $user_ip (keys %user_stats) {
     	    $timeshift ];
 	#hour stats
 	# get current stats
-	my $sql = "SELECT id, byte_in, byte_out FROM user_stats WHERE ts >= ? AND ts < ? AND router_id = ? AND auth_id = ?";
+	my $sql = "SELECT byte_in, byte_out, pkt_in, pkt_out  FROM user_stats WHERE ts = ? AND router_id = ? AND auth_id = ?";
 	my $hour_stat = get_record_sql($hdb, $sql, 
-	    $hour_date1,
-	    $hour_date2,
+	    $flow_hour_start,
 	    $router_id,
 	    $auth_id
 	    );
 	if (!$hour_stat) {
-            push @batch_user_stats, [ $flow_date, $auth_id, $router_id, $user_stats{$user_ip}{$router_id}{in}, $user_stats{$user_ip}{$router_id}{out} ];
+            push @batch_user_stats, [ 
+            $flow_hour_start,
+            $auth_id, 
+            $router_id, 
+            $user_stats{$user_ip}{$router_id}{in}, 
+            $user_stats{$user_ip}{$router_id}{out},
+            $user_stats{$user_ip}{$router_id}{pkt_in},
+            $user_stats{$user_ip}{$router_id}{pkt_out}, 
+            3600 ];
 	    next;
 	    }
 	if (!$hour_stat->{byte_in}) { $hour_stat->{byte_in}=0; }
 	if (!$hour_stat->{byte_out}) { $hour_stat->{byte_out}=0; }
+	if (!$hour_stat->{pkt_in}) { $hour_stat->{pkt_in}=0; }
+	if (!$hour_stat->{pkt_out}) { $hour_stat->{pkt_out}=0; }
 	$hour_stat->{byte_in} += $user_stats{$user_ip}{$router_id}{in};
 	$hour_stat->{byte_out} += $user_stats{$user_ip}{$router_id}{out};
-        push @batch_user_stats_update, [ $hour_stat->{byte_in}, $hour_stat->{byte_out}, $auth_id, $router_id ];
+	$hour_stat->{pkt_in} += $user_stats{$user_ip}{$router_id}{pkt_in};
+	$hour_stat->{pkt_out} += $user_stats{$user_ip}{$router_id}{pkt_out};
+        push @batch_user_stats_update, [ 
+            $hour_stat->{byte_in}, 
+            $hour_stat->{byte_out}, 
+            $hour_stat->{pkt_in}, 
+            $hour_stat->{pkt_out}, 
+	    $flow_hour_start,
+            $auth_id, 
+            $router_id ];
 	}
     }
 
@@ -861,10 +880,10 @@ batch_db_sql_cached($tSQL,\@batch_auth_status);
 $tSQL="INSERT INTO user_stats_full (ts,auth_id,router_id,byte_in,byte_out,pkt_in,pkt_out,step) VALUES( ?, ?, ?, ?, ?, ?, ?, ?)";
 batch_db_sql_cached($tSQL,\@batch_user_stats_full);
 
-$tSQL="INSERT INTO user_stats (ts,auth_id,router_id,byte_in,byte_out)  VALUES( ?, ?, ?, ?, ?, ?)";
+$tSQL="INSERT INTO user_stats (ts,auth_id,router_id,byte_in,byte_out,pkt_in,pkt_out,step) VALUES( ?, ?, ?, ?, ?, ?, ? ,?)";
 batch_db_sql_cached($tSQL,\@batch_user_stats);
 
-$tSQL="UPDATE user_stats SET byte_in= ?, byte_out= ? WHERE id= ? AND router_id= ?";
+$tSQL="UPDATE user_stats SET byte_in= ?, byte_out= ?, pkt_in = ?, pkt_out = ? WHERE ts = ? AND auth_id= ? AND router_id= ?";
 batch_db_sql_cached($tSQL,\@batch_user_stats_update);
 
 $tSQL="INSERT INTO wan_stats (ts,router_id,interface_id,bytes_in,bytes_out,forward_in,forward_out) VALUES( ?, ?, ?, ?, ?, ?, ?)";

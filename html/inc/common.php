@@ -2980,15 +2980,13 @@ function get_vendor($db, $mac)
     $mac5 = substr($mac, 0, 14);
     $mac4 = substr($mac, 0, 11);
     $mac3 = substr($mac, 0, 8);
-    $vendor = get_record_sql($db, 'SELECT companyName,companyAddress FROM mac_vendors WHERE oui="' . $mac . '"');
-    if (empty($vendor)) {
-        $vendor = get_record_sql($db, 'SELECT companyName,companyAddress FROM mac_vendors WHERE oui="' . $mac5 . '"');
-    }
-    if (empty($vendor)) {
-        $vendor = get_record_sql($db, 'SELECT companyName,companyAddress FROM mac_vendors WHERE oui="' . $mac4 . '"');
-    }
-    if (empty($vendor)) {
-        $vendor = get_record_sql($db, 'SELECT companyName,companyAddress FROM mac_vendors WHERE oui="' . $mac3 . '"');
+    
+    $vendor = null;
+    foreach ([$mac, $mac5, $mac4, $mac3] as $oui) {
+        $vendor = get_record_sql($db, 'SELECT companyName, companyAddress FROM mac_vendors WHERE oui = ?', [$oui]);
+        if (!empty($vendor)) {
+            break;
+        }
     }
     $result = '';
     if (!empty($vendor)) {
@@ -3775,6 +3773,8 @@ $config["sender_email"] = get_option($db_link, 52);
 $config["snmp_default_version"] = get_option($db_link, 9);
 $config["snmp_default_community"] = get_option($db_link, 11);
 $config["auto_mac_rule"] = get_option($db_link, 64);
+
+$config["traffic_ipstat_history"] = get_option($db_link, 56);
 
 $config["cacti_url"] = rtrim(get_option($db_link, 58), '/');
 if (preg_match('/127.0.0.1/', $config["cacti_url"])) {
