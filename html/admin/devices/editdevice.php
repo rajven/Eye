@@ -9,8 +9,8 @@ if (isset($_POST["editdevice"]) and isset($id)) {
     } else {
         $sw_ports = 0;
     }
-    $sSQL = "SELECT count(id) from device_ports WHERE device_ports.device_id=$id";
-    $$d_ports = get_single_field($db_link,$sSQL);
+    $sSQL = "SELECT count(id) from device_ports WHERE device_ports.device_id=?";
+    $$d_ports = get_single_field($db_link,$sSQL, [$id]);
     if ($d_ports != $sw_ports) {
         LOG_DEBUG($db_link, "Device id: $id changed port count!");
         if ($sw_ports > $d_ports) {
@@ -26,10 +26,10 @@ if (isset($_POST["editdevice"]) and isset($id)) {
         if ($sw_ports < $d_ports) {
             LOG_DEBUG($db_link, "Device id: $id remove connection for port from $d_ports to $sw_ports");
             for ($port = $d_ports; $port > $sw_ports; $port--) {
-                $port_id = get_id_record($db_link, 'device_ports', "device_id='" . $id . "' and port='" . $port . "'");
+                $port_id = get_id_record($db_link, 'device_ports', "device_id=? and port=?", [ $id, $port ]);
                 if ($port_id) {
-                    delete_record($db_link, "device_ports", "id='" . $port_id . "'");
-                    run_sql($db_link, "DELETE FROM connections WHERE port_id='" . $port_id . "'");
+                    delete_record($db_link, "device_ports", "id=?" ,[ $port_id ]);
+                    run_sql($db_link, "DELETE FROM connections WHERE port_id=?", [ $port_id ]);
                 } else {
                     LOG_DEBUG($db_link, "Device id: $id port_id not found for port: $port!");
                 }
@@ -41,10 +41,10 @@ if (isset($_POST["editdevice"]) and isset($id)) {
         $new['ip'] = $_POST["f_ip"];
         $new['ip_int'] = ip2long($new['ip']);
     }
-    $cur_device = get_record_sql($db_link, "SELECT * FROM devices WHERE id=" . $id);
+    $cur_device = get_record_sql($db_link, "SELECT * FROM devices WHERE id=?", [ $id ]);
     //main device info
     if (!empty($new['ip'])) {
-        $cur_auth = get_record_sql($db_link, "SELECT * FROM user_auth WHERE deleted=0 AND ip='" . $new['ip'] . "'");
+        $cur_auth = get_record_sql($db_link, "SELECT * FROM user_auth WHERE deleted=0 AND ip=?",[ $new['ip'] ]);
     }
     if (isset($_POST["f_device_model_id"])) {
         $new['device_model_id'] = $_POST["f_device_model_id"] * 1;
@@ -158,13 +158,13 @@ if (isset($_POST["editdevice"]) and isset($id)) {
         $new['user_acl'] = 0;
     }
 
-    update_record($db_link, "devices", "id='$id'", $new);
+    update_record($db_link, "devices", "id=?", $new, [ $id ]);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-$device = get_record($db_link, 'devices', "id=" . $id);
-$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $device['user_id']);
+$device = get_record($db_link, 'devices', "id=?" ,[ $id]);
+$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=?", [ $device['user_id'] ]);
 unset($_POST);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");

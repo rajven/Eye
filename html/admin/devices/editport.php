@@ -9,7 +9,7 @@ if (isset($_POST["editport"])) {
     $new['nagios'] = $_POST["f_nagios"] * 1;
     $new['skip'] = $_POST["f_skip"] * 1;
     $new['description'] = $_POST["f_description"];
-    update_record($db_link, "device_ports", "id='$id'", $new);
+    update_record($db_link, "device_ports", "id=?", $new, [ $id ]);
 
     $target_id = $_POST["f_target_port"];
     bind_ports($db_link, $id, $target_id);
@@ -20,10 +20,10 @@ if (isset($_POST["editport"])) {
 
 unset($_POST);
 
-$port = get_record($db_link, 'device_ports', "id=" . $id);
+$port = get_record($db_link, 'device_ports', "id=?" ,[ $id]);
 $device_id = $port['device_id'];
-$device = get_record($db_link, 'devices', "id=" . $device_id);
-$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $device['user_id']);
+$device = get_record($db_link, 'devices', "id=?" , [ $device_id ]);
+$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=?", [ $device['user_id'] ]);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
 

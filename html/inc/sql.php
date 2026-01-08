@@ -621,12 +621,12 @@ function get_single_field($db, $sql, $params = []) {
 /**
  * Получить ID записи из таблицы по фильтру
  */
-function get_id_record($db, $table, $filter) {
+function get_id_record($db, $table, $filter, $params=[]) {
     if (empty($filter)) {
         return 0;
     }
     
-    $record = get_record($db, $table, $filter);
+    $record = get_record($db, $table, $filter, $params);
     return !empty($record['id']) ? $record['id'] : 0;
 }
 
@@ -915,7 +915,7 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
             return;
             }
         if ($table !== "sessions") {
-            LOG_VERBOSE($db, "Change table $table WHERE $filter set $changed_log");
+            LOG_VERBOSE($db, "Change table $table WHERE $filter set $changed_log | params: " . json_encode($filter_params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             }
         return $sql_result;
     } catch (PDOException $e) {

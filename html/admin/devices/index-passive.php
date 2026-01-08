@@ -15,6 +15,8 @@ $unknown=1;
 if (!isset($_POST['f_unknown']) and isset($_POST['OK'])) { $unknown=0; }
 if (isset($_POST['f_unknown'])) { $unknown=$_POST['f_unknown']*1; }
 
+$params =[];
+
 $unknown_checked='';
 if ($unknown) { $unknown_checked='checked="checked"'; }
 
@@ -25,16 +27,23 @@ if ($sort_field == 'model_name') { $sort_table = 'M'; }
 
 $sort_url = "<a href=index-passive.php?ou=" . $rou;
 
-if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and L.ou_id=$rou "; }
+if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and L.ou_id=? "; $params[]=$rou; }
 
 if ($rsubnet == 0) { $subnet_filter = ''; } else {
     $subnet_range = get_subnet_range($db_link,$rsubnet);
-    if (!empty($subnet_range)) { $subnet_filter = " and A.ip_int>=".$subnet_range['start']." and A.ip_int<=".$subnet_range['stop']; }
+    if (!empty($subnet_range)) { 
+        $subnet_filter = " and A.ip_int>=? and A.ip_int<=?";
+        $params[]=$subnet_range['start'];
+        $params[]=$subnet_range['stop'];
+        }
     }
 
 $d_filter='';
-if ($f_building_id > 0) { $d_filter .= ' and D.building_id=' . $f_building_id; }
-if ($f_devtype_id > 0) { $d_filter .= ' and D.device_type=' . $f_devtype_id; } else { $d_filter .= ' and D.device_type>2'; }
+if ($f_building_id > 0) { $d_filter .= ' and D.building_id=?'; $params[]=$f_building_id; }
+if ($f_devtype_id > 0) { 
+    $d_filter .= ' and D.device_type=?'; 
+    $params[]= $f_devtype_id;
+    } else { $d_filter .= ' and D.device_type>2'; }
 
 $ip_list_filter = $ou_filter.$subnet_filter;
 
@@ -105,14 +114,15 @@ print_device_submenu($page_url);
 $u_filter='';
 if ($unknown and $f_vendor_select==0) { $u_filter=' AND V.id<>1 '; } else {
     if (!empty($f_vendor_select) and $f_vendor_select>=1) {
-        $u_filter = " AND V.id=".$f_vendor_select." ";
+        $u_filter = " AND V.id=? ";
+        $params[]=$f_vendor_select;
         }
     }
 
 $countSQL="SELECT Count(*) FROM user_auth A, user_list L, devices D, device_models M, vendors V
 WHERE D.user_id=L.id AND A.ip = D.ip AND D.device_model_id=M.id AND M.vendor_id=V.id AND A.deleted =0
 $u_filter $ip_list_filter $d_filter";
-$count_records = get_single_field($db_link,$countSQL);
+$count_records = get_single_field($db_link,$countSQL, $params);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
@@ -140,9 +150,12 @@ $sSQL = "SELECT A.id, D.id as dev_id, D.device_type, A.ip, A.mac, A.user_id, L.l
 FROM user_auth A, user_list L, devices D, device_models M, vendors V
 WHERE D.user_id=L.id AND A.ip = D.ip AND D.device_model_id=M.id AND M.vendor_id=V.id AND A.deleted =0
 $u_filter $ip_list_filter $d_filter
-ORDER BY $sort_table.$sort_field $order LIMIT $displayed OFFSET $start";
-
-$users = get_records_sql($db_link,$sSQL);
+ORDER BY $sort_table.$sort_field $order LIMIT ? OFFSET ?";
+$params[]=$displayed;
+$params[]=$start;
+var_dump($sSQL);
+die;
+$users = get_records_sql($db_link,$sSQL, $params);
 foreach ($users as $user) {
     if ($user['last_found'] == '0000-00-00 00:00:00') { $user['last_found'] = ''; }
     print "<tr align=center>\n";

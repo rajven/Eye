@@ -4,17 +4,17 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-$device = get_record($db_link,'devices',"id=".$id);
+$device = get_record($db_link,'devices',"id=?",[$id]);
 $snmp=getSnmpAccess($device);
-$user_info = get_record_sql($db_link,"SELECT * FROM user_list WHERE id=".$device['user_id']);
+$user_info = get_record_sql($db_link,"SELECT * FROM user_list WHERE id=?",[$device['user_id']]);
 $int_list = getIpAdEntIfIndex($db_link,$device['ip'],$snmp);
 
 if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
     foreach ($s_id as $key => $val) {
         if (isset($val)) {
-            LOG_INFO($db_link, "Remove l3_interface id: $val ". dump_record($db_link,'device_l3_interfaces','id='.$val));
-            delete_record($db_link, "device_l3_interfaces", "id=" . $val);
+            LOG_INFO($db_link, "Remove l3_interface id: $val ". dump_record($db_link,'device_l3_interfaces','id=?',[$val]));
+            delete_record($db_link, "device_l3_interfaces", "id=?", [$val]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -29,7 +29,7 @@ if (isset($_POST['s_save'])) {
         for ($j = 0; $j < $len_all; $j ++) {
             if (intval($_POST['n_id'][$j]) != $save_id) { continue; }
             $new['interface_type'] = $_POST['s_type'][$j]*1;
-            update_record($db_link, "device_l3_interfaces", "id='{$save_id}'", $new);
+            update_record($db_link, "device_l3_interfaces", "id=?", $new, [$save_id]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -73,7 +73,8 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 	</td>
 </tr>
 <?php
-$t_l3_interface = get_records($db_link,'device_l3_interfaces',"device_id=$id ORDER BY name");
+
+$t_l3_interface = get_records_sql($db_link,"SELECT * FROM device_l3_interfaces WHERE device_id=? ORDER BY name", [ $id ]);
 
 $int_by_name = [];
 foreach ($int_list as $row) { 
@@ -88,7 +89,7 @@ foreach ( $t_l3_interface as $row ) {
     if (empty($row['snmpin']) and !empty($int_by_name[$row['name']])) {
         $fix['snmpin']=$int_by_name[$row['name']]['index'];
         if (!empty($fix)) {
-            update_record($db_link,'device_l3_interfaces','id='.$row['id'],$fix);
+            update_record($db_link,'device_l3_interfaces','id=?',$fix, [ $row['id'] ]);
             }
         $fixed = 1;
         }
@@ -100,14 +101,14 @@ foreach ( $t_l3_interface as $row ) {
     if (!empty($int_list[$row['snmpin']]) and $int_list[$row['snmpin']]['name'] !== $row['name']) {
         $fix['name']=$int_list[$row['snmpin']]['name'];
         if (!empty($fix)) {
-            update_record($db_link,'device_l3_interfaces','id='.$row['id'],$fix);
+            update_record($db_link,'device_l3_interfaces','id=?', $fix, [$row['id']]);
             }
         $fixed = 1;
         }
     }
 
 if ($fixed) {
-    $t_l3_interface = get_records($db_link,'device_l3_interfaces',"device_id=$id ORDER BY name");
+    $t_l3_interface = get_records_sql($db_link,"SELECT * FROM device_l3_interfaces WHERE device_id=? ORDER BY name", [ $id ]);
     }
 
 foreach ( $t_l3_interface as $row ) {
