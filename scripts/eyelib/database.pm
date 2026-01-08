@@ -850,7 +850,7 @@ sub is_system_ou {
     my ($db, $ou_id) = @_;
     return 0 if !defined $ou_id || $ou_id !~ /^\d+$/ || $ou_id <= 0;
     my $sql = "SELECT 1 FROM ou WHERE id = ? AND (default_users = 1 OR default_hotspot = 1)";
-    my $record = get_record_sql($db, $sql, [$ou_id]);
+    my $record = get_record_sql($db, $sql, $ou_id);
     return $record ? 1 : 0;
 }
 

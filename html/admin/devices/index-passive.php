@@ -153,8 +153,6 @@ $u_filter $ip_list_filter $d_filter
 ORDER BY $sort_table.$sort_field $order LIMIT ? OFFSET ?";
 $params[]=$displayed;
 $params[]=$start;
-var_dump($sSQL);
-die;
 $users = get_records_sql($db_link,$sSQL, $params);
 foreach ($users as $user) {
     if ($user['last_found'] == '0000-00-00 00:00:00') { $user['last_found'] = ''; }
