@@ -34,7 +34,7 @@ if (isset($_POST['save'])) {
         for ($j = 0; $j < $len_all; $j ++) {
             if (intval($_POST['r_id'][$j]) != $save_id) { continue; }
             $new['name'] = $_POST['f_name'][$j];
-            update_record($db_link, "vendors", "id='{$save_id}'", $new);
+            update_record($db_link, "vendors", "id= ?", $new, [$save_id]);
             }
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -91,7 +91,9 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <td><input type="submit" name='save' value="<?php echo WEB_btn_save; ?>"></td>
 </tr>
 <?php
-$t_ou = get_records_sql($db_link,"SELECT * FROM vendors ORDER BY name LIMIT $displayed OFFSET $start");
+$params[]=$displayed;
+$params[]=$start;
+$t_ou = get_records_sql($db_link,"SELECT * FROM vendors ORDER BY name LIMIT ? OFFSET ?", $params);
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";

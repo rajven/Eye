@@ -55,7 +55,7 @@ ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
 //ini_set('session.use_only_cookies', false);
 
 
-// Функция для логирования отладки сессий
+// Функция для логирования отладки сессий, нужна только для отладки
 function log_session_debug($db, $message, $data = null) {
     $log_message = "SESSION_DEBUG: " . $message;
     if ($data !== null) {

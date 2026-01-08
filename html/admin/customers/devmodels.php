@@ -44,7 +44,7 @@ if (isset($_POST['save'])) {
             if (!isset($new['poe_in']) OR empty($new['poe_in'])) { $new['poe_in'] = 0; }
             if (!isset($new['poe_out']) OR empty($new['poe_out'])) { $new['poe_out'] = 0; }
             $new['nagios_template'] = $_POST['f_nagios'][$j];
-            update_record($db_link, "device_models", "id='{$save_id}'", $new);
+            update_record($db_link, "device_models", "id = ?", $new, [$save_id]);
             }
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -78,8 +78,8 @@ if (isset($_POST['remove'])) {
             for ($j = 0; $j < $len_all; $j ++) {
                 if (intval($_POST['r_id'][$j]) != $save_id) { continue; }
                 if ($save_id>=10000) { 
-                    delete_record($db_link, "device_models", "id='{$save_id}'");
-                    run_sql($db_link,"UPDATE devices set device_model_id=NULL WHERE device_model_id=".$save_id);
+                    delete_record($db_link, "device_models", "id= ?", [$save_id]);
+                    update_records($db_link, 'devices', 'device_model_id = ?', ['device_model_id' => null], [$save_id]);
                     }
                 }
             }
@@ -121,16 +121,26 @@ print_control_submenu($page_url);
 </table>
 
 <?php
-$v_filter='';
-if (!empty($f_vendor_select)) { $v_filter = "WHERE vendor_id=".$f_vendor_select; }
+$params = [];
+$filter = '';
 
-$countSQL="SELECT Count(*) FROM device_models $v_filter";
-$count_records = get_single_field($db_link,$countSQL);
+if (!empty($f_vendor_select)) {
+    $filter = 'WHERE vendor_id = ?';
+    $params[] = $f_vendor_select;
+}
+
+$countSQL = "SELECT COUNT(*) FROM device_models $filter";
+$count_records = get_single_field($db_link, $countSQL, $params);
+
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
 print_navigation($page_url,$page,$displayed,$count_records,$total);
+$sql = "SELECT * FROM device_models $filter ORDER BY vendor_id, model_name LIMIT ? OFFSET ?";
+$params[] = $displayed;
+$params[] = $start;
+$t_ou = get_records_sql($db_link, $sql, $params);
 ?>
 <br>
 <table class="data">
@@ -146,7 +156,6 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <td><input id='remove' type="submit" name='remove' value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
-$t_ou = get_records_sql($db_link,'SELECT * FROM device_models '.$v_filter." ORDER BY vendor_id, model_name LIMIT $displayed OFFSET $start");
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";

@@ -216,7 +216,7 @@ if (isset($_POST["new_user"])) {
             if (empty($login)) {
                 $login = $auth_info["ip"];
             }
-            $new_user = get_record_sql($db_link, "SELECT * FROM user_list WHERE LCase(login)=LCase('$login') and deleted=0");
+            $new_user = get_record_sql($db_link, "SELECT * FROM user_list WHERE LOWER(login)=LOWER('$login') and deleted=0");
             if (!empty($new_user)) {
                 // move auth
                 $auth["user_id"] = $new_user["id"];

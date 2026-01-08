@@ -41,7 +41,7 @@ print_ou_select($db_link, 'f_ou_id', $f_ou_id);
 print "</td>\n";
 print "</tr>\n";
 print "<tr><td colspan=3><br></td></tr>\n";
-$t_config = get_records_sql($db_link, "select id,name from building ORDER BY name");
+$t_config = get_records_sql($db_link, "SELECT * FROM building ORDER BY name");
 foreach ($t_config as $row) {
     print "<tr align=center>\n";
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";

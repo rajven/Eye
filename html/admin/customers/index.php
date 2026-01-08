@@ -7,7 +7,7 @@ $msg_error = "";
 if (isset($_POST["create"])) {
     $login = $_POST["newlogin"];
     if ($login) {
-	$customer = get_record_sql($db_link,"Select * from customers WHERE LCase(login)=LCase('$login')");
+        $customer = get_record_sql($db_link, "SELECT * FROM customers WHERE LOWER(login) = LOWER(?)", [$login]);
         if (!empty($customer)) {
             $msg_error = "Login $login already exists!";
             LOG_ERROR($db_link, $msg_error);
@@ -29,8 +29,8 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["fid"];
     foreach ($fid as $key => $val) {
         if ($val) {
-            LOG_INFO($db_link, "Remove login with id: $val ". dump_record($db_link,'customers','id='.$val));
-            delete_record($db_link, "customers", "id=" . $val);
+            LOG_INFO($db_link, "Remove login with id: $val ". dump_record($db_link,'customers','id=?', [ $val]));
+            delete_record($db_link, "customers", "id=?", [ $val ]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -54,10 +54,10 @@ print_control_submenu($page_url);
 <td><b><?php echo WEB_customer_mode;?></b></td>
 </tr>
 <?php
-$users = get_records($db_link,'customers','True ORDER BY login');
+$users = get_records_sql($db_link,'SELECT * FROM customers ORDER BY login');
 foreach ($users as $row) {
     $cl = "data";
-    $acl = get_record_sql($db_link,'SELECT * FROM acl WHERE id='.$row['rights']);
+    $acl = get_record_sql($db_link,'SELECT * FROM acl WHERE id=?', [ $row['rights'] ]);
     print "<tr align=center>\n";
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
     print "<td class=\"$cl\" align=left width=200><a href=editcustom.php?id=".$row['id'].">" . $row['login'] . "</a></td>\n";

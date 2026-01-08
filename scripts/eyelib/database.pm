@@ -52,6 +52,7 @@ insert_record
 delete_record
 get_option
 init_option
+is_system_ou
 Set_Variable
 Get_Variable
 Del_Variable
@@ -376,34 +377,21 @@ sub get_option {
     my $option_id = shift;
     return if (!$option_id);
     return if (!$db);
-    
     my $sql = q{
-        SELECT 
-            COALESCE(c.value, co.default_value) as value,
-            co.option_type
-        FROM config_options co
-        LEFT JOIN config c ON c.option_id = co.id AND c.option_id = ?
-        WHERE co.id = ?
-        LIMIT 1
+    SELECT
+    COALESCE(c.value, co.default_value) AS value,
+    co.option_type
+    FROM config_options co
+    LEFT JOIN config c ON c.option_id = co.id
+    WHERE co.id = ?
     };
-    
-    my $record = get_record_sql($db, $sql, $option_id, $option_id);
-    
+    my $record = get_record_sql($db, $sql, $option_id);
     unless ($record) {
         log_error("Option ID $option_id not found in config_options table");
         return;
     }
-    
-    my $result = $record->{value};
-    
-    # Приводим к правильному типу
-    if ($record->{option_type} =~ /^(int|bool)/i) { 
-        $result = $result * 1; 
-    }
-    
-    return $result;
+    return $record->{value};
 }
-
 
 #---------------------------------------------------------------------------------------------------------------
 
@@ -546,8 +534,6 @@ return $result;
 
 #---------------------------------------------------------------------------------------------------------------
 
-#---------------------------------------------------------------------------------------------------------------
-
 sub get_diff_rec {
 my ($db, $table, $record, $filter_sql, @filter_params) = @_;
 return unless $db && $table && $filter_sql;
@@ -676,11 +662,13 @@ my $rec_id = $old_record->{id} || 0;
 
 if ($table eq "user_auth") {
     $rec_id = $old_record->{'id'} if ($old_record->{'id'});
+    my $cur_ou_id = $old_record->{'ou_id'} if ($old_record->{'ou_id'});
+    if (exists $record->{ou_id}) { $cur_ou_id = $record->{'ou_id'}; }
     #disable update field 'created_by'
     if ($old_record->{'created_by'} and exists ($record->{'created_by'})) { delete $record->{'created_by'}; }
     foreach my $field (keys %$record) {
 	if (exists $acl_fields{$field}) { $record->{changed}="1"; }
-        if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
+        if (exists $dhcp_fields{$field} and !is_system_ou($db,$cur_ou_id)) { $record->{dhcp_changed}="1"; }
 	if (exists $dns_fields{$field}) { $dns_changed=1; }
         }
     }
@@ -854,6 +842,16 @@ if ($table eq 'user_auth_alias') {
 
 my $sSQL = "DELETE FROM ".$table." WHERE ".$filter_sql;
 return do_sql($db,$sSQL,@filter_params);
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub is_system_ou {
+    my ($db, $ou_id) = @_;
+    return 0 if !defined $ou_id || $ou_id !~ /^\d+$/ || $ou_id <= 0;
+    my $sql = "SELECT 1 FROM ou WHERE id = ? AND (default_users = 1 OR default_hotspot = 1)";
+    my $record = get_record_sql($db, $sql, [$ou_id]);
+    return $record ? 1 : 0;
 }
 
 #---------------------------------------------------------------------------------------------------------------

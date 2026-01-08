@@ -16,7 +16,7 @@ if (isset($_POST["edituser"])) {
         $new['api_key'] = $_POST["api_key"];
 	}
     $new['rights'] = $_POST["f_acl"] * 1;
-    update_record($db_link, "customers", "id='$id'", $new);
+    update_record($db_link, "customers", "id= ?", $new, [ $id ]);
     unset($_POST["pass"]);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -27,7 +27,7 @@ unset($_POST);
 print_control_submenu($page_url);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
-$customer=get_record($db_link,'customers',"id=".$id);
+$customer=get_record($db_link,'customers',"id=?", [$id]);
 ?>
 
 <div id="cont">

@@ -91,12 +91,12 @@ foreach my $net (@office_network_list) {
 # Define the current month’s start and end (for monthly stats)
 my $now = DateTime->now(time_zone => 'local');
 $now->set(day => 1);
-my $month_start = $dbh->quote($now->ymd("-") . " 00:00:00");
+my $month_start = $now->ymd("-") . " 00:00:00";
 
 my $month_dur = DateTime::Duration->new(months => 1);
 my $next_month = $now + $month_dur;
 $next_month->set(day => 1);
-my $month_stop = $dbh->quote($next_month->ymd("-") . " 00:00:00");
+my $month_stop = $next_month->ymd("-") . " 00:00:00";
 
 # Build DHCP network structures for lease validation
 my $dhcp_networks = Net::Patricia->new;
@@ -121,17 +121,15 @@ if ($day == 1) {
     log_info($dbh, 'Daily traffic-based unblocking started');
 
     my $month_sql = "
-        SELECT user_list.id, user_list.login, SUM(traf_all) AS traf_sum, user_list.month_quota AS uquota
-        FROM (
-            SELECT user_stats.auth_id, SUM(byte_in + byte_out) AS traf_all
-            FROM user_stats
-            WHERE user_stats.ts >= ? AND user_stats.ts < ?
-            GROUP BY user_stats.auth_id
-        ) AS V, user_auth, user_list
-        WHERE V.auth_id = user_auth.id
-          AND user_auth.user_id = user_list.id
-          AND user_list.blocked = 1
-        GROUP BY login
+    SELECT
+        ul.id,
+        SUM(us.byte_in + us.byte_out) AS traf_sum,
+        ul.month_quota AS uquota
+    FROM user_stats us
+    JOIN user_auth ua ON us.auth_id = ua.id
+    JOIN user_list ul ON ua.user_id = ul.id
+    WHERE ul.blocked = 1 AND us.ts >= ? AND us.ts < ?
+    GROUP BY ul.id, ul.month_quota;
     ";
 
     my @month_stats = get_records_sql($dbh, $month_sql, $month_start, $month_stop);
@@ -178,7 +176,7 @@ $now = DateTime->now(time_zone => 'local');
 if ($history_dhcp) {
     my $day_dur = DateTime::Duration->new(days => $history_dhcp);
     my $clean_date = $now - $day_dur;
-    my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
+    my $clean_str = $clean_date->ymd("-") . " 00:00:00";
     log_info($dbh, 'Clearing outdated DHCP log records');
     do_sql($dbh, "DELETE FROM dhcp_log WHERE ts < ?",$clean_str);
     log_verbose($dbh, "Removed DHCP log entries older than $clean_str");
@@ -189,9 +187,8 @@ if ($connections_history) {
     log_info($dbh, 'Clearing outdated connection records');
     my $day_dur = DateTime::Duration->new(days => $connections_history);
     my $clean_date = $now - $day_dur;
-    my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
-    $users_sql = "SELECT id FROM user_auth WHERE last_found < ? AND last_found > 0";
-    log_debug($dbh, $users_sql) if ($debug);
+    my $clean_str = $clean_date->ymd("-") . " 00:00:00";
+    $users_sql = "SELECT id FROM user_auth WHERE last_found < ? AND last_found IS NOT NULL";
     @users_auth = get_records_sql($dbh, $users_sql, $clean_str);
     foreach my $row (@users_auth) {
         log_debug($dbh, "Clearing old connection for auth_id: " . $row->{id});
@@ -262,7 +259,7 @@ foreach my $row (@users_auth) {
 if ($history) {
     my $day_dur = DateTime::Duration->new(days => $history);
     my $clean_date = $now - $day_dur;
-    my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
+    my $clean_str = $clean_date->ymd("-") . " 00:00:00";
     log_info($dbh, "Cleaning traffic detail records older than $clean_str");
     do_sql($dbh, "DELETE FROM traffic_detail WHERE ts < ?", $clean_str);
 }
@@ -271,7 +268,7 @@ if ($history) {
 if ($history_log_day) {
     my $day_dur = DateTime::Duration->new(days => $history_log_day);
     my $clean_date = $now - $day_dur;
-    my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
+    my $clean_str = $clean_date->ymd("-") . " 00:00:00";
     log_info($dbh, "Cleaning VERBOSE worklog entries older than $clean_str");
     do_sql($dbh, "DELETE FROM worklog WHERE level > ? AND ts < ?", $L_INFO, $clean_str);
 }
@@ -280,7 +277,7 @@ if ($history_log_day) {
 if ($debug_history) {
     my $day_dur = DateTime::Duration->new(days => 3);
     my $clean_date = $now - $day_dur;
-    my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
+    my $clean_str = $clean_date->ymd("-") . " 00:00:00";
     log_info($dbh, "Cleaning debug worklog entries older than $clean_str");
     do_sql($dbh, "DELETE FROM worklog WHERE level >= ? AND ts < ?",$L_DEBUG, $clean_str);
 }
@@ -289,7 +286,7 @@ if ($debug_history) {
 if ($history_syslog_day) {
     my $day_dur = DateTime::Duration->new(days => $history_syslog_day);
     my $clean_date = $now - $day_dur;
-    my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
+    my $clean_str = $clean_date->ymd("-") . " 00:00:00";
     log_info($dbh, "Cleaning syslog entries older than $clean_str");
     do_sql($dbh, "DELETE FROM remote_syslog WHERE ts < ?",$clean_str);
 }
@@ -298,7 +295,7 @@ if ($history_syslog_day) {
 if ($history_trafstat_day) {
     my $day_dur = DateTime::Duration->new(days => $history_trafstat_day);
     my $clean_date = $now - $day_dur;
-    my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
+    my $clean_str = $clean_date->ymd("-") . " 00:00:00";
     log_info($dbh, "Cleaning traffic statistics older than $clean_str");
     do_sql($dbh, "DELETE FROM user_stats WHERE ts < ?",$clean_str);
 }
@@ -308,7 +305,7 @@ my $iptraf_history = $config_ref{traffic_ipstat_history};
 if ($iptraf_history) {
     my $day_dur = DateTime::Duration->new(days => $iptraf_history);
     my $clean_date = $now - $day_dur;
-    my $clean_str = $dbh->quote($clean_date->ymd("-") . " 00:00:00");
+    my $clean_str = $clean_date->ymd("-") . " 00:00:00";
     log_info($dbh, "Cleaning full traffic statistics older than $clean_str");
     do_sql($dbh, "DELETE FROM user_stats_full WHERE ts < ?",$clean_str);
 }

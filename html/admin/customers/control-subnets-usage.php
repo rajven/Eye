@@ -6,7 +6,8 @@ unset($_POST);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 print_control_submenu($page_url);
 $zombi_days = get_option($db_link, 35);
-
+// Создаём временную метку: сейчас минус $zombi_days дней
+$zombi_threshold = date('Y-m-d H:i:s', strtotime("-$zombi_days days"));
 ?>
 <div id="cont">
 <br>
@@ -25,7 +26,7 @@ $zombi_days = get_option($db_link, 35);
 	<td><b><?php echo WEB_network_zombi_dhcp; ?><br><?php print "(> ".$zombi_days." ".WEB_days.")"; ?></b></td>
 </tr>
 <?php
-$t_subnets = get_records($db_link,'subnets','office=1 ORDER BY ip_int_start');
+$t_subnets = get_records_SQL($db_link,'SELECT * FROM subnets WHERE office=1 ORDER BY ip_int_start');
 if (!empty($t_subnets)) {
 foreach ( $t_subnets as $row ) {
     print "<tr align=center>\n";
@@ -34,22 +35,22 @@ foreach ( $t_subnets as $row ) {
     $all_ips = $row['ip_int_stop']-$row['ip_int_start']-3;
     print "<td class=\"$cl\">".$all_ips."</td>\n";
 #used
-    $used_all = get_count_records($db_link,'user_auth','deleted=0 and ip_int>='.$row['ip_int_start'].' and ip_int<='.$row['ip_int_stop']);
+    $used_all = get_count_records($db_link,'user_auth','deleted = 0 AND ip_int >= ? AND ip_int <= ?', [ $row['ip_int_start'], $row['ip_int_stop']]);
     print "<td class=\"$cl\">".$used_all."</td>\n";
     $free_all = $all_ips - $used_all;
     print "<td class=\"$cl\">".$free_all."</td>\n";
     $dhcp_pool = $row['dhcp_stop']-$row['dhcp_start']+1;
     print "<td class=\"$cl\">".$dhcp_pool."</td>\n";
 #used pool
-    $used_dhcp = get_count_records($db_link,'user_auth','deleted=0 and ip_int>='.$row['dhcp_start'].' and ip_int<='.$row['dhcp_stop']);
+    $used_dhcp = get_count_records($db_link,'user_auth','deleted = 0 AND ip_int >= ? AND ip_int <= ?', [$row['dhcp_start'], $row['dhcp_stop']]);
     print "<td class=\"$cl\">".$used_dhcp."</td>\n";
     $free_dhcp = $dhcp_pool - $used_dhcp;
     print "<td class=\"$cl\">".$free_dhcp."</td>\n";
     $free_static = $free_all -  $free_dhcp;
     print "<td class=\"$cl\">".$free_static."</td>\n";
-    $zombi = get_count_records($db_link,'user_auth','deleted=0 and ip_int>='.$row['ip_int_start'].' and ip_int<='.$row['ip_int_stop'].' and last_found<=(NOW() - INTERVAL '.$zombi_days.' DAY)');
+    $zombi = get_count_records( $db_link, 'user_auth', 'deleted = 0 AND ip_int >= ? AND ip_int <= ? AND last_found <= ?', [ $row['ip_int_start'], $row['ip_int_stop'], $zombi_threshold]);
     print "<td class=\"$cl\">".$zombi."</td>\n";
-    $zombi = get_count_records($db_link,'user_auth','deleted=0 and ip_int>='.$row['dhcp_start'].' and ip_int<='.$row['dhcp_stop'].' and last_found<=(NOW() - INTERVAL '.$zombi_days.' DAY)');
+    $zombi = get_count_records( $db_link, 'user_auth', 'deleted = 0 AND ip_int >= ? AND ip_int <= ? AND last_found <= ?', [ $row['dhcp_start'], $row['dhcp_stop'], $zombi_threshold]);
     print "<td class=\"$cl\">".$zombi."</td>\n";
     print "</tr>\n";
     }

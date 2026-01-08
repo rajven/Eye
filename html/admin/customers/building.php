@@ -6,8 +6,8 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["f_id"];
     foreach ($fid as $key => $val) {
         if (isset($val) and $val > 1) {
-            LOG_INFO($db_link,'Remove building id: '. $val .' '. dump_record($db_link,'building','id='.$val));
-            delete_record($db_link, "building", "id=" . $val);
+            LOG_INFO($db_link,'Remove building id: '. $val .' '. dump_record($db_link,'building','id=?', [$val]));
+            delete_record($db_link, "building", "id=?", [$val]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -32,7 +32,7 @@ if (isset($_POST['save'])) {
                 $new['name'] = $value;
                 $new['description'] = $value_description;
                 LOG_INFO($db_link,"Change building id='{$save_id}': name=".$value." description=".$value_description);
-                update_record($db_link, "building", "id='{$save_id}'", $new);
+                update_record($db_link, "building", "id=?", $new, [$save_id]);
             }
         }
     }
@@ -68,7 +68,7 @@ print_control_submenu($page_url);
 </td>
 </tr>
 <?php
-$t_building = get_records($db_link,'building','TRUE ORDER BY id');
+$t_building = get_records_sql($db_link,'SELECT * FROM building ORDER BY name');
 foreach ($t_building as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";

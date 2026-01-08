@@ -7,9 +7,9 @@ if (isset($_POST["remove"])) {
     if (!empty($_POST["f_id"])) {
         $fid = $_POST["f_id"];
         foreach ($fid as $option_id => $config_id) {
-            $opt_def = get_record($db_link, "config_options", "id=" . $option_id);
+            $opt_def = get_record($db_link, "config_options", "id=?" ,[ $option_id ]);
             LOG_INFO($db_link, WEB_config_remove_option . " id: " . $config_id . " name: " . $opt_def["option_name"]);
-            delete_record($db_link, "config", "id=" . $config_id);
+            delete_record($db_link, "config", "id=?" ,[ $config_id ]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -21,7 +21,7 @@ if (isset($_POST['save'])) {
         $fid = $_POST["f_id"];
         foreach ($fid as $option_id => $config_id) {
             $value = $_POST['f_config_value'][$config_id];
-            $option = get_record_sql($db_link, "SELECT * FROM config_options WHERE id=" . $option_id);
+            $option = get_record_sql($db_link, "SELECT * FROM config_options WHERE id=?",[ $option_id ]);
             if (isset($value)) {
                 $new['value'] = $value;
             }
@@ -33,7 +33,7 @@ if (isset($_POST['save'])) {
                 LOG_INFO($db_link, WEB_config_set_option . " id: " . $config_id . " name: " . $option["option_name"] . " = " . $value);
             }
             if (!empty($new)) {
-                update_record($db_link, "config", "id=" . $config_id, $new);
+                update_record($db_link, "config", "id=?" , $new, [$config_id ]);
             }
         }
     }
@@ -46,7 +46,7 @@ if (isset($_POST["create"])) {
     if (isset($new_option)) {
         $new['option_id'] = $new_option;
         $new['value'] = get_option($db_link, $new_option);
-        $opt_def = get_record($db_link, "config_options", "id=$new_option");
+        $opt_def = get_record($db_link, "config_options", "id=?", [$new_option]);
         LOG_INFO($db_link, WEB_config_add_option . " id: " . $new_option . " name: " . $opt_def["option_name"] . " = " . $new['value']);
         insert_record($db_link, "config", $new);
     }

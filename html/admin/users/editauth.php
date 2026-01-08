@@ -183,7 +183,7 @@ if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
     $moved_auth = get_record_sql($db_link,"SELECT description FROM user_auth WHERE id=".$id);
     $changes = apply_auth_rule($db_link, $moved_auth, $new_parent_id);
     update_record($db_link, "user_auth", "id='$id'", $changes);
-    LOG_WARNING($db_link, "IP-address moved to another user! Applyed: " . get_rec_str($changes), $id);
+    LOG_WARNING($db_link, "IP-address moved to another user! Applyed: " . hash_to_text($changes), $id);
     run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["mac"]."' AND rule_type=2");
     run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["ip"]."' AND rule_type=1");
     LOG_INFO($db_link,"Autorules removed for user_id: ".$old_auth_info["user_id"]." login: ".$user_info["login"]." by mac and ip");

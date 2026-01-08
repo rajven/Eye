@@ -87,18 +87,6 @@ if (!empty($_POST["not_save_traf_all"]) and $_POST["not_save_traf_all"]) {
     exit;
 }
 
-if (isset($_POST["s_remove"])) {
-    $s_id = $_POST["s_id"];
-    foreach ($s_id as $key => $val) {
-        if (isset($val)) {
-            LOG_INFO($db_link, "Remove subnet id: $val ". dump_record($db_link,'subnets','id='.$val));
-            delete_record($db_link, "subnets", "id=" . $val);
-        }
-    }
-    header("Location: " . $_SERVER["REQUEST_URI"]);
-    exit;
-}
-
 if (isset($_POST["clean_cache"])) {
     LOG_VERBOSE($db_link, "Clean dns cache");
     run_sql($db_link,"DELETE FROM dns_cache");

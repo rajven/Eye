@@ -281,7 +281,7 @@ install_deps_altlinux() {
             perl-Net-Telnet perl-DBI \
             perl-Parallel-ForkManager perl-Proc-Daemon \
             perl-DateTime-Format-DateParse perl-DateTime-Format-Strptime \
-            perl-Net-OpenSSH perl-File-Tail \
+            perl-Net-OpenSSH perl-File-Tail perl-Tie-File \
             perl-Crypt-Rijndael perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
             perl-File-Path-Tiny perl-Expect perl-Proc-ProcessTable
 

@@ -12,7 +12,7 @@ $msg_error = "";
 if (isset($_POST["create"])) {
     $login = trim($_POST["newlogin"]);
     if (!empty($login)) {
-        $lcount = get_count_records($db_link,"user_list","LCase(login)=LCase('$login')");
+        $lcount = get_count_records($db_link,"user_list","LOWER(login)=LOWER('$login')");
         if ($lcount > 0) {
             $msg_error = WEB_cell_login." ".$login." ".$msg_exists."!";
             unset($_POST);

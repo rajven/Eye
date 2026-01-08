@@ -90,7 +90,7 @@ if (isset($_POST['s_save'])) {
             $new['dhcp_stop'] = 0;
         }
 
-        update_record($db_link, "subnets", "id='$id'", $new);
+        update_record($db_link, "subnets", "id= ?", $new, [ $id ]);
         header("Location: /admin/customers/index-subnets.php");
         exit;
 }
@@ -99,8 +99,8 @@ unset($_POST);
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
 print_control_submenu($page_url);
 
-$sSQL = "SELECT * FROM subnets WHERE id=$id";
-$subnet_info = get_record_sql($db_link, $sSQL);
+$sSQL = "SELECT * FROM subnets WHERE id= ?";
+$subnet_info = get_record_sql($db_link, $sSQL, [ $id ]);
 ?>
 
 <div id="cont">

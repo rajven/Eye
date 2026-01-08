@@ -89,8 +89,13 @@ FILTER_FLAG_ENCODE_HIGH      // Кодирует символы с ASCII > 127
 FILTER_FLAG_ENCODE_AMP       // Кодирует амперсанд (&)
 */
 
-function getParam($name, $page_url, $default = null, $filter = FILTER_DEFAULT) {
-    $value = filter_input(INPUT_GET, $name, $filter) ?? filter_input(INPUT_POST, $name, $filter);
+function getParam($name, $page_url, $default = null, $filter = FILTER_DEFAULT, $options = []) {
+    $value = filter_input(INPUT_POST, $name, $filter, $options) ?? filter_input(INPUT_GET, $name, $filter, $options);
+    return $value !== null ? $value : ($_SESSION[$page_url][$name] ?? $default);
+}
+
+function getPOST($name, $page_url, $default = null, $filter = FILTER_DEFAULT, $options = []) {
+    $value = filter_input(INPUT_POST, $name, $filter, $options);
     return $value !== null ? $value : ($_SESSION[$page_url][$name] ?? $default);
 }
 
@@ -2727,18 +2732,18 @@ function email($level = L_WARNING, $msg = '') {
 
 function write_log($db, $msg, $level = L_INFO, $auth_id = 0)
 {
+    if (!isset($msg)) { return; }
+
     // Безопасное получение данных сессии
     $currentIp = filter_var($_SESSION['ip'] ?? '127.0.0.1', FILTER_VALIDATE_IP) ?: '127.0.0.1';
     $currentLogin = htmlspecialchars($_SESSION['login'] ?? 'http', ENT_QUOTES, 'UTF-8');
-    
-    if (!isset($msg)) { return; }
-    
+
     // Для уровня L_DEBUG пишем в error_log
     if ($level === L_DEBUG) {
         error_log("DEBUG: " . $msg);
         return;
     }
-    
+
     try {
         // Используем подготовленный запрос PDO напрямую
         $stmt = $db->prepare("INSERT INTO worklog(customer, message, level, auth_id, ip) 
@@ -3343,12 +3348,23 @@ function print_navigation($url, $page, $displayed, $count_records, $total)
 
 function get_option($db, $option_id)
 {
-    $option = get_record($db, "config", "option_id=" . $option_id);
-    if (empty($option) or empty($option['value'])) {
-        $default = get_record($db, "config_options", "id=$option_id");
-        return $default['default_value'];
+    // Валидация входного параметра
+    if (!is_numeric($option_id) || $option_id <= 0) {
+        return null;
     }
-    return $option['value'];
+    $sql = "
+        SELECT
+            COALESCE(c.value, co.default_value) AS value,
+            co.option_type
+        FROM config_options co
+        LEFT JOIN config c ON c.option_id = co.id
+        WHERE co.id = ?
+    ";
+    $record = get_record_sql($db, $sql, [$option_id]);
+    if ($record && isset($record['value'])) {
+        return $record['value'];
+    }
+    return null;
 }
 
 function is_option($db, $option_id)
@@ -3748,6 +3764,21 @@ function arrayToNotifyFlags(array $selectedValues): int {
         $flags |= (int)$value;
     }
     return $flags;
+}
+
+/**
+ * Проверяет, является ли OU системным (используется по умолчанию для пользователей или хотспотов)
+ *
+ * @param PDO $db
+ * @param int $ou_id
+ * @return bool
+ */
+function is_system_ou($db, $ou_id = null) {
+    if (empty($ou_id) || !is_numeric($ou_id) || $ou_id <= 0) {
+        return false;
+    }
+    $sql = "SELECT 1 FROM ou WHERE id = ? AND (default_users = 1 OR default_hotspot = 1)";
+    return !empty(get_record_sql($db, $sql, [$ou_id]));
 }
 
 $config["org_name"] = get_option($db_link, 32);

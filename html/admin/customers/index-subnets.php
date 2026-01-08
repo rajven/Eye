@@ -8,9 +8,9 @@ if (isset($_POST["s_remove"])) {
         $s_id = $_POST["s_id"];
         foreach ($s_id as $key => $net_id) {
             if (isset($net_id)) {
-                LOG_INFO($db_link, "Remove subnet id: $net_id ". dump_record($db_link,'subnets','id='.$val));
-                delete_record($db_link, "subnets", "id=" . $net_id);
-                delete_record($db_link, "gateway_subnets", "subnet_id=" . $net_id);
+                LOG_INFO($db_link, "Remove subnet id: $net_id ". dump_record($db_link,'subnets','id=?', [$val]));
+                delete_record($db_link, "subnets", "id= ?", [ $net_id ]);
+                delete_record($db_link, "gateway_subnets", "subnet_id= ?" , [ $net_id ]);
             }
         }
     }
@@ -78,7 +78,7 @@ print_control_submenu($page_url);
                 <td><b><?php echo WEB_cell_description; ?></b></td>
             </tr>
             <?php
-            $t_subnets = get_records($db_link, 'subnets', 'True ORDER BY ip_int_start');
+            $t_subnets = get_records_sql($db_link, 'SELECT * FROM subnets ORDER BY ip_int_start');
             foreach ($t_subnets as $row) {
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=s_id[] value='" . $row['id'] . "'></td>\n";

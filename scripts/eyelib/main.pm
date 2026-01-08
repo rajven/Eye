@@ -15,6 +15,7 @@ use base 'Exporter';
 use vars qw(@EXPORT @ISA);
 use eyelib::config;
 use Socket;
+use POSIX;
 use IO::Select;
 use IO::Handle;
 use Crypt::CBC;
