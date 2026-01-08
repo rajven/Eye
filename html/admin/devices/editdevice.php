@@ -10,7 +10,7 @@ if (isset($_POST["editdevice"]) and isset($id)) {
         $sw_ports = 0;
     }
     $sSQL = "SELECT count(id) from device_ports WHERE device_ports.device_id=?";
-    $$d_ports = get_single_field($db_link,$sSQL, [$id]);
+    $d_ports = get_single_field($db_link,$sSQL, [$id]);
     if ($d_ports != $sw_ports) {
         LOG_DEBUG($db_link, "Device id: $id changed port count!");
         if ($sw_ports > $d_ports) {
