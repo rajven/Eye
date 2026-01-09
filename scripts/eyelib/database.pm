@@ -158,17 +158,20 @@ sub batch_db_sql_csv {
     my $db = init_db();
     if ($config_ref{DBTYPE} eq 'mysql') {
         my $fh = File::Temp->new(UNLINK => 1);
+	my $fname = $fh->filename;
         binmode($fh, ':utf8');
-        for my $row (@$data) {
-            next unless $row && @$row;
-            my $line = 'NULL';  # автоинкремент
-            for my $val (@$row) {
-                $line .= defined($val) ? ',' . $val : ',NULL';
-            }
-            print $fh $line . "\r\n";
-        }
+	foreach my $row (@$data) {
+	    next if (!$row);
+	    my @tmp = @$row;
+	    my $values = 'NULL';
+	    for (my $i = 0; $i <@tmp ; $i++) {
+		$values.=',"'.$tmp[$i].'"';
+		}
+	    $values =~s/,$//;
+	    print $fh $values."\r\n";
+	    }
         close $fh;
-        my $query = "LOAD DATA LOCAL INFILE '" . $fh->filename . "' INTO TABLE `$table` FIELDS TERMINATED BY ',' LINES TERMINATED BY '\r\n'";
+	my $query = qq{ LOAD DATA LOCAL INFILE '$fname' INTO TABLE $table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n'; };
         $db->do($query);
     } else {
         # PostgreSQL: используем COPY ... FROM STDIN
@@ -184,7 +187,6 @@ sub batch_db_sql_csv {
             $db->pg_put_copy_data($line);
         }
         $db->pg_put_copy_end();  # Завершаем копирование
-
     }
     $db->disconnect();
 }
@@ -304,7 +306,7 @@ sub init_db {
 # Create new database handle. If we can't connect, die()
 my $db;
 if ($config_ref{DBTYPE} eq 'mysql') {
-$db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", 
+$db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST;mysql_local_infile=1","$DBUSER","$DBPASS", 
     { RaiseError => 0, AutoCommit => 1, mysql_enable_utf8 => 1 });
 if ( !defined $db ) { die "Cannot connect to MySQL server: $DBI::errstr\n"; }
 $db->do('SET NAMES utf8mb4');

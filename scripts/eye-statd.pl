@@ -713,12 +713,20 @@ my $l_src_ip_aton=StrToIp($l_src_ip);
 my $l_dst_ip_aton=StrToIp($l_dst_ip);
 
 my ($sec,$min,$hour,$day,$month,$year,$zone) = (localtime($last_time))[0,1,2,3,4,5];
-$month++;
-$year += 1900;
-my $full_time = sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
+my $full_time = sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year+1900,$month+1,$day,$hour,$min,$sec;
 
-my @detail_array = ($user_stats{$user_ip}->{auth_id},$router_id,$full_time,$traf_record->{proto},$l_src_ip_aton,$l_dst_ip_aton,$traf_record->{src_port},$traf_record->{dst_port},$traf_record->{octets},$traf_record->{pkts});
-push(@detail_traffic,\@detail_array);
+push @detail_traffic, [
+    $user_stats{$user_ip}->{auth_id},
+    $router_id,
+    $full_time,
+    $traf_record->{proto},
+    $l_src_ip_aton,
+    $l_dst_ip_aton,
+    $traf_record->{src_port},
+    $traf_record->{dst_port},
+    $traf_record->{octets},
+    $traf_record->{pkts}
+    ];
 }
 
 @flush_table=();
@@ -852,7 +860,7 @@ foreach my $router_id (keys %wan_stats) {
     #last flow for user
     my ($sec,$min,$hour,$day,$month,$year) = (localtime($start_time))[0,1,2,3,4,5];
     #flow time string
-    my $flow_date = $hdb->quote(sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year+1900,$month+1,$day,$hour,$min,$sec);
+    my $flow_date = sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year+1900,$month+1,$day,$hour,$min,$sec;
     #per interface stats
     foreach my $int_id (keys %{$wan_stats{$router_id}}) {
 	if (!$wan_stats{$router_id}{$int_id}{in})  { $wan_stats{$router_id}{$int_id}{in} = 0; }
@@ -903,8 +911,7 @@ if ($config_ref{enable_quotes}) {
 
 if (scalar(@detail_traffic)) {
     db_log_debug($hdb,"Start write traffic detail to DB. ".scalar @detail_traffic." lines count") if ($debug);
-    #mysql dont work at parallel table lock
-    batch_db_sql_csv("traffic_detail", \@detail_traffic);
+    batch_db_sql_csv("traffic_detail",\@detail_traffic);
     @detail_traffic = ();
     db_log_debug($hdb,"Write traffic detail to DB stopped") if ($debug);
     }
