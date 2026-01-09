@@ -6,7 +6,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 
-$usersip = get_record_sql($db_link, "SELECT ip,user_id,description FROM user_auth WHERE user_auth.id=$id");
+$usersip = get_record_sql($db_link, "SELECT ip, ip_int,user_id,description FROM user_auth WHERE id=?", [ $id ]);
 if (empty($usersip)) {
     header("location: /admin/reports/index-full.php");
     exit;
@@ -96,10 +96,28 @@ foreach ($userdata as $row) {
 <td class="data" width=80><b><?php echo WEB_bytes; ?></b></td>
 </tr>
 <?php
-$fsql = "SELECT A.proto, A.dst_ip, A.dst_port, SUM(A.bytes) as tout FROM traffic_detail A
-        WHERE $gateway_filter (auth_id='$id') and  ts>='$date1' and ts<'$date2' and (A.src_ip='$ip_aton')
-        GROUP BY A.dst_ip, A.dst_port, A.proto ORDER BY tout DESC LIMIT 10 OFFSET 0";
-$userdata = get_records_sql($db_link, $fsql);
+$params = [$date1, $date2, (int)$id, $ip_long];
+$conditions = [
+    "ts >= ?",
+    "ts < ?",
+    "auth_id = ?",
+    "src_ip = ?"
+];
+if (!empty($rgateway) && $rgateway > 0) {
+    $conditions[] = "router_id = ?";
+    $params[] = (int)$rgateway;
+}
+$where = implode(' AND ', $conditions);
+$fsql = "
+    SELECT proto, dst_ip, dst_port, SUM(bytes) AS tout
+    FROM traffic_detail
+    WHERE $where
+    GROUP BY dst_ip, dst_port, proto
+    ORDER BY tout DESC
+    LIMIT 10
+";
+
+$userdata = get_records_sql($db_link, $fsql, $params);
 foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     $proto_name = getprotobynumber($row['proto']);
