@@ -4,8 +4,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php")
 
 if (!defined("CONFIG")) die("Not defined");
 
-// Определяем page_url для сессии
-$page_url = basename($_SERVER['SCRIPT_NAME'], '.php');
+$page_url = null;
 
 if (getPOST("ApplyForAll", $page_url)) {
 

@@ -4,6 +4,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php")
 
 if (!defined("CONFIG")) die("Not defined");
 
+$page_url = null;
+
 if (isset($_POST["ExportAuth"])) {
     // Устанавливаем правильный Content-Type для CSV
     header('Content-Type: text/csv; charset=utf-8');

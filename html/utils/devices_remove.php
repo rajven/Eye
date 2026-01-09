@@ -4,6 +4,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php")
 
 if (!defined("CONFIG")) die("Not defined");
 
+$page_url = null;
+
 if (isset($_POST["RemoveDevice"]) && !empty($_POST["f_deleted"])) {
     $dev_ids = $_POST["fid"] ?? [];
     $all_ok = true;

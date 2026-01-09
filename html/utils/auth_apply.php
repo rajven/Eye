@@ -4,8 +4,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php")
 
 if (!defined("CONFIG")) die("Not defined");
 
-// Определяем page_url для сессии (можно использовать текущий скрипт)
-$page_url = basename($_SERVER['SCRIPT_NAME'], '.php');
+$page_url = null;
 
 if (getPOST("ApplyForAll", $page_url)) {
 
@@ -40,11 +39,12 @@ if (getPOST("ApplyForAll", $page_url)) {
         if (!$cur_auth) continue;
 
         $user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [(int)$cur_auth["user_id"]]);
+        if (!$user_info) continue;
 
         // Формируем данные для обновления auth
         $auth_updates = [];
 
-        if (getPOST("e_enabled", $page_url) !== null && $user_info) {
+        if (getPOST("e_enabled", $page_url) !== null) {
             $auth_updates['enabled'] = (int)($user_info["enabled"] * $a_enabled);
         }
         if (getPOST("e_group_id", $page_url) !== null) {
@@ -82,7 +82,7 @@ if (getPOST("ApplyForAll", $page_url)) {
         }
 
         // Изменение группы пользователя
-        if (getPOST("e_new_ou", $page_url) !== null && $a_ou_id && $user_info) {
+        if (getPOST("e_new_ou", $page_url) !== null && $a_ou_id >0) {
             $user_updates = ['ou_id' => $a_ou_id];
             $auth_updates_for_all = ['ou_id' => $a_ou_id];
 

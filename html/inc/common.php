@@ -89,21 +89,44 @@ FILTER_FLAG_ENCODE_HIGH      // Кодирует символы с ASCII > 127
 FILTER_FLAG_ENCODE_AMP       // Кодирует амперсанд (&)
 */
 
-function getParam($name, $page_url, $default = null, $filter = FILTER_DEFAULT, $options = []) {
-    $value = filter_input(INPUT_POST, $name, $filter, $options) ?? 
+/**
+ * Получает параметр (скаляр или массив) из POST/GET, с опциональной валидацией каждого элемента
+ */
+function getParam($name, $page_url = null, $default = null, $filter = FILTER_DEFAULT, $options = []) {
+    if (isset($_POST[$name]) && is_array($_POST[$name])) {
+        return $_POST[$name];
+    }
+    if (isset($_GET[$name]) && is_array($_GET[$name])) {
+        return $_GET[$name];
+    }
+    // Если не массив — пробуем как скаляр
+    $value = filter_input(INPUT_POST, $name, $filter, $options) ??
              filter_input(INPUT_GET, $name, $filter, $options);
-    // Если filter_input вернул false — это ошибка валидации, считаем как отсутствие значения
     if ($value === false || $value === null) {
-        return $_SESSION[$page_url][$name] ?? $default;
+        if ($page_url !== null && isset($page_url) && isset($_SESSION[$page_url][$name])) {
+            return $_SESSION[$page_url][$name];
+        }
+        return $default;
     }
     return $value;
 }
 
-function getPOST($name, $page_url, $default = null, $filter = FILTER_DEFAULT, $options = []) {
+/**
+ * Получает параметр только из POST (скаляр или массив)
+ */
+function getPOST($name, $page_url = null, $default = null, $filter = FILTER_DEFAULT, $options = []) {
+    if (isset($_POST[$name]) && is_array($_POST[$name])) {
+        return $_POST[$name];
+    }
+    if (isset($_GET[$name]) && is_array($_GET[$name])) {
+        return $_GET[$name];
+    }
     $value = filter_input(INPUT_POST, $name, $filter, $options);
-    // Если filter_input вернул false — это ошибка валидации
     if ($value === false || $value === null) {
-        return $_SESSION[$page_url][$name] ?? $default;
+        if ($page_url !== null  && isset($page_url) && isset($_SESSION[$page_url][$name])) {
+            return $_SESSION[$page_url][$name];
+        }
+        return $default;
     }
     return $value;
 }
