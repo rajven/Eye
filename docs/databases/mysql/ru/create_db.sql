@@ -165,7 +165,7 @@ CREATE TABLE `dhcp_log` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `mac` varchar(17) NOT NULL,
   `ip_int` bigint(20) UNSIGNED NOT NULL,
-  `ip` varchar(15) NOT NULL,
+  `ip` varchar(15) DEFAULT NULL,
   `action` varchar(10) NOT NULL,
   `ts` timestamp NOT NULL DEFAULT current_timestamp(),
   `auth_id` bigint(20) UNSIGNED NOT NULL,
@@ -178,7 +178,7 @@ CREATE TABLE `dhcp_log` (
 CREATE TABLE `dhcp_queue` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `mac` varchar(17) NOT NULL,
-  `ip` varchar(15) NOT NULL,
+  `ip` varchar(15) DEFAULT NULL,
   `action` varchar(10) NOT NULL,
   `ts` timestamp NOT NULL DEFAULT current_timestamp(),
   `dhcp_hostname` varchar(250) DEFAULT NULL
@@ -244,7 +244,7 @@ CREATE TABLE `mac_history` (
   `ts` timestamp NOT NULL DEFAULT current_timestamp(),
   `device_id` bigint(20) UNSIGNED DEFAULT NULL,
   `port_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `ip` varchar(16) NOT NULL DEFAULT '',
+  `ip` varchar(15) DEFAULT NULL,
   `auth_id` bigint(20) UNSIGNED DEFAULT NULL,
   `dhcp_hostname` varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -285,7 +285,7 @@ CREATE TABLE `remote_syslog` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `ts` timestamp NOT NULL DEFAULT current_timestamp(),
   `device_id` bigint(20) UNSIGNED NOT NULL,
-  `ip` varchar(15) NOT NULL,
+  `ip` varchar(15) DEFAULT NULL,
   `message` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci KEY_BLOCK_SIZE=8 ROW_FORMAT=COMPRESSED;
 
@@ -343,7 +343,7 @@ CREATE TABLE `user_auth` (
   `id` int(11) NOT NULL,
   `user_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
   `ou_id` int(11) DEFAULT NULL,
-  `ip` varchar(18) NOT NULL DEFAULT '',
+  `ip` varchar(18) DEFAULT NULL,
   `ip_int` bigint(10) UNSIGNED NOT NULL DEFAULT 0,
   `save_traf` tinyint(1) NOT NULL DEFAULT 0,
   `enabled` tinyint(1) NOT NULL DEFAULT 0,
