@@ -16,8 +16,8 @@ print_device_submenu($page_url);
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM device_ports AS DP, devices AS D WHERE D.id = DP.device_id AND DP.vlan=$id";
-$count_records = get_single_field($db_link,$countSQL);
+$countSQL="SELECT Count(*) FROM device_ports AS DP, devices AS D WHERE D.id = DP.device_id AND DP.vlan=?";
+$count_records = get_single_field($db_link,$countSQL, [ $id ]);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
@@ -31,8 +31,8 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <td><?php echo WEB_device_port_name; ?></td>
 </tr>
 <?php
-$sSQL = "SELECT DP.id, DP.port, DP.device_id, D.device_name FROM device_ports AS DP, devices AS D WHERE D.id = DP.device_id AND DP.vlan=$id";
-$ports_info = get_records_sql($db_link, $sSQL);
+$sSQL = "SELECT DP.id, DP.port, DP.device_id, D.device_name FROM device_ports AS DP, devices AS D WHERE D.id = DP.device_id AND DP.vlan=?";
+$ports_info = get_records_sql($db_link, $sSQL, [ $id ]);
 foreach ($ports_info as $row) {
     print "<tr>";
     print "<td class=\"data\"><a href=\"/admin/devices/editdevice.php?id=".$row['device_id']."\">" . $row['device_name']. "</a></td>\n";

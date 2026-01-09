@@ -6,8 +6,8 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
-$auth=get_record_sql($db_link,'SELECT * FROM user_auth WHERE id='.$id);
-$user=get_record_sql($db_link,'SELECT * FROM user_list WHERE id='.$auth['user_id']);
+$auth=get_record_sql($db_link,'SELECT * FROM user_auth WHERE id=?', [$id]);
+$user=get_record_sql($db_link,'SELECT * FROM user_list WHERE id=?', [ $auth['user_id']]);
 
 ?>
 <div id="cont">
@@ -36,9 +36,72 @@ print WEB_report_traffic_for_ip."&nbsp<a href=../users/editauth.php?id=$id>".$au
 </tr>
 <?php
 
-$gateway_list = get_gateways($db_link);
-$gateway_filter='';
-if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) AND"; }
+// === 1. Определяем тип СУБД ===
+$db_type = $db_link->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+// === 2. Выбираем формат даты для каждой СУБД ===
+if ($days_shift <= 1) {
+    $mysql_format = '%Y-%m-%d %H';
+    $pg_format    = 'YYYY-MM-DD HH24';
+} elseif ($days_shift <= 30) {
+    $mysql_format = '%Y-%m-%d';
+    $pg_format    = 'YYYY-MM-DD';
+} elseif ($days_shift <= 730) {
+    $mysql_format = '%Y-%m';
+    $pg_format    = 'YYYY-MM';
+} else {
+    $mysql_format = '%Y';
+    $pg_format    = 'YYYY';
+}
+
+// === 3. Базовые параметры (все значения — через параметры!) ===
+$params = [$date1, $date2, (int)$id];
+
+// === 4. Дополнительное условие по router_id (если нужно) ===
+$router_condition = '';
+if (!empty($rgateway) && $rgateway > 0) {
+    $router_condition = ' AND router_id = ?';
+    $params[] = (int)$rgateway;
+}
+
+// === 5. Формируем запрос в зависимости от СУБД ===
+if ($db_type === 'mysql') {
+    $sSQL = "
+        SELECT 
+            router_id,
+            DATE_FORMAT(ts, '$mysql_format') AS tHour,
+            SUM(byte_in) AS byte_in_sum,
+            SUM(byte_out) AS byte_out_sum,
+            MAX(ROUND(pkt_in / step)) AS pkt_in_max,
+            MAX(ROUND(pkt_out / step)) AS pkt_out_max
+        FROM user_stats_full
+        WHERE ts >= ? AND ts < ? AND auth_id = ?$router_condition
+        GROUP BY DATE_FORMAT(ts, '$mysql_format'), router_id
+        ORDER BY tHour" . ($rgateway > 0 ? '' : ', router_id');
+
+} elseif ($db_type === 'pgsql') {
+    $sSQL = "
+        SELECT 
+            router_id,
+            TO_CHAR(ts, '$pg_format') AS tHour,
+            SUM(byte_in) AS byte_in_sum,
+            SUM(byte_out) AS byte_out_sum,
+            MAX(ROUND(pkt_in / step)) AS pkt_in_max,
+            MAX(ROUND(pkt_out / step)) AS pkt_out_max
+        FROM user_stats_full
+        WHERE ts >= ? AND ts < ? AND auth_id = ?$router_condition
+        GROUP BY TO_CHAR(ts, '$pg_format'), router_id
+        ORDER BY tHour" . ($rgateway > 0 ? '' : ', router_id');
+
+} else {
+    throw new RuntimeException("Unsupported database driver: $db_type");
+}
+
+// === 6. Выполняем запрос ===
+$userdata = get_records_sql($db_link, $sSQL, $params);
+
+$sum_in = 0;
+$sum_out = 0;
 
 print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
 print "<td class=\"data\" colspan=2>".$auth['description']."</td>\n";
@@ -46,26 +109,6 @@ print "<td class=\"data\" colspan=2><a href=/admin/reports/userdaydetail.php?id=
 print "<td class=\"data\" colspan=2><a href=/admin/reports/userdaydetaillog.php?id=$id&date_start=$date1&date_stop=$date2>".WEB_report_detail."</a></td>\n";
 print "</tr>\n";
 
-$display_date_format='%Y-%m-%d %H';
-
-if ($days_shift <=1) { $display_date_format='%Y-%m-%d %H'; }
-if ($days_shift >1 and $days_shift <=30) { $display_date_format='%Y-%m-%d'; }
-if ($days_shift >30 and $days_shift <=730) { $display_date_format='%Y-%m'; }
-if ($days_shift >730) { $display_date_format='%Y'; }
-
-$sSQL = "SELECT router_id, DATE_FORMAT(ts,'$display_date_format') as tHour, 
-         SUM(byte_in) as byte_in_sum, SUM(byte_out) as byte_out_sum,
-         MAX(ROUND(pkt_in/step)) as pkt_in_max, MAX(ROUND(pkt_out/step)) as pkt_out_max
-         FROM user_stats_full WHERE ts>='$date1' AND ts<'$date2' AND auth_id=$id";
-if ($rgateway == 0) {
-    $sSQL = $sSQL . " GROUP BY DATE_FORMAT(ts,'$display_date_format'),router_id ORDER BY tHour,router_id";
-} else {
-    $sSQL = $sSQL . " AND router_id=$rgateway GROUP BY DATE_FORMAT(ts,'$display_date_format'),router_id ORDER BY tHour";
-}
-
-$userdata = get_records_sql($db_link, $sSQL);
-$sum_in = 0;
-$sum_out = 0;
 foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $gateway_list[$row['router_id']] . "</td>\n";

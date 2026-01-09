@@ -507,7 +507,7 @@ foreach my $mac (keys %mac_history) {
     next if (!$mac || !$mac_history{$mac}->{changed});
     my $h_dev_id  = $mac_history{$mac}->{dev_id}  || '';
     my $h_port_id = $mac_history{$mac}->{port_id} || '';
-    my $h_ip      = $mac_history{$mac}->{ip}      || '';
+    my $h_ip      = $mac_history{$mac}->{ip};
     my $h_auth_id = $mac_history{$mac}->{auth_id} || 0;
     next if (!$h_dev_id);
 
@@ -515,7 +515,7 @@ foreach my $mac (keys %mac_history) {
     $history_rec->{device_id} = $h_dev_id;
     $history_rec->{port_id}   = $h_port_id;
     $history_rec->{mac}       = $mac;
-    $history_rec->{ip}        = $h_ip;
+    $history_rec->{ip}        = $h_ip if ($h_ip);
     $history_rec->{auth_id}   = $h_auth_id;
     insert_record($dbh, 'mac_history', $history_rec);
 }

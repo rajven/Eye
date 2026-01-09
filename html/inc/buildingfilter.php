@@ -1,10 +1,14 @@
 <?php
-if (! defined("CONFIG")) die("Not defined");
-if (isset($_POST['building_id']) or isset($_GET['building_id'])) {
-    if (isset($_GET['building_id'])) { $f_building_id = $_GET['building_id']*1; }
-    if (isset($_POST['building_id'])) { $f_building_id = $_POST['building_id']*1; }
-    } else {
-    if (isset($_SESSION[$page_url]['building_id'])) { $f_building_id=$_SESSION[$page_url]['building_id']; } else { $f_building_id = 0; }
-    }
-$_SESSION[$page_url]['building_id']=$f_building_id;
+if (!defined("CONFIG")) die("Not defined");
+
+// Получаем building_id с валидацией как целого числа
+$f_building_id = getParam('building_id', $page_url, 0, FILTER_VALIDATE_INT);
+
+// Гарантируем, что значение неотрицательное
+if ($f_building_id < 0) {
+    $f_building_id = 0;
+}
+
+// Сохраняем в сессии
+$_SESSION[$page_url]['building_id'] = $f_building_id;
 ?>

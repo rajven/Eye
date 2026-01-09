@@ -90,13 +90,22 @@ FILTER_FLAG_ENCODE_AMP       // Кодирует амперсанд (&)
 */
 
 function getParam($name, $page_url, $default = null, $filter = FILTER_DEFAULT, $options = []) {
-    $value = filter_input(INPUT_POST, $name, $filter, $options) ?? filter_input(INPUT_GET, $name, $filter, $options);
-    return $value !== null ? $value : ($_SESSION[$page_url][$name] ?? $default);
+    $value = filter_input(INPUT_POST, $name, $filter, $options) ?? 
+             filter_input(INPUT_GET, $name, $filter, $options);
+    // Если filter_input вернул false — это ошибка валидации, считаем как отсутствие значения
+    if ($value === false || $value === null) {
+        return $_SESSION[$page_url][$name] ?? $default;
+    }
+    return $value;
 }
 
 function getPOST($name, $page_url, $default = null, $filter = FILTER_DEFAULT, $options = []) {
     $value = filter_input(INPUT_POST, $name, $filter, $options);
-    return $value !== null ? $value : ($_SESSION[$page_url][$name] ?? $default);
+    // Если filter_input вернул false — это ошибка валидации
+    if ($value === false || $value === null) {
+        return $_SESSION[$page_url][$name] ?? $default;
+    }
+    return $value;
 }
 
 function intval_or_zero($v): int {

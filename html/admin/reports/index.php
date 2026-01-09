@@ -24,51 +24,70 @@ print_reports_submenu($page_url);
 
 <?php
 
-$traffic_stat_table = 'user_stats_full';
-if ($days_shift >= $config["traffic_ipstat_history"]) { $traffic_stat_table = 'user_stats'; }
+// === 1. Выбор таблицы ===
+$traffic_stat_table = ($days_shift >= ($config["traffic_ipstat_history"] ?? 30))
+    ? 'user_stats'
+    : 'user_stats_full';
 
-$sort_sql=" ORDER BY tin DESC";
+// === 2. Безопасная сортировка  ===
+$allowed_sort = ['tin', 'tout', 'pin', 'pout', 'user_id', 'router_id'];
+$allowed_order = ['ASC', 'DESC'];
 
-if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field $order"; }
+$sort_field = in_array($sort_field, $allowed_sort, true) ? $sort_field : 'tin';
+$order = in_array(strtoupper($order), $allowed_order, true) ? strtoupper($order) : 'DESC';
+$sort_sql = " ORDER BY $sort_field $order";
 
-$gateway_list = get_gateways($db_link);
+// === 3. Базовые параметры ===
+$sql_params = [$date1, $date2];
 
-$sql_params=[];
+// === 4. Формируем запрос  ===
+$trafSQL = "
+    SELECT 
+        user_auth.user_id,
+        {$traffic_stat_table}.router_id,
+        SUM(byte_in) AS tin,
+        SUM(byte_out) AS tout,
+        MAX(ROUND(pkt_in / step)) AS pin,
+        MAX(ROUND(pkt_out / step)) AS pout
+    FROM {$traffic_stat_table}, user_auth, user_list
+    WHERE 
+        user_list.id = user_auth.user_id
+        AND {$traffic_stat_table}.auth_id = user_auth.id
+        AND {$traffic_stat_table}.ts >= ?
+        AND {$traffic_stat_table}.ts < ?
+";
 
-$trafSQL = "SELECT user_auth.user_id,".$traffic_stat_table.".router_id,
-SUM( byte_in ) AS tin, SUM( byte_out ) AS tout, MAX(ROUND(pkt_in/step)) as pin, MAX(ROUND(pkt_out/step)) as pout 
-FROM ".$traffic_stat_table.",user_auth,user_list WHERE user_list.id=user_auth.user_id 
-AND ".$traffic_stat_table.".auth_id = user_auth.id 
-AND ".$traffic_stat_table.".ts>= ? AND ".$traffic_stat_table.".ts< ?";
-
-array_push($sql_params,$date1);
-array_push($sql_params,$date2);
+// === 5. Дополнительные условия ===
 if ($rou !== 0) {
-    $trafSQL = $trafSQL . " AND user_list.ou_id=?";
-    array_push($sql_params,$rou);
+    $trafSQL .= " AND user_list.ou_id = ?";
+    $sql_params[] = (int)$rou;
+}
+if ($rgateway > 0) {
+    $trafSQL .= " AND {$traffic_stat_table}.router_id = ?";
+    $sql_params[] = (int)$rgateway;
 }
 
-if ($rgateway >0) {
-    $trafSQL = $trafSQL . " AND ".$traffic_stat_table.".router_id= ?";
-    array_push($sql_params,$rgateway);
-}
+// === 6. GROUP BY  ===
+$trafSQL .= " GROUP BY user_auth.user_id, {$traffic_stat_table}.router_id";
 
-$trafSQL = $trafSQL . "  GROUP by user_auth.user_id,".$traffic_stat_table.".router_id";
+// === 7. Подсчёт записей ===
+$countSQL = "SELECT COUNT(*) FROM ($trafSQL) AS subquery";
+$count_records = (int)get_single_field($db_link, $countSQL, $sql_params);
 
-$countSQL = "SELECT Count(*) FROM ($trafSQL) A";
-$count_records = get_single_field($db_link,$countSQL,$sql_params);
+// === 8. Пагинация ===
+$total = ceil($count_records / $displayed);
+$page = max(1, min($page, $total));
+$start = ($page - 1) * $displayed;
 
-$total=ceil($count_records/$displayed);
-if ($page>$total) { $page=$total; }
-if ($page<1) { $page=1; }
-$start = ($page * $displayed) - $displayed;
+print_navigation($page_url, $page, $displayed, $count_records, $total);
 
-#set sort
-$trafSQL=$trafSQL ." $sort_sql LIMIT ? OFFSET ?";
-array_push($sql_params,$displayed);
-array_push($sql_params,$start);
+// === 9. Добавляем сортировку + пагинацию ===
+$trafSQL .= $sort_sql . " LIMIT ? OFFSET ?";
+$sql_params[] = (int)$displayed;
+$sql_params[] = (int)$start;
 
-print_navigation($page_url,$page,$displayed,$count_records,$total);
+// === 10. Выполняем запрос ===
+$traf = get_records_sql($db_link, $trafSQL, $sql_params);
 
 print "<br><br>\n";
 print "<table class=\"data\">\n";
@@ -84,7 +103,6 @@ print "</tr>\n";
 $total_in = 0;
 $total_out = 0;
 
-$traf = get_records_sql($db_link, $trafSQL,$sql_params);
 
 foreach ($traf as $row) {
     if ($row['tin'] + $row['tout'] == 0) { continue; }

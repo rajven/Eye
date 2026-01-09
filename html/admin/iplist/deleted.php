@@ -18,21 +18,27 @@ if (!isset($f_description)) { $f_description=''; }
 $_SESSION[$page_url]['description']=$f_description;
 
 $sort_table = 'user_auth';
-
 $sort_url = "<a href=deleted.php?";
 
+$params=[];
 if ($rsubnet == 0) { $subnet_filter = ''; } else {
     $subnet_range = get_subnet_range($db_link,$rsubnet);
-    $subnet_filter = " and user_auth.ip_int>=".$subnet_range['start']." and user_auth.ip_int<=".$subnet_range['stop'];
+    $subnet_filter = " and user_auth.ip_int>=? and user_auth.ip_int<=?";
+    $params[]=$subnet_range['start'];
+    $params[]=$subnet_range['stop'];
     }
 
 $ip_list_filter = $subnet_filter;
 
 $ip_where = '';
 if (!empty($f_description)) {
-    if (checkValidIp($f_description)) { $ip_where = " and ip_int=inet_aton('" . $f_description . "') "; }
-    if (checkValidMac($f_description)) { $ip_where = " and mac='" . mac_dotted($f_description) . "'  "; }
-    if (empty($ip_where)) { $ip_where=" and (user_auth.description LIKE '$f_description' OR user_auth.dhcp_hostname LIKE '$f_description')"; }
+    if (checkValidIp($f_description)) { $ip_where = " and ip=?"; $params[]=$f_description; }
+    if (checkValidMac($f_description)) { $ip_where = " and mac=?"; $params[]= mac_dotted($f_description); }
+    if (empty($ip_where)) { 
+	$ip_where=" and (user_auth.description LIKE ? OR user_auth.dhcp_hostname LIKE ?)"; 
+	$params[]=$f_description;
+	$params[]=$f_description;
+	}
     $ip_list_filter = $ip_where;
     } 
 
@@ -51,7 +57,7 @@ print_ip_submenu($page_url);
 
 <?php
 $countSQL="SELECT Count(*) FROM user_auth WHERE user_auth.deleted = 1 $ip_list_filter";
-$count_records = get_single_field($db_link,$countSQL);
+$count_records = get_single_field($db_link,$countSQL, $params);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
@@ -76,8 +82,12 @@ $sSQL = "SELECT
 user_auth.id, user_auth.ip, user_auth.mac, user_auth.description, user_auth.dns_name, user_auth.dhcp_hostname, 
 user_auth.dhcp_time, user_auth.last_found, user_auth.ts, user_auth.changed_time
 FROM user_auth WHERE user_auth.deleted = 1 $ip_list_filter
-ORDER BY $sort_table.$sort_field $order LIMIT $displayed OFFSET $start";
-$users = get_records_sql($db_link,$sSQL);
+ORDER BY $sort_table.$sort_field $order LIMIT ? OFFSET ?";
+
+$params[]=$displayed;
+$params[]=$start;
+
+$users = get_records_sql($db_link,$sSQL, $params);
 foreach ($users as $user) {
     if (empty($user['last_found']) or $user['last_found'] === '0000-00-00 00:00:00') { $user['last_found'] = ''; }
     if (empty($user['ts']) or $user['ts'] === '0000-00-00 00:00:00') { $user['ts'] = ''; }

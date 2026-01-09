@@ -18,27 +18,34 @@ $_SESSION[$page_url]['f_dhcp']=$f_dhcp;
 $_SESSION[$page_url]['ip']=$f_ip;
 
 $dhcp_where = '';
-if ($f_dhcp != 'all') { $dhcp_where = " and action='$f_dhcp' "; }
+$params=[ $date1, $date2 ];
+if ($f_dhcp != 'all') { $dhcp_where = " and action=?"; $params[]=$f_dhcp; }
 
 if (empty($rcidr)) { $cidr_filter = ''; } else {
     $cidr_range = cidrToRange($rcidr);
-    if (!empty($cidr_range)) { $cidr_filter = " and (ip_int>=".ip2long($cidr_range[0])." and ip_int<=".ip2long($cidr_range[1]).")"; }
+    if (!empty($cidr_range)) { $cidr_filter = " and (ip_int>=? and ip_int<=?)"; }
+    $params[]=ip2long($cidr_range[0]);
+    $params[]=ip2long($cidr_range[1]);
     }
 
 if (!empty($f_ip)) {
     if (checkValidIp($f_ip)) { 
-        $dhcp_where = " and ip_int=inet_aton('" . $f_ip . "') "; 
+        $dhcp_where = " and ip_int=?"; 
+        $params[]=ip2long($f_ip);
         } else {
         if (checkValidMac($f_ip)) { 
-            $dhcp_where = " and mac='" . mac_dotted($f_ip) . "'  "; 
-            } else { $dhcp_where = " and dhcp_hostname like '".$f_ip."%'"; }
+            $dhcp_where = " and mac=?";
+            $params[]= mac_dotted($f_ip);
+            } else { 
+    	    $dhcp_where = " and dhcp_hostname like ?";
+    	    $params[]=$f_ip.'%';
+    	    }
         }
     }
 
 $dhcp_where .= $cidr_filter;
 
 print_log_submenu($page_url);
-
 
 ?>
 
@@ -56,8 +63,8 @@ print_log_submenu($page_url);
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM dhcp_log WHERE ts>='$date1' AND ts<'$date2' $dhcp_where";
-$count_records = get_single_field($db_link,$countSQL);
+$countSQL="SELECT Count(*) FROM dhcp_log WHERE ts>=? AND ts<? $dhcp_where";
+$count_records = get_single_field($db_link,$countSQL, $params);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
@@ -77,8 +84,11 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <?php
 
 #speedup dhcp log paging
-$sSQL = "SELECT * FROM dhcp_log as D JOIN (SELECT id FROM dhcp_log WHERE ts>='$date1' and ts<'$date2' $dhcp_where ORDER BY id DESC LIMIT $displayed OFFSET $start) AS I ON D.id = I.id";
-$userlog = get_records_sql($db_link, $sSQL);
+$sSQL = "SELECT * FROM dhcp_log as D JOIN (SELECT id FROM dhcp_log WHERE ts>=? and ts<? $dhcp_where ORDER BY id DESC LIMIT ? OFFSET ?) AS I ON D.id = I.id";
+$params[]=$displayed;
+$params[]=$start;
+
+$userlog = get_records_sql($db_link, $sSQL, $params);
 
 foreach ($userlog as $row) {
     if ($row['action'] == "old") { $row['action'] = WEB_log_dhcp_old.": "; }

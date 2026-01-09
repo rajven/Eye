@@ -12,8 +12,6 @@ if (!isset($f_mac)) { $f_mac=''; }
 
 $_SESSION[$page_url]['mac']=$f_mac;
 
-$mac_where = '';
-if (!empty($f_mac)) { $mac_where = " and mac='$f_mac' "; }
 
 print_log_submenu($page_url);
 ?>
@@ -27,14 +25,32 @@ print_log_submenu($page_url);
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM mac_history WHERE ts>='$date1' AND ts<'$date2' $mac_where ORDER BY id DESC";
-$count_records = get_single_field($db_link,$countSQL);
-$total=ceil($count_records/$displayed);
-if ($page>$total) { $page=$total; }
-if ($page<1) { $page=1; }
-$start = ($page * $displayed) - $displayed; 
-print_navigation($page_url,$page,$displayed,$count_records,$total);
+$params = [$date1, $date2];
+$conditions = [];
+if (!empty($f_mac)) {
+    $conditions[] = "mac = ?";
+    $params[] = $f_mac;
+}
+$whereClause = !empty($conditions) ? ' AND ' . implode(' AND ', $conditions) : '';
+$countSQL = "SELECT COUNT(*) FROM mac_history WHERE ts >= ? AND ts < ?" . $whereClause;
+$count_records = (int)get_single_field($db_link, $countSQL, $params);
+$total = ceil($count_records / $displayed);
+$page = max(1, min($page, $total));
+$start = ($page - 1) * $displayed;
+print_navigation($page_url, $page, $displayed, $count_records, $total);
+
+$dataParams = array_merge($params, [$displayed, $start]);
+
+$sSQL = "
+    SELECT * FROM mac_history 
+    WHERE ts >= ? AND ts < ?" . $whereClause . "
+    ORDER BY ts DESC 
+    LIMIT ? OFFSET ?
+";
+
+$maclog = get_records_sql($db_link, $sSQL, $dataParams);
 ?>
+
 <br>
 <table class="data" width="850">
 <tr align="center">
@@ -45,9 +61,6 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 </tr>
 
 <?php
-
-$sSQL = "SELECT * FROM mac_history WHERE ts>='$date1' AND ts<'$date2' $mac_where ORDER BY ts DESC LIMIT $displayed OFFSET $start";
-$maclog = get_records_sql($db_link, $sSQL);
 
 foreach ($maclog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";

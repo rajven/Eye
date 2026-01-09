@@ -8,7 +8,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/rulesfilter.php");
 if (isset($_POST["removeRule"])) {
     $r_id = $_POST["f_id"];
     foreach ($r_id as $key => $val) {
-        if ($val) { delete_record($db_link, "auth_rules", "id=".$val); }
+        if ($val) { delete_record($db_link, "auth_rules", "id=?", [$val]); }
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -44,16 +44,17 @@ print_ip_submenu($page_url);
 <?php
 
 $target_filter='';
+$params=[];
 if ($rule_target>0) {
     if ($rule_target==1) { $target_filter = ' AND user_id>0'; }
     if ($rule_target==2) { $target_filter = ' AND ou_id>0'; }
     }
 
 $type_filter='';
-if ($rule_type>0) { $type_filter = ' AND type='.$rule_type; }
+if ($rule_type>0) { $type_filter = ' AND type=?'; $params[]=$rule_type; }
 
 $rule_filter='';
-if (!empty($f_rule)) { $rule_filter = ' AND rule LIKE "'.$f_rule.'%"'; }
+if (!empty($f_rule)) { $rule_filter = ' AND rule LIKE ?'; $params[]=$f_rule.'%'; }
 
 $rule_filters = '';
 if (!empty($target_filter) or !empty($type_filter) or !empty($rule_filter)) {
@@ -62,14 +63,13 @@ if (!empty($target_filter) or !empty($type_filter) or !empty($rule_filter)) {
 
 fix_auth_rules($db_link);
 $countSQL="SELECT Count(*) FROM auth_rules $rule_filters";
-$count_records = get_single_field($db_link,$countSQL);
+$count_records = get_single_field($db_link,$countSQL, $params);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
 print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
-
 
 <table class="data">
 <tr align="center">
@@ -81,8 +81,11 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <td align=right><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="removeRule" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
-$rulesSQL = "SELECT * FROM auth_rules $rule_filters ORDER BY id LIMIT $displayed OFFSET $start";
-$t_auth_rules = get_records_sql($db_link,$rulesSQL);
+$rulesSQL = "SELECT * FROM auth_rules $rule_filters ORDER BY id LIMIT ? OFFSET ?";
+$params[]=$displayed;
+$params[]=$start;
+
+$t_auth_rules = get_records_sql($db_link,$rulesSQL, $params);
 foreach ( $t_auth_rules as $row ) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value=".$row["id"]." ></td>\n";
@@ -94,11 +97,11 @@ foreach ( $t_auth_rules as $row ) {
     print "<td class=\"data\">".$row['rule']."</td>\n";
     print "<td colspan=2 class=\"data\" align=left>";
     if (!empty($row['user_id'])) {
-	$user_info=get_record_sql($db_link,"SELECT * FROM user_list WHERE id=".$row['user_id']);
+	$user_info=get_record_sql($db_link,"SELECT * FROM user_list WHERE id=?", [$row['user_id']]);
 	if (!empty($user_info)) { print "User: &nbsp"; print_url($user_info['login'],'/admin/users/edituser.php?id='.$user_info['id']); }
 	}
     if (!empty($row['ou_id'])) {
-	$ou_info=get_record_sql($db_link,"SELECT * FROM ou WHERE id=".$row['ou_id']);
+	$ou_info=get_record_sql($db_link,"SELECT * FROM ou WHERE id=?", [ $row['ou_id'] ]);
 	if (!empty($ou_info)) { print "Group: &nbsp"; print_url($ou_info['ou_name'],'/admin/groups/edit_group.php?id='.$ou_info['id']); }
 	}
     print "</td>";

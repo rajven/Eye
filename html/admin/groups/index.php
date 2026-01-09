@@ -6,10 +6,10 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["f_id"];
     foreach ($fid as $key => $val) {
         if (isset($val) and $val > 0) {
-            run_sql($db_link, "UPDATE user_list SET ou_id=0 WHERE ou_id=$val");
-            run_sql($db_link, "UPDATE user_auth SET ou_id=0 WHERE ou_id=$val");
-            run_sql($db_link, "DELETE FROM auth_rules WHERE ou_id=$val");
-            delete_record($db_link, "ou", "id=" . $val);
+            run_sql($db_link, "UPDATE user_list SET ou_id=0 WHERE ou_id=?", [ $val ]);
+            run_sql($db_link, "UPDATE user_auth SET ou_id=0 WHERE ou_id=?", [ $val ]);
+            run_sql($db_link, "DELETE FROM auth_rules WHERE ou_id=?", [ $val ]);
+            delete_record($db_link, "ou", "id=?", [$val]);
             }
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -44,7 +44,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 </td>
 </tr>
 <?php
-$t_ou = get_records($db_link,'ou','TRUE ORDER BY ou_name');
+$t_ou = get_records_sql($db_link,'SELECT * FROM ou ORDER BY ou_name');
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";

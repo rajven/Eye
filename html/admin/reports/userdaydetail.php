@@ -46,15 +46,30 @@ DNS:&nbsp <input type=checkbox name=dns value="1" <?php print $dns_checked; ?>>
 <td class="data" width=80><b><?php echo WEB_bytes; ?></b></td>
 </tr>
 <?php
-$ip_aton = ip2long($fip);
+// Беззнаковое представление IP
+$ip_long = sprintf('%u', ip2long($fip));
+$params = [$date1, $date2, (int)$id, $ip_long];
+$conditions = [
+    "ts >= ?",
+    "ts < ?",
+    "auth_id = ?",
+    "dst_ip = ?"
+];
+if (!empty($rgateway) && $rgateway > 0) {
+    $conditions[] = "router_id = ?";
+    $params[] = (int)$rgateway;
+}
+$where = implode(' AND ', $conditions);
+$fsql = "
+    SELECT proto, src_ip, src_port, SUM(bytes) AS tin
+    FROM traffic_detail
+    WHERE $where
+    GROUP BY src_ip, src_port, proto
+    ORDER BY tin DESC
+    LIMIT 10
+";
 
-$gateway_filter='';
-if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) AND"; }
-
-$fsql = "SELECT A.proto, A.src_ip, A.src_port, SUM(A.bytes) as tin FROM traffic_detail A
-            WHERE $gateway_filter (auth_id='$id') and  ts>='$date1' and ts<'$date2' and (A.dst_ip='$ip_aton')
-            GROUP BY A.src_ip, A.src_port, A.proto ORDER BY tin DESC LIMIT 10 OFFSET 0";
-$userdata = get_records_sql($db_link, $fsql);
+$userdata = get_records_sql($db_link, $fsql, $params);
 foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     $proto_name = getprotobynumber($row['proto']);

@@ -8,8 +8,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/sortfilter.php");
 
 $msg_error = "";
 
-$sSQL = "SELECT * FROM user_list WHERE id=$id";
-$user_info = get_record_sql($db_link, $sSQL);
+$sSQL = "SELECT * FROM user_list WHERE id=?";
+$user_info = get_record_sql($db_link, $sSQL, [ $id ]);
 
 if (empty($user_info)) {
     header("Location: /admin/");
@@ -36,26 +36,28 @@ if (isset($_POST["edituser"])) {
         $new["month_quota"] = get_int(trim($_POST["f_permonth"]));
         $new["permanent"] = $_POST["f_permanent"] * 1;
     }
-    $changes = get_diff_rec($db_link, "user_list", "id='$id'", $new, 0);
+    $changes = get_diff_rec($db_link, "user_list", "id=?", $new, 0, [ $id ]);
     if (!empty($changes)) {
         LOG_WARNING($db_link, "Changed user id: $id login: " . $new["login"] . ". \r\nApply: $changes");
     }
-    update_record($db_link, "user_list", "id='$id'", $new);
+    update_record($db_link, "user_list", "id=?", $new, [ $id ]);
     if (!$new["enabled"]) {
-        run_sql($db_link, "UPDATE user_auth SET enabled=0, changed=1 WHERE user_id=" . $id);
+        update_record($db_link, 'user_auth', 'user_id = ?', [ 'enabled' => 0,'changed' => 1 ], [ $id ]);
     }
     if (!empty($new["fio"])) {
-        run_sql($db_link, "UPDATE user_auth SET description='" . db_escape($db_link, $new["fio"]) . "' WHERE user_id=" . $id . " AND deleted=0 AND (description IS NULL or description='' or description='" . $user_info["fio"] . "')");
+	update_records($db_link,'user_auth',"user_id=? AND deleted=0 AND (description IS NULL or description='' or description=?)", [ 'description'=> $new["fio"] ], [ $id, $user_info["fio"] ]);
     }
-    run_sql($db_link, "UPDATE user_auth SET ou_id=" . $new["ou_id"] . " WHERE user_id=" . $id);
-    run_sql($db_link, "UPDATE devices SET device_name='" . $new["login"] . "' WHERE user_id=" . $id);
+    // Обновление ou_id в user_auth
+    update_records($db_link, 'user_auth', 'user_id = ? AND deleted=0', [ 'ou_id' => $new["ou_id"] ], [ $id ]);
+    // Обновление device_name в devices
+    update_record($db_link, 'devices', 'user_id = ?', [ 'device_name' => $new["login"] ], [ $id ]);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
 if (isset($_POST["addMacRule"])) {
     unset($new);
-    $first_auth = get_records_sql($db_link, "SELECT mac FROM user_auth WHERE user_id=" . $id . " AND deleted=0 AND LENGTH(mac)>0 ORDER BY id");
+    $first_auth = get_records_sql($db_link, "SELECT mac FROM user_auth WHERE user_id=? AND deleted=0 AND LENGTH(mac)>0 ORDER BY id", [ $id ]);
     foreach ($first_auth as $row) {
         if (!empty($row['mac'])) { add_auth_rule($db_link, $row['mac'], 2, $id); }
         }
@@ -64,7 +66,7 @@ if (isset($_POST["addMacRule"])) {
 }
 
 if (isset($_POST["delMacRule"])) {
-    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id=" . $id . " AND type=2");
+    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id=? AND type=2", [ $id ]);
     LOG_INFO($db_link, "All autorules removed for id: $id login: " . $user_info["login"] . " by mac");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -72,7 +74,7 @@ if (isset($_POST["delMacRule"])) {
 
 if (isset($_POST["addIPRule"])) {
     unset($new);
-    $first_auth = get_records_sql($db_link, "SELECT ip FROM user_auth WHERE user_id=" . $id . " AND deleted=0 AND LENGTH(ip)>0 ORDER BY id");
+    $first_auth = get_records_sql($db_link, "SELECT ip FROM user_auth WHERE user_id = ? AND deleted = 0 AND ip IS NOT NULL ORDER BY id", [$id]);
     foreach ($first_auth as $row) {
         if (!empty($row['ip'])) { add_auth_rule($db_link, $row['ip'], 1, $id); }
         }
@@ -81,15 +83,15 @@ if (isset($_POST["addIPRule"])) {
 }
 
 if (isset($_POST["delIPRule"])) {
-    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id=" . $id . " AND type=1");
+    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id=? AND type=1", [ $id ]);
     LOG_INFO($db_link, "Removed all auto rules for id: $id login: " . $user_info["login"] . " by ip");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
 if (isset($_POST["showDevice"])) {
-    $device = get_record_sql($db_link, "SELECT * FROM devices WHERE user_id=" . $id);
-    $auth = get_record_sql($db_link, "SELECT * FROM user_auth WHERE user_id=" . $id);
+    $device = get_record_sql($db_link, "SELECT * FROM devices WHERE user_id=?", [$id]);
+    $auth = get_record_sql($db_link, "SELECT * FROM user_auth WHERE user_id=?", [$id]);
     if (empty($device) and !empty($auth)) {
         $new['user_id'] = $id;
         $new['device_name'] = $user_info['login'];
@@ -137,8 +139,8 @@ if (isset($_POST["addauth"])) {
             if (!empty($fmac) and !empty($fip)) {
                 $mac_exists = find_mac_in_subnet($db_link, $fip, $fmac);
                 if (!empty($mac_exists) and $mac_exists['count'] >= 1 and !in_array($id, $mac_exists['users_id'])) {
-                    $dup_sql = "SELECT * FROM user_list WHERE id=" . $mac_exists['users_id']['0'];
-                    $dup_info = get_record_sql($db_link, $dup_sql);
+                    $dup_sql = "SELECT * FROM user_list WHERE id=?";
+                    $dup_info = get_record_sql($db_link, $dup_sql, [ $mac_exists['users_id']['0'] ]);
                     $msg_error = "Mac already exists at another user in this subnet! Skip creating $fip [$fmac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
                     $_SESSION[$page_url]['msg'] = $msg_error;
                     LOG_ERROR($db_link, $msg_error);
@@ -155,9 +157,9 @@ if (isset($_POST["addauth"])) {
                 }
             }
             //search ip
-            $dup_ip_record = get_record_sql($db_link, "SELECT * FROM user_auth WHERE ip_int=$ip_aton AND user_id<>" . $id . " AND deleted=0");
+            $dup_ip_record = get_record_sql($db_link, "SELECT * FROM user_auth WHERE ip_int=? AND user_id<>? AND deleted=0", [ $ip_aton, $id ]);
             if (!empty($dup_ip_record)) {
-                $dup_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $dup_ip_record['user_id']);
+                $dup_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=?", [ $dup_ip_record['user_id'] ]);
                 $msg_error = "$fip already exists. Skip creating $fip [$fmac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
                 $_SESSION[$page_url]['msg'] = $msg_error;
                 LOG_ERROR($db_link, $msg_error);
@@ -169,7 +171,7 @@ if (isset($_POST["addauth"])) {
                 $new['dhcp'] = $f_dhcp;
                 $new['created_by'] = 'manual';
                 if (!empty($fdescription)) { $new['description'] = $fdescription; }
-                update_record($db_link, "user_auth", "id=" . $fid, $new);
+                update_record($db_link, "user_auth", "id=?", $new, [ $fid ]);
                 LOG_WARNING($db_link, "Add ip for login: " . $user_info["login"] . ": ip => $fip, mac => $fmac", $fid);
                 header("Location: /admin/users/editauth.php?id=" . $fid);
                 exit;
@@ -198,7 +200,7 @@ if (isset($_POST["new_user"])) {
     $save_traf = get_option($db_link, 23) * 1;
     foreach ($auth_id as $key => $val) {
         if ($val) {
-            $auth_info = get_record_sql($db_link, "SELECT * FROM user_auth WHERE id=$val");
+            $auth_info = get_record_sql($db_link, "SELECT * FROM user_auth WHERE id=?", [ $val ]);
             $ou_id = $user_info["ou_id"];
             $login = NULL;
             if (!empty($auth_info["dns_name"])) {
@@ -216,14 +218,14 @@ if (isset($_POST["new_user"])) {
             if (empty($login)) {
                 $login = $auth_info["ip"];
             }
-            $new_user = get_record_sql($db_link, "SELECT * FROM user_list WHERE LOWER(login)=LOWER('$login') and deleted=0");
+	    $new_user = get_record_sql($db_link, "SELECT * FROM user_list WHERE LOWER(login) = LOWER(?) AND deleted = 0", [$login]);
             if (!empty($new_user)) {
                 // move auth
                 $auth["user_id"] = $new_user["id"];
                 $auth["ou_id"] = $new_user["ou_id"];
                 $auth["save_traf"] = $save_traf;
                 $auth = apply_auth_rule($db_link, $auth, $l_id);
-                update_record($db_link, "user_auth", "id='" . $val . "'", $auth);
+                update_record($db_link, "user_auth", "id=?", $auth,  [ $val ]);
                 LOG_WARNING($db_link, "ip from id: $val moved to another user user_id: " . $new_user["id"], $val);
             } else {
                 $new["login"] = $login;
@@ -235,7 +237,7 @@ if (isset($_POST["new_user"])) {
                 $l_id = insert_record($db_link, "user_list", $new);
                 $auth["user_id"] = $l_id;
                 $auth["save_traf"] = $save_traf;
-                update_record($db_link, "user_auth", "id='" . $val . "'", $auth);
+                update_record($db_link, "user_auth", "id=?", $auth, [ $val ]);
                 LOG_WARNING($db_link, "Create user from ip: login => $login. ip-record auth_id: $val moved to this user.", $val);
             }
         }
@@ -302,19 +304,19 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                 print "<td>";
                 print_url(WEB_user_rule_list, "/admin/users/edit_rules.php?id=$id");
                 print "</td>";
-                $rule_count = get_count_records($db_link, "auth_rules", "user_id=" . $id);
+                $rule_count = get_count_records($db_link, "auth_rules", "user_id=?", [ $id ]);
                 print "<td > Count: " . $rule_count . "</td>";
-                $first_auth = get_record_sql($db_link, "SELECT id FROM user_auth WHERE user_id=" . $id . " AND deleted=0 ORDER BY id");
+                $first_auth = get_record_sql($db_link, "SELECT id FROM user_auth WHERE user_id=? AND deleted=0 ORDER BY id", [ $id ]);
                 if (!empty($first_auth)) {
                     //mac
-                    $mac_rule_count = get_count_records($db_link, "auth_rules", "user_id=" . $id . " AND type=2");
+                    $mac_rule_count = get_count_records($db_link, "auth_rules", "user_id=? AND type=2", [ $id ]);
                     if (!empty($mac_rule_count)) {
                         print "<td><input type=\"submit\" name=\"delMacRule\" value=" . WEB_btn_mac_del . " ></td>";
                     } else {
                         print "<td><input type=\"submit\" name=\"addMacRule\" value=" . WEB_btn_mac_add . " ></td>";
                     }
                     //ip
-                    $ip_rule_count = get_count_records($db_link, "auth_rules", "user_id=" . $id . " AND type=1");
+                    $ip_rule_count = get_count_records($db_link, "auth_rules", "user_id=? AND type=1", [ $id ]);
                     if (!empty($ip_rule_count)) {
                         print "<td><input type=\"submit\" name=\"delIPRule\" value=" . WEB_btn_ip_del . " ></td>";
                     } else {
@@ -373,7 +375,7 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
 
             <?php
 
-            $flist = get_records($db_link, 'user_auth', "user_id=" . $id . " and deleted=0 ORDER BY $sort_table.$sort_field $order");
+            $flist = get_records($db_link, 'user_auth', "user_id=? and deleted=0 ORDER BY $sort_table.$sort_field $order", [ $id ]);
             if (!empty($flist)) {
                 foreach ($flist as $row) {
                     $dhcp_str = '';

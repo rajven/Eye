@@ -12,7 +12,7 @@ if (isset($_POST['save'])) {
             $id = intval($_POST['r_id'][$j]);
             $new['name'] = trim($_POST['f_name'][$j]);
             $new['description'] = trim($_POST['f_description'][$j]);
-            update_record($db_link, "filter_instances", "id='$id'", $new);
+            update_record($db_link, "filter_instances", "id=?", $new, [ $id ]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -34,12 +34,12 @@ if (isset($_POST["remove"])) {
     for ($i = 0; $i < $len; $i ++) {
         $id = intval($_POST['r_id'][$i]);
         if (!empty($id) and $id>1) {
-	    $deleted_groups = get_records_sql($db_link,"SELECT * FROM group_list WHERE instance_id>1 AND instance_id=".$id);
+	    $deleted_groups = get_records_sql($db_link,"SELECT * FROM group_list WHERE instance_id>1 AND instance_id=?", [ $id ]);
 	    foreach ($deleted_groups as $d_group) {
-	        run_sql($db_link, "UPDATE user_auth SET filter_group_id=0, changed = 1 WHERE deleted=0 AND filter_group_id=" . $d_group['id']);
-		delete_record($db_link, "group_list", "id=" . $d_group['id']);
+	        run_sql($db_link, "UPDATE user_auth SET filter_group_id=0, changed = 1 WHERE deleted=0 AND filter_group_id=?", [ $d_group['id'] ]);
+		delete_record($db_link, "group_list", "id=?", [ $d_group['id'] ]);
 		}
-            delete_record($db_link, "filter_instances", "id=" . $id * 1);
+            delete_record($db_link, "filter_instances", "id=?", [$id ]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);

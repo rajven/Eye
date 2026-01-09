@@ -12,14 +12,14 @@ $msg_error = "";
 if (isset($_POST["create"])) {
     $login = trim($_POST["newlogin"]);
     if (!empty($login)) {
-        $lcount = get_count_records($db_link,"user_list","LOWER(login)=LOWER('$login')");
+        $lcount = get_count_records($db_link,"user_list","LOWER(login)=LOWER(?)", [ $login ]);
         if ($lcount > 0) {
             $msg_error = WEB_cell_login." ".$login." ".$msg_exists."!";
             unset($_POST);
         } else {
             $new['login'] = $login;
             $new['ou_id'] = $rou;
-            $ou_info = get_record_sql($db_link,"SELECT * FROM ou WHERE id=".$rou);
+            $ou_info = get_record_sql($db_link,"SELECT * FROM ou WHERE id=?", [ $rou ]);
 	    if (!empty($ou_info)) {
 		if (empty($ou_info['enabled'])) { $ou_info['enabled'] = 0; }
 		if (empty($ou_info['queue_id'])) { $ou_info['queue_id'] = 0; }
@@ -100,20 +100,55 @@ if ($msg_error) {
 
 <?php
 
-$sort_table = 'U';
 $sort_url = "<a href=/admin/users/index.php?";
 
-if ($rou == 0) { $filter = "U.ou_id=O.id and U.deleted=0"; } else { $filter = "U.ou_id=O.id and U.deleted=0 and U.ou_id=$rou"; }
+// === 1. Базовые условия ===
+$params = [];
+$conditions = ["U.deleted = 0", "U.ou_id = O.id"];
 
-$countSQL = "SELECT Count(*) FROM user_list U, ou O WHERE $filter";
-$count_records = get_single_field($db_link,$countSQL);
-$total=ceil($count_records/$displayed);
-if ($page>$total) { $page=$total; }
-if ($page<1) { $page=1; }
-$start = ($page * $displayed) - $displayed;
-print_navigation($page_url,$page,$displayed,$count_records,$total);
+if ($rou != 0) {
+    $conditions[] = "U.ou_id = ?";
+    $params[] = (int)$rou;
+}
 
-$sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month_quota, U.blocked, U.permanent FROM user_list U, ou O WHERE $filter ORDER BY $sort_table.$sort_field $order LIMIT $displayed OFFSET $start";
+$whereClause = implode(' AND ', $conditions);
+
+// === 2. Безопасная сортировка (БЕЛЫЙ СПИСОК!) ===
+$allowed_sort_fields = ['id', 'login', 'fio', 'ou_name', 'enabled', 'day_quota', 'month_quota', 'blocked', 'permanent'];
+$allowed_order = ['ASC', 'DESC'];
+
+$sort_field = in_array($sort_field, $allowed_sort_fields, true) ? $sort_field : 'id';
+$order = in_array(strtoupper($order), $allowed_order, true) ? strtoupper($order) : 'ASC';
+
+// === 3. Подсчёт записей ===
+$countSQL = "SELECT COUNT(*) FROM user_list U JOIN ou O ON U.ou_id = O.id WHERE $whereClause";
+$count_records = (int)get_single_field($db_link, $countSQL, $params);
+
+// === 4. Пагинация ===
+$total = ceil($count_records / $displayed);
+$page = max(1, min($page, $total));
+$start = ($page - 1) * $displayed;
+
+print_navigation($page_url, $page, $displayed, $count_records, $total);
+
+// === 5. Запрос данных ===
+$limit = (int)$displayed;
+$offset = (int)$start;
+
+$dataParams = array_merge($params, [$limit, $offset]);
+
+$sSQL = "
+    SELECT 
+        U.id, U.login, U.fio, O.ou_name, U.enabled, 
+        U.day_quota, U.month_quota, U.blocked, U.permanent
+    FROM user_list U
+    JOIN ou O ON U.ou_id = O.id
+    WHERE $whereClause
+    ORDER BY U.$sort_field $order
+    LIMIT ? OFFSET ?
+";
+
+$users = get_records_sql($db_link, $sSQL, $dataParams);
 
 ?>
 
@@ -134,10 +169,9 @@ $sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month
 </tr>
 <?php
 
-$users = get_records_sql($db_link, $sSQL);
 
 foreach ($users as $row) {
-    $auth_customs = get_count_records($db_link,"user_auth","user_id=".$row['id']." AND deleted=0 AND enabled <>'".$row['enabled']."'");
+    $auth_customs = get_count_records($db_link,"user_auth","user_id=? AND deleted=0 AND enabled <>?", [ $row['id'],$row['enabled'] ] );
     $cl = "data";
     if (! $row['enabled']) {
         $cl = "off";
@@ -159,7 +193,7 @@ foreach ($users as $row) {
     if (empty($row['login'])) { $row['login']=$row['id']; }
     print "<td class=\"$cl\" align=left><a href=edituser.php?id=".$row['id'].">" . $row['login'] . "</a></td>\n";
     print "<td class=\"$cl\">".$row['fio']."</td>\n";
-    $rules_count = get_count_records($db_link,"auth_rules","user_id=".$row['id']);
+    $rules_count = get_count_records($db_link,"auth_rules","user_id=?", [$row['id']]);
     print "<td class=\"$cl\">".$rules_count."</td>\n";
     print "<td class=\"$cl\">".$row['ou_name']."</td>\n";
     print "<td class=\"$cl\">".get_qa($row['enabled']) . "</td>\n";

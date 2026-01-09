@@ -18,9 +18,9 @@ if (isset($_POST["remove"])) {
     $fgid = $_POST["fid"];
     foreach ($fgid as $key => $val) {
         if (!empty($val)) {
-            run_sql($db_link, "UPDATE user_auth SET filter_group_id=0, changed = 1 WHERE deleted=0 AND filter_group_id=" . $val * 1);
-            run_sql($db_link, "DELETE FROM group_filters WHERE group_id=" . $val * 1);
-            delete_record($db_link, "group_list", "id=" . $val * 1);
+            run_sql($db_link, "UPDATE user_auth SET filter_group_id=0, changed = 1 WHERE deleted=0 AND filter_group_id=?", [ $val ]);
+            run_sql($db_link, "DELETE FROM group_filters WHERE group_id=? ", [ $val ]);
+            delete_record($db_link, "group_list", "id=?", [ $val ]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -46,7 +46,7 @@ print_filters_submenu($page_url);
             <?php
             $groups = get_records_sql($db_link, 'SELECT * FROM group_list ORDER BY id');
             foreach ($groups as $row) {
-		$filter_instance = get_record_sql($db_link,'SELECT * FROM filter_instances WHERE id='.$row["instance_id"]);
+		$filter_instance = get_record_sql($db_link,'SELECT * FROM filter_instances WHERE id=?', [ $row["instance_id"] ]);
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=" . $row["id"] . "></td>\n";
                 print "<td class=\"data\" ><input type=\"hidden\" name=\"" . $row["id"] . "\" value=" . $row["id"] . ">" . $row["id"] . "</td>\n";

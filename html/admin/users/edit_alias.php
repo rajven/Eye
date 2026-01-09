@@ -6,8 +6,8 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $msg_error = "";
 
-$sSQL = "SELECT * FROM user_auth WHERE id=$id";
-$auth_info = get_record_sql($db_link, $sSQL);
+$sSQL = "SELECT * FROM user_auth WHERE id=?";
+$auth_info = get_record_sql($db_link, $sSQL, [ $id ]);
 
 if (empty($auth_info['dns_name']) or $auth_info['deleted']) {
     header("Location: /admin/users/editauth.php?id=".$id);
@@ -20,8 +20,8 @@ if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
     foreach ($s_id as $key => $val) {
         if (isset($val)) {
-            LOG_INFO($db_link, "Remove alias id: $val ".dump_record($db_link,'user_auth_alias','id='.$val));
-            delete_record($db_link, "user_auth_alias", "id=" . $val);
+            LOG_INFO($db_link, "Remove alias id: $val ".dump_record($db_link,'user_auth_alias','id=?', [ $val ]));
+            delete_record($db_link, "user_auth_alias", "id=?", [ $val ]);
         }
     }
     header("Location: " . $page_url);
@@ -47,7 +47,7 @@ if (isset($_POST['s_save'])) {
             if (empty($f_dnsname) or !checkValidHostname($f_dnsname) or !checkUniqHostname($db_link,$id,$f_dnsname)) { continue; }
             $new['alias'] = $f_dnsname;
             $new['description'] = trim($_POST['s_description'][$j]);
-            update_record($db_link, "user_auth_alias", "id='{$save_id}'", $new);
+            update_record($db_link, "user_auth_alias", "id=?", $new, [ $save_id ]);
         }
     }
     header("Location: " . $page_url);
@@ -111,7 +111,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 	<td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="s_remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
-$t_user_auth_alias = get_records($db_link,'user_auth_alias',"auth_id=$id ORDER BY alias");
+$t_user_auth_alias = get_records_sql($db_link,"SELECT * FROM user_auth_alias WHERE auth_id=? ORDER BY alias", [ $id ]);
 if (!empty($t_user_auth_alias)) {
 foreach ( $t_user_auth_alias as $row ) {
     print "<tr align=center>\n";

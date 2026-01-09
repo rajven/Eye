@@ -9,7 +9,7 @@ if (isset($_POST['save'])) {
         $new['queue_name'] = trim($_POST['f_queue_name'][$i]);
         $new['Download'] = $_POST['f_down'][$i] * 1;
         $new['Upload'] = $_POST['f_up'][$i] * 1;
-        update_record($db_link, "queue_list", "id='{$id}'", $new);
+        update_record($db_link, "queue_list", "id=?", $new, [ $id ]);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -41,7 +41,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 	<td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
-$t_queue=get_records($db_link, "queue_list",'TRUE ORDER BY id');
+$t_queue=get_records_sql($db_link, "SELECT * FROM queue_list ORDER BY id");
 foreach ($t_queue as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";

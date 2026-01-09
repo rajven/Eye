@@ -19,13 +19,17 @@ if ($sort_field == 'login') { $sort_table = 'user_list'; }
 if ($sort_field == 'fio') { $sort_table = 'user_list'; }
 if ($sort_field == 'ou_name') { $sort_table = 'ou'; }
 
+$params=[];
+
 $sort_url = "<a href=index.php?ou=" . $rou;
 
-if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and user_list.ou_id=$rou "; }
+if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and user_list.ou_id=?"; $params[]=$rou; }
 
 if (empty($rcidr)) { $cidr_filter = ''; } else {
     $cidr_range = cidrToRange($rcidr);
-    if (!empty($cidr_range)) { $cidr_filter = " and user_auth.ip_int>=".ip2long($cidr_range[0])." and user_auth.ip_int<=".ip2long($cidr_range[1]); }
+    if (!empty($cidr_range)) { $cidr_filter = " and user_auth.ip_int>=? and user_auth.ip_int<=?"; }
+    $params[]=ip2long($cidr_range[0]);
+    $params[]=ip2long($cidr_range[1]);
     }
 
 $enabled_filter='';
@@ -67,12 +71,20 @@ $ip_where = '';
 if (!empty($f_search_str)) {
     $f_ip = normalizeIpAddress($f_search_str);
     if (!empty($f_ip)) { 
-        $ip_where = " and ip_int=inet_aton('" . $f_ip . "') ";
+        $ip_where = " and ip=?";
+        $params[]= $f_ip;
         $f_search_str = $f_ip;
         } else {
-        if (checkValidMac($f_search_str)) { $ip_where =" and mac='" . mac_dotted($f_search_str) ."'"; }
-            else {
-            $ip_where =" and (mac like '" . mac_dotted($f_search) . "%' or login like '".$f_search."%' or description like '".$f_search."%' or dns_name like '".$f_search."%' or dhcp_hostname like '".$f_search."%')"; 
+        if (checkValidMac($f_search_str)) { 
+    	    $ip_where =" and mac=?"; 
+    	    $params[]= mac_dotted($f_search_str);
+    	    } else {
+            $ip_where =" and (mac like ? or login like ? or description like ? or dns_name like ? or dhcp_hostname like ?)"; 
+            $params[]=mac_dotted($f_search);
+            $parmas[]=$f_search.'%';
+            $params[]=$f_search.'%';
+            $params[]=$f_search.'%';
+            $params[]=$f_search.'%';
             }
         }
     }
@@ -188,7 +200,7 @@ LEFT JOIN ou
 ON ou.id=user_list.ou_id
 WHERE user_auth.deleted =0 $ip_list_filter";
 
-$count_records = get_single_field($db_link,$countSQL);
+$count_records = get_single_field($db_link,$countSQL, $params);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
@@ -223,9 +235,12 @@ ON user_auth.user_id = user_list.id
 LEFT JOIN ou
 ON ou.id=user_list.ou_id
 WHERE user_auth.deleted =0 $ip_list_filter
-ORDER BY $sort_table.$sort_field $order LIMIT $displayed OFFSET $start";
+ORDER BY $sort_table.$sort_field $order LIMIT ? OFFSET ?";
 
-$users = get_records_sql($db_link,$sSQL);
+$params[]=$displayed;
+$params[]=$start;
+
+$users = get_records_sql($db_link,$sSQL, $params);
 foreach ($users as $user) {
     if ($user['dhcp_time'] == '0000-00-00 00:00:00') {
         $dhcp_str = '';
@@ -252,7 +267,7 @@ foreach ($users as $user) {
         print "<td class=\"$cl\" width=200 >".$user['description']."</td>\n";
     }
 
-    $aliases = get_records_sql($db_link, 'SELECT * FROM user_auth_alias WHERE auth_id='.$user['id']);
+    $aliases = get_records_sql($db_link, 'SELECT * FROM user_auth_alias WHERE auth_id=?', [$user['id']]);
     $dns_display = $user['dns_name'];
     if ($user["dns_ptr_only"]) { $dns_display.='&nbsp(ptr)'; }
     if (!empty($aliases)) {

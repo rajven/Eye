@@ -5,13 +5,13 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 if (isset($_POST["regensnmp"])) {
     $snmp_index = $_POST["f_snmp_start"] * 1;
-    $sSQL = "SELECT id,port from device_ports WHERE device_ports.device_id=$id ORDER BY id";
-    $flist = get_records_sql($db_link, $sSQL);
+    $sSQL = "SELECT id,port from device_ports WHERE device_ports.device_id=? ORDER BY id";
+    $flist = get_records_sql($db_link, $sSQL, [ $id ]);
     LOG_DEBUG($db_link, "Recalc snmp_index for device id: $id with start $snmp_index");
     foreach ($flist as $row) {
         $snmp = $row['port'] + $snmp_index - 1;
         $new['snmp_index'] = $snmp;
-        update_record($db_link, "device_ports", "id=".$row['id'], $new);
+        update_record($db_link, "device_ports", "id=?", $new, [$row['id']]);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -45,7 +45,7 @@ if (isset($_POST['save'])) {
             if (intval($_POST['p_id'][$j]) != $save_id) { continue; }
             $new['port_name'] = $_POST['f_name'][$j];
             $new['snmp_index'] = $_POST['f_snmp_index'][$j]*1;
-            update_record($db_link, "device_ports", "id='{$save_id}'", $new);
+            update_record($db_link, "device_ports", "id=?", $new, [ $save_id ]);
             }
         }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -55,8 +55,8 @@ if (isset($_POST['save'])) {
 
 unset($_POST);
 
-$device=get_record($db_link,'devices',"id=".$id);
-$user_info = get_record_sql($db_link,"SELECT * FROM user_list WHERE id=".$device['user_id']);
+$device=get_record($db_link,'devices',"id=?", [$id]);
+$user_info = get_record_sql($db_link,"SELECT * FROM user_list WHERE id=?", [ $device['user_id'] ]);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
@@ -87,8 +87,8 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 <td><?php echo WEB_cell_mac_count; ?></td>
 </tr>
 <?php
-$sSQL = "SELECT * FROM device_ports WHERE device_ports.device_id=$id ORDER BY port";
-$ports=get_records_sql($db_link,$sSQL);
+$sSQL = "SELECT * FROM device_ports WHERE device_ports.device_id=? ORDER BY port";
+$ports=get_records_sql($db_link,$sSQL, [ $id ]);
 foreach ($ports as $row) {
         print "<tr align=center>\n";
         $cl = "data";

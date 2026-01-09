@@ -19,10 +19,8 @@ if (isset($_POST["remove_device"])) {
 
 print_device_submenu($page_url);
 
-$sort_sql=" ORDER BY device_name";
-if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field $order"; }
-
 ?>
+
 <div id="cont">
 <br>
 <form name="def" action="index.php" method="post">
@@ -48,16 +46,32 @@ if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field
 </tr>
 <?php
 $filter = '';
-if ($f_building_id > 0) { $filter .= ' and building_id=' . $f_building_id; }
-if ($f_devtype_id >= 0) { $filter .= ' and device_type=' . $f_devtype_id; } else { $filter .= ' and device_type<=2'; }
-if ($f_devmodel_id > 0) { $filter .= ' and device_model_id=' . $f_devmodel_id; }
+$params=[];
+if ($f_building_id > 0) { $filter .= ' and building_id=?'; $params[]=$f_building_id; }
+if ($f_devtype_id >= 0) { $filter .= ' and device_type=?'; $params[]=$f_devtype_id; } else { $filter .= ' and device_type<=2'; }
+if ($f_devmodel_id > 0) { $filter .= ' and device_model_id=?'; $params[]= $f_devmodel_id; }
+
+#$countSQL = "SELECT COUNT(*)  FROM devices D
+#LEFT JOIN device_models DM ON D.device_model_id = DM.id
+#LEFT JOIN building B ON D.building_id = B.id
+#WHERE D.deleted = 0 $filter";
+#$count_records = get_single_field($db_link, $countSQL, $params);
+
+#$total=ceil($count_records/$displayed);
+#if ($page>$total) { $page=$total; }
+#if ($page<1) { $page=1; }
+#$start = ($page * $displayed) - $displayed;
+#print_navigation($page_url,$page,$displayed,$count_records,$total);
+
+$sort_sql=" ORDER BY device_name";
+if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field $order"; }
 
 $dSQL = 'SELECT D.*, DM.model_name, B.name AS building_name FROM devices D
 LEFT JOIN device_models DM ON D.device_model_id = DM.id
 LEFT JOIN building B ON D.building_id = B.id
 WHERE D.deleted = 0 ' . $filter . ' ' . $sort_sql;
 
-$switches = get_records_sql($db_link,$dSQL);
+$switches = get_records_sql($db_link,$dSQL, $params);
 foreach ($switches as $row) {
     print "<tr align=center>\n";
     $cl = "data";

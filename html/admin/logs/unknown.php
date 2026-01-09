@@ -11,8 +11,55 @@ if (!isset($f_id)) { $f_id=0; }
 
 $_SESSION[$page_url]['device_show']=$f_id;
 print_log_submenu($page_url);
-$where_dev = "";
-if ($f_id > 0) { $where_dev = " and D.id=$f_id "; }
+
+$params = [$date1, $date2];
+$conditions = [];
+
+// === 2. Условие по устройству ===
+if ($f_id > 0) {
+    $conditions[] = "D.id = ?";
+    $params[] = (int)$f_id; // приведение к int для безопасности
+}
+
+$whereClause = !empty($conditions) ? ' AND ' . implode(' AND ', $conditions) : '';
+
+$countSQL = "
+    SELECT COUNT(*)
+    FROM unknown_mac AS U
+    JOIN devices AS D ON U.device_id = D.id
+    JOIN device_ports AS DP ON U.port_id = DP.id
+    WHERE D.device_type <= 2
+      AND U.ts >= ?
+      AND U.ts < ?
+      $whereClause
+";
+
+$count_records = (int)get_single_field($db_link, $countSQL, $params);
+$total = ceil($count_records / $displayed);
+$page = max(1, min($page, $total));
+$start = ($page - 1) * $displayed;
+
+print_navigation($page_url, $page, $displayed, $count_records, $total);
+
+$limit = (int)$displayed;
+$offset = (int)$start;
+
+$dataParams = array_merge($params, [$limit, $offset]);
+
+$sSQL = "
+    SELECT U.mac, U.ts, DP.port, D.device_name
+    FROM unknown_mac AS U
+    JOIN devices AS D ON U.device_id = D.id
+    JOIN device_ports AS DP ON U.port_id = DP.id
+    WHERE D.device_type <= 2
+      AND U.ts >= ?
+      AND U.ts < ?
+      $whereClause
+    ORDER BY U.mac
+    LIMIT ? OFFSET ?
+";
+
+$maclog = get_records_sql($db_link, $sSQL, $dataParams);
 ?>
 
 <div id="cont">
@@ -24,15 +71,6 @@ if ($f_id > 0) { $where_dev = " and D.id=$f_id "; }
 <input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
 
-<?php
-$countSQL="SELECT Count(*) FROM unknown_mac AS U, devices AS D, device_ports AS DP  WHERE D.device_type<=2 and U.device_id = D.id  AND U.port_id = DP.id AND U.ts>='$date1' AND U.ts<'$date2' $where_dev";
-$count_records = get_single_field($db_link,$countSQL);
-$total=ceil($count_records/$displayed);
-if ($page>$total) { $page=$total; }
-if ($page<1) { $page=1; }
-$start = ($page * $displayed) - $displayed; 
-print_navigation($page_url,$page,$displayed,$count_records,$total);
-?>
 <br>
 <table class="data" width="750">
 <tr align="center">
@@ -42,9 +80,6 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 	<td class="data"><b><?php echo WEB_cell_last_found; ?></b></td>
 </tr>
 <?php
-
-$sSQL = "SELECT U.mac, U.ts, DP.port, D.device_name FROM unknown_mac AS U, devices AS D, device_ports AS DP  WHERE D.device_type<=2 and U.device_id = D.id  AND U.port_id = DP.id AND U.ts>='$date1' AND U.ts<'$date2' $where_dev ORDER BY U.mac LIMIT $displayed OFFSET $start";
-$maclog = get_records_sql($db_link, $sSQL);
 foreach ($maclog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['device_name'] . "</td>\n";

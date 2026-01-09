@@ -6,15 +6,15 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $msg_error = "";
 
-$sSQL = "SELECT * FROM user_list WHERE id=$id";
-$auth_info = get_record_sql($db_link, $sSQL);
+$sSQL = "SELECT * FROM user_list WHERE id=?";
+$auth_info = get_record_sql($db_link, $sSQL, [ $id ]);
 
 if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
     foreach ($s_id as $key => $val) {
         if (isset($val)) {
-            LOG_INFO($db_link, "Remove rule id: $val ".dump_record($db_link,'auth_rules','id='.$val));
-            delete_record($db_link, "auth_rules", "id=" . $val);
+            LOG_INFO($db_link, "Remove rule id: $val ".dump_record($db_link,'auth_rules','id=?', [ $val ]));
+            delete_record($db_link, "auth_rules", "id=?" , [ $val ]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -74,7 +74,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
     <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="s_remove" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <?php
-$t_auth_rules = get_records($db_link,'auth_rules',"user_id=$id ORDER BY id");
+$t_auth_rules = get_records_sql($db_link,"SELECT * FROM auth_rules WHERE user_id=? ORDER BY id", [ $id ]);
 foreach ( $t_auth_rules as $row ) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=s_id[] value='{$row['id']}'></td>\n";

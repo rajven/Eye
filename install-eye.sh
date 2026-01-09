@@ -271,7 +271,7 @@ install_deps_altlinux() {
 
     # === Сетевой бэкенд (если нужен) ===
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
-        apt-get install -y fping dnsmasq syslog-ng syslog-ng-journal
+        apt-get install -y fping
 
         # Общие Perl-модули (независимо от СУБД)
         apt-get install -y perl \
@@ -326,6 +326,7 @@ install_deps_debian() {
             php-bcmath php-intl php-mbstring php-snmp php-zip php-mail \
             php-date php-db
 
+
         if [[ "$DB_TYPE" == "postgresql" ]]; then
             apt-get install -y php-pgsql
         else
@@ -335,7 +336,7 @@ install_deps_debian() {
 
     # === Сетевой бэкенд (если нужен) ===
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
-        apt-get install -y fping dnsmasq syslog-ng
+        apt-get install -y fping
 
         # Perl и обязательные модули (имена корректны для Ubuntu 24.04)
         apt-get install -y perl \
@@ -1156,7 +1157,8 @@ setup_apache_php() {
     print_step "Configuring Apache and PHP"
 
     # Determine PHP version
-    PHP_VERSION=$(php -v 2>/dev/null | head -n1 | grep -oP '\d+\.\d+' || echo "8.1")
+    PHP_VERSION=$(php -v 2>/dev/null | head -n1 | grep -oP '\d+\.\d+' || echo "8.2")
+    echo "Версия PHP: $PHP_VERSION"
 
     # Configure PHP for all distributions
     if [[ "$OS_FAMILY" == "alt" ]]; then
@@ -1265,12 +1267,12 @@ setup_cron_logrotate() {
     fi
 
     # Logrotate
-    if [[ -f "/opt/Eye/docs/logrotate/dnsmasq" ]]; then
-        cp /opt/Eye/docs/logrotate/dnsmasq /etc/logrotate.d/dnsmasq-eye
+    if [ -f /etc/dnsmasq.conf ] && [ -f "/opt/Eye/docs/logrotate/dnsmasq" ]; then
+	cp /opt/Eye/docs/logrotate/dnsmasq /etc/logrotate.d/dnsmasq-eye
     fi
 
-    if [[ -f "/opt/Eye/docs/logrotate/scripts" ]]; then
-        cp /opt/Eye/docs/logrotate/scripts /etc/logrotate.d/eye-scripts
+    if [ -e /opt/Eye/scripts ] && [ -f "/opt/Eye/docs/logrotate/scripts" ]; then
+	cp /opt/Eye/docs/logrotate/scripts /etc/logrotate.d/eye-scripts
     fi
 
     print_info "Cron and logrotate configuration completed"
@@ -1286,6 +1288,12 @@ setup_dhcp_server() {
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         return 0
     fi
+
+    if [[ "$OS_FAMILY" == "debian" ]]; then
+	apt install dnsmasq -y
+	else
+	apt-get install dnsmasq -y
+	fi
 
     # Backup configuration
     if [[ -f "/etc/dnsmasq.conf" ]]; then
@@ -1323,6 +1331,12 @@ setup_syslog() {
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         return 0
     fi
+
+    if [[ "$OS_FAMILY" == "debian" ]]; then
+	apt install syslog-ng -y
+	else
+	apt-get install syslog-ng syslog-ng-journal -y
+	fi
 
     # Create backup of main config
     if [[ -f "/etc/syslog-ng/syslog-ng.conf" ]]; then
@@ -1530,7 +1544,7 @@ show_final_instructions() {
     echo "  Distribution:     $OS_NAME"
     echo "  Version:          $OS_VERSION"
     echo "  Database:         $DB_TYPE"
-    echo "  Language:         $EYE_LANG"  # <-- Добавлено
+    echo "  Language:         $EYE_LANG"
     echo "  User:             eye"
     echo "  Directory:        /opt/Eye"
     echo ""

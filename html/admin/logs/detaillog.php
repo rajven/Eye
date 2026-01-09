@@ -16,10 +16,13 @@ if (empty($f_ip)) { $f_ip = '127.0.0.1'; }
 $_SESSION[$page_url]['ip']=$f_ip;
 
 $ip_where = '';
+$params=[];
 
 if (!empty($f_ip)) {
     if (checkValidIp($f_ip)) {
-        $ip_where = " (src_ip=inet_aton('" . $f_ip . "') or dst_ip=inet_aton('" . $f_ip . "')) AND "; 
+        $ip_where = " (src_ip=? or dst_ip=?) AND "; 
+        $params[]=ip2long($f_ip);
+        $params[]=ip2long($f_ip);
         }
     }
 
@@ -57,10 +60,13 @@ $sort_url = "<a href='detaillog.php?date_start=\"".$date1.'"&date_stop="'.$date2
 if (!empty($f_ip)) { $sort_url .='&f_ip="'.$f_ip.'"'; }
 
 $gateway_filter='';
-if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) AND"; }
+if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=?) AND"; $params[]=$rgateway; }
 
-$countSQL="SELECT Count(*) FROM traffic_detail as A WHERE $gateway_filter $ip_where ts>='$date1' AND ts<'$date2'";
-$count_records = get_single_field($db_link,$countSQL);
+$countSQL="SELECT Count(*) FROM traffic_detail as A WHERE $gateway_filter $ip_where ts>=? AND ts<?";
+$params[]=$date1;
+$params[]=$date2;
+
+$count_records = get_single_field($db_link,$countSQL, $params);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
@@ -88,9 +94,12 @@ $gateway_list = get_gateways($db_link);
 </tr>
 <?php
 $fsql = "SELECT A.id, A.auth_id, A.ts, A.router_id, A.proto, A.src_ip, A.src_port, A.dst_ip, A.dst_port, A.bytes, A.pkt FROM traffic_detail as A JOIN (SELECT id FROM traffic_detail 
-        WHERE $gateway_filter $ip_where ts>='$date1' AND ts<'$date2'
-        ORDER BY ts ASC LIMIT $displayed OFFSET $start) as T ON A.id = T.id ORDER BY $sort_table.$sort_field $order";
-$userdata = get_records_sql($db_link, $fsql);
+        WHERE $gateway_filter $ip_where ts>=? AND ts<?
+        ORDER BY ts ASC LIMIT ? OFFSET ?) as T ON A.id = T.id ORDER BY $sort_table.$sort_field $order";
+$params[]=$displayed;
+$params[]=$start;
+
+$userdata = get_records_sql($db_link, $fsql, $params);
 foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['id'] . "</td>\n";

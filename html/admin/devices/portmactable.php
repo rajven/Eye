@@ -4,8 +4,8 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $port_id = $id;
-$sSQL = "SELECT DP.device_id, DP.port, DP.snmp_index, D.device_name, D.ip, D.vendor_id FROM device_ports AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=$port_id";
-$port_info = get_record_sql($db_link, $sSQL);
+$sSQL = "SELECT DP.device_id, DP.port, DP.snmp_index, D.device_name, D.ip, D.vendor_id FROM device_ports AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=?";
+$port_info = get_record_sql($db_link, $sSQL, [ $port_id ]);
 if (empty($port_info)) {
     header("Location: /admin/devices/editdevice.php?id=".$device_id);
     exit;
@@ -13,8 +13,8 @@ if (empty($port_info)) {
 
 $device_id = $port_info["device_id"];
 
-$sSQL = "SELECT port, snmp_index FROM device_ports WHERE device_id=".$device_id;
-$ports_info = get_records_sql($db_link, $sSQL);
+$sSQL = "SELECT port, snmp_index FROM device_ports WHERE device_id=?";
+$ports_info = get_records_sql($db_link, $sSQL, [$device_id]);
 if (empty($ports_info)) {
     header("Location: /admin/devices/editdevice.php?id=".$device_id);
     exit;
@@ -23,14 +23,14 @@ if (empty($ports_info)) {
 $ports_by_snmp_index=NULL;
 foreach ($ports_info as &$row) { $ports_by_snmp_index[$row["snmp_index"]]=$row["port"]; }
 
-$device=get_record($db_link,'devices',"id=".$device_id);
+$device=get_record($db_link,'devices',"id=?", [$device_id]);
 if (empty($device)) {
     header("Location: /admin/devices/index.php");
     exit;
 }
 
 $snmp = getSnmpAccess($device);
-$user_info = get_record_sql($db_link,"SELECT * FROM user_list WHERE id=".$device['user_id']);
+$user_info = get_record_sql($db_link,"SELECT * FROM user_list WHERE id=?", [$device['user_id']]);
 if (empty($user_info)) {
     header("Location: /admin/devices/index.php");
     exit;
@@ -57,7 +57,7 @@ print "<b>".$port_info['device_name']." [".$port_info['port']."] </b><br>\n";
 $sw_auth=NULL;
 $sw_mac=NULL;
 
-$sw_auth = get_record_sql($db_link,"SELECT mac FROM user_auth WHERE deleted=0 and ip='".$port_info['ip']."'");
+$sw_auth = get_record_sql($db_link,"SELECT mac FROM user_auth WHERE deleted=0 and ip=?", [ $port_info['ip'] ]);
 if (!empty($sw_auth)) {
     $sw_mac = mac_simplify($sw_auth['mac']);
     $sw_mac = preg_replace("/.{2}$/","",$sw_mac);
@@ -121,7 +121,7 @@ if (!empty($t_device)) {
     }
 }
 
-$maclist = get_records_sql($db_link, "SELECT mac,ts from unknown_mac where port_id=$port_id ORDER BY ts desc");
+$maclist = get_records_sql($db_link, "SELECT mac,ts from unknown_mac where port_id=? ORDER BY ts desc", [ $port_id ]);
 if (!empty($maclist)) {
     foreach ($maclist as $row) {
         print "<tr>";

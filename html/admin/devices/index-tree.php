@@ -60,14 +60,14 @@ foreach ($switches as $row) {
     $dev_hash[$dev_id]['model_name'] = $row['model_name'];
     $dev_hash[$dev_id]['parent_id'] = null; // инициализируем
     
-    $pSQL = 'SELECT * FROM device_ports WHERE uplink = 1 and device_id='.$dev_id;
-    $uplink = get_record_sql($db_link,$pSQL);
+    $pSQL = 'SELECT * FROM device_ports WHERE uplink = 1 and device_id=?';
+    $uplink = get_record_sql($db_link,$pSQL, [ $dev_id ]);
     if (empty($uplink)) { continue; }
     if (empty($uplink['target_port_id'])) { continue; }
     
     $dev_hash[$dev_id]['uplink'] = $uplink['port_name'];
-    $parentSQL = 'SELECT * FROM device_ports WHERE device_ports.id='.$uplink['target_port_id'];
-    $parent = get_record_sql($db_link,$parentSQL);
+    $parentSQL = 'SELECT * FROM device_ports WHERE device_ports.id=?';
+    $parent = get_record_sql($db_link,$parentSQL, [$uplink['target_port_id']]);
     
     // Защита от ссылки на самого себя
     if ($parent['device_id'] == $dev_id) {

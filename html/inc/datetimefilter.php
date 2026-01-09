@@ -4,7 +4,7 @@ if (!defined("CONFIG")) die("Not defined");
 
 $date_shift = getParam('date_shift', $page_url, 'h');
 $date_start = getParam('date_start', $page_url, '');
-$date_stop = getParam('date_stop', $page_url, ''); // Исправлено: было 'date_start'
+$date_stop = getParam('date_stop', $page_url, '');
 
 // Инициализация переменных
 $datetime_start = null;

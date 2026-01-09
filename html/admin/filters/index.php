@@ -21,8 +21,8 @@ if (isset($_POST["remove"])) {
     $fid = $_POST["fid"];
     foreach ($fid as $key => $val) {
         if ($val) {
-            run_sql($db_link, "DELETE FROM group_filters WHERE filter_id=" . $val);
-            delete_record($db_link, "filter_list", "id=$val");
+            run_sql($db_link, "DELETE FROM group_filters WHERE filter_id=?", [ $val ]);
+            delete_record($db_link, "filter_list", "id=?", [ $val ]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);

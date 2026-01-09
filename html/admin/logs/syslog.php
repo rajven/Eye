@@ -15,19 +15,49 @@ $_SESSION[$page_url]['device_show']=$f_id;
 
 print_log_submenu($page_url);
 
-$log_filter = "";
-
-if ($f_id>0) {
-    $dev_ips=get_device_ips($db_link,$f_id);
-    $log_filter=' and ip IN (';
-    foreach ($dev_ips as $index => $ip) {
-	$log_filter=$log_filter."'".$ip."',";
-        }
-    $log_filter = preg_replace('/\,$/', '',$log_filter);
-    $log_filter = $log_filter .")";
+$params = [$date1, $date2];
+$conditions = [];
+// === Фильтр по IP (через IN с параметрами) ===
+if ($f_id > 0) {
+    $dev_ips = get_device_ips($db_link, $f_id);
+    if (!empty($dev_ips)) {
+        // Создаём плейсхолдеры: ?, ?, ?
+        $placeholders = str_repeat('?,', count($dev_ips) - 1) . '?';
+        $conditions[] = "ip IN ($placeholders)";
+        $params = array_merge($params, $dev_ips);
     }
+}
 
+if (!empty($fmessage)) {
+    $conditions[] = "message LIKE ?";
+    $params[] = '%' . $fmessage . '%';
+}
+
+$whereClause = !empty($conditions) ? ' AND ' . implode(' AND ', $conditions) : '';
+
+$countSQL = "SELECT COUNT(*) FROM remote_syslog WHERE ts >= ? AND ts < ?" . $whereClause;
+$count_records = (int)get_single_field($db_link, $countSQL, $params);
+$total = ceil($count_records / $displayed);
+$page = max(1, min($page, $total));
+$start = ($page - 1) * $displayed;
+
+print_navigation($page_url, $page, $displayed, $count_records, $total);
+
+$limit = (int)$displayed;
+$offset = (int)$start;
+
+$dataParams = array_merge($params, [$limit, $offset]);
+
+$sSQL = "
+    SELECT * FROM remote_syslog 
+    WHERE ts >= ? AND ts < ?" . $whereClause . "
+    ORDER BY ts DESC 
+    LIMIT ? OFFSET ?
+";
+
+$syslog = get_records_sql($db_link, $sSQL, $dataParams);
 ?>
+
 <div id="cont">
 <br>
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
@@ -37,21 +67,6 @@ if ($f_id>0) {
 <input type="submit" value="<?php echo WEB_btn_show; ?>"><br><br>
 <?php echo WEB_log_filter_event; ?>:<input name="message" value="<?php echo $fmessage; ?>" />
 </form>
-
-<?php
-
-if (!empty($fmessage)) { $log_filter .= " AND message LIKE '%" . addslashes($fmessage) . "%'"; }
-
-$countSQL="SELECT Count(*) FROM remote_syslog WHERE ts>='$date1' AND ts<'$date2' $log_filter";
-$count_records = get_single_field($db_link,$countSQL);
-$total=ceil($count_records/$displayed);
-if ($page>$total) { $page=$total; }
-if ($page<1) { $page=1; }
-$start = ($page * $displayed) - $displayed; 
-print_navigation($page_url,$page,$displayed,$count_records,$total);
-#speedup pageing
-$sSQL = "SELECT * FROM (SELECT * FROM remote_syslog WHERE ts>='$date1' AND ts<'$date2' $log_filter) as R ORDER BY ts DESC LIMIT $displayed OFFSET $start";
-?>
 
 <br>
 <table class="data" width="90%">
@@ -63,8 +78,6 @@ $sSQL = "SELECT * FROM (SELECT * FROM remote_syslog WHERE ts>='$date1' AND ts<'$
 
 <?php
 
-
-$syslog = get_records_sql($db_link, $sSQL);
 if (!empty($syslog)) {
     foreach ($syslog as $row) {
         print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";

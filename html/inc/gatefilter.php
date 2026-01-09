@@ -1,8 +1,6 @@
 <?php
-if (! defined("CONFIG")) die("Not defined");
+if (!defined("CONFIG")) die("Not defined");
 
-if (isset($_POST['gateway'])) { $rgateway = $_POST["gateway"] * 1; } else {
-    if (isset($_SESSION[$page_url]['gateway'])) { $rgateway = $_SESSION[$page_url]['gateway']; } else { $rgateway = 0; }
-    }
-$_SESSION[$page_url]['gateway']=$rgateway;
+$rgateway = getPOST('gateway', $page_url, 0, FILTER_VALIDATE_INT);
+$_SESSION[$page_url]['gateway'] = (int)$rgateway;
 ?>

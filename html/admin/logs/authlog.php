@@ -21,25 +21,57 @@ if (!isset($auth_id)) { header('Location: /admin/logs/index.php', true, 301); ex
 </form>
 
 <?php
-$log_filter ='';
+$params = [$date1, $date2];
+$log_filter_parts = [];
+// Уровень логирования
+if ($display_log_level == L_ERROR) {
+    $log_filter_parts[] = "level = ?";
+    $params[] = L_ERROR;
+} elseif ($display_log_level == L_WARNING) {
+    $log_filter_parts[] = "level <= ?";
+    $params[] = L_WARNING;
+} elseif ($display_log_level == L_INFO) {
+    $log_filter_parts[] = "level <= ?";
+    $params[] = L_INFO;
+} elseif ($display_log_level == L_VERBOSE) {
+    $log_filter_parts[] = "level <= ?";
+    $params[] = L_VERBOSE;
+}
+// L_DEBUG — ничего не добавляем (все уровни)
 
-if ($display_log_level == L_ERROR) { $log_filter = " and level=". L_ERROR." "; }
-if ($display_log_level == L_WARNING) { $log_filter = " and level<=".L_WARNING." "; }
-if ($display_log_level == L_INFO) { $log_filter = " and level<=".L_INFO." "; }
-if ($display_log_level == L_VERBOSE) { $log_filter = " and level<=".L_VERBOSE." "; }
-if ($display_log_level == L_DEBUG) { $log_filter = ""; }
+$log_filter_parts[] = "auth_id = ?";
+$params[] = $auth_id;
 
-if (!empty($log_filter)) { $log_filter = $log_filter." and auth_id=".$auth_id; } else { $log_filter = " and auth_id=".$auth_id; }
-if (!empty($fcustomer)) { $log_filter = $log_filter." and customer LIKE '%".$fcustomer."%'"; }
-if (!empty($fmessage)) { $log_filter = $log_filter." and message LIKE '%".$fmessage."%'"; }
+if (!empty($fcustomer)) {
+    $log_filter_parts[] = "customer LIKE ?";
+    $params[] = '%' . $fcustomer . '%';
+}
+if (!empty($fmessage)) {
+    $log_filter_parts[] = "message LIKE ?";
+    $params[] = '%' . $fmessage . '%';
+}
 
-$countSQL="SELECT Count(*) FROM worklog WHERE ts>='$date1' AND ts<'$date2' $log_filter";
-$count_records = get_single_field($db_link,$countSQL);
+// Собираем фильтр
+$log_filter = !empty($log_filter_parts) ? ' AND ' . implode(' AND ', $log_filter_parts) : '';
+
+$countSQL = "SELECT COUNT(*) FROM worklog WHERE ts >= ? AND ts < ?" . $log_filter;
+$count_records = get_single_field($db_link, $countSQL, $params);
+
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed; 
 print_navigation($page_url,$page,$displayed,$count_records,$total);
+#speedup paging
+$sSQL = "SELECT ts,customer,message,level FROM worklog as S JOIN (SELECT id FROM worklog WHERE ts>=? AND ts<? $log_filter 
+ORDER BY id DESC 
+LIMIT $displayed OFFSET $start) AS I ON S.id = I.id";
+
+$params[]=$displayed;
+$params[]=$start;
+
+$userlog = get_records_sql($db_link, $sSQL, $params);
+
 ?>
 <br>
 <table class="data" width="90%">
@@ -50,9 +82,6 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 		<td class="data"><b><?php echo WEB_log_event; ?></b></td>
 	</tr>
 <?php
-#speedup paging
-$sSQL = "SELECT ts,customer,message,level FROM worklog as S JOIN (SELECT id FROM worklog WHERE ts>='$date1' AND ts<'$date2' $log_filter ORDER BY id DESC LIMIT $displayed OFFSET $start) AS I ON S.id = I.id";
-$userlog = get_records_sql($db_link, $sSQL);
 foreach ($userlog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['ts'] . "</td>\n";

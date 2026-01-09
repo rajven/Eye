@@ -16,11 +16,14 @@ if ($sort_field == 'fio') { $sort_table = 'user_list'; }
 
 $sort_url = "<a href=nagios.php?ou=" . $rou; 
 
-if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and user_list.ou_id=$rou "; }
+$params=[];
+if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and user_list.ou_id=?"; $params[]=$rou; }
 
 if ($rsubnet == 0) { $subnet_filter = ''; } else {
     $subnet_range = get_subnet_range($db_link,$rsubnet);
-    if (!empty($subnet_range)) { $subnet_filter = " and user_auth.ip_int>=".$subnet_range['start']." and user_auth.ip_int<=".$subnet_range['stop']; }
+    if (!empty($subnet_range)) { $subnet_filter = " and user_auth.ip_int>=? and user_auth.ip_int<=?"; }
+    $params[]=$subnet_range['start'];
+    $params[]=$subnet_range['stop'];
     }
 
 $enabled_filter='';
@@ -68,7 +71,7 @@ print_ip_submenu($page_url);
 
 <?php
 $countSQL="SELECT Count(*) FROM user_auth, user_list WHERE user_auth.user_id = user_list.id AND user_auth.deleted =0 $ip_list_filter";
-$count_records = get_single_field($db_link,$countSQL);
+$count_records = get_single_field($db_link,$countSQL, $params);
 $total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
@@ -97,9 +100,11 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 
 $sSQL = "SELECT user_auth.*, user_list.login FROM user_auth, user_list
 WHERE user_auth.user_id = user_list.id AND user_auth.deleted =0 $ip_list_filter
-ORDER BY $sort_table.$sort_field $order LIMIT $displayed OFFSET $start";
+ORDER BY $sort_table.$sort_field $order LIMIT ? OFFSET ?";
+$params[]=$displayed;
+$params[]=$start;
 
-$users = get_records_sql($db_link,$sSQL);
+$users = get_records_sql($db_link,$sSQL, $params);
 foreach ($users as $user) {
     if ($user['dhcp_time'] == '0000-00-00 00:00:00') {
         $dhcp_str = '';

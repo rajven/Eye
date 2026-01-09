@@ -10,7 +10,7 @@ if (isset($_POST["editfilter"])) {
     $new['dstport'] = str_replace(':', '-', $_POST["f_dstport"]);
     $new['srcport'] = str_replace(':', '-', $_POST["f_srcport"]);
     $new['description'] = $_POST["f_description"];
-    update_record($db_link, "filter_list", "id='$id'", $new);
+    update_record($db_link, "filter_list", "id=?", $new, [ $id ]);
     unset($_POST);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -20,7 +20,7 @@ unset($_POST);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
-$filter = get_record($db_link, 'filter_list','id='.$id);
+$filter = get_record($db_link, 'filter_list','id=?', [ $id ]);
 
 print_filters_submenu($page_url);
 

@@ -27,28 +27,69 @@ print_log_submenu($page_url);
 </form>
 
 <?php
-$log_filter ='';
+// === 1. Формируем базовые параметры и условия ===
+$params = [$date1, $date2];
+$conditions = [];
 
-if ($display_log_level == L_ERROR) { $log_filter = " and level=". L_ERROR." "; }
-if ($display_log_level == L_WARNING) { $log_filter = " and level<=".L_WARNING." "; }
-if ($display_log_level == L_INFO) { $log_filter = " and level<=".L_INFO." "; }
-if ($display_log_level == L_VERBOSE) { $log_filter = " and level<=".L_VERBOSE." "; }
-if ($display_log_level == L_DEBUG) { $log_filter = ""; }
+// Уровень логирования
+if ($display_log_level == L_ERROR) {
+    $conditions[] = "level = ?";
+    $params[] = L_ERROR;
+} elseif ($display_log_level == L_WARNING) {
+    $conditions[] = "level <= ?";
+    $params[] = L_WARNING;
+} elseif ($display_log_level == L_INFO) {
+    $conditions[] = "level <= ?";
+    $params[] = L_INFO;
+} elseif ($display_log_level == L_VERBOSE) {
+    $conditions[] = "level <= ?";
+    $params[] = L_VERBOSE;
+}
+// L_DEBUG: не добавляем условие (показываем всё)
 
-if (!empty($fcustomer)) { $log_filter = $log_filter." and customer LIKE '".$fcustomer."'"; }
-if (!empty($fmessage)) { $log_filter = $log_filter." and message LIKE '".$fmessage."'"; }
-if (!empty($fuser_ip)) { $log_filter = $log_filter." and ip LIKE '".$fuser_ip."'"; }
+// Остальные фильтры — ВСЕ через параметры!
+if (!empty($fcustomer)) {
+    $conditions[] = "customer LIKE ?";
+    $params[] = '%' . $fcustomer . '%';
+}
+if (!empty($fmessage)) {
+    $conditions[] = "message LIKE ?";
+    $params[] = '%' . $fmessage . '%';
+}
+if (!empty($fuser_ip)) {
+    $conditions[] = "ip LIKE ?";
+    $params[] = '%' . $fuser_ip . '%';
+}
 
-$countSQL="SELECT Count(*) FROM worklog WHERE ts>='$date1' AND ts<'$date2' $log_filter";
-$count_records = get_single_field($db_link,$countSQL);
-$total=ceil($count_records/$displayed);
-if ($page>$total) { $page=$total; }
-if ($page<1) { $page=1; }
-$start = ($page * $displayed) - $displayed; 
-print_navigation($page_url,$page,$displayed,$count_records,$total);
+// Собираем WHERE-часть
+$whereClause = !empty($conditions) ? ' AND ' . implode(' AND ', $conditions) : '';
 
-#speedup paging
-$sSQL = "SELECT * FROM (SELECT * FROM worklog WHERE ts>='$date1' AND ts<'$date2' $log_filter ) AS W ORDER BY ts DESC LIMIT $displayed OFFSET $start";
+// === 2. Подсчёт общего количества записей ===
+$countSQL = "SELECT COUNT(*) FROM worklog WHERE ts >= ? AND ts < ?" . $whereClause;
+$count_records = (int)get_single_field($db_link, $countSQL, $params);
+
+// === 3. Пагинация ===
+$total = ceil($count_records / $displayed);
+$page = max(1, min($page, $total)); // корректное ограничение страницы
+$start = ($page - 1) * $displayed;   // исправлено: OFFSET должен быть (page-1)*limit
+
+print_navigation($page_url, $page, $displayed, $count_records, $total);
+
+// === 4. Запрос данных с пагинацией ===
+// Добавляем LIMIT и OFFSET как параметры (приводим к int!)
+$limit = (int)$displayed;
+$offset = (int)$start;
+
+$dataParams = array_merge($params, [$limit, $offset]);
+
+$sSQL = "
+    SELECT * FROM worklog 
+    WHERE ts >= ? AND ts < ?" . $whereClause . "
+    ORDER BY ts DESC 
+    LIMIT ? OFFSET ?
+";
+
+$userlog = get_records_sql($db_link, $sSQL, $dataParams);
 
 ?>
 <br>
@@ -63,7 +104,6 @@ $sSQL = "SELECT * FROM (SELECT * FROM worklog WHERE ts>='$date1' AND ts<'$date2'
 </tr>
 
 <?php
-$userlog = get_records_sql($db_link, $sSQL);
 
 foreach ($userlog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";

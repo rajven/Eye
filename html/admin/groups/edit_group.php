@@ -19,9 +19,9 @@ if (isset($_POST['save'])) {
             $tmp_life_duration = str_replace(',', '.',$_POST['f_life_duration']*1);
             if (!empty($tmp_life_duration) and is_numeric($tmp_life_duration)) { $new['life_duration'] = $tmp_life_duration; }
             } else { $new['life_duration']=0; }
-        if ($new['default_users'] == TRUE) { run_sql($db_link,"UPDATE ou set default_users=0 WHERE id!='{$id}'"); }
-        if ($new['default_hotspot'] == TRUE) { run_sql($db_link,"UPDATE ou set default_hotspot=0 WHERE id!='{$id}'"); }
-        update_record($db_link, "ou", "id='{$id}'", $new);
+        if ($new['default_users'] == TRUE) { run_sql($db_link,"UPDATE ou set default_users=0 WHERE id!=?", [ $id ]); }
+        if ($new['default_hotspot'] == TRUE) { run_sql($db_link,"UPDATE ou set default_hotspot=0 WHERE id!=?", [ $id ]); }
+        update_record($db_link, "ou", "id=?", $new, [ $id ]);
         header("Location: " . $_SERVER["REQUEST_URI"]);
 	exit;
 	}
@@ -30,8 +30,8 @@ if (isset($_POST["s_remove"])) {
     $s_id = $_POST["s_id"];
     foreach ($s_id as $key => $val) {
         if (isset($val)) {
-            LOG_INFO($db_link, "Remove rule id: $val ".dump_record($db_link,'auth_rules','id='.$val));
-            delete_record($db_link, "auth_rules", "id=" . $val);
+            LOG_INFO($db_link, "Remove rule id: $val ".dump_record($db_link,'auth_rules','id=?', [$val]));
+            delete_record($db_link, "auth_rules", "id=?", [ $val ]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -48,7 +48,7 @@ if (isset($_POST['s_save'])) {
             $new['type'] = $_POST['s_type'][$j];
             $new['rule'] = trim($_POST['s_rule'][$j]);
             $new['description'] = trim($_POST['s_description'][$j]);
-            update_record($db_link, "auth_rules", "id='{$save_id}'", $new);
+            update_record($db_link, "auth_rules", "id=?", $new, [ $save_id ]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -84,7 +84,7 @@ fix_auth_rules($db_link);
 <td><b><?php print WEB_cell_dynamic; ?></b></td>
 </tr>
 <?php
-$ou_info = get_record_sql($db_link,'SELECT * FROM ou WHERE id='.$id);
+$ou_info = get_record_sql($db_link,'SELECT * FROM ou WHERE id=?', [$id]);
 print "<tr align=center>\n";
 print "<td colspan=2 class=\"data\"><input type=\"text\" name='f_group_name' value='{$ou_info['ou_name']}' style=\"width:95%;\"></td>\n";
 if ($ou_info['default_users']) { $cl = "up"; } else { $cl="data"; }
@@ -135,7 +135,7 @@ if (!$ou_info['dynamic']) { print "disabled"; }; print " style=\"width:35%;\" ><
     <?php print "<td><button id='s_save' name='s_save'>".WEB_btn_save."</button></td>"; ?>
 </tr>
 <?php
-$t_auth_rules = get_records($db_link,'auth_rules',"ou_id=$id ORDER BY id");
+$t_auth_rules = get_records_sql($db_link,"SELECT * FROM auth_rules WHERE ou_id=? ORDER BY id", [ $id ]);
 foreach ( $t_auth_rules as $row ) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=s_id[] value='{$row['id']}'></td>\n";

@@ -3,19 +3,19 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 
-$device = get_record($db_link, 'devices', "id=" . $id);
+$device = get_record($db_link, 'devices', "id=?", [ $id ]);
 $snmp = getSnmpAccess($device);
-$device_model = get_record($db_link, 'device_models', "id=" . $device['device_model_id']);
+$device_model = get_record($db_link, 'device_models', "id=?", [ $device['device_model_id'] ]);
 
 if (isset($_POST["regensnmp"])) {
     $snmp_index = $_POST["f_snmp_start"] * 1;
-    $sSQL = "SELECT id,port from device_ports WHERE device_ports.device_id=$id ORDER BY id";
-    $flist = get_records_sql($db_link, $sSQL);
+    $sSQL = "SELECT id,port from device_ports WHERE device_ports.device_id=? ORDER BY id";
+    $flist = get_records_sql($db_link, $sSQL, [ $id ]);
     LOG_DEBUG($db_link, "Recalc snmp_index for device id: $id with start $snmp_index");
     foreach ($flist as $row) {
         $snmp = $row['port'] + $snmp_index - 1;
         $new['snmp_index'] = $snmp;
-        update_record($db_link, "device_ports", "id=".$row['id'], $new);
+        update_record($db_link, "device_ports", "id=?", $new, [$row['id']]);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -25,8 +25,8 @@ if (isset($_POST['poe_on']) and $device['snmp_version'] > 0) {
     $len = is_array($_POST['poe_on']) ? count($_POST['poe_on']) : 0;
     for ($i = 0; $i < $len; $i++) {
         $port_index = intval($_POST['poe_on'][$i]);
-        $sSQL = "SELECT port from device_ports WHERE device_id=" . $id . " and snmp_index=" . $port_index;
-        $port = get_record_sql($db_link, $sSQL);
+        $sSQL = "SELECT port from device_ports WHERE device_id=? and snmp_index=?";
+        $port = get_record_sql($db_link, $sSQL, [ $id , $port_index ]);
         LOG_DEBUG($db_link, "Device id: " . $id . " enable poe at port " . $port['port'] . " snmp index " . $port_index);
         set_port_poe_state($device['vendor_id'], $port['port'], $port_index, $device['ip'], $snmp, 1);
     }
@@ -38,8 +38,8 @@ if (isset($_POST['poe_off']) and $device['snmp_version'] > 0) {
     $len = is_array($_POST['poe_off']) ? count($_POST['poe_off']) : 0;
     for ($i = 0; $i < $len; $i++) {
         $port_index = intval($_POST['poe_off'][$i]);
-        $sSQL = "SELECT port from device_ports WHERE device_id=" . $id . " and snmp_index=" . $port_index;
-        $port = get_record_sql($db_link, $sSQL);
+        $sSQL = "SELECT port from device_ports WHERE device_id=? and snmp_index=?";
+        $port = get_record_sql($db_link, $sSQL, [ $id , $port_index ]);
         LOG_DEBUG($db_link, "Device id: " . $id . " disable poe at port " . $port['port'] . " snmp index " . $port_index);
         set_port_poe_state($device['vendor_id'], $port['port'], $port_index, $device['ip'], $snmp, 0);
     }
@@ -76,7 +76,7 @@ if (!apply_device_lock($db_link, $id)) {
     exit;
 }
 
-$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=" . $device['user_id']);
+$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=?", [ $device['user_id'] ]);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
 
@@ -134,8 +134,8 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
         }
         print "<td>" . WEB_device_port_control . "</td>\n";
         print "</tr>\n";
-        $sSQL = "SELECT * FROM device_ports WHERE device_ports.device_id=$id ORDER BY port";
-        $ports = get_records_sql($db_link, $sSQL);
+        $sSQL = "SELECT * FROM device_ports WHERE device_ports.device_id=? ORDER BY port";
+        $ports = get_records_sql($db_link, $sSQL, [ $id ]);
         foreach ($ports as $row) {
             print "<tr align=center>\n";
             $cl = "down";
@@ -296,7 +296,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
 
             //fix port information
             if ($snmp_ok) {
-                update_record($db_link, "device_ports", "id=" . $row['id'], $new_info);
+                update_record($db_link, "device_ports", "id=?", $new_info, [  $row['id'] ]);
             }
 
             $ifname = compact_port_name($ifname);
