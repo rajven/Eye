@@ -96,6 +96,7 @@ ALTER TABLE config_options  CHANGE COLUMN `type` option_type VARCHAR(100) NOT NU
 ALTER TABLE dns_queue       CHANGE COLUMN `type` operation_type VARCHAR(10) NOT NULL DEFAULT 'add';
 ALTER TABLE filter_list     CHANGE COLUMN `type` filter_type SMALLINT NOT NULL DEFAULT 0;
 ALTER TABLE auth_rules      CHANGE COLUMN `type` rule_type INT(11) NOT NULL;
+ALTER TABLE device_l3_interfaces CHANGE COLUMN `type` interface_type int(11) NOT NULL DEFAULT 0;
 
 UPDATE user_auth SET mac_found = last_found WHERE last_found IS NOT NULL;
 

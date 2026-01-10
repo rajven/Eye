@@ -795,14 +795,14 @@ function print_add_dev_interface($db, $device_id, $int_list, $int_name)
         if (!empty($int_exists[$interface['index']])) {
             continue;
         }
-        $value = $interface['name'] . ';' . $interface['index'] . ';' . $interface['type'];
+        $value = $interface['name'] . ';' . $interface['index'] . ';' . $interface['interface_type'];
         if ($interface['type'] == 1) {
             $interface['type'] = WEB_select_item_wan;
         }
         if ($interface['type'] == 0) {
             $interface['type'] = WEB_select_item_lan;
         }
-        $display_str = $interface['name'] . '&nbsp|' . $interface['ip'] . '|' . $interface['type'];
+        $display_str = $interface['name'] . '&nbsp|' . $interface['ip'] . '|' . $interface['interface_type'];
         print_select_item($display_str, $value, 0);
     }
     print "</select>\n";
@@ -2389,7 +2389,7 @@ function new_user($db, $user_info)
     $auto_mac_rule = get_option($db, 64);
     if (!empty($result) and $auto_mac_rule and $user_info['mac']) {
         $auth_rule['user_id'] = $result;
-        $auth_rule['type'] = 2;
+        $auth_rule['rule_type'] = 2;
         $auth_rule['rule'] = mac_dotted($user_info['mac']);
         insert_record($db, "auth_rules", $auth_rule);
     }
@@ -2618,16 +2618,16 @@ function get_auth_mac($db, $current_auth)
 function add_auth_rule($db, $rule, $type, $user_id)
 {
     $new['user_id'] = $user_id;
-    $new['type'] = $type;
+    $new['rule_type'] = $type;
     $new['rule'] = $rule;
     $rule_id = 0;
-    $auth_rules = get_record_sql($db, "SELECT * FROM auth_rules WHERE rule='" . $rule . "' AND type=" . $type);
+    $auth_rules = get_record_sql($db, "SELECT * FROM auth_rules WHERE rule='" . $rule . "' AND rule_type=" . $type);
     if (empty($auth_rules)) {
         $rule_id = insert_record($db, "auth_rules", $new);
-        LOG_INFO($db, "Create auto rule for user_id: " . $user_id . " rule: " . $rule . " type: " . $type);
+        LOG_INFO($db, "Create auto rule for user_id: " . $user_id . " rule: " . $rule . " rule_type: " . $type);
     } else {
         if ($auth_rules['user_id'] !== $user_id) {
-            LOG_WARNING($db, "Create auto rule for user_id: " . $user_id . " rule: " . $rule . " type: " . $type . " failed! Already exists at user_id: " . $auth_rules['user_id']);
+            LOG_WARNING($db, "Create auto rule for user_id: " . $user_id . " rule: " . $rule . " rule_type: " . $type . " failed! Already exists at user_id: " . $auth_rules['user_id']);
             $rule_id = 0;
             } else { $rule_id =  $auth_rules['id']; }
     }
@@ -2636,13 +2636,13 @@ function add_auth_rule($db, $rule, $type, $user_id)
 
 function update_auth_rule($db, $new, $rule_id = 0)
 {
-    $type = $new['type'];
+    $type = $new['rule_type'];
     $rule = $new['rule'];
-    $auth_rules = get_record_sql($db, "SELECT * FROM auth_rules WHERE rule='" . $rule . "' AND type=" . $type . " AND id<>" . $rule_id);
+    $auth_rules = get_record_sql($db, "SELECT * FROM auth_rules WHERE rule='" . $rule . "' AND rule_type=" . $type . " AND id<>" . $rule_id);
     if (empty($auth_rules)) {
         $rule_id = update_record($db, "auth_rules", "id=" . $rule_id, $new);
     } else {
-        LOG_WARNING($db, "Create auto rule id: " . $rule_id . " rule: " . $rule . " type: " . $type . " failed! Already exists at user_id: " . $auth_rules['user_id']);
+        LOG_WARNING($db, "Create auto rule id: " . $rule_id . " rule: " . $rule . " rule_type: " . $type . " failed! Already exists at user_id: " . $auth_rules['user_id']);
         $rule_id = 0;
     }
     return $rule_id;
@@ -3447,7 +3447,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
     //personal user rules
     //ip
     if (!empty($ip)) {
-        $t_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND user_id IS NOT NULL");
+        $t_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE rule_type=1 and LENGTH(rule)>0 AND user_id IS NOT NULL");
         foreach ($t_rules as $row) {
             if (!empty($row['rule']) and is_subnet_aton($row['rule'], $ip_aton)) {
                 $result['user_id'] = $row['user_id'];
@@ -3457,7 +3457,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
     }
     //mac
     if (!empty($mac)) {
-        $mac_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0 AND user_id IS NOT NULL");
+        $mac_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE rule_type=2 AND LENGTH(rule)>0 AND user_id IS NOT NULL");
         foreach ($mac_rules as $row) {
             $pattern = '/' . mac_simplify($row['rule']) . '/';
             if (!empty($row['rule']) and preg_match($pattern, mac_simplify($mac))) {
@@ -3468,7 +3468,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
     }
     //hostname
     if (!empty($hostname)) {
-        $mac_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0 AND user_id IS NOT NULL");
+        $mac_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE rule_type=3 AND LENGTH(rule)>0 AND user_id IS NOT NULL");
         foreach ($mac_rules as $row) {
             if (!empty($row['rule']) and preg_match($row['rule'], $hostname)) {
                 $result['user_id'] = $row['user_id'];
@@ -3480,7 +3480,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
     //ou rules
     //ip
     if (!empty($ip)) {
-        $t_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND ou_id IS NOT NULL");
+        $t_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE rule_type=1 and LENGTH(rule)>0 AND ou_id IS NOT NULL");
         foreach ($t_rules as $row) {
             if (!empty($row['rule']) and is_subnet_aton($row['rule'], $ip_aton)) {
                 $result['ou_id'] = $row['ou_id'];
@@ -3490,7 +3490,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
     }
     //mac
     if (!empty($mac)) {
-        $mac_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0 AND ou_id IS NOT NULL");
+        $mac_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE rule_type=2 AND LENGTH(rule)>0 AND ou_id IS NOT NULL");
         foreach ($mac_rules as $row) {
             $pattern = '/' . mac_simplify($row['rule']) . '/';
             if (!empty($row['rule']) and preg_match($pattern, mac_simplify($mac))) {
@@ -3501,7 +3501,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
     }
     //hostname
     if (!empty($hostname)) {
-        $mac_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0 AND ou_id IS NOT NULL");
+        $mac_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE rule_type=3 AND LENGTH(rule)>0 AND ou_id IS NOT NULL");
         foreach ($mac_rules as $row) {
             if (!empty($row['rule']) and preg_match($row['rule'], $hostname)) {
                 $result['ou_id'] = $row['ou_id'];

@@ -113,18 +113,18 @@ if (getPOST("ApplyForAll", $page_url)) {
         if (getPOST("e_bind_mac", $page_url) !== null) {
             if ($a_bind_mac && $b_mac) {
                 $user_rule = get_record_sql($db_link,
-                    "SELECT * FROM auth_rules WHERE user_id = ? AND type = 2",
+                    "SELECT * FROM auth_rules WHERE user_id = ? AND rule_type = 2",
                     [$user_id]
                 );
                 $mac_rule = get_record_sql($db_link,
-                    "SELECT * FROM auth_rules WHERE rule = ? AND type = 2",
+                    "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = 2",
                     [$b_mac]
                 );
 
                 if (!$user_rule && !$mac_rule) {
                     insert_record($db_link, "auth_rules", [
                         'user_id' => $user_id,
-                        'type' => 2,
+                        'rule_type' => 2,
                         'rule' => $b_mac
                     ]);
                     LOG_INFO($db_link, "Created auto rule for user_id: $user_id and mac $b_mac");
@@ -132,7 +132,7 @@ if (getPOST("ApplyForAll", $page_url)) {
                     LOG_INFO($db_link, "Auto rule for user_id: $user_id and mac $b_mac already exists");
                 }
             } else {
-                run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND type = 2", [$user_id]);
+                run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND rule_type = 2", [$user_id]);
                 LOG_INFO($db_link, "Remove auto rule for user_id: $user_id and mac $b_mac");
             }
         }
@@ -141,18 +141,18 @@ if (getPOST("ApplyForAll", $page_url)) {
         if (getPOST("e_bind_ip", $page_url) !== null) {
             if ($a_bind_ip && $b_ip) {
                 $user_rule = get_record_sql($db_link,
-                    "SELECT * FROM auth_rules WHERE user_id = ? AND type = 1",
+                    "SELECT * FROM auth_rules WHERE user_id = ? AND rule_type = 1",
                     [$user_id]
                 );
                 $ip_rule = get_record_sql($db_link,
-                    "SELECT * FROM auth_rules WHERE rule = ? AND type = 1",
+                    "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = 1",
                     [$b_ip]
                 );
 
                 if (!$user_rule && !$ip_rule) {
                     insert_record($db_link, "auth_rules", [
                         'user_id' => $user_id,
-                        'type' => 1,
+                        'rule_type' => 1,
                         'rule' => $b_ip
                     ]);
                     LOG_INFO($db_link, "Created auto rule for user_id: $user_id and ip $b_ip");
@@ -160,7 +160,7 @@ if (getPOST("ApplyForAll", $page_url)) {
                     LOG_INFO($db_link, "Auto rule for user_id: $user_id and ip $b_ip already exists");
                 }
             } else {
-                run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND type = 1", [$user_id]);
+                run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND rule_type = 1", [$user_id]);
                 LOG_INFO($db_link, "Remove auto rule for user_id: $user_id and ip $b_ip");
             }
         }

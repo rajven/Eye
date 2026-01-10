@@ -66,7 +66,7 @@ if (isset($_POST["addMacRule"])) {
 }
 
 if (isset($_POST["delMacRule"])) {
-    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id=? AND type=2", [ $id ]);
+    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id=? AND rule_type=2", [ $id ]);
     LOG_INFO($db_link, "All autorules removed for id: $id login: " . $user_info["login"] . " by mac");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -83,7 +83,7 @@ if (isset($_POST["addIPRule"])) {
 }
 
 if (isset($_POST["delIPRule"])) {
-    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id=? AND type=1", [ $id ]);
+    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id=? AND rule_type=1", [ $id ]);
     LOG_INFO($db_link, "Removed all auto rules for id: $id login: " . $user_info["login"] . " by ip");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -309,14 +309,14 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                 $first_auth = get_record_sql($db_link, "SELECT id FROM user_auth WHERE user_id=? AND deleted=0 ORDER BY id", [ $id ]);
                 if (!empty($first_auth)) {
                     //mac
-                    $mac_rule_count = get_count_records($db_link, "auth_rules", "user_id=? AND type=2", [ $id ]);
+                    $mac_rule_count = get_count_records($db_link, "auth_rules", "user_id=? AND rule_type=2", [ $id ]);
                     if (!empty($mac_rule_count)) {
                         print "<td><input type=\"submit\" name=\"delMacRule\" value=" . WEB_btn_mac_del . " ></td>";
                     } else {
                         print "<td><input type=\"submit\" name=\"addMacRule\" value=" . WEB_btn_mac_add . " ></td>";
                     }
                     //ip
-                    $ip_rule_count = get_count_records($db_link, "auth_rules", "user_id=? AND type=1", [ $id ]);
+                    $ip_rule_count = get_count_records($db_link, "auth_rules", "user_id=? AND rule_type=1", [ $id ]);
                     if (!empty($ip_rule_count)) {
                         print "<td><input type=\"submit\" name=\"delIPRule\" value=" . WEB_btn_ip_del . " ></td>";
                     } else {

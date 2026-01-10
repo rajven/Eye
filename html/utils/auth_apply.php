@@ -104,13 +104,13 @@ if (getPOST("ApplyForAll", $page_url)) {
             
             if ($first_auth && !empty($first_auth['mac'])) {
                 if ($a_bind_mac) {
-                    $user_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id = ? AND type = 2", [(int)$first_auth['user_id']]);
-                    $mac_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule = ? AND type = 2", [$first_auth['mac']]);
+                    $user_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id = ? AND rule_type = 2", [(int)$first_auth['user_id']]);
+                    $mac_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = 2", [$first_auth['mac']]);
                     
                     if (!$user_rule && !$mac_rule) {
                         $new_rule = [
                             'user_id' => (int)$first_auth['user_id'],
-                            'type' => 2,
+                            'rule_type' => 2,
                             'rule' => $first_auth['mac']
                         ];
                         insert_record($db_link, "auth_rules", $new_rule);
@@ -119,7 +119,7 @@ if (getPOST("ApplyForAll", $page_url)) {
                         LOG_INFO($db_link, "Auto rule for user_id: " . $first_auth['user_id'] . " and mac " . $first_auth['mac'] . " already exists");
                     }
                 } else {
-                    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND type = 2", [(int)$first_auth['user_id']]);
+                    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND rule_type = 2", [(int)$first_auth['user_id']]);
                     LOG_INFO($db_link, "Remove auto rule for user_id: " . $first_auth['user_id'] . " and mac " . $first_auth['mac']);
                 }
             } else {
@@ -133,13 +133,13 @@ if (getPOST("ApplyForAll", $page_url)) {
             
             if ($first_auth && !empty($first_auth['ip'])) {
                 if ($a_bind_ip) {
-                    $user_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id = ? AND type = 1", [(int)$first_auth['user_id']]);
-                    $ip_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule = ? AND type = 1", [$first_auth['ip']]);
+                    $user_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id = ? AND rule_type = 1", [(int)$first_auth['user_id']]);
+                    $ip_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = 1", [$first_auth['ip']]);
                     
                     if (!$user_rule && !$ip_rule) {
                         $new_rule = [
                             'user_id' => (int)$first_auth['user_id'],
-                            'type' => 1,
+                            'rule_type' => 1,
                             'rule' => $first_auth['ip']
                         ];
                         insert_record($db_link, "auth_rules", $new_rule);
@@ -148,7 +148,7 @@ if (getPOST("ApplyForAll", $page_url)) {
                         LOG_INFO($db_link, "Auto rule for user_id: " . $first_auth['user_id'] . " and ip " . $first_auth['ip'] . " already exists");
                     }
                 } else {
-                    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND type = 1", [(int)$first_auth['user_id']]);
+                    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND rule_type = 1", [(int)$first_auth['user_id']]);
                     LOG_INFO($db_link, "Remove auto rule for user_id: " . $first_auth['user_id'] . " and ip " . $first_auth['ip']);
                 }
             } else {
