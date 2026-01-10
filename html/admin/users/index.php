@@ -9,36 +9,50 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 
 $msg_error = "";
 
-if (isset($_POST["create"])) {
-    $login = trim($_POST["newlogin"]);
-    if (!empty($login)) {
-        $lcount = get_count_records($db_link,"user_list","LOWER(login)=LOWER(?)", [ $login ]);
+if (getPOST("create") !== null) {
+    $login = trim(getPOST("newlogin", null, ''));
+    
+    if ($login !== '') {
+        // Проверка существования логина
+        $lcount = get_count_records($db_link, "user_list", "LOWER(login) = LOWER(?)", [$login]);
+        
         if ($lcount > 0) {
-            $msg_error = WEB_cell_login." ".$login." ".$msg_exists."!";
-            unset($_POST);
+            $msg_error = WEB_cell_login . " " . $login . " " . $msg_exists . "!";
         } else {
-            $new['login'] = $login;
-            if ($rou>0) { $new['ou_id'] = $rou; } else {
-                $row = 3; //User OU
-                $ou_exists = get_record_sql($db_link,"SELECT id FROM ou WHERE id=?", [ $rou ]);
-                if (empty($ou_exists)) { $row = $default_user_ou_id; }
-                $new['ou_id'] = $row;
+            $new = ['login' => $login];
+            // Определение OU
+            if ($rou > 0) {
+                $new['ou_id'] = $rou;
+            } else {
+                $rou = 3;
+                $ou_exists = get_record_sql($db_link, "SELECT id FROM ou WHERE id = ?", [$rou]);
+                if (empty($ou_exists)) {
+                    $new['ou_id'] = $default_user_ou_id; // по умолчанию
+                } else {
+                    $new['ou_id'] = $rou;
                 }
-            $ou_info = get_record_sql($db_link,"SELECT * FROM ou WHERE id=?", [ $rou ]);
-	    if (!empty($ou_info)) {
-		if (empty($ou_info['enabled'])) { $ou_info['enabled'] = 0; }
-		if (empty($ou_info['queue_id'])) { $ou_info['queue_id'] = 0; }
-		if (empty($ou_info['filter_group_id'])) { $ou_info['filter_group_id'] = 0; }
-	        $new['enabled'] = $ou_info['enabled'];
-	        $new['queue_id'] = $ou_info['queue_id'];
-	        $new['filter_group_id'] = $ou_info['filter_group_id'];
-	        }
-            $lid=insert_record($db_link, "user_list", $new);
-            LOG_WARNING($db_link,"Создан новый пользователь: Login => $login");
-            header("Location: edituser.php?id=$lid");
-            exit;
+            }
+            // Наследование настроек от OU
+            $ou_info = get_record_sql($db_link, "SELECT * FROM ou WHERE id = ?", [$new['ou_id']]);
+            if (!empty($ou_info)) {
+                $new['enabled']           = isset($ou_info['enabled']) ? (int)$ou_info['enabled'] : 0;
+                $new['queue_id']          = isset($ou_info['queue_id']) ? (int)$ou_info['queue_id'] : 0;
+                $new['filter_group_id']   = isset($ou_info['filter_group_id']) ? (int)$ou_info['filter_group_id'] : 0;
+            } else {
+                // Если OU не найден — значения по умолчанию
+                $new['enabled']           = 0;
+                $new['queue_id']          = 0;
+                $new['filter_group_id']   = 0;
+            }
+            $lid = insert_record($db_link, "user_list", $new);
+            LOG_WARNING($db_link, "Создан новый пользователь: Login => $login");
+            if (!empty($lid)) {
+                header("Location: edituser.php?id=$lid");
+                exit;
+            }
         }
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }

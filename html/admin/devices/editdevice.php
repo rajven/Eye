@@ -3,145 +3,135 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 
-if (isset($_POST["editdevice"]) and isset($id)) {
-    if (isset($_POST["f_port_count"])) {
-        $sw_ports = $_POST["f_port_count"] * 1;
-    } else {
-        $sw_ports = 0;
-    }
-    $sSQL = "SELECT count(id) from device_ports WHERE device_ports.device_id=?";
-    $d_ports = get_single_field($db_link,$sSQL, [$id]);
+$device = get_record($db_link, 'devices', "id = ?", [$id]);
+$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$device['user_id']]);
+
+if (getPOST("editdevice") !== null && isset($id)) {
+    // === УПРАВЛЕНИЕ ПОРТАМИ ====================================================
+    $sw_ports = (int)getPOST("f_port_count", null, 0);
+    $sSQL = "SELECT COUNT(id) FROM device_ports WHERE device_ports.device_id = ?";
+    $d_ports = (int)get_single_field($db_link, $sSQL, [$id]);
+
     if ($d_ports != $sw_ports) {
         LOG_DEBUG($db_link, "Device id: $id changed port count!");
+        
         if ($sw_ports > $d_ports) {
             $start_port = $d_ports + 1;
             LOG_DEBUG($db_link, "Device id: $id add connection for port from $start_port to $sw_ports.");
             for ($port = $start_port; $port <= $sw_ports; $port++) {
-                $new['device_id'] = $id;
-                $new['snmp_index'] = $port;
-                $new['port'] = $port;
-                insert_record($db_link, "device_ports", $new);
+                insert_record($db_link, "device_ports", [
+                    'device_id'   => $id,
+                    'snmp_index'  => $port,
+                    'port'        => $port
+                ]);
             }
         }
+        
         if ($sw_ports < $d_ports) {
             LOG_DEBUG($db_link, "Device id: $id remove connection for port from $d_ports to $sw_ports");
             for ($port = $d_ports; $port > $sw_ports; $port--) {
-                $port_id = get_id_record($db_link, 'device_ports', "device_id=? and port=?", [ $id, $port ]);
+                $port_id = get_id_record($db_link, 'device_ports', "device_id = ? AND port = ?", [$id, $port]);
                 if ($port_id) {
-                    delete_record($db_link, "device_ports", "id=?" ,[ $port_id ]);
-                    run_sql($db_link, "DELETE FROM connections WHERE port_id=?", [ $port_id ]);
+                    delete_record($db_link, "device_ports", "id = ?", [$port_id]);
+                    delete_records($db_link, "connections", "port_id = ?", [$port_id]);
                 } else {
                     LOG_DEBUG($db_link, "Device id: $id port_id not found for port: $port!");
                 }
             }
         }
     }
-    unset($new);
-    if (isset($_POST["f_ip"])) {
-        $new['ip'] = $_POST["f_ip"];
-        $new['ip_int'] = ip2long($new['ip']);
+
+    // === ОСНОВНЫЕ ДАННЫЕ УСТРОЙСТВА ============================================
+    $new = [];
+    $cur_device = get_record_sql($db_link, "SELECT * FROM devices WHERE id = ?", [$id]);
+
+    // IP-адрес
+    $f_ip = trim(getPOST("f_ip", null, ''));
+    if ($f_ip !== '') {
+        $new['ip'] = $f_ip;
+        $new['ip_int'] = ip2long($f_ip);
+        $cur_auth = get_record_sql($db_link, "SELECT * FROM user_auth WHERE deleted = 0 AND ip = ?", [$f_ip]);
     }
-    $cur_device = get_record_sql($db_link, "SELECT * FROM devices WHERE id=?", [ $id ]);
-    //main device info
-    if (!empty($new['ip'])) {
-        $cur_auth = get_record_sql($db_link, "SELECT * FROM user_auth WHERE deleted=0 AND ip=?",[ $new['ip'] ]);
+
+    // Модель устройства
+    $f_device_model_id = (int)getPOST("f_device_model_id", null, 0);
+    if ($f_device_model_id > 0) {
+        $new['device_model_id'] = $f_device_model_id;
+        $new['vendor_id'] = get_device_model_vendor($db_link, $f_device_model_id);
     }
-    if (isset($_POST["f_device_model_id"])) {
-        $new['device_model_id'] = $_POST["f_device_model_id"] * 1;
-        $new['vendor_id'] = get_device_model_vendor($db_link, $new['device_model_id']);
-    }
-    if (isset($_POST["f_port_count"])) {
-        $new['port_count'] = $sw_ports;
-    }
-    if (isset($_POST["f_devtype_id"])) {
-        $new['device_type'] = $_POST["f_devtype_id"] * 1;
-    }
-    if (isset($_POST["f_description"])) {
-        $new['description'] = $_POST["f_description"];
-    }
-    if (isset($_POST["f_SN"])) {
-        $new['SN'] = $_POST["f_SN"];
-    }
-    if (isset($_POST["f_firmware"])) {
-        $new['firmware'] = $_POST["f_firmware"];
-    }
-    //snmp
-    if (isset($_POST["f_snmp_version"])) {
-        $new['snmp_version'] = $_POST["f_snmp_version"] * 1;
-    }
-    if (isset($_POST["f_community"])) {
-        $new['community'] = substr($_POST["f_community"], 0, 50);
-    }
-    if (isset($_POST["f_snmp3_auth_proto"])) {
-        $new['snmp3_auth_proto'] = trim(substr($_POST["f_snmp3_auth_proto"], 0, 10));
-    }
-    if (isset($_POST["f_snmp3_priv_proto"])) {
-        $new['snmp3_priv_proto'] = trim(substr($_POST["f_snmp3_priv_proto"], 0, 10));
-    }
-    if (isset($_POST["f_rw_community"])) {
-        $new['rw_community'] = substr($_POST["f_rw_community"], 0, 50);
-    }
-    if (isset($_POST["f_snmp3_user_rw"])) {
-        $new['snmp3_user_rw'] = substr($_POST["f_snmp3_user_rw"], 0, 20);
-    }
-    if (isset($_POST["f_snmp3_user_ro"])) {
-        $new['snmp3_user_ro'] = substr($_POST["f_snmp3_user_ro"], 0, 20);
-    }
-    if (isset($_POST["f_snmp3_user_rw_password"])) {
-        $new['snmp3_user_rw_password'] = substr($_POST["f_snmp3_user_rw_password"], 0, 20);
-    }
-    if (isset($_POST["f_snmp3_user_ro_password"])) {
-        $new['snmp3_user_ro_password'] = substr($_POST["f_snmp3_user_ro_password"], 0, 20);
-    }
-    //acl & configuration options
-    if (isset($_POST["f_queue_enabled"])) {
-        $new['queue_enabled'] = $_POST["f_queue_enabled"] * 1;
-    }
-    if (isset($_POST["f_connected_user_only"])) {
-        $new['connected_user_only'] = $_POST["f_connected_user_only"] * 1;
-    }
-    if (isset($_POST["f_dhcp"])) {
-        $new['dhcp'] = $_POST["f_dhcp"] * 1;
-    }
-    if (isset($_POST["f_user_acl"])) {
-        $new['user_acl'] = $_POST["f_user_acl"] * 1;
-    }
-    //interfaces
-    if (isset($_POST["f_wan"])) {
-        $new['wan_int'] = $_POST["f_wan"];
-    }
-    if (isset($_POST["f_lan"])) {
-        $new['lan_int'] = $_POST["f_lan"];
-    }
-    //location
-    if (isset($_POST["f_building_id"])) {
-        $new['building_id'] = $_POST["f_building_id"] * 1;
-    }
-    //access
-    if (isset($_POST["f_login"])) {
-        $new['login'] = $_POST["f_login"];
-    }
-    if (!empty($_POST["f_password"])) {
-        if (!preg_match('/^\*+$/', $_POST["f_password"])) {
-            $new['password'] = crypt_string($_POST["f_password"]);
+
+    // Количество портов
+    $new['port_count'] = $sw_ports;
+
+    // Тип устройства
+    $new['device_type'] = (int)getPOST("f_devtype_id", null, 0);
+
+    // === УПРАВЛЕНИЕ ЭКЗЕМПЛЯРАМИ ФИЛЬТРОВ ======================================
+    if ($new['device_type'] == 2) {
+        // Это шлюз — должен иметь хотя бы один экземпляр
+        $instances_count = get_count_records($db_link, 'device_filter_instances', 'device_id = ?', [$id]);
+        if (empty($instances_count) || $instances_count == 0) {
+            // Создаём стандартный экземпляр (ID=1)
+            insert_record($db_link, "device_filter_instances", [
+                'instance_id' => 1,
+                'device_id'   => $id
+            ]);
+            LOG_INFO($db_link, "Added default firewall instance for gateway id: $id");
+        }
+    } else {
+        // Не шлюз — удаляем все экземпляры
+        if ($device['device_type'] == 2) {
+            $instances_count = get_count_records($db_link, 'device_filter_instances', 'device_id = ?', [$id]);
+            if (!empty($instances_count) && $instances_count > 0) {
+                delete_records($db_link, 'device_filter_instances', 'device_id = ?', [$id]);
+                LOG_INFO($db_link, "Removed firewall instances for non-gateway device id: $id");
+            }
         }
     }
-    if (isset($_POST["f_protocol"])) {
-        $new['protocol'] = $_POST["f_protocol"] * 1;
+
+    // === ОСТАЛЬНЫЕ ПОЛЯ =========================================================
+    $new['description']           = trim(getPOST("f_description", null, ''));
+    $new['SN']                    = trim(getPOST("f_SN", null, ''));
+    $new['firmware']              = trim(getPOST("f_firmware", null, ''));
+
+    // SNMP
+    $new['snmp_version']          = (int)getPOST("f_snmp_version", null, 0);
+    $new['community']             = substr(trim(getPOST("f_community", null, '')), 0, 50);
+    $new['snmp3_auth_proto']      = substr(trim(getPOST("f_snmp3_auth_proto", null, '')), 0, 10);
+    $new['snmp3_priv_proto']      = substr(trim(getPOST("f_snmp3_priv_proto", null, '')), 0, 10);
+    $new['rw_community']          = substr(trim(getPOST("f_rw_community", null, '')), 0, 50);
+    $new['snmp3_user_rw']         = substr(trim(getPOST("f_snmp3_user_rw", null, '')), 0, 20);
+    $new['snmp3_user_ro']         = substr(trim(getPOST("f_snmp3_user_ro", null, '')), 0, 20);
+    $new['snmp3_user_rw_password']= substr(trim(getPOST("f_snmp3_user_rw_password", null, '')), 0, 20);
+    $new['snmp3_user_ro_password']= substr(trim(getPOST("f_snmp3_user_ro_password", null, '')), 0, 20);
+
+    // ACL и настройки
+    $new['queue_enabled']         = (int)getPOST("f_queue_enabled", null, 0);
+    $new['connected_user_only']   = (int)getPOST("f_connected_user_only", null, 0);
+    $new['dhcp']                  = (int)getPOST("f_dhcp", null, 0);
+    $new['user_acl']              = (int)getPOST("f_user_acl", null, 0);
+
+    // Расположение
+    $new['building_id']           = (int)getPOST("f_building_id", null, 0);
+
+    // Доступ
+    $new['login']                 = trim(getPOST("f_login", null, ''));
+    $f_password                   = getPOST("f_password", null, '');
+    if ($f_password !== '' && !preg_match('/^\*+$/', $f_password)) {
+        $new['password'] = crypt_string($f_password);
     }
-    if (isset($_POST["f_control_port"])) {
-        $new['control_port'] = $_POST["f_control_port"] * 1;
-    }
-    if (isset($_POST["f_save_netflow"])) {
-        $new['netflow_save'] = $_POST["f_save_netflow"] * 1;
-    }
-    //discovery
-    if (isset($_POST["f_discovery"])) {
-        $new['discovery'] = $_POST["f_discovery"];
-    }
-    //nagios
-    if (isset($_POST["f_nagios"])) {
-        $new['nagios'] = $_POST["f_nagios"] * 1;
+
+    $new['protocol']              = (int)getPOST("f_protocol", null, 0);
+    $new['control_port']          = (int)getPOST("f_control_port", null, 0);
+    $new['netflow_save']          = (int)getPOST("f_save_netflow", null, 0);
+
+    // Discovery
+    $new['discovery']             = trim(getPOST("f_discovery", null, 0));
+
+    // Nagios
+    $f_nagios                     = (int)getPOST("f_nagios", null, -1);
+    if ($f_nagios !== -1) {
+        $new['nagios'] = $f_nagios;
         if ($new['nagios'] == 0) {
             $new['nagios_status'] = 'UP';
         }
@@ -152,19 +142,19 @@ if (isset($_POST["editdevice"]) and isset($id)) {
         }
     }
 
-    if ($new['device_type'] == 0 or $new['protocol']<0) {
-        $new['queue_enabled'] = 0;
+    // === ЗАВИСИМОСТИ ПО ТИПУ УСТРОЙСТВА ========================================
+    if ($new['device_type'] == 0 || $new['protocol'] < 0) {
+        $new['queue_enabled']       = 0;
         $new['connected_user_only'] = 1;
-        $new['user_acl'] = 0;
+        $new['user_acl']            = 0;
     }
 
-    update_record($db_link, "devices", "id=?", $new, [ $id ]);
+    // === СОХРАНЕНИЕ =============================================================
+    update_record($db_link, "devices", "id = ?", $new, [$id]);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-$device = get_record($db_link, 'devices', "id=?" ,[ $id]);
-$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id=?", [ $device['user_id'] ]);
 unset($_POST);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");

@@ -19,7 +19,6 @@ if (getPOST("s_remove") !== null) {
             delete_record($db_link, "device_filter_instances", "id = ?", [$val]);
         }
     }
-    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -27,17 +26,14 @@ if (getPOST("s_remove") !== null) {
 // Создание нового фильтра
 if (getPOST("s_create") !== null) {
     $new_instance = trim(getPOST("new_instance", null, ''));
-    
     if ($new_instance !== '') {
         $new = [
             'instance_id' => $new_instance,
             'device_id'   => $id
         ];
-        
         LOG_INFO($db_link, "Add instance id: " . $new['instance_id'] . " for gateway id: " . $id);
         insert_record($db_link, "device_filter_instances", $new);
     }
-    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }

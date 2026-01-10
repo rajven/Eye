@@ -4,28 +4,41 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-$device=get_record($db_link,'devices',"id=?", [$id]);
-$user_info = get_record_sql($db_link,"SELECT * FROM user_list WHERE id=?", [$device['user_id']]);
+$device = get_record($db_link, 'devices', "id = ?", [$id]);
+$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$device['user_id']]);
 
-if (isset($_POST["s_remove"])) {
-    $s_id = $_POST["gs_id"];
-    foreach ($s_id as $key => $val) {
-        if (isset($val)) {
-            LOG_INFO($db_link, "Remove subnet from gateway id: $val ". dump_record($db_link,'gateway_subnets','id=?',[$val]));
-            delete_record($db_link, "gateway_subnets", "id=?" , [ $val ]);
+// Удаление подсетей шлюза
+if (getPOST("s_remove") !== null) {
+    $s_id = getPOST("gs_id", null, []);
+    
+    if (!empty($s_id) && is_array($s_id)) {
+        foreach ($s_id as $val) {
+            $val = trim($val);
+            if ($val === '') continue;
+            
+            LOG_INFO($db_link, "Remove subnet from gateway id: $val " . dump_record($db_link, 'gateway_subnets', 'id = ?', [$val]));
+            delete_record($db_link, "gateway_subnets", "id = ?", [(int)$val]);
         }
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST["s_create"])) {
-    if (!empty($_POST["new_subnet"])) {
-        $new['subnet_id'] = trim($_POST["new_subnet"]);
-        $new['device_id'] = $id;
-        LOG_INFO($db_link, "Add subnet id: ".$new['subnet_id']." for gateway id: ".$id);
+// Добавление подсети к шлюзу
+if (getPOST("s_create") !== null) {
+    $new_subnet = trim(getPOST("new_subnet", null, ''));
+    
+    if ($new_subnet !== '') {
+        $new = [
+            'subnet_id' => $new_subnet,
+            'device_id' => $id
+        ];
+        
+        LOG_INFO($db_link, "Add subnet id: " . $new['subnet_id'] . " for gateway id: " . $id);
         insert_record($db_link, "gateway_subnets", $new);
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
