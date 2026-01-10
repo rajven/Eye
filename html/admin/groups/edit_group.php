@@ -3,64 +3,132 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/idfilter.php");
 
-if (isset($_POST['save'])) {
-        $new['ou_name'] = $_POST['f_group_name'];
-        $new['default_users'] = $_POST['f_default']*1;
-        $new['default_hotspot'] = $_POST['f_default_hotspot']*1;
-        $new['nagios_dir'] = $_POST['f_nagios'];
-        $new['nagios_host_use'] = $_POST['f_nagios_host'];
-        $new['nagios_ping'] = $_POST['f_nagios_ping'];
-        $new['nagios_default_service'] = $_POST['f_nagios_service'];
-        $new['queue_id']= $_POST['f_queue_id']*1;
-        $new['filter_group_id']= $_POST['f_filter_group_id']*1;
-        $new['enabled']= $_POST['f_enabled']*1;
-        $new['dynamic']= $_POST['f_dynamic']*1;
-        if ($new['dynamic']) {
-            $tmp_life_duration = str_replace(',', '.',$_POST['f_life_duration']*1);
-            if (!empty($tmp_life_duration) and is_numeric($tmp_life_duration)) { $new['life_duration'] = $tmp_life_duration; }
-            } else { $new['life_duration']=0; }
-        if ($new['default_users'] == TRUE) { run_sql($db_link,"UPDATE ou set default_users=0 WHERE id!=?", [ $id ]); }
-        if ($new['default_hotspot'] == TRUE) { run_sql($db_link,"UPDATE ou set default_hotspot=0 WHERE id!=?", [ $id ]); }
-        update_record($db_link, "ou", "id=?", $new, [ $id ]);
-        header("Location: " . $_SERVER["REQUEST_URI"]);
-	exit;
-	}
+$ou_info = get_record_sql($db_link,'SELECT * FROM ou WHERE id=?', [$id]);
 
-if (isset($_POST["s_remove"])) {
-    $s_id = $_POST["s_id"];
-    foreach ($s_id as $key => $val) {
-        if (isset($val)) {
-            LOG_INFO($db_link, "Remove rule id: $val ".dump_record($db_link,'auth_rules','id=?', [$val]));
-            delete_record($db_link, "auth_rules", "id=?", [ $val ]);
+// Сохранение настроек OU
+if (getPOST("save") !== null) {
+    $new = [
+        'ou_name'                => trim(getPOST("f_group_name", null, $ou_info['ou_name'])),
+        'default_users'          => (int)getPOST("f_default", null, 0),
+        'default_hotspot'        => (int)getPOST("f_default_hotspot", null, 0),
+        'nagios_dir'             => trim(getPOST("f_nagios", null, '')),
+        'nagios_host_use'        => trim(getPOST("f_nagios_host", null, '')),
+        'nagios_ping'            => trim(getPOST("f_nagios_ping", null, 0)),
+        'nagios_default_service' => trim(getPOST("f_nagios_service", null, '')),
+        'queue_id'               => (int)getPOST("f_queue_id", null, 0),
+        'filter_group_id'        => (int)getPOST("f_filter_group_id", null, 0),
+        'enabled'                => (int)getPOST("f_enabled", null, 0),
+        'dynamic'                => (int)getPOST("f_dynamic", null, 0)
+    ];
+
+    // Обработка life_duration
+    if ($new['dynamic']) {
+        $tmp_life_duration = str_replace(',', '.', getPOST("f_life_duration", null, 0));
+        $new['life_duration'] = (!empty($tmp_life_duration) && is_numeric($tmp_life_duration)) 
+            ? (float)$tmp_life_duration 
+            : 0;
+    } else {
+        $new['life_duration'] = 0;
+    }
+
+    // Сброс флагов по умолчанию
+    if ($new['default_users']) {
+        update_records($db_link, "ou", "id != ?", ['default_users' => 0], [$id]);
+    }
+    if ($new['default_hotspot']) {
+        update_records($db_link, "ou", "id != ?", ['default_hotspot' => 0], [$id]);
+    }
+
+    update_record($db_link, "ou", "id = ?", $new, [$id]);
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
+// Удаление правил авторизации
+if (getPOST("s_remove") !== null) {
+    $s_id = getPOST("s_id", null, []);
+    
+    if (!empty($s_id) && is_array($s_id)) {
+        foreach ($s_id as $val) {
+            $val = trim($val);
+            if ($val === '') continue;
+            
+            LOG_INFO($db_link, "Remove rule id: $val " . dump_record($db_link, 'auth_rules', 'id = ?', [$val]));
+            delete_record($db_link, "auth_rules", "id = ?", [(int)$val]);
+        }
+    }
+    
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
+// Сохранение изменений в правилах
+if (getPOST("s_save") !== null) {
+    $s_ids = getPOST("s_id", null, []);
+    $n_ids = getPOST("n_id", null, []);
+    $s_types = getPOST("s_type", null, []);
+    $s_rules = getPOST("s_rule", null, []);
+    $s_descriptions = getPOST("s_description", null, []);
+
+    if (is_array($s_ids) && is_array($n_ids)) {
+        // Преобразуем ID в целые числа
+        $n_ids = array_map('intval', $n_ids);
+        $s_ids = array_map('intval', $s_ids);
+        foreach ($s_ids as $save_id) {
+            if ($save_id <= 0) continue;
+            $idx = array_search($save_id, $n_ids, true);
+            if ($idx === false) continue;
+            // Получаем тип правила
+            $rule_type = (int)($s_types[$idx] ?? 3);
+            // Получаем и очищаем правило
+            $raw_rule = trim($s_rules[$idx] ?? '');
+            if ($raw_rule === '') continue;
+            $new_rule = $raw_rule;
+            // Валидация в зависимости от типа
+            if ($rule_type == 1) {
+                // IP-адрес
+                if (!checkValidIp($new_rule)) {
+                    continue; // пропускаем невалидный IP
+                }
+            } elseif ($rule_type == 2) {
+                // MAC-адрес
+                $normalized_mac = MayBeMac($new_rule);
+                if ($normalized_mac === null) {
+                    continue; // пропускаем невалидный MAC
+                }
+                $new_rule = $normalized_mac;
+            }
+            // Для других типов (3 и т.д.) — без валидации
+            $new = [
+                'rule_type'   => $rule_type,
+                'rule'        => $new_rule,
+                'description' => trim($s_descriptions[$idx] ?? '')
+            ];
+            update_record($db_link, "auth_rules", "id = ?", $new, [$save_id]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
-
-if (isset($_POST['s_save'])) {
-    $len = is_array($_POST['s_id']) ? count($_POST['s_id']) : 0;
-    for ($i = 0; $i < $len; $i ++) {
-        $save_id = intval($_POST['s_id'][$i]);
-        $len_all = is_array($_POST['n_id']) ? count($_POST['n_id']) : 0;
-        for ($j = 0; $j < $len_all; $j ++) {
-            if (intval($_POST['n_id'][$j]) != $save_id) { continue; }
-            $new['type'] = $_POST['s_type'][$j];
-            $new['rule'] = trim($_POST['s_rule'][$j]);
-            $new['description'] = trim($_POST['s_description'][$j]);
-            update_record($db_link, "auth_rules", "id=?", $new, [ $save_id ]);
-        }
-    }
-    header("Location: " . $_SERVER["REQUEST_URI"]);
-    exit;
-}
-
-if (isset($_POST["s_create"])) {
-    $new_rule = $_POST["s_new_rule"];
-    if (!empty($new_rule)) {
-        $new['type'] = $_POST["s_new_type"];
-        $new['rule'] = $new_rule;
-        $new['ou_id'] = $id;
+// Создание нового правила
+if (getPOST("s_create") !== null) {
+    $new_rule = trim(getPOST("s_new_rule", null, ''));
+    if ($new_rule !== '') {
+        $rule_type  = (int)getPOST("s_new_type", null, 3);
+        if ($rule_type == 1 and !checkValidIp($new_rule)) {
+                header("Location: " . $_SERVER["REQUEST_URI"]);
+                exit;
+                }
+        if ($rule_type == 2 and MayBeMac($new_rule)==null) {
+                header("Location: " . $_SERVER["REQUEST_URI"]);
+                exit;
+                }
+        if ($rule_type == 2) { $new_rule = MayBeMac($new_rule); }
+        $new = [
+            'rule_type'    => $rule_type,
+            'rule'    => $new_rule,
+            'ou_id'   => $id
+        ];
         LOG_INFO($db_link, "Create new rule $new_rule for ou_id: $id");
         insert_record($db_link, "auth_rules", $new);
     }
@@ -84,7 +152,7 @@ fix_auth_rules($db_link);
 <td><b><?php print WEB_cell_dynamic; ?></b></td>
 </tr>
 <?php
-$ou_info = get_record_sql($db_link,'SELECT * FROM ou WHERE id=?', [$id]);
+
 print "<tr align=center>\n";
 print "<td colspan=2 class=\"data\"><input type=\"text\" name='f_group_name' value='{$ou_info['ou_name']}' style=\"width:95%;\"></td>\n";
 if ($ou_info['default_users']) { $cl = "up"; } else { $cl="data"; }
@@ -132,7 +200,7 @@ if (!$ou_info['dynamic']) { print "disabled"; }; print " style=\"width:35%;\" ><
     <td><b><?php echo WEB_ou_rule; ?></b></td>
     <td><b><?php echo WEB_cell_description; ?></b></td>
     <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="s_remove" value="<?php echo WEB_btn_delete; ?>"></td>
-    <?php print "<td><button id='s_save' name='s_save'>".WEB_btn_save."</button></td>"; ?>
+    <?php print "<td><button id='s_save' name='s_save' value='s_save'>".WEB_btn_save."</button></td>"; ?>
 </tr>
 <?php
 $t_auth_rules = get_records_sql($db_link,"SELECT * FROM auth_rules WHERE ou_id=? ORDER BY id", [ $id ]);
@@ -140,7 +208,7 @@ foreach ( $t_auth_rules as $row ) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=s_id[] value='{$row['id']}'></td>\n";
     print "<td class=\"data\"><input type=\"hidden\" name='n_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
-    print "<td class=\"data\">"; print_qa_rule_select("s_type[]","{$row['type']}"); print "</td>\n";
+    print "<td class=\"data\">"; print_qa_rule_select("s_type[]","{$row['rule_type']}"); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_rule[]' value='{$row['rule']}'></td>\n";
     print "<td class=\"data\"><input type=\"text\" name='s_description[]' value='{$row['description']}'></td>\n";
     print "<td colspan=2 class=\"data\"></td>\n";
@@ -172,4 +240,3 @@ document.getElementById('f_dynamic').addEventListener('change', function(event) 
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
 ?>
-

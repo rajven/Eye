@@ -6,6 +6,7 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
+INSERT INTO `acl` (`id`, `name`, description_english, description_russian) VALUES(0,'Disabled','User disabled','Пользователь отключен');
 INSERT INTO `acl` (`id`, `name`, description_english, description_russian) VALUES(1, 'Full access', 'Full access', 'Полный доступ');
 INSERT INTO `acl` (`id`, `name`, description_english, description_russian) VALUES(2, 'Operator', 'Editing parameters that are not related to access rights', 'Редактирование параметров, не связанных с правами доступа');
 INSERT INTO `acl` (`id`, `name`, description_english, description_russian) VALUES(3, 'View only', 'View only', 'Только просмотр');

@@ -4,25 +4,38 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
 
-if (isset($_POST["removeauth"])) {
-    $auth_id = $_POST["f_auth_id"];
-    foreach ($auth_id as $key => $val) {
-        if ($val) { delete_user_auth($db_link,$val); }
+// Удаление записей авторизации
+if (getPOST("removeauth") !== null) {
+    $auth_id = getPOST("f_auth_id", null, []);
+    if (!empty($auth_id) && is_array($auth_id)) {
+        foreach ($auth_id as $val) {
+            $val = trim($val);
+            if ($val !== '') {
+                delete_user_auth($db_link, (int)$val);
+            }
         }
+    }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
+}
+
+// Фильтрация по CIDR
+$params = [];
+if (!empty($rcidr)) {
+    $cidr_range = cidrToRange($rcidr);
+    if (!empty($cidr_range) && isset($cidr_range[0], $cidr_range[1])) {
+        $cidr_filter = " AND (U.ip_int >= ? AND U.ip_int <= ?)";
+        $params[] = ip2long($cidr_range[0]);
+        $params[] = ip2long($cidr_range[1]);
+    } else {
+        $cidr_filter = '';
     }
+} else {
+    $cidr_filter = '';
+}
 
 print_ip_submenu($page_url);
-$params=[];
-if (empty($rcidr)) { $cidr_filter = ''; } else {
-    $cidr_range = cidrToRange($rcidr);
-    if (!empty($cidr_range)) { 
-	$cidr_filter = " AND (U.ip_int>=? AND U.ip_int<=?)"; 
-	$params[]=ip2long($cidr_range[0]);
-	$params[]=ip2long($cidr_range[1]);
-	}
-    }
 
 ?>
 <div id="cont">

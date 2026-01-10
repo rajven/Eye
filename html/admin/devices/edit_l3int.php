@@ -77,7 +77,7 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 $t_l3_interface = get_records_sql($db_link,"SELECT * FROM device_l3_interfaces WHERE device_id=? ORDER BY name", [ $id ]);
 
 $int_by_name = [];
-foreach ($int_list as $row) { 
+foreach ($int_list as $row) {
     $row['name'] = preg_replace('/\"/','',$row['name']);
     $int_by_name[$row['name']]=$row;
 }

@@ -147,7 +147,7 @@ print_ip_submenu($page_url);
         <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
-        <tr><td><input type=checkbox class="putField" name="e_new_ou" value='1'></td><td align=left><?php print WEB_cell_ou."</td><td align=right>";print_ou_select($db_link, 'a_new_ou', 0); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_new_ou" value='1'></td><td align=left><?php print WEB_cell_ou."</td><td align=right>";print_ou_set($db_link, 'a_new_ou', 0); ?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_enabled" value='1'></td><td align=left><?php print WEB_cell_enabled."</td><td align=right>";print_qa_select('a_enabled', 1);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td align=left><?php print WEB_cell_filter."</td><td align=right>";print_filter_group_select($db_link, 'a_group_id', 0);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td align=left><?php print WEB_cell_shaper."</td><td align=right>";print_queue_select($db_link, 'a_queue_id', 0);?></td></tr>

@@ -18,7 +18,12 @@ if (isset($_POST["create"])) {
             unset($_POST);
         } else {
             $new['login'] = $login;
-            $new['ou_id'] = $rou;
+            if ($rou>0) { $new['ou_id'] = $rou; } else {
+                $row = 3; //User OU
+                $ou_exists = get_record_sql($db_link,"SELECT id FROM ou WHERE id=?", [ $rou ]);
+                if (empty($ou_exists)) { $row = $default_user_ou_id; }
+                $new['ou_id'] = $row;
+                }
             $ou_info = get_record_sql($db_link,"SELECT * FROM ou WHERE id=?", [ $rou ]);
 	    if (!empty($ou_info)) {
 		if (empty($ou_info['enabled'])) { $ou_info['enabled'] = 0; }

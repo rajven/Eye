@@ -137,9 +137,9 @@ function getIpAdEntIfIndex($db, $ip, $snmp)
             $result[$interface_index]['index'] = $interface_index;
             $result[$interface_index]['name'] = $interface_name;
             //type: 0 - local, 1 - WAN
-            $result[$interface_index]['type'] = 1;
+            $result[$interface_index]['interface_type'] = 1;
             if (is_our_network($db, $interface_ip)) {
-                $result[$interface_index]['type'] = 0;
+                $result[$interface_index]['interface_type'] = 0;
             }
         }
     }

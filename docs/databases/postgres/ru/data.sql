@@ -3,6 +3,7 @@
 -- ACL (Access Control List)
 INSERT INTO acl (id, name, description_english, description_russian) 
 VALUES 
+(0, 'Disabled','User disabled','Пользователь отключен'),
 (1, 'Full access', 'Full access', 'Полный доступ'),
 (2, 'Operator', 'Editing parameters that are not related to access rights', 'Редактирование параметров, не связанных с правами доступа'),
 (3, 'View only', 'View only', 'Только просмотр')

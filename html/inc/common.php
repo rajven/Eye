@@ -121,8 +121,9 @@ function getPOST($name, $page_url = null, $default = null, $filter = FILTER_DEFA
     if (isset($_GET[$name]) && is_array($_GET[$name])) {
         return $_GET[$name];
     }
+
     $value = filter_input(INPUT_POST, $name, $filter, $options);
-    if ($value === false || $value === null) {
+    if ($value === false || $value === null || empty($value)) {
         if ($page_url !== null  && isset($page_url) && isset($_SESSION[$page_url][$name])) {
             return $_SESSION[$page_url][$name];
         }
@@ -394,6 +395,52 @@ function checkValidMac($mac)
 
     return false;
 }
+
+function MayBeMac($mac)
+{
+    if (!is_string($mac)) {
+        return;
+    }
+
+    // Оставляем только hex-символы
+    $hex = preg_replace('/[^0-9a-f]/i', '', trim($mac));
+
+    // Длина: от 2 до 6 октетов (4–12 hex-символов)
+    if (!preg_match('/^[0-9a-f]{4,12}$/i', $hex)) {
+        return;
+    }
+
+    // Чётное количество символов (целые октеты)
+    if (strlen($hex) % 2 !== 0) {
+        return;
+    }
+
+    return mac_dotted2($mac);
+}
+
+function mac_dotted2($mac)
+{
+    if (!is_string($mac)) {
+        return;
+    }
+
+    // оставляем только hex
+    $hex = preg_replace('/[^0-9a-f]/i', '', trim($mac));
+
+    // максимум 6 октетов = 12 hex
+    if ($hex === '' || strlen($hex) > 12) {
+        return;
+    }
+
+    // только целые октеты
+    if (strlen($hex) % 2 !== 0) {
+        return;
+    }
+
+    // разбиваем по 2 символа
+    return implode(':', str_split(strtolower($hex), 2));
+}
+
 
 function checkValidHostname($dnsname)
 {
@@ -682,19 +729,24 @@ function cidrToRange($cidr)
 {
     $range = array();
     $cidr = explode('/', $cidr);
-    if (!isset($cidr[1])) {
+    if (!isset($cidr[1]) or empty($cidr[1])) {
         $cidr[1] = 32;
     }
-    $start = (ip2long($cidr[0])) & ((-1 << (32 - (int) $cidr[1])));
-    $stop = $start + pow(2, (32 - (int) $cidr[1])) - 1;
+    if (!empty($cidr[1]) and $cidr[1]>32) {
+        $cidr[1] = 32;
+    }
+    $mask = (int)$cidr[1];
+    $start = (ip2long($cidr[0])) & ((-1 << (32 - $mask)));
+    $stop = $start + pow(2, (32 - $mask)) - 1;
     $range[0] = long2ip($start);
     $range[1] = long2ip($stop);
-    $range[2] = $cidr;
+    $range[2] = $mask;
     //dhcp
     $dhcp_size = round(($stop - $start) / 2, PHP_ROUND_HALF_UP);
     $dhcp_start = $start + round($dhcp_size / 2, PHP_ROUND_HALF_UP);
     $range[3] = long2ip($dhcp_start);
     $range[4] = long2ip($dhcp_start + $dhcp_size);
+    //gateway
     $range[5] = long2ip($start + 1);
     return $range;
 }
@@ -795,14 +847,12 @@ function print_add_dev_interface($db, $device_id, $int_list, $int_name)
         if (!empty($int_exists[$interface['index']])) {
             continue;
         }
+        $display_value = WEB_select_item_lan;
         $value = $interface['name'] . ';' . $interface['index'] . ';' . $interface['interface_type'];
-        if ($interface['type'] == 1) {
-            $interface['type'] = WEB_select_item_wan;
+        if ($interface['interface_type'] == 1) {
+            $display_value = WEB_select_item_wan;
         }
-        if ($interface['type'] == 0) {
-            $interface['type'] = WEB_select_item_lan;
-        }
-        $display_str = $interface['name'] . '&nbsp|' . $interface['ip'] . '|' . $interface['interface_type'];
+        $display_str = $interface['name'] . '&nbsp|' . $interface['ip'] . '|' . $display_value;
         print_select_item($display_str, $value, 0);
     }
     print "</select>\n";
@@ -826,7 +876,7 @@ function print_ou_select_recursive($db, $ou_name, $ou_value, $parent_id = null, 
     
     $sql = "SELECT id, parent_id, ou_name FROM ou 
             WHERE $where 
-            ORDER BY ou_name";
+            ORDER BY id";
     
     $items = get_records_sql($db, $sql);
 
@@ -2151,13 +2201,13 @@ function get_port($db, $port_id)
 function print_option_select($db, $option_name)
 {
     print "<select id=\"$option_name\" name=\"$option_name\">\n";
-    $t_option = get_records_sql($db, "SELECT id,option_name FROM config_options WHERE uniq=0 AND draft=0 ORDER BY option_name");
+    $t_option = get_records_sql($db, "SELECT id,option_name FROM config_options WHERE uniq=0 AND draft=0 AND ID<>68 ORDER BY option_name");
     if (!empty($t_option)) {
         foreach ($t_option as $row) {
             print "<option value=".$row['id'].">".$row['option_name']."</option>";
         }
     }
-    $t_option = get_records_sql($db, "SELECT id,option_name FROM config_options WHERE draft=0 AND uniq=1 AND id NOT IN (select option_id FROM config where draft=0) ORDER BY option_name");
+    $t_option = get_records_sql($db, "SELECT id,option_name FROM config_options WHERE draft=0 AND uniq=1 AND ID<>68 AND id NOT IN (select option_id FROM config where draft=0) ORDER BY option_name");
     if (!empty($t_option)) {
         foreach ($t_option as $row) {
             print "<option value=".$row['id'].">".$row['option_name']."</option>";

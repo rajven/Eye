@@ -2,32 +2,48 @@
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
 
-if (isset($_POST["create"])) {
-    $fname = $_POST["newfilter"];
-    $ftype = 0;
-    if (isset($_POST['filter_type'])) {
-        $ftype = $_POST["filter_type"] * 1;
-    }
-    if (isset($fname)) {
-        $new['name'] = $fname;
-        $new['filter_type'] = $ftype;
-        $new_id = insert_record($db_link, "filter_list", $new);
-        header("Location: editfilter.php?id=$new_id");
-        exit;
-    }
-}
-
-if (isset($_POST["remove"])) {
-    $fid = $_POST["fid"];
-    foreach ($fid as $key => $val) {
-        if ($val) {
-            run_sql($db_link, "DELETE FROM group_filters WHERE filter_id=?", [ $val ]);
-            delete_record($db_link, "filter_list", "id=?", [ $val ]);
+// Создание нового фильтра
+if (getPOST("create") !== null) {
+    $fname = trim(getPOST("newfilter", null, ''));
+    $ftype = (int)getPOST("filter_type", null, 0);
+    
+    if ($fname !== '') {
+        $new_id = insert_record($db_link, "filter_list", [
+            'name'         => $fname,
+            'filter_type'  => $ftype
+        ]);
+        
+        if ($new_id) {
+            header("Location: editfilter.php?id=$new_id");
+            exit;
         }
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
+
+// Удаление фильтров
+if (getPOST("remove") !== null) {
+    $fid = getPOST("fid", null, []);
+    
+    if (!empty($fid) && is_array($fid)) {
+        foreach ($fid as $val) {
+            $val = trim($val);
+            if ($val === '') continue;
+            
+            // Удаляем из связей
+            delete_records($db_link, "group_filters", "filter_id = ?", [(int)$val]);
+            
+            // Удаляем сам фильтр
+            delete_record($db_link, "filter_list", "id = ?", [(int)$val]);
+        }
+    }
+    
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
 unset($_POST);
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
 print_filters_submenu($page_url);

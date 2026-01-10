@@ -3,15 +3,20 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-if (isset($_POST["editfilter"])) {
-    $new['name'] = $_POST["f_name"];
-    $new['dst'] = $_POST["f_dst"];
-    $new['proto'] = $_POST["f_proto"];
-    $new['dstport'] = str_replace(':', '-', $_POST["f_dstport"]);
-    $new['srcport'] = str_replace(':', '-', $_POST["f_srcport"]);
-    $new['description'] = $_POST["f_description"];
-    update_record($db_link, "filter_list", "id=?", $new, [ $id ]);
-    unset($_POST);
+$filter = get_record($db_link, 'filter_list','id=?', [ $id ]);
+
+if (getPOST("editfilter") !== null) {
+    $new = [
+        'name'        => trim(getPOST("f_name", null, $filter['name'])),
+        'dst'         => trim(getPOST("f_dst", null, '')),
+        'proto'       => trim(getPOST("f_proto", null, '')),
+        'dstport'     => str_replace(':', '-', trim(getPOST("f_dstport", null, ''))),
+        'srcport'     => str_replace(':', '-', trim(getPOST("f_srcport", null, ''))),
+        'description' => trim(getPOST("f_description", null, ''))
+    ];
+
+    update_record($db_link, "filter_list", "id = ?", $new, [$id]);
+
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -20,7 +25,6 @@ unset($_POST);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
-$filter = get_record($db_link, 'filter_list','id=?', [ $id ]);
 
 print_filters_submenu($page_url);
 

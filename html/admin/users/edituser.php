@@ -17,7 +17,7 @@ if (empty($user_info)) {
 
 if (isset($_POST["edituser"])) {
     unset($new);
-    $new["ou_id"] = $_POST["f_ou"] * 1;
+    if ($_POST["f_ou"] >0) {  $new["ou_id"] = $_POST["f_ou"]; }
     $new["filter_group_id"] = $_POST["f_filter"] * 1;
     $new["queue_id"] = $_POST["f_queue"] * 1;
     $user_name = trim($_POST["f_login"]);

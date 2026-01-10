@@ -258,6 +258,12 @@ function authenticate_by_credentials($db, $login, $password) {
         return false;
     }
 
+    if (!empty($user) and $user['rights']==0) {
+        log_session_debug($db, "User $login disabled");
+        sleep(1);
+        return false;
+    }
+
     log_session_debug($db, "User found", ['user_id' => $user['id']]);
 
     if (!password_verify($password, $user['password'])) {
@@ -416,12 +422,12 @@ function IsSilentAuthenticated($db) {
         return false;
     }
 
-    $stmt = $db->prepare("SELECT id, rights FROM customers WHERE login = ? AND api_key = ? LIMIT 1");
+    $stmt = $db->prepare("SELECT id, rights FROM customers WHERE rights>0 AND login = ? AND api_key = ? LIMIT 1");
     $stmt->execute([$login, $api_key]);
 
     if ($stmt->rowCount() === 0) {
         LOG_DEBUG($db, "API auth failed for: $login");
-        log_session_debug($db, "Silent auth failed - user not found or invalid API key");
+        log_session_debug($db, "Silent auth failed - user not found, disabled  or invalid API key");
         return false;
     }
 

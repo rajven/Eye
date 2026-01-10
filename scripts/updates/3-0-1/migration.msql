@@ -109,10 +109,13 @@ ALTER TABLE `user_stats` ADD COLUMN `step` int(11) NOT NULL DEFAULT 3600;
 ALTER TABLE `user_stats_full` MODIFY COLUMN `pkt_in` int(11) NOT NULL DEFAULT 0;
 ALTER TABLE `user_stats_full` MODIFY COLUMN `pkt_out` int(11) NOT NULL DEFAULT 0;
 
---- set default value for ip to NULL
+-- set default value for ip to NULL
 
 ALTER TABLE `dhcp_log` MODIFY COLUMN `ip` varchar(15) NULL DEFAULT NULL;
 ALTER TABLE `dhcp_queue` MODIFY COLUMN `ip` varchar(15) NULL DEFAULT NULL;
 ALTER TABLE `mac_history` MODIFY COLUMN `ip` varchar(16) NULL DEFAULT NULL;
 ALTER TABLE `remote_syslog` MODIFY COLUMN `ip` varchar(15) NULL DEFAULT NULL;
 ALTER TABLE `user_auth` MODIFY COLUMN `ip` varchar(18) NULL DEFAULT NULL;
+
+-- Add ACL for disable user
+INSERT INTO acl (id,name,description_english,description_russian) VALUES(0,'Disabled','User disabled','Пользователь отключен');

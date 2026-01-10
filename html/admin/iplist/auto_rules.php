@@ -5,14 +5,20 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/rulesfilter.php");
 
-if (isset($_POST["removeRule"])) {
-    $r_id = $_POST["f_id"];
-    foreach ($r_id as $key => $val) {
-        if ($val) { delete_record($db_link, "auth_rules", "id=?", [$val]); }
+if (getPOST("removeRule") !== null) {
+    $r_id = getPOST("f_id", null, []);
+    if (!empty($r_id) && is_array($r_id)) {
+        foreach ($r_id as $val) {
+            $val = trim($val);
+            if ($val !== '') {
+                delete_record($db_link, "auth_rules", "id = ?", [(int)$val]);
+            }
         }
+    }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
-    }
+}
 
 print_ip_submenu($page_url);
 ?>

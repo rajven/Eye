@@ -10,37 +10,42 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/enabledfilter.php");
 
-if (isset($_POST['searchDescription'])) { $f_description = $_POST['searchDescription']; }
-if (isset($_GET['searchDescription'])) { $f_description = $_GET['searchDescription']; }
-if (!isset($f_description) and isset($_SESSION[$page_url]['description'])) { $f_description=$_SESSION[$page_url]['description']; }
-if (!isset($f_description)) { $f_description=''; }
+// Получаем параметр с использованием сессии (page_url задан)
+$f_description = getParam('searchDescription', $page_url, '');
 
-$_SESSION[$page_url]['description']=$f_description;
+// Сохраняем в сессию
+$_SESSION[$page_url]['description'] = $f_description;
 
 $sort_table = 'user_auth';
 $sort_url = "<a href=deleted.php?";
 
-$params=[];
-if ($rsubnet == 0) { $subnet_filter = ''; } else {
-    $subnet_range = get_subnet_range($db_link,$rsubnet);
-    $subnet_filter = " and user_auth.ip_int>=? and user_auth.ip_int<=?";
-    $params[]=$subnet_range['start'];
-    $params[]=$subnet_range['stop'];
-    }
+$params = [];
+if ($rsubnet == 0) {
+    $subnet_filter = '';
+} else {
+    $subnet_range = get_subnet_range($db_link, $rsubnet);
+    $subnet_filter = " AND user_auth.ip_int >= ? AND user_auth.ip_int <= ?";
+    $params[] = $subnet_range['start'];
+    $params[] = $subnet_range['stop'];
+}
 
 $ip_list_filter = $subnet_filter;
-
 $ip_where = '';
+
 if (!empty($f_description)) {
-    if (checkValidIp($f_description)) { $ip_where = " and ip=?"; $params[]=$f_description; }
-    if (checkValidMac($f_description)) { $ip_where = " and mac=?"; $params[]= mac_dotted($f_description); }
-    if (empty($ip_where)) { 
-	$ip_where=" and (user_auth.description LIKE ? OR user_auth.dhcp_hostname LIKE ?)"; 
-	$params[]=$f_description;
-	$params[]=$f_description;
-	}
+    if (checkValidIp($f_description)) {
+        $ip_where = " AND ip = ?";
+        $params[] = $f_description;
+    } elseif (checkValidMac($f_description)) {
+        $ip_where = " AND mac = ?";
+        $params[] = mac_dotted($f_description);
+    } else {
+        $ip_where = " AND (user_auth.description LIKE ? OR user_auth.dhcp_hostname LIKE ?)";
+        $params[] = "%$f_description%";
+        $params[] = "%$f_description%";
+    }
     $ip_list_filter = $ip_where;
-    } 
+    }
 
 print_ip_submenu($page_url);
 

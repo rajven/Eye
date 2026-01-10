@@ -5,102 +5,70 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/vendorfilter.php");
 
-if (isset($_POST['save'])) {
-    $saved = array();
-    //button save
-    $len = is_array($_POST['save']) ? count($_POST['save']) : 0;
-    for ($i = 0; $i < $len; $i ++) {
-        $save_id = intval($_POST['save'][$i]);
-        if ($save_id == 0) { continue;  }
-        array_push($saved,$save_id);
-        }
-    //select box
-    $len = is_array($_POST['f_id']) ? count($_POST['f_id']) : 0;
-    if ($len>0) {
-        for ($i = 0; $i < $len; $i ++) {
-            $save_id = intval($_POST['f_id'][$i]);
-            if ($save_id == 0) { continue; }
-            if (!in_array($save_id, $saved)) { array_push($saved,$save_id); }
+if (getPOST("save")) {
+    $f_ids = getPOST("f_id", null, []);
+    if (!empty($f_ids) && is_array($f_ids)) {
+        // Преобразуем в целые числа
+        $f_ids = array_map('intval', array_filter($f_ids, fn($id) => $id > 0));
+        // Получаем все данные
+        $r_ids       = array_map('intval', getPOST("r_id",       null, []));
+        $f_vendors   = getPOST("f_vendor",   null, []);
+        $f_names     = getPOST("f_name",     null, []);
+        $f_poe_ins   = getPOST("f_poe_in",   null, []);
+        $f_poe_outs  = getPOST("f_poe_out",  null, []);
+        $f_nagios    = getPOST("f_nagios",   null, []);
+        foreach ($f_ids as $save_id) {
+            $idx = array_search($save_id, $r_ids, true);
+            if ($idx === false) continue;
+            $new = [
+                'poe_in'  => !empty($f_poe_ins[$idx])  ? (int)$f_poe_ins[$idx]  : 0,
+                'poe_out' => !empty($f_poe_outs[$idx]) ? (int)$f_poe_outs[$idx] : 0,
+                'nagios_template' => trim($f_nagios[$idx] ?? '')
+            ];
+            // Для кастомных моделей (ID >= 10000)
+            if ($save_id >= 10000) {
+                $new['vendor_id']  = !empty($f_vendors[$idx]) ? (int)$f_vendors[$idx] : 1;
+                $new['model_name'] = trim($f_names[$idx] ?? '');
             }
-        }
-    //save changes
-    $len = is_array($saved) ? count($saved) : 0;
-    for ($i = 0; $i < $len; $i ++) {
-        $save_id = intval($saved[$i]);
-        if ($save_id == 0) { continue;  }
-        $len_all = is_array($_POST['r_id']) ? count($_POST['r_id']) : 0;
-        for ($j = 0; $j < $len_all; $j ++) {
-            if (intval($_POST['r_id'][$j]) != $save_id) { continue; }
-            $new = NULL;
-            if ($save_id>=10000) {
-                $new['vendor_id'] = $_POST['f_vendor'][$j];
-	            $new['model_name'] = $_POST['f_name'][$j];
-	            $new['poe_in'] = $_POST['f_poe_in'][$j];
-	            $new['poe_out'] = $_POST['f_poe_out'][$j];
-	        } else {
-	            $new['poe_in'] = $_POST['f_poe_in'][$j];
-	            $new['poe_out'] = $_POST['f_poe_out'][$j];      
-            }
-            if (!isset($new['poe_in']) OR empty($new['poe_in'])) { $new['poe_in'] = 0; }
-            if (!isset($new['poe_out']) OR empty($new['poe_out'])) { $new['poe_out'] = 0; }
-            $new['nagios_template'] = $_POST['f_nagios'][$j];
+
             update_record($db_link, "device_models", "id = ?", $new, [$save_id]);
-            }
         }
+    }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
-    }
+}
 
-if (isset($_POST['remove'])) {
-        $saved = array();
-        //button save
-        $len = is_array($_POST['save']) ? count($_POST['save']) : 0;
-        for ($i = 0; $i < $len; $i ++) {
-            $save_id = intval($_POST['save'][$i]);
-            if ($save_id == 0) { continue;  }
-            array_push($saved,$save_id);
-            }
-        //select box
-        $len = is_array($_POST['f_id']) ? count($_POST['f_id']) : 0;
-        if ($len>0) {
-            for ($i = 0; $i < $len; $i ++) {
-                $save_id = intval($_POST['f_id'][$i]);
-                if ($save_id == 0) { continue; }
-                if (!in_array($save_id, $saved)) { array_push($saved,$save_id); }
-                }
-            }
-        //save changes
-        $len = is_array($saved) ? count($saved) : 0;
-        for ($i = 0; $i < $len; $i ++) {
-            $save_id = intval($saved[$i]);
-            if ($save_id == 0) { continue;  }
-            $len_all = is_array($_POST['r_id']) ? count($_POST['r_id']) : 0;
-            for ($j = 0; $j < $len_all; $j ++) {
-                if (intval($_POST['r_id'][$j]) != $save_id) { continue; }
-                if ($save_id>=10000) { 
-                    delete_record($db_link, "device_models", "id= ?", [$save_id]);
-                    update_records($db_link, 'devices', 'device_model_id = ?', ['device_model_id' => null], [$save_id]);
-                    }
-                }
-            }
-        header("Location: " . $_SERVER["REQUEST_URI"]);
-        exit;
+if (getPOST("remove")) {
+    $f_ids = getPOST("f_id", null, []);
+    if (!empty($f_ids) && is_array($f_ids)) {
+        $f_ids = array_map('intval', array_filter($f_ids, fn($id) => $id >= 10000));
+        foreach ($f_ids as $id) {
+            delete_record($db_link, "device_models", "id = ?", [$id]);
+            update_records($db_link, "devices", "device_model_id = ?", ['device_model_id' => null], [$id]);
         }
+    }
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
 
-if (isset($_POST["create"])) {
-    $model_name = $_POST["new_model"];
-    if (isset($model_name)) {
-	$max_record = get_record_sql($db_link,"SELECT MAX(id) as max_id FROM device_models");
-	if (!isset($max_record) or $max_record['max_id']<10000) { $next_id = 10000; } else { $next_id = $max_record['max_id'] + 1; }
-        $new['vendor_id']=1;
-        $new['id'] = $next_id;
-        if (isset($f_vendor_select) and $f_vendor_select>1) { $new['vendor_id']=$f_vendor_select; }
-        $new['model_name'] = $model_name;
+if (getPOST("create")) {
+    $model_name = trim(getPOST("new_model", null, ''));
+    if ($model_name !== '') {
+        $max_record = get_record_sql($db_link, "SELECT MAX(id) AS max_id FROM device_models");
+        $next_id = (isset($max_record['max_id']) && $max_record['max_id'] >= 10000)
+            ? (int)$max_record['max_id'] + 1
+            : 10000;
+
+        $new = [
+            'id'         => $next_id,
+            'vendor_id'  => (int)($f_vendor_select ?? 1),
+            'model_name' => $model_name
+        ];
         insert_record($db_link, "device_models", $new);
-        }
+    }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
-    }
+}
 
 unset($_POST);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");

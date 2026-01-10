@@ -2,27 +2,46 @@
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
 
-if (isset($_POST["create"])) {
-    $fname = $_POST["newgroup"];
-    if ($fname) {
-        $new['group_name'] = $fname;
-        $new_id = insert_record($db_link, "group_list", $new);
-        header("location: editgroup.php?id=$new_id");
-        exit;
+// Создание новой группы
+if (getPOST("create") !== null) {
+    $fname = trim(getPOST("newgroup", null, ''));
+    
+    if ($fname !== '') {
+        $new_id = insert_record($db_link, "group_list", ['group_name' => $fname]);
+        if ($new_id) {
+            header("Location: editgroup.php?id=$new_id");
+            exit;
+        }
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST["remove"])) {
-    $fgid = $_POST["fid"];
-    foreach ($fgid as $key => $val) {
-        if (!empty($val)) {
-            run_sql($db_link, "UPDATE user_auth SET filter_group_id=0, changed = 1 WHERE deleted=0 AND filter_group_id=?", [ $val ]);
-            run_sql($db_link, "DELETE FROM group_filters WHERE group_id=? ", [ $val ]);
-            delete_record($db_link, "group_list", "id=?", [ $val ]);
+// Удаление групп
+if (getPOST("remove") !== null) {
+    $fgid = getPOST("fid", null, []);
+    
+    if (!empty($fgid) && is_array($fgid)) {
+        foreach ($fgid as $val) {
+            $val = trim($val);
+            if ($val === '') continue;
+            
+            // Сброс привязки в user_auth
+            update_records($db_link, "user_auth", 
+                "deleted = 0 AND filter_group_id = ?", 
+                ['filter_group_id' => 0, 'changed' => 1], 
+                [$val]
+            );
+            
+            // Удаление связей
+            delete_records($db_link, "group_filters", "group_id = ?", [$val]);
+            
+            // Удаление самой группы
+            delete_records($db_link, "group_list", "id = ?", [$val]);
         }
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
