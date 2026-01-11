@@ -284,14 +284,8 @@ install_deps_altlinux() {
             perl-Net-OpenSSH perl-File-Tail perl-Tie-File \
             perl-Crypt-Rijndael perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
             perl-File-Path-Tiny perl-Expect perl-Proc-ProcessTable \
-            perl-Text-CSV
-
-        # Специфичные DBD-драйверы
-        if [[ "$DB_TYPE" == "postgresql" ]]; then
-            apt-get install -y perl-DBD-Pg
-        else
-            apt-get install -y perl-DBD-mysql
-        fi
+            perl-Text-CSV \
+            perl-DBD-Pg perl-DBD-mysql
     fi
 
     # Дополнительные проверки (например, fping — нужны только бэкенду)
@@ -349,14 +343,8 @@ install_deps_debian() {
             libnet-openssh-perl libfile-tail-perl libdatetime-format-strptime-perl \
             libcrypt-rijndael-perl libcrypt-cbc-perl libcryptx-perl \
             libcrypt-des-perl libfile-path-tiny-perl libexpect-perl \
-            libtext-csv-perl
-
-        # DBD-драйверы
-        if [[ "$DB_TYPE" == "postgresql" ]]; then
-            apt-get install -y libdbd-pg-perl
-        else
-            apt-get install -y libdbd-mysql-perl
-        fi
+            libtext-csv-perl \
+            libdbd-pg-perl libdbd-mysql-perl
     fi
 
     # === Дополнительно (если нужно) ===
