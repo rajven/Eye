@@ -911,6 +911,8 @@ if ($config_ref{enable_quotes}) {
 
 if (scalar(@detail_traffic)) {
     db_log_debug($hdb,"Start write traffic detail to DB. ".scalar @detail_traffic." lines count") if ($debug);
+    my $traffic_fields = ['auth_id', 'router_id', 'ts', 'proto', 'src_ip', 'dst_ip', 'src_port', 'dst_port', 'bytes', 'pkt'];
+    unshift @detail_traffic, $traffic_fields;
     batch_db_sql_csv("traffic_detail",\@detail_traffic);
     @detail_traffic = ();
     db_log_debug($hdb,"Write traffic detail to DB stopped") if ($debug);

@@ -421,25 +421,26 @@ COMMENT ON COLUMN subnets.subnet IS 'Сеть в нотации CIDR';
 COMMENT ON COLUMN subnets.vlan_tag IS 'ID VLAN для этой подсети';
 COMMENT ON COLUMN subnets.office IS 'Это офисная подсеть';
 COMMENT ON COLUMN subnets.hotspot IS 'Это публичная/гостевая подсеть';
-COMMENT ON COLUMN subnets.notify IS 'Битовая маска для уведомлений: 1=email, 2=sms, 4=telegram';
+COMMENT ON COLUMN subnets.notify IS 'Битовая маска для уведомлений по типу событий';
 
 -- Подробные логи трафика
 CREATE TABLE traffic_detail (
 id BIGSERIAL PRIMARY KEY,
-auth_id BIGINT,
-router_id INTEGER NOT NULL DEFAULT 0,
+auth_id   bigint,
+router_id integer NOT NULL DEFAULT 0,
 ts TIMESTAMP,
-proto SMALLINT,
-src_ip INTEGER NOT NULL,
-dst_ip INTEGER NOT NULL,
-src_port INTEGER NOT NULL,
-dst_port INTEGER NOT NULL,
-bytes BIGINT NOT NULL,
-pkt INTEGER NOT NULL DEFAULT 0
+proto     smallint,
+src_ip    bigint NOT NULL DEFAULT 0,
+dst_ip    bigint NOT NULL DEFAULT 0,
+src_port  integer NOT NULL DEFAULT 0,
+dst_port  integer NOT NULL DEFAULT 0,
+bytes     bigint NOT NULL DEFAULT 0,
+pkt       bigint NOT NULL DEFAULT 0,
 );
 COMMENT ON TABLE traffic_detail IS 'Подробные записи потоков трафика (NetFlow)';
 COMMENT ON COLUMN traffic_detail.proto IS 'Номер IP протокола';
 COMMENT ON COLUMN traffic_detail.src_ip IS 'Исходный IP в виде целого числа';
+COMMENT ON COLUMN traffic_detail.dst_ip IS 'Адрес назначения IP в виде целого числа';
 COMMENT ON COLUMN traffic_detail.bytes IS 'Байтов переданно в этом потоке';
 
 -- Неизвестные MAC-адреса
@@ -601,7 +602,7 @@ COMMENT ON TABLE version IS 'Информация о версии системы
 
 -- Статистика WAN интерфейсов
 CREATE TABLE wan_stats (
-id SERIAL PRIMARY KEY,
+id BIGSERIAL PRIMARY KEY,
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 router_id INTEGER,
 interface_id INTEGER,

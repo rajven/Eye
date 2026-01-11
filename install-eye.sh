@@ -283,7 +283,8 @@ install_deps_altlinux() {
             perl-DateTime-Format-DateParse perl-DateTime-Format-Strptime \
             perl-Net-OpenSSH perl-File-Tail perl-Tie-File \
             perl-Crypt-Rijndael perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
-            perl-File-Path-Tiny perl-Expect perl-Proc-ProcessTable
+            perl-File-Path-Tiny perl-Expect perl-Proc-ProcessTable \
+            perl-Text-CSV
 
         # Специфичные DBD-драйверы
         if [[ "$DB_TYPE" == "postgresql" ]]; then
@@ -347,7 +348,8 @@ install_deps_debian() {
             libdatetime-format-dateparse-perl libnetwork-ipv4addr-perl \
             libnet-openssh-perl libfile-tail-perl libdatetime-format-strptime-perl \
             libcrypt-rijndael-perl libcrypt-cbc-perl libcryptx-perl \
-            libcrypt-des-perl libfile-path-tiny-perl libexpect-perl
+            libcrypt-des-perl libfile-path-tiny-perl libexpect-perl \
+            libtext-csv-perl
 
         # DBD-драйверы
         if [[ "$DB_TYPE" == "postgresql" ]]; then

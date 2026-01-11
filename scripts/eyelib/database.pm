@@ -22,6 +22,7 @@ use POSIX qw(mktime ctime strftime);
 use File::Temp qw(tempfile);
 use DBI;
 use DBD::Pg qw(:pg_types);
+use Text::CSV;
 
 our @ISA = qw(Exporter);
 
@@ -125,20 +126,14 @@ return $res;
 #---------------------------------------------------------------------------------------------------------------
 sub batch_db_sql_cached {
     my ($sql, $data) = @_;
-
     my $db=init_db();
-
     eval {
-        my $sth = $db->prepare_cached($sql)
-            or die "Unable to prepare SQL: " . $db->errstr;
-
+        my $sth = $db->prepare_cached($sql) or die "Unable to prepare SQL: " . $db->errstr;
         for my $params (@$data) {
             next unless @$params;
-            $sth->execute(@$params)
-                or die "Unable to execute with params [" . join(',', @$params) . "]: " . $sth->errstr;
+            $sth->execute(@$params) or die "Unable to execute with params [" . join(',', @$params) . "]: " . $sth->errstr;
         }
-
-        $db->commit();
+        $db->commit() if (!$db->{AutoCommit});
         1;
     } or do {
         my $err = $@ || 'Unknown error';
@@ -146,7 +141,6 @@ sub batch_db_sql_cached {
         $db->disconnect();
         die "batch_db_sql_cached failed: $err";
     };
-
     $db->disconnect();
     return 1;
 }
@@ -155,42 +149,212 @@ sub batch_db_sql_cached {
 
 sub batch_db_sql_csv {
     my ($table, $data) = @_;
-    my $db = init_db();
-    if ($config_ref{DBTYPE} eq 'mysql') {
-        my $fh = File::Temp->new(UNLINK => 1);
-	my $fname = $fh->filename;
-        binmode($fh, ':utf8');
-	foreach my $row (@$data) {
-	    next if (!$row);
-	    my @tmp = @$row;
-	    my $values = 'NULL';
-	    for (my $i = 0; $i <@tmp ; $i++) {
-		$values.=',"'.$tmp[$i].'"';
-		}
-	    $values =~s/,$//;
-	    print $fh $values."\r\n";
-	    }
-        close $fh;
-	my $query = qq{ LOAD DATA LOCAL INFILE '$fname' INTO TABLE $table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n'; };
-        $db->do($query);
-    } else {
-        # PostgreSQL: используем COPY ... FROM STDIN
-        my $copy_sql = "COPY $table FROM STDIN WITH (FORMAT CSV, DELIMITER ',', NULL 'NULL')";
-        $db->do($copy_sql);  # Переключает соединение в режим копирования
-        for my $row (@$data) {
-            next unless $row && @$row;
-            my $line = 'NULL';  # автоинкремент
-            for my $val (@$row) {
-                $line .= defined($val) ? ',' . $val : ',NULL';
-            }
-            $line .= "\n";
-            $db->pg_put_copy_data($line);
-        }
-        $db->pg_put_copy_end();  # Завершаем копирование
-    }
-    $db->disconnect();
-}
+    return 0 unless @$data;
 
+    # Первая строка — заголовки (имена столбцов)
+    my $header_row = shift @$data;
+    unless ($header_row && ref($header_row) eq 'ARRAY' && @$header_row) {
+        log_error("First row must be column names (array reference)");
+        return 0;
+    }
+    my @columns = @$header_row;
+
+    # Теперь @$data содержит только строки данных
+    my $data_rows = $data;
+
+    # Если нет данных — только заголовок
+    unless (@$data_rows) {
+        log_debug("No data rows to insert, only header");
+        return 1;
+    }
+
+    my $db = init_db();
+
+    if ($config_ref{DBTYPE} eq 'mysql') {
+        # --- MySQL: попытка LOAD DATA, fallback на INSERT ---
+        log_debug("Using LOAD DATA LOCAL INFILE for MySQL");
+
+        my $fh = File::Temp->new(UNLINK => 1);
+        my $fname = $fh->filename;
+        binmode($fh, ':utf8');
+
+        my $csv = Text::CSV->new({
+            binary         => 1,
+            quote_char     => '"',
+            escape_char    => '"',
+            sep_char       => ',',
+            eol            => "\r\n",
+            always_quote   => 1,
+        }) or do {
+            my $err = "Cannot create Text::CSV: " . Text::CSV->error_diag();
+            log_error($err);
+            $db->disconnect();
+            return 0;
+        };
+
+        # Пишем заголовок
+        $csv->print($fh, \@columns);
+
+        # Пишем данные
+        for my $row (@$data_rows) {
+            next unless $row && ref($row) eq 'ARRAY' && @$row == @columns;
+            my @vals = map { defined($_) ? $_ : 'NULL' } @$row;
+            $csv->print($fh, \@vals);
+        }
+        close $fh;
+
+        my $col_list = join(', ', map { $db->quote_identifier($_) } @columns);
+        my $query = qq{LOAD DATA LOCAL INFILE '$fname' INTO TABLE $table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n' IGNORE 1 LINES ($col_list)};
+
+        my $load_ok = eval { $db->do($query); 1 };
+        if (!$load_ok) {
+            my $err = "MySQL LOAD DATA failed: $@";
+            log_error($err);
+            log_debug("Falling back to bulk INSERT for MySQL");
+            goto FALLBACK_INSERT_MYSQL;
+        }
+
+        $db->disconnect();
+        return 1;
+
+        # ========================
+        # Fallback для MySQL
+        # ========================
+        FALLBACK_INSERT_MYSQL:
+        {
+            my $quoted_cols = join(', ', map { $db->quote_identifier($_) } @columns);
+            my $placeholders = join(',', ('?') x @columns);
+            my $sql = "INSERT INTO $table ($quoted_cols) VALUES ($placeholders)";
+            my $sth = $db->prepare($sql);
+
+            my $success = eval {
+                for my $row (@$data_rows) {
+                    next unless $row && ref($row) eq 'ARRAY' && @$row == @columns;
+                    my @vals = map { defined($_) ? $_ : undef } @$row;
+                    $sth->execute(@vals);
+                }
+                1;
+            };
+
+            if (!$success) {
+                my $err = "MySQL bulk INSERT failed: $@";
+                log_error($err);
+                $db->disconnect();
+                return 0;
+            }
+        }
+
+    } elsif ($config_ref{DBTYPE} eq 'postgresql') {
+        unless ($db->{Driver}->{Name} eq 'Pg') {
+            my $err = "PostgreSQL expected but connected via " . $db->{Driver}->{Name};
+            log_error($err);
+            $db->disconnect();
+            return 0;
+        }
+
+        if (!$db->can('pg_putcopydata') || !$db->can('pg_putcopyend')) {
+            log_debug("pg_putcopydata/pg_putcopyend not available — falling back to bulk INSERT");
+            goto FALLBACK_INSERT_PG;
+        }
+
+        my $col_list = join(', ', map { $db->quote_identifier($_) } @columns);
+        my $copy_sql = "COPY $table ($col_list) FROM STDIN WITH (FORMAT CSV, HEADER true)";
+
+        my $use_header_as_data;
+        my $start_ok = eval { $db->do($copy_sql); 1 };
+
+        if (!$start_ok) {
+            log_debug("COPY with HEADER failed: $@ — trying without HEADER");
+            $copy_sql = "COPY $table ($col_list) FROM STDIN WITH (FORMAT CSV)";
+            $start_ok = eval { $db->do($copy_sql); 1 };
+            if (!$start_ok) {
+                log_debug("COPY failed entirely: $@ — falling back to bulk INSERT");
+                goto FALLBACK_INSERT_PG;
+            }
+            $use_header_as_data = 1;
+        } else {
+            $use_header_as_data = 0;
+        }
+
+        log_debug("Using CSV COPY for PostgreSQL");
+
+        my $csv = Text::CSV->new({
+            binary         => 1,
+            quote_char     => '"',
+            escape_char    => '"',
+            sep_char       => ',',
+            eol            => "\n",
+            always_quote   => 1,
+        }) or do {
+            my $err = "Cannot create Text::CSV: " . Text::CSV->error_diag();
+            log_error($err);
+            eval { $db->pg_putcopyend(); };
+            $db->disconnect();
+            return 0;
+        };
+
+        my $success = eval {
+            if ($use_header_as_data) {
+                $csv->combine(@columns);
+                $db->pg_putcopydata($csv->string);
+            }
+            for my $row (@$data_rows) {
+                next unless $row && ref($row) eq 'ARRAY' && @$row == @columns;
+                my @vals = map { defined($_) ? $_ : undef } @$row;
+                $csv->combine(@vals);
+                $db->pg_putcopydata($csv->string);
+            }
+            $db->pg_putcopyend();
+            1;
+        };
+
+        if ($success) {
+            $db->disconnect();
+            return 1;
+        } else {
+            my $err = "CSV COPY failed: $@";
+            log_error($err);
+            eval { $db->pg_putcopyend(); };
+            goto FALLBACK_INSERT_PG;
+        }
+
+        # ========================
+        # Fallback для PostgreSQL
+        # ========================
+        FALLBACK_INSERT_PG:
+        {
+            my $quoted_cols = join(', ', map { $db->quote_identifier($_) } @columns);
+            my $placeholders = join(',', ('?') x @columns);
+            my $sql = "INSERT INTO $table ($quoted_cols) VALUES ($placeholders)";
+            my $sth = $db->prepare($sql);
+
+            my $success = eval {
+                for my $row (@$data_rows) {
+                    next unless $row && ref($row) eq 'ARRAY' && @$row == @columns;
+                    my @vals = map { defined($_) ? $_ : undef } @$row;
+                    $sth->execute(@vals);
+                }
+                1;
+            };
+
+            if (!$success) {
+                my $err = "PostgreSQL bulk INSERT failed: $@";
+                log_error($err);
+                $db->disconnect();
+                return 0;
+            }
+        }
+
+    } else {
+        my $err = "Unsupported DBTYPE: '$config_ref{DBTYPE}'";
+        log_error($err);
+        $db->disconnect();
+        return 0;
+    }
+
+    $db->disconnect();
+    return 1;
+}
 #---------------------------------------------------------------------------------------------------------------
 
 sub reconnect_db {
@@ -1109,6 +1273,9 @@ if ($MY_NAME!~/upgrade.pl/) {
     clean_variables($dbh);
     Set_Variable($dbh);
     }
+
+#warn "DBI driver name: ", $dbh->{Driver}->{Name}, "\n";
+#warn "Full dbh class: ", ref($dbh), "\n";
 
 1;
 }

@@ -423,23 +423,23 @@ COMMENT ON COLUMN subnets.office IS 'This is an office subnet';
 COMMENT ON COLUMN subnets.hotspot IS 'This is a public/guest subnet';
 COMMENT ON COLUMN subnets.notify IS 'Notification bitmask: 1=email, 2=sms, 4=telegram';
 
--- Detailed traffic logs
 CREATE TABLE traffic_detail (
 id BIGSERIAL PRIMARY KEY,
-auth_id BIGINT,
-router_id INTEGER NOT NULL DEFAULT 0,
+auth_id   bigint,
+router_id integer NOT NULL DEFAULT 0,
 ts TIMESTAMP,
-proto SMALLINT,
-src_ip INTEGER NOT NULL,
-dst_ip INTEGER NOT NULL,
-src_port INTEGER NOT NULL,
-dst_port INTEGER NOT NULL,
-bytes BIGINT NOT NULL,
-pkt INTEGER NOT NULL DEFAULT 0
+proto     smallint,
+src_ip    bigint NOT NULL DEFAULT 0,
+dst_ip    bigint NOT NULL DEFAULT 0,
+src_port  integer NOT NULL DEFAULT 0,
+dst_port  integer NOT NULL DEFAULT 0,
+bytes     bigint NOT NULL DEFAULT 0,
+pkt       bigint NOT NULL DEFAULT 0,
 );
 COMMENT ON TABLE traffic_detail IS 'Detailed traffic flow records (NetFlow)';
 COMMENT ON COLUMN traffic_detail.proto IS 'IP protocol number';
 COMMENT ON COLUMN traffic_detail.src_ip IS 'Source IP as integer';
+COMMENT ON COLUMN traffic_detail.dst_ip IS 'Destination IP as integer';
 COMMENT ON COLUMN traffic_detail.bytes IS 'Bytes transferred in this flow';
 
 -- Unknown MAC addresses
@@ -601,7 +601,7 @@ COMMENT ON TABLE version IS 'System version information';
 
 -- WAN interface statistics
 CREATE TABLE wan_stats (
-id SERIAL PRIMARY KEY,
+id BIGSERIAL PRIMARY KEY,
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 router_id INTEGER,
 interface_id INTEGER,
