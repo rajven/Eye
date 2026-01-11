@@ -23,8 +23,8 @@ if (getPOST("save") !== null) {
 
             update_record($db_link, "queue_list", "id = ?", [
                 'queue_name' => $name,
-                'Download'   => (int)($downs[$i] ?? 0),
-                'Upload'     => (int)($ups[$i] ?? 0)
+                'download'   => (int)($downs[$i] ?? 0),
+                'upload'     => (int)($ups[$i] ?? 0)
             ], [$id]);
         }
     }

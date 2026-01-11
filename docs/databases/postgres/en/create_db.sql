@@ -369,12 +369,12 @@ COMMENT ON COLUMN ou.life_duration IS 'Default lifetime in hours for dynamic OUs
 CREATE TABLE queue_list (
 id SERIAL PRIMARY KEY,
 queue_name VARCHAR(20) NOT NULL,
-Download INTEGER NOT NULL DEFAULT 0,
-Upload INTEGER NOT NULL DEFAULT 0
+download INTEGER NOT NULL DEFAULT 0,
+upload INTEGER NOT NULL DEFAULT 0
 );
 COMMENT ON TABLE queue_list IS 'Bandwidth profiles for traffic shaping';
-COMMENT ON COLUMN queue_list.Download IS 'Download speed limit in Kbit/s';
-COMMENT ON COLUMN queue_list.Upload IS 'Upload speed limit in Kbit/s';
+COMMENT ON COLUMN queue_list.download IS 'Download speed limit in Kbit/s';
+COMMENT ON COLUMN queue_list.upload IS 'Upload speed limit in Kbit/s';
 
 -- Remote syslog messages
 CREATE TABLE remote_syslog (

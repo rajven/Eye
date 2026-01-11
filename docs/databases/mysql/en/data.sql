@@ -212,15 +212,15 @@ INSERT INTO `ou` (`id`, `ou_name`, `description`, `default_users`, `default_hots
 INSERT INTO `ou` (`id`, `ou_name`, `description`, `default_users`, `default_hotspot`, `nagios_dir`, `nagios_host_use`, `nagios_ping`, `nagios_default_service`, `enabled`, `filter_group_id`, `queue_id`, `dynamic`, `life_duration`, `parent_id`) VALUES(12, 'DHCP', NULL, 1, 0, NULL, NULL, 1, NULL, 0, 0, 0, 0, '24.00', NULL);
 INSERT INTO `ou` (`id`, `ou_name`, `description`, `default_users`, `default_hotspot`, `nagios_dir`, `nagios_host_use`, `nagios_ping`, `nagios_default_service`, `enabled`, `filter_group_id`, `queue_id`, `dynamic`, `life_duration`, `parent_id`) VALUES(13, 'Guests', NULL, 0, 0, NULL, NULL, 1, NULL, 1, 1, 4, 1, '24.00', NULL);
 
-INSERT INTO `queue_list` (`id`, `queue_name`, `Download`, `Upload`) VALUES(0, 'unlimited', 0, 0);
-INSERT INTO `queue_list` (`id`, `queue_name`, `Download`, `Upload`) VALUES(1, '2M/2M', 2048, 2048);
-INSERT INTO `queue_list` (`id`, `queue_name`, `Download`, `Upload`) VALUES(2, '10M/10M', 10240, 10240);
-INSERT INTO `queue_list` (`id`, `queue_name`, `Download`, `Upload`) VALUES(3, '100M/100M', 102400, 102400);
-INSERT INTO `queue_list` (`id`, `queue_name`, `Download`, `Upload`) VALUES(4, '50M/50M', 50000, 50000);
-INSERT INTO `queue_list` (`id`, `queue_name`, `Download`, `Upload`) VALUES(5, '20M/20M', 20480, 20480);
-INSERT INTO `queue_list` (`id`, `queue_name`, `Download`, `Upload`) VALUES(6, '200M/200M', 212400, 212400);
-INSERT INTO `queue_list` (`id`, `queue_name`, `Download`, `Upload`) VALUES(7, '1G/1G', 1024000, 1024000);
-INSERT INTO `queue_list` (`id`, `queue_name`, `Download`, `Upload`) VALUES(8, '2G/2G', 2048000, 2048000);
+INSERT INTO `queue_list` (`id`, `queue_name`, `download`, `upload`) VALUES(0, 'unlimited', 0, 0);
+INSERT INTO `queue_list` (`id`, `queue_name`, `download`, `upload`) VALUES(1, '2M/2M', 2048, 2048);
+INSERT INTO `queue_list` (`id`, `queue_name`, `download`, `upload`) VALUES(2, '10M/10M', 10240, 10240);
+INSERT INTO `queue_list` (`id`, `queue_name`, `download`, `upload`) VALUES(3, '100M/100M', 102400, 102400);
+INSERT INTO `queue_list` (`id`, `queue_name`, `download`, `upload`) VALUES(4, '50M/50M', 50000, 50000);
+INSERT INTO `queue_list` (`id`, `queue_name`, `download`, `upload`) VALUES(5, '20M/20M', 20480, 20480);
+INSERT INTO `queue_list` (`id`, `queue_name`, `download`, `upload`) VALUES(6, '200M/200M', 212400, 212400);
+INSERT INTO `queue_list` (`id`, `queue_name`, `download`, `upload`) VALUES(7, '1G/1G', 1024000, 1024000);
+INSERT INTO `queue_list` (`id`, `queue_name`, `download`, `upload`) VALUES(8, '2G/2G', 2048000, 2048000);
 
 INSERT INTO `subnets` (`id`, `subnet`, `vlan_tag`, `ip_int_start`, `ip_int_stop`, `dhcp_start`, `dhcp_stop`, `dhcp_lease_time`, `gateway`, `office`, `hotspot`, `vpn`, `free`, `dhcp`, `static`, `dhcp_update_hostname`, `discovery`, `notify`, `description`) VALUES(1, '192.168.2.0/24', 2, 3232236032, 3232236287, 3232236132, 3232236182, 480, 3232236033, 1, 0, 0, 0, 1, 0, 1, 1, 7, 'LAN');
 

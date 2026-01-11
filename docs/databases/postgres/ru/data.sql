@@ -315,7 +315,7 @@ ON CONFLICT (id) DO UPDATE SET
     parent_id = EXCLUDED.parent_id;
 
 -- Traffic shaping queues
-INSERT INTO queue_list (id, queue_name, Download, Upload)
+INSERT INTO queue_list (id, queue_name, download, upload)
 VALUES
 (0, 'unlimited', 0, 0),
 (1, '2M/2M', 2048, 2048),
@@ -328,8 +328,8 @@ VALUES
 (8, '2G/2G', 2048000, 2048000)
 ON CONFLICT (id) DO UPDATE SET
     queue_name = EXCLUDED.queue_name,
-    Download = EXCLUDED.Download,
-    Upload = EXCLUDED.Upload;
+    download = EXCLUDED.download,
+    upload = EXCLUDED.upload;
 
 -- Network subnets
 INSERT INTO subnets (id, subnet, vlan_tag, ip_int_start, ip_int_stop, dhcp_start, dhcp_stop, dhcp_lease_time, gateway, office, hotspot, vpn, free, dhcp, static, dhcp_update_hostname, discovery, notify, description)

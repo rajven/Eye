@@ -496,10 +496,10 @@ my @queuelist_ref = get_records_sql($dbh,"SELECT * FROM queue_list");
 my %queues;
 foreach my $row (@queuelist_ref) {
 $lists{'queue_'.$row->{id}}=1;
-next if ((!$row->{Download}) and !($row->{Upload}));
+next if ((!$row->{download}) and !($row->{upload}));
 $queues{'queue_'.$row->{id}}{id}=$row->{id};
-$queues{'queue_'.$row->{id}}{down}=$row->{Download};
-$queues{'queue_'.$row->{id}}{up}=$row->{Upload};
+$queues{'queue_'.$row->{id}}{down}=$row->{download};
+$queues{'queue_'.$row->{id}}{up}=$row->{upload};
 }
 
 log_debug($gate_ident."Queues status:".Dumper(\%queues));

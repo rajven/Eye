@@ -277,8 +277,8 @@ CREATE TABLE `ou` (
 CREATE TABLE `queue_list` (
   `id` int(11) NOT NULL,
   `queue_name` varchar(20) NOT NULL,
-  `Download` int(11) NOT NULL DEFAULT 0,
-  `Upload` int(11) NOT NULL DEFAULT 0
+  `download` int(11) NOT NULL DEFAULT 0,
+  `upload` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `remote_syslog` (

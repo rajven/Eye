@@ -369,12 +369,12 @@ COMMENT ON COLUMN ou.life_duration IS 'Время жизни по умолчан
 CREATE TABLE queue_list (
 id SERIAL PRIMARY KEY,
 queue_name VARCHAR(20) NOT NULL,
-Download INTEGER NOT NULL DEFAULT 0,
-Upload INTEGER NOT NULL DEFAULT 0
+download INTEGER NOT NULL DEFAULT 0,
+upload INTEGER NOT NULL DEFAULT 0
 );
 COMMENT ON TABLE queue_list IS 'Профили полосы пропускания для шейпинга трафика';
-COMMENT ON COLUMN queue_list.Download IS 'Ограничение скорости скачивания в Кбит/с';
-COMMENT ON COLUMN queue_list.Upload IS 'Ограничение скорости отдачи в Кбит/с';
+COMMENT ON COLUMN queue_list.download IS 'Ограничение скорости скачивания в Кбит/с';
+COMMENT ON COLUMN queue_list.upload IS 'Ограничение скорости отдачи в Кбит/с';
 
 -- Удаленные syslog сообщения
 CREATE TABLE remote_syslog (
