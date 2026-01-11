@@ -1298,6 +1298,8 @@ function record_to_txt($db, $table, $id) {
     return hash_to_text($record);
 }
 
+if (!defined("DB_TYPE")) { define("DB_TYPE","mysql"); }
+
 $db_link = new_connection(DB_TYPE, DB_HOST, DB_USER, DB_PASS, DB_NAME);
 
 ?>
