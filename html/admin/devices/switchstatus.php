@@ -3,67 +3,92 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 
-$device = get_record($db_link, 'devices', "id=?", [ $id ]);
+$device = get_record($db_link, 'devices', "id = ?", [$id]);
 $snmp = getSnmpAccess($device);
-$device_model = get_record($db_link, 'device_models', "id=?", [ $device['device_model_id'] ]);
+$device_model = get_record($db_link, 'device_models', "id = ?", [$device['device_model_id']]);
 
-if (isset($_POST["regensnmp"])) {
-    $snmp_index = $_POST["f_snmp_start"] * 1;
-    $sSQL = "SELECT id,port from device_ports WHERE device_ports.device_id=? ORDER BY id";
-    $flist = get_records_sql($db_link, $sSQL, [ $id ]);
+// Перегенерация SNMP-индексов
+if (getPOST("regensnmp") !== null) {
+    $snmp_index = (int)getPOST("f_snmp_start", null, 1);
+    $sSQL = "SELECT id, port FROM device_ports WHERE device_ports.device_id = ? ORDER BY id";
+    $flist = get_records_sql($db_link, $sSQL, [$id]);
     LOG_DEBUG($db_link, "Recalc snmp_index for device id: $id with start $snmp_index");
     foreach ($flist as $row) {
-        $snmp = $row['port'] + $snmp_index - 1;
-        $new['snmp_index'] = $snmp;
-        update_record($db_link, "device_ports", "id=?", $new, [$row['id']]);
+        $snmp_val = $row['port'] + $snmp_index - 1;
+        update_record($db_link, "device_ports", "id = ?", ['snmp_index' => $snmp_val], [$row['id']]);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST['poe_on']) and $device['snmp_version'] > 0) {
-    $len = is_array($_POST['poe_on']) ? count($_POST['poe_on']) : 0;
-    for ($i = 0; $i < $len; $i++) {
-        $port_index = intval($_POST['poe_on'][$i]);
-        $sSQL = "SELECT port from device_ports WHERE device_id=? and snmp_index=?";
-        $port = get_record_sql($db_link, $sSQL, [ $id , $port_index ]);
-        LOG_DEBUG($db_link, "Device id: " . $id . " enable poe at port " . $port['port'] . " snmp index " . $port_index);
-        set_port_poe_state($device['vendor_id'], $port['port'], $port_index, $device['ip'], $snmp, 1);
+// Включение PoE
+if (getPOST("poe_on") !== null && $device['snmp_version'] > 0) {
+    $poe_on = getPOST("poe_on", null, []);
+    if (!empty($poe_on) && is_array($poe_on)) {
+        foreach ($poe_on as $port_index) {
+            $port_index = (int)$port_index;
+            if ($port_index <= 0) continue;
+            $port = get_record_sql($db_link, 
+                "SELECT port FROM device_ports WHERE device_id = ? AND snmp_index = ?", 
+                [$id, $port_index]
+            );
+            if (!empty($port)) {
+                LOG_DEBUG($db_link, "Device id: $id enable poe at port {$port['port']} snmp index $port_index");
+                set_port_poe_state($device['vendor_id'], $port['port'], $port_index, $device['ip'], $snmp, 1);
+            }
+        }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST['poe_off']) and $device['snmp_version'] > 0) {
-    $len = is_array($_POST['poe_off']) ? count($_POST['poe_off']) : 0;
-    for ($i = 0; $i < $len; $i++) {
-        $port_index = intval($_POST['poe_off'][$i]);
-        $sSQL = "SELECT port from device_ports WHERE device_id=? and snmp_index=?";
-        $port = get_record_sql($db_link, $sSQL, [ $id , $port_index ]);
-        LOG_DEBUG($db_link, "Device id: " . $id . " disable poe at port " . $port['port'] . " snmp index " . $port_index);
-        set_port_poe_state($device['vendor_id'], $port['port'], $port_index, $device['ip'], $snmp, 0);
+// Отключение PoE
+if (getPOST("poe_off") !== null && $device['snmp_version'] > 0) {
+    $poe_off = getPOST("poe_off", null, []);
+    if (!empty($poe_off) && is_array($poe_off)) {
+        foreach ($poe_off as $port_index) {
+            $port_index = (int)$port_index;
+            if ($port_index <= 0) continue;
+            $port = get_record_sql($db_link, 
+                "SELECT port FROM device_ports WHERE device_id = ? AND snmp_index = ?", 
+                [$id, $port_index]
+            );
+            if (!empty($port)) {
+                LOG_DEBUG($db_link, "Device id: $id disable poe at port {$port['port']} snmp index $port_index");
+                set_port_poe_state($device['vendor_id'], $port['port'], $port_index, $device['ip'], $snmp, 0);
+            }
+        }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST['port_on']) and $device['snmp_version'] > 0) {
-    $len = is_array($_POST['port_on']) ? count($_POST['port_on']) : 0;
-    for ($i = 0; $i < $len; $i++) {
-        $port_index = intval($_POST['port_on'][$i]);
-        LOG_DEBUG($db_link, "Device id: $id enable port with snmp index $port_index");
-        set_port_state($device['vendor_id'], $port_index, $device['ip'], $snmp, 1);
+// Включение портов
+if (getPOST("port_on") !== null && $device['snmp_version'] > 0) {
+    $port_on = getPOST("port_on", null, []);
+    
+    if (!empty($port_on) && is_array($port_on)) {
+        foreach ($port_on as $port_index) {
+            $port_index = (int)$port_index;
+            if ($port_index <= 0) continue;
+            LOG_DEBUG($db_link, "Device id: $id enable port with snmp index $port_index");
+            set_port_state($device['vendor_id'], $port_index, $device['ip'], $snmp, 1);
+        }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST['port_off']) and $device['snmp_version'] > 0) {
-    $len = is_array($_POST['port_off']) ? count($_POST['port_off']) : 0;
-    for ($i = 0; $i < $len; $i++) {
-        $port_index = intval($_POST['port_off'][$i]);
-        LOG_DEBUG($db_link, "Device id: $id disable port with snmp index $port_index");
-        set_port_state($device['vendor_id'], $port_index, $device['ip'], $snmp, 0);
+// Отключение портов
+if (getPOST("port_off") !== null && $device['snmp_version'] > 0) {
+    $port_off = getPOST("port_off", null, []);
+    if (!empty($port_off) && is_array($port_off)) {
+        foreach ($port_off as $port_index) {
+            $port_index = (int)$port_index;
+            if ($port_index <= 0) continue;
+            LOG_DEBUG($db_link, "Device id: $id disable port with snmp index $port_index");
+            set_port_state($device['vendor_id'], $port_index, $device['ip'], $snmp, 0);
+        }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -409,18 +434,18 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             <input type='submit' name='regensnmp' value='<?php echo WEB_device_recalc_snmp_port ?>'>
         </div>
 
-        <?php
-        print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
-        print "<tr><td>" . WEB_port_status . "</td></tr>\n";
-        print "<tr><td class=\"down\">" . WEB_port_oper_down . "</td>";
-        print "<td class=\"up\">" . WEB_port_oper_up . "</td>";
-        print "<td class=\"shutdown\">" . WEB_port_admin_shutdown . "</td><tr>\n";
-        print "</table>\n";
-        print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
-        print "<tr><td>" . WEB_port_speed . "</td></tr>\n";
-        print "<tr><td class=\"speed10M\">" . WEB_port_speed_10 . "</td><td class=\"speed100M\">" . WEB_port_speed_100 . "</td><td class=\"speed1G\">" . WEB_port_speed_1G . "</td><td class=\"speed10G\">" . WEB_port_speed_10G . "</td><tr>\n";
-        print "</table>\n";
-        print "</form>";
-        unset_lock_discovery($db_link, $id);
-        require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.simple.php");
-        ?>
+<?php
+print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
+print "<tr><td>" . WEB_port_status . "</td></tr>\n";
+print "<tr><td class=\"down\">" . WEB_port_oper_down . "</td>";
+print "<td class=\"up\">" . WEB_port_oper_up . "</td>";
+print "<td class=\"shutdown\">" . WEB_port_admin_shutdown . "</td><tr>\n";
+print "</table>\n";
+print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
+print "<tr><td>" . WEB_port_speed . "</td></tr>\n";
+print "<tr><td class=\"speed10M\">" . WEB_port_speed_10 . "</td><td class=\"speed100M\">" . WEB_port_speed_100 . "</td><td class=\"speed1G\">" . WEB_port_speed_1G . "</td><td class=\"speed10G\">" . WEB_port_speed_10G . "</td><tr>\n";
+print "</table>\n";
+print "</form>";
+unset_lock_discovery($db_link, $id);
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.simple.php");
+?>

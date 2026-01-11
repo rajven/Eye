@@ -8,14 +8,21 @@ $default_sort='device_name';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
-if (isset($_POST["remove_device"])) {
-    $dev_ids = $_POST["fid"];
-    foreach ($dev_ids as $key => $val) {
-        if ($val) { delete_device($db_link,$val); }
+if (getPOST("remove_device") !== null) {
+    $dev_ids = getPOST("fid", null, []);
+    
+    if (!empty($dev_ids) && is_array($dev_ids)) {
+        foreach ($dev_ids as $val) {
+            $val = trim($val);
+            if ($val !== '') {
+                delete_device($db_link, (int)$val);
+            }
         }
+    }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
-    }
+}
 
 print_device_submenu($page_url);
 

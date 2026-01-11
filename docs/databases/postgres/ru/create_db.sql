@@ -554,6 +554,9 @@ auth_id BIGINT NOT NULL DEFAULT 0,
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 byte_in BIGINT NOT NULL DEFAULT 0,
 byte_out BIGINT NOT NULL DEFAULT 0
+pkt_in INTEGER,
+pkt_out INTEGER,
+step SMALLINT NOT NULL DEFAULT 3600
 );
 COMMENT ON TABLE user_stats IS 'Статистика трафика пользователей (агрегированная)';
 

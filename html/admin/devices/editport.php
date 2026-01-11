@@ -3,18 +3,21 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 
-if (isset($_POST["editport"])) {
-    $new['snmp_index'] = $_POST["f_snmp"] * 1;
-    $new['uplink'] = $_POST["f_uplink"] * 1;
-    $new['nagios'] = $_POST["f_nagios"] * 1;
-    $new['skip'] = $_POST["f_skip"] * 1;
-    $new['description'] = $_POST["f_description"];
-    update_record($db_link, "device_ports", "id=?", $new, [ $id ]);
+if (getPOST("editport") !== null) {
+    $new = [
+        'snmp_index'  => (int)getPOST("f_snmp", null, 0),
+        'uplink'      => (int)getPOST("f_uplink", null, 0),
+        'nagios'      => (int)getPOST("f_nagios", null, 0),
+        'skip'        => (int)getPOST("f_skip", null, 0),
+        'description' => trim(getPOST("f_description", null, ''))
+    ];
 
-    $target_id = $_POST["f_target_port"];
+    update_record($db_link, "device_ports", "id = ?", $new, [$id]);
+
+    $target_id = (int)getPOST("f_target_port", null, 0);
     bind_ports($db_link, $id, $target_id);
 
-    header("location: editport.php?id=$id");
+    header("Location: editport.php?id=$id");
     exit;
 }
 

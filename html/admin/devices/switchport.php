@@ -3,55 +3,47 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-if (isset($_POST["regensnmp"])) {
-    $snmp_index = $_POST["f_snmp_start"] * 1;
-    $sSQL = "SELECT id,port from device_ports WHERE device_ports.device_id=? ORDER BY id";
-    $flist = get_records_sql($db_link, $sSQL, [ $id ]);
+// Перегенерация SNMP-индексов
+if (getPOST("regensnmp") !== null) {
+    $snmp_index = (int)getPOST("f_snmp_start", null, 1);
+    $sSQL = "SELECT id, port FROM device_ports WHERE device_ports.device_id = ? ORDER BY id";
+    $flist = get_records_sql($db_link, $sSQL, [$id]);
     LOG_DEBUG($db_link, "Recalc snmp_index for device id: $id with start $snmp_index");
     foreach ($flist as $row) {
         $snmp = $row['port'] + $snmp_index - 1;
-        $new['snmp_index'] = $snmp;
-        update_record($db_link, "device_ports", "id=?", $new, [$row['id']]);
+        update_record($db_link, "device_ports", "id = ?", ['snmp_index' => $snmp], [$row['id']]);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST['save'])) {
-    $saved = array();
-    //button save
-    $len = is_array($_POST['save']) ? count($_POST['save']) : 0;
-    for ($i = 0; $i < $len; $i ++) {
-        $save_id = intval($_POST['save'][$i]);
-        if ($save_id == 0) { continue;  }
-        array_push($saved,$save_id);
+// Сохранение ОТМЕЧЕННЫХ портов
+if (getPOST("save") !== null) {
+    $selected_ids = getPOST("f_id", null, []);      // отмеченные чекбоксы
+    $all_ids      = getPOST("p_id", null, []);      // все ID
+    $port_names   = getPOST("f_name", null, []);
+    $snmp_indices = getPOST("f_snmp_index", null, []);
+    
+    if (!empty($selected_ids) && is_array($selected_ids)) {
+        $selected_ids = array_map('intval', $selected_ids);
+        $selected_set = array_flip($selected_ids);
+        
+        foreach ($all_ids as $i => $id) {
+            $id = (int)$id;
+            if ($id <= 0 || !isset($selected_set[$id])) continue;
+            
+            $new = [
+                'port_name'   => trim($port_names[$i] ?? ''),
+                'snmp_index'  => (int)($snmp_indices[$i] ?? 0)
+            ];
+            
+            update_record($db_link, "device_ports", "id = ?", $new, [$id]);
         }
-    //select box
-    $len = is_array($_POST['f_id']) ? count($_POST['f_id']) : 0;
-    if ($len>0) {
-        for ($i = 0; $i < $len; $i ++) {
-            $save_id = intval($_POST['f_id'][$i]);
-            if ($save_id == 0) { continue; }
-            if (!in_array($save_id, $saved)) { array_push($saved,$save_id); }
-            }
-        }
-    //save changes
-    $len = is_array($saved) ? count($saved) : 0;
-    for ($i = 0; $i < $len; $i ++) {
-        $save_id = intval($saved[$i]);
-        if ($save_id == 0) { continue;  }
-        $len_all = is_array($_POST['p_id']) ? count($_POST['p_id']) : 0;
-        for ($j = 0; $j < $len_all; $j ++) {
-            if (intval($_POST['p_id'][$j]) != $save_id) { continue; }
-            $new['port_name'] = $_POST['f_name'][$j];
-            $new['snmp_index'] = $_POST['f_snmp_index'][$j]*1;
-            update_record($db_link, "device_ports", "id=?", $new, [ $save_id ]);
-            }
-        }
+    }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
-    }
-
+}
 
 unset($_POST);
 

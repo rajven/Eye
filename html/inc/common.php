@@ -89,6 +89,12 @@ FILTER_FLAG_ENCODE_HIGH      // Кодирует символы с ASCII > 127
 FILTER_FLAG_ENCODE_AMP       // Кодирует амперсанд (&)
 */
 
+function capture_print_r($var) {
+    ob_start();
+    print_r($var);
+    return ob_get_clean();
+}
+
 /**
  * Получает параметр (скаляр или массив) из POST/GET, с опциональной валидацией каждого элемента
  */
@@ -468,63 +474,76 @@ function replaceSpecialChars($input) {
 function searchHostname($db, $id, $hostname)
 {
     if (empty($hostname)) {
-        return NULL;
+        return null;
     }
 
-    $result = '';
     $domain_zone = get_option($db, 33);
+    $full_hostname = rtrim($hostname . '.' . ltrim($domain_zone, '.'), '.');
+    
+    $result_parts = [];
 
-    $a_search_filter = 'SELECT * FROM user_auth WHERE deleted=0 and id !="' . $id . '" and (dns_name ="' . db_escape($db, $hostname) . '" or dns_name ="' . db_escape($db, $hostname . '.' . $domain_zone) . '")';
-//        LOG_DEBUG($db, "A search-filter: ".$a_search_filter);
-    $a_records = get_records_sql($db, $a_search_filter);
-    foreach ($a_records as $a_rec) {
-        $result .= 'auth_id:' . $a_rec['id'] . ' ip: ' . $a_rec['ip'] . '; ';
-    }
-    if (!empty($result)) {
-        $result = 'A-record: ' . $result;
-    }
-
-    $result_cname = '';
-    $cname_search_filter = 'SELECT * FROM user_auth_alias WHERE auth_id !="' . $id . '" and (alias ="' . db_escape($db, $hostname) . '" or alias ="' . db_escape($db, $hostname . '.' . $domain_zone) . '")';
-//        LOG_DEBUG($db, "CNAME search-filter: ".$cname_search_filter);
-    $a_records = get_records_sql($db, $cname_search_filter);
-    foreach ($a_records as $a_rec) {
-        $result_cname .= 'auth_id:' . $a_rec['auth_id'] . ';';
-    }
-    if (!empty($result_cname)) {
-        $result_cname = 'CNAME-record: ' . $result_cname;
+    // === Поиск A-записей в user_auth ===
+    $a_sql = "SELECT id, ip FROM user_auth 
+              WHERE deleted = 0 
+                AND id != ? 
+                AND (dns_name = ? OR dns_name = ?)";
+    $a_records = get_records_sql($db, $a_sql, [$id, $hostname, $full_hostname]);
+    
+    if (!empty($a_records)) {
+        $a_list = [];
+        foreach ($a_records as $rec) {
+            $a_list[] = 'auth_id:' . $rec['id'] . ' ip: ' . $rec['ip'];
+        }
+        $result_parts[] = 'A-record: ' . implode('; ', $a_list) . ';';
     }
 
-    $result = trim($result . ' ' . $result_cname);
-    return $result;
+    // === Поиск CNAME-записей в user_auth_alias ===
+    $cname_sql = "SELECT auth_id FROM user_auth_alias 
+                  WHERE auth_id != ? 
+                    AND (alias = ? OR alias = ?)";
+    $cname_records = get_records_sql($db, $cname_sql, [$id, $hostname, $full_hostname]);
+    
+    if (!empty($cname_records)) {
+        $cname_list = [];
+        foreach ($cname_records as $rec) {
+            $cname_list[] = 'auth_id:' . $rec['auth_id'];
+        }
+        $result_parts[] = 'CNAME-record: ' . implode(';', $cname_list) . ';';
+    }
+
+    return !empty($result_parts) ? trim(implode(' ', $result_parts)) : '';
 }
 
 function checkUniqHostname($db, $id, $hostname)
 {
     if (empty($hostname)) {
-        return TRUE;
+        return true;
     }
 
     $domain_zone = get_option($db, 33);
+    $full_hostname = rtrim($hostname . '.' . ltrim($domain_zone, '.'), '.');
 
-    $check_A_filter = 'deleted=0 and id !="' . $id . '" and (dns_name ="' . db_escape($db, $hostname) . '" or dns_name ="' . db_escape($db, $hostname . '.' . $domain_zone) . '")';
-//        LOG_DEBUG($db, "CNAME filter: ".$check_A_filter);
-
-    $count = get_count_records($db, 'user_auth', $check_A_filter);
-    if ($count > 0) {
-        return FALSE;
+    // Проверка A-записей в user_auth
+    $count_a = get_count_records($db, 'user_auth', 
+        'deleted = 0 AND id != ? AND (dns_name = ? OR dns_name = ?)', 
+        [$id, $hostname, $full_hostname]
+    );
+    
+    if ($count_a > 0) {
+        return false;
     }
 
-    $check_CNAME_filter = 'auth_id !="' . $id . '" and (alias ="' . db_escape($db, $hostname) . '" or alias ="' . db_escape($db, $hostname . '.' . $domain_zone) . '")';
-
-//        LOG_DEBUG($db, "CNAME filter: ".$check_CNAME_filter);
-
-    $count = get_count_records($db, 'user_auth_alias', $check_CNAME_filter);
-    if ($count > 0) {
-        return FALSE;
+    // Проверка CNAME-записей в user_auth_alias
+    $count_cname = get_count_records($db, 'user_auth_alias', 
+        'auth_id != ? AND (alias = ? OR alias = ?)', 
+        [$id, $hostname, $full_hostname]
+    );
+    
+    if ($count_cname > 0) {
+        return false;
     }
 
-    return TRUE;
+    return true;
 }
 
 // Транслитерация строк.
@@ -774,115 +793,151 @@ function decrypt_string($crypted_string)
 }
 
 function print_instance_select($db, $instance_name, $instance_value)
-{
-    print "<select id=\"$instance_name\" name=\"$instance_name\" >\n";
-    $t_instance = get_records_sql($db, "SELECT id,name,description FROM filter_instances ORDER BY id");
+{   
+    echo "<select id=\"" . htmlspecialchars($instance_name) . "\" name=\"" . htmlspecialchars($instance_name) . "\">\n";
+    $t_instance = get_records_sql($db, "SELECT id, name, description FROM filter_instances ORDER BY id");
     foreach ($t_instance as $row) {
         print_select_item($row['name'], $row['id'], $instance_value);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function get_subnet_description($db, $subnet_id)
-{
+{   
     if (empty($subnet_id)) {
         return '';
     }
-    $subnet = get_record_sql($db, 'SELECT * FROM subnets WHERE id=' . $subnet_id);
+    
+    $subnet = get_record_sql($db, 'SELECT * FROM subnets WHERE id = ?', [(int)$subnet_id]);
     if (empty($subnet)) {
         return '';
     }
-    $result = $subnet['subnet'] . '&nbsp(' . $subnet['description'] . ')';
+    
+    $result = $subnet['subnet'] . '&nbsp;(' . $subnet['description'] . ')';
     return $result;
 }
 
 function get_filter_instance_description($db, $instance_id)
-{
+{   
     if (empty($instance_id)) {
         return '';
     }
-    $instance = get_record_sql($db, 'SELECT * FROM filter_instances WHERE id=' . $instance_id);
+    
+    $instance = get_record_sql($db, 'SELECT * FROM filter_instances WHERE id = ?', [(int)$instance_id]);
     if (empty($instance)) {
         return '';
     }
-    $result = $instance['name'] . '&nbsp(' . $instance['description'] . ')';
+    
+    $result = $instance['name'] . '&nbsp;(' . $instance['description'] . ')';
     return $result;
 }
 
+
 function print_add_gw_subnets($db, $device_id, $gs_name)
-{
-    print "<select id=\"$gs_name\" name=\"$gs_name\" >\n";
-    $t_gs = get_records_sql($db, "SELECT id,subnet,description FROM subnets WHERE subnets.free=0 AND subnets.id NOT IN (SELECT subnet_id FROM gateway_subnets WHERE gateway_subnets.device_id=" . $device_id . ") ORDER BY subnet");
+{   
+    echo "<select id=\"" . htmlspecialchars($gs_name) . "\" name=\"" . htmlspecialchars($gs_name) . "\">\n";
+    $t_gs = get_records_sql($db, 
+        "SELECT id, subnet, description FROM subnets 
+         WHERE subnets.free = 0 
+           AND subnets.id NOT IN (SELECT subnet_id FROM gateway_subnets WHERE gateway_subnets.device_id = ?) 
+         ORDER BY subnet", 
+        [(int)$device_id]
+    );
+    
     if (!empty($t_gs)) {
         foreach ($t_gs as $row) {
-            print_select_item($row['subnet'] . '(' . $row['description'] . ')', $row['id'], 0);
+            $display = htmlspecialchars($row['subnet']) . '(' . htmlspecialchars($row['description']) . ')';
+            print_select_item($display, $row['id'], 0);
         }
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_add_gw_instances($db, $device_id, $gs_name)
 {
-    print "<select id=\"$gs_name\" name=\"$gs_name\" >\n";
-    $t_gs = get_records_sql($db, "SELECT id,name,description FROM filter_instances WHERE filter_instances.id NOT IN (SELECT instance_id FROM device_filter_instances WHERE device_filter_instances.device_id=" . $device_id . ") ORDER BY name");
+    echo "<select id=\"" . htmlspecialchars($gs_name) . "\" name=\"" . htmlspecialchars($gs_name) . "\">\n";
+    $t_gs = get_records_sql($db,
+        "SELECT id, name, description FROM filter_instances 
+         WHERE filter_instances.id NOT IN (SELECT instance_id FROM device_filter_instances WHERE device_filter_instances.device_id = ?) 
+         ORDER BY name",
+        [(int)$device_id]
+    );
+    
     if (!empty($t_gs)) {
         foreach ($t_gs as $row) {
-            print_select_item($row['name'] . '(' . $row['description'] . ')', $row['id'], 0);
+            $display = htmlspecialchars($row['name']) . '(' . htmlspecialchars($row['description']) . ')';
+            print_select_item($display, $row['id'], 0);
         }
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_add_dev_interface($db, $device_id, $int_list, $int_name)
 {
-    print "&nbsp<select id=\"$int_name\" name=\"$int_name\" >\n";
-    $t_int = get_records_sql($db, "SELECT * FROM device_l3_interfaces WHERE device_id=" . $device_id);
+    echo "&nbsp;<select id=\"" . htmlspecialchars($int_name) . "\" name=\"" . htmlspecialchars($int_name) . "\">\n";
+    
+    $t_int = get_records_sql($db, 
+        "SELECT * FROM device_l3_interfaces WHERE device_id = ?", 
+        [(int)$device_id]
+    );
+    
     $int_exists = [];
     if (!empty($t_int)) {
         foreach ($t_int as $interface) {
             $int_exists[$interface['snmpin']] = $interface;
         }
     }
+    
     foreach ($int_list as $interface) {
         if (!empty($int_exists[$interface['index']])) {
             continue;
         }
+        
         $display_value = WEB_select_item_lan;
-        $value = $interface['name'] . ';' . $interface['index'] . ';' . $interface['interface_type'];
         if ($interface['interface_type'] == 1) {
             $display_value = WEB_select_item_wan;
         }
-        $display_str = $interface['name'] . '&nbsp|' . $interface['ip'] . '|' . $display_value;
+        
+        // Отображаемое значение (видит пользователь) — экранируем
+        $display_str = htmlspecialchars($interface['name']) . '&nbsp;|' . 
+                      htmlspecialchars($interface['ip']) . '|' . 
+                      htmlspecialchars($display_value);
+        
+        // Значение (отправляется на сервер) — НЕ экранируем
+        $value = $interface['name'] . ';' . 
+                $interface['index'] . ';' . 
+                $interface['interface_type'];
+        
         print_select_item($display_str, $value, 0);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_ou_select_recursive($db, $ou_name, $ou_value, $parent_id = null, $level = 0, $hide_zero_id = false)
-{
-    $conditions = [];
+{   
+    $params = [];
     
     if ($parent_id === null) {
-        $conditions[] = "(parent_id IS NULL OR parent_id = 0)";
+        $sql = "SELECT id, parent_id, ou_name FROM ou 
+                WHERE (parent_id IS NULL OR parent_id = 0)";
     } else {
-        $conditions[] = "parent_id = " . (int)$parent_id;
+        $sql = "SELECT id, parent_id, ou_name FROM ou 
+                WHERE parent_id = ?";
+        $params[] = (int)$parent_id;
     }
-
+        
     if ($hide_zero_id) {
-        $conditions[] = "id != 0";
+        $sql .= " AND id != 0";
     }
+        
+    $sql .= " ORDER BY id";
     
-    $where = implode(" AND ", $conditions);
-    
-    $sql = "SELECT id, parent_id, ou_name FROM ou 
-            WHERE $where 
-            ORDER BY id";
-    
-    $items = get_records_sql($db, $sql);
+    $items = get_records_sql($db, $sql, $params);
 
     if (empty($items)) {
         return;
     }
+
     foreach ($items as $row) {
         $indent = str_repeat("&nbsp;&nbsp;&nbsp;", $level);
         $prefix = ($level > 0) ? $indent . "-&nbsp;" : "";
@@ -891,111 +946,119 @@ function print_ou_select_recursive($db, $ou_name, $ou_value, $parent_id = null, 
         print_ou_select_recursive($db, $ou_name, $ou_value, $row['id'], $level + 1, $hide_zero_id);
     }
 }
-
+    
 function print_ou_select($db, $ou_name, $ou_value)
 {
-    print "<select id=\"$ou_name\" name=\"$ou_name\" >\n";
+    echo "<select id=\"" . htmlspecialchars($ou_name) . "\" name=\"" . htmlspecialchars($ou_name) . "\">\n";
     print_ou_select_recursive($db, $ou_name, $ou_value, null, 0, false);
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_ou_set($db, $ou_name, $ou_value)
 {
-    print "<select id=\"$ou_name\" name=\"$ou_name\" >\n";
+    echo "<select id=\"" . htmlspecialchars($ou_name) . "\" name=\"" . htmlspecialchars($ou_name) . "\">\n";
     print_ou_select_recursive($db, $ou_name, $ou_value, null, 0, true);
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_subnet_select($db, $subnet_name, $subnet_value)
 {
-    print "<select id=\"$subnet_name\" name=\"$subnet_name\" >\n";
-    $t_subnet = get_recrods_sql($db, "SELECT id,subnet FROM subnets ORDER BY ip_int_start");
+    echo "<select id=\"" . htmlspecialchars($subnet_name) . "\" name=\"" . htmlspecialchars($subnet_name) . "\">\n";
+    $t_subnet = get_records_sql($db, "SELECT id, subnet FROM subnets ORDER BY ip_int_start");
     print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
     if (!empty($t_subnet)) {
         foreach ($t_subnet as $row) {
-            print_select_item($row['subnet'], $row['id'], $subnet_value);
+            print_select_item(htmlspecialchars($row['subnet']), $row['id'], $subnet_value);
         }
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_acl_select($db, $acl_name, $acl_value)
 {
-    print "<select id=\"$acl_name\" name=\"$acl_name\" >\n";
-    $t_acl = get_records_sql($db, "SELECT id,name FROM acl ORDER BY id");
+    echo "<select id=\"" . htmlspecialchars($acl_name) . "\" name=\"" . htmlspecialchars($acl_name) . "\">\n";
+    $t_acl = get_records_sql($db, "SELECT id, name FROM acl ORDER BY id");
     if (!empty($t_acl)) {
         foreach ($t_acl as $row) {
-            print_select_item($row['name'], $row['id'], $acl_value);
+            print_select_item(htmlspecialchars($row['name']), $row['id'], $acl_value);
         }
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_device_ip_select($db, $ip_name, $ip, $user_id)
 {
-    print "<select id=\"$ip_name\" name=\"$ip_name\">\n";
-    $auth_list = get_records_sql($db, "SELECT ip FROM user_auth WHERE user_id=$user_id AND deleted=0 ORDER BY ip_int");
+    echo "<select id=\"" . htmlspecialchars($ip_name) . "\" name=\"" . htmlspecialchars($ip_name) . "\">\n";
+    $auth_list = get_records_sql($db, "SELECT ip FROM user_auth WHERE user_id = ? AND deleted = 0 ORDER BY ip_int", [(int)$user_id]);
     if (!empty($auth_list)) {
         foreach ($auth_list as $row) {
+            // IP-адреса не требуют htmlspecialchars (они безопасны по формату)
             print_select_item($row['ip'], $row['ip'], $ip);
         }
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_subnet_select_office($db, $subnet_name, $subnet_value)
 {
-    print "<select id=\"$subnet_name\" name=\"$subnet_name\" >\n";
-    $t_subnet = get_records_sql($db, "SELECT id,subnet FROM subnets WHERE office=1 ORDER BY ip_int_start");
+    echo "<select id=\"" . htmlspecialchars($subnet_name) . "\" name=\"" . htmlspecialchars($subnet_name) . "\">\n";
+    $t_subnet = get_records_sql($db, "SELECT id, subnet FROM subnets WHERE office = 1 ORDER BY ip_int_start");
     print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
     if (!empty($t_subnet)) {
         foreach ($t_subnet as $row) {
-            print_select_item($row['subnet'], $row['id'], $subnet_value);
+            print_select_item(htmlspecialchars($row['subnet']), $row['id'], $subnet_value);
         }
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_subnet_select_office_splitted($db, $subnet_name, $subnet_value)
 {
-    print "<select id=\"$subnet_name\" name=\"$subnet_name\" >\n";
-    $t_subnet = get_records_sql($db, "SELECT id,subnet,ip_int_start,ip_int_stop FROM subnets WHERE office=1 ORDER BY ip_int_start");
+    echo "<select id=\"" . htmlspecialchars($subnet_name) . "\" name=\"" . htmlspecialchars($subnet_name) . "\">\n";
+    $t_subnet = get_records_sql($db, "SELECT id, subnet, ip_int_start, ip_int_stop FROM subnets WHERE office = 1 ORDER BY ip_int_start");
     print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
+    
     foreach ($t_subnet as $row) {
-        print_select_item($row['subnet'], $row['subnet'], $subnet_value);
+        // Основная подсеть
+        print_select_item(htmlspecialchars($row['subnet']), $row['subnet'], $subnet_value);
+        
+        // Разбивка на /24
         $cidr = cidrToRange($row['subnet']);
         $f_start_ip = $row['ip_int_start'];
         $f_stop_ip = $row['ip_int_stop'];
-        if ($cidr[2][1] < 24) {
+        
+        if (!empty($cidr[2][1]) && $cidr[2][1] < 24) {
             while ($f_start_ip <= $f_stop_ip) {
-                print_select_item("&nbsp&nbsp-&nbsp" . long2ip($f_start_ip) . "/24", long2ip($f_start_ip) . "/24", $subnet_value);
+                $ip_24 = long2ip($f_start_ip) . "/24";
+                $display = "&nbsp;&nbsp;-&nbsp;" . htmlspecialchars($ip_24);
+                print_select_item($display, $ip_24, $subnet_value);
                 $f_start_ip += 256;
             }
         }
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_loglevel_select($item_name, $value)
 {
-    print "<select id=\"$item_name\" name=\"$item_name\">\n";
+    echo "<select id=\"" . htmlspecialchars($item_name) . "\" name=\"" . htmlspecialchars($item_name) . "\">\n";
     print_select_item('Error', L_ERROR, $value);
     print_select_item('Warning', L_WARNING, $value);
     print_select_item('Info', L_INFO, $value);
     print_select_item('Verbose', L_VERBOSE, $value);
     print_select_item('Debug', L_DEBUG, $value);
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_timeshift_select($value)
 {
-    print "<select id='date_shift' name='date_shift' onchange=\"updateDates()\">\n";
+    echo "<select id=\"date_shift\" name=\"date_shift\" onchange=\"updateDates()\">\n";
     print_select_item('-', '-', $value);
     print_select_item(WEB_date_shift_hour, 'h', $value);
     print_select_item(WEB_date_shift_8hour, '8h', $value);
     print_select_item(WEB_date_shift_day, 'd', $value);
     print_select_item(WEB_date_shift_month, 'm', $value);
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_date_fields($date1,$date2,$date_shift)
@@ -1189,138 +1252,210 @@ function get_nagios_name($auth)
 function get_ou($db, $ou_value)
 {
     if (!isset($ou_value)) {
-        return;
+        return null;
     }
-    $ou_name = get_record_sql($db, "SELECT ou_name FROM ou WHERE id=$ou_value");
+    
+    $ou_name = get_record_sql($db, "SELECT ou_name FROM ou WHERE id = ?", [(int)$ou_value]);
     if (empty($ou_name)) {
-        return;
+        return null;
     }
+    
     return $ou_name['ou_name'];
 }
 
 function get_device_model($db, $model_value)
 {
     if (!isset($model_value)) {
-        return;
+        return null;
     }
-    $model_name = get_record_sql($db, "SELECT model_name FROM device_models WHERE id=$model_value");
+    
+    $model_name = get_record_sql($db, "SELECT model_name FROM device_models WHERE id = ?", [(int)$model_value]);
     if (empty($model_name)) {
-        return;
+        return null;
     }
+    
     return $model_name['model_name'];
 }
 
 function get_device_model_name($db, $model_value)
-{
+{   
     if (!isset($model_value)) {
         return '';
     }
-    $model_name = get_record_sql($db, "SELECT M.id,M.model_name,V.name FROM device_models M,vendors V WHERE M.vendor_id = V.id AND M.id=$model_value");
+    
+    $model_name = get_record_sql($db, 
+        "SELECT M.id, M.model_name, V.name 
+         FROM device_models M, vendors V 
+         WHERE M.vendor_id = V.id AND M.id = ?", 
+        [(int)$model_value]
+    );
+    
     if (empty($model_name)) {
         return '';
     }
+    
     return $model_name['name'] . ' ' . $model_name['model_name'];
 }
 
 function get_device_model_vendor($db, $model_value)
-{
+{   
     if (!isset($model_value)) {
         return '';
     }
-    $model_name = get_record_sql($db, "SELECT vendor_id FROM device_models WHERE id=$model_value");
+    
+    $model_name = get_record_sql($db, "SELECT vendor_id FROM device_models WHERE id = ?", [(int)$model_value]);
     if (empty($model_name)) {
         return '';
     }
+    
     return $model_name['vendor_id'];
 }
 
 function get_building($db, $building_value)
 {
     if (!isset($building_value)) {
-        return;
+        return null;
     }
-    $building_name = get_record_sql($db, "SELECT name FROM building WHERE id=$building_value");
+    
+    $building_name = get_record_sql($db, "SELECT name FROM building WHERE id = ?", [(int)$building_value]);
     if (empty($building_name)) {
-        return;
+        return null;
     }
+    
     return $building_name['name'];
 }
 
 function print_device_model_select($db, $device_model_name, $device_model_value)
 {
-    print "<select id=\"$device_model_name\" name=\"$device_model_name\" class=\"js-select-single\">\n";
-    $t_device_model = get_records_sql($db, "SELECT M.id,M.model_name,V.name FROM device_models M,vendors V WHERE M.vendor_id = V.id ORDER BY V.name,M.model_name");
+    echo "<select id=\"" . htmlspecialchars($device_model_name) . "\" name=\"" . htmlspecialchars($device_model_name) . "\" class=\"js-select-single\">\n";
+    $t_device_model = get_records_sql($db, 
+        "SELECT M.id, M.model_name, V.name 
+         FROM device_models M, vendors V 
+         WHERE M.vendor_id = V.id 
+         ORDER BY V.name, M.model_name"
+    );
+    
     foreach ($t_device_model as $row) {
-        print_select_item($row['name'] . " " . $row['model_name'], $row['id'], $device_model_value);
+        $display = htmlspecialchars($row['name']) . " " . htmlspecialchars($row['model_name']);
+        print_select_item($display, $row['id'], $device_model_value);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_filter_group_select($db, $group_name, $group_value)
 {
-    print "<select id=\"$group_name\" name=\"$group_name\">\n";
-    $t_group = get_records_sql($db, "SELECT id,group_name FROM group_list ORDER BY group_name");
+    echo "<select id=\"" . htmlspecialchars($group_name) . "\" name=\"" . htmlspecialchars($group_name) . "\">\n";
+    $t_group = get_records_sql($db, "SELECT id, group_name FROM group_list ORDER BY group_name");
+    
     foreach ($t_group as $row) {
-        print_select_item($row['group_name'], $row['id'], $group_value);
+        print_select_item(htmlspecialchars($row['group_name']), $row['id'], $group_value);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_building_select($db, $building_name, $building_value)
 {
-    print "<select id=\"$building_name\" name=\"$building_name\">\n";
+    echo "<select id=\"" . htmlspecialchars($building_name) . "\" name=\"" . htmlspecialchars($building_name) . "\">\n";
     print_select_item(WEB_select_item_all, 0, $building_value);
-    $t_building = get_records_sql($db, "SELECT id,name FROM building ORDER BY name");
+    $t_building = get_records_sql($db, "SELECT id, name FROM building ORDER BY name");
+    
     foreach ($t_building as $row) {
-        print_select_item($row['name'], $row['id'], $building_value);
+        print_select_item(htmlspecialchars($row['name']), $row['id'], $building_value);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_devmodels_select($db, $devmodel_name, $devmodel_value, $dev_filter = 'device_type<=2')
 {
-    print "<select id=\"$devmodel_name\" name=\"$devmodel_name\">\n";
+    // Валидация фильтра для предотвращения SQL-инъекций
+    $allowed_filters = [
+        'device_type<=2',
+        'device_type=2',
+        'device_type=1',
+        'device_type=0'
+    ];
+    
+    if (!in_array($dev_filter, $allowed_filters)) {
+        $dev_filter = 'device_type<=2';
+    }
+    
+    echo "<select id=\"" . htmlspecialchars($devmodel_name) . "\" name=\"" . htmlspecialchars($devmodel_name) . "\">\n";
     print_select_item(WEB_select_item_all, -1, $devmodel_value);
-    $t_devmodel = get_records_sql($db, "SELECT M.id,V.name,M.model_name FROM device_models M,vendors V WHERE M.vendor_id = V.id and M.id in (SELECT device_model_id FROM devices WHERE $dev_filter) ORDER BY V.name,M.model_name");
+    
+    $t_devmodel = get_records_sql($db,
+        "SELECT M.id, V.name, M.model_name 
+         FROM device_models M, vendors V 
+         WHERE M.vendor_id = V.id 
+           AND M.id IN (SELECT device_model_id FROM devices WHERE $dev_filter) 
+         ORDER BY V.name, M.model_name"
+    );
+    
     if (!empty($t_devmodel)) {
         foreach ($t_devmodel as $row) {
-            print_select_item($row['name'] . " " . $row['model_name'], $row['id'], $devmodel_value);
+            $display = htmlspecialchars($row['name']) . " " . htmlspecialchars($row['model_name']);
+            print_select_item($display, $row['id'], $devmodel_value);
         }
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_devtypes_select($db, $devtype_name, $devtype_value, $mode)
 {
-    print "<select id=\"$devtype_name\" name=\"$devtype_name\">\n";
+    // Валидация режима для предотвращения SQL-инъекций
+    $allowed_modes = [
+        '',
+        'device_class = 1',
+        'device_class = 2',
+        'device_class <= 2',
+        'id IN (0,1,2)',
+        'id > 0'
+        // Добавьте другие допустимые значения по необходимости
+    ];
+    
+    if (!in_array($mode, $allowed_modes)) {
+        $mode = '';
+    }
+    
+    echo "<select id=\"" . htmlspecialchars($devtype_name) . "\" name=\"" . htmlspecialchars($devtype_name) . "\">\n";
     print_select_item(WEB_select_item_all, -1, $devtype_value);
+    
     $filter = '';
     if (!empty($mode)) {
         $filter = "WHERE $mode";
     }
-    $t_devtype = get_records_sql($db, "SELECT id,name_" . HTML_LANG . " FROM device_types $filter ORDER BY name_" . HTML_LANG );
+    
+    $lang_column = 'name_' . HTML_LANG;
+    $t_devtype = get_records_sql($db, "SELECT id, $lang_column FROM device_types $filter ORDER BY $lang_column");
+    
     if (!empty($t_devtype)) {
         foreach ($t_devtype as $row) {
-            print_select_item($row['name_' . HTML_LANG ], $row['id'], $devtype_value);
+            print_select_item(htmlspecialchars($row[$lang_column]), $row['id'], $devtype_value);
         }
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_devtype_select($db, $devtype_name, $devtype_value)
 {
-    print "<select id=\"$devtype_name\" name=\"$devtype_name\">\n";
-    $t_devtype = get_records_sql($db, "SELECT id,name_" . HTML_LANG . " FROM device_types ORDER BY name_" . HTML_LANG );
+    echo "<select id=\"" . htmlspecialchars($devtype_name) . "\" name=\"" . htmlspecialchars($devtype_name) . "\">\n";
+    
+    $lang_column = 'name_' . HTML_LANG;
+    $t_devtype = get_records_sql($db, "SELECT id, $lang_column FROM device_types ORDER BY $lang_column");
+    
     foreach ($t_devtype as $row) {
-        print_select_item($row['name_'.HTML_LANG], $row['id'], $devtype_value);
+        print_select_item(htmlspecialchars($row[$lang_column]), $row['id'], $devtype_value);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function get_group($db, $group_value)
 {
-    $group = get_record_sql($db, "SELECT group_name FROM group_list WHERE id=$group_value");
-    if (!empty($group) and isset($group['group_name'])) {
+    if (!isset($group_value)) {
+        return '';
+    }
+    
+    $group = get_record_sql($db, "SELECT group_name FROM group_list WHERE id = ?", [(int)$group_value]);
+    if (!empty($group) && isset($group['group_name'])) {
         return $group['group_name'];
     }
     return '';
@@ -1328,9 +1463,14 @@ function get_group($db, $group_value)
 
 function get_devtype_name($db, $device_type_id)
 {
-    $type = get_record_sql($db, "SELECT name_" . HTML_LANG . " FROM device_types WHERE id=$device_type_id");
-    if (!empty($type) and isset($type['name_'.HTML_LANG])) {
-        return $type['name_'.HTML_LANG];
+    if (!isset($device_type_id)) {
+        return '';
+    }
+    
+    $lang_column = 'name_' . HTML_LANG;
+    $type = get_record_sql($db, "SELECT $lang_column FROM device_types WHERE id = ?", [(int)$device_type_id]);
+    if (!empty($type) && isset($type[$lang_column])) {
+        return $type[$lang_column];
     }
     return '';
 }
@@ -1339,25 +1479,39 @@ function get_l3_interfaces($db, $device_id)
 {
     $wan = '';
     $lan = '';
-    $t_l3int = get_records_sql($db, "SELECT name,interface_type FROM device_l3_interfaces WHERE device_id=$device_id ORDER BY name");
-    if (empty($t_l3int)) { return ''; }
+    
+    $t_l3int = get_records_sql($db, 
+        "SELECT name, interface_type FROM device_l3_interfaces WHERE device_id = ? ORDER BY name", 
+        [(int)$device_id]
+    );
+    
+    if (empty($t_l3int)) { 
+        return ''; 
+    }
+    
     foreach ($t_l3int as $row) {
+        // Экранируем имя интерфейса для защиты от XSS при выводе
+        $name = htmlspecialchars($row['name']);
+        
         if ($row['interface_type'] == 0) {
-            $lan = $lan . " " . $row['name'];
+            $lan .= " " . $name;
         }
         if ($row['interface_type'] == 1) {
-            $wan = $wan . " " . $row['name'];
+            $wan .= " " . $name;
         }
     }
+    
     $wan = trim($wan);
     $lan = trim($lan);
     $result = '';
+    
     if (!empty($wan)) {
         $result .= ' WAN: ' . $wan . '<br>';
     }
     if (!empty($lan)) {
         $result .= ' LAN: ' . $lan;
     }
+    
     return trim($result);
 }
 
@@ -1365,64 +1519,82 @@ function get_wan_interfaces($db, $device_id)
 {
     $device_id = (int)$device_id;
     
-    $l3_wan_sql = "SELECT id, name, snmpin 
-                   FROM device_l3_interfaces 
-                   WHERE device_id = '" . $device_id . "' 
-                     AND interface_type = 1 
-                   ORDER BY name";
-    
-    $t_l3int = get_records_sql($db, $l3_wan_sql);
+    // Получаем WAN-интерфейсы
+    $t_l3int = get_records_sql($db, 
+        "SELECT id, name, snmpin FROM device_l3_interfaces 
+         WHERE device_id = ? AND interface_type = 1 
+         ORDER BY name", 
+        [$device_id]
+    );
     
     // Обрабатываем каждый интерфейс
-    foreach ($t_l3int as &$row) { // & - передача по ссылке для изменения исходного массива
+    foreach ($t_l3int as &$row) {
         $row['description'] = '';
         
         if (empty($row['snmpin'])) {
             continue;
         }
         
-        $con_sql = "SELECT * FROM device_ports 
-                    WHERE device_id = '" . $device_id . "' 
-                      AND snmp_index = '" . $row['snmpin'] . "'";
-        
-        $conn = get_record_sql($db, $con_sql);
+        // Получаем описание порта
+        $conn = get_record_sql($db, 
+            "SELECT description FROM device_ports 
+             WHERE device_id = ? AND snmp_index = ?", 
+            [$device_id, $row['snmpin']]
+        );
         
         // Проверяем, есть ли комментарий в результатах запроса
         if (!empty($conn) && !empty($conn['description'])) {
-            $row['description'] = $conn['description'];
+            $row['description'] = htmlspecialchars($conn['description']);
         }
     }
-    unset($row); 
+    unset($row);
+    
     return $t_l3int;
 }
 
 function get_gw_subnets($db, $device_id)
 {
-    $gw_subnets_sql = 'SELECT gateway_subnets.*,subnets.subnet,subnets.description FROM gateway_subnets LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id WHERE gateway_subnets.device_id=' . $device_id . ' ORDER BY subnets.subnet ASC';
-    $gw_subnets = get_records_sql($db, $gw_subnets_sql);
-    if (empty($gw_subnets)) { return ''; }
+    $gw_subnets = get_records_sql($db, 
+        'SELECT gateway_subnets.*, subnets.subnet, subnets.description 
+         FROM gateway_subnets 
+         LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id 
+         WHERE gateway_subnets.device_id = ? 
+         ORDER BY subnets.subnet ASC', 
+        [(int)$device_id]
+    );
+    
+    if (empty($gw_subnets)) { 
+        return ''; 
+    }
+    
     $result = '';
     foreach ($gw_subnets as $row) {
-        if (!empty($row)) {
-            $result .= ' ' . $row['subnet'] . '<br>';
+        if (!empty($row['subnet'])) {
+            $result .= ' ' . htmlspecialchars($row['subnet']) . '<br>';
         }
     }
+    
     return trim($result);
 }
 
 function print_queue_select($db, $queue_name, $queue_value)
-{
-    print "<select id=\"$queue_name\" name=\"$queue_name\">\n";
-    $t_queue = get_records_sql($db, "SELECT id,queue_name FROM queue_list ORDER BY queue_name");
+{   
+    echo "<select id=\"" . htmlspecialchars($queue_name) . "\" name=\"" . htmlspecialchars($queue_name) . "\">\n";
+    $t_queue = get_records_sql($db, "SELECT id, queue_name FROM queue_list ORDER BY queue_name");
+    
     foreach ($t_queue as $row) {
-        print_select_item($row['queue_name'], $row['id'], $queue_value);
+        print_select_item(htmlspecialchars($row['queue_name']), $row['id'], $queue_value);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function get_queue($db, $queue_value)
-{
-    $queue=get_record_sql($db, "SELECT queue_name FROM queue_list WHERE id=$queue_value");
+{   
+    if (!isset($queue_value)) {
+        return '';
+    }
+    
+    $queue = get_record_sql($db, "SELECT queue_name FROM queue_list WHERE id = ?", [(int)$queue_value]);
     if (!empty($queue) && isset($queue['queue_name'])) {
         return $queue['queue_name'];
     }
@@ -1569,105 +1741,141 @@ function print_dhcp_select($qa_name, $qa_value = 0)
     print "</select>\n";
 }
 
-function print_nagios_handler_select($db,$qa_name)
-{
-$nagios_handler = get_records_sql($db,"SELECT DISTINCT nagios_handler FROM user_auth WHERE nagios_handler IS NOT NULL AND nagios_handler != '' AND  deleted=0");
-if (!empty($nagios_handler) and count($nagios_handler)>0) {
-    print "<select name=\"$qa_name\">\n";
-    print_select_simple(WEB_select_item_no, '');
-    foreach ($nagios_handler as $handler) {
-        print_select_simple($handler['nagios_handler'],$handler['nagios_handler']);
+function print_nagios_handler_select($db, $qa_name)
+{   
+    $nagios_handler = get_records_sql($db, 
+        "SELECT DISTINCT nagios_handler FROM user_auth 
+         WHERE nagios_handler IS NOT NULL AND nagios_handler != '' AND deleted = 0"
+    );
+    
+    if (!empty($nagios_handler)) {
+        echo "<select name=\"" . htmlspecialchars($qa_name) . "\">\n";
+        print_select_simple(WEB_select_item_no, '');
+        
+        foreach ($nagios_handler as $handler) {
+            $value = htmlspecialchars($handler['nagios_handler']);
+            print_select_simple($value, $value);
         }
-    print "</select>\n";
+        echo "</select>\n";
     } else {
-    print "<input type=\"text\" name=\"$qa_name\" value=\"\" size=10/>";
+        echo "<input type=\"text\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"\" size=\"10\" />\n";
     }
 }
 
-function print_dhcp_acl($db,$qa_name)
+function print_dhcp_acl($db, $qa_name)
 {
-$dhcp_acl = get_records_sql($db,"SELECT DISTINCT dhcp_acl FROM user_auth WHERE dhcp_acl IS NOT NULL AND dhcp_acl != '' AND  deleted=0");
-if (!empty($dhcp_acl) and count($dhcp_acl)>0) {
-    print "<select name=\"$qa_name\">\n";
-    print_select_simple(WEB_select_item_no, '');
-    foreach ($dhcp_acl as $acl) {
-        print_select_simple($acl['dhcp_acl'],$acl['dhcp_acl']);
+    $dhcp_acl = get_records_sql($db,
+        "SELECT DISTINCT dhcp_acl FROM user_auth 
+         WHERE dhcp_acl IS NOT NULL AND dhcp_acl != '' AND deleted = 0"
+    );
+    
+    if (!empty($dhcp_acl)) {
+        echo "<select name=\"" . htmlspecialchars($qa_name) . "\">\n";
+        print_select_simple(WEB_select_item_no, '');
+        
+        foreach ($dhcp_acl as $acl) {
+            $value = htmlspecialchars($acl['dhcp_acl']);
+            print_select_simple($value, $value);
         }
-    print "</select>\n";
+        echo "</select>\n";
     } else {
-    print "<input type=\"text\" name=\"$qa_name\" value=\"\" size=10/>";
+        echo "<input type=\"text\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"\" size=\"10\" />\n";
+    }
+}
+    
+function print_dhcp_option_set($db, $qa_name)
+{   
+    $dhcp_option_sets = get_records_sql($db,
+        "SELECT DISTINCT dhcp_option_set FROM user_auth 
+         WHERE dhcp_option_set IS NOT NULL AND dhcp_option_set != '' AND deleted = 0"
+    );
+    
+    if (!empty($dhcp_option_sets)) {
+        echo "<select name=\"" . htmlspecialchars($qa_name) . "\">\n";
+        print_select_simple(WEB_select_item_no, '');
+        
+        foreach ($dhcp_option_sets as $dhcp_option_set) {
+            $value = htmlspecialchars($dhcp_option_set['dhcp_option_set']);
+            print_select_simple($value, $value);
+        }
+        echo "</select>\n";
+    } else {
+        echo "<input type=\"text\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"\" size=\"10\" />\n";
     }
 }
 
-function print_dhcp_option_set($db,$qa_name)
+function print_dhcp_acl_list($db, $qa_name, $value = '')
 {
-$dhcp_option_sets = get_records_sql($db,"SELECT DISTINCT dhcp_option_set FROM user_auth WHERE dhcp_option_set IS NOT NULL AND dhcp_option_set != '' AND deleted=0");
-if (!empty($dhcp_option_sets) and count($dhcp_option_sets)>0) {
-    print "<select name=\"$qa_name\">\n";
-    print_select_simple(WEB_select_item_no, '');
-    foreach ($dhcp_option_sets as $dhcp_option_set) {
-        print_select_simple($dhcp_option_set['dhcp_option_set'],$dhcp_option_set['dhcp_option_set']);
+    $dhcp_acl = get_records_sql($db,
+        "SELECT DISTINCT dhcp_acl FROM user_auth 
+         WHERE dhcp_acl IS NOT NULL AND dhcp_acl != '' AND deleted = 0"
+    );
+    
+    if (!empty($dhcp_acl)) {
+        echo "<input list=\"dhcp_acl\" id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"" . htmlspecialchars($value) . "\" />";
+        echo "<datalist id=\"dhcp_acl\">";
+        echo "<option value=\"\">";
+        
+        foreach ($dhcp_acl as $acl) {
+            echo "<option value=\"" . htmlspecialchars($acl['dhcp_acl']) . "\">";
         }
-    print "</select>\n";
+        echo "</datalist>";
     } else {
-    print "<input type=\"text\" name=\"$qa_name\" value=\"\" size=10/>";
+        echo "<input type=\"text\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"\" size=\"10\" />";
     }
 }
 
-function print_dhcp_acl_list($db,$qa_name,$value='')
+function print_dhcp_option_set_list($db, $qa_name, $value = '')
 {
-$dhcp_acl = get_records_sql($db,"SELECT DISTINCT dhcp_acl FROM user_auth WHERE dhcp_acl IS NOT NULL AND dhcp_acl != '' AND  deleted=0");
-if (!empty($dhcp_acl) and count($dhcp_acl)>0) {
-    print "<input list=\"dhcp_acl\" id=\"$qa_name\" name=\"$qa_name\" value=\"$value\"/>";
-    print "<datalist id=\"dhcp_acl\">";
-    print "<option value=\"\">";
-    foreach ($dhcp_acl as $acl) {
-        print "<option value=\"{$acl['dhcp_acl']}\">";
+    $dhcp_option_sets = get_records_sql($db,
+        "SELECT DISTINCT dhcp_option_set FROM user_auth 
+         WHERE dhcp_option_set IS NOT NULL AND dhcp_option_set != '' AND deleted = 0"
+    );
+    
+    if (!empty($dhcp_option_sets)) {
+        echo "<input list=\"dhcp_option_set\" id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"" . htmlspecialchars($value) . "\" />";
+        echo "<datalist id=\"dhcp_option_set\">";
+        echo "<option value=\"\">";
+        
+        foreach ($dhcp_option_sets as $dhcp_option_set) {
+            echo "<option value=\"" . htmlspecialchars($dhcp_option_set['dhcp_option_set']) . "\">";
         }
-    print "</datalist>";
+        echo "</datalist>";
     } else {
-    print "<input type=\"text\" name=\"$qa_name\" value=\"\" size=10/>";
-    }
-}
-
-function print_dhcp_option_set_list($db,$qa_name,$value='')
-{
-$dhcp_option_sets = get_records_sql($db,"SELECT DISTINCT dhcp_option_set FROM user_auth WHERE dhcp_option_set IS NOT NULL AND dhcp_option_set != '' AND deleted=0");
-if (!empty($dhcp_option_sets) and count($dhcp_option_sets)>0) {
-    print "<input list=\"dhcp_option_set\" id=\"$qa_name\" name=\"$qa_name\" value=\"$value\"/>";
-    print "<datalist id=\"dhcp_option_set\">";
-    print "<option value=\"\">";
-    foreach ($dhcp_option_sets as $dhcp_option_set) {
-        print "<option value=\"{$dhcp_option_set['dhcp_option_set']}\">";
-        }
-    print "</datalist>";
-    } else {
-    print "<input type=\"text\" name=\"$qa_name\" value=\"\" size=10/>";
+        echo "<input type=\"text\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"\" size=\"10\" />";
     }
 }
 
 function print_enabled_select($qa_name, $qa_value)
 {
-    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
-    if (!isset($qa_value) or strlen($qa_value) == 0) {
+    // Убедимся, что значение корректно
+    if (!isset($qa_value) || $qa_value === '') {
         $qa_value = 0;
+    } else {
+        $qa_value = (int)$qa_value;
     }
+    
+    echo "<select id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\">\n";
     print_select_item('-', 0, $qa_value);
     print_select_item(WEB_select_item_disabled, 1, $qa_value);
     print_select_item(WEB_select_item_enabled, 2, $qa_value);
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_rule_target_select($qa_name, $qa_value)
 {
-    print "<select id=\"$qa_name\" name=\"$qa_name\">\n";
-    if (!isset($qa_value) or strlen($qa_value) == 0) {
+    // Убедимся, что значение корректно
+    if (!isset($qa_value) || $qa_value === '') {
         $qa_value = 0;
+    } else {
+        $qa_value = (int)$qa_value;
     }
+    
+    echo "<select id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\">\n";
     print_select_item('-', 0, $qa_value);
     print_select_item(WEB_rules_target_user, 1, $qa_value);
     print_select_item(WEB_rules_target_group, 2, $qa_value);
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_rule_type_select($qa_name, $qa_value)
@@ -1709,32 +1917,36 @@ function print_ip_type_select($qa_name, $qa_value)
 }
 
 function print_vendor_select($db, $qa_name, $qa_value)
-{
-    print "<select id=\"$qa_name\" name=\"$qa_name\"  style=\"width: 100%\">\n";
-    $sSQL = "SELECT id,name FROM vendors ORDER BY name";
-    $vendors = get_records_sql($db, $sSQL);
+{   
+    echo "<select id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" style=\"width: 100%\">\n";
+    $vendors = get_records_sql($db, "SELECT id, name FROM vendors ORDER BY name");
     print_select_item(WEB_select_item_all, 0, $qa_value);
+    
     foreach ($vendors as $row) {
-        print_select_item($row['name'], $row['id'], $qa_value);
+        print_select_item(htmlspecialchars($row['name']), $row['id'], $qa_value);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_vendor_set($db, $qa_name, $qa_value)
 {
-    print "<select id=\"$qa_name\" name=\"$qa_name\" style=\"width: 100%\">\n";
-    $sSQL = "SELECT id,name FROM vendors ORDER BY name";
-    $vendors = get_records_sql($db, $sSQL);
+    echo "<select id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" style=\"width: 100%\">\n";
+    $vendors = get_records_sql($db, "SELECT id, name FROM vendors ORDER BY name");
+    
     foreach ($vendors as $row) {
-        print_select_item($row['name'], $row['id'], $qa_value);
+        print_select_item(htmlspecialchars($row['name']), $row['id'], $qa_value);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
-
+    
 function get_vendor_name($db, $v_id)
-{
-    $vendor = get_record_sql($db, "SELECT * FROM vendors WHERE id=" . $v_id);
-    if (!empty($vendor) and isset($vendor['name'])) {
+{   
+    if (!isset($v_id)) {
+        return '';
+    }
+    
+    $vendor = get_record_sql($db, "SELECT name FROM vendors WHERE id = ?", [(int)$v_id]);
+    if (!empty($vendor) && isset($vendor['name'])) {
         return $vendor['name'];
     }
     return '';
@@ -1793,74 +2005,123 @@ function get_action($action_value)
 }
 
 function print_filter_select($db, $filter_name, $group_id)
-{
-    print "<select id=\"$filter_name\" name=\"$filter_name\" class=\"js-select-single\">\n";
+{   
+    echo "<select id=\"" . htmlspecialchars($filter_name) . "\" name=\"" . htmlspecialchars($filter_name) . "\" class=\"js-select-single\">\n";
+    
     if (isset($group_id)) {
-        $sSQL = "SELECT id,name FROM filter_list WHERE filter_list.id not in (Select filter_id FROM group_filters WHERE group_id=$group_id)";
+        $t_filters = get_records_sql($db,
+            "SELECT id, name FROM filter_list 
+             WHERE id NOT IN (SELECT filter_id FROM group_filters WHERE group_id = ?) 
+             ORDER BY name",
+            [(int)$group_id]
+        );
     } else {
-        $sSQL = "SELECT id,name FROM filter_list ORDER BY name";
+        $t_filters = get_records_sql($db, "SELECT id, name FROM filter_list ORDER BY name");
     }
-
-    $t_filters = get_records_sql($db, $sSQL);
+    
     foreach ($t_filters as $row) {
-        print_select_item($row['name'], $row['id'], 0);
+        print_select_item(htmlspecialchars($row['name']), $row['id'], 0);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
-
+    
 function get_filter($db, $filter_value)
-{
-    $filter = get_record_sql($db, "SELECT name FROM filter_list WHERE id=" . $filter_value);
-    if (!empty($filter) and isset($filter['name'])) { return $filter['name']; }
+{   
+    if (!isset($filter_value)) {
+        return '';
+    }
+    
+    $filter = get_record_sql($db, "SELECT name FROM filter_list WHERE id = ?", [(int)$filter_value]);
+    if (!empty($filter) && isset($filter['name'])) { 
+        return $filter['name']; 
+    }
     return '';
 }
-
+    
 function get_login($db, $user_id)
-{
-    $login = get_record_sql($db, "SELECT login FROM user_list WHERE id=$user_id");
-    if (!empty($login) and isset($login['login'])) { return $login['login']; }
+{   
+    if (!isset($user_id)) {
+        return '';
+    }
+    
+    $login = get_record_sql($db, "SELECT login FROM user_list WHERE id = ?", [(int)$user_id]);
+    if (!empty($login) && isset($login['login'])) { 
+        return $login['login']; 
+    }
     return '';
 }
-
+    
 function get_auth_count($db, $user_id)
-{
-    $count = get_record_sql($db, "SELECT count(id) as cnt FROM user_auth WHERE user_id=$user_id and deleted=0");
-    if (!empty($count) and isset($count['cnt'])) { return $count['cnt']; }
+{   
+    if (!isset($user_id)) {
+        return 0;
+    }
+    
+    $count = get_record_sql($db, "SELECT COUNT(id) as cnt FROM user_auth WHERE user_id = ? AND deleted = 0", [(int)$user_id]);
+    if (!empty($count) && isset($count['cnt'])) { 
+        return (int)$count['cnt']; 
+    }
     return 0;
 }
 
 function print_login_select($db, $login_name, $current_login)
 {
-    print "<select id=\"$login_name\" name=\"$login_name\" class=\"js-select-single\">\n";
-    $t_login = get_records_sql($db, "SELECT id,login FROM user_list ORDER BY login");
+    echo "<select id=\"" . htmlspecialchars($login_name) . "\" name=\"" . htmlspecialchars($login_name) . "\" class=\"js-select-single\">\n";
+    $t_login = get_records_sql($db, "SELECT id, login FROM user_list ORDER BY login");
     print_select_item('None', 0, $current_login);
+    
     foreach ($t_login as $row) {
-        print_select_item($row['login'], $row['id'], $current_login);
+        print_select_item(htmlspecialchars($row['login']), $row['id'], $current_login);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_auth_select($db, $login_name, $current_auth)
 {
-    print "<select id=\"$login_name\" name=\"$login_name\" class=\"js-select-single\">\n";
-    $t_login = get_records_sql($db, "SELECT U.login,U.fio,A.ip,A.id FROM user_list as U, user_auth as A WHERE A.user_id=U.id and A.deleted=0 and (A.id not in (select device_ports.auth_id FROM device_ports) or A.id=$current_auth) ORDER BY U.login,U.fio,A.ip");
+    echo "<select id=\"" . htmlspecialchars($login_name) . "\" name=\"" . htmlspecialchars($login_name) . "\" class=\"js-select-single\">\n";
+    
+    $params = [];
+    $sql = "SELECT U.login, U.fio, A.ip, A.id 
+            FROM user_list AS U, user_auth AS A 
+            WHERE A.user_id = U.id 
+              AND A.deleted = 0 
+              AND (A.id NOT IN (SELECT device_ports.auth_id FROM device_ports) OR A.id = ?) 
+            ORDER BY U.login, U.fio, A.ip";
+    
+    $params[] = (int)$current_auth;
+    $t_login = get_records_sql($db, $sql, $params);
+    
     print_select_item('Empty', 0, $current_auth);
+    
     foreach ($t_login as $row) {
-        print_select_item($row['login'] . "[" . $row['fio'] . "] - " . $row['ip'], $row['id'], $current_auth);
+        $display = htmlspecialchars($row['login']) . "[" . htmlspecialchars($row['fio']) . "] - " . htmlspecialchars($row['ip']);
+        print_select_item($display, $row['id'], $current_auth);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_auth_select_mac($db, $login_name, $current_auth)
 {
-    print "<select id=\"$login_name\" name=\"$login_name\" class=\"js-select-single\">\n";
-    $t_login = get_records_sql($db, "SELECT U.login,U.fio,A.ip,A.mac,A.id FROM user_list as U, user_auth as A WHERE A.user_id=U.id and A.deleted=0 and (A.id not in (select device_ports.auth_id FROM device_ports) or A.id=$current_auth) ORDER BY U.login,U.fio,A.ip");
-
+    echo "<select id=\"" . htmlspecialchars($login_name) . "\" name=\"" . htmlspecialchars($login_name) . "\" class=\"js-select-single\">\n";
+    
+    $params = [];
+    $sql = "SELECT U.login, U.fio, A.ip, A.mac, A.id 
+            FROM user_list AS U, user_auth AS A 
+            WHERE A.user_id = U.id 
+              AND A.deleted = 0 
+              AND (A.id NOT IN (SELECT device_ports.auth_id FROM device_ports) OR A.id = ?) 
+            ORDER BY U.login, U.fio, A.ip";
+    
+    $params[] = (int)$current_auth;
+    $t_login = get_records_sql($db, $sql, $params);
+    
     print_select_item('Empty', 0, $current_auth);
+    
     foreach ($t_login as $row) {
-        print_select_item($row['login'] . "[" . $row['mac'] . "] - " . $row['ip'], $row['id'], $current_auth);
+        $display = htmlspecialchars($row['login']) . "[" . htmlspecialchars($row['mac']) . "] - " . htmlspecialchars($row['ip']);
+        print_select_item($display, $row['id'], $current_auth);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function compact_port_name($port)
@@ -1873,112 +2134,181 @@ function compact_port_name($port)
 }
 
 function print_device_port_select($db, $field_name, $device_id, $target_id)
-{
-    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
-    if (empty($target_id)) {
-        $target_id = 0;
-    }
-    if (empty($device_id)) {
-        $device_id = 0;
-    }
-    $d_sql = "SELECT D.device_name, DP.port, DP.device_id, DP.id, DP.ifName FROM devices AS D, device_ports AS DP WHERE D.deleted=0 and D.id = DP.device_id AND (DP.device_id<>$device_id or DP.id=$target_id) and (DP.id not in (select target_port_id FROM device_ports WHERE target_port_id>0 and target_port_id<>$target_id)) ORDER BY D.device_name,DP.port";
-    $t_device = get_records_sql($db, $d_sql);
+{   
+    echo "<select id=\"" . htmlspecialchars($field_name) . "\" name=\"" . htmlspecialchars($field_name) . "\" class=\"js-select-single\">\n";
+    
+    $device_id = (int)$device_id;
+    $target_id = (int)$target_id;
+    
+    $t_device = get_records_sql($db,
+        "SELECT D.device_name, DP.port, DP.device_id, DP.id, DP.ifName 
+         FROM devices AS D, device_ports AS DP 
+         WHERE D.deleted = 0 
+           AND D.id = DP.device_id 
+           AND (DP.device_id != ? OR DP.id = ?) 
+           AND (DP.id NOT IN (SELECT target_port_id FROM device_ports WHERE target_port_id IS NOT NULL))
+         ORDER BY D.device_name, DP.port",
+        [$device_id, $target_id]
+    );
+    
     print_select_item('Empty', 0, $target_id);
+    
     foreach ($t_device as $row) {
-        if (empty($row['ifName'])) {
-            $row['ifName'] = $row['port'];
-        }
-        print_select_item($row['device_name'] . "[" . $row['port'] . "] - " . compact_port_name($row['ifName']), $row['id'], $target_id);
+        $ifName = !empty($row['ifName']) ? $row['ifName'] : $row['port'];
+        $display = htmlspecialchars($row['device_name']) . "[" . htmlspecialchars($row['port']) . "] - " . htmlspecialchars(compact_port_name($ifName));
+        print_select_item($display, $row['id'], $target_id);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
-
+    
 function print_device_select($db, $field_name, $device_id)
-{
-    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
-    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 ORDER BY D.device_name ASC";
-    $t_device = get_records_sql($db, $d_sql);
+{   
+    echo "<select id=\"" . htmlspecialchars($field_name) . "\" name=\"" . htmlspecialchars($field_name) . "\" class=\"js-select-single\">\n";
+    
+    $t_device = get_records_sql($db,
+        "SELECT D.device_name, D.id 
+         FROM devices AS D 
+         WHERE D.deleted = 0 
+         ORDER BY D.device_name ASC"
+    );
+    
     print_select_item(WEB_select_item_every, 0, $device_id);
+    
     foreach ($t_device as $row) {
-        print_select_item($row['device_name'], $row['id'], $device_id);
+        print_select_item(htmlspecialchars($row['device_name']), $row['id'], $device_id);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_netdevice_select($db, $field_name, $device_id)
 {
-    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
-    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type<=2 ORDER BY D.device_name ASC";
-    $t_device = get_records_sql($db, $d_sql);
+    echo "<select id=\"" . htmlspecialchars($field_name) . "\" name=\"" . htmlspecialchars($field_name) . "\" class=\"js-select-single\">\n";
+    
+    $t_device = get_records_sql($db,
+        "SELECT D.device_name, D.id 
+         FROM devices AS D 
+         WHERE D.deleted = 0 AND D.device_type <= 2 
+         ORDER BY D.device_name ASC"
+    );
+    
     print_select_item(WEB_select_item_every, 0, $device_id);
+    
     foreach ($t_device as $row) {
-        print_select_item($row['device_name'], $row['id'], $device_id);
+        print_select_item(htmlspecialchars($row['device_name']), $row['id'], $device_id);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_vlan_select($db, $field_name, $vlan)
 {
-    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" style=\"width: 100px;\" >\n";
-    $d_sql = "SELECT DISTINCT vlan FROM device_ports ORDER BY vlan DESC";
-    $v_device = get_records_sql($db, $d_sql);
-    if (!isset($vlan) or empty($vlan)) {
+    echo "<select id=\"" . htmlspecialchars($field_name) . "\" name=\"" . htmlspecialchars($field_name) . "\" class=\"js-select-single\" style=\"width: 100px;\">\n";
+    
+    $v_device = get_records_sql($db, "SELECT DISTINCT vlan FROM device_ports ORDER BY vlan DESC");
+    
+    if (!isset($vlan) || empty($vlan)) {
         $vlan = 1;
-    };
+    }
+    
     print_select_item('1', 1, $vlan);
+    
     foreach ($v_device as $row) {
         if ($row['vlan'] === '1') {
             continue;
         }
-        print_select_item($row['vlan'], $row['vlan'], $vlan);
+        // VLAN-ы обычно числовые, но на всякий случай экранируем
+        $vlan_val = htmlspecialchars($row['vlan']);
+        print_select_item($vlan_val, $vlan_val, $vlan);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_device_select_ip($db, $field_name, $device_ip)
 {
-    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
-    $d_sql = "SELECT D.device_name, D.ip FROM devices AS D Where D.deleted=0 ORDER BY D.device_name ASC";
-    $t_device = get_records_sql($db, $d_sql);
+    echo "<select id=\"" . htmlspecialchars($field_name) . "\" name=\"" . htmlspecialchars($field_name) . "\" class=\"js-select-single\">\n";
+    
+    $t_device = get_records_sql($db,
+        "SELECT D.device_name, D.ip 
+         FROM devices AS D 
+         WHERE D.deleted = 0 
+         ORDER BY D.device_name ASC"
+    );
+    
     print_select_item(WEB_select_item_every, '', $device_ip);
+    
     foreach ($t_device as $row) {
-        print_select_item($row['device_name'], $row['ip'], $device_ip);
+        $display = htmlspecialchars($row['device_name']);
+        $value = htmlspecialchars($row['ip']); // IP безопасен, но для единообразия
+        print_select_item($display, $value, $device_ip);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function print_syslog_device_select($db, $field_name, $syslog_filter, $device_ip)
 {
-    print "<select id=\"$field_name\" name=\"$field_name\" class=\"js-select-single\" >\n";
-    $d_sql = "SELECT R.ip, D.device_name FROM (SELECT DISTINCT ip FROM remote_syslog WHERE $syslog_filter) AS R LEFT JOIN (SELECT ip, device_name FROM devices WHERE deleted=0) AS D ON R.ip=D.ip ORDER BY R.ip ASC";
-    $t_device = get_records_sql($db, $d_sql);
-    print_select_item(WEB_select_item_every, '', $device_ip);
-    foreach ($t_device as $row) {
-        if (!isset($row['device_name']) or empty($row['device_name'])) {
-            $row['device_name'] = $row['ip'];
-        }
-        print_select_item($row['device_name'], $row['ip'], $device_ip);
+    // Валидация фильтра для предотвращения SQL-инъекций
+    $allowed_filters = [
+        'facility = 1',
+        'facility = 2',
+        'priority <= 3',
+        'message LIKE "%error%"',
+        'message LIKE "%warning%"',
+        '1=1' // для случая "все записи"
+        // Добавьте другие допустимые значения по необходимости
+    ];
+    
+    if (!in_array($syslog_filter, $allowed_filters)) {
+        $syslog_filter = '1=1';
     }
-    print "</select>\n";
+    
+    echo "<select id=\"" . htmlspecialchars($field_name) . "\" name=\"" . htmlspecialchars($field_name) . "\" class=\"js-select-single\">\n";
+    
+    $t_device = get_records_sql($db,
+        "SELECT R.ip, D.device_name 
+         FROM (SELECT DISTINCT ip FROM remote_syslog WHERE $syslog_filter) AS R 
+         LEFT JOIN (SELECT ip, device_name FROM devices WHERE deleted = 0) AS D ON R.ip = D.ip 
+         ORDER BY R.ip ASC"
+    );
+    
+    print_select_item(WEB_select_item_every, '', $device_ip);
+    
+    foreach ($t_device as $row) {
+        $display_name = !empty($row['device_name']) ? $row['device_name'] : $row['ip'];
+        $display = htmlspecialchars($display_name);
+        $value = htmlspecialchars($row['ip']);
+        print_select_item($display, $value, $device_ip);
+    }
+    echo "</select>\n";
 }
 
 function print_gateway_select($db, $field_name, $device_id)
 {
-    print "<select id=\"$field_name\" name=\"$field_name\" >\n";
-    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type=2 ORDER BY D.device_name ASC";
-    $t_device = get_records_sql($db, $d_sql);
+    echo "<select id=\"" . htmlspecialchars($field_name) . "\" name=\"" . htmlspecialchars($field_name) . "\">\n";
+    
+    $t_device = get_records_sql($db,
+        "SELECT D.device_name, D.id 
+         FROM devices AS D 
+         WHERE D.deleted = 0 AND D.device_type = 2 
+         ORDER BY D.device_name ASC"
+    );
+    
     print_select_item(WEB_select_item_every, 0, $device_id);
+    
     foreach ($t_device as $row) {
-        print_select_item($row['device_name'], $row['id'], $device_id);
+        print_select_item(htmlspecialchars($row['device_name']), $row['id'], $device_id);
     }
-    print "</select>\n";
+    echo "</select>\n";
 }
 
 function get_gateways($db)
 {
-    $d_sql = "SELECT D.device_name, D.id FROM devices AS D Where D.deleted=0 and D.device_type=2 ORDER BY D.device_name ASC";
-    $t_device = get_records_sql($db, $d_sql);
-    unset($result);
+    $t_device = get_records_sql($db,
+        "SELECT D.device_name, D.id 
+         FROM devices AS D 
+         WHERE D.deleted = 0 AND D.device_type = 2 
+         ORDER BY D.device_name ASC"
+    );
+    
+    $result = [];
     foreach ($t_device as $row) {
         $result[$row['id']] = $row['device_name'];
     }
@@ -1987,202 +2317,321 @@ function get_gateways($db)
 
 function print_device_port($db, $target_id)
 {
-    $d_sql = "SELECT D.device_name, DP.port, DP.device_id FROM devices AS D, device_ports AS DP WHERE D.id = DP.device_id AND DP.id=$target_id and D.deleted=0";
-    $t_device = get_records_sql($db, $d_sql);
+    $t_device = get_records_sql($db,
+        "SELECT D.device_name, DP.port, DP.device_id 
+         FROM devices AS D, device_ports AS DP 
+         WHERE D.id = DP.device_id AND DP.id = ? AND D.deleted = 0",
+        [(int)$target_id]
+    );
+    
     foreach ($t_device as $row) {
-        print "<a href=\"/admin/devices/switchport.php?id=".$row['device_id']."\">" . $row['device_name'] . "[" . $row['port'] . "]</a>\n";
+        $device_name = htmlspecialchars($row['device_name']);
+        $port = htmlspecialchars($row['port']);
+        $device_id = (int)$row['device_id'];
+        echo "<a href=\"/admin/devices/switchport.php?id={$device_id}\">{$device_name}[{$port}]</a>\n";
     }
 }
 
 function get_device_ips($db, $device_id)
 {
-    $switch = get_record($db, 'devices', 'id=' . $device_id);
-    $index = 0;
+    $switch = get_record($db, 'devices', 'id = ?', [(int)$device_id]);
+    $result = [];
+    
     if (!empty($switch['user_id'])) {
-        $auth_ips = get_records($db, 'user_auth', 'deleted=0 and user_id=' . $switch['user_id']);
-        foreach ($auth_ips as $key => $value) {
+        $auth_ips = get_records($db, 'user_auth', 'deleted = 0 AND user_id = ?', [(int)$switch['user_id']]);
+        foreach ($auth_ips as $value) {
             if (isset($value['ip'])) {
-                $result[$index] = $value['ip'];
-                $index++;
+                $result[] = $value['ip'];
             }
         }
     } else {
         if (isset($switch['ip'])) {
-            $result[$index] = $switch['ip'];
-            $index++;
+            $result[] = $switch['ip'];
         }
     }
+    
     return $result;
 }
 
 function get_device_id($db, $device_name)
 {
-    $d_sql = "SELECT id FROM devices WHERE device_name='$device_name' and deleted=0";
-    $dev = get_record_sql($db, $d_sql);
+    if (empty($device_name)) {
+        return null;
+    }
+    
+    $dev = get_record_sql($db, 
+        "SELECT id FROM devices WHERE device_name = ? AND deleted = 0", 
+        [$device_name]
+    );
+    
     if (empty($dev)) {
-        return NULL;
+        return null;
     }
     return $dev["id"];
 }
 
 function get_device_name($db, $device_id)
 {
-    $d_sql = "SELECT device_name FROM devices WHERE id='$device_id'";
-    $dev = get_record_sql($db, $d_sql);
+    if (!isset($device_id)) {
+        return null;
+    }
+    
+    $dev = get_record_sql($db, 
+        "SELECT device_name FROM devices WHERE id = ?", 
+        [(int)$device_id]
+    );
+    
     if (empty($dev)) {
-        return NULL;
+        return null;
     }
     return $dev["device_name"];
 }
 
 function get_auth_by_ip($db, $ip)
 {
-    $d_sql = "SELECT id FROM user_auth WHERE ip='$ip' and deleted=0";
-    $auth = get_record_sql($db, $d_sql);
+    if (empty($ip)) {
+        return null;
+    }
+    
+    $auth = get_record_sql($db, 
+        "SELECT id FROM user_auth WHERE ip = ? AND deleted = 0", 
+        [$ip]
+    );
+    
     if (empty($auth)) {
-        return NULL;
+        return null;
     }
     return $auth["id"];
 }
 
 function get_user_by_ip($db, $ip)
 {
-    $d_sql = "SELECT user_id FROM user_auth WHERE ip='$ip' and deleted=0";
-    $auth = get_record_sql($db, $d_sql);
+    if (empty($ip)) {
+        return null;
+    }
+    
+    $auth = get_record_sql($db, 
+        "SELECT user_id FROM user_auth WHERE ip = ? AND deleted = 0", 
+        [$ip]
+    );
+    
     if (empty($auth)) {
-        return NULL;
+        return null;
     }
     return $auth["user_id"];
 }
 
 function get_device_by_auth($db, $id)
 {
-    $d_sql = "SELECT id FROM devices WHERE user_id=$id and deleted=0";
-    $f_dev = get_record_sql($db, $d_sql);
+    if (!isset($id)) {
+        return null;
+    }
+    
+    $f_dev = get_record_sql($db, 
+        "SELECT id FROM devices WHERE user_id = ? AND deleted = 0", 
+        [(int)$id]
+    );
+    
     if (empty($f_dev)) {
-        return NULL;
+        return null;
     }
     return $f_dev['id'];
 }
 
-function print_auth_port($db, $port_id, $new_window = FALSE)
+function print_auth_port($db, $port_id, $new_window = false)
 {
-    $d_sql = "SELECT A.ip, A.ip_int, A.mac, A.id, A.dns_name, A.user_id FROM user_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 ORDER BY A.ip_int";
-    $t_auth = get_records_sql($db, $d_sql);
+    $t_auth = get_records_sql($db,
+        "SELECT A.ip, A.ip_int, A.mac, A.id, A.dns_name, A.user_id 
+         FROM user_auth AS A, connections AS C 
+         WHERE C.port_id = ? AND A.id = C.auth_id AND A.deleted = 0 
+         ORDER BY A.ip_int",
+        [(int)$port_id]
+    );
+    
     foreach ($t_auth as $row) {
-        $name = $row['ip'];
+        // Определяем отображаемое имя
+        $name = !empty($row['dns_name']) ? $row['dns_name'] : $row['ip'];
+        
+        // Формируем title
+        $login = get_login($db, $row['user_id']);
+        $title = htmlspecialchars($login) . " =>" . htmlspecialchars($row['ip']) . "[" . htmlspecialchars($row['mac']) . "]";
         if (!empty($row['dns_name'])) {
-            $name = $row['dns_name'];
+            $title .= " | " . htmlspecialchars($row['dns_name']);
         }
-        $title = get_login($db, $row['user_id']) . " =>" . $row['ip'] . "[" . $row['mac'] . "]";
-        if (!empty($row['dns_name'])) {
-            $title .= " | " . $row['dns_name'];
-        }
+        
+        // Экранируем данные для вывода
+        $display_name = htmlspecialchars($name);
+        $display_ip = htmlspecialchars($row['ip']);
+        $auth_id = (int)$row['id'];
+        
         if ($new_window) {
-            print "<a href=\"\" title=\"" . $title . "\" onclick=\"" . open_window_url("/admin/users/editauth.php?id=" . $row['id']) . " return false;\">" . $name . " [" . $row['ip'] . "]</a><br>";
+            $url = "/admin/users/editauth.php?id=" . $auth_id;
+            echo "<a href=\"\" title=\"" . $title . "\" onclick=\"" . open_window_url($url) . " return false;\">" . $display_name . " [" . $display_ip . "]</a><br>\n";
         } else {
-            print "<a href=/admin/users/editauth.php?id=" . $row['id'] . " title=\"" . $title . "\" >" . $name . " [" . $row['ip'] . "]</a><br>";
+            echo "<a href=\"/admin/users/editauth.php?id=" . $auth_id . "\" title=\"" . $title . "\">" . $display_name . " [" . $display_ip . "]</a><br>\n";
         }
     }
 }
 
 function get_port_description($db, $port_id, $port_description = '')
 {
-    $d_sql = "SELECT A.ip_int, A.description FROM user_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0 ORDER BY A.ip_int";
-    $t_auth = get_records_sql($db, $d_sql);
-    $description_found = 0;
+    $t_auth = get_records_sql($db,
+        "SELECT A.ip_int, A.description 
+         FROM user_auth AS A, connections AS C 
+         WHERE C.port_id = ? AND A.id = C.auth_id AND A.deleted = 0 
+         ORDER BY A.ip_int",
+        [(int)$port_id]
+    );
+    
+    $description_found = false;
     $result = '';
+    
     foreach ($t_auth as $row) {
-        if (!empty($row['description'])) {
-            $description_found = 1;
-        } else {
-            $row['description'] = '';
+        $desc = !empty($row['description']) ? $row['description'] : '';
+        if (!empty($desc)) {
+            $description_found = true;
         }
-        $result .= $row['description'] . '<br>';
+        $result .= $desc . '<br>';
     }
+    
     if (!$description_found) {
         return $port_description;
     }
+    
     if (!empty($port_description)) {
         $result .= '(' . $port_description . ')';
     }
+    
     return $result;
 }
 
 function print_auth_simple($db, $auth_id)
 {
-    $auth = get_record($db, "user_auth", "id=$auth_id");
-    $name = $auth['dns_name'];
-    if (empty($name)) {
-        $name = $auth['description'];
+    $auth = get_record($db, "user_auth", "id = ?", [(int)$auth_id]);
+    
+    if (empty($auth)) {
+        return;
     }
-    if (empty($name)) {
-        $name = $auth['ip'];
-    }
-    print "<a href=\"/admin/users/editauth.php?id=$auth_id\">" . $name . "</a><br>";
+    
+    // Определяем отображаемое имя
+    $name = !empty($auth['dns_name']) ? $auth['dns_name'] : 
+            (!empty($auth['description']) ? $auth['description'] : $auth['ip']);
+    
+    $display_name = $name;
+    $safe_auth_id = (int)$auth_id;
+    
+    echo "<a href=\"/admin/users/editauth.php?id={$safe_auth_id}\">{$display_name}</a><br>\n";
 }
+
 
 function print_auth($db, $auth_id)
 {
-    $auth = get_record($db, "user_auth", "id=$auth_id");
-    $name = $auth['dns_name'];
-    if (empty($name)) {
-        $name = $auth['description'];
-    } else {
-        $name .= " (" . $auth['description'] . ")";
+    $auth = get_record($db, "user_auth", "id = ?", [(int)$auth_id]);
+    
+    if (empty($auth)) {
+        return;
     }
-    if (empty($name)) {
-        $name = $auth['ip'];
+    
+    // Формируем отображаемое имя
+    if (!empty($auth['dns_name'])) {
+        $name = $auth['dns_name'];
+        if (!empty($auth['description'])) {
+            $name .= " (" . $auth['description'] . ")";
+        }
     } else {
+        $name = !empty($auth['description']) ? $auth['description'] : $auth['ip'];
+    }
+    
+    if (!empty($name) && !empty($auth['ip'])) {
         $name .= " [" . $auth['ip'] . "]";
     }
-    print "<a href=\"/admin/users/editauth.php?id=$auth_id\">" . $name . "</a><br>";
+    
+    $display_name = htmlspecialchars($name);
+    $safe_auth_id = (int)$auth_id;
+    
+    echo "<a href=\"/admin/users/editauth.php?id={$safe_auth_id}\">{$display_name}</a><br>\n";
 }
 
 function print_auth_detail($db, $auth_id)
 {
-    $auth = get_record($db, "user_auth", "id=$auth_id");
-    $name = $auth['dns_name'];
-    if (empty($name)) {
-        $name = $auth['description'];
-    } else {
-        $name .= " (" . $auth['description'] . ")";
+    $auth = get_record($db, "user_auth", "id = ?", [(int)$auth_id]);
+    
+    if (empty($auth)) {
+        return;
     }
-    if (empty($name)) {
-        $name = $auth['ip'];
+    
+    // Формируем отображаемое имя
+    if (!empty($auth['dns_name'])) {
+        $name = $auth['dns_name'];
+        if (!empty($auth['description'])) {
+            $name .= " (" . $auth['description'] . ")";
+        }
     } else {
+        $name = !empty($auth['description']) ? $auth['description'] : $auth['ip'];
+    }
+    
+    if (!empty($name) && !empty($auth['ip'])) {
         $name .= " [" . $auth['ip'] . "]";
     }
-    $name .= " last: [" . $auth['last_found'] . "] ";
+    
+    // Добавляем информацию о последнем обнаружении
+    if (!empty($auth['last_found'])) {
+        $name .= " last: [" . $auth['last_found'] . "] ";
+    }
+    
+    // Добавляем статус удаления
     if ($auth['deleted'] == 1) {
         $name .= " <font color='red'>DELETED!!!</font>";
     }
-    print "<a href=\"/admin/users/editauth.php?id=$auth_id\">" . $name . "</a><br>";
+    
+    $display_name = htmlspecialchars($name);
+    $safe_auth_id = (int)$auth_id;
+    
+    echo "<a href=\"/admin/users/editauth.php?id={$safe_auth_id}\">{$display_name}</a><br>\n";
 }
 
 function get_auth_port_count($db, $port_id)
 {
-    $d_sql = "SELECT count(A.id) as cnt FROM user_auth as A, connections as C WHERE C.port_id=$port_id and A.id=C.auth_id and A.deleted=0";
-    $t_device = get_record_sql($db, $d_sql);
-    if (empty($t_device)) { return 0; }
-    return $t_device['cnt'];
+    $t_device = get_record_sql($db,
+        "SELECT COUNT(A.id) as cnt 
+         FROM user_auth AS A, connections AS C 
+         WHERE C.port_id = ? AND A.id = C.auth_id AND A.deleted = 0",
+        [(int)$port_id]
+    );
+    
+    if (empty($t_device)) { 
+        return 0; 
+    }
+    return (int)$t_device['cnt'];
 }
 
 function get_connection($db, $auth_id)
 {
-    $d_sql = "SELECT D.device_name, DP.port FROM devices AS D, device_ports AS DP, connections AS C WHERE D.deleted=0 and D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id=$auth_id";
-    $t_device = get_record_sql($db, $d_sql);
-    if (!empty($t_device) and isset($t_device['device_name'])) {
-        return expand_device_name($db, $t_device['device_name']) . "[" . $t_device['port'] . "]";
+    $t_device = get_record_sql($db,
+        "SELECT D.device_name, DP.port 
+         FROM devices AS D, device_ports AS DP, connections AS C 
+         WHERE D.deleted = 0 AND D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id = ?",
+        [(int)$auth_id]
+    );
+    
+    if (!empty($t_device) && isset($t_device['device_name'])) {
+        $device_name = expand_device_name($db, $t_device['device_name']);
+        $port = $t_device['port'];
+        return $device_name . "[" . $port . "]";
     }
     return '';
 }
 
 function get_connection_string($db, $auth_id)
 {
-    $d_sql = "SELECT D.device_name, DP.port FROM devices AS D, device_ports AS DP, connections AS C WHERE D.deleted=0 and D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id=$auth_id";
-    $t_device = get_record_sql($db, $d_sql);
-    if (!empty($t_device) and isset($t_device['device_name'])) {
+    $t_device = get_record_sql($db,
+        "SELECT D.device_name, DP.port 
+         FROM devices AS D, device_ports AS DP, connections AS C 
+         WHERE D.deleted = 0 AND D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id = ?",
+        [(int)$auth_id]
+    );
+    
+    if (!empty($t_device) && isset($t_device['device_name'])) {
         return $t_device['device_name'] . "[" . $t_device['port'] . "]";
     }
     return '';
@@ -2190,58 +2639,87 @@ function get_connection_string($db, $auth_id)
 
 function get_port($db, $port_id)
 {
-    $d_sql = "SELECT D.device_name, DP.port FROM devices AS D, device_ports AS DP WHERE D.deleted=0 and D.id = DP.device_id AND DP.id = $port_id";
-    $t_device = get_record_sql($db, $d_sql);
-    if (!empty($t_device) and isset($t_device['device_name'])) {
-        return expand_device_name($db, $t_device['device_name']) . "[" . $t_device['port'] . "]";
+    $t_device = get_record_sql($db,
+        "SELECT D.device_name, DP.port 
+         FROM devices AS D, device_ports AS DP 
+         WHERE D.deleted = 0 AND D.id = DP.device_id AND DP.id = ?",
+        [(int)$port_id]
+    );
+    
+    if (!empty($t_device) && isset($t_device['device_name'])) {
+        $device_name = expand_device_name($db, $t_device['device_name']);
+        return $device_name . "[" . $t_device['port'] . "]";
     }
     return '';
 }
 
 function print_option_select($db, $option_name)
 {
-    print "<select id=\"$option_name\" name=\"$option_name\">\n";
-    $t_option = get_records_sql($db, "SELECT id,option_name FROM config_options WHERE uniq=0 AND draft=0 AND ID<>68 ORDER BY option_name");
+    echo "<select id=\"" . htmlspecialchars($option_name) . "\" name=\"" . htmlspecialchars($option_name) . "\">\n";
+    
+    // Неуникальные опции
+    $t_option = get_records_sql($db, 
+        "SELECT id, option_name FROM config_options 
+         WHERE uniq = 0 AND draft = 0 AND id != 68 
+         ORDER BY option_name"
+    );
+    
     if (!empty($t_option)) {
         foreach ($t_option as $row) {
-            print "<option value=".$row['id'].">".$row['option_name']."</option>";
+            echo "<option value=\"" . (int)$row['id'] . "\">" . htmlspecialchars($row['option_name']) . "</option>\n";
         }
     }
-    $t_option = get_records_sql($db, "SELECT id,option_name FROM config_options WHERE draft=0 AND uniq=1 AND ID<>68 AND id NOT IN (select option_id FROM config where draft=0) ORDER BY option_name");
+    
+    // Уникальные опции (которые ещё не используются)
+    $t_option = get_records_sql($db,
+        "SELECT id, option_name FROM config_options 
+         WHERE draft = 0 AND uniq = 1 AND id != 68 AND id NOT IN (SELECT option_id FROM config WHERE draft = 0) 
+         ORDER BY option_name"
+    );
+    
     if (!empty($t_option)) {
         foreach ($t_option as $row) {
-            print "<option value=".$row['id'].">".$row['option_name']."</option>";
+            echo "<option value=\"" . (int)$row['id'] . "\">" . htmlspecialchars($row['option_name']) . "</option>\n";
         }
     }
-    print "</select>\n";
+    
+    echo "</select>\n";
 }
 
 function ResolveIP($db, $ip_int)
 {
     $ip_name = "-";
+    
     if (empty($ip_int)) {
         return $ip_name;
     }
-    $dns_cache = get_record_sql($db, "SELECT * FROM dns_cache WHERE ip=$ip_int");
-    if (empty($dns_cache) or empty($dns_cache['dns'])) {
-        $ip_name = gethostbyaddr(long2ip($ip_int));
-        if (empty($ip_name) or $ip_name == long2ip($ip_int)) {
+    
+    // Проверяем кэш
+    $dns_cache = get_record_sql($db, "SELECT dns FROM dns_cache WHERE ip = ?", [(int)$ip_int]);
+    
+    if (empty($dns_cache) || empty($dns_cache['dns'])) {
+        $ip_str = long2ip((int)$ip_int);
+        $ip_name = gethostbyaddr($ip_str);
+        
+        // Проверяем результат разрешения
+        if (empty($ip_name) || $ip_name == $ip_str) {
             $ip_name = "-";
         }
-        run_sql($db, "INSERT INTO dns_cache(dns,ip) VALUES('" . $ip_name . "'," . $ip_int . ")");
+        
+        // Сохраняем в кэш
+        run_sql($db, "INSERT INTO dns_cache(dns, ip) VALUES(?, ?)", [$ip_name, (int)$ip_int]);
     } else {
         $ip_name = $dns_cache['dns'];
     }
+    
     return $ip_name;
 }
 
 function clean_dns_cache($db)
 {
-    $date = time();
-    $date = $date - 86400;
-    $date_clean = DateTimeImmutable::createFromFormat('U', $date);
-    $clean_date = $date_clean->format('Y-m-d H:i:s');
-    run_sql($db, "DELETE FROM dns_cache WHERE ts<='" . $clean_date . "'");
+    $date = time() - 86400; // 24 часа назад
+    $clean_date = date('Y-m-d H:i:s', $date);
+    run_sql($db, "DELETE FROM dns_cache WHERE ts <= ?", [$clean_date]);
 }
 
 function clean_unreferensed_rules($db)
@@ -2314,85 +2792,112 @@ function GetNowDayString()
 function get_ip_subnet($db, $ip)
 {
     if (empty($ip)) {
-        return;
+        return null;
     }
+    
     $ip_aton = ip2long($ip);
-    $user_subnet = get_record_sql($db, "SELECT * FROM subnets WHERE hotspot=1 or office=1 and ( $ip_aton >= ip_int_start and $ip_aton <= ip_int_stop)");
+    if ($ip_aton === false) {
+        return null;
+    }
+    
+    // Исправлено: добавлены скобки для правильного порядка операций
+    $user_subnet = get_record_sql($db,
+        "SELECT * FROM subnets 
+         WHERE (hotspot = 1 OR office = 1) 
+           AND ? >= ip_int_start 
+           AND ? <= ip_int_stop",
+        [$ip_aton, $ip_aton]
+    );
+    
     if (empty($user_subnet)) {
-        return;
+        return null;
     }
     return $user_subnet;
 }
 
 function find_mac_in_subnet($db, $ip, $mac)
 {
-    if (empty($ip)) {
-        return;
+    if (empty($ip) || empty($mac)) {
+        return null;
     }
-    if (empty($mac)) {
-        return;
-    }
+    
     $ip_subnet = get_ip_subnet($db, $ip);
     if (empty($ip_subnet)) {
-        return;
+        return null;
     }
-    $t_auth = get_records_sql($db, "SELECT id,mac,user_id FROM user_auth WHERE ip_int>=" . $ip_subnet['ip_int_start'] . " and ip_int<=" . $ip_subnet['ip_int_stop'] . " and mac='" . $mac . "' and deleted=0 ORDER BY id");
-    $auth_count = 0;
-    $result['count'] = 0;
-    $result['users_id'] = [];
+    
+    $t_auth = get_records_sql($db,
+        "SELECT id, mac, user_id 
+         FROM user_auth 
+         WHERE ip_int >= ? 
+           AND ip_int <= ? 
+           AND mac = ? 
+           AND deleted = 0 
+         ORDER BY id",
+        [$ip_subnet['ip_int_start'], $ip_subnet['ip_int_stop'], $mac]
+    );
+    
+    if (empty($t_auth)) {
+        return ['count' => 0, 'users_id' => []];
+    }
+    
+    $result = ['count' => 0, 'users_id' => []];
     foreach ($t_auth as $row) {
         if (!empty($row['id'])) {
-            $auth_count++;
-            $result['count'] = $auth_count;
-            $result[$auth_count] = $row['id'];
-            array_push($result['users_id'], $row['user_id']);
+            $result['count']++;
+            $result[$result['count']] = $row['id'];
+            $result['users_id'][] = $row['user_id'];
         }
     }
+    
     return $result;
 }
 
 function apply_auth_rule($db, $auth_record, $user_id)
 {
     if (empty($auth_record)) {
-        return;
+        return null;
     }
+    
     if (empty($user_id)) {
         return $auth_record;
     }
-
-    $user_rec = get_record($db, 'user_list', "id=" . $user_id);
+    
+    $user_rec = get_record($db, 'user_list', "id = ?", [(int)$user_id]);
     if (empty($user_rec)) {
         return $auth_record;
     }
-
-    //set filter and status by user
+    
+    // Set filter and status by user
     $auth_record['ou_id'] = $user_rec['ou_id'];
     $auth_record['user_id'] = $user_rec['id'];
     $auth_record['filter_group_id'] = $user_rec['filter_group_id'];
     $auth_record['queue_id'] = $user_rec['queue_id'];
     $auth_record['enabled'] = $user_rec['enabled'];
     $auth_record['changed'] = 1;
-    //maybe fill description?
-    if (!empty($user_rec['fio']) and empty($auth_record['description'])) {
+    
+    // Maybe fill description?
+    if (!empty($user_rec['fio']) && empty($auth_record['description'])) {
         $auth_record['description'] = $user_rec['fio'];
     }
-
+    
     return $auth_record;
 }
 
 function fix_auth_rules($db)
 {
-    //cleanup hotspot subnet rules
-    $t_hotspot = get_records_sql($db, "SELECT * FROM ou WHERE default_users=1 or default_hotspot=1");
+    // Cleanup hotspot subnet rules
+    $t_hotspot = get_records_sql($db, "SELECT id FROM ou WHERE default_users = 1 OR default_hotspot = 1");
     if (!empty($t_hotspot)) {
         foreach ($t_hotspot as $row) {
-            delete_record($db, "auth_rules", "ou_id='" . $row['id'] . "'");
+            delete_record($db, "auth_rules", "ou_id = ?", [(int)$row['id']]);
         }
     }
-    $t_hotspot = get_records_sql($db, "SELECT * FROM subnets WHERE hotspot=1");
-    if (!empty($t_hotspot)) {
-        foreach ($t_hotspot as $row) {
-            delete_record($db, "auth_rules", "rule='" . $row['subnet'] . "'");
+    
+    $t_hotspot_subnets = get_records_sql($db, "SELECT subnet FROM subnets WHERE hotspot = 1");
+    if (!empty($t_hotspot_subnets)) {
+        foreach ($t_hotspot_subnets as $row) {
+            delete_record($db, "auth_rules", "rule = ?", [$row['subnet']]);
         }
     }
 }
@@ -2401,265 +2906,405 @@ function fix_auth_rules($db)
 
 function new_user($db, $user_info)
 {
+    if (empty($user_info)) {
+        return null;
+    }
+    
+    // Формируем логин и ФИО
     if (!empty($user_info['mac'])) {
         $user['login'] = mac_dotted($user_info['mac']);
     } else {
-        $user['login'] = $user_info['ip'];
+        $user['login'] = $user_info['ip'] ?? '';
     }
+    
     if (!empty($user_info['dhcp_hostname'])) {
-        $user['fio'] = $user_info['ip'] . '[' . $user_info['dhcp_hostname'] . ']';
+        $user['fio'] = ($user_info['ip'] ?? '') . '[' . $user_info['dhcp_hostname'] . ']';
     } else {
-        $user['fio'] = $user_info['ip'];
+        $user['fio'] = $user_info['ip'] ?? '';
     }
-
-    $login_count = get_count_records($db, "user_list", "(login LIKE '" . $user['login'] . "(%)') OR (login='" . $user['login'] . "')");
-    if (!empty($login_count) and $login_count > 0) {
-        $login_count++;
-        $user['login'] = $user['login'] . "(" . $login_count . ")";
+    
+    // Проверяем существование логина и формируем уникальный
+    $base_login = $user['login'];
+    $login_count = get_count_records($db, "user_list", 
+        "(login LIKE ?) OR (login = ?)", 
+        [$base_login . '(%)', $base_login]
+    );
+    
+    if (!empty($login_count) && $login_count > 0) {
+        $user['login'] = $base_login . "(" . ($login_count + 1) . ")";
     }
-
-    $user['ou_id'] = $user_info['ou_id'];
-    $ou_info = get_record_sql($db, "SELECT * FROM ou WHERE id=" . $user_info['ou_id']);
-    if (!empty($ou_info)) {
-        $user['enabled'] = $ou_info['enabled'];
-        if (empty($user['enabled'])) {
+    
+    // Назначаем OU и наследуем настройки
+    $user['ou_id'] = (int)($user_info['ou_id'] ?? 0);
+    
+    if ($user['ou_id'] > 0) {
+        $ou_info = get_record_sql($db, "SELECT * FROM ou WHERE id = ?", [$user['ou_id']]);
+        if (!empty($ou_info)) {
+            $user['enabled'] = isset($ou_info['enabled']) ? (int)$ou_info['enabled'] : 0;
+            $user['queue_id'] = isset($ou_info['queue_id']) ? (int)$ou_info['queue_id'] : 0;
+            $user['filter_group_id'] = isset($ou_info['filter_group_id']) ? (int)$ou_info['filter_group_id'] : 0;
+        } else {
+            // Значения по умолчанию, если OU не найден
             $user['enabled'] = 0;
-        }
-        $user['queue_id'] = $ou_info['queue_id'];
-        if (empty($user['queue_id'])) {
             $user['queue_id'] = 0;
-        }
-        $user['filter_group_id'] = $ou_info['filter_group_id'];
-        if (empty($user['filter_group_id'])) {
             $user['filter_group_id'] = 0;
         }
+    } else {
+        // Значения по умолчанию при отсутствии OU
+        $user['enabled'] = 0;
+        $user['queue_id'] = 0;
+        $user['filter_group_id'] = 0;
     }
-
+    
+    // Создаём пользователя
     $result = insert_record($db, "user_list", $user);
-    $auto_mac_rule = get_option($db, 64);
-    if (!empty($result) and $auto_mac_rule and $user_info['mac']) {
-        $auth_rule['user_id'] = $result;
-        $auth_rule['rule_type'] = 2;
-        $auth_rule['rule'] = mac_dotted($user_info['mac']);
-        insert_record($db, "auth_rules", $auth_rule);
+    
+    // Создаём автоматическое правило по MAC (если включено)
+    if (!empty($result)) {
+        $auto_mac_rule = (int)get_option($db, 64);
+        if ($auto_mac_rule && !empty($user_info['mac'])) {
+            $auth_rule = [
+                'user_id' => $result,
+                'rule_type' => 2,
+                'rule' => mac_dotted($user_info['mac'])
+            ];
+            insert_record($db, "auth_rules", $auth_rule);
+        }
     }
+    
     return $result;
 }
 
 function new_auth($db, $ip, $mac, $user_id)
-{
+{   
+    if (empty($ip)) {
+        return null;
+    }
+    
     $ip_aton = ip2long($ip);
+    if ($ip_aton === false) {
+        return null;
+    }
+    
     $msg = '';
-
+    $user_id = (int)$user_id;
+    
+    // Проверяем существование пары IP-MAC
     if (!empty($mac)) {
-        $auth_record = get_record_sql($db, "SELECT * FROM user_auth WHERE ip_int=$ip_aton AND mac='" . mac_dotted($mac) . "' AND deleted=0");
+        $dotted_mac = mac_dotted($mac);
+        $auth_record = get_record_sql($db, 
+            "SELECT * FROM user_auth WHERE ip_int = ? AND mac = ? AND deleted = 0", 
+            [$ip_aton, $dotted_mac]
+        );
+        
         if (!empty($auth_record)) {
             LOG_WARNING($db, "Pair ip-mac already exists! Skip creating $ip [$mac] auth_id: " . $auth_record["id"]);
             return $auth_record['id'];
         }
     }
-
-    // save traffic detailization
-    $save_traf = get_option($db, 23);
-    $resurrection_id = NULL;
-
-    // seek old auth with same ip and mac
-    $resurrection_id = get_id_record($db, 'user_auth', " deleted=1 AND ip_int=" . $ip_aton . " AND mac='" . $mac . "'");
-    if (!empty($resurrection_id)) {
-        $msg .= "Recovered auth_id: $resurrection_id with ip: $ip and mac: $mac ";
-        $auth['user_id'] = $user_id;
-        $auth['deleted'] = 0;
-        $auth['save_traf'] = $save_traf * 1;
-        update_record($db, "user_auth", "id=$resurrection_id", $auth);
+    
+    // Настройки сохранения трафика
+    $save_traf = (int)get_option($db, 23);
+    $resurrection_id = null;
+    
+    // Ищем удалённую запись с теми же IP и MAC
+    if (!empty($mac)) {
+        $old_auth_id = get_id_record($db, 'user_auth', 
+            "deleted = 1 AND ip_int = ? AND mac = ?", 
+            [$ip_aton, $mac]
+        );
     } else {
-        // not found ->create new record
+        $old_auth_id = get_id_record($db, 'user_auth', 
+            "deleted = 1 AND ip_int = ? AND mac IS NULL", 
+            [$ip_aton]
+        );
+    }
+    
+    if (!empty($old_auth_id)) {
+        $resurrection_id = $old_auth_id;
+        $msg .= "Recovered auth_id: $resurrection_id with ip: $ip and mac: $mac ";
+        $auth = [
+            'user_id' => $user_id,
+            'deleted' => 0,
+            'save_traf' => $save_traf
+        ];
+        update_record($db, "user_auth", "id = ?", $auth, [$resurrection_id]);
+    } else {
+        // Создаём новую запись
         $msg .= "Create new ip record \r\nip: $ip\r\nmac: $mac\r\n";
-        $auth['deleted'] = 0;
-        $auth['user_id'] = $user_id;
-        $auth['ip'] = $ip;
-        $auth['ip_int'] = $ip_aton;
-        if (!empty($mac)) { $auth['mac'] = $mac; }
-        $auth['save_traf'] = $save_traf * 1;
+        $auth = [
+            'deleted' => 0,
+            'user_id' => $user_id,
+            'ip' => $ip,
+            'ip_int' => $ip_aton,
+            'save_traf' => $save_traf
+        ];
+        
+        if (!empty($mac)) {
+            $auth['mac'] = $mac;
+        }
+        
         $resurrection_id = insert_record($db, "user_auth", $auth);
     }
-
-    //check rules, update filter and state for new record
+    
+    // Применяем правила и обновляем запись
     if (!empty($resurrection_id)) {
-        $auth = apply_auth_rule($db, $auth, $user_id);
-        update_record($db, "user_auth", "id=$resurrection_id", $auth);
-        if (!is_hotspot($db, $ip) and !empty($msg)) {
+        $auth_final = apply_auth_rule($db, $auth, $user_id);
+        update_record($db, "user_auth", "id = ?", $auth_final, [$resurrection_id]);
+        
+        if (!is_hotspot($db, $ip) && !empty($msg)) {
             LOG_WARNING($db, $msg);
         }
-        if (is_hotspot($db, $ip) and !empty($msg)) {
+        if (is_hotspot($db, $ip) && !empty($msg)) {
             LOG_INFO($db, $msg);
         }
     }
+    
     return $resurrection_id;
 }
 
 function resurrection_auth($db, $ip_record)
 {
+    if (empty($ip_record) || empty($ip_record['ip'])) {
+        return null;
+    }
+    
     $ip = $ip_record['ip'];
-    $mac = $ip_record['mac'];
-    $action = $ip_record['type'];
-    $dhcp_hostname = $ip_record['hostname'];
-    $hotspot_found = $ip_record['hotspot'];
-
+    $mac = $ip_record['mac'] ?? '';
+    $action = $ip_record['type'] ?? '';
+    $dhcp_hostname = $ip_record['hostname'] ?? '';
+    $hotspot_found = !empty($ip_record['hotspot']);
+    
     $ip_aton = ip2long($ip);
-
-    $auth_record = get_record_sql($db, "SELECT * FROM user_auth WHERE ip_int=$ip_aton AND mac='" . $mac . "' AND deleted=0");
+    if ($ip_aton === false) {
+        return null;
+    }
+    
+    // Проверяем существующую активную запись с теми же IP и MAC
+    $auth_record = get_record_sql($db,
+        "SELECT * FROM user_auth WHERE ip_int = ? AND mac = ? AND deleted = 0",
+        [$ip_aton, $mac]
+    );
+    
     if (!empty($auth_record)) {
-        $user_info = get_record_sql($db, "SELECT * FROM user_list WHERE id=" . $auth_record['user_id']);
-        LOG_DEBUG($db, "external dhcp user " . $user_info['login'] . " [" . $ip . "] auth_id: " . $auth_record['id']);
-        if (isset($dhcp_hostname) and !empty($dhcp_hostname)) {
-            $auth['dhcp_hostname'] = $dhcp_hostname;
+        $user_info = get_record_sql($db, 
+            "SELECT * FROM user_list WHERE id = ?", 
+            [(int)$auth_record['user_id']]
+        );
+        
+        LOG_DEBUG($db, "external dhcp user " . ($user_info['login'] ?? '') . " [" . $ip . "] auth_id: " . $auth_record['id']);
+        
+        $auth_update = [];
+        if (isset($dhcp_hostname) && !empty($dhcp_hostname)) {
+            $auth_update['dhcp_hostname'] = $dhcp_hostname;
         }
-        $auth['dhcp_action'] = $action;
-        $auth['dhcp_time'] = GetNowTimeString();
+        $auth_update['dhcp_action'] = $action;
+        $auth_update['dhcp_time'] = GetNowTimeString();
+        
         if ($action === 'add') {
-            $auth['last_found'] = GetNowTimeString();
+            $auth_update['last_found'] = GetNowTimeString();
         }
-        update_record($db, "user_auth", "id=" . $auth_record['id'], $auth);
+        
+        update_record($db, "user_auth", "id = ?", $auth_update, [$auth_record['id']]);
         return $auth_record['id'];
     }
-
+    
+    // Проверяем статическую подсеть
     $ip_subnet = get_ip_subnet($db, $ip);
-    if ($ip_subnet['static']) {
+    if (!empty($ip_subnet) && !empty($ip_subnet['static'])) {
         LOG_WARNING($db, "Unknown pair ip+mac in static subnet! ip: $ip mac: [" . mac_dotted($mac) . "]. Skip");
-        return;
+        return null;
     }
-
+    
     $msg = '';
-    // search changed mac
-    $auth_record = get_record_sql($db, "SELECT * FROM user_auth WHERE ip_int=$ip_aton AND deleted=0");
+    
+    // Ищем запись с тем же IP (возможно, другой MAC)
+    $auth_record = get_record_sql($db,
+        "SELECT * FROM user_auth WHERE ip_int = ? AND deleted = 0",
+        [$ip_aton]
+    );
+    
     if (!empty($auth_record)) {
         if (empty($auth_record['mac'])) {
-            $auth['mac'] = mac_dotted($mac);
-            $auth['dhcp_action'] = $action;
-            $auth['dhcp_time'] = GetNowTimeString();
+            // Обновляем пустой MAC
+            $auth_update = [
+                'mac' => mac_dotted($mac),
+                'dhcp_action' => $action,
+                'dhcp_time' => GetNowTimeString()
+            ];
+            
             if (!empty($dhcp_hostname)) {
-                $auth['dhcp_hostname'] = $dhcp_hostname;
+                $auth_update['dhcp_hostname'] = $dhcp_hostname;
             }
             if ($action === 'add') {
-                $auth['last_found'] = GetNowTimeString();
+                $auth_update['last_found'] = GetNowTimeString();
             }
+            
             LOG_INFO($db, "for ip: $ip mac not found! Use empty record...");
-            update_record($db, "user_auth", "id=" . $auth_record['id'], $auth);
+            update_record($db, "user_auth", "id = ?", $auth_update, [$auth_record['id']]);
             return $auth_record['id'];
         } else {
+            // MAC изменился - помечаем старую запись как удалённую
             if (!$hotspot_found) {
                 LOG_WARNING($db, "for ip: $ip mac change detected! Old mac: [" . $auth_record['mac'] . "] New mac: [" . mac_dotted($mac) . "]. Disable old auth_id: " . $auth_record['id']);
             }
-            run_sql($db, "UPDATE user_auth SET changed=1, deleted=1 WHERE id=" . $auth_record['id']);
+            update_record($db, "user_auth", "id = ?", ['changed' => 1, 'deleted' => 1], [$auth_record['id']]);
         }
     }
-
-    // default id
+    
+    // Создаём/находим пользователя
     $new_user_info = get_new_user_id($db, $ip, $mac, $dhcp_hostname);
+    $new_user_id = null;
+    
     if (!empty($new_user_info['user_id'])) {
         $new_user_id = $new_user_info['user_id'];
     }
     if (empty($new_user_id)) {
         $new_user_id = new_user($db, $new_user_info);
     }
-
-    $resurrection_id = NULL;
-    $save_traf = get_option($db, 23);
-
-    $auth_record = get_record_sql($db, "SELECT * FROM user_auth WHERE ip_int=" . $ip_aton . " and mac='" . $mac . "'");
-    // seek old auth with same ip and mac
+    
+    if (empty($new_user_id)) {
+        return null;
+    }
+    
+    $new_user_id = (int)$new_user_id;
+    $save_traf = (int)get_option($db, 23);
+    $resurrection_id = null;
+    
+    // Ищем удалённую запись с теми же IP и MAC для восстановления
+    $auth_record = get_record_sql($db,
+        "SELECT * FROM user_auth WHERE ip_int = ? AND mac = ?",
+        [$ip_aton, $mac]
+    );
+    
     if (!empty($auth_record)) {
-        // found ->Resurrection old record
+        // Восстанавливаем существующую запись
         $resurrection_id = $auth_record['id'];
         $msg .= "Recovered auth_id: $resurrection_id with ip: $ip and mac: $mac ";
-        $auth['dhcp_action'] = $action;
-        $auth['user_id'] = $new_user_id;
-        $auth['deleted'] = 0;
-        $auth['dhcp_time'] = GetNowTimeString();
-        $auth['save_traf'] = $save_traf * 1;
+        $auth = [
+            'dhcp_action' => $action,
+            'user_id' => $new_user_id,
+            'deleted' => 0,
+            'dhcp_time' => GetNowTimeString(),
+            'save_traf' => $save_traf
+        ];
+        
         if (!empty($dhcp_hostname)) {
             $auth['dhcp_hostname'] = $dhcp_hostname;
         }
         if ($action === 'add') {
             $auth['last_found'] = GetNowTimeString();
         }
-        update_record($db, "user_auth", "id=$resurrection_id", $auth);
+        
+        update_record($db, "user_auth", "id = ?", $auth, [$resurrection_id]);
     } else {
-        // not found ->create new record
+        // Создаём новую запись
         $msg .= "Создаём новый ip-адрес \r\nip: $ip\r\nmac: $mac\r\n";
-        $auth['deleted'] = 0;
-        $auth['user_id'] = $new_user_id;
-        $auth['ip'] = $ip;
-        $auth['ip_int'] = $ip_aton;
-        $auth['mac'] = $mac;
-        $auth['dhcp_action'] = $action;
-        $auth['dhcp_time'] = GetNowTimeString();
-        $auth['save_traf'] = $save_traf * 1;
+        $auth = [
+            'deleted' => 0,
+            'user_id' => $new_user_id,
+            'ip' => $ip,
+            'ip_int' => $ip_aton,
+            'mac' => $mac,
+            'dhcp_action' => $action,
+            'dhcp_time' => GetNowTimeString(),
+            'save_traf' => $save_traf
+        ];
+        
         if (!empty($dhcp_hostname)) {
             $auth['dhcp_hostname'] = $dhcp_hostname;
         }
-        if ($action == 'add') {
+        if ($action === 'add') {
             $auth['last_found'] = GetNowTimeString();
         }
+        
         $resurrection_id = insert_record($db, "user_auth", $auth);
     }
-    //check rules, update filter and state for new record
+    
+    // Применяем правила авторизации
     if (!empty($resurrection_id)) {
-        $auth = apply_auth_rule($db, $auth, $new_user_id);
-        update_record($db, "user_auth", "id=$resurrection_id", $auth);
-        $msg .= "filter: " . $auth['filter_group_id'] . "\r\n queue_id: " . $auth['queue_id'] . "\r\n enabled: " . $auth['enabled'] . "\r\nid: $resurrection_id";
-        if (!$hotspot_found and !empty($msg)) {
+        $auth_final = apply_auth_rule($db, $auth, $new_user_id);
+        update_record($db, "user_auth", "id = ?", $auth_final, [$resurrection_id]);
+        
+        $msg .= "filter: " . ($auth_final['filter_group_id'] ?? '') . 
+                "\r\n queue_id: " . ($auth_final['queue_id'] ?? '') . 
+                "\r\n enabled: " . ($auth_final['enabled'] ?? '') . 
+                "\r\nid: $resurrection_id";
+        
+        if (!$hotspot_found && !empty($msg)) {
             LOG_WARNING($db, $msg);
         }
-        if ($hotspot_found and !empty($msg)) {
+        if ($hotspot_found && !empty($msg)) {
             LOG_INFO($db, $msg);
         }
     }
-
+    
     return $resurrection_id;
 }
 
 function get_auth($db, $current_auth)
 {
-    if (!isset($current_auth)) {
-        return;
+    if (!isset($current_auth) || $current_auth == 0) {
+        return null;
     }
-    if ($current_auth == 0) {
-        return;
-    }
-    $t_login = get_record_sql($db, "SELECT U.login,A.ip FROM user_list as U, user_auth as A WHERE A.user_id=U.id and A.id=$current_auth");
-    if (!empty($t_login) and isset($t_login['login'])) {
-        return $f_login['login'] . "[" . $t_login['ip'] . "]";
+    
+    $t_login = get_record_sql($db,
+        "SELECT U.login, A.ip 
+         FROM user_list AS U, user_auth AS A 
+         WHERE A.user_id = U.id AND A.id = ?",
+        [(int)$current_auth]
+    );
+    
+    if (!empty($t_login) && isset($t_login['login'])) {
+        return $t_login['login'] . "[" . $t_login['ip'] . "]";
     }
     return '';
 }
 
 function get_auth_by_mac($db, $mac)
 {
-    if (!isset($mac)) {
-        return;
+    if (empty($mac)) {
+        return ['auth' => 'Unknown', 'mac' => ''];
     }
-    $mac = mac_dotted($mac);
-    $t_login = get_record_sql($db, "SELECT U.id,U.login,A.id as auth_id,A.ip FROM user_list as U, user_auth as A WHERE A.user_id=U.id and A.mac='" . $mac . "' and A.deleted=0 ORDER BY A.last_found DESC");
-    if (!empty($t_login) and isset($t_login['id'])) {
-        $result['auth'] = '<a href=/admin/users/edituser.php?id=' . $t_login['id'] . '>' . $t_login['login'] . '</a> / ip: <a href=/admin/users/editauth.php?id=' . $t_login['auth_id'] . '>' . $t_login['ip'] . '</a>';
+    
+    $mac_dotted = mac_dotted($mac);
+    $t_login = get_record_sql($db,
+        "SELECT U.id, U.login, A.id as auth_id, A.ip 
+         FROM user_list AS U, user_auth AS A 
+         WHERE A.user_id = U.id AND A.mac = ? AND A.deleted = 0 
+         ORDER BY A.last_found DESC",
+        [$mac_dotted]
+    );
+    
+    if (!empty($t_login) && isset($t_login['id'])) {
+        $user_id = (int)$t_login['id'];
+        $auth_id = (int)$t_login['auth_id'];
+        $login = htmlspecialchars($t_login['login']);
+        $ip = htmlspecialchars($t_login['ip']);
+        $result['auth'] = '<a href="/admin/users/edituser.php?id=' . $user_id . '">' . $login . '</a> / ip: <a href="/admin/users/editauth.php?id=' . $auth_id . '">' . $ip . '</a>';
     } else {
         $result['auth'] = 'Unknown';
     }
-    $result['mac'] = expand_mac($db, $mac);
+    
+    $result['mac'] = expand_mac($db, $mac_dotted);
     return $result;
 }
 
 function get_auth_mac($db, $current_auth)
 {
-    if (!isset($current_auth)) {
-        return;
+    if (!isset($current_auth) || $current_auth == 0) {
+        return null;
     }
-    if ($current_auth == 0) {
-        return;
-    }
-    $t_login = get_record_sql($db, "SELECT U.login,A.mac FROM user_list as U, user_auth as A WHERE A.user_id=U.id and A.id=$current_auth");
-    if (!empty($t_login) and isset($t_loing['login'])) {
+    
+    $t_login = get_record_sql($db,
+        "SELECT U.login, A.mac 
+         FROM user_list AS U, user_auth AS A 
+         WHERE A.user_id = U.id AND A.id = ?",
+        [(int)$current_auth]
+    );
+    
+    // Исправлена опечатка: было $t_loing, стало $t_login
+    if (!empty($t_login) && isset($t_login['login'])) {
         return $t_login['login'] . " [" . $t_login['mac'] . "]";
     }
     return '';
@@ -2667,35 +3312,60 @@ function get_auth_mac($db, $current_auth)
 
 function add_auth_rule($db, $rule, $type, $user_id)
 {
-    $new['user_id'] = $user_id;
-    $new['rule_type'] = $type;
-    $new['rule'] = $rule;
-    $rule_id = 0;
-    $auth_rules = get_record_sql($db, "SELECT * FROM auth_rules WHERE rule='" . $rule . "' AND rule_type=" . $type);
+    $user_id = (int)$user_id;
+    $type = (int)$type;
+    
+    // Проверяем существование правила
+    $auth_rules = get_record_sql($db,
+        "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = ?",
+        [$rule, $type]
+    );
+    
     if (empty($auth_rules)) {
+        // Создаём новое правило
+        $new = [
+            'user_id' => $user_id,
+            'rule_type' => $type,
+            'rule' => $rule
+        ];
         $rule_id = insert_record($db, "auth_rules", $new);
         LOG_INFO($db, "Create auto rule for user_id: " . $user_id . " rule: " . $rule . " rule_type: " . $type);
     } else {
         if ($auth_rules['user_id'] !== $user_id) {
             LOG_WARNING($db, "Create auto rule for user_id: " . $user_id . " rule: " . $rule . " rule_type: " . $type . " failed! Already exists at user_id: " . $auth_rules['user_id']);
             $rule_id = 0;
-            } else { $rule_id =  $auth_rules['id']; }
+        } else {
+            $rule_id = $auth_rules['id'];
+        }
     }
     return $rule_id;
 }
 
 function update_auth_rule($db, $new, $rule_id = 0)
 {
-    $type = $new['rule_type'];
-    $rule = $new['rule'];
-    $auth_rules = get_record_sql($db, "SELECT * FROM auth_rules WHERE rule='" . $rule . "' AND rule_type=" . $type . " AND id<>" . $rule_id);
-    if (empty($auth_rules)) {
-        $rule_id = update_record($db, "auth_rules", "id=" . $rule_id, $new);
-    } else {
-        LOG_WARNING($db, "Create auto rule id: " . $rule_id . " rule: " . $rule . " rule_type: " . $type . " failed! Already exists at user_id: " . $auth_rules['user_id']);
-        $rule_id = 0;
+    if (empty($new) || !isset($new['rule_type']) || !isset($new['rule'])) {
+        return 0;
     }
-    return $rule_id;
+    
+    $rule_id = (int)$rule_id;
+    $type = (int)$new['rule_type'];
+    $rule = $new['rule'];
+    
+    // Проверяем существование другого правила с теми же параметрами
+    $auth_rules = get_record_sql($db,
+        "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = ? AND id != ?",
+        [$rule, $type, $rule_id]
+    );
+    
+    if (empty($auth_rules)) {
+        // Обновляем правило
+        $updated_id = update_record($db, "auth_rules", "id = ?", $new, [$rule_id]);
+        return $updated_id !== false ? $rule_id : 0;
+    } else {
+        // Правило уже существует у другого пользователя
+        LOG_WARNING($db, "Update auto rule id: " . $rule_id . " rule: " . $rule . " rule_type: " . $type . " failed! Already exists at user_id: " . $auth_rules['user_id']);
+        return 0;
+    }
 }
 
 function LOG_INFO($db, $msg, $auth_id = 0)
@@ -2919,21 +3589,24 @@ function is_up($ip)
 }
 
 function apply_device_lock($db, $device_id, $iteration = 0)
-{
+{   
     $iteration++;
     if ($iteration > 2) {
         return false;
     }
-
+        
     // Извлекаем исходную временную метку (без UNIX_TIMESTAMP)
-    $dev = get_record_sql($db, 'SELECT discovery_locked, locked_timestamp FROM devices WHERE id = ? AND discovery_locked > 0', [$device_id]);
-
+    $dev = get_record_sql($db, 
+        'SELECT discovery_locked, locked_timestamp FROM devices WHERE id = ? AND discovery_locked > 0', 
+        [(int)$device_id]
+    );
+    
     // Проверяем, есть ли запись и валидна ли временная метка
     if (empty($dev) || empty($dev['locked_timestamp']) || $dev['locked_timestamp'] === '0000-00-00 00:00:00') {
         LOG_DEBUG($db, "Snmp discovery lock not found. Set and discovery.");
-        return set_lock_discovery($db, $device_id);
+        return set_lock_discovery($db, (int)$device_id);
     }
-
+        
     // Преобразуем строку даты в Unix timestamp
     try {
         // Удаляем микросекунды (если есть, как в PostgreSQL)
@@ -2943,31 +3616,31 @@ function apply_device_lock($db, $device_id, $iteration = 0)
     } catch (Exception $e) {
         // Если парсинг не удался — считаем блокировку недействительной
         LOG_DEBUG($db, "Invalid lock timestamp format. Resetting lock.");
-        return set_lock_discovery($db, $device_id);
+        return set_lock_discovery($db, (int)$device_id);
     }
-
+        
     $now = time();
     $wait_time = ($u_locked_timestamp + SNMP_LOCK_TIMEOUT) - $now;
-
+    
     LOG_DEBUG($db, "Check snmp lock for device id: " . $device_id . ". Lock timestamp: " . $u_locked_timestamp . ", now: " . $now);
-
+    
     if ($wait_time <= 0) {
         LOG_DEBUG($db, "The lock is already expired. Set new lock.");
-        return set_lock_discovery($db, $device_id);
+        return set_lock_discovery($db, (int)$device_id);
     }
-
+        
     LOG_VERBOSE($db, "Snmp discovery lock for device id: $device_id found! Need wait " . $wait_time . " sec.");
     sleep($wait_time);
     LOG_VERBOSE($db, "Try set new lock and continue discovery for device id: " . $device_id);
-
-    return apply_device_lock($db, $device_id, $iteration);
-}
+    
+    return apply_device_lock($db, (int)$device_id, $iteration);
+}   
 
 function set_lock_discovery($db, $device_id)
-{
+{   
     $new['discovery_locked'] = 1;
     $new['locked_timestamp'] = GetNowTimeString();
-    if (update_record($db, 'devices', 'id=' . $device_id, $new)) {
+    if (update_record($db, 'devices', 'id = ?', $new, [(int)$device_id])) {
         return true;
     }
     return false;
@@ -2977,7 +3650,7 @@ function unset_lock_discovery($db, $device_id)
 {
     $new['discovery_locked'] = 0;
     $new['locked_timestamp'] = GetNowTimeString();
-    if (update_record($db, 'devices', 'id=' . $device_id, $new)) {
+    if (update_record($db, 'devices', 'id = ?', $new, [(int)$device_id])) {
         return true;
     }
     return false;
@@ -2985,67 +3658,78 @@ function unset_lock_discovery($db, $device_id)
 
 function set_port_for_group($db, $group_id, $place_id, $state)
 {
-
-    $authSQL = 'SELECT user_auth.id, user_auth.dns_name, user_auth.ip 
-                FROM user_auth, user_list 
-                WHERE user_auth.user_id = user_list.id 
-                  AND user_auth.deleted = 0 
-                  AND user_list.ou_id = ' . $group_id;
+    $group_id = (int)$group_id;
+    $place_id = (int)$place_id;
+    $state = (int)$state;
     
-    $auth_list = get_records_sql($db, $authSQL);
+    // Получаем список авторизаций для группы
+    $auth_list = get_records_sql($db,
+        'SELECT user_auth.id, user_auth.dns_name, user_auth.ip 
+         FROM user_auth, user_list 
+         WHERE user_auth.user_id = user_list.id 
+           AND user_auth.deleted = 0 
+           AND user_list.ou_id = ?',
+        [$group_id]
+    );
+    
     LOG_VERBOSE($db, 'Mass port state change started!');
     
     // Обработка списка авторизаций
     foreach ($auth_list as $row) {
-        // Фильтр по месту
+        $auth_id = (int)$row['id'];
+        
+        // Формируем фильтр по месту
         if ($place_id == 0) {
-            $place_filter = '';
+            $place_condition = '1=1';
+            $place_params = [];
         } else {
-            $place_filter = 'D.building_id = ' . $place_id . ' AND ';
+            $place_condition = 'D.building_id = ?';
+            $place_params = [$place_id];
         }
         
         // Получение информации об устройстве
         $devSQL = 'SELECT D.id, D.device_name, D.vendor_id, D.device_model, D.ip, 
                           DP.port, DP.snmp_index  
                    FROM devices AS D, device_ports AS DP, connections AS C 
-                   WHERE ' . $place_filter . ' 
-                         D.id = DP.device_id 
+                   WHERE ' . $place_condition . ' 
+                         AND D.id = DP.device_id 
                          AND DP.id = C.port_id 
-                         AND C.auth_id = ' . $row['id'];
+                         AND C.auth_id = ?';
         
-        $dev_info = get_record_sql($db, $devSQL);
+        $params = array_merge($place_params, [$auth_id]);
+        $dev_info = get_record_sql($db, $devSQL, $params);
         
         if (empty($dev_info)) { 
             continue; 
         }
         
         // Получение устройства
-        $device = get_record($db, 'devices', "id = " . (int)$dev_info['id']);
+        $device = get_record($db, 'devices', "id = ?", [(int)$dev_info['id']]);
         $snmp = getSnmpAccess($device);
         
         // Определение режима и обновление nagios_handler
         if ($state == 1) {
             $mode = 'enable';
-            $runSQL = "UPDATE user_auth 
-                       SET nagios_handler = 'restart-port' 
-                       WHERE id = " . (int)$row['id'] . " 
-                         AND nagios_handler = 'manual-mode'";
+            update_record($db, 'user_auth', 
+                'id = ? AND nagios_handler = ?', 
+                ['nagios_handler' => 'restart-port'], 
+                [$auth_id, 'manual-mode']
+            );
         } else {
             $mode = 'disable';
-            $runSQL = "UPDATE user_auth 
-                       SET nagios_handler = 'manual-mode' 
-                       WHERE id = " . (int)$row['id'] . " 
-                         AND nagios_handler = 'restart-port'";
+            update_record($db, 'user_auth', 
+                'id = ? AND nagios_handler = ?', 
+                ['nagios_handler' => 'manual-mode'], 
+                [$auth_id, 'restart-port']
+            );
         }
         
-        run_sql($db, $runSQL);
-        
         // Логирование
-        LOG_INFO($db, "At device " . $dev_info['device_name'] . 
-                      " [" . $dev_info['ip'] . "] " . 
-                      $mode . " port " . $dev_info['port'] . 
-                      " for auth_id: " . $row['id'] . 
-                      " (" . $row['ip'] . " [" . $row['dns_name'] . "])");
+        LOG_INFO($db, "At device " . htmlspecialchars($dev_info['device_name']) . 
+                      " [" . htmlspecialchars($dev_info['ip']) . "] " . 
+                      $mode . " port " . htmlspecialchars($dev_info['port']) . 
+                      " for auth_id: " . $auth_id . 
+                      " (" . htmlspecialchars($row['ip']) . " [" . htmlspecialchars($row['dns_name']) . "])");
         
         // Установка состояния порта
         set_port_state($dev_info['vendor_id'], $dev_info['snmp_index'], 
@@ -3060,29 +3744,35 @@ function set_port_for_group($db, $group_id, $place_id, $state)
     LOG_VERBOSE($db, 'Mass port state change stopped.');
 }
 
-function get_vendor($db, $mac)
+function get_mac_vendor($db, $mac)
 {
-    if (empty($mac)) { return ''; }
+    if (empty($mac)) { 
+        return ''; 
+    }
+    
     $mac = mac_dotted($mac);
-    $mac5 = substr($mac, 0, 14);
-    $mac4 = substr($mac, 0, 11);
-    $mac3 = substr($mac, 0, 8);
+    $mac_prefixes = [
+        $mac,           // полный MAC
+        substr($mac, 0, 14), // OUI + 2 байта
+        substr($mac, 0, 11), // OUI + 1 байт  
+        substr($mac, 0, 8)   // только OUI
+    ];
     
     $vendor = null;
-    foreach ([$mac, $mac5, $mac4, $mac3] as $oui) {
-        $vendor = get_record_sql($db, 'SELECT companyName, companyAddress FROM mac_vendors WHERE oui = ?', [$oui]);
-        if (!empty($vendor)) {
-            break;
-        }
+    foreach ($mac_prefixes as $oui) {
+        if (empty($oui)) continue;
+        $vendor = get_record_sql($db, 'SELECT companyname,companyaddress FROM mac_vendors WHERE oui = ?', [$oui]);
+        if (!empty($vendor)) { break; }
     }
-    $result = '';
-    if (!empty($vendor)) {
-        $result = $vendor['companyName'];
-        if (!empty($vendor['companyAddress'])) {
-            $result = $vendor['companyAddress'];
-        }
+    if (empty($vendor)) { return ''; }
+
+    $address = $vendor['companyAddress'] ?? $vendor['companyaddress'] ?? null;
+    $name = $vendor['companyName'] ?? $vendor['companyname'] ?? null;
+    
+    if (!empty($address)) {
+        return $address;
     }
-    return $result;
+    return $name ?? '';
 }
 
 function strHexToBin($number)
@@ -3135,191 +3825,292 @@ function mac_dotted($mac)
 
 function unbind_ports($db, $device_id)
 {
-    $target = get_records_sql($db, "SELECT U.target_port_id,U.id FROM device_ports U WHERE U.device_id=$device_id");
+    $device_id = (int)$device_id;
+    
+    $target = get_records_sql($db, 
+        "SELECT target_port_id, id FROM device_ports WHERE device_id = ?", 
+        [$device_id]
+    );
+    
     foreach ($target as $row) {
-        run_sql($db, "UPDATE device_ports SET target_port_id=0 WHERE target_port_id=" . $row['id']);
-        run_sql($db, "UPDATE device_ports SET target_port_id=0 WHERE id=" . $row['id']);
+        $port_id = (int)$row['id'];
+        $target_port_id = (int)$row['target_port_id'];
+        
+        // Обнуляем ссылки на этот порт у других портов
+        update_record($db, "device_ports", "target_port_id = ?", ['target_port_id' => 0], [$port_id]);
+        
+        // Обнуляем ссылку этого порта на другой порт
+        update_record($db, "device_ports", "id = ?", ['target_port_id' => 0], [$port_id]);
     }
 }
 
 function bind_ports($db, $port_id, $target_id)
 {
-    // unbind current connection
-    $new['target_port_id'] = 0;
-    $old_target = get_record_sql($db, "SELECT U.target_port_id FROM device_ports U WHERE U.id=$port_id");
-    if (!empty($old_target)) { 
-        $old_target_id = $old_target['target_port_id'];
-        update_record($db, "device_ports", "id='$old_target_id'", $new);
-        }
-    update_record($db, "device_ports", "id='$port_id'", $new);
-    // new link
-    if (isset($target_id) and $target_id > 0) {
-        $new['target_port_id'] = $target_id;
-        update_record($db, "device_ports", "id='$port_id'", $new);
-        $new['target_port_id'] = $port_id;
-        update_record($db, "device_ports", "id='$target_id'", $new);
+    $port_id = (int)$port_id;
+    $target_id = (int)$target_id;
+    
+    // Отвязываем текущее соединение
+    $new = ['target_port_id' => 0];
+    $old_target = get_record_sql($db, 
+        "SELECT target_port_id FROM device_ports WHERE id = ?", 
+        [$port_id]
+    );
+    
+    if (!empty($old_target) && !empty($old_target['target_port_id'])) {
+        $old_target_id = (int)$old_target['target_port_id'];
+        update_record($db, "device_ports", "id = ?", $new, [$old_target_id]);
+    }
+    
+    // Обнуляем текущий порт
+    update_record($db, "device_ports", "id = ?", $new, [$port_id]);
+    
+    // Создаём новое соединение
+    if ($target_id > 0) {
+        // Связываем port_id -> target_id
+        update_record($db, "device_ports", "id = ?", ['target_port_id' => $target_id], [$port_id]);
+        // Связываем target_id -> port_id
+        update_record($db, "device_ports", "id = ?", ['target_port_id' => $port_id], [$target_id]);
     }
 }
 
 function expand_device_name($db, $name)
 {
-    $device_id = get_device_id($db, $name);
-    $result = $name;
-    if (isset($device_id) and $device_id > 0) {
-        $result = '<a href=/admin/devices/editdevice.php?id=' . $device_id . '>' . $name . '</a>';
+    if (empty($name)) {
+        return '';
     }
-    return $result;
+    
+    $device_id = get_device_id($db, $name);
+    if (isset($device_id) && $device_id > 0) {
+        $safe_name = htmlspecialchars($name);
+        $safe_id = (int)$device_id;
+        return '<a href="/admin/devices/editdevice.php?id=' . $safe_id . '">' . $safe_name . '</a>';
+    }
+    return $name;
 }
 
-function expand_mac($db, $msg)
+function expand_mac($db, $mac)
 {
-    if (!isset($msg)) {
-        return;
+    if (empty($mac)) {
+        return '';
     }
-    $mac = mac_dotted($msg);
-    $vendor_info = get_vendor($db, $mac);
-    if (!empty($vendor_info)) {
-//        $result = '<p title="' . $vendor_info . '"><a href=/admin/logs/mac.php?mac=' . $mac . '>' . $mac . '</a></p>';
-        $result = '<a href=/admin/logs/mac.php?mac=' . $mac . '><p title="' . $vendor_info . '">'. $mac . '</p></a>';
-        } else {
-        $result = '<a href=/admin/logs/mac.php?mac=' . $mac . '>' . $mac . '</a>';
-        }
-    return $result;
+    
+    $mac = mac_dotted($mac);
+    $safe_vendor = get_mac_vendor($db, $mac);
+    $safe_mac = $mac;
+    $safe_url_mac = urlencode($mac);
+    if (!empty($safe_vendor)) {
+        return '<a href="/admin/logs/mac.php?mac=' . $safe_url_mac . '"><p title="' . $safe_vendor . '">' . $safe_mac . '</p></a>';
+    } else {
+        return '<a href="/admin/logs/mac.php?mac=' . $safe_url_mac . '">' . $safe_mac . '</a>';
+    }
 }
+
 
 function expand_log_str($db, $msg)
 {
-    if (!isset($msg)) {
-        return;
+    if (empty($msg)) {
+        return '';
     }
+    
+    $result = $msg;
 
-    $auth_pattern = '/(auth_id:|auth|auth id:|auth id)\s+(\d+)\s+/i';
-    $auth_replace = '<a href=/admin/users/editauth.php?id=${2}>auth_id:${2}</a> ';
-    $result = preg_replace($auth_pattern, $auth_replace, $msg);
+    // === Замена auth_id ===
+    $auth_pattern = '/(auth_id:|auth|auth id:|auth id)\s+(\d+)/i';
+    $result = preg_replace_callback($auth_pattern, function($matches) {
+        $id = (int)$matches[2];
+        $safe_id = htmlspecialchars($id, ENT_QUOTES, 'UTF-8');
+        return '<a href="/admin/users/editauth.php?id=' . $id . '">auth_id:' . $safe_id . '</a>';
+    }, $result);
 
-    $user_pattern = '/(user_id:|user|user id:|user id)\s+(\d+)\s+/i';
-    $user_replace = '<a href=/admin/users/edituser.php?id=${2}>user_id:${2}</a> ';
-    $result = preg_replace($user_pattern, $user_replace, $result);
+    // === Замена user_id ===
+    $user_pattern = '/(user_id:|user|user id:|user id)\s+(\d+)/i';
+    $result = preg_replace_callback($user_pattern, function($matches) {
+        $id = (int)$matches[2];
+        $safe_id = htmlspecialchars($id, ENT_QUOTES, 'UTF-8');
+        return '<a href="/admin/users/edituser.php?id=' . $id . '">user_id:' . $safe_id . '</a>';
+    }, $result);
 
-    $mac_pattern = '/\s+\[(\w{12})\]\s+/i';
-    preg_match($mac_pattern, $result, $matches);
-    if (isset($matches[1])) {
-        $mac = $matches[1];
-        $mac = mac_dotted($mac);
-        //        $vendor_info = get_vendor($db,$mac);
-        //        $mac_replace = ' <p title="'.$vendor_info.'"><a href=/admin/logs/mac.php?mac='.$mac.'>'.$mac.'</a></p>';
-        $mac_replace = ' <a href=/admin/logs/mac.php?mac=' . $mac . '>' . $mac . '</a> ';
-        $result = preg_replace($mac_pattern, $mac_replace, $result);
-    }
+    // === Замена MAC-адресов в формате [1234567890ab] ===
+    $mac_pattern1 = '/\s*\[(\w{12})\]\s*/i';
+    $result = preg_replace_callback($mac_pattern1, function($matches) {
+        $mac_raw = $matches[1];
+        $mac_dotted = mac_dotted($mac_raw);
+        $safe_mac = htmlspecialchars($mac_dotted, ENT_QUOTES, 'UTF-8');
+        $url_mac = urlencode($mac_dotted);
+        return ' <a href="/admin/logs/mac.php?mac=' . $url_mac . '">' . $safe_mac . '</a> ';
+    }, $result);
 
-    $mac_pattern = '/\s+mac:\s+([\w\:]{17})$/i';
-    preg_match($mac_pattern, $result, $matches);
-    if (isset($matches[1])) {
-        $mac = $matches[1];
-        $mac = mac_dotted($mac);
-        //        $vendor_info = get_vendor($db,$mac);
-        //        $mac_replace = ' mac: <p title="'.$vendor_info.'"><a href=/admin/logs/mac.php?mac='.$mac.'>'.$mac.'</a></p>';
-        $mac_replace = ' mac: <a href=/admin/logs/mac.php?mac=' . $mac . '>' . $mac . '</a> ';
-        $result = preg_replace($mac_pattern, $mac_replace, $result);
-    }
+    // === Замена MAC-адресов в формате "mac: xx:xx:xx:xx:xx:xx" ===
+    $mac_pattern2 = '/\s*mac:\s+([\w:]{17})/i';
+    $result = preg_replace_callback($mac_pattern2, function($matches) {
+        $mac_raw = $matches[1];
+        $mac_dotted = mac_dotted($mac_raw);
+        $safe_mac = htmlspecialchars($mac_dotted, ENT_QUOTES, 'UTF-8');
+        $url_mac = urlencode($mac_dotted);
+        return ' mac: <a href="/admin/logs/mac.php?mac=' . $url_mac . '">' . $safe_mac . '</a> ';
+    }, $result);
 
-    $device_pattern = '/at device\s+([\w\.\-]+)/i';
-    preg_match($device_pattern, $result, $matches);
-    if (isset($matches[1])) {
+    // === Замена device name ===
+    $device_pattern1 = '/at device\s+([\w.\-]+)/i';
+    $result = preg_replace_callback($device_pattern1, function($matches) use ($db) {
         $device_name = $matches[1];
         $device_id = get_device_id($db, $device_name);
-        if (isset($device_id) and $device_id > 0) {
-            $device_replace = 'at device <a href=/admin/devices/editdevice.php?id=' . $device_id . '>${1}</a> ';
-            $result = preg_replace($device_pattern, $device_replace, $result);
+        if ($device_id && $device_id > 0) {
+            $safe_name = htmlspecialchars($device_name, ENT_QUOTES, 'UTF-8');
+            return 'at device <a href="/admin/devices/editdevice.php?id=' . (int)$device_id . '">' . $safe_name . '</a>';
         }
-    }
+        return $matches[0];
+    }, $result);
 
-    $device_pattern = '/(device_id:|device id:|device id|device_id)\s+(\d+)\s+/i';
-    $device_replace = 'device_id: <a href=/admin/devices/editdevice.php?id=${2}>${2}</a> ';
-    $result = preg_replace($device_pattern, $device_replace, $result);
+    // === Замена device_id ===
+    $device_pattern2 = '/(device_id:|device id:|device id|device_id)\s+(\d+)/i';
+    $result = preg_replace_callback($device_pattern2, function($matches) {
+        $id = (int)$matches[2];
+        $safe_id = htmlspecialchars($id, ENT_QUOTES, 'UTF-8');
+        return 'device_id: <a href="/admin/devices/editdevice.php?id=' . $id . '">' . $safe_id . '</a>';
+    }, $result);
 
-    $ip_pattern = '/\s+ip\:\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+/i';
-    preg_match($ip_pattern, $result, $matches);
-    if (isset($matches[1])) {
+    // === Замена IP-адресов ===
+    $ip_pattern = '/\s*ip:\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*/i';
+    $result = preg_replace_callback($ip_pattern, function($matches) use ($db) {
         $ip = $matches[1];
-        $auth_id = get_auth_by_ip($db, $ip);
-        if (isset($auth_id) and $auth_id > 0) {
-            $auth_replace = ' ip: <a href=/admin/users/editauth.php?id=' . $auth_id . '>${1}</a> ';
-            $result = preg_replace($ip_pattern, $auth_replace, $result);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+            $auth_id = get_auth_by_ip($db, $ip);
+            if ($auth_id && $auth_id > 0) {
+                $safe_ip = htmlspecialchars($ip, ENT_QUOTES, 'UTF-8');
+                return ' ip: <a href="/admin/users/editauth.php?id=' . (int)$auth_id . '">' . $safe_ip . '</a> ';
+            }
         }
-    }
+        return $matches[0];
+    }, $result);
+
     return $result;
 }
 
 function is_auth_bind_changed($db, $id, $ip, $mac)
 {
-    $old_sql = "SELECT ip,mac FROM user_auth WHERE id=$id";
-    $old_record = get_record_sql($db, $old_sql);
-    if (empty($old_record["ip"]) or empty($old_record["mac"])) {
+    $old_record = get_record_sql($db, 
+        "SELECT ip, mac FROM user_auth WHERE id = ?", 
+        [(int)$id]
+    );
+    
+    if (empty($old_record) || empty($old_record["ip"]) || empty($old_record["mac"])) {
         return 0;
     }
-    if ($old_record["ip"] !== $ip or $old_record["mac"] !== $mac) {
+    
+    if ($old_record["ip"] !== $ip || $old_record["mac"] !== $mac) {
         LOG_VERBOSE($db, "Changed ip or mac for auth record!");
         return 1;
     }
+    
     return 0;
 }
 
 function copy_auth($db, $id, $new_auth)
 {
-    $old_record = get_record_sql($db, "SELECT * FROM user_auth WHERE id=$id");
-    delete_record($db, "user_auth", "id=" . $id);
+    $id = (int)$id;
+    $old_record = get_record_sql($db, 
+        "SELECT * FROM user_auth WHERE id = ?", 
+        [$id]
+    );
+    
+    if (empty($old_record)) {
+        return null;
+    }
+    
+    delete_record($db, "user_auth", "id = ?", [$id]);
+    
     $new_auth["user_id"] = $old_record["user_id"];
     $new_auth["changed"] = 1;
-    $changed_time = GetNowTimeString();
-    $new_auth["changed_time"] = $changed_time;
+    $new_auth["changed_time"] = GetNowTimeString();
+    
     $new_id = insert_record($db, "user_auth", $new_auth);
-    LOG_VERBOSE($db, "Old record with id: $id deleted. Created new auth record for new ip+mac id: $new_id!");
+    
+    if (!empty($new_id)) {
+        LOG_VERBOSE($db, "Old record with id: $id deleted. Created new auth record for new ip+mac id: $new_id!");
+    }
+    
     return $new_id;
 }
 
 function get_dns_name($db, $id)
 {
-    $auth_record = get_record_sql($db, "SELECT dns_name FROM user_auth WHERE id=" . $id);
-    if (!empty($auth_record) and !empty($auth_record['dns_name'])) {
+    $auth_record = get_record_sql($db, 
+        "SELECT dns_name FROM user_auth WHERE id = ?", 
+        [(int)$id]
+    );
+    
+    if (!empty($auth_record) && !empty($auth_record['dns_name'])) {
         return $auth_record['dns_name'];
     }
+    
     return '';
 }
 
 function get_cacti_graph($host_ip, $port_index)
 {
-
+    // Проверка конфигурации Cacti
     if (empty(get_const('cacti_url'))) {
-        return;
+        return null;
     }
-    if (CACTI_DB_HOST == null or CACTI_DB_USER == null or CACTI_DB_PASS == null or CACTI_DB_NAME == null) {
-        return;
+    
+    if (empty(CACTI_DB_HOST) || empty(CACTI_DB_USER) || empty(CACTI_DB_PASS) || empty(CACTI_DB_NAME)) {
+        return null;
     }
-    if (empty(CACTI_DB_HOST) or empty(CACTI_DB_USER) or empty(CACTI_DB_PASS) or empty(CACTI_DB_NAME)) {
-        return;
-    }
-
-    $cacti_db_link = new_connection('mysql',CACTI_DB_HOST, CACTI_DB_USER, CACTI_DB_PASS, CACTI_DB_NAME);
+    
+    // Установка соединения с БД Cacti
+    $cacti_db_link = new_connection('mysql', CACTI_DB_HOST, CACTI_DB_USER, CACTI_DB_PASS, CACTI_DB_NAME);
     if (!$cacti_db_link) {
-        return FALSE;
+        return false;
     }
-
-    $host_sql = 'SELECT * FROM host WHERE hostname="' . $host_ip . '"';
-    $cacti_host = get_record_sql($cacti_db_link, $host_sql);
-    $host_id = $cacti_host["id"];
-    if (empty($host_id)) {
-        return;
+    
+    // Поиск хоста по IP-адресу
+    $cacti_host = get_record_sql($cacti_db_link, 
+        "SELECT * FROM host WHERE hostname = ?", 
+        [$host_ip]
+    );
+    
+    if (empty($cacti_host) || empty($cacti_host["id"])) {
+        return null;
     }
-
-    $graph_sql = 'SELECT * FROM graph_local WHERE host_id="' . $host_id . '" and snmp_index="' . $port_index . '" and graph_template_id IN (SELECT id FROM graph_templates WHERE name LIKE "Interface - Traffic%") ORDER BY id ASC';
-    $cacti_graph = get_record_sql($cacti_db_link, $graph_sql);
-    $graph_id = $cacti_graph["id"];
-
-    if (empty($graph_id)) {
-        return;
+    
+    $host_id = (int)$cacti_host["id"];
+    $port_index = (string)$port_index; // SNMP index может быть строкой
+    
+    // Получение ID шаблонов графиков для трафика интерфейсов
+    $traffic_templates = get_records_sql($cacti_db_link,
+        "SELECT id FROM graph_templates WHERE name LIKE 'Interface - Traffic%'"
+    );
+    
+    if (empty($traffic_templates)) {
+        return null;
     }
-    $result = get_const('cacti_url') . "/graph_image.php?local_graph_id=" . $graph_id;
+    
+    $template_ids = [];
+    foreach ($traffic_templates as $template) {
+        $template_ids[] = (int)$template['id'];
+    }
+    
+    // Формирование условия IN для параметризованного запроса
+    $placeholders = str_repeat('?,', count($template_ids) - 1) . '?';
+    
+    // Поиск графика по хосту, SNMP-индексу и шаблону
+    $cacti_graph = get_record_sql($cacti_db_link,
+        "SELECT * FROM graph_local 
+         WHERE host_id = ? 
+           AND snmp_index = ? 
+           AND graph_template_id IN ($placeholders) 
+         ORDER BY id ASC",
+        array_merge([$host_id, $port_index], $template_ids)
+    );
+    
+    if (empty($cacti_graph) || empty($cacti_graph["id"])) {
+        return null;
+    }
+    
+    $graph_id = (int)$cacti_graph["id"];
+    $result = rtrim(get_const('cacti_url'), '/') . "/graph_image.php?local_graph_id=" . $graph_id;
+    
     return $result;
 }
 
@@ -3434,6 +4225,7 @@ function get_option($db, $option_id)
     if (!is_numeric($option_id) || $option_id <= 0) {
         return null;
     }
+    
     $sql = "
         SELECT
             COALESCE(c.value, co.default_value) AS value,
@@ -3442,7 +4234,8 @@ function get_option($db, $option_id)
         LEFT JOIN config c ON c.option_id = co.id
         WHERE co.id = ?
     ";
-    $record = get_record_sql($db, $sql, [$option_id]);
+    $record = get_record_sql($db, $sql, [(int)$option_id]);
+    
     if ($record && isset($record['value'])) {
         return $record['value'];
     }
@@ -3451,137 +4244,213 @@ function get_option($db, $option_id)
 
 function is_option($db, $option_id)
 {
-    $option = get_record($db, "config", "option_id=" . $option_id);
-    if (empty($option) or empty($option['value'])) {
-        return;
+    if (!is_numeric($option_id) || $option_id <= 0) {
+        return false;
     }
-    return 1;
+    
+    $option = get_record($db, "config", "option_id = ?", [(int)$option_id]);
+    if (empty($option) || empty($option['value'])) {
+        return false;
+    }
+    return true;
 }
 
 function set_option($db, $option_id, $value)
 {
-    $option['value'] = $value;
-    update_record($db, 'config', "option_id=$option_id", $option);
+    if (!is_numeric($option_id) || $option_id <= 0) {
+        return false;
+    }
+    
+    $option = ['value' => $value];
+    $result = update_record($db, 'config', "option_id = ?", $option, [(int)$option_id]);
+    return $result !== false;
 }
 
 function is_subnet_aton($subnet, $ip)
 {
-    if (!isset($subnet)) {
-        return 0;
+    if (empty($subnet) || empty($ip)) {
+        return false;
     }
-    if (!isset($ip)) {
-        return 0;
+    
+    // Проверяем корректность IP-адреса
+    if (!is_numeric($ip)) {
+        return false;
     }
+    
     $range = cidrToRange($subnet);
-    if ($ip >= ip2long($range[0]) and $ip <= ip2long($range[1])) {
-        return 1;
+    if ($range === false) {
+        return false;
     }
-    return 0;
+    
+    $ip_start = ip2long($range[0]);
+    $ip_end = ip2long($range[1]);
+    
+    if ($ip_start === false || $ip_end === false) {
+        return false;
+    }
+    
+    if ($ip >= $ip_start && $ip <= $ip_end) {
+        return true;
+    }
+    return false;
 }
 
 function get_new_user_id($db, $ip, $mac, $hostname)
 {
-
-    $result['ip'] = $ip;
-    $result['mac'] = mac_dotted($mac);
-    $result['hostname'] = $hostname;
-    $result['user_id'] = NULL;
-    $result['ou_id'] = NULL;
+    $result = [
+        'ip' => $ip,
+        'mac' => !empty($mac) ? mac_dotted($mac) : '',
+        'hostname' => $hostname,
+        'user_id' => null,
+        'ou_id' => null
+    ];
+    
     $ip_aton = ip2long($ip);
-
+    if ($ip_aton === false) {
+        // Некорректный IP - используем значения по умолчанию
+        if (empty($result['ou_id'])) {
+            $result['ou_id'] = get_const('default_user_ou_id');
+        }
+        return $result;
+    }
+    
+    // Проверка hotspot
     if (is_hotspot($db, $ip)) {
-            $result['ou_id'] = get_const('default_hotspot_ou_id');
-            return $result;
-        }
-
-    //personal user rules
-    //ip
+        $result['ou_id'] = get_const('default_hotspot_ou_id');
+        return $result;
+    }
+    
+    // === Правила для пользователей ===
+    
+    // IP правила (rule_type = 1)
     if (!empty($ip)) {
-        $t_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE rule_type=1 and LENGTH(rule)>0 AND user_id IS NOT NULL");
+        $t_rules = get_records_sql($db, 
+            "SELECT * FROM auth_rules WHERE rule_type = 1 AND LENGTH(rule) > 0 AND user_id IS NOT NULL"
+        );
         foreach ($t_rules as $row) {
-            if (!empty($row['rule']) and is_subnet_aton($row['rule'], $ip_aton)) {
-                $result['user_id'] = $row['user_id'];
+            if (!empty($row['rule']) && is_subnet_aton($row['rule'], $ip_aton)) {
+                $result['user_id'] = (int)$row['user_id'];
                 return $result;
             }
         }
     }
-    //mac
+    
+    // MAC правила (rule_type = 2)
     if (!empty($mac)) {
-        $mac_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE rule_type=2 AND LENGTH(rule)>0 AND user_id IS NOT NULL");
+        $mac_simplified = mac_simplify($mac);
+        $mac_rules = get_records_sql($db, 
+            "SELECT * FROM auth_rules WHERE rule_type = 2 AND LENGTH(rule) > 0 AND user_id IS NOT NULL"
+        );
         foreach ($mac_rules as $row) {
-            $pattern = '/' . mac_simplify($row['rule']) . '/';
-            if (!empty($row['rule']) and preg_match($pattern, mac_simplify($mac))) {
-                $result['user_id'] = $row['user_id'];
-                return $result;
+            if (!empty($row['rule'])) {
+                $pattern = '/' . preg_quote(mac_simplify($row['rule']), '/') . '/';
+                if (preg_match($pattern, $mac_simplified)) {
+                    $result['user_id'] = (int)$row['user_id'];
+                    return $result;
+                }
             }
         }
     }
-    //hostname
+    
+    // Hostname правила (rule_type = 3)
     if (!empty($hostname)) {
-        $mac_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE rule_type=3 AND LENGTH(rule)>0 AND user_id IS NOT NULL");
-        foreach ($mac_rules as $row) {
-            if (!empty($row['rule']) and preg_match($row['rule'], $hostname)) {
-                $result['user_id'] = $row['user_id'];
-                return $result;
+        $hostname_rules = get_records_sql($db, 
+            "SELECT * FROM auth_rules WHERE rule_type = 3 AND LENGTH(rule) > 0 AND user_id IS NOT NULL"
+        );
+        foreach ($hostname_rules as $row) {
+            if (!empty($row['rule'])) {
+                // Добавляем делимитеры к регулярному выражению, если их нет
+                $pattern = $row['rule'];
+                if (@preg_match($pattern, '') === false) {
+                    // Если шаблон некорректен, пропускаем
+                    continue;
+                }
+                if (preg_match($pattern, $hostname)) {
+                    $result['user_id'] = (int)$row['user_id'];
+                    return $result;
+                }
             }
         }
     }
-
-    //ou rules
-    //ip
+    
+    // === Правила для OU ===
+    
+    // IP правила для OU (rule_type = 1)
     if (!empty($ip)) {
-        $t_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE rule_type=1 and LENGTH(rule)>0 AND ou_id IS NOT NULL");
+        $t_rules = get_records_sql($db, 
+            "SELECT * FROM auth_rules WHERE rule_type = 1 AND LENGTH(rule) > 0 AND ou_id IS NOT NULL"
+        );
         foreach ($t_rules as $row) {
-            if (!empty($row['rule']) and is_subnet_aton($row['rule'], $ip_aton)) {
-                $result['ou_id'] = $row['ou_id'];
+            if (!empty($row['rule']) && is_subnet_aton($row['rule'], $ip_aton)) {
+                $result['ou_id'] = (int)$row['ou_id'];
                 return $result;
             }
         }
     }
-    //mac
+    
+    // MAC правила для OU (rule_type = 2)
     if (!empty($mac)) {
-        $mac_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE rule_type=2 AND LENGTH(rule)>0 AND ou_id IS NOT NULL");
+        $mac_simplified = mac_simplify($mac);
+        $mac_rules = get_records_sql($db, 
+            "SELECT * FROM auth_rules WHERE rule_type = 2 AND LENGTH(rule) > 0 AND ou_id IS NOT NULL"
+        );
         foreach ($mac_rules as $row) {
-            $pattern = '/' . mac_simplify($row['rule']) . '/';
-            if (!empty($row['rule']) and preg_match($pattern, mac_simplify($mac))) {
-                $result['ou_id'] = $row['ou_id'];
-                return $result;
+            if (!empty($row['rule'])) {
+                $pattern = '/' . preg_quote(mac_simplify($row['rule']), '/') . '/';
+                if (preg_match($pattern, $mac_simplified)) {
+                    $result['ou_id'] = (int)$row['ou_id'];
+                    return $result;
+                }
             }
         }
     }
-    //hostname
+    
+    // Hostname правила для OU (rule_type = 3)
     if (!empty($hostname)) {
-        $mac_rules = get_records_sql($db, "SELECT * FROM auth_rules WHERE rule_type=3 AND LENGTH(rule)>0 AND ou_id IS NOT NULL");
-        foreach ($mac_rules as $row) {
-            if (!empty($row['rule']) and preg_match($row['rule'], $hostname)) {
-                $result['ou_id'] = $row['ou_id'];
-                return $result;
+        $hostname_rules = get_records_sql($db, 
+            "SELECT * FROM auth_rules WHERE rule_type = 3 AND LENGTH(rule) > 0 AND ou_id IS NOT NULL"
+        );
+        foreach ($hostname_rules as $row) {
+            if (!empty($row['rule'])) {
+                $pattern = $row['rule'];
+                if (@preg_match($pattern, '') === false) {
+                    continue;
+                }
+                if (preg_match($pattern, $hostname)) {
+                    $result['ou_id'] = (int)$row['ou_id'];
+                    return $result;
+                }
             }
         }
     }
-
+    
+    // Значение по умолчанию
     if (empty($result['ou_id'])) {
         $result['ou_id'] = get_const('default_user_ou_id');
     }
-
+    
     return $result;
 }
 
 function get_subnet_range($db, $subnet_id)
 {
     if (empty($subnet_id)) {
-        return;
+        return null;
     }
-    $t_option = get_record_sql($db, "SELECT ip_int_start,ip_int_stop FROM subnets WHERE id=$subnet_id");
-    if (!isset($t_option['ip_int_start'])) {
-        $t_option['ip_int_start'] = 0;
+    
+    $t_option = get_record_sql($db, 
+        "SELECT ip_int_start, ip_int_stop FROM subnets WHERE id = ?", 
+        [(int)$subnet_id]
+    );
+    
+    if (empty($t_option)) {
+        return null;
     }
-    if (!isset($t_option['ip_int_stop'])) {
-        $t_option['ip_int_stop'] = 0;
-    }
-    $subnet['start'] = $t_option['ip_int_start'];
-    $subnet['stop'] = $t_option['ip_int_stop'];
-    return $subnet;
+    
+    return [
+        'start' => isset($t_option['ip_int_start']) ? (int)$t_option['ip_int_start'] : 0,
+        'stop' => isset($t_option['ip_int_stop']) ? (int)$t_option['ip_int_stop'] : 0
+    ];
 }
 
 function int_between($value, $start, $end)
@@ -3606,67 +4475,92 @@ function is_gray_network($ip)
 }
 
 function is_hotspot($db, $ip)
-{
-    if (!isset($ip)) {
-        return 0;
+{   
+    if (empty($ip)) {
+        return false;
     }
-    LOG_DEBUG($db, "Check hotspot network for ip: $ip");
+    
     $ip_aton = ip2long($ip);
-    $t_option = get_records_sql($db, "SELECT subnet,ip_int_start,ip_int_stop FROM subnets WHERE hotspot=1");
+    if ($ip_aton === false) {
+        LOG_DEBUG($db, "Invalid IP address: $ip");
+        return false;
+    }
+    
+    LOG_DEBUG($db, "Check hotspot network for ip: $ip");
+    $t_option = get_records_sql($db, "SELECT subnet, ip_int_start, ip_int_stop FROM subnets WHERE hotspot = 1");
+    
     foreach ($t_option as $row) {
-        if ($ip_aton >= $row['ip_int_start'] and $ip_aton <= $row['ip_int_stop']) {
-            LOG_DEBUG($db, "ip: $ip [$ip_aton] found in hotspot network ".$row['subnet'].": [" . $row['ip_int_start'] . ".." . $row['ip_int_stop'] . "]");
-            return 1;
+        if ($ip_aton >= (int)$row['ip_int_start'] && $ip_aton <= (int)$row['ip_int_stop']) {
+            LOG_DEBUG($db, "ip: $ip [$ip_aton] found in hotspot network " . $row['subnet'] . ": [" . $row['ip_int_start'] . ".." . $row['ip_int_stop'] . "]");
+            return true;
         }
     }
+    
     LOG_DEBUG($db, "ip $ip not found in hotspot network!");
-    return 0;
+    return false;
 }
 
 function is_office($db, $ip)
-{
-    if (!isset($ip)) {
-        return 0;
+{   
+    if (empty($ip)) {
+        return false;
     }
-    LOG_DEBUG($db, "Check office network for ip: $ip");
+    
     $ip_aton = ip2long($ip);
-    $t_option = get_records_sql($db, "SELECT subnet,ip_int_start,ip_int_stop FROM subnets WHERE office=1");
+    if ($ip_aton === false) {
+        LOG_DEBUG($db, "Invalid IP address: $ip");
+        return false;
+    }
+    
+    LOG_DEBUG($db, "Check office network for ip: $ip");
+    $t_option = get_records_sql($db, "SELECT subnet, ip_int_start, ip_int_stop FROM subnets WHERE office = 1");
+    
     foreach ($t_option as $row) {
-        if ($ip_aton >= $row['ip_int_start'] and $ip_aton <= $row['ip_int_stop']) {
-            LOG_DEBUG($db, "ip: $ip [$ip_aton] found in office network ".$row['subnet'].": [" . $row['ip_int_start'] . ".." . $row['ip_int_stop'] . "]");
-            return 1;
+        if ($ip_aton >= (int)$row['ip_int_start'] && $ip_aton <= (int)$row['ip_int_stop']) {
+            LOG_DEBUG($db, "ip: $ip [$ip_aton] found in office network " . $row['subnet'] . ": [" . $row['ip_int_start'] . ".." . $row['ip_int_stop'] . "]");
+            return true;
         }
     }
+    
     LOG_DEBUG($db, "ip $ip not found in office network!");
-    return 0;
+    return false;
 }
 
 function get_office_subnet($db, $ip)
-{
-    if (!isset($ip)) {
-        return 0;
+{   
+    if (empty($ip)) {
+        return null;
     }
-    LOG_DEBUG($db, "Check office network for ip: $ip");
+    
     $ip_aton = ip2long($ip);
-    $subnets = get_records_sql($db, 'SELECT * FROM subnets WHERE office=1');
+    if ($ip_aton === false) {
+        LOG_DEBUG($db, "Invalid IP address: $ip");
+        return null;
+    }
+    
+    LOG_DEBUG($db, "Check office network for ip: $ip");
+    $subnets = get_records_sql($db, 'SELECT * FROM subnets WHERE office = 1');
+    
     foreach ($subnets as $row) {
-        if ($ip_aton >= $row['ip_int_start'] and $ip_aton <= $row['ip_int_stop']) {
+        if ($ip_aton >= (int)$row['ip_int_start'] && $ip_aton <= (int)$row['ip_int_stop']) {
             LOG_DEBUG($db, "ip: $ip [$ip_aton] found in office {$row['subnet']}: [" . $row['ip_int_start'] . ".." . $row['ip_int_stop'] . "]");
             return $row;
         }
     }
+    
     LOG_DEBUG($db, "ip $ip not found in office network!");
-    return 0;
+    return null;
 }
 
 function get_notify_subnet($db, $ip)
-{
-    if (!isset($ip)) {
+{   
+    if (empty($ip)) {
         return 0;
     }
+    
     $office_subnet = get_office_subnet($db, $ip);
-    if ($office_subnet) {
-        return $office_subnet['notify'];
+    if ($office_subnet && isset($office_subnet['notify'])) {
+        return (int)$office_subnet['notify'];
     }
     return 0;
 }

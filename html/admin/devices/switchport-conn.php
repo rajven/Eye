@@ -5,17 +5,20 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $device=get_record($db_link,'devices',"id=?", [ $id ]);
 
-if (isset($_POST["remove"])) {
-    $fid = $_POST["f_id"];
-    foreach ($fid as $key => $val) {
-        if (isset($val) and $val != 1) {
-                LOG_VERBOSE($db_link, "Remove connection id: $val ".dump_record($db_link,'connections','id=?', [$val]));
-                delete_record($db_link, "connections", "id=?", [$val]);
+if (getPOST("remove") !== null) {
+    $fid = getPOST("f_id", null, []);
+    if (!empty($fid) && is_array($fid)) {
+        foreach ($fid as $val) {
+            $val = trim($val);
+            if ($val !== '' && $val != 1) {
+                LOG_VERBOSE($db_link, "Remove connection id: $val " . dump_record($db_link, 'connections', 'id = ?', [$val]));
+                delete_record($db_link, "connections", "id = ?", [(int)$val]);
             }
         }
-        header("Location: " . $_SERVER["REQUEST_URI"]);
-        exit;
     }
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
 
 unset($_POST);
 
