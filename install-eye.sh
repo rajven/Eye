@@ -2,7 +2,7 @@
 # Eye Installation Script for ALT Linux/Debian/Ubuntu with PostgreSQL support
 # Version: 2.1
 
-set -e
+# set -e
 
 # Colors for output
 RED='\033[0;31m'
