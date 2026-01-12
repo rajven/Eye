@@ -662,6 +662,7 @@ ALTER TABLE `worklog`
   ADD KEY `idx_timestamp` (`level`,`ts`),
   ADD KEY `idx_auth_id` (`auth_id`,`level`,`ts`);
 
+ALTER TABLE `worklog` ADD INDEX `idx_ts` (`ts`);
 
 ALTER TABLE `acl`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;

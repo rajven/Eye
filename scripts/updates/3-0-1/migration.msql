@@ -117,3 +117,6 @@ INSERT INTO acl (id, name, description_english, description_russian) VALUES (0, 
 -- queue_list
 ALTER TABLE queue_list CHANGE COLUMN `Download` `download` INT(11) NOT NULL DEFAULT 0;
 ALTER TABLE queue_list CHANGE COLUMN `Upload` `upload` INT(11) NOT NULL DEFAULT 0;
+
+-- speedup worklog
+ALTER TABLE `worklog` ADD INDEX `idx_ts` (`ts`);
