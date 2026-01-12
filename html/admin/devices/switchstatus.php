@@ -448,5 +448,5 @@ print "<tr><td class=\"speed10M\">" . WEB_port_speed_10 . "</td><td class=\"spee
 print "</table>\n";
 print "</form>";
 unset_lock_discovery($db_link, $id);
-require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.simple.php");
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.php");
 ?>

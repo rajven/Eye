@@ -147,5 +147,5 @@ print "</table>\n";
 </div>
 </form>
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

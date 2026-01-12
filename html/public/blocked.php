@@ -10,7 +10,10 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header_public.php");
 // === 1. Безопасное получение IP ===
 $auth_ip = get_user_ip();
 if (!$auth_ip || !filter_var($auth_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-    die("<font color=red><b>Invalid IP detected!</b></font>");
+    print "<div id=\"cont\">";
+    print "<font color=red><b>".WEB_auth_unknown."</b></font>";
+    require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
+    exit;
 }
 
 // === 2. Преобразуем IP в BIGINT (беззнаковый) ===
@@ -19,7 +22,22 @@ $ip_long = sprintf('%u', ip2long($auth_ip));
 // === 3. Находим авторизацию и пользователя за один JOIN ===
 $sql = "
     SELECT 
-        ua.*, ul.*
+        ul.id AS user_id,
+        ul.login,
+        ul.fio,
+        ul.enabled AS user_enabled,
+        ul.blocked AS user_blocked,
+        ul.month_quota,
+        ul.day_quota,
+        ul.filter_group_id,
+        ul.queue_id,
+
+        ua.id AS auth_id,
+        ua.ip_int,
+        ua.enabled AS auth_enabled,
+        ua.blocked AS auth_blocked,
+        ua.month_quota AS auth_month_quota,
+        ua.day_quota AS auth_day_quota
     FROM user_auth ua
     JOIN user_list ul ON ua.user_id = ul.id
     WHERE ua.ip_int = ? AND ua.deleted = 0 AND ul.deleted = 0
@@ -27,11 +45,14 @@ $sql = "
 $record = get_record_sql($db_link, $sql, [$ip_long]);
 
 if (!$record) {
-    die("<font color=red><b>" . WEB_cell_ip . "&nbsp;" . htmlspecialchars($auth_ip, ENT_QUOTES) . "&nbsp; - " . WEB_unknown . "!</b></font>");
+    print "<div id=\"cont\">";
+    print "<font color=red><b>".WEB_cell_ip . "&nbsp;" . htmlspecialchars($auth_ip, ENT_QUOTES) . "&nbsp; - " . WEB_unknown . "!</b></font>";
+    require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
+    exit;
 }
 
 // === 4. Подготавливаем данные ===
-$id = $record['id'];
+$auth_id = $record['auth_id'];
 $user_id = $record['user_id'];
 
 $KB = get_const('KB') ? 1024 : 1000;
@@ -44,11 +65,15 @@ $user_day_quota   = ($record['day_quota']   ?? 0) * $KB * $KB;
 $auth_month_quota = ($record['auth_month_quota'] ?? $record['month_quota'] ?? 0) * $KB * $KB;
 $auth_day_quota   = ($record['auth_day_quota']   ?? $record['day_quota']   ?? 0) * $KB * $KB;
 
-// === 5. Получаем трафик за день и месяц за 2 запроса (без циклов!) ===
-$params_day = [$date1, $date2, $user_id];
-$params_month = [$date1m, $date2m, $user_id];
+// === 5. Вычисляем временные границы ===
+$now = new DateTime();
+$date1 = $now->format('Y-m-d 00:00:00');
+$date2 = $now->format('Y-m-d 23:59:59');
 
-// Трафик по всем auth этого пользователя
+$date1m = $now->format('Y-m-01 00:00:00');
+$date2m = (clone $now)->modify('last day of this month')->format('Y-m-d 23:59:59');
+
+// === 6. Получаем трафик за день и месяц ===
 $day_traffic = get_record_sql($db_link, "
     SELECT 
         SUM(CASE WHEN ua.id = ? THEN us.byte_in ELSE 0 END) AS auth_in,
@@ -58,7 +83,7 @@ $day_traffic = get_record_sql($db_link, "
     FROM user_stats us
     JOIN user_auth ua ON us.auth_id = ua.id
     WHERE us.ts >= ? AND us.ts < ? AND ua.user_id = ? AND ua.deleted = 0
-", [$id, $id, $date1, $date2, $user_id]);
+", [$auth_id, $auth_id, $date1, $date2, $user_id]);
 
 $month_traffic = get_record_sql($db_link, "
     SELECT 
@@ -69,7 +94,7 @@ $month_traffic = get_record_sql($db_link, "
     FROM user_stats us
     JOIN user_auth ua ON us.auth_id = ua.id
     WHERE us.ts >= ? AND us.ts < ? AND ua.user_id = ? AND ua.deleted = 0
-", [$id, $id, $date1m, $date2m, $user_id]);
+", [$auth_id, $auth_id, $date1m, $date2m, $user_id]);
 
 $day_auth_sum_in   = $day_traffic['auth_in']   ?? 0;
 $day_auth_sum_out  = $day_traffic['auth_out']  ?? 0;
@@ -100,32 +125,41 @@ $month_user_sum_out = $month_traffic['user_out'] ?? 0;
 <tr>
     <td><?php echo WEB_msg_access_login; ?></td>
     <td><b>
-    <?php if ($record['enabled'] && !$record['blocked']): ?>
-        <?php echo WEB_msg_enabled; ?>
-    <?php else: ?>
-        <?php if (!$record['enabled']): ?>
-            <font color="red"><?php echo WEB_msg_disabled; ?></font>&nbsp;
-        <?php endif; ?>
-        <?php if ($record['blocked']): ?>
-            <font color="red"><?php echo WEB_msg_traffic_blocked; ?></font>
-        <?php endif; ?>
-    <?php endif; ?>
+<?php
+if ($record['user_enabled'] && !$record['user_blocked']) {
+    echo WEB_msg_enabled;
+} else {
+    if (!$record['user_enabled']) {
+        echo '<font color="red">' . WEB_msg_disabled . '</font>&nbsp;';
+    }
+    if ($record['user_blocked']) {
+        echo '<font color="red">' . WEB_msg_traffic_blocked . '</font>';
+    }
+}
+?>
     </b></td>
 </tr>
 <!-- Аналогично для IP-статуса -->
 <tr>
     <td><?php echo WEB_msg_access_ip; ?></td>
     <td><b>
-    <?php if ($record['enabled'] && !$record['blocked'] && $record['auth_enabled'] /*?*/): ?>
-        <?php echo WEB_msg_enabled; ?>
-    <?php else: ?>
-        <?php if (!$record['enabled'] /* или auth_enabled */): ?>
-            <font color="red"><?php echo WEB_msg_disabled; ?></font>&nbsp;
-        <?php endif; ?>
-        <?php if ($record['auth_blocked'] /*?*/): ?>
-            <font color="red"><?php echo WEB_msg_traffic_blocked; ?></font>
-        <?php endif; ?>
-    <?php endif; ?>
+<?php
+$user_active = $record['user_enabled'] && !$record['user_blocked'];
+$auth_active = $user_active && $record['auth_enabled'] && !$record['auth_blocked'];
+if ($auth_active) {
+    echo WEB_msg_enabled;
+} else {
+    // Если пользователь неактивен — IP выключен из-за пользователя
+    if (!$user_active) {
+        echo '<font color="red">' . WEB_msg_disabled . '</font>&nbsp;';
+    } elseif (!$record['auth_enabled']) {
+        echo '<font color="red">' . WEB_msg_disabled . '</font>&nbsp;';
+    }
+    if ($record['auth_blocked']) {
+        echo '<font color="red">' . WEB_msg_traffic_blocked . '</font>';
+    }
+}
+?>
     </b></td>
 </tr>
 <tr><td><?php echo WEB_cell_filter; ?></td><td><?php print get_group($db_link, $record["filter_group_id"]); ?> </td></tr>

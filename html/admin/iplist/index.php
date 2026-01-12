@@ -353,5 +353,5 @@ document.getElementById('dynamic_enabled').addEventListener('change', function(e
 </script>
 
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

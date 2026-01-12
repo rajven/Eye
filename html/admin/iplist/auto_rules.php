@@ -136,5 +136,5 @@ document.getElementById('rows').addEventListener('change', function(event) {
 
 <?php
 print_navigation($page_url,$page,$displayed,$count_records,$total);
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php"); 
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php"); 
 ?>

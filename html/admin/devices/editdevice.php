@@ -356,4 +356,4 @@ document.getElementById('f_snmp_version').addEventListener('change', function(ev
 
 </script>
 
-<?php require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.simple.php"); ?>
+<?php require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.php"); ?>

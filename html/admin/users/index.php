@@ -257,5 +257,5 @@ document.getElementById('rows').addEventListener('change', function(event) {
 </script>
 
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>
