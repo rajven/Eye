@@ -80,13 +80,17 @@ apt-get install apache2 php8.2 php8.2-mysqlnd php8.2-pgsql \
 php8.2-intl php8.2-mbstring php8.2-fpm-fcgi apache2-mod_fcgid
 
 # Perl-модули
-apt-get install perl perl-Net-Patricia perl-NetAddr-IP \
-perl-Config-Tiny perl-Net-DNS perl-DateTime perl-Net-Ping \
-perl-Net-Netmask perl-Text-Iconv perl-Net-SNMP perl-Net-Telnet \
-perl-DBI perl-DBD-mysql perl-DBD-Pg perl-Parallel-ForkManager \
-perl-Proc-Daemon perl-DateTime-Format-DateParse perl-Net-OpenSSH \
-perl-File-Tail perl-Crypt-Rijndael perl-Crypt-CBC perl-CryptX \
-perl-Crypt-DES perl-File-Path-Tiny perl-Expect perl-Proc-ProcessTable
+apt-get install perl-Net-Patricia perl-NetAddr-IP perl-Config-Tiny \
+perl-Net-DNS perl-DateTime perl-Net-Ping \
+perl-Net-Netmask perl-Text-Iconv perl-Net-SNMP \
+perl-Net-Telnet perl-DBI \
+perl-Parallel-ForkManager perl-Proc-Daemon \
+perl-DateTime-Format-DateParse perl-DateTime-Format-Strptime \
+perl-Net-OpenSSH perl-File-Tail perl-Tie-File \
+perl-Crypt-Rijndael perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
+perl-File-Path-Tiny perl-Expect perl-Proc-ProcessTable \
+perl-Text-CSV \
+perl-DBD-Pg perl-DBD-mysql
 
 # Дополнительные сервисы
 apt-get install dnsmasq syslog-ng syslog-ng-journal pwgen
@@ -112,14 +116,17 @@ php-intl php-mbstring php-date php-mail php-snmp php-zip \
 php-db php-fpm libapache2-mod-fcgid
 
 # Perl-модули
-apt-get install perl libnet-patricia-perl libnetaddr-ip-perl \
-libconfig-tiny-perl libnet-dns-perl libdatetime-perl \
-libnet-netmask-perl libtext-iconv-perl libnet-snmp-perl \
-libnet-telnet-perl libdbi-perl libdbd-mysql-perl libdbd-pg-perl \
-libparallel-forkmanager-perl libproc-daemon-perl \
-libdatetime-format-dateparse-perl libnet-openssh-perl \
-libfile-tail-perl libcrypt-rijndael-perl libcrypt-cbc-perl \
-libcryptx-perl libfile-path-tiny-perl libexpect-perl libcrypt-des-perl
+apt-get install -y perl \
+libnet-patricia-perl libnetaddr-ip-perl libconfig-tiny-perl \
+libnet-dns-perl libdatetime-perl libnet-netmask-perl \
+libtext-iconv-perl libnet-snmp-perl libnet-telnet-perl \
+libdbi-perl libparallel-forkmanager-perl libproc-daemon-perl \
+libdatetime-format-dateparse-perl libnetwork-ipv4addr-perl \
+libnet-openssh-perl libfile-tail-perl libdatetime-format-strptime-perl \
+libcrypt-rijndael-perl libcrypt-cbc-perl libcryptx-perl \
+libcrypt-des-perl libfile-path-tiny-perl libexpect-perl \
+libtext-csv-perl \
+libdbd-pg-perl libdbd-mysql-perl
 
 # Дополнительные сервисы
 apt-get install dnsmasq syslog-ng
@@ -161,6 +168,11 @@ mkdir -p /opt/Eye/html/cfg
 mkdir -p /opt/Eye/html/js
 mkdir -p /opt/Eye/docs
 
+# Установка прав
+chmod 750 /opt/Eye
+chmod 770 /opt/Eye/scripts/log
+chmod 750 /opt/Eye/scripts
+
 # Копирование файлов
 cp -R scripts/ /opt/Eye/
 cp -R html/ /opt/Eye/
@@ -168,9 +180,6 @@ cp -R docs/ /opt/Eye/
 
 # Установка прав
 chown -R eye:eye /opt/Eye
-chmod -R 755 /opt/Eye/html
-chmod -R 770 /opt/Eye/scripts/log
-chmod 750 /opt/Eye/scripts
 ```
 
 ---

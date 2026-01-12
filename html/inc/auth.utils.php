@@ -10,7 +10,7 @@ define('SESSION_TABLE', 'sessions');
 define('USER_SESSIONS_TABLE', 'user_sessions');
 
 //set default const values
-if (!defined('SESSION_LIFETIME') || SESSION_LIFETIME < 60) { define('SESSION_LIFETIME', 86400); }
+if (!defined("SESSION_LIFETIME") || SESSION_LIFETIME < 60) { define("SESSION_LIFETIME", 86400); }
 if (!defined("HTML_LANG")) { define("HTML_LANG","english"); }
 if (!defined("HTML_STYLE")) { define("HTML_STYLE","white"); }
 if (!defined("IPCAM_GROUP_ID")) { define("IPCAM_GROUP_ID","5"); }
@@ -187,6 +187,12 @@ function sess_gc($maxLifetime) {
 }
 
 function login($db) {
+
+    if (strpos($_SERVER['REQUEST_URI'], '/api.php') === 0) {
+        LOG_DEBUG($db, "API request detected, attempting silent auth");
+        return IsSilentAuthenticated($db);
+    }
+
     log_session_debug($db, "Login function started", [
         'session_status' => session_status(),
         'session_id' => session_id(),
@@ -221,10 +227,6 @@ function login($db) {
         log_session_debug($db, "No user_id found in session");
     }
 
-    if (strpos($_SERVER['REQUEST_URI'], '/api.php') === 0) {
-        log_session_debug($db, "API request detected, attempting silent auth");
-        return IsSilentAuthenticated($db);
-    }
 
     if (!empty($_POST['login']) && !empty($_POST['password'])) {
         log_session_debug($db, "POST login attempt", ['login' => $_POST['login']]);
@@ -387,63 +389,29 @@ function get_client_ip() {
             }
         }
     }
-    log_session_debug($GLOBALS['db_link'], "Client IP determined", ['ip' => $ip]);
     return $ip;
 }
 
 function IsSilentAuthenticated($db) {
-    log_session_debug($db, "Silent authentication attempt");
-
-    if (!empty($_SESSION['user_id'])) {
-        log_session_debug($db, "Silent auth - already has user_id in session");
-        return true;
-    }
-
     $auth_ip = get_client_ip();
-    $api_key = '';
-    $login = '';
-
-    if (!empty($_GET['api_key'])) {
-        $api_key = trim($_GET['api_key']);
-    } elseif (!empty($_POST['api_key'])) {
-        $api_key = trim($_POST['api_key']);
-    }
-
-    if (!empty($_GET['login'])) {
-        $login = trim($_GET['login']);
-    } elseif (!empty($_POST['login'])) {
-        $login = trim($_POST['login']);
-    }
-
-    log_session_debug($db, "Silent auth parameters", ['login' => $login, 'has_api_key' => !empty($api_key)]);
-
+    $api_key = getParam('api_key', null, null, FILTER_SANITIZE_STRING);
+    $login   = getParam('login', null, null, FILTER_SANITIZE_STRING);
+    LOG_DEBUG($db, "Silent auth parameters login => {$login} from {$auth_ip}");
     if (empty($login) || empty($api_key) || strlen($api_key) < 20) {
-        log_session_debug($db, "Silent auth failed - missing parameters");
+        LOG_WARNING($db, "Silent auth failed from {$auth_ip} - missing parameters");
         return false;
     }
 
-    $stmt = $db->prepare("SELECT id, rights FROM customers WHERE rights>0 AND login = ? AND api_key = ? LIMIT 1");
+    $stmt = $db->prepare("SELECT * FROM customers WHERE rights>0 AND login = ? AND api_key = ? LIMIT 1");
     $stmt->execute([$login, $api_key]);
-
     if ($stmt->rowCount() === 0) {
-        LOG_DEBUG($db, "API auth failed for: $login");
-        log_session_debug($db, "Silent auth failed - user not found, disabled  or invalid API key");
+        LOG_WARNING($db, "API auth failed for $login from $auth_ip: user not found, disabled or invalid API key");
         return false;
     }
 
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    $_SESSION = [
-        'user_id'    => $user['id'],
-        'login'      => $login,
-        'acl'        => $user['rights'],
-        'ip'         => $auth_ip,
-        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
-        'api_auth'   => true
-    ];
-
-    log_session_debug($db, "Silent auth successful", ['user_id' => $user['id'], 'login' => $login]);
-    LOG_INFO($db, "Logged in to api customer id: ".$_SESSION['user_id']." name: ".$_SESSION['login']." from ".$_SESSION['ip']." with acl: ".$_SESSION['acl']);
+    if (!empty($user)) { return false; }
+    LOG_DEBUG($db, "Silent auth successful user_id => {$user['id']} login => {$user['login']} from {$auth_ip}");
     return true;
 }
 

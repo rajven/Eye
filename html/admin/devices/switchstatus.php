@@ -126,6 +126,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             $snmp_ok = check_snmp_access($device['ip'], $snmp);
             $modules_oids = NULL;
             if ($snmp_ok) {
+                update_record($db_link, 'devices', 'id=?', [ 'nagios_status'=> 'UP' ], [ $id ]);
                 $modules_oids = walk_snmp($device["ip"], $snmp, CISCO_MODULES);
                 $vlan_list = get_switch_vlans($device['vendor_id'], $device['ip'], $snmp);
                 //if port number 1 not exists - try detect by snmp interface index
