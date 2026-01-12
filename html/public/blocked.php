@@ -179,5 +179,5 @@ if ($auth_active) {
 </table>
 
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
 ?>
