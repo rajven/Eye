@@ -231,7 +231,7 @@ my @auth_records=();
 foreach my $dhcp_subnet (@dhcp_subnets) {
     next if (!$dhcp_subnet);
     next if (!exists $dhcp_conf{$dhcp_subnet});
-    my $a_sql = "SELECT * from user_auth WHERE dhcp=1 and ip_int>= ? AND ip_int<= ? and deleted=0 and ou_id != ? and ou_id != ? ORDER BY ip_int");
+    my $a_sql = "SELECT * FROM user_auth WHERE deleted = 0 AND dhcp = 1 AND ip_int BETWEEN ? AND ? AND ou_id NOT IN (?, ?) ORDER BY ip_int";
     my @tmp1=get_records_sql($dbh,$a_sql,$dhcp_conf{$dhcp_subnet}->{first_ip_aton},$dhcp_conf{$dhcp_subnet}->{last_ip_aton},$default_user_ou_id, $default_hotspot_ou_id);
     push(@auth_records,@tmp1);
     undef @tmp1;

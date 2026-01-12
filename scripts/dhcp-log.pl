@@ -1,10 +1,9 @@
 #!/usr/bin/perl
 
 #
-# Автор: Roman Dmitriev <rnd@rajven.ru>
-# Назначение: Скрипт для обработки DHCP-логов, определения подключений клиентов
-#             через коммутаторы по данным из DHCP Option 82 (remote-id / circuit-id)
-#             и записи соединений в базу данных.
+# Author: Roman Dmitriev <rnd@rajven.ru>
+# Purpose: Script to parse DHCP logs, detect client connections via switches
+#          using DHCP Option 82 (remote-id / circuit-id), and store link data in the database.
 #
 
 use utf8;
@@ -31,38 +30,38 @@ use Text::Iconv;
 use File::Tail;
 use Fcntl qw(:flock);
 
-# === БЛОКИРОВКА И ИНИЦИАЛИЗАЦИЯ ===
+# === LOCKING AND INITIALIZATION ===
 
-# Блокировка запуска нескольких экземпляров скрипта
+# Prevent multiple instances of the script
 open(SELF, "<", $0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX | LOCK_NB) or exit 1;
 
-# Установка низкого приоритета процесса (nice = 19)
+# Set low process priority (nice = 19)
 setpriority(0, 0, 19);
 
-# === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
+# === GLOBAL VARIABLES ===
 
-my $mute_time = 300;            # Время (в секундах) для подавления дублирующих DHCP-событий
+my $mute_time = 300;            # Time (in seconds) to suppress duplicate DHCP events
 my $log_file = '/var/log/dhcp.log';
 
-# Определяем имя процесса и PID-файл
+# Determine process name and PID file
 my $proc_name = $MY_NAME;
 $proc_name =~ s/\.[^.]+$//;
 my $pid_file = '/run/eye/' . $proc_name;
 my $pf = $pid_file . '.pid';
 
-# Настройка демона
+# Daemon setup
 my $daemon = Proc::Daemon->new(
     pid_file => $pf,
     work_dir => $HOME_DIR
 );
 
-# Проверяем, запущен ли уже процесс
+# Check if process is already running
 my $pid = $daemon->Status($pf);
 
-my $daemonize = 1;  # По умолчанию — запуск в фоне
+my $daemonize = 1;  # Default: run in background
 
-# === ОБРАБОТКА АРГУМЕНТОВ КОМАНДНОЙ СТРОКИ ===
+# === COMMAND-LINE ARGUMENT HANDLING ===
 
 GetOptions(
     'daemon!' => \$daemonize,
@@ -71,75 +70,74 @@ GetOptions(
     "restart" => \&restart,
     "start"   => \&run,
     "status"  => \&status,
-    "stop"    => \&stop  # опечатка в оригинале — исправлено
+    "stop"    => \&stop
 ) or &usage;
 
 exit(0);
 
-# === ФУНКЦИИ УПРАВЛЕНИЯ ДЕМОНОМ ===
+# === DAEMON CONTROL FUNCTIONS ===
 
 sub stop {
-    log_info("Запрошена остановка демона...");
+    log_info("Stop requested...");
     if ($pid) {
         print "Stopping pid $pid...";
         if ($daemon->Kill_Daemon($pf)) {
             print "Successfully stopped.\n";
-            log_info("Демон успешно остановлен (PID $pid).");
+            log_info("Daemon stopped successfully (PID $pid).");
         } else {
             print "Could not find $pid. Was it running?\n";
-            log_warning("Не удалось остановить процесс PID $pid — возможно, он уже завершён.");
+            log_warning("Failed to stop process PID $pid — possibly already terminated.");
         }
     } else {
         print "Not running, nothing to stop.\n";
-        log_info("Демон не запущен — останавливать нечего.");
+        log_info("Daemon is not running — nothing to stop.");
     }
 }
 
 sub status {
     if ($pid) {
         print "Running with pid $pid.\n";
-        log_info("Статус: демон запущен (PID $pid).");
+        log_info("Status: daemon is running (PID $pid).");
     } else {
         print "Not running.\n";
-        log_info("Статус: демон не запущен.");
+        log_info("Status: daemon is not running.");
     }
 }
 
 sub run {
-    log_info("Запуск основного цикла обработки DHCP-логов...");
+    log_info("Starting main DHCP log processing loop...");
 
     if ($pid) {
         print "Already Running with pid $pid\n";
-        log_warning("Попытка запуска уже работающего демона (PID $pid).");
+        log_warning("Attempt to start already running daemon (PID $pid).");
         return;
     }
 
     print "Starting...\n";
-    log_info("Инициализация демона...");
+    log_info("Initializing daemon...");
 
     if ($daemonize) {
-        # Инициализация демона: закрытие дескрипторов, смена директории и т.п.
         $daemon->Init;
-        log_debug("Демон инициализирован в фоновом режиме.");
+        log_debug("Daemon initialized in background mode.");
     }
 
-    setpriority(0, 0, 19);  # Убедимся, что приоритет установлен и в дочернем процессе
+    setpriority(0, 0, 19);  # Ensure priority is set in child process
 
-    # Конвертер для перекодирования из cp866 в UTF-8 (для старых логов)
+    # Converter for legacy cp866-encoded logs
     my $converter = Text::Iconv->new("cp866", "utf8");
 
-    # Основной бесконечный цикл обработки логов
+    # Main infinite log-processing loop
     while (1) {
         eval {
-            log_debug("Начало нового цикла обработки DHCP-логов.");
+            log_debug("Starting new DHCP log processing cycle.");
 
-            my %leases;  # кэш для подавления дублей
+            my %leases;  # cache to suppress duplicates
 
-            # Создаём новое подключение к БД
+            # Establish fresh DB connection
             my $hdb = init_db();
-            log_debug("Подключение к БД установлено.");
+            log_debug("Database connection established.");
 
-            # Открываем лог-файл для "хвостового" чтения (tail -f)
+            # Open log file for tail-like reading
             my $dhcp_log = File::Tail->new(
                 name              => $log_file,
                 maxinterval       => 5,
@@ -147,19 +145,19 @@ sub run {
                 ignore_nonexistent => 1
             ) || die "$log_file not found!";
 
-            log_info("Начинаю чтение логов из $log_file...");
+            log_info("Beginning to read logs from $log_file...");
 
             while (my $logline = $dhcp_log->read) {
                 next unless $logline;
                 chomp($logline);
 
-                log_verbose("Получена строка из лога: $logline");
+                log_verbose("Log line received: $logline");
 
-                # Удаляем непечатаемые символы (кроме букв, цифр, пунктуации и пробелов)
+                # Remove non-printable characters (keep letters, digits, punctuation, whitespace)
                 $logline =~ s/[^\p{L}\p{N}\p{P}\p{Z}]//g;
-                log_debug("Строка после фильтрации: $logline");
+                log_debug("Line after filtering: $logline");
 
-                # Разбираем строку по точке с запятой
+                # Parse fields by semicolon
                 my (
                     $type, $mac, $ip, $hostname, $timestamp,
                     $tags, $sup_hostname, $old_hostname,
@@ -167,44 +165,44 @@ sub run {
                     $decoded_circuit_id, $decoded_remote_id
                 ) = split(/;/, $logline);
 
-                # Пропускаем строки без типа или не относящиеся к DHCP-событиям
+                # Skip lines without valid event type
                 next unless $type && $type =~ /^(old|add|del)$/i;
 
-                log_debug("Обрабатываем DHCP-событие: тип='$type', MAC='$mac', IP='$ip'");
+                log_debug("Processing DHCP event: type='$type', MAC='$mac', IP='$ip'");
 
-                # Подавление дублей с одинаковым IP и типом в течение $mute_time секунд
+                # Suppress duplicate events within $mute_time window
                 if (exists $leases{$ip} && $leases{$ip}{type} eq $type && (time() - $leases{$ip}{last_time} <= $mute_time)) {
-                    log_debug("Пропускаем дубликат: IP=$ip, тип=$type (в пределах $mute_time сек)");
+                    log_debug("Skipping duplicate: IP=$ip, type=$type (within $mute_time sec window)");
                     next;
                 }
 
-                # Обновляем конфиг каждые 60 секунд
+                # Refresh config every 60 seconds
                 if (time() - $last_refresh_config >= 60) {
-                    log_debug("Обновление конфигурации...");
+                    log_debug("Refreshing configuration...");
                     init_option($hdb);
                 }
 
-                # Обрабатываем DHCP-запрос: обновление/создание записи в базе
+                # Process DHCP request: update/create DB record
                 my $dhcp_record = process_dhcp_request($hdb, $type, $mac, $ip, $hostname, $client_id, $decoded_circuit_id, $decoded_remote_id);
                 next unless $dhcp_record;
 
-                # Сохраняем в кэш для подавления дублей
+                # Cache to suppress duplicates
                 $leases{$ip} = {
                     type => $type,
                     last_time => time()
                 };
                 my $auth_id = $dhcp_record->{auth_id};
 
-                # === ЛОГИКА ОПРЕДЕЛЕНИЯ КОММУТАТОРА И ПОРТА ===
+                # === SWITCH AND PORT IDENTIFICATION LOGIC ===
 
                 my ($switch, $switch_port);
                 my ($t_remote_id, $t_circuit_id) = ($remote_id, $circuit_id);
 
-                # Обрабатываем только события подключения (add/old)
+                # Only process connection events (add/old)
                 if ($type =~ /^(add|old)$/i) {
-                    log_debug("Пытаемся определить коммутатор по данным Option 82...");
+                    log_debug("Attempting to identify switch using Option 82 data...");
 
-                    # 1. Пытаемся определить по декодированному remote-id как MAC
+                    # 1. Try decoded_remote_id as MAC address
                     if ($decoded_remote_id) {
                         $t_remote_id = $decoded_remote_id;
                         $t_remote_id .= "0" x (12 - length($t_remote_id)) if length($t_remote_id) < 12;
@@ -219,11 +217,11 @@ sub run {
                             $circuit_id = $decoded_circuit_id;
                             $dhcp_record->{circuit_id} = $circuit_id;
                             $dhcp_record->{remote_id} = $remote_id;
-                            log_debug("Коммутатор найден по decoded_remote_id: " . $switch->{device_name});
+                            log_debug("Switch found via decoded_remote_id: " . $switch->{device_name});
                         }
                     }
 
-                    # 2. Если не нашли — пробуем по оригинальному remote-id
+                    # 2. If not found, try raw remote_id as MAC
                     if (!$switch && $remote_id) {
                         $t_remote_id = $remote_id;
                         $t_remote_id .= "0" x (12 - length($t_remote_id)) if length($t_remote_id) < 12;
@@ -237,11 +235,11 @@ sub run {
                             $remote_id = $t_remote_id;
                             $dhcp_record->{circuit_id} = $circuit_id;
                             $dhcp_record->{remote_id} = $remote_id;
-                            log_debug("Коммутатор найден по remote_id: " . $switch->{device_name});
+                            log_debug("Switch found via remote_id: " . $switch->{device_name});
                         }
                     }
 
-                    # 3. Если не нашли — пробуем по имени устройства (remote_id как строка)
+                    # 3. If still not found, try remote_id as device name prefix
                     if (!$switch && $remote_id) {
                         my @id_words = split(/ /, $remote_id);
                         if ($id_words[0]) {
@@ -251,12 +249,12 @@ sub run {
                                          "AND D.device_name LIKE ?";
                             $switch = get_record_sql($hdb, $devSQL, $id_words[0] . '%');
                             if ($switch) {
-                                log_debug("Коммутатор найден по имени: " . $switch->{device_name});
+                                log_debug("Switch found by name: " . $switch->{device_name});
                             }
                         }
                     }
 
-                    # 4. Специальный случай: MikroTik (circuit-id может содержать имя)
+                    # 4. Special case: MikroTik (circuit-id may contain device name)
                     if (!$switch && $circuit_id) {
                         my @id_words = split(/ /, $circuit_id);
                         if ($id_words[0]) {
@@ -266,21 +264,26 @@ sub run {
                                          "AND D.device_name LIKE ?";
                             $switch = get_record_sql($hdb, $devSQL, $id_words[0] . '%');
                             if ($switch) {
-                                # MikroTik часто путает remote-id и circuit-id — меняем местами
+                                # MikroTik often swaps circuit-id and remote-id
                                 ($circuit_id, $remote_id) = ($remote_id, $t_circuit_id);
                                 $dhcp_record->{circuit_id} = $circuit_id;
                                 $dhcp_record->{remote_id} = $remote_id;
-                                log_debug("Обнаружен MikroTik — поменяли местами circuit-id и remote-id");
+                                log_debug("Detected MikroTik — swapped circuit-id and remote-id");
                             }
                         }
                     }
 
-                    # === ОПРЕДЕЛЕНИЕ ПОРТА ===
+                    # === LOG IF NO SWITCH MATCH FOUND ===
+                    unless ($switch) {
+                        log_warning("No matching switch found for DHCP event: IP=$ip, MAC=$mac, remote_id='$remote_id', circuit_id='$circuit_id'");
+                    }
+
+                    # === PORT IDENTIFICATION ===
                     if ($switch) {
-                        # Нормализуем circuit_id для поиска порта
+                        # Normalize circuit_id for port matching
                         $t_circuit_id =~ s/[\+\-\s]+/ /g;
 
-                        # Загружаем порты коммутатора
+                        # Load switch ports
                         my @device_ports = get_records_sql($hdb, "SELECT * FROM device_ports WHERE device_id = ?", $switch->{id});
 
                         my %device_ports_h;
@@ -289,7 +292,7 @@ sub run {
                             $device_ports_h{$port_data->{port}} = $port_data;
                         }
 
-                        # Пробуем найти порт по имени интерфейса (ifName)
+                        # Try to match by interface name (ifName)
                         $switch_port = undef;
                         foreach my $port_data (@device_ports) {
                             if ($t_circuit_id =~ /\s*$port_data->{ifName}$/i ||
@@ -299,21 +302,21 @@ sub run {
                             }
                         }
 
-                        # Если не нашли по имени — пробуем hex-код (последние 2 байта)
+                        # If not found by name, try hex port (last 2 bytes of decoded_circuit_id)
                         if (!$switch_port && $decoded_circuit_id) {
                             my $hex_port = substr($decoded_circuit_id, -2);
                             if ($hex_port && $hex_port =~ /^[0-9a-fA-F]{2}$/) {
                                 my $t_port = hex($hex_port);
                                 $switch_port = $device_ports_h{$t_port} if exists $device_ports_h{$t_port};
-                                log_debug("Порт определён по hex: $t_port") if $switch_port;
+                                log_debug("Port identified via hex: $t_port") if $switch_port;
                             }
                         }
 
-                        # Запись лога и обновление подключения
+                        # Log and update connection
                         if ($switch_port) {
                             db_log_verbose($hdb, "DHCP $type: IP=$ip, MAC=$mac " . $switch->{device_name} . " / " . $switch_port->{ifName});
 
-                            # Проверяем, существует ли уже соединение
+                            # Check if connection already exists
                             my $connection = get_records_sql($hdb, "SELECT * FROM connections WHERE auth_id = ?", $auth_id);
                             if (!$connection || !@{$connection}) {
                                 my $new_connection = {
@@ -322,30 +325,30 @@ sub run {
                                     auth_id    => $auth_id
                                 };
                                 insert_record($hdb, 'connections', $new_connection);
-                                log_debug("Создано новое соединение: auth_id=$auth_id");
+                                log_debug("New connection created: auth_id=$auth_id");
                             }
                         } else {
-                            db_log_verbose($hdb, "DHCP $type: IP=$ip, MAC=$mac " . $switch->{device_name} . " (порт не определён)");
-                            log_warning("Не удалось определить порт для IP=$ip, коммутатор=" . $switch->{device_name});
+                            db_log_verbose($hdb, "DHCP $type: IP=$ip, MAC=$mac " . $switch->{device_name} . " (port not identified)");
+                            log_warning("Failed to identify port for IP=$ip on switch=" . $switch->{device_name});
                         }
                     }
 
-                    log_debug("Определён коммутатор: " . ($switch ? $switch->{device_name} : "НЕТ")) if $switch;
-                    log_debug("Определён порт: " . ($switch_port ? $switch_port->{ifName} : "НЕТ")) if $switch_port;
+                    log_debug("Switch identified: " . ($switch ? $switch->{device_name} : "NONE"));
+                    log_debug("Port identified: " . ($switch_port ? $switch_port->{ifName} : "NONE"));
                 }
-            } # конец while чтения лога
+            } # end while log reading
 
-        }; # конец eval
+        }; # end eval
 
-        # Обработка исключений
+        # Exception handling
         if ($@) {
-            log_error("Критическая ошибка в основном цикле: $@");
-            sleep(60);  # пауза перед повторной попыткой
+            log_error("Critical error in main loop: $@");
+            sleep(60);  # pause before retry
         }
-    } # конец while(1)
+    } # end while(1)
 }
 
-# === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+# === HELPER FUNCTIONS ===
 
 sub usage {
     print "usage: $MY_NAME (start|stop|status|restart)\n";
@@ -354,11 +357,11 @@ sub usage {
 
 sub reload {
     print "reload process not implemented.\n";
-    log_warning("Команда 'reload' не поддерживается.");
+    log_warning("Command 'reload' is not supported.");
 }
 
 sub restart {
-    log_info("Запрошена перезагрузка демона...");
+    log_info("Restart requested...");
     stop();
     sleep(2);
     run();

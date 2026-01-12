@@ -88,18 +88,36 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
         @sql_patches = glob($dir_name.'/*.psql');
         }
     if (@sql_patches and scalar @sql_patches) {
-        foreach my $patch (@sql_patches) {
-            next if (!$patch or ! -e $patch);
-            next if ($patch=~/version.sql/);
-            my @sql_cmd=read_file($patch);
-            foreach my $sql (@sql_cmd) {
-                next if ($sql=~/^(--|#)/);
-                next if (!$sql);
-                my $sql_prep = $dbh->prepare($sql) or die "Unable to prepare $sql: " . $dbh->errstr."\n";
-                my $sql_ref;
-                my $rv = $sql_prep->execute();
-                if (!$rv) { print "Unable to execute $sql: " . $dbh->errstr."\n"; }
-                $sql_prep->finish();
+        my @sorted_patches = sort @sql_patches;
+        my $i = 0;
+        while ($i < @sorted_patches) {
+            my $patch = $sorted_patches[$i];
+            $i++;
+            eval {
+                next if (!$patch or ! -e $patch);
+                next if ($patch =~ /version\.sql/);
+                my @sql_cmd = read_file($patch);
+                my $j = 0;
+                while ($j < @sql_cmd) {
+                    my $sql = $sql_cmd[$j];
+                    $j++;
+                    next if ($sql =~ /^(--|#)/);
+                    next if (!$sql);
+                    my $sql_prep = $dbh->prepare($sql);
+                    if (!$sql_prep) {
+                        warn "Unable to prepare SQL: $sql\nError: " . $dbh->errstr . "\n";
+                        next;
+                    }
+                    my $rv = $sql_prep->execute();
+                    if (!$rv) {
+                        warn "Unable to execute SQL: $sql\nError: " . $dbh->errstr . "\n";
+                    }
+                    $sql_prep->finish();
+                }
+            };
+            if ($@) {
+                chomp $@;
+                print STDERR "Error processing patch '$patch': $@\n";
             }
         }
     }
