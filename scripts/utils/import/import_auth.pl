@@ -137,7 +137,7 @@ for my $record (@rows) {
         }
 
         if (exists $record->{description}) {
-            update_record($dbh, 'user_list', { fio => $record->{description} }, 'id = ?', $user_id);
+            update_record($dbh, 'user_list', { description => $record->{description} }, 'id = ?', $user_id);
         }
 
         next;
@@ -165,7 +165,7 @@ for my $record (@rows) {
         }
 
         if (exists $record->{description}) {
-            update_record($dbh, 'user_list', { fio => $record->{description} }, 'id = ?', $user_id);
+            update_record($dbh, 'user_list', { description => $record->{description} }, 'id = ?', $user_id);
         }
     }
 }

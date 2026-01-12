@@ -24,7 +24,7 @@ $sql = "
     SELECT 
         ul.id AS user_id,
         ul.login,
-        ul.fio,
+        ul.description,
         ul.enabled AS user_enabled,
         ul.blocked AS user_blocked,
         ul.month_quota,
@@ -119,8 +119,8 @@ $month_user_sum_out = $month_traffic['user_out'] ?? 0;
     <td><?php print htmlspecialchars($record['login'], ENT_QUOTES); ?></td>
 </tr>
 <tr>
-    <td><b><?php echo WEB_cell_fio; ?></b></td>
-    <td><?php print htmlspecialchars($record['fio'], ENT_QUOTES); ?></td>
+    <td><b><?php echo WEB_cell_description; ?></b></td>
+    <td><?php print htmlspecialchars($record['description'], ENT_QUOTES); ?></td>
 </tr>
 <tr>
     <td><?php echo WEB_msg_access_login; ?></td>

@@ -518,7 +518,7 @@ CREATE TABLE user_list (
 id BIGSERIAL PRIMARY KEY,
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 login VARCHAR(255),
-fio VARCHAR(255),
+description VARCHAR(255),
 enabled SMALLINT NOT NULL DEFAULT 1,
 blocked SMALLINT NOT NULL DEFAULT 0,
 deleted SMALLINT NOT NULL DEFAULT 0,
@@ -531,7 +531,7 @@ month_quota INTEGER NOT NULL DEFAULT 0,
 permanent SMALLINT NOT NULL DEFAULT 0
 );
 COMMENT ON TABLE user_list IS 'Учетные записи пользователей в системе';
-COMMENT ON COLUMN user_list.fio IS 'Фамилия Имя Отчество';
+COMMENT ON COLUMN user_list.description IS 'Фамилия Имя Отчество';
 COMMENT ON COLUMN user_list.permanent IS 'Это постоянный пользователь (не динамический)';
 
 -- Сессии пользователей (веб-интерфейс)

@@ -175,7 +175,7 @@ define("WEB_title_itog","Total");
 
 /* table cell names */
 define("WEB_cell_login","Login");
-define("WEB_cell_fio","Full name");
+define("WEB_cell_description","Full name");
 define("WEB_cell_ou","Group");
 define("WEB_cell_enabled","Enabled");
 define("WEB_cell_blocked","Blocking");

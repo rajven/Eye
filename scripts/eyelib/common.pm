@@ -166,7 +166,7 @@ my $db = shift;
 my $user_id = shift;
 my $user_record = get_record_sql($db,'SELECT * FROM user_list WHERE id='.$user_id);
 my $user_ident = 'id:'. $user_record->{'id'} . ' '. $user_record->{'login'};
-$user_ident = $user_ident . '[' . $user_record->{'fio'} . ']' if ($user_record->{'fio'});
+$user_ident = $user_ident . '[' . $user_record->{'description'} . ']' if ($user_record->{'description'});
 my $msg = "Amnistuyemo blocked by traffic user $user_ident \nInternet access for the user's IP address has been restored:\n";
 my @user_auth = get_records_sql($db,'SELECT * FROM user_auth WHERE deleted=0 AND user_id='.$user_id);
 my $send_alert = 0;
@@ -1055,8 +1055,8 @@ if ($user_info->{mac}) {
     $user->{login}=$user_info->{ip};
     }
 
-if ($user_info->{dhcp_hostname}) { $user->{fio}=$user_info->{dhcp_hostname}; } 
-if (!$user->{fio}) { $user->{fio}=$user_info->{ip}; }
+if ($user_info->{dhcp_hostname}) { $user->{description}=$user_info->{dhcp_hostname}; } 
+if (!$user->{description}) { $user->{description}=$user_info->{ip}; }
 
 my $login_count = get_count_records($db,"user_list","(login LIKE '".$user->{login}."(%)') OR (login='".$user->{login}."')");
 if ($login_count) { $login_count++; $user->{login} .="(".$login_count.")"; }
@@ -1280,7 +1280,7 @@ if ($cur_auth_id) {
                     $new_record->{'end_life'} = $end_life->strftime('%Y-%m-%d %H:%M:%S');
 		    }
 	    $new_record->{ou_id}=$user_record->{ou_id};
-	    $new_record->{description}=$user_record->{fio};
+	    $new_record->{description}=$user_record->{description};
 	    $new_record->{filter_group_id}=$user_record->{filter_group_id};
 	    $new_record->{queue_id}=$user_record->{queue_id};
 	    $new_record->{enabled}="$user_record->{enabled}";
@@ -1325,7 +1325,7 @@ $new_record->{ou_id}=$user_record->{ou_id};
 $new_record->{filter_group_id}=$user_record->{filter_group_id};
 $new_record->{queue_id}=$user_record->{queue_id};
 $new_record->{enabled}="$user_record->{enabled}";
-if ($user_record->{fio}) { $new_record->{description}=$user_record->{fio}; }
+if ($user_record->{description}) { $new_record->{description}=$user_record->{description}; }
 
 my $cur_auth_id=insert_record($db,'user_auth',$new_record);
 if ($cur_auth_id) {

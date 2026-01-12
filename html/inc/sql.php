@@ -693,7 +693,7 @@ function allow_update($table, $action = 'update', $field = '')
                 'Wikiname' => true
             ],
             'user_list' => [
-                'fio' => true,
+                'description' => true,
                 'login' => true
             ]
         ];

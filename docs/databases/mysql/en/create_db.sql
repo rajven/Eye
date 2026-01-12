@@ -395,7 +395,7 @@ CREATE TABLE `user_list` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `ts` timestamp NOT NULL DEFAULT current_timestamp(),
   `login` varchar(255) DEFAULT NULL,
-  `fio` varchar(255) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
   `enabled` tinyint(1) NOT NULL DEFAULT 1,
   `blocked` tinyint(1) NOT NULL DEFAULT 0,
   `deleted` tinyint(1) NOT NULL DEFAULT 0,

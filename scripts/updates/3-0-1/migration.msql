@@ -53,6 +53,7 @@ ALTER TABLE unknown_mac     CHANGE COLUMN `timestamp` ts TIMESTAMP NOT NULL DEFA
 ALTER TABLE user_auth_alias CHANGE COLUMN `timestamp` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 -- time/date → ts
+DELETE FROM wan_stats WHERE `time` <= '1970-01-01 03:00:00' OR `time` = '0000-00-00 00:00:00';
 ALTER TABLE wan_stats     CHANGE COLUMN `time` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE remote_syslog CHANGE COLUMN `date` ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
@@ -66,7 +67,6 @@ ALTER TABLE filter_list      ADD COLUMN comment VARCHAR(250);
 ALTER TABLE group_list       ADD COLUMN comment VARCHAR(250);
 ALTER TABLE ou               ADD COLUMN comment VARCHAR(250);
 ALTER TABLE subnets          ADD COLUMN comment VARCHAR(250);
-ALTER TABLE user_list        ADD COLUMN comment VARCHAR(255);
 ALTER TABLE vendors          ADD COLUMN comment VARCHAR(255);
 
 -- Теперь безопасно переименовываем `comment` → `description`
@@ -79,7 +79,7 @@ ALTER TABLE filter_list      CHANGE COLUMN `comment` description VARCHAR(250);
 ALTER TABLE group_list       CHANGE COLUMN `comment` description VARCHAR(250);
 ALTER TABLE ou               CHANGE COLUMN `comment` description VARCHAR(250);
 ALTER TABLE subnets          CHANGE COLUMN `comment` description VARCHAR(250);
-ALTER TABLE user_list        CHANGE COLUMN `comment` description VARCHAR(255);
+ALTER TABLE user_list        CHANGE COLUMN `fio` description VARCHAR(255);
 ALTER TABLE vendors          CHANGE COLUMN `comment` description VARCHAR(255);
 
 -- user_auth.comments → description

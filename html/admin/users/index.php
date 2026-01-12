@@ -133,7 +133,7 @@ if ($rou != 0) {
 $whereClause = implode(' AND ', $conditions);
 
 // === 2. Безопасная сортировка (БЕЛЫЙ СПИСОК!) ===
-$allowed_sort_fields = ['id', 'login', 'fio', 'ou_name', 'enabled', 'day_quota', 'month_quota', 'blocked', 'permanent'];
+$allowed_sort_fields = ['id', 'login', 'description', 'ou_name', 'enabled', 'day_quota', 'month_quota', 'blocked', 'permanent'];
 $allowed_order = ['ASC', 'DESC'];
 
 $sort_field = in_array($sort_field, $allowed_sort_fields, true) ? $sort_field : 'id';
@@ -158,7 +158,7 @@ $dataParams = array_merge($params, [$limit, $offset]);
 
 $sSQL = "
     SELECT 
-        U.id, U.login, U.fio, O.ou_name, U.enabled, 
+        U.id, U.login, U.description, O.ou_name, U.enabled, 
         U.day_quota, U.month_quota, U.blocked, U.permanent
     FROM user_list U
     JOIN ou O ON U.ou_id = O.id
@@ -178,7 +178,7 @@ $users = get_records_sql($db_link, $sSQL, $dataParams);
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b><?php print $sort_url . "sort=id&order=$new_order>id</a>"; ?></b></td>
 <td><b><?php print $sort_url . "sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></b></td>
-<td><b><?php print $sort_url . "sort=fio&order=$new_order>" . WEB_cell_fio . "</a>"; ?></b></td>
+<td><b><?php print $sort_url . "sort=description&order=$new_order>" . WEB_cell_description . "</a>"; ?></b></td>
 <td><b><?php print WEB_cell_rule; ?></b></td>
 <td><b><?php print WEB_cell_ou; ?></b></td>
 <td><b><?php print WEB_cell_enabled; ?></b></td>
@@ -211,7 +211,7 @@ foreach ($users as $row) {
     print "<td class=\"$cl_id\">".$row['id']."</td>\n";
     if (empty($row['login'])) { $row['login']=$row['id']; }
     print "<td class=\"$cl\" align=left><a href=edituser.php?id=".$row['id'].">" . $row['login'] . "</a></td>\n";
-    print "<td class=\"$cl\">".$row['fio']."</td>\n";
+    print "<td class=\"$cl\">".$row['description']."</td>\n";
     $rules_count = get_count_records($db_link,"auth_rules","user_id=?", [$row['id']]);
     print "<td class=\"$cl\">".$rules_count."</td>\n";
     print "<td class=\"$cl\">".$row['ou_name']."</td>\n";

@@ -16,7 +16,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/dhcpfilter.php");
 
 $sort_table = 'user_auth';
 if ($sort_field == 'login') { $sort_table = 'user_list'; }
-if ($sort_field == 'fio') { $sort_table = 'user_list'; }
+if ($sort_field == 'description') { $sort_table = 'user_list'; }
 if ($sort_field == 'ou_name') { $sort_table = 'ou'; }
 
 $params=[];
@@ -79,9 +79,11 @@ if (!empty($f_search_str)) {
     	    $ip_where =" and mac=?"; 
     	    $params[]= mac_dotted($f_search_str);
     	    } else {
-            $ip_where =" and (mac like ? or login like ? or description like ? or dns_name like ? or dhcp_hostname like ?)"; 
-            $params[]=mac_dotted($f_search);
-            $parmas[]=$f_search.'%';
+            $ip_where =" and (mac LIKE ? or login LIKE ? or user_auth.description LIKE ? or user_list.description LIKE ? or dns_name LIKE ? or dhcp_hostname LIKE ?)";
+            $mac_search = MaybeMac($f_search);
+            if (!empty($mac_search)) { $params[]=MaybeMac($f_search).'%'; } else { $params[]=$f_search_str.'%'; }
+            $params[]=$f_search.'%';
+            $params[]=$f_search.'%';
             $params[]=$f_search.'%';
             $params[]=$f_search.'%';
             $params[]=$f_search.'%';

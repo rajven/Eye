@@ -22,7 +22,7 @@ if ($unknown) { $unknown_checked='checked="checked"'; }
 
 $sort_table = 'A';
 if ($sort_field == 'login') { $sort_table = 'L'; }
-if ($sort_field == 'fio') { $sort_table = 'L'; }
+if ($sort_field == 'description') { $sort_table = 'L'; }
 if ($sort_field == 'model_name') { $sort_table = 'M'; }
 
 $sort_url = "<a href=index-passive.php?ou=" . $rou;

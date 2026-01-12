@@ -12,7 +12,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/enabledfilter.php");
 
 $sort_table = 'user_auth';
 if ($sort_field == 'login') { $sort_table = 'user_list'; }
-if ($sort_field == 'fio') { $sort_table = 'user_list'; }
+if ($sort_field == 'description') { $sort_table = 'user_list'; }
 
 $sort_url = "<a href=nagios.php?ou=" . $rou; 
 

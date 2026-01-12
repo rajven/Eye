@@ -33,7 +33,7 @@ if (getPOST("edituser") !== null) {
         $new["login"] = $user_name;
     }
     
-    $new["fio"] = trim(getPOST("f_fio", null, ''));
+    $new["description"] = trim(getPOST("f_description", null, ''));
 
     // Настройки по OU
     if (get_const('default_user_ou_id') == ($new["ou_id"] ?? 0) || 
@@ -63,11 +63,11 @@ if (getPOST("edituser") !== null) {
     }
 
     // Обновляем описание в user_auth
-    if (!empty($new["fio"])) {
+    if (!empty($new["description"])) {
         update_records($db_link, 'user_auth',
             "user_id = ? AND deleted = 0 AND (description IS NULL OR description = '' OR description = ?)",
-            ['description' => $new["fio"]],
-            [$id, $user_info["fio"]]
+            ['description' => $new["description"]],
+            [$id, $user_info["description"]]
         );
     }
 
@@ -289,11 +289,11 @@ if (getPOST("new_user") !== null) {
                     'ou_id' => $ou_id
                 ];
                 if (!empty($auth_info["description"])) {
-                    $new_user_data["fio"] = $auth_info["description"];
+                    $new_user_data["description"] = $auth_info["description"];
                 } elseif (!empty($auth_info["dns_name"])) {
-                    $new_user_data["fio"] = $auth_info["dns_name"];
+                    $new_user_data["description"] = $auth_info["dns_name"];
                 } elseif (!empty($auth_info["dhcp_hostname"])) {
-                    $new_user_data["fio"] = $auth_info["dhcp_hostname"];
+                    $new_user_data["description"] = $auth_info["dhcp_hostname"];
                 }
 
                 $new_user_data["enabled"] = $auth_info["enabled"];
@@ -328,13 +328,13 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
         <table class="data">
             <tr>
                 <td colspan=2><?php print WEB_cell_login; ?></td>
-                <td colspan=2><?php print WEB_cell_fio; ?></td>
+                <td colspan=2><?php print WEB_cell_description; ?></td>
                 <td colspan=2><?php print WEB_cell_ou; ?></td>
                 <td ><?php print WEB_user_permanent; ?></td>
             </tr>
             <tr>
                 <td colspan=2><input type="text" name="f_login" value="<?php print $user_info["login"]; ?>" size=25></td>
-                <td colspan=2><input type="text" name="f_fio" value="<?php print $user_info["fio"]; ?>" size=25></td>
+                <td colspan=2><input type="text" name="f_description" value="<?php print $user_info["description"]; ?>" size=25></td>
                 <td colspan=2><?php print_ou_set($db_link, 'f_ou', $user_info["ou_id"]); ?></td>
                 <td><?php print_qa_select('f_permanent', $user_info["permanent"]); ?></td>
             </tr>

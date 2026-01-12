@@ -175,7 +175,7 @@ define("WEB_title_itog","Итого");
 
 /* table cell names */
 define("WEB_cell_login","Логин");
-define("WEB_cell_fio","ФИО");
+define("WEB_cell_description","ФИО");
 define("WEB_cell_ou","Группа");
 define("WEB_cell_enabled","Включен");
 define("WEB_cell_blocked","Блокировка");

@@ -2090,12 +2090,12 @@ function print_auth_select($db, $login_name, $current_auth)
     echo "<select id=\"" . htmlspecialchars($login_name) . "\" name=\"" . htmlspecialchars($login_name) . "\" class=\"js-select-single\">\n";
     
     $params = [];
-    $sql = "SELECT U.login, U.fio, A.ip, A.id 
+    $sql = "SELECT U.login, U.description, A.ip, A.id 
             FROM user_list AS U, user_auth AS A 
             WHERE A.user_id = U.id 
               AND A.deleted = 0 
               AND (A.id NOT IN (SELECT device_ports.auth_id FROM device_ports) OR A.id = ?) 
-            ORDER BY U.login, U.fio, A.ip";
+            ORDER BY U.login, U.description, A.ip";
     
     $params[] = (int)$current_auth;
     $t_login = get_records_sql($db, $sql, $params);
@@ -2103,7 +2103,7 @@ function print_auth_select($db, $login_name, $current_auth)
     print_select_item('Empty', 0, $current_auth);
     
     foreach ($t_login as $row) {
-        $display = htmlspecialchars($row['login']) . "[" . htmlspecialchars($row['fio']) . "] - " . htmlspecialchars($row['ip']);
+        $display = htmlspecialchars($row['login']) . "[" . htmlspecialchars($row['description']) . "] - " . htmlspecialchars($row['ip']);
         print_select_item($display, $row['id'], $current_auth);
     }
     echo "</select>\n";
@@ -2114,12 +2114,12 @@ function print_auth_select_mac($db, $login_name, $current_auth)
     echo "<select id=\"" . htmlspecialchars($login_name) . "\" name=\"" . htmlspecialchars($login_name) . "\" class=\"js-select-single\">\n";
     
     $params = [];
-    $sql = "SELECT U.login, U.fio, A.ip, A.mac, A.id 
+    $sql = "SELECT U.login, U.description, A.ip, A.mac, A.id 
             FROM user_list AS U, user_auth AS A 
             WHERE A.user_id = U.id 
               AND A.deleted = 0 
               AND (A.id NOT IN (SELECT device_ports.auth_id FROM device_ports) OR A.id = ?) 
-            ORDER BY U.login, U.fio, A.ip";
+            ORDER BY U.login, U.description, A.ip";
     
     $params[] = (int)$current_auth;
     $t_login = get_records_sql($db, $sql, $params);
@@ -2886,8 +2886,8 @@ function apply_auth_rule($db, $auth_record, $user_id)
     $auth_record['changed'] = 1;
     
     // Maybe fill description?
-    if (!empty($user_rec['fio']) && empty($auth_record['description'])) {
-        $auth_record['description'] = $user_rec['fio'];
+    if (!empty($user_rec['description']) && empty($auth_record['description'])) {
+        $auth_record['description'] = $user_rec['description'];
     }
     
     return $auth_record;
@@ -2927,9 +2927,9 @@ function new_user($db, $user_info)
     }
     
     if (!empty($user_info['dhcp_hostname'])) {
-        $user['fio'] = ($user_info['ip'] ?? '') . '[' . $user_info['dhcp_hostname'] . ']';
+        $user['description'] = ($user_info['ip'] ?? '') . '[' . $user_info['dhcp_hostname'] . ']';
     } else {
-        $user['fio'] = $user_info['ip'] ?? '';
+        $user['description'] = $user_info['ip'] ?? '';
     }
     
     // Проверяем существование логина и формируем уникальный

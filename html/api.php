@@ -173,7 +173,7 @@ if (!empty($action)) {
         
         // Разрешённые поля для обновления
         $allowed_fields = [
-            'login', 'fio', 'enabled', 'blocked', 'ou_id', 
+            'login', 'description', 'enabled', 'blocked', 'ou_id', 
             'filter_group_id', 'queue_id', 'day_quota', 'month_quota', 'permanent'
         ];
         

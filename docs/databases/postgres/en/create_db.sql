@@ -517,7 +517,7 @@ CREATE TABLE user_list (
 id BIGSERIAL PRIMARY KEY,
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 login VARCHAR(255),
-fio VARCHAR(255),
+description VARCHAR(255),
 enabled SMALLINT NOT NULL DEFAULT 1,
 blocked SMALLINT NOT NULL DEFAULT 0,
 deleted SMALLINT NOT NULL DEFAULT 0,
@@ -530,7 +530,7 @@ month_quota INTEGER NOT NULL DEFAULT 0,
 permanent SMALLINT NOT NULL DEFAULT 0
 );
 COMMENT ON TABLE user_list IS 'User accounts in the system';
-COMMENT ON COLUMN user_list.fio IS 'Full name';
+COMMENT ON COLUMN user_list.description IS 'Full name';
 COMMENT ON COLUMN user_list.permanent IS 'Permanent (non-dynamic) user';
 
 -- User web sessions
