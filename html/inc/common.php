@@ -106,10 +106,17 @@ function getParam($name, $page_url = null, $default = null, $filter = FILTER_DEF
         return $_GET[$name];
     }
     // Если не массив — пробуем как скаляр
+    if ((isset($_POST[$name]) && $_POST[$name]==='') || (isset($_GET[$name]) && $_GET[$name]==='')) {
+        if ($page_url !== null  && isset($_SESSION[$page_url][$name])) {
+            return $_SESSION[$page_url][$name];
+        }
+        return $default;
+    }
+
     $value = filter_input(INPUT_POST, $name, $filter, $options) ??
              filter_input(INPUT_GET, $name, $filter, $options);
     if ($value === false || $value === null) {
-        if ($page_url !== null && isset($page_url) && isset($_SESSION[$page_url][$name])) {
+        if ($page_url !== null && isset($_SESSION[$page_url][$name])) {
             return $_SESSION[$page_url][$name];
         }
         return $default;
@@ -124,13 +131,15 @@ function getPOST($name, $page_url = null, $default = null, $filter = FILTER_DEFA
     if (isset($_POST[$name]) && is_array($_POST[$name])) {
         return $_POST[$name];
     }
-    if (isset($_GET[$name]) && is_array($_GET[$name])) {
-        return $_GET[$name];
+    if (isset($_POST[$name]) && $_POST[$name]==='') {
+        if ($page_url !== null  && isset($_SESSION[$page_url][$name])) {
+            return $_SESSION[$page_url][$name];
+        }
+        return $default;
     }
-
     $value = filter_input(INPUT_POST, $name, $filter, $options);
-    if ($value === false || $value === null || empty($value)) {
-        if ($page_url !== null  && isset($page_url) && isset($_SESSION[$page_url][$name])) {
+    if ($value === false || $value === null) {
+        if ($page_url !== null  && isset($_SESSION[$page_url][$name])) {
             return $_SESSION[$page_url][$name];
         }
         return $default;
