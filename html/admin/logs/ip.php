@@ -4,12 +4,8 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 
-if (isset($_POST['ip'])) { $f_ip = $_POST['ip']; }
-if (isset($_GET['ip'])) { $f_ip = $_GET['ip']; }
-if (!isset($f_ip) and isset($_SESSION[$page_url]['ip'])) { $f_ip=$_SESSION[$page_url]['ip']; }
-if (!isset($f_ip)) { $f_ip=''; }
-
-$_SESSION[$page_url]['ip']=$f_ip;
+$f_ip = getParam('ip', $page_url, '');
+$_SESSION[$page_url]['ip'] = $f_ip;
 
 print_log_submenu($page_url);
 

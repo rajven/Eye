@@ -6,11 +6,8 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/loglevelfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/logfilter.php");
 
-if (isset($_POST['user_ip'])) { $fuser_ip = $_POST['user_ip']; }
-if (isset($_GET['user_ip'])) { $fuser_ip = $_GET['user_ip']; }
-if (!isset($fuser_ip) and isset($_SESSION[$page_url]['user_ip'])) { $fuser_ip=$_SESSION[$page_url]['user_ip']; }
-if (!isset($fuser_ip)) { $fuser_ip=''; }
-$_SESSION[$page_url]['user_ip']=$fuser_ip;
+$fuser_ip = getParam('user_ip', $page_url, '');
+$_SESSION[$page_url]['user_ip'] = $fuser_ip;
 
 print_log_submenu($page_url);
 ?>

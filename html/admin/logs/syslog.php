@@ -5,18 +5,12 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/logfilter.php");
 
-if (isset($_POST['device_show'])) { $f_id = $_POST['device_show']*1; }
-if (isset($_GET['device_show'])) { $f_id = $_GET['device_show']*1; }
-
-if (!isset($f_id) and isset($_SESSION[$page_url]['device_show'])) { $f_id=$_SESSION[$page_url]['device_show']*1; }
-if (!isset($f_id)) { $f_id=0; }
-
-$_SESSION[$page_url]['device_show']=$f_id;
-
-print_log_submenu($page_url);
+$f_id = getParam('device_show', $page_url, 0, FILTER_VALIDATE_INT);
+$_SESSION[$page_url]['device_show'] = $f_id;
 
 $params = [$date1, $date2];
 $conditions = [];
+
 // === Фильтр по IP (через IN с параметрами) ===
 if ($f_id > 0) {
     $dev_ips = get_device_ips($db_link, $f_id);
@@ -40,9 +34,6 @@ $count_records = (int)get_single_field($db_link, $countSQL, $params);
 $total = ceil($count_records / $displayed);
 $page = max(1, min($page, $total));
 $start = ($page - 1) * $displayed;
-
-print_navigation($page_url, $page, $displayed, $count_records, $total);
-
 $limit = (int)$displayed;
 $offset = (int)$start;
 
@@ -56,17 +47,26 @@ $sSQL = "
 ";
 
 $syslog = get_records_sql($db_link, $sSQL, $dataParams);
+
+print_log_submenu($page_url);
+
 ?>
 
 <div id="cont">
 <br>
 <form action="<?=$_SERVER['PHP_SELF']?>" method="post">
-<?php print_date_fields($date1,$date2,$date_shift); ?>
-<?php echo WEB_log_report_by_device; ?>&nbsp <?php print_device_select($db_link, "device_show", $f_id); ?>
-<?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
-<input type="submit" value="<?php echo WEB_btn_show; ?>"><br><br>
-<?php echo WEB_log_filter_event; ?>:<input name="message" value="<?php echo $fmessage; ?>" />
+    <?php
+    print_date_fields($date1, $date2, $date_shift);
+    echo WEB_log_report_by_device, "&nbsp;";
+    print_device_select($db_link, "device_show", $f_id);
+    echo WEB_rows_at_page, "&nbsp;";
+    print_row_at_pages('rows', $displayed);
+    ?>
+    <input type="submit" value="<?=WEB_btn_show?>"><br><br>
+    <?php echo WEB_log_filter_event; ?>:<input name="message" value="<?php echo $fmessage; ?>" />
 </form>
+
+<?php print_navigation($page_url, $page, $displayed, $count_records, $total); ?>
 
 <br>
 <table class="data" width="90%">

@@ -5,13 +5,8 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 
-if (isset($_POST['mac'])) { $f_mac = mac_simplify($_POST['mac']); }
-if (isset($_GET['mac'])) { $f_mac = mac_simplify($_GET['mac']); }
-if (!isset($f_mac) and isset($_SESSION[$page_url]['mac'])) { $f_mac=$_SESSION[$page_url]['mac']; }
-if (!isset($f_mac)) { $f_mac=''; }
-
-$_SESSION[$page_url]['mac']=$f_mac;
-
+$f_mac = mac_simplify(getParam('mac', $page_url, ''));
+$_SESSION[$page_url]['mac'] = $f_mac;
 
 print_log_submenu($page_url);
 ?>

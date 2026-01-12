@@ -5,17 +5,11 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
 
-if (isset($_POST['dhcp_show'])) { $f_dhcp = $_POST['dhcp_show']; }
-    else {
-    if (isset($_SESSION[$page_url]['f_dhcp'])) { $f_dhcp=$_SESSION[$page_url]['f_dhcp']; } else { $f_dhcp = 'all'; }
-    }
+$f_dhcp = getPOST('dhcp_show', $page_url, 'all');
+$f_ip   = getPOST('ip',        $page_url, '');
 
-if (isset($_POST['ip'])) { $f_ip = $_POST['ip']; }
-if (!isset($f_ip) and isset($_SESSION[$page_url]['ip'])) { $f_ip=$_SESSION[$page_url]['ip']; }
-if (!isset($f_ip)) { $f_ip=''; }
-
-$_SESSION[$page_url]['f_dhcp']=$f_dhcp;
-$_SESSION[$page_url]['ip']=$f_ip;
+$_SESSION[$page_url]['f_dhcp'] = $f_dhcp;
+$_SESSION[$page_url]['ip']     = $f_ip;
 
 $dhcp_where = '';
 $params=[ $date1, $date2 ];

@@ -8,12 +8,8 @@ $default_sort='id';
 $sort_table = 'A';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 
-if (isset($_POST['ip'])) { $f_ip = $_POST['ip']; }
-if (isset($_GET['ip'])) { $f_ip = $_GET['ip']; }
-if (!isset($f_ip) and isset($_SESSION[$page_url]['ip'])) { $f_ip=$_SESSION[$page_url]['ip']; }
-if (empty($f_ip)) { $f_ip = '127.0.0.1'; }
-
-$_SESSION[$page_url]['ip']=$f_ip;
+$f_ip = getParam('ip', $page_url, '127.0.0.1');
+$_SESSION[$page_url]['ip'] = $f_ip;
 
 $ip_where = '';
 $params=[];
@@ -26,16 +22,12 @@ if (!empty($f_ip)) {
         }
     }
 
-$rdns = 0;
-if (isset($_POST['dns'])) { $rdns=$_POST['dns']*1; }
-$_SESSION[$page_url]['dns']=$rdns;
-$dns_checked='';
-if ($rdns) { $dns_checked='checked="checked"'; }
-
+$rdns = getPOST('dns', $page_url, 0, FILTER_VALIDATE_INT);
+$_SESSION[$page_url]['dns'] = $rdns;
+$dns_checked = $rdns ? 'checked="checked"' : '';
 $dns_cache=NULL;
 
 print_log_submenu($page_url);
-/* print_trafdetail_submenu($page_url,"id=$id&date_start=$date1&date_stop=$date2","<b>".WEB_log_detail_for."<a href=/admin/users/editauth.php?id=$id>$f_ip</a></b> ::&nbsp"); */
 
 ?>
 
@@ -60,9 +52,11 @@ $sort_url = "<a href='detaillog.php?date_start=\"".$date1.'"&date_stop="'.$date2
 if (!empty($f_ip)) { $sort_url .='&f_ip="'.$f_ip.'"'; }
 
 $gateway_filter='';
-if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=?) AND"; $params[]=$rgateway; }
+if (!empty($rgateway) and $rgateway>0) { 
+    $gateway_filter="(router_id=?) AND"; $params[]=$rgateway; 
+    }
 
-$countSQL="SELECT Count(*) FROM traffic_detail as A WHERE $gateway_filter $ip_where ts>=? AND ts<?";
+$countSQL="SELECT Count(*) FROM traffic_detail as A WHERE $gateway_filter $ip_where ts>=? AND ts< ? ";
 $params[]=$date1;
 $params[]=$date2;
 
@@ -94,7 +88,7 @@ $gateway_list = get_gateways($db_link);
 </tr>
 <?php
 $fsql = "SELECT A.id, A.auth_id, A.ts, A.router_id, A.proto, A.src_ip, A.src_port, A.dst_ip, A.dst_port, A.bytes, A.pkt FROM traffic_detail as A JOIN (SELECT id FROM traffic_detail 
-        WHERE $gateway_filter $ip_where ts>=? AND ts<?
+        WHERE $gateway_filter $ip_where ts>= ? AND ts< ?
         ORDER BY ts ASC LIMIT ? OFFSET ?) as T ON A.id = T.id ORDER BY $sort_table.$sort_field $order";
 $params[]=$displayed;
 $params[]=$start;

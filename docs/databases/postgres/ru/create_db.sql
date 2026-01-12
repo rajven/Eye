@@ -435,7 +435,7 @@ dst_ip    bigint NOT NULL DEFAULT 0,
 src_port  integer NOT NULL DEFAULT 0,
 dst_port  integer NOT NULL DEFAULT 0,
 bytes     bigint NOT NULL DEFAULT 0,
-pkt       bigint NOT NULL DEFAULT 0,
+pkt       bigint NOT NULL DEFAULT 0
 );
 COMMENT ON TABLE traffic_detail IS 'Подробные записи потоков трафика (NetFlow)';
 COMMENT ON COLUMN traffic_detail.proto IS 'Номер IP протокола';
