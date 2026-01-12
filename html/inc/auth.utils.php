@@ -27,6 +27,18 @@ if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PRO
     $_SERVER['HTTPS'] = 'on';
 }
 
+// исправление дублирующихся PHPSESSID <<<
+/*
+if (session_status() == PHP_SESSION_ACTIVE && isset($_SERVER['HTTP_COOKIE'])) {
+        preg_match_all('/PHPSESSID=([^;\s]+)/', $_SERVER['HTTP_COOKIE'], $matches);
+        if (!empty($matches[1])) {
+            $real_session_id = end($matches[1]);
+            session_id($real_session_id);
+            $_COOKIE['PHPSESSID'] = $real_session_id;
+        }
+    }
+*/
+
 ini_set('session.cookie_lifetime', SESSION_LIFETIME);
 ini_set('session.cookie_path', '/');
 ini_set('session.cookie_domain', $clean_domain);
@@ -37,46 +49,6 @@ ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
 //ini_set('session.use_trans_sid', true);
 //ini_set('session.use_only_cookies', false);
 
-if (!empty($session_init) and $session_init==1) {
-    // Включим подробное логирование сессий
-    LOG_DEBUG($db_link, "=== SESSION DEBUG START ===");
-    LOG_DEBUG($db_link, "Session status: " . session_status());
-    LOG_DEBUG($db_link, "PHP_SESSION_ACTIVE: " . PHP_SESSION_ACTIVE);
-    LOG_DEBUG($db_link, "DOCUMENT_ROOT: " . $_SERVER['DOCUMENT_ROOT']);
-    LOG_DEBUG($db_link, "REQUEST_URI: " . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
-    LOG_DEBUG($db_link, "HTTP_COOKIE: " . ($_SERVER['HTTP_COOKIE'] ?? 'no cookies'));
-    // Инициализация системы сессий
-    log_session_debug($db_link, "Before init_db_sessions");
-    init_db_sessions($db_link);
-    // Инициализация сессии
-    log_session_debug($db_link, "Before session_start check");
-
-    // исправление дублирующихся PHPSESSID <<<
-    if (isset($_SERVER['HTTP_COOKIE'])) {
-	preg_match_all('/PHPSESSID=([^;\s]+)/', $_SERVER['HTTP_COOKIE'], $matches);
-        if (!empty($matches[1])) {
-	    $real_session_id = end($matches[1]);
-    	    session_id($real_session_id);
-            $_COOKIE['PHPSESSID'] = $real_session_id;
-	}
-    }
-
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-	log_session_debug($db_link, "Starting session");
-	session_start();
-        log_session_debug($db_link, "After session_start", [
-	    'session_status' => session_status(),
-            'session_id' => session_id(),
-	    'session_cookie_params' => session_get_cookie_params()
-        ]);
-	} else {
-        log_session_debug($db_link, "Session already active", [
-	    'session_id' => session_id(),
-            'session_status' => session_status()
-	]);
-	}
-    LOG_DEBUG($db_link, "=== SESSION DEBUG END ===");
-    }
 
 // Функция для логирования отладки сессий, нужна только для отладки
 function log_session_debug($db, $message, $data = null) {
@@ -216,6 +188,35 @@ function login($db) {
         return IsSilentAuthenticated($db);
     }
 
+    // Включим подробное логирование сессий
+    LOG_DEBUG($db, "=== SESSION DEBUG START ===");
+    LOG_DEBUG($db, "Session status: " . session_status());
+    LOG_DEBUG($db, "PHP_SESSION_ACTIVE: " . PHP_SESSION_ACTIVE);
+    LOG_DEBUG($db, "DOCUMENT_ROOT: " . $_SERVER['DOCUMENT_ROOT']);
+    LOG_DEBUG($db, "REQUEST_URI: " . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
+    LOG_DEBUG($db, "HTTP_COOKIE: " . ($_SERVER['HTTP_COOKIE'] ?? 'no cookies'));
+
+    // Гарантируем, что сессия запущена
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        // Инициализация системы сессий
+        log_session_debug($db, "Session not active, initializing now");
+        init_db_sessions($db);
+        // Инициализация сессии
+	log_session_debug($db, "Starting session");
+	session_start();
+        log_session_debug($db, "After session_start", [
+	    'session_status' => session_status(),
+            'session_id' => session_id(),
+	    'session_cookie_params' => session_get_cookie_params()
+        ]);
+	} else {
+        log_session_debug($db, "Session already active", [
+	    'session_id' => session_id(),
+            'session_status' => session_status()
+	]);
+	}
+    LOG_DEBUG($db, "=== SESSION DEBUG END ===");
+
     log_session_debug($db, "Login function started", [
         'session_status' => session_status(),
         'session_id' => session_id(),
@@ -265,7 +266,7 @@ function login($db) {
     }
 
     log_session_debug($db, "All auth methods failed, calling logout");
-    logout($db, FALSE, $redirect_url);
+    logout($db, $redirect_url);
     exit;
 }
 
@@ -438,9 +439,16 @@ function IsSilentAuthenticated($db) {
     return true;
 }
 
-function logout($db, $silent = FALSE, $redirect_url = DEFAULT_PAGE) {
+function logout($db, $redirect_url = DEFAULT_PAGE) {
+// Запускаем сессию только если браузер прислал куку — 
+// это позволяет корректно деактивировать запись в user_sessions 
+// и удалить куку с теми же параметрами, с которыми она была создана.
+    if (session_status() !== PHP_SESSION_ACTIVE && !empty($_COOKIE[session_name()])) {
+        init_db_sessions($db);
+        session_start();
+    }
+
     log_session_debug($db, "Logout function called", [
-        'silent' => $silent,
         'redirect_url' => $redirect_url,
         'session_status' => session_status(),
         'session_id' => session_id()
@@ -464,18 +472,17 @@ function logout($db, $silent = FALSE, $redirect_url = DEFAULT_PAGE) {
         session_destroy();
 
         if (!headers_sent()) {
-            setcookie(session_name(), '', time() - SESSION_LIFETIME, '/');
-            if (isset($_COOKIE['Auth'])) {
-                setcookie('Auth', '', time() - SESSION_LIFETIME, '/');
-            }
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - SESSION_LIFETIME, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+//            if (isset($_COOKIE['Auth'])) {  setcookie('Auth', '', time() - SESSION_LIFETIME, '/');  }
             log_session_debug($db, "Session cookies cleared");
         }
     } else {
         log_session_debug($db, "Logout - no active session to destroy");
     }
 
-    if (!$silent && !headers_sent()) {
-        log_session_debug($db, "Performing redirect after logout");
+    if (!headers_sent()) {
+        LOG_DEBUG($db, "Performing redirect after logout");
         if ($redirect_url == DEFAULT_PAGE || empty($redirect_url) || $redirect_url == '/') {
             header('Location: ' . LOGIN_PAGE);
         } else {

@@ -154,13 +154,13 @@ function db_escape($connection, $value) {
 
 function new_connection ($db_type, $db_host, $db_user, $db_password, $db_name, $db_port = null)
 {
-    // Создаем временный логгер для отладки до установки соединения
-    $temp_debug_message = function($message) {
-        error_log("DB_CONNECTION_DEBUG: " . $message);
-    };
+// Создаем временный логгер для отладки до установки соединения
+//    $temp_debug_message = function($message) {
+//        error_log("DB_CONNECTION_DEBUG: " . $message);
+//    };
 
-    $temp_debug_message("Starting new_connection function");
-    $temp_debug_message("DB parameters - type: $db_type, host: $db_host, user: $db_user, db: $db_name");
+//    $temp_debug_message("Starting new_connection function");
+//    $temp_debug_message("DB parameters - type: $db_type, host: $db_host, user: $db_user, db: $db_name");
 
     if (function_exists('filter_var') && defined('FILTER_SANITIZE_FULL_SPECIAL_CHARS')) {
         $db_host = filter_var($db_host, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
@@ -171,7 +171,7 @@ function new_connection ($db_type, $db_host, $db_user, $db_password, $db_name, $
     $db_name = preg_replace('/[^a-zA-Z0-9_-]/', '', $db_name);
 
     try {
-        $temp_debug_message("Constructing DSN");
+//        $temp_debug_message("Constructing DSN");
         
         // Определяем DSN в зависимости от типа базы данных
         $dsn = "";
@@ -192,9 +192,9 @@ function new_connection ($db_type, $db_host, $db_user, $db_password, $db_name, $
             throw new Exception("Unsupported database type: $db_type. Supported types: mysql, pgsql");
         }
 
-        $temp_debug_message("DSN: $dsn");
-        $temp_debug_message("PDO options: " . json_encode($options));
-        $temp_debug_message("Attempting to create PDO connection");
+//        $temp_debug_message("DSN: $dsn");
+//        $temp_debug_message("PDO options: " . json_encode($options));
+//        $temp_debug_message("Attempting to create PDO connection");
 
         $result = new PDO($dsn, $db_user, $db_password, $options);
         // Устанавливаем кодировку для PostgreSQL
@@ -202,25 +202,25 @@ function new_connection ($db_type, $db_host, $db_user, $db_password, $db_name, $
                 $result->exec("SET client_encoding TO 'UTF8'");
             }
 
-        $temp_debug_message("PDO connection created successfully");
-        $temp_debug_message("PDO connection info: " . ($result->getAttribute(PDO::ATTR_CONNECTION_STATUS) ?? 'N/A for PostgreSQL'));
+//        $temp_debug_message("PDO connection created successfully");
+//        $temp_debug_message("PDO connection info: " . ($result->getAttribute(PDO::ATTR_CONNECTION_STATUS) ?? 'N/A for PostgreSQL'));
         // Проверяем наличие атрибутов перед использованием
         if ($db_type === 'mysql') {
-            $temp_debug_message("PDO client version: " . $result->getAttribute(PDO::ATTR_CLIENT_VERSION));
-            $temp_debug_message("PDO server version: " . $result->getAttribute(PDO::ATTR_SERVER_VERSION));
+//            $temp_debug_message("PDO client version: " . $result->getAttribute(PDO::ATTR_CLIENT_VERSION));
+//            $temp_debug_message("PDO server version: " . $result->getAttribute(PDO::ATTR_SERVER_VERSION));
             // Проверка кодировки для MySQL
             $stmt = $result->query("SHOW VARIABLES LIKE 'character_set_connection'");
             $charset = $stmt->fetch(PDO::FETCH_ASSOC);
-            $temp_debug_message("Database character set: " . ($charset['Value'] ?? 'not set'));
+//            $temp_debug_message("Database character set: " . ($charset['Value'] ?? 'not set'));
         } elseif ($db_type === 'pgsql' || $db_type === 'postgresql') {
             // Проверка кодировки для PostgreSQL
             $stmt = $result->query("SHOW server_encoding");
             $charset = $stmt->fetch(PDO::FETCH_ASSOC);
-            $temp_debug_message("PostgreSQL server encoding: " . ($charset['server_encoding'] ?? 'not set'));
+//            $temp_debug_message("PostgreSQL server encoding: " . ($charset['server_encoding'] ?? 'not set'));
             // Получаем версию PostgreSQL
             $stmt = $result->query("SELECT version()");
             $version = $stmt->fetch(PDO::FETCH_ASSOC);
-            $temp_debug_message("PostgreSQL version: " . ($version['version'] ?? 'unknown'));
+//            $temp_debug_message("PostgreSQL version: " . ($version['version'] ?? 'unknown'));
         }
 
         return $result;

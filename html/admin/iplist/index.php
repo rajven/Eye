@@ -230,7 +230,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
         </tr>
 <?php
 
-$sSQL = "SELECT user_auth.*, user_list.login, user_list.enabled as UEnabled, user_list.blocked as UBlocked, ou.ou_name
+$sSQL = "SELECT user_auth.*, user_list.login, user_list.enabled as uenabled, user_list.blocked as ublocked, ou.ou_name
 FROM user_auth
 LEFT JOIN user_list
 ON user_auth.user_id = user_list.id
@@ -256,7 +256,7 @@ foreach ($users as $user) {
     $cl = "data";
     if (!$user['enabled']) { $cl = "warn"; }
     if ($user['blocked']) { $cl = "error"; }
-    if (!$user['UEnabled'] or $user['UBlocked']) { $cl = "off"; }
+    if ($user['uenabled'] !== 1 || $user['ublocked'] == 1) { $cl = "off"; }
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$user['id']."></td>\n";
     print "<td class=\"$cl\" >".$user['ou_name']."</td>\n";
     if (empty($user['login'])) { $user_name = $user['user_id']; } else { $user_name = $user['login']; }

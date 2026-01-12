@@ -5,8 +5,6 @@ $start_time = microtime();
 
 ob_start();
 
-$session_init=1;
-
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
 
 login($db_link);
