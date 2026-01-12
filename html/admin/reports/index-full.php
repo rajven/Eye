@@ -9,6 +9,7 @@ $default_order='DESC';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
+$gateway_list = get_gateways($db_link);
 
 print_reports_submenu($page_url);
 

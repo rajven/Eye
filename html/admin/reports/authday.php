@@ -8,6 +8,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 $auth=get_record_sql($db_link,'SELECT * FROM user_auth WHERE id=?', [$id]);
 $user=get_record_sql($db_link,'SELECT * FROM user_list WHERE id=?', [ $auth['user_id']]);
+$gateway_list = get_gateways($db_link);
 
 ?>
 <div id="cont">

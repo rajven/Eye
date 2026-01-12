@@ -11,6 +11,7 @@ if (empty($usersip)) {
     header("location: /admin/reports/index-full.php");
     exit;
 }
+$gateway_list = get_gateways($db_link);
 
 $fip = $usersip['ip'];
 $parent = $usersip['user_id'];

@@ -16,6 +16,7 @@ $dns_checked='';
 if ($rdns) { $dns_checked='checked="checked"'; }
 
 $dns_cache=NULL;
+$gateway_list = get_gateways($db_link);
 
 $usersip = get_record_sql($db_link, "SELECT ip,user_id,description FROM user_auth WHERE user_auth.id=?", [ $id ]);
 if (empty($usersip)) {
