@@ -356,7 +356,7 @@ eye_migrate2pgsql() {
     setup_database
     
     #data migration
-    /opt/Eye/docs/databases/migrate2psql.pl --clear
+    /opt/Eye/docs/databases/migrate2psql.pl --clear --batch
     
     if [ $? -eq 0 ]; then
 	setup_configs
