@@ -91,7 +91,7 @@ if (getPOST("editdevice") !== null && isset($id)) {
 
     // === ОСТАЛЬНЫЕ ПОЛЯ =========================================================
     $new['description']           = trim(getPOST("f_description", null, ''));
-    $new['SN']                    = trim(getPOST("f_SN", null, ''));
+    $new['sn']                    = trim(getPOST("f_sn", null, ''));
     $new['firmware']              = trim(getPOST("f_firmware", null, ''));
 
     // SNMP
@@ -213,7 +213,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             print_device_model_select($db_link, 'f_device_model_id', $device['device_model_id']);
             print "</td>\n";
             print "<td class='data' ><input type='text' name='f_firmware' value='" . $device['firmware'] . "'></td>\n";
-            print "<td class='data' ><input type='text' name='f_SN' value='" . $device['SN'] . "'></td>\n";
+            print "<td class='data' ><input type='text' name='f_sn' value='" . $device['sn'] . "'></td>\n";
             print "</tr>\n";
             print "<tr><td colspan=2>" . WEB_location_name . "</td><td colspan=2>" . WEB_cell_description . "</td>";
             print "</tr><tr>";

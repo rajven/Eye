@@ -126,3 +126,9 @@ ALTER TABLE `traffic_detail` MODIFY `src_ip` BIGINT NOT NULL DEFAULT 0, MODIFY `
 
 -- Исправление customers: убрать строковые 'NULL'
 ALTER TABLE `customers` MODIFY `login` VARCHAR(20) DEFAULT NULL, MODIFY `password` VARCHAR(255) DEFAULT NULL;
+
+-- 1. Переименовать `SN` → `sn` в таблице `devices`
+ALTER TABLE `devices` CHANGE COLUMN `SN` `sn` VARCHAR(80) DEFAULT NULL;
+
+-- 2. Переименовать `WikiName` → `wikiname` в таблице `user_auth`
+ALTER TABLE `user_auth` CHANGE COLUMN `WikiName` `wikiname` VARCHAR(250) DEFAULT NULL;

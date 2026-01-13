@@ -170,7 +170,7 @@ sub batch_db_sql_csv {
 
     my $db = init_db();
 
-    if ($config_ref{DBTYPE} eq 'mysql') {
+    if (get_db_type($db) eq 'mysql') {
         # --- MySQL: попытка LOAD DATA, fallback на INSERT ---
         log_debug("Using LOAD DATA LOCAL INFILE for MySQL");
 
@@ -244,13 +244,7 @@ sub batch_db_sql_csv {
             }
         }
 
-    } elsif ($config_ref{DBTYPE} eq 'postgresql') {
-        unless ($db->{Driver}->{Name} eq 'Pg') {
-            my $err = "PostgreSQL expected but connected via " . $db->{Driver}->{Name};
-            log_error($err);
-            $db->disconnect();
-            return 0;
-        }
+    } elsif (get_db_type($db) eq 'pg') {
 
         if (!$db->can('pg_putcopydata') || !$db->can('pg_putcopyend')) {
             log_debug("pg_putcopydata/pg_putcopyend not available — falling back to bulk INSERT");
@@ -346,7 +340,7 @@ sub batch_db_sql_csv {
         }
 
     } else {
-        my $err = "Unsupported DBTYPE: '$config_ref{DBTYPE}'";
+        my $err = "Unsupported DBTYPE: ". get_db_type($db);
         log_error($err);
         $db->disconnect();
         return 0;
@@ -550,7 +544,7 @@ sub _execute_param {
     my $was_modified = 0;
     my $original_sql = $sql;
     if ($mode eq 'id' && $sql =~ /^\s*INSERT\b/i) {
-        if ($config_ref{DBTYPE} && $config_ref{DBTYPE} eq 'Pg') {
+        if (get_db_type($db) eq 'pg') {
             # Добавляем RETURNING id, если его ещё нет
             unless ($sql =~ /\bRETURNING\b/i) {
                 $sql .= ' RETURNING id';
@@ -619,7 +613,7 @@ sub _execute_param {
         # Сюда попадём только если НЕ было модификации (т.е. MySQL или старый Pg-путь)
         if ($original_sql =~ /^\s*INSERT/i) {
             my $id;
-            if ($config_ref{DBTYPE} && $config_ref{DBTYPE} eq 'mysql') {
+            if (get_db_type($db) eq 'mysql') {
                 $id = $sth->{mysql_insertid};
             } else {
                 ($id) = $db->selectrow_array("SELECT lastval()");
@@ -721,6 +715,14 @@ return hash_to_text($result);
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub get_db_type {
+my $db = shift;
+return lc($db->{Driver}->{Name});
+#'mysql', 'pg'
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub insert_record {
 my ($db, $table, $record) = @_;
 return unless $db && $table;
@@ -749,7 +751,7 @@ my $new_str = '';
 foreach my $field (keys %$record) {
     my $val = defined $record->{$field} ? $record->{$field} : undef;
     # Экранируем имя поля в зависимости от СУБД
-    my $quoted_field = $config_ref{DBTYPE} eq 'mysql'
+    my $quoted_field = get_db_type($db) eq 'mysql'
         ? '`' . $field . '`'
         : '"' . $field . '"';
     $fields .= "$quoted_field, ";

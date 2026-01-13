@@ -127,13 +127,13 @@ foreach ($users as $user) {
     } else {
         print "<td class=\"$cl\" width=200>".$user['description']."</td>\n";
     }
-    if (!empty($user['WikiName'])) {
+    if (!empty($user['wikiname'])) {
         $wiki_url = rtrim(get_option($db_link, 60),'/');
         if (preg_match('/127.0.0.1/', $wiki_url)) { print "<td class=\"$cl\" ></td>\n"; } else {
             $wiki_web = rtrim(get_option($db_link, 63),'/');
             $wiki_web = ltrim($wiki_web,'/');
-            $wiki_link = $wiki_url.'/'.$wiki_web.'/'.$user['WikiName'];
-            print "<td class=\"$cl\" >"; print_url($user['WikiName'],$wiki_link); print "</td>\n";
+            $wiki_link = $wiki_url.'/'.$wiki_web.'/'.$user['wikiname'];
+            print "<td class=\"$cl\" >"; print_url($user['wikiname'],$wiki_link); print "</td>\n";
             }
         } else {
         print "<td class=\"$cl\" ></td>\n";

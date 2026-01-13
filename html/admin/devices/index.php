@@ -95,7 +95,7 @@ foreach ($switches as $row) {
         print "<td class=\"$cl\">".$row['ip']."</td>\n";
         }
     print "<td class=\"$cl\">" . get_vendor_name($db_link, $row['vendor_id']) . " " . $row['model_name'] . "</td>\n";
-    print '<td class="'.$cl.'" style="width: 1%; white-space: nowrap;">' . $row['SN'] ."</td>\n";
+    print '<td class="'.$cl.'" style="width: 1%; white-space: nowrap;">' . $row['sn'] ."</td>\n";
     print "<td class=\"$cl\">" . get_building($db_link, $row['building_id']);
     if (!empty($row['description'])) { print  '<hr style="opacity: 0;">' . $row['description']; }
     print "</td>\n";

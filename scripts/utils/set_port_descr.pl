@@ -29,7 +29,7 @@ use Fcntl qw(:flock);
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
-my @auth_list = get_records_sql($dbh,"SELECT A.id,A.user_id,A.ip,A.mac,A.dns_name,A.description,A.dhcp_hostname,A.WikiName,K.login,K.ou_id FROM user_auth as A, user_list as K WHERE K.id=A.user_id AND A.deleted=0 ORDER BY A.id");
+my @auth_list = get_records_sql($dbh,"SELECT A.id,A.user_id,A.ip,A.mac,A.dns_name,A.description,A.dhcp_hostname,A.wikiname,K.login,K.ou_id FROM user_auth as A, user_list as K WHERE K.id=A.user_id AND A.deleted=0 ORDER BY A.id");
 
 my %auth_ref;
 foreach my $auth (@auth_list) {
@@ -40,12 +40,12 @@ $auth_ref{$auth->{id}}{mac}=$auth->{mac};
 $auth_ref{$auth->{id}}{dns_name}=$auth->{dns_name};
 $auth_ref{$auth->{id}}{description}=$auth->{description};
 $auth_ref{$auth->{id}}{dhcp_hostname}=$auth->{dhcp_hostname};
-$auth_ref{$auth->{id}}{WikiName}=$auth->{WikiName};
+$auth_ref{$auth->{id}}{wikiname}=$auth->{wikiname};
 $auth_ref{$auth->{id}}{login}=$auth->{login};
 my $a_netdev = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id = ".$auth->{user_id});
 $auth_ref{$auth->{id}}{device}=$a_netdev;
 if ($auth->{dns_name}) { $auth_ref{$auth->{id}}{description} = $auth->{dns_name}; }
-if (!$auth_ref{$auth->{id}}{description} and $auth->{WikiName}) { $auth_ref{$auth->{id}}{description} = $auth->{WikiName}; }
+if (!$auth_ref{$auth->{id}}{description} and $auth->{wikiname}) { $auth_ref{$auth->{id}}{description} = $auth->{wikiname}; }
 if (!$auth_ref{$auth->{id}}{description} and $auth->{description}) { $auth_ref{$auth->{id}}{description} = translit($auth->{description}); }
 if (!$auth_ref{$auth->{id}}{description}) { $auth_ref{$auth->{id}}{description} = $auth->{ip}; }
 $auth_ref{$auth->{id}}{description}=~s/\./-/g;

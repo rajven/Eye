@@ -153,15 +153,6 @@ update_system() {
     $PACKAGE_MANAGER update -y
 }
 
-upgrade_system() {
-    print_step "Updating system"
-    if [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
-        apt-get dist-upgrade -y
-    else
-        $PACKAGE_MANAGER upgrade -y
-    fi
-}
-
 # Install packages
 install_packages() {
     print_step "Installing packages"
@@ -263,7 +254,7 @@ EOF
 
     if [[ $? -ne 0 ]]; then
         print_error "Error importing create_db.sql"
-        return 1
+        exit 102
     fi
 
     print_info "Database structure imported successfully"
@@ -365,7 +356,7 @@ eye_migrate2pgsql() {
     setup_database
     
     #data migration
-    /opt/Eye/scripts/docs/databases/migrate2psql.pl
+    /opt/Eye/docs/databases/migrate2psql.pl --clear
     
     if [ $? -eq 0 ]; then
 	setup_configs
@@ -475,6 +466,8 @@ if [[ "$DB_TYPE" == "postgresql" ]]; then
     echo "Already using PostgreSQL! Nothing to do."
     exit 0
 fi
+
+DB_TYPE="postgresql"
 
 if [[ -f "$PHP_CONFIG" ]]; then
     # Извлекаем язык

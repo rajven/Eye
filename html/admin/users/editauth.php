@@ -59,7 +59,7 @@ if (getPOST("editauth") !== null && !$old_auth_info['deleted']) {
             'ip_int'      => $ip_aton,
             'mac'         => $mac,
             'description' => trim(getPOST("f_description", null, '')),
-            'WikiName'    => trim(getPOST("f_wiki", null, ''))
+            'wikiname'    => trim(getPOST("f_wiki", null, ''))
         ];
 
         $f_dnsname = trim(getPOST("f_dns_name", null, ''));
@@ -408,14 +408,14 @@ if (empty($auth_info['end_life']) or $auth_info['end_life'] == '0000-00-00 00:00
                 <td><?php print WEB_cell_nagios_handler; ?></td>
                 <td width=200>
                     <?php
-                    if (!empty($auth_info['WikiName'])) {
+                    if (!empty($auth_info['wikiname'])) {
                         $wiki_url = rtrim(get_option($db_link, 60), '/');
                         if (preg_match('/127.0.0.1/', $wiki_url)) {
                             print WEB_cell_wikiname;
                         } else {
                             $wiki_web = rtrim(get_option($db_link, 63), '/');
                             $wiki_web = ltrim($wiki_web, '/');
-                            $wiki_link = $wiki_url . '/' . $wiki_web . '/' . $auth_info['WikiName'];
+                            $wiki_link = $wiki_url . '/' . $wiki_web . '/' . $auth_info['wikiname'];
                             print_url(WEB_cell_wikiname, $wiki_link);
                         }
                     } else {
@@ -436,7 +436,7 @@ if (empty($auth_info['end_life']) or $auth_info['end_life'] == '0000-00-00 00:00
                     } ?></td>
             <tr>
                 <td><input type="text" name="f_handler" value="<?php echo $auth_info['nagios_handler']; ?>"></td>
-                <td><input type="text" name="f_wiki" value="<?php echo $auth_info['WikiName']; ?>"></td>
+                <td><input type="text" name="f_wiki" value="<?php echo $auth_info['wikiname']; ?>"></td>
                 <td><?php if (empty($device) or (!empty($device) and $device['device_type'] > 2)) {
                         print_qa_select('f_nagios', $auth_info['nagios']);
                     } ?>
