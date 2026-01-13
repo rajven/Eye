@@ -1,6 +1,6 @@
 <?php
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
-require_once($_SERVER['DOCUMENT_OUT'] . "/inc/languages/" . HTML_LANG . ".php");
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
 
 if (!defined("CONFIG")) die("Not defined");
 
