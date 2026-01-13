@@ -673,6 +673,6 @@ CREATE INDEX idx_user_stats_full_ts ON user_stats_full(ts, auth_id, router_id);
 CREATE INDEX idx_wan_stats_time ON wan_stats(ts, router_id, interface_id);
 
 CREATE INDEX idx_worklog_customer ON worklog(customer, level, ts);
-CREATE INDEX idx_worklog_ts ON worklog(level, ts);
+CREATE INDEX idx_worklog_level_ts ON worklog(level, ts);
 CREATE INDEX idx_worklog_auth_id ON worklog(auth_id, level, ts);
 CREATE INDEX idx_worklog_ts ON worklog (ts);

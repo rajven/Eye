@@ -63,9 +63,9 @@ CREATE TABLE `connections` (
 
 CREATE TABLE `customers` (
   `id` int(11) NOT NULL,
-  `login` varchar(20) DEFAULT 'NULL',
+  `login` varchar(20) DEFAULT NULL,
   `description` varchar(100) DEFAULT NULL,
-  `password` varchar(255) DEFAULT 'NULL',
+  `password` varchar(255) DEFAULT NULL,
   `api_key` varchar(255) DEFAULT NULL,
   `rights` tinyint(1) NOT NULL DEFAULT 3
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -323,8 +323,8 @@ CREATE TABLE `traffic_detail` (
   `router_id` int(11) NOT NULL DEFAULT 0,
   `ts` timestamp NULL DEFAULT NULL,
   `proto` tinyint(3) UNSIGNED DEFAULT NULL,
-  `src_ip` int(10) UNSIGNED NOT NULL,
-  `dst_ip` int(10) UNSIGNED NOT NULL,
+  `src_ip` bigint(20) NOT NULL DEFAULT 0,
+  `dst_ip` bigint(20) NOT NULL DEFAULT 0,
   `src_port` smallint(5) UNSIGNED NOT NULL,
   `dst_port` smallint(5) UNSIGNED NOT NULL,
   `bytes` bigint(20) NOT NULL,
@@ -592,7 +592,7 @@ ALTER TABLE `queue_list`
 
 ALTER TABLE `remote_syslog`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `date` (`date`,`device_id`,`ip`);
+  ADD KEY `date` (`ts`,`device_id`,`ip`);
 
 ALTER TABLE `sessions`
   ADD PRIMARY KEY (`id`),
@@ -653,7 +653,7 @@ ALTER TABLE `version`
 
 ALTER TABLE `wan_stats`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `main` (`time`,`router_id`,`interface_id`),
+  ADD UNIQUE KEY `main` (`ts`,`router_id`,`interface_id`),
   ADD KEY `times` (`time`);
 
 ALTER TABLE `worklog`
