@@ -120,3 +120,9 @@ ALTER TABLE queue_list CHANGE COLUMN `Upload` `upload` INT(11) NOT NULL DEFAULT 
 
 -- speedup worklog
 ALTER TABLE `worklog` ADD INDEX `idx_ts` (`ts`);
+
+-- Исправление таблицы traffic_detail: src_ip/dst_ip → BIGINT (без UNSIGNED
+ALTER TABLE `traffic_detail` MODIFY `src_ip` BIGINT NOT NULL DEFAULT 0, MODIFY `dst_ip` BIGINT NOT NULL DEFAULT 0;
+
+-- Исправление customers: убрать строковые 'NULL'
+ALTER TABLE `customers` MODIFY `login` VARCHAR(20) DEFAULT NULL, MODIFY `password` VARCHAR(255) DEFAULT NULL;
