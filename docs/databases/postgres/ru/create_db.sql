@@ -185,7 +185,7 @@ id BIGSERIAL PRIMARY KEY,
 device_id INTEGER,
 snmp_index INTEGER,
 port INTEGER,
-ifName VARCHAR(40),
+ifname VARCHAR(40),
 port_name VARCHAR(40),
 description VARCHAR(50),
 target_port_id INTEGER NOT NULL DEFAULT 0,
@@ -337,8 +337,8 @@ COMMENT ON COLUMN mac_history.ip IS 'Последний использованн
 CREATE TABLE mac_vendors (
 id SERIAL PRIMARY KEY,
 oui VARCHAR(20),
-companyName VARCHAR(255),
-companyAddress VARCHAR(255)
+companyname VARCHAR(255),
+companyaddress VARCHAR(255)
 );
 COMMENT ON TABLE mac_vendors IS 'База данных производителей по MAC-адресам';
 COMMENT ON COLUMN mac_vendors.oui IS 'Organizationally Unique Identifier (первые 6 символов MAC)';

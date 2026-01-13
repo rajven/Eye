@@ -46,7 +46,7 @@ print_editdevice_submenu($page_url, $device_id, $device['device_type'], $user_in
                 print "<input type=\"text\" name='f_snmp' style='text-align:center;' value='" . $port['snmp_index'] . "'>"; ?>
             </div>
             <div class="field">
-                <?php print "<label for='f_ifIndex'>ifIndex</label>"; ?><input type="text" id="f_ifIndex" disabled="disabled" style="text-align:center;" value="<?php print $port['ifName']; ?>" />
+                <?php print "<label for='f_ifIndex'>ifIndex</label>"; ?><input type="text" id="f_ifIndex" disabled="disabled" style="text-align:center;" value="<?php print $port['ifname']; ?>" />
             </div>
             <div class="field">
                 <?php print "<label for='f_uplink'>" . WEB_device_port_uplink . "</label>";

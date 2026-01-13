@@ -2150,7 +2150,7 @@ function print_device_port_select($db, $field_name, $device_id, $target_id)
     $target_id = (int)$target_id;
     
     $t_device = get_records_sql($db,
-        "SELECT D.device_name, DP.port, DP.device_id, DP.id, DP.ifName 
+        "SELECT D.device_name, DP.port, DP.device_id, DP.id, DP.ifname 
          FROM devices AS D, device_ports AS DP 
          WHERE D.deleted = 0 
            AND D.id = DP.device_id 
@@ -2163,7 +2163,7 @@ function print_device_port_select($db, $field_name, $device_id, $target_id)
     print_select_item('Empty', 0, $target_id);
     
     foreach ($t_device as $row) {
-        $ifName = !empty($row['ifName']) ? $row['ifName'] : $row['port'];
+        $ifName = !empty($row['ifname']) ? $row['ifname'] : $row['port'];
         $display = htmlspecialchars($row['device_name']) . "[" . htmlspecialchars($row['port']) . "] - " . htmlspecialchars(compact_port_name($ifName));
         print_select_item($display, $row['id'], $target_id);
     }
@@ -3775,8 +3775,8 @@ function get_mac_vendor($db, $mac)
     }
     if (empty($vendor)) { return ''; }
 
-    $address = $vendor['companyAddress'] ?? $vendor['companyaddress'] ?? null;
-    $name = $vendor['companyName'] ?? $vendor['companyname'] ?? null;
+    $address = $vendor['companyaddress'] ?? null;
+    $name = $vendor['companyname'] ?? null;
     
     if (!empty($address)) {
         return $address;

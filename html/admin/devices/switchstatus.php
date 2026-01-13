@@ -222,7 +222,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             print_td_yes($row['skip'],FALSE,$cl);
             $poe_info = "";
 
-            $ifname = $row['ifName'];
+            $ifname = $row['ifname'];
 
             if ($snmp_ok) {
                 //sfp information
@@ -315,8 +315,8 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 if (!empty($ifmib_list[$row['snmp_index']])) {
                     $ifname = $ifmib_list[$row['snmp_index']];
                 }
-                if (!isset($row['ifName']) or $row['ifName'] !== $ifname) {
-                    $new_info['ifName'] = $ifname;
+                if (!isset($row['ifname']) or $row['ifname'] !== $ifname) {
+                    $new_info['ifname'] = $ifname;
                 }
             }
 

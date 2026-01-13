@@ -132,3 +132,12 @@ ALTER TABLE `devices` CHANGE COLUMN `SN` `sn` VARCHAR(80) DEFAULT NULL;
 
 -- 2. Переименовать `WikiName` → `wikiname` в таблице `user_auth`
 ALTER TABLE `user_auth` CHANGE COLUMN `WikiName` `wikiname` VARCHAR(250) DEFAULT NULL;
+
+-- mac_vendors: companyName → companyname
+ALTER TABLE `mac_vendors`  CHANGE COLUMN `companyName` `companyname` VARCHAR(255) DEFAULT NULL;
+
+-- mac_vendors: companyAddress → companyaddress
+ALTER TABLE `mac_vendors`  CHANGE COLUMN `companyAddress` `companyaddress` VARCHAR(255) DEFAULT NULL;
+
+-- device_ports: ifName → ifname
+ALTER TABLE `device_ports`  CHANGE COLUMN `ifName` `ifname` VARCHAR(40) DEFAULT NULL;

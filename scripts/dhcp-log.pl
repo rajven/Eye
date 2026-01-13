@@ -295,8 +295,8 @@ sub run {
                         # Try to match by interface name (ifName)
                         $switch_port = undef;
                         foreach my $port_data (@device_ports) {
-                            if ($t_circuit_id =~ /\s*$port_data->{ifName}$/i ||
-                                $t_circuit_id =~ /^$port_data->{ifName}\s+/i) {
+                            if ($t_circuit_id =~ /\s*$port_data->{ifname}$/i ||
+                                $t_circuit_id =~ /^$port_data->{ifname}\s+/i) {
                                 $switch_port = $port_data;
                                 last;
                             }
@@ -314,7 +314,7 @@ sub run {
 
                         # Log and update connection
                         if ($switch_port) {
-                            db_log_verbose($hdb, "DHCP $type: IP=$ip, MAC=$mac " . $switch->{device_name} . " / " . $switch_port->{ifName});
+                            db_log_verbose($hdb, "DHCP $type: IP=$ip, MAC=$mac " . $switch->{device_name} . " / " . $switch_port->{ifname});
 
                             # Check if connection already exists
                             my $connection = get_records_sql($hdb, "SELECT * FROM connections WHERE auth_id = ?", $auth_id);
@@ -334,7 +334,7 @@ sub run {
                     }
 
                     log_debug("Switch identified: " . ($switch ? $switch->{device_name} : "NONE"));
-                    log_debug("Port identified: " . ($switch_port ? $switch_port->{ifName} : "NONE"));
+                    log_debug("Port identified: " . ($switch_port ? $switch_port->{ifname} : "NONE"));
                 }
             } # end while log reading
 

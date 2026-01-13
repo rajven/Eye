@@ -140,7 +140,7 @@ CREATE TABLE `device_ports` (
   `device_id` int(11) DEFAULT NULL,
   `snmp_index` int(11) DEFAULT NULL,
   `port` int(11) DEFAULT NULL,
-  `ifName` varchar(40) DEFAULT NULL,
+  `ifname` varchar(40) DEFAULT NULL,
   `port_name` varchar(40) DEFAULT NULL,
   `description` varchar(50) DEFAULT NULL,
   `target_port_id` int(11) NOT NULL DEFAULT 0,
@@ -252,8 +252,8 @@ CREATE TABLE `mac_history` (
 CREATE TABLE `mac_vendors` (
   `id` int(11) NOT NULL,
   `oui` varchar(20) DEFAULT NULL,
-  `companyName` varchar(255) DEFAULT NULL,
-  `companyAddress` varchar(255) DEFAULT NULL
+  `companyname` varchar(255) DEFAULT NULL,
+  `companyaddress` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `ou` (

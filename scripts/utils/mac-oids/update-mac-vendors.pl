@@ -134,7 +134,7 @@ sub insert_batch_simple {
     return 0 unless @data;
     
     my $sth = $dbh->prepare("
-        INSERT INTO mac_vendors (oui, companyName, companyAddress) 
+        INSERT INTO mac_vendors (oui, companyname, companyaddress) 
         VALUES (?, ?, ?)
     ");
     
