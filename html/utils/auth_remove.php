@@ -6,23 +6,24 @@ if (!defined("CONFIG")) die("Not defined");
 
 $page_url = null;
 
-if (isset($_POST["RemoveAuth"]) && !empty($_POST["f_deleted"])) {
-    $auth_id = $_POST["fid"] ?? [];
+$remove_action = getPOST('RemoveAuth', $page_url, null);
+$f_deleted     = getPOST('f_deleted', $page_url, null);
+
+if ($remove_action !== null && $f_deleted !== '') {
+    $auth_id = getPOST('fid', $page_url, []);
     $all_ok = true;
 
     foreach ($auth_id as $val) {
-        if ($val = (int)$val) { // Приводим к int и проверяем, что не 0
-            $changes = delete_user_auth($db_link, $val);
+        $id = (int)$val;
+        if ($id > 0) { // только положительные ID
+            $changes = delete_user_auth($db_link, $id);
             if (empty($changes)) {
                 $all_ok = false;
             }
         }
     }
 
-    if ($all_ok) {
-        print "Success!";
-    } else {
-        print "Fail!";
-    }
+    echo $all_ok ? 'Success!' : 'Fail!';
 }
+
 ?>

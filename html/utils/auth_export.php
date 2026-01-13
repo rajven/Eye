@@ -1,95 +1,79 @@
 <?php
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
-require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
+require_once($_SERVER['DOCUMENT_OUT'] . "/inc/languages/" . HTML_LANG . ".php");
 
 if (!defined("CONFIG")) die("Not defined");
 
 $page_url = null;
 
-if (isset($_POST["ExportAuth"])) {
-    // Устанавливаем правильный Content-Type для CSV
+if (getPOST("ExportAuth", $page_url) !== null) {
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="auth_export.csv"');
 
     $out = fopen('php://output', 'w');
     fputcsv($out, ['login', 'ip', 'mac', 'description', 'dns name', 'last_found', 'connected'], ';');
 
-    if (!empty($_POST["a_selected"]) && (int)$_POST["a_selected"]) {
-        // Export selected only
-        $auth_ids = $_POST["fid"] ?? [];
+    $a_selected = getPOST("a_selected", $page_url, null);
+    
+    if ($a_selected !== null && (int)$a_selected) {
+        // Export selected
+        $auth_ids = getPOST("fid", $page_url, []);
         $valid_ids = [];
 
-        // Фильтруем и приводим к целым числам
         foreach ($auth_ids as $id) {
-            if ($id = (int)$id) {
+            $id = (int)$id;
+            if ($id > 0) {
                 $valid_ids[] = $id;
             }
         }
 
         if (!empty($valid_ids)) {
-            // Создаем плейсхолдеры для IN
-            $placeholders = str_repeat('?,', count($valid_ids) - 1) . '?';
-            $sql = "
-                SELECT 
-                    ul.login, 
-                    ua.ip, 
-                    ua.mac, 
-                    ua.description, 
-                    ua.dns_name, 
-                    ua.last_found,
-                    ua.id
-                FROM user_auth ua
-                JOIN user_list ul ON ua.user_id = ul.id
-                WHERE ua.id IN ($placeholders)
-            ";
-            $records = get_records_sql($db_link, $sql, $valid_ids);
-            
-            foreach ($records as $record) {
-                fputcsv($out, [
-                    $record['login'],
-                    $record['ip'],
-                    $record['mac'],
-                    $record['description'],
-                    $record['dns_name'],
-                    $record['last_found'],
-                    get_connection_string($db_link, $record['id'])
-                ], ';');
+            $chunk_size = 500;
+            foreach (array_chunk($valid_ids, $chunk_size) as $chunk) {
+                $placeholders = str_repeat('?,', count($chunk) - 1) . '?';
+                $sql = "SELECT ul.login, ua.ip, ua.mac, ua.description, ua.dns_name, ua.last_found, ua.id
+                    FROM user_auth ua
+                    JOIN user_list ul ON ua.user_id = ul.id
+                    WHERE ua.id IN ($placeholders)
+                ";
+                $records = get_records_sql($db_link, $sql, $chunk);
+                foreach ($records as $record) {
+                    fputcsv($out, [
+                        $record['login'],
+                        $record['ip'],
+                        $record['mac'],
+                        $record['description'],
+                        $record['dns_name'],
+                        $record['last_found'],
+                        get_connection_string($db_link, $record['id'])
+                    ], ';');
+                }
             }
         }
     } else {
         // Export all
-        $conditions = ["ua.deleted = 0"];
-        $params = [];
-        
-        // Фильтр по IP (если передан как часть WHERE условия)
-        // Безопасная сортировка - белый список разрешенных полей
         $allowed_sort_fields = [
-            'user_auth.ip_int', 'ua.ip_int',
-            'user_auth.ip', 'ua.ip',
-            'user_auth.mac', 'ua.mac',
-            'user_list.login', 'ul.login',
+            'ua.ip_int',
+            'ua.mac',
+            'ul.login',
             'ua.last_found'
         ];
-        
+
         $sort_field = 'ua.ip_int';
-        if (!empty($_POST["ip-sort"]) && in_array($_POST["ip-sort"], $allowed_sort_fields, true)) {
-            $sort_field = $_POST["ip-sort"];
+        $ip_sort = getPOST("ip-sort", $page_url, '');
+        if ($ip_sort !== '' && in_array($ip_sort, $allowed_sort_fields, true)) {
+            $sort_field = $ip_sort;
         }
 
         $sql = "
-            SELECT 
-                ua.*, 
-                ul.login, 
-                ul.enabled as UEnabled, 
-                ul.blocked as UBlocked,
-                ua.id
+            SELECT  ul.login, ua.ip, ua.mac, ua.description, ua.dns_name, ua.last_found, ua.id
             FROM user_auth ua
             JOIN user_list ul ON ua.user_id = ul.id
-            WHERE " . implode(' AND ', $conditions) . "
+            WHERE ua.deleted = 0
             ORDER BY $sort_field
         ";
         
-        $records = get_records_sql($db_link, $sql, $params);
+        $records = get_records_sql($db_link, $sql, []);
         
         foreach ($records as $record) {
             fputcsv($out, [

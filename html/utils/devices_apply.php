@@ -6,12 +6,10 @@ if (!defined("CONFIG")) die("Not defined");
 
 $page_url = null;
 
-if (getPOST("ApplyForAll", $page_url)) {
+if (getPOST("ApplyForAll", $page_url) !== null) {
 
-    // Получаем массив ID устройств
     $dev_id = getPOST("fid", $page_url, []);
 
-    // Получаем и валидируем параметры через getPOST
     $a_dev_type = (int)getPOST("a_dev_type", $page_url, 0);
     $a_device_model_id = (int)getPOST("a_device_model_id", $page_url, 0);
     $a_building_id = (int)getPOST("a_building_id", $page_url, 0);
@@ -25,7 +23,8 @@ if (getPOST("ApplyForAll", $page_url)) {
     $all_ok = true;
 
     foreach ($dev_id as $val) {
-        if (!$val = (int)$val) { // Пропускаем неправильные ID
+        $id = (int)$val;
+        if ($id <= 0) {
             continue;
         }
 
@@ -52,18 +51,14 @@ if (getPOST("ApplyForAll", $page_url)) {
         }
 
         if (!empty($device)) {
-            // 🔒 Безопасный вызов: параметризованное условие
-            $ret = update_record($db_link, "devices", "id = ?", $device, [$val]);
+            $ret = update_record($db_link, "devices", "id = ?", $device, [$id]);
             if (!$ret) {
                 $all_ok = false;
             }
         }
     }
 
-    if ($all_ok) {
-        print "Success!";
-    } else {
-        print "Fail!";
-    }
+    echo $all_ok ? "Success!" : "Fail!";
 }
+
 ?>

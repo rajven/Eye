@@ -32,10 +32,11 @@ if (getPOST("ApplyForAll", $page_url)) {
     $all_ok = true;
 
     foreach ($auth_id as $val) {
-        if (!$val = (int)$val) continue;
+        $id = (int)$val;
+        if ($id <= 0) continue;
 
         // Получаем текущую авторизацию и пользователя
-        $cur_auth = get_record_sql($db_link, "SELECT * FROM user_auth WHERE id = ?", [$val]);
+        $cur_auth = get_record_sql($db_link, "SELECT * FROM user_auth WHERE id = ?", [$id]);
         if (!$cur_auth) continue;
 
         $user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [(int)$cur_auth["user_id"]]);
@@ -77,7 +78,7 @@ if (getPOST("ApplyForAll", $page_url)) {
 
         // Обновляем запись в user_auth
         if (!empty($auth_updates)) {
-            $ret = update_record($db_link, "user_auth", "id = ?", $auth_updates, [$val]);
+            $ret = update_record($db_link, "user_auth", "id = ?", $auth_updates, [$id]);
             if (!$ret) $all_ok = false;
         }
 
@@ -100,59 +101,55 @@ if (getPOST("ApplyForAll", $page_url)) {
 
         // Правило привязки MAC
         if (getPOST("e_bind_mac", $page_url) !== null) {
-            $first_auth = get_record_sql($db_link, "SELECT user_id, mac FROM user_auth WHERE id = ?", [$val]);
-            
-            if ($first_auth && !empty($first_auth['mac'])) {
+            if ($cur_auth && !empty($cur_auth['mac'])) {
                 if ($a_bind_mac) {
-                    $user_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id = ? AND rule_type = 2", [(int)$first_auth['user_id']]);
-                    $mac_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = 2", [$first_auth['mac']]);
+                    $user_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id = ? AND rule_type = 2", [(int)$cur_auth['user_id']]);
+                    $mac_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = 2", [$cur_auth['mac']]);
                     
                     if (!$user_rule && !$mac_rule) {
                         $new_rule = [
-                            'user_id' => (int)$first_auth['user_id'],
+                            'user_id' => (int)$cur_auth['user_id'],
                             'rule_type' => 2,
-                            'rule' => $first_auth['mac']
+                            'rule' => $cur_auth['mac']
                         ];
                         insert_record($db_link, "auth_rules", $new_rule);
-                        LOG_INFO($db_link, "Created auto rule for user_id: " . $first_auth['user_id'] . " and mac " . $first_auth['mac']);
+                        LOG_INFO($db_link, "Created auto rule for user_id: " . $cur_auth['user_id'] . " and mac " . $cur_auth['mac']);
                     } else {
-                        LOG_INFO($db_link, "Auto rule for user_id: " . $first_auth['user_id'] . " and mac " . $first_auth['mac'] . " already exists");
+                        LOG_INFO($db_link, "Auto rule for user_id: " . $cur_auth['user_id'] . " and mac " . $cur_auth['mac'] . " already exists");
                     }
                 } else {
-                    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND rule_type = 2", [(int)$first_auth['user_id']]);
-                    LOG_INFO($db_link, "Remove auto rule for user_id: " . $first_auth['user_id'] . " and mac " . $first_auth['mac']);
+                    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND rule_type = 2", [(int)$cur_auth['user_id']]);
+                    LOG_INFO($db_link, "Remove auto rule for user_id: " . $cur_auth['user_id'] . " and mac " . $cur_auth['mac']);
                 }
             } else {
-                LOG_ERROR($db_link, "Auto rule for user_id: " . ($first_auth['user_id'] ?? 'N/A') . " not created. Record not found or empty mac.");
+                LOG_ERROR($db_link, "Auto rule for user_id: " . ($cur_auth['user_id'] ?? 'N/A') . " not created. Record not found or empty mac.");
             }
         }
 
         // Правило привязки IP
         if (getPOST("e_bind_ip", $page_url) !== null) {
-            $first_auth = get_record_sql($db_link, "SELECT user_id, ip FROM user_auth WHERE id = ?", [$val]);
-            
-            if ($first_auth && !empty($first_auth['ip'])) {
+            if ($cur_auth && !empty($cur_auth['ip'])) {
                 if ($a_bind_ip) {
-                    $user_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id = ? AND rule_type = 1", [(int)$first_auth['user_id']]);
-                    $ip_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = 1", [$first_auth['ip']]);
+                    $user_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id = ? AND rule_type = 1", [(int)$cur_auth['user_id']]);
+                    $ip_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = 1", [$cur_auth['ip']]);
                     
                     if (!$user_rule && !$ip_rule) {
                         $new_rule = [
-                            'user_id' => (int)$first_auth['user_id'],
+                            'user_id' => (int)$cur_auth['user_id'],
                             'rule_type' => 1,
-                            'rule' => $first_auth['ip']
+                            'rule' => $cur_auth['ip']
                         ];
                         insert_record($db_link, "auth_rules", $new_rule);
-                        LOG_INFO($db_link, "Created auto rule for user_id: " . $first_auth['user_id'] . " and ip " . $first_auth['ip']);
+                        LOG_INFO($db_link, "Created auto rule for user_id: " . $cur_auth['user_id'] . " and ip " . $cur_auth['ip']);
                     } else {
-                        LOG_INFO($db_link, "Auto rule for user_id: " . $first_auth['user_id'] . " and ip " . $first_auth['ip'] . " already exists");
+                        LOG_INFO($db_link, "Auto rule for user_id: " . $cur_auth['user_id'] . " and ip " . $cur_auth['ip'] . " already exists");
                     }
                 } else {
-                    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND rule_type = 1", [(int)$first_auth['user_id']]);
-                    LOG_INFO($db_link, "Remove auto rule for user_id: " . $first_auth['user_id'] . " and ip " . $first_auth['ip']);
+                    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND rule_type = 1", [(int)$cur_auth['user_id']]);
+                    LOG_INFO($db_link, "Remove auto rule for user_id: " . $cur_auth['user_id'] . " and ip " . $cur_auth['ip']);
                 }
             } else {
-                LOG_ERROR($db_link, "Auto rule for user_id: " . ($first_auth['user_id'] ?? 'N/A') . " not created. Record not found or empty ip.");
+                LOG_ERROR($db_link, "Auto rule for user_id: " . ($cur_auth['user_id'] ?? 'N/A') . " not created. Record not found or empty ip.");
             }
         }
     }
