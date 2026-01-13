@@ -2076,7 +2076,7 @@ function get_auth_count($db, $user_id)
 function print_login_select($db, $login_name, $current_login)
 {
     echo "<select id=\"" . htmlspecialchars($login_name) . "\" name=\"" . htmlspecialchars($login_name) . "\" class=\"js-select-single\">\n";
-    $t_login = get_records_sql($db, "SELECT id, login FROM user_list ORDER BY login");
+    $t_login = get_records_sql($db, "SELECT id, login FROM user_list WHERE deleted=0 ORDER BY login");
     print_select_item('None', 0, $current_login);
     
     foreach ($t_login as $row) {

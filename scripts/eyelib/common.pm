@@ -67,6 +67,7 @@ unblock_user
 unset_lock_discovery
 update_dns_record
 update_dns_record_by_dhcp
+get_creation_method
 );
 
 BEGIN
@@ -87,176 +88,281 @@ return $msg;
 #---------------------------------------------------------------------------------------------------------------
 
 sub unbind_ports {
-my $db = shift;
-my $device_id = shift;
-return if (!$db);
-return if (!$device_id);
-my @target = get_records_sql($db, "SELECT U.target_port_id,U.id FROM device_ports U WHERE U.device_id=".$device_id);
-foreach my $row (@target) {
-        do_sql($db, "UPDATE device_ports SET target_port_id=0 WHERE target_port_id=".$row->{id});
-        do_sql($db, "UPDATE device_ports SET target_port_id=0 WHERE id=".$row->{id});
+    my ($db, $device_id) = @_;
+    return unless $db && defined $device_id && $device_id =~ /^\d+$/;  # защита от нечисловых ID
+    # Получаем все порты устройства
+    my @target = get_records_sql($db, 
+        "SELECT target_port_id, id FROM device_ports WHERE device_id = ?", 
+        $device_id
+    );
+    foreach my $row (@target) {
+        # Обнуляем ссылки НА этот порт (кто ссылается на него)
+        do_sql($db, "UPDATE device_ports SET target_port_id = 0 WHERE target_port_id = ?", $row->{id});
+        # Обнуляем ссылку С этого порта (куда он ссылался)
+        do_sql($db, "UPDATE device_ports SET target_port_id = 0 WHERE id = ?", $row->{id});
     }
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_dns_name {
-my $db = shift;
-my $id = shift;
-my $auth_record = get_record_sql($db,"SELECT dns_name FROM user_auth WHERE deleted=0 AND id=".$id);
-if ($auth_record and $auth_record->{'dns_name'}) { return $auth_record->{'dns_name'}; }
-return;
+    my ($db, $id) = @_;
+    return unless $db && defined $id;
+
+    # Защита: убедимся, что $id — положительное целое число
+    return unless $id =~ /^\d+$/ && $id > 0;
+
+    my $auth_record = get_record_sql(
+        $db,
+        "SELECT dns_name FROM user_auth WHERE deleted = 0 AND id = ?",
+        $id
+    );
+
+    return $auth_record && $auth_record->{dns_name}
+        ? $auth_record->{dns_name}
+        : undef;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub record_to_txt {
-my $db = shift;
-my $table = shift;
-my $id = shift;
-my $record = get_record_sql($db,'SELECT * FROM '.$table.' WHERE id='.$id);
-return hash_to_text($record);
+    my ($db, $table, $id) = @_;
+    return unless $db && defined $table && defined $id;
+    # Валидация имени таблицы: только буквы, цифры, подчёркивания
+    return unless $table =~ /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+    # Валидация ID: должно быть положительное целое число
+    return unless $id =~ /^\d+$/ && $id > 0;
+    my $record = get_record_sql(
+        $db,
+        "SELECT * FROM $table WHERE id = ?",
+        $id
+    );
+    return hash_to_text($record);
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub delete_user_auth {
-my $db = shift;
-my $id = shift;
+    my ($db, $id) = @_;
+    return 0 unless $db && defined $id;
 
-my $record = get_record_sql($db,'SELECT * FROM user_auth WHERE id='.$id);
-my $auth_ident = $record->{ip};
-$auth_ident = $auth_ident . '['.$record->{dns_name} .']' if ($record->{dns_name});
-$auth_ident = $auth_ident . ' :: '.$record->{description} if ($record->{dns_name});
-my $msg = "";
-my $txt_record = hash_to_text($record);
-#remove aliases
-my @t_user_auth_alias = get_records_sql($db,'SELECT * FROM user_auth_alias WHERE auth_id='.$id);
-if (@t_user_auth_alias and scalar @t_user_auth_alias) {
-    foreach my $row ( @t_user_auth_alias) {
-        my $alias_txt = record_to_txt($db,'user_auth_alias','id='.$row->{'id'});
-        if (delete_record($db,'user_auth_alias','id='.$row->{'id'})) {
-            $msg = "Deleting an alias: ". $alias_txt . "\n::Success!\n" . $msg;
-            } else {
-            $msg = "Deleting an alias: ". $alias_txt . "\n::Fail!\n" . $msg;
-            }
+    # Валидация ID
+    return 0 unless $id =~ /^\d+$/ && $id > 0;
+
+    # Получаем основную запись
+    my $record = get_record_sql($db, "SELECT * FROM user_auth WHERE id = ?", $id);
+    return 0 unless $record;  # если записи нет — выходим
+
+    # Формируем идентификатор для лога
+    my $auth_ident = $record->{ip} // '';
+    if ($record->{dns_name}) {
+        $auth_ident .= '[' . $record->{dns_name} . ']';
+    }
+    if ($record->{description}) {
+        $auth_ident .= ' :: ' . $record->{description};
+    }
+
+    my $txt_record = hash_to_text($record) // '';
+    my $msg = "";
+
+    # --- Удаляем алиасы ---
+    my @aliases = get_records_sql($db, "SELECT * FROM user_auth_alias WHERE auth_id = ?", $id);
+    foreach my $alias (@aliases) {
+        my $alias_id = $alias->{id};
+        next unless defined $alias_id && $alias_id =~ /^\d+$/;
+
+        # Правильный вызов: таблица + ID (число)
+        my $alias_txt = record_to_txt($db, 'user_auth_alias', $alias_id) // '';
+
+        if (delete_record($db, 'user_auth_alias', 'id = ?', $alias_id)) {
+            $msg = "Deleting an alias: $alias_txt\n::Success!\n" . $msg;
+        } else {
+            $msg = "Deleting an alias: $alias_txt\n::Fail!\n" . $msg;
         }
     }
-#remove connections
-do_sql($db,'DELETE FROM connections WHERE auth_id='.$id);
-#remove user auth record
-my $changes = delete_record($db, "user_auth", "id=" . $id);
-if ($changes) {
-    $msg = "Deleting ip-record: ". $txt_record . "\n::Success!\n" . $msg;
+
+    # --- Удаляем соединения ---
+    do_sql($db, "DELETE FROM connections WHERE auth_id = ?", $id);
+
+    # --- Удаляем основную запись ---
+    my $changes = delete_record($db, "user_auth", "id = ?", $id);
+
+    if ($changes) {
+        $msg = "Deleting ip-record: $txt_record\n::Success!\n" . $msg;
     } else {
-    $msg = "Deleting ip-record: ". $txt_record . "\n::Fail!\n" . $msg;
+        $msg = "Deleting ip-record: $txt_record\n::Fail!\n" . $msg;
     }
 
-$msg = "Deleting user ip record $auth_ident\n\n".$msg;
-db_log_warning($db, $msg, $id);
-my $send_alert = isNotifyDelete(get_notify_subnet($db,$record->{ip}));
-sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert);
-return $changes;
+    $msg = "Deleting user ip record $auth_ident\n\n" . $msg;
+    db_log_warning($db, $msg, $id);
+
+    # Отправка уведомления
+    my $send_alert = isNotifyDelete(get_notify_subnet($db, $record->{ip}));
+    sendEmail("WARN! " . get_first_line($msg), $msg, 1) if $send_alert;
+
+    return $changes;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub unblock_user {
-my $db = shift;
-my $user_id = shift;
-my $user_record = get_record_sql($db,'SELECT * FROM user_list WHERE id='.$user_id);
-my $user_ident = 'id:'. $user_record->{'id'} . ' '. $user_record->{'login'};
-$user_ident = $user_ident . '[' . $user_record->{'description'} . ']' if ($user_record->{'description'});
-my $msg = "Amnistuyemo blocked by traffic user $user_ident \nInternet access for the user's IP address has been restored:\n";
-my @user_auth = get_records_sql($db,'SELECT * FROM user_auth WHERE deleted=0 AND user_id='.$user_id);
-my $send_alert = 0;
-if (@user_auth and scalar @user_auth) {
+    my ($db, $user_id) = @_;
+    return 0 unless $db && defined $user_id;
+
+    # Валидация ID
+    return 0 unless $user_id =~ /^\d+$/ && $user_id > 0;
+
+    # Получаем пользователя
+    my $user_record = get_record_sql($db, "SELECT * FROM user_list WHERE id = ?", $user_id);
+    return 0 unless $user_record;  # если нет — выходим
+
+    # Формируем идентификатор
+    my $user_ident = 'id:' . ($user_record->{id} // '') . ' ' . ($user_record->{login} // '');
+    if ($user_record->{description}) {
+        $user_ident .= '[' . $user_record->{description} . ']';
+    }
+
+    my $msg = "Amnistuyemo blocked by traffic user $user_ident\nInternet access for the user's IP address has been restored:\n";
+    my $send_alert = 0;
+    my $any_updated = 0;
+
+    # Разблоковываем все активные IP-записи пользователя
+    my @user_auth = get_records_sql($db, "SELECT * FROM user_auth WHERE deleted = 0 AND user_id = ?", $user_id);
     foreach my $record (@user_auth) {
-        $send_alert = ($send_alert or isNotifyUpdate(get_notify_subnet($db,$record->{ip})));
-        my $auth_ident = $record->{ip};
-        $auth_ident = $auth_ident . '['.$record->{dns_name} .']' if ($record->{dns_name});
-        $auth_ident = $auth_ident . ' :: '.$record->{description} if ($record->{dns_name});
-        my $new;
-        $new->{'blocked'}=0;
-        $new->{'changed'}=1;
-        my $ret_id = update_record($db,'user_auth',$new,'id='.$record->{'id'});
-        if ($ret_id) {
-            $msg = $msg ."\n".$auth_ident;
-            }
+        next unless $record->{id} && $record->{id} =~ /^\d+$/;
+
+        $send_alert ||= isNotifyUpdate(get_notify_subnet($db, $record->{ip}));
+
+        my $auth_ident = $record->{ip} // '';
+        if ($record->{dns_name}) {
+            $auth_ident .= '[' . $record->{dns_name} . ']';
+        }
+        if ($record->{description}) {
+            $auth_ident .= ' :: ' . $record->{description};
+        }
+
+        my $new = {
+            blocked => 0,
+            changed => 1,
+        };
+
+        if (update_record($db, 'user_auth', $new, 'id = ?', $record->{id})) {
+            $msg .= "\n" . $auth_ident;
+            $any_updated = 1;
         }
     }
-my $new;
-$new->{'blocked'}=0;
-my $ret_id = update_record($db,'user_list','id='.$user_id);
-if ($ret_id) {
-    db_log_info($db,$msg);
-    sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert);
+
+    # Разблоковываем самого пользователя в user_list
+    my $user_update = { blocked => 0 };
+    my $ret_id = update_record($db, 'user_list', $user_update, 'id = ?', $user_id);
+
+    if ($ret_id) {
+        # Логируем даже если нет IP-записей
+        db_log_info($db, $msg);
+        sendEmail("WARN! " . get_first_line($msg), $msg, 1) if $send_alert;
     }
-return $ret_id;
+
+    return $ret_id;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub delete_user {
-my $db = shift;
-my $id = shift;
-#remove user record
-my $changes = delete_record($db, "user_list", "id=" . $id);
-#if fail - exit
-if (!$changes) { return; }
-#remove auth records
-my @t_user_auth = get_records_sql($db,'SELECT * FROM user_auth WHERE user_id='.$id);
-if (@t_user_auth and scalar @t_user_auth) {
-    foreach my $row ( @t_user_auth ) { delete_user_auth($db,$row->{'id'}); }
+    my ($db, $id) = @_;
+    return 0 unless $db && defined $id;
+
+    # Валидация ID: должно быть положительное целое число
+    return 0 unless $id =~ /^\d+$/ && $id > 0;
+
+    # Удаляем основную запись пользователя
+    my $changes = delete_record($db, "user_list", "id = ?", $id);
+    return 0 unless $changes;  # если не удалось — выходим
+
+    # Удаляем все IP-записи (user_auth)
+    my @user_auth_records = get_records_sql($db, "SELECT id FROM user_auth WHERE user_id = ?", $id);
+    foreach my $row (@user_auth_records) {
+        next unless defined $row->{id} && $row->{id} =~ /^\d+$/;
+        delete_user_auth($db, $row->{id});
     }
-#remove device
-my $device = get_record_sql($db, "SELECT * FROM devices WHERE user_id=".$id);
-if ($device) { delete_device($db,$device->{'id'}); }
-#remove auth assign rules
-do_sql($db, "DELETE FROM auth_rules WHERE user_id=$id");
-return $changes;
+
+    # Удаляем устройство, привязанное к пользователю
+    my $device = get_record_sql($db, "SELECT id FROM devices WHERE user_id = ?", $id);
+    if ($device && defined $device->{id} && $device->{id} =~ /^\d+$/) {
+        delete_device($db, $device->{id});
+    }
+
+    # Удаляем правила авторизации
+    do_sql($db, "DELETE FROM auth_rules WHERE user_id = ?", $id);
+
+    return $changes;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub delete_device {
-my $db = shift;
-my $id = shift;
-#remove user record
-my $changes = delete_record($db, "devices", "id=" . $id);
-#if fail - exit
-if (!$changes) { return; }
-unbind_ports($db, $id);
-do_sql($db, "DELETE FROM connections WHERE device_id=" . $id);
-do_sql($db, "DELETE FROM device_l3_interfaces WHERE device_id=" . $id);
-do_sql($db, "DELETE FROM device_ports WHERE device_id=" . $id);
-do_sql($db, "DELETE FROM device_filter_instances WHERE device_id=" . $id);
-do_sql($db, "DELETE FROM gateway_subnets WHERE device_id=".$id);
-return $changes;
+    my ($db, $id) = @_;
+    return 0 unless $db && defined $id;
+
+    # Валидация: ID должен быть положительным целым числом
+    return 0 unless $id =~ /^\d+$/ && $id > 0;
+
+    # Удаляем запись устройства
+    my $changes = delete_record($db, "devices", "id = ?", $id);
+    return 0 unless $changes;  # если не удалось — выходим
+
+    # Отвязываем порты
+    unbind_ports($db, $id);
+
+    # Удаляем связанные данные
+    do_sql($db, "DELETE FROM connections WHERE device_id = ?", $id);
+    do_sql($db, "DELETE FROM device_l3_interfaces WHERE device_id = ?", $id);
+    do_sql($db, "DELETE FROM device_ports WHERE device_id = ?", $id);
+    do_sql($db, "DELETE FROM device_filter_instances WHERE device_id = ?", $id);
+    do_sql($db, "DELETE FROM gateway_subnets WHERE device_id = ?", $id);
+
+    return $changes;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub is_hotspot {
-my $db = shift;
-my $ip  = shift;
-my $users = new Net::Patricia;
-#check hotspot
-my @ip_rules = get_records_sql($db,'SELECT * FROM subnets WHERE hotspot=1 AND LENGTH(subnet)>0');
-foreach my $row (@ip_rules) { $users->add_string($row->{subnet}); }
-if ($users->match_string($ip)) { return 1; }
-return 0;
+    my ($db, $ip) = @_;
+    return 0 unless $db && defined $ip;
+
+    my @subnets = get_records_sql(
+        $db,
+        "SELECT subnet FROM subnets WHERE hotspot = 1 AND LENGTH(subnet) > 0"
+    );
+
+    my $pat = Net::Patricia->new;
+    for my $row (@subnets) {
+        $pat->add_string($row->{subnet}) if defined $row->{subnet};
+    }
+
+    return $pat->match_string($ip) ? 1 : 0;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_office_subnet {
-my $db = shift;
-my $ip  = shift;
-my $subnets = new Net::Patricia;
-my @ip_rules = get_records_sql($db,'SELECT * FROM subnets WHERE office=1 AND LENGTH(subnet)>0');
-foreach my $row (@ip_rules) { $subnets->add_string($row->{subnet},$row); }
-return $subnets->match_string($ip);
+    my ($db, $ip) = @_;
+    return undef unless $db && defined $ip;
+
+    my @rows = get_records_sql(
+        $db,
+        "SELECT * FROM subnets WHERE office = 1 AND LENGTH(subnet) > 0"
+    );
+
+    return undef unless @rows;
+
+    my $pat = Net::Patricia->new;
+    for my $row (@rows) {
+        next unless defined $row->{subnet};
+        # Защита от некорректных подсетей в БД
+        eval { $pat->add_string($row->{subnet}, $row); 1 } or next;
+    }
+
+    return $pat->match_string($ip);
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -272,123 +378,193 @@ return 0;
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_new_user_id {
-my $db = shift;
-my $ip  = shift;
-my $mac = shift;
-my $hostname = shift;
+    my ($db, $ip, $mac, $hostname) = @_;
+    return unless $db;
 
-my $result;
-#check user rules
-$mac = mac_simplify($mac);
+    my $result = {
+        ip              => $ip,
+        mac             => defined $mac ? mac_splitted(mac_simplify($mac)) : undef,
+        dhcp_hostname   => $hostname,
+        ou_id           => undef,
+        user_id         => undef,
+    };
 
-$result->{ip} = $ip;
-$result->{mac} = mac_splitted($mac);
-$result->{dhcp_hostname} = $hostname;
-$result->{ou_id}=undef;
-$result->{user_id}=undef;
-
-my $hotspot_users = new Net::Patricia;
-#check hotspot
-my @hotspot_rules = get_records_sql($db,'SELECT * FROM subnets WHERE hotspot=1 AND LENGTH(subnet)>0');
-foreach my $row (@hotspot_rules) { $hotspot_users->add_string($row->{subnet},$default_hotspot_ou_id); }
-if ($hotspot_users->match_string($ip)) { $result->{ou_id}=$hotspot_users->match_string($ip); return $result; }
-
-#check ip
-if (defined $ip and $ip) {
-    my $users = new Net::Patricia;
-    #check ip rules
-    my @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE rule_type=1 and LENGTH(rule)>0 AND user_id IS NOT NULL');
-    foreach my $row (@ip_rules) { eval { $users->add_string($row->{rule},$row->{user_id}); }; }
-    if ($users->match_string($ip)) { $result->{user_id}=$users->match_string($ip); return $result; }
-    }
-
-#check mac
-if (defined $mac and $mac) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE rule_type=2 AND LENGTH(rule)>0 AND user_id IS NOT NULL');
-    foreach my $user (@user_rules) {
-	my $rule = mac_simplify($user->{rule});
-        if ($mac=~/$rule/i) { $result->{user_id}=$user->{user_id}; return $result; }
+    # --- Hotspot ---
+    my @hotspot_rules = get_records_sql($db,
+        "SELECT * FROM subnets WHERE hotspot = 1 AND LENGTH(subnet) > 0"
+    );
+    if (@hotspot_rules) {
+        my $hotspot_pat = Net::Patricia->new;
+        foreach my $row (@hotspot_rules) {
+            next unless defined $row->{subnet};
+            eval { $hotspot_pat->add_string($row->{subnet}, $default_hotspot_ou_id); 1 } or next;
+            }
+        if (defined $ip) {
+            my $ou_id = $hotspot_pat->match_string($ip);
+            if ($ou_id) { $result->{ou_id} = $ou_id; return $result; }
+            }
         }
-    }
-#check hostname
-if (defined $hostname and $hostname) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE rule_type=3 AND LENGTH(rule)>0 AND user_id IS NOT NULL');
-    foreach my $user (@user_rules) {
-        if ($hostname=~/$user->{rule}/i) { $result->{user_id}=$user->{user_id}; return $result; }
+
+    # --- Поиск user_id по IP/MAC/hostname ---
+    if (defined $ip && $ip) {
+        my @rules = get_records_sql($db,
+            "SELECT rule, user_id FROM auth_rules WHERE rule_type = 1 AND LENGTH(rule) > 0 AND user_id IS NOT NULL"
+        );
+        my $pat = Net::Patricia->new;
+        foreach my $r (@rules) {
+            next unless defined $r->{rule};
+            eval { $pat->add_string($r->{rule}, $r->{user_id}); 1 } or next;
+        }
+        if (my $user_id = $pat->match_string($ip)) {
+            $result->{user_id} = $user_id;
+            return $result;
         }
     }
 
-#check ou rules
-
-#check ip
-if (defined $ip and $ip) {
-    my $users = new Net::Patricia;
-    #check ip rules
-    my @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE rule_type=1 and LENGTH(rule)>0 AND ou_id IS NOT NULL');
-    foreach my $row (@ip_rules) { eval { $users->add_string($row->{rule},$row->{ou_id}); }; }
-    if ($users->match_string($ip)) { $result->{ou_id}=$users->match_string($ip); return $result; }
-    }
-
-#check mac
-if (defined $mac and $mac) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE rule_type=2 AND LENGTH(rule)>0 AND ou_id IS NOT NULL');
-    foreach my $user (@user_rules) {
-	my $rule = mac_simplify($user->{rule});
-        if ($mac=~/$rule/i) { $result->{ou_id}=$user->{ou_id}; return $result; }
+    if (defined $mac && $mac) {
+        my @rules = get_records_sql($db,
+            "SELECT rule, user_id FROM auth_rules WHERE rule_type = 2 AND LENGTH(rule) > 0 AND user_id IS NOT NULL"
+        );
+        foreach my $r (@rules) {
+            next unless defined $r->{rule};
+            my $rule_clean = mac_simplify($r->{rule});
+            # Защита от битых регулярок
+            eval {
+                if ($mac =~ /\Q$rule_clean\E/i) {  # \Q...\E — экранируем спецсимволы!
+                    $result->{user_id} = $r->{user_id};
+                    return $result;
+                }
+                1;
+            } or do {
+                log_debug("Invalid MAC rule: '$r->{rule}'");
+                next;
+            };
         }
     }
 
-#check hostname
-if (defined $hostname and $hostname) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE rule_type=3 AND LENGTH(rule)>0 AND ou_id IS NOT NULL');
-    foreach my $user (@user_rules) {
-        if ($hostname=~/$user->{rule}/i) { $result->{ou_id}=$user->{ou_id}; return $result; }
+    if (defined $hostname && $hostname) {
+        my @rules = get_records_sql($db,
+            "SELECT rule, user_id FROM auth_rules WHERE rule_type = 3 AND LENGTH(rule) > 0 AND user_id IS NOT NULL"
+        );
+        foreach my $r (@rules) {
+            next unless defined $r->{rule};
+            eval {
+                if ($hostname =~ /$r->{rule}/i) {
+                    $result->{user_id} = $r->{user_id};
+                    return $result;
+                }
+                1;
+            } or do {
+                log_debug("Invalid hostname rule: '$r->{rule}'");
+                next;
+            };
         }
     }
 
-if (!$result->{ou_id}) { $result->{ou_id}=$default_user_ou_id; }
+    # --- Поиск ou_id по IP/MAC/hostname ---
+    if (defined $ip && $ip) {
+        my @rules = get_records_sql($db,
+            "SELECT rule, ou_id FROM auth_rules WHERE rule_type = 1 AND LENGTH(rule) > 0 AND ou_id IS NOT NULL"
+        );
+        my $pat = Net::Patricia->new;
+        foreach my $r (@rules) {
+            next unless defined $r->{rule};
+            eval { $pat->add_string($r->{rule}, $r->{ou_id}); 1 } or next;
+        }
+        if (my $ou_id = $pat->match_string($ip)) {
+            $result->{ou_id} = $ou_id;
+            return $result;
+        }
+    }
 
-return $result;
+    if (defined $mac && $mac) {
+        my @rules = get_records_sql($db,
+            "SELECT rule, ou_id FROM auth_rules WHERE rule_type = 2 AND LENGTH(rule) > 0 AND ou_id IS NOT NULL"
+        );
+        foreach my $r (@rules) {
+            next unless defined $r->{rule};
+            my $rule_clean = mac_simplify($r->{rule});
+            eval {
+                if ($mac =~ /\Q$rule_clean\E/i) {
+                    $result->{ou_id} = $r->{ou_id};
+                    return $result;
+                }
+                1;
+            } or do {
+                log_debug("Invalid MAC rule: '$r->{rule}'");
+                next;
+            };
+        }
+    }
+
+    if (defined $hostname && $hostname) {
+        my @rules = get_records_sql($db,
+            "SELECT rule, ou_id FROM auth_rules WHERE rule_type = 3 AND LENGTH(rule) > 0 AND ou_id IS NOT NULL"
+        );
+        foreach my $r (@rules) {
+            next unless defined $r->{rule};
+            eval {
+                if ($hostname =~ /$r->{rule}/i) {
+                    $result->{ou_id} = $r->{ou_id};
+                    return $result;
+                }
+                1;
+            } or do {
+                log_debug("Invalid hostname rule: '$r->{rule}'");
+                next;
+            };
+        }
+    }
+
+    # --- Значение по умолчанию ---
+    $result->{ou_id} //= $default_user_ou_id;
+
+    return $result;
 }
-
 #---------------------------------------------------------------------------------------------------------------
 
 sub set_changed {
-my $db = shift;
-my $id = shift;
-return if (!$db or !$id);
-my $update_record;
-$update_record->{changed}=1;
-update_record($db,'user_auth',$update_record,"id=$id");
+    my ($db, $id) = @_;
+    return unless $db && defined $id;
+
+    # Опционально: валидация ID как числа
+    return unless $id =~ /^\d+$/;
+
+    my $update_record = { changed => 1 };
+    update_record($db, 'user_auth', $update_record, 'id = ?', $id);
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub update_dns_record {
+my ($hdb, $auth_id) = @_;
+return unless $config_ref{enable_dns_updates};
+return unless defined $auth_id;
 
-my $hdb = shift;
-my $auth_id = shift;
-
-return if (!$config_ref{enable_dns_updates});
+# Валидация: auth_id должен быть положительным целым числом
+return unless $auth_id =~ /^\d+$/ && $auth_id > 0;
 
 # Переподключение
-if (!$hdb or !$hdb->ping) { $hdb = init_db(); }
+if (!$hdb || !$hdb->ping) { $hdb = init_db(); }
+return unless $hdb;
 
-#get domain
-my $ad_zone = get_option($hdb,33);
+# Получаем настройки
+my $ad_zone = get_option($hdb, 33);
+my $ad_dns  = get_option($hdb, 3);
+my $enable_ad_dns_update = ($ad_zone && $ad_dns && $config_ref{enable_dns_updates});
 
-#get dns server
-my $ad_dns = get_option($hdb,3);
+log_debug("Auth id: $auth_id");
+log_debug("enable_ad_dns_update: " . ($enable_ad_dns_update ? '1' : '0'));
+log_debug("DNS update flags - zone: $ad_zone, dns: $ad_dns, enable_ad_dns_update: " . ($enable_ad_dns_update ? '1' : '0'));
 
-my $enable_ad_dns_update = ($ad_zone and $ad_dns and $config_ref{enable_dns_updates});
+# Получаем задачи из очереди
+my @dns_queue = get_records_sql(
+        $hdb,
+        "SELECT * FROM dns_queue WHERE auth_id = ? AND value > '' AND value NOT LIKE '%.' ORDER BY id ASC",
+        $auth_id
+    );
 
-log_debug("Auth id: ".$auth_id);
-log_debug("enable_ad_dns_update: ".$enable_ad_dns_update);
-log_debug("DNS update flags - zone: ".$ad_zone.", dns: ".$ad_dns.", enable_ad_dns_update: ".$enable_ad_dns_update);
-
-my @dns_queue = get_records_sql($hdb,"SELECT * FROM dns_queue WHERE auth_id=".$auth_id." AND value>'' AND value NOT LIKE '%.'ORDER BY id ASC");
-
-if (!@dns_queue or !scalar @dns_queue) { return; }
+return unless @dns_queue;
 
 foreach my $dns_cmd (@dns_queue) {
 
@@ -443,7 +619,7 @@ if ($dns_cmd->{name_type}=~/^a$/i) {
         next;
         }
     #get aliases
-    my @aliases = get_records_sql($hdb,"SELECT * FROM user_auth_alias WHERE auth_id=".$auth_id);
+    my @aliases = get_records_sql($hdb, "SELECT * FROM user_auth_alias WHERE auth_id = ?", $auth_id);
     #remove A & PTR
     if ($dns_cmd->{operation_type} eq 'del') {
         #remove aliases
@@ -519,42 +695,63 @@ if ($@) { log_error("Error dns commands: $@"); }
 }
 
 #---------------------------------------------------------------------------------------------------------------
+
 sub is_ad_computer {
+    my ($hdb, $computer_name) = @_;
+    return 0 unless $hdb;
+    return 0 if !$computer_name || $computer_name =~ /UNDEFINED/i;
 
-my $hdb = shift;
-my $computer_name = shift;
+    my $ad_check = get_option($hdb, 73);
+    return 1 unless $ad_check;
 
-if (!$computer_name or $computer_name =~/UNDEFINED/i) { return 0; }
+    my $ad_zone = get_option($hdb, 33);
 
-my $ad_check = get_option($hdb,73);
-if (!$ad_check) { return 1; }
-
-my $ad_zone = get_option($hdb,33);
-
-if ($computer_name =~/\./) {
-    if ($computer_name!~/\.$ad_zone$/i) { 
-        db_log_verbose($hdb,"The domain of the computer $computer_name does not match the domain of the organization $ad_zone. Skip update.");
-        return 0;
+    # Проверка домена (если указан)
+    if (defined $ad_zone && $ad_zone ne '' && $computer_name =~ /\./) {
+        if ($computer_name !~ /\Q$ad_zone\E$/i) {
+            db_log_verbose($hdb, "The domain of the computer $computer_name does not match the domain of the organization $ad_zone. Skip update.");
+            return 0;
         }
     }
 
-if ($computer_name =~/^(.+)\./) {
-    $computer_name = $1;
+    # Извлекаем NetBIOS-имя (до первой точки)
+    my $netbios_name = $computer_name;
+    $netbios_name = $1 if $computer_name =~ /^([^\.]+)/;
+
+    # Валидация NetBIOS-имени
+    if (!$netbios_name || $netbios_name !~ /^[a-zA-Z0-9][a-zA-Z0-9_\-\$]{0,14}$/) {
+        db_log_verbose($hdb, "Invalid computer name format: '$computer_name'");
+        return 0;
     }
 
-my $ad_computer_name = trim($computer_name).'$';
+    # Проверяем кэш
+    my $name_in_cache = get_record_sql($hdb, "SELECT * FROM ad_comp_cache WHERE name = ?", $netbios_name);
+    return 1 if $name_in_cache;
 
-my $name_in_cache = get_record_sql($hdb,"SELECT * FROM ad_comp_cache WHERE name='".$computer_name."'");
-if ($name_in_cache) { return 1; }
+    # Ищем в AD
+    my $ad_computer_name = $netbios_name . '$';
+    my $safe_name = quotemeta($ad_computer_name);
+    my %name_found = do_exec_ref("/usr/bin/getent passwd $safe_name");
 
-my %name_found=do_exec_ref('/usr/bin/getent passwd '.$ad_computer_name);
-if (!$name_found{output} or $name_found{status} ne 0) {
-    db_log_verbose($hdb,"The computer ".uc($ad_computer_name)." was not found in the domain $ad_zone. Skip update.");
-    return 0;
+    if (!$name_found{output} || $name_found{status} ne 0) {
+        db_log_verbose($hdb, "The computer " . uc($ad_computer_name) . " was not found in the domain $ad_zone. Skip update.");
+        return 0;
     }
 
-do_sql($hdb,"INSERT INTO ad_comp_cache(name) VALUES('".$computer_name."') ON DUPLICATE KEY UPDATE name='".$computer_name."';");
-return 1;
+    # Кэшируем
+    do_sql($hdb, "INSERT INTO ad_comp_cache (name) VALUES (?) ON DUPLICATE KEY UPDATE name = ?", 
+           $netbios_name, $netbios_name);
+
+    return 1;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub escape_like {
+    my ($str) = @_;
+    return '' unless defined $str;
+    $str =~ s/([%_\\])/\\$1/g;
+    return $str;
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -577,9 +774,11 @@ my $enable_ad_dns_update = ($ad_zone and $ad_dns and $update_hostname_from_dhcp)
 log_debug("Dhcp record: ".Dumper($dhcp_record));
 log_debug("Subnets: ".Dumper($subnets_dhcp->{$dhcp_record->{network}->{subnet}}));
 log_debug("enable_ad_dns_update: ".$enable_ad_dns_update);
-log_debug("DNS update flags - zone: ".$ad_zone.",dns: ".$ad_dns.", update_hostname_from_dhcp: ".$update_hostname_from_dhcp.", enable_ad_dns_update: ".$enable_ad_dns_update. ", network dns-update enabled: ".$subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname});
+log_debug("DNS update flags - zone: ".$ad_zone.",dns: ".$ad_dns.", update_hostname_from_dhcp: ".$update_hostname_from_dhcp.", enable_ad_dns_update: " .
+$enable_ad_dns_update. ", network dns-update enabled: ".$subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname});
 
-my $maybe_update_dns=($enable_ad_dns_update and $subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname} and (is_ad_computer($hdb,$dhcp_record->{hostname_utf8}) and ($dhcp_record->{type}=~/add/i or $dhcp_record->{type}=~/old/i)));
+my $maybe_update_dns=($enable_ad_dns_update and $subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname} and 
+(is_ad_computer($hdb,$dhcp_record->{hostname_utf8}) and ($dhcp_record->{type}=~/add/i or $dhcp_record->{type}=~/old/i)));
 if (!$maybe_update_dns) {
     db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id}. DNS update don't needed.");
     return 0;
@@ -655,14 +854,28 @@ if ($fqdn ne '' and !$dynamic_ok) {
     log_error("Dynamic record mismatch! Expected: $fqdn => $dhcp_record->{ip}, recivied: $dynamic_ref. Checking the status.");
     #check exists hostname
     my $another_hostname_exists = 0;
-    my $hostname_filter = ' LOWER(dns_name) REGEXP("^'.lc($dhcp_record->{hostname_utf8}).'\.*$")';
-    if ($fqdn_static ne '' and $fqdn !~/$fqdn_static/) {
-	    $hostname_filter = $hostname_filter . ' or LOWER(dns_name) REGEXP("^'.lc($auth_record->{dns_name}).'\.*$")';
-	    }
-    #check exists another records with some static hostname
-    my $filter_sql = 'SELECT * FROM user_auth WHERE id<>'.$auth_record->{id}.' and deleted=0 and ('.$hostname_filter.') ORDER BY last_found DESC';
-    db_log_debug($hdb,"Search dhcp hostname by: ".$filter_sql);
-    my $name_record = get_record_sql($hdb,$filter_sql);
+    my @conditions;
+    my @params;
+    # Первое условие: по hostname_utf8
+    my $prefix1 = lc($dhcp_record->{hostname_utf8} // '');
+    if ($prefix1 ne '') {
+        push @conditions, 'LOWER(dns_name) LIKE ? ';
+        push @params, $prefix1 . '%';
+        }
+    # Второе условие: по dns_name (если нужно)
+    if ($fqdn_static ne '' && $fqdn !~ /\Q$fqdn_static\E/) {
+        my $prefix2 = lc($auth_record->{dns_name} // '');
+        if ($prefix2 ne '') {
+            push @conditions, 'LOWER(dns_name) LIKE ? ';
+            push @params, $prefix2 . '%';
+        }
+    }
+    return unless @conditions;
+    my $cond_sql = join(' OR ', @conditions);
+    my $filter_sql = "SELECT * FROM user_auth WHERE id <> ? AND deleted = 0 AND ($cond_sql) ORDER BY last_found DESC";
+    unshift @params, $auth_record->{id};
+    db_log_debug($hdb, "Search by DNS name prefixes: $cond_sql with params: [" . join(', ', map { "'$_'" } @params) . "]");
+    my $name_record = get_record_sql($hdb, $filter_sql, @params);
     if ($name_record->{dns_name} =~/^$fqdn$/i or $name_record->{dns_name} =~/^$dhcp_record->{hostname_utf8}$/i) {
 	    $another_hostname_exists = 1;
 	    }
@@ -676,7 +889,7 @@ if ($fqdn ne '' and !$dynamic_ok) {
                     } else {
         	    db_log_info($hdb,"Rewrite aliases if exists for $fqdn => $dhcp_record->{ip}");
                     #get and remove aliases
-                    my @aliases = get_records_sql($hdb,"SELECT * FROM user_auth_alias WHERE auth_id=".$auth_record->{id});
+                    my @aliases = get_records_sql($hdb, "SELECT * FROM user_auth_alias WHERE auth_id = ?", $auth_record->{id});
                     if (@aliases and scalar @aliases) {
                             foreach my $alias (@aliases) {
                                 delete_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
@@ -708,7 +921,7 @@ sub apply_device_lock {
     $iteration++;
     if ($iteration > 2) { return 0; }
 
-    my $dev = get_record_sql($db, "SELECT discovery_locked, locked_timestamp FROM devices WHERE id = " . int($device_id));
+    my $dev = get_record_sql($db, "SELECT discovery_locked, locked_timestamp FROM devices WHERE id = ?", $device_id);
 
     if (!$dev) { return 0; }
 
@@ -763,7 +976,7 @@ sub set_lock_discovery {
     my $new;
     $new->{'discovery_locked'} = 1;
     $new->{'locked_timestamp'} = GetNowTime();
-    if (update_record($db,'devices',$new,'id='.$device_id)) { return 1; } 
+    if (update_record($db,'devices',$new,'id=?', $device_id)) { return 1; }
     return 0;
 }
 
@@ -775,7 +988,7 @@ sub unset_lock_discovery {
     my $new;
     $new->{'discovery_locked'} = 0;
     $new->{'locked_timestamp'} = GetNowTime();
-    if (update_record($db,'devices',$new,'id='.$device_id)) { return 1; } 
+    if (update_record($db,'devices',$new,'id=?',$device_id)) { return 1; }
     return 0;
 }
 
@@ -1011,7 +1224,7 @@ if ($ip =~ /([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(\/[0-9]{1,2})
     }
 if (!$radr or !$zone) { return 0; }
 
-if (!$db) { return 0 ; }
+if (!$db) { return 0; }
 
 db_log_info($db,"DNS-UPDATE: Delete => Zone $zone Server: $server A: $fqdn PTR: $ip");
 
@@ -1046,294 +1259,373 @@ if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
 #---------------------------------------------------------------------------------------------------------------
 
 sub new_user {
-my $db = shift;
-my $user_info = shift;
-my $user;
-if ($user_info->{mac}) {
-    $user->{login}=mac_splitted($user_info->{mac});
+    my ($db, $user_info) = @_;
+    return 0 unless $db && $user_info;
+
+    my $user = {};
+
+    # Формируем login: MAC приоритетен, иначе IP
+    if ($user_info->{mac}) {
+        $user->{login} = mac_splitted($user_info->{mac});
     } else {
-    $user->{login}=$user_info->{ip};
+        $user->{login} = $user_info->{ip} || 'unknown';
     }
 
-if ($user_info->{dhcp_hostname}) { $user->{description}=$user_info->{dhcp_hostname}; } 
-if (!$user->{description}) { $user->{description}=$user_info->{ip}; }
+    # Формируем description с указанием источника
+    my $base_desc = $user_info->{dhcp_hostname} || $user->{login};
+    if ($debug) {
+        $user->{description} = $base_desc. '['. get_creation_method() . ']';
+        } else {
+        $user->{description} = $base_desc;
+        }
 
-my $login_count = get_count_records($db,"user_list","(login LIKE '".$user->{login}."(%)') OR (login='".$user->{login}."')");
-if ($login_count) { $login_count++; $user->{login} .="(".$login_count.")"; }
+    # Генерация уникального логина
+    my $base_login = $user->{login};
+    my $like_pattern = $base_login . '%';
+    my $count_sql = "SELECT COUNT(*) AS rec_cnt FROM user_list WHERE login LIKE ?  OR login = ?";
+    my $count_record = get_record_sql($db, $count_sql, $like_pattern, $base_login);
+    my $login_count = $count_record ? ($count_record->{rec_cnt} || 0) : 0;
 
-$user->{ou_id} = $user_info->{ou_id};
-my $ou_info = get_record_sql($db,"SELECT * FROM ou WHERE id=".$user_info->{'ou_id'});
-if ($ou_info) {
-    $user->{'enabled'} = $ou_info->{'enabled'};
-    $user->{'queue_id'} = $ou_info->{'queue_id'};
-    $user->{'filter_group_id'} = $ou_info->{'filter_group_id'};
+    if ($login_count > 0) {
+        $user->{login} = $base_login . '(' . ($login_count + 1) . ')';
     }
 
-my $result = insert_record($db,"user_list",$user);
-if ($result and $config_ref{auto_mac_rule} and $user_info->{mac}) {
-    my $auth_rule;
-    $auth_rule->{user_id} = $result;
-    $auth_rule->{rule_type} = 2;
-    $auth_rule->{rule} = mac_splitted($user_info->{mac});
-    insert_record($db,"auth_rules",$auth_rule);
+    # OU info
+    $user->{ou_id} = $user_info->{ou_id};
+    my $ou_info;
+    if ($user_info->{ou_id}) {
+        $ou_info = get_record_sql($db, "SELECT * FROM ou WHERE id = ?", $user_info->{ou_id});
     }
-return $result;
+
+    if ($ou_info) {
+        $user->{enabled}         = $ou_info->{enabled};
+        $user->{queue_id}        = $ou_info->{queue_id};
+        $user->{filter_group_id} = $ou_info->{filter_group_id};
+    }
+
+    # Создаём пользователя
+    my $result = insert_record($db, "user_list", $user);
+
+    # Авто-правило по MAC
+    if ($result && $config_ref{auto_mac_rule} && $user_info->{mac}) {
+        insert_record($db, "auth_rules", {
+            user_id   => $result,
+            rule_type => 2,
+            rule      => mac_splitted($user_info->{mac}),
+        });
+    }
+
+    return $result;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_ip_subnet {
-    my $db = shift;
-    my $ip = shift;
-    if (!$ip) { return; }
+    my ($db, $ip) = @_;
+    return unless $db && defined $ip && $ip ne '';
+
     my $ip_aton = StrToIp($ip);
-    my $user_subnet = get_record_sql($db, "SELECT * FROM subnets WHERE hotspot=1 or office=1 and ( ".$ip_aton." >= ip_int_start and ".$ip_aton." <= ip_int_stop)");
+    return unless defined $ip_aton && $ip_aton > 0;
+
+    my $user_subnet = get_record_sql($db,
+        "SELECT * FROM subnets WHERE (hotspot = 1 OR office = 1) AND ? BETWEEN ip_int_start AND ip_int_stop",
+        $ip_aton
+    );
+
     return $user_subnet;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub find_mac_in_subnet {
-    my $db = shift;
-    my $ip = shift;
-    my $mac = shift;
-    if (!$ip or !$mac) { return; }
+    my ($db, $ip, $mac) = @_;
+    return unless $db && defined $ip && defined $mac && $ip ne '' && $mac ne '';
+
     my $ip_subnet = get_ip_subnet($db, $ip);
-    if (!$ip_subnet) { return; }
-    my @t_auth = get_records_sql($db, "SELECT * FROM user_auth WHERE ip_int>=" . $ip_subnet->{'ip_int_start'} . " and ip_int<=" . $ip_subnet->{'ip_int_stop'} . " and mac='" . $mac . "' and deleted=0 ORDER BY id");
-    my $auth_count = 0;
-    my $result;
-    $result->{'count'} = 0;
-    foreach my $row (@t_auth) {
-        next if (!$row);
-        $auth_count++;
-        $result->{'count'} = $auth_count;
-        $result->{items}{$auth_count} = $row;
-        }
+    return unless $ip_subnet && defined $ip_subnet->{ip_int_start} && defined $ip_subnet->{ip_int_stop};
+
+    # Безопасный параметризованный запрос
+    my @t_auth = get_records_sql($db,
+        "SELECT * FROM user_auth 
+         WHERE ip_int BETWEEN ? AND ? 
+           AND mac = ? 
+           AND deleted = 0 
+         ORDER BY id",
+        $ip_subnet->{ip_int_start},
+        $ip_subnet->{ip_int_stop},
+        $mac
+    );
+
+    return unless @t_auth;
+
+    my $result = { count => 0, items => {} };
+    for my $i (0 .. $#t_auth) {
+        $result->{count}++;
+        $result->{items}{$result->{count}} = $t_auth[$i];
+    }
+
     return $result;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub get_creation_method {
+    my $script_name = $config_ref{my_name} // (split('/', $0))[-1];
+    return 'dhcp'   if $script_name eq 'dhcp-log.pl';
+    return 'netflow' if $script_name eq 'eye-statd.pl';
+    return 'arp'    if $script_name eq 'fetch_new_arp.pl';
+    # По умолчанию — имя скрипта без расширения
+    $script_name =~ s/\.pl$//;
+    return $script_name || 'unknown';
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub resurrection_auth {
-my $db = shift;
-my $ip_record = shift;
+    my ($db, $ip_record) = @_;
+    return 0 unless $db && ref $ip_record eq 'HASH';
 
-my $ip = $ip_record->{'ip'};
-my $mac = $ip_record->{'mac'};
-my $action = $ip_record->{'type'};
-my $hostname = $ip_record->{'hostname_utf8'};
-my $client_id = $ip_record->{'client_id'};
+    my $ip      = $ip_record->{ip}      // '';
+    my $mac     = $ip_record->{mac}     // '';
+    my $action  = $ip_record->{type}    // '';
+    my $hostname= $ip_record->{hostname_utf8} // '';
+    my $client_id = $ip_record->{client_id} // '';
 
-if (!exists $ip_record->{ip_aton}) { $ip_record->{ip_aton}=StrToIp($ip); }
-if (!exists $ip_record->{hotspot}) { $ip_record->{hotspot}=is_hotspot($db,$ip); }
+    return 0 if !$ip || !$mac;
 
-my $auth_ident = "Found new ip-address: " . $ip;
-$auth_ident = $auth_ident . ' ['.$mac .']' if ($mac);
-$auth_ident = $auth_ident . ' :: '.$hostname if ($hostname);
+    # Подготавливаем ip_aton и hotspot
+    $ip_record->{ip_aton} //= StrToIp($ip);
+    $ip_record->{hotspot} //= is_hotspot($db, $ip);
 
-my $ip_aton=$ip_record->{ip_aton};
+    my $auth_ident = "Found new ip-address: $ip";
+    $auth_ident .= " [$mac]" if $mac;
+    $auth_ident .= " :: $hostname" if $hostname;
 
-my $timestamp=GetNowTime();
+    my $ip_aton = $ip_record->{ip_aton};
+    return 0 unless defined $ip_aton;
 
-my $record=get_record_sql($db,'SELECT * FROM user_auth WHERE deleted=0 AND ip_int='.$ip_aton." AND mac='".$mac."'");
+    my $timestamp = GetNowTime();
 
-my $new_record;
-$new_record->{last_found}=$timestamp;
-$new_record->{arp_found}=$timestamp;
+    # --- Ищем существующую запись по IP+MAC ---
+    my $record = get_record_sql($db,
+        "SELECT * FROM user_auth WHERE deleted = 0 AND ip_int = ? AND mac = ?",
+        $ip_aton, $mac
+    );
 
-if ($client_id) { $new_record->{'client_id'} = $client_id; }
+    my $new_record = {
+        last_found   => $timestamp,
+        arp_found    => $timestamp,
+        client_id    => $client_id // undef,
+    };
 
-#auth found?
-if ($record->{user_id}) {
-    #update timestamp and return
-    if ($action=~/^(add|old|del)$/i) {
-	    $new_record->{dhcp_action}=$action;
-	    $new_record->{created_by}='dhcp';
-	    $new_record->{dhcp_time}=$timestamp;
-	    if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
-	    }
-    update_record($db,'user_auth',$new_record,"id=$record->{id}");
-    return $record->{id};
-    }
-
-my $user_subnet=$office_networks->match_string($ip);
-if ($user_subnet->{static}) {
-    db_log_warning($db,"Unknown ip+mac found in static subnet! Abort create record for ip: $ip mac: [".$mac."]");
-    return 0;
-    }
-
-my $send_alert_update = isNotifyUpdate(get_notify_subnet($db,$ip));
-my $send_alert_create = isNotifyCreate(get_notify_subnet($db,$ip));
-#my $send_alert_delete = isNotifyDelete(get_notify_subnet($db,$ip));
-
-my $mac_exists=find_mac_in_subnet($db,$ip,$mac);
-
-my $msg = '';
-
-#search changed mac
-$record=get_record_sql($db,'SELECT * FROM user_auth WHERE ip_int='.$ip_aton." and deleted=0");
-if ($record->{id}) {
-    #if found record with same ip but without mac - update it
-    if (!$record->{mac}) {
-        $msg = $auth_ident. "\nUse auth record with no mac: " . hash_to_text($record);
-        db_log_verbose($db,$msg);
-        $new_record->{mac}=$mac;
-        #disable dhcp for same mac in one ip subnet
-        if ($mac_exists and $mac_exists->{'count'}) { $new_record->{dhcp}=0; }
-        if ($action=~/^(add|old|del)$/i) {
-	        $new_record->{dhcp_action}=$action;
-	        $new_record->{dhcp_time}=$timestamp;
-                $new_record->{created_by}='dhcp';
-	        if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
-                }
-        update_record($db,'user_auth',$new_record,"id=$record->{id}");
-        sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert_update);
+    # Если нашли — обновляем
+    if ($record && $record->{user_id}) {
+        if ($action =~ /^(add|old|del)$/i) {
+            $new_record->{dhcp_action} = $action;
+            $new_record->{created_by}  = 'dhcp';
+            $new_record->{dhcp_time}   = $timestamp;
+            $new_record->{dhcp_hostname} = $hostname if $hostname;
+        } else {
+            $new_record->{created_by}  = $action // get_creation_method();
+        }
+        update_record($db, 'user_auth', $new_record, 'id = ?', $record->{id});
         return $record->{id};
-        }
-    #if found record with same ip but another mac - delete old record
-    if ($record->{mac}) {
-        if (!$ip_record->{hotspot}) {
-            my $msg = "For ip: $ip mac change detected! Old mac: [".$record->{mac}."] New mac: [".$mac."]. Disable old auth_id: $record->{id}";
-            db_log_warning($db,$msg,$record->{id});
-            sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert_update);
+    }
+
+    # --- Проверка статической подсети ---
+    my $user_subnet = $office_networks->match_string($ip);
+    if ($user_subnet && $user_subnet->{static}) {
+        db_log_warning($db, "Unknown ip+mac found in static subnet! Abort create record for ip: $ip mac: [$mac]");
+        return 0;
+    }
+
+    my $send_alert_update = isNotifyUpdate(get_notify_subnet($db, $ip));
+    my $send_alert_create = isNotifyCreate(get_notify_subnet($db, $ip));
+
+    # --- Ищем другие записи с этим MAC в той же подсети ---
+    my $mac_exists = find_mac_in_subnet($db, $ip, $mac);
+
+    # --- Ищем запись с тем же IP (но другим MAC) ---
+    my $ip_record_same = get_record_sql($db,
+        "SELECT * FROM user_auth WHERE ip_int = ? AND deleted = 0",
+        $ip_aton
+    );
+
+    my $msg = '';
+
+    if ($ip_record_same && $ip_record_same->{id}) {
+        if (!$ip_record_same->{mac}) {
+            # Обновляем запись без MAC
+            $msg = "$auth_ident\nUse auth record with no mac: " . hash_to_text($ip_record_same);
+            db_log_verbose($db, $msg);
+            $new_record->{mac} = $mac;
+            $new_record->{dhcp} = 0 if $mac_exists && $mac_exists->{count};
+            if ($action =~ /^(add|old|del)$/i) {
+                $new_record->{dhcp_action} = $action;
+                $new_record->{dhcp_time}   = $timestamp;
+                $new_record->{created_by}  = 'dhcp';
+                $new_record->{dhcp_hostname} = $hostname if $hostname;
+                } else {
+                $new_record->{created_by}  = $action // get_creation_method();
+                }
+            update_record($db, 'user_auth', $new_record, 'id = ?', $ip_record_same->{id});
+            sendEmail("WARN! " . get_first_line($msg), $msg, 1) if $send_alert_update;
+            return $ip_record_same->{id};
+        } elsif ($ip_record_same->{mac}) {
+            # MAC изменился — удаляем старую запись
+            if (!$ip_record->{hotspot}) {
+                $msg = "For ip: $ip mac change detected! Old mac: [$ip_record_same->{mac}] New mac: [$mac]. Disable old auth_id: $ip_record_same->{id}";
+                db_log_warning($db, $msg, $ip_record_same->{id});
+                sendEmail("WARN! " . get_first_line($msg), $msg, 1) if $send_alert_update;
             }
-        delete_user_auth($db,$record->{id});
+            delete_user_auth($db, $ip_record_same->{id});
         }
     }
 
-#default user
-my $new_user_info=get_new_user_id($db,$ip,$mac,$hostname);
-my $new_user_id;
-if ($new_user_info->{user_id}) { $new_user_id = $new_user_info->{user_id}; }
-if (!$new_user_id) { $new_user_id = new_user($db,$new_user_info); }
+    # --- Создаём нового пользователя, если нужно ---
+    my $new_user_info = get_new_user_id($db, $ip, $mac, $hostname);
+    my $new_user_id = $new_user_info->{user_id} // new_user($db, $new_user_info);
 
-if ($mac_exists) {
-    #deleting the user's entry if the address belongs to a dynamic group
-    foreach my $dup_record_id (keys %{$mac_exists->{items}}) {
-        my $dup_record = $mac_exists->{items}{$dup_record_id};
-        next if (!$dup_record);
-        #remove old dynamic record with some mac
-        if ($dup_record->{dynamic}) {
-            delete_user_auth($db,$dup_record->{id});
-            }
+    # --- Удаляем дубли с dynamic=1 ---
+    if ($mac_exists && $mac_exists->{items}) {
+        for my $dup_id (keys %{$mac_exists->{items}}) {
+            my $dup = $mac_exists->{items}{$dup_id};
+            next unless $dup && $dup->{dynamic};
+            delete_user_auth($db, $dup->{id});
         }
     }
 
-#recheck
-$mac_exists=find_mac_in_subnet($db,$ip,$mac);
+    # --- Повторная проверка ---
+    $mac_exists = find_mac_in_subnet($db, $ip, $mac);
+    $new_record->{dhcp} = 0 if $mac_exists && $mac_exists->{count};
 
-#disable dhcp for same mac in one ip subnet
-if ($mac_exists and $mac_exists->{'count'}) { $new_record->{dhcp}=0; }
+    # --- Готовим полную запись ---
+    $new_record->{ip_int}      = $ip_aton;
+    $new_record->{ip}          = $ip;
+    $new_record->{mac}         = $mac;
+    $new_record->{user_id}     = $new_user_id;
+    $new_record->{save_traf}   = $save_detail;
+    $new_record->{deleted}     = 0;
 
-#seek old auth with same ip and mac
-my $auth_exists=get_count_records($db,'user_auth',"ip_int=".$ip_aton." and mac='".$mac."'");
-
-$new_record->{ip_int}=$ip_aton;
-$new_record->{ip}=$ip;
-$new_record->{mac}=$mac;
-$new_record->{user_id}=$new_user_id;
-$new_record->{save_traf}="$save_detail";
-$new_record->{deleted}="0";
-if ($action=~/^(add|old|del)$/i) {
-    $new_record->{dhcp_action}=$action;
-    $new_record->{dhcp_time}=$timestamp;
-    $new_record->{created_by}='dhcp';
+    if ($action =~ /^(add|old|del)$/i) {
+        $new_record->{dhcp_action} = $action;
+        $new_record->{dhcp_time}   = $timestamp;
+        $new_record->{created_by}  = 'dhcp';
     } else {
-    $new_record->{created_by}=$action;
+        $new_record->{created_by}  = $action // get_creation_method();
     }
 
-my $cur_auth_id= 0;
-if ($auth_exists) {
-    #found ->Resurrection old record
-    my $resurrection_id = get_id_record($db,'user_auth',"ip_int=".$ip_aton." and mac='".$mac."'");
-    $msg = $auth_ident . " Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac";
-    if (!$ip_record->{hotspot}) { db_log_warning($db,$msg); } else { db_log_info($db,$msg); }
-    if (update_record($db,'user_auth',$new_record,"id=$resurrection_id")) { $cur_auth_id = $resurrection_id; }
+    # --- Проверяем, существует ли уже такая запись ---
+    my $auth_exists = get_record_sql($db,
+        "SELECT id FROM user_auth WHERE ip_int = ? AND mac = ? LIMIT 1",
+        $ip_aton, $mac
+    );
+
+    my $cur_auth_id;
+    if ($auth_exists && $auth_exists->{id}) {
+        # Воскрешаем старую запись
+        $cur_auth_id = $auth_exists->{id};
+        $msg = "$auth_ident Resurrection auth_id: $cur_auth_id with ip: $ip and mac: $mac";
+        if (!$ip_record->{hotspot}) { db_log_warning($db, $msg); } else { db_log_info($db, $msg); }
+        update_record($db, 'user_auth', $new_record, 'id = ?', $cur_auth_id);
     } else {
-    #not found ->create new record
-    $msg = $auth_ident ."\n";
-    $cur_auth_id = insert_record($db,'user_auth',$new_record);
-    if ($cur_auth_id) {
-        if (!$ip_record->{hotspot}) { db_log_warning($db,$msg); } else { db_log_info($db,$msg); }
+        # Создаём новую
+        $cur_auth_id = insert_record($db, 'user_auth', $new_record);
+        if ($cur_auth_id) {
+            $msg = $auth_ident;
+            if (!$ip_record->{hotspot}) { db_log_warning($db, $msg); } else { db_log_info($db, $msg); }
         }
     }
-#filter and status
-$cur_auth_id=get_id_record($db,'user_auth',"ip='$ip' and mac='$mac' and deleted=0 ORDER BY last_found DESC") if (!$cur_auth_id);
-if ($cur_auth_id) {
-    my $user_record=get_record_sql($db,"SELECT * FROM user_list WHERE id=".$new_user_id);
+
+    return 0 unless $cur_auth_id;
+
+    # --- Дополняем данными из user_list и OU ---
+    my $user_record = get_record_sql($db, "SELECT * FROM user_list WHERE id = ?", $new_user_id);
     if ($user_record) {
-	    my $ou_info = get_record_sql($db,'SELECT * FROM ou WHERE id='.$user_record->{ou_id});
-	    if ($ou_info and $ou_info->{'dynamic'}) {
-                    # Устанавливаем значение по умолчанию, если не задано
-                    if (!$ou_info->{'life_duration'}) { 
-                            $ou_info->{'life_duration'} = 24.0;  # Явно указываем дробное число
-                            }
-                    my $now = DateTime->now(time_zone => 'local');
-                    # Разбиваем life_duration на часы и минуты (для дробного значения)
-                    my $hours = int($ou_info->{'life_duration'});  # Целая часть (часы)
-                    my $minutes = ($ou_info->{'life_duration'} - $hours) * 60;  # Дробная часть → минуты
-                    # Создаём продолжительность с учётом дробных часов (в виде часов + минут)
-                    my $duration = DateTime::Duration->new( hours   => $hours, minutes => $minutes);
-                    my $end_life = $now + $duration;
-                    $new_record->{'dynamic'} = 1;
-                    $new_record->{'end_life'} = $end_life->strftime('%Y-%m-%d %H:%M:%S');
-		    }
-	    $new_record->{ou_id}=$user_record->{ou_id};
-	    $new_record->{description}=$user_record->{description};
-	    $new_record->{filter_group_id}=$user_record->{filter_group_id};
-	    $new_record->{queue_id}=$user_record->{queue_id};
-	    $new_record->{enabled}="$user_record->{enabled}";
-            update_record($db,'user_auth',$new_record,"id=$cur_auth_id");
-	    }
+        my $ou_info = get_record_sql($db, "SELECT * FROM ou WHERE id = ?", $user_record->{ou_id});
+        if ($ou_info && $ou_info->{dynamic}) {
+            my $life_duration = $ou_info->{life_duration} // 24;
+            my $hours   = int($life_duration);
+            my $minutes = ($life_duration - $hours) * 60;
+            my $now = DateTime->now(time_zone => 'local');
+            my $end_life = $now->clone->add(hours => $hours, minutes => $minutes);
+            $new_record->{dynamic}   = 1;
+            $new_record->{end_life}  = $end_life->strftime('%Y-%m-%d %H:%M:%S');
+        }
+        $new_record->{ou_id}           = $user_record->{ou_id};
+        $new_record->{description}     = $user_record->{description};
+        $new_record->{filter_group_id} = $user_record->{filter_group_id};
+        $new_record->{queue_id}        = $user_record->{queue_id};
+        $new_record->{enabled}         = $user_record->{enabled} // 0;
+        update_record($db, 'user_auth', $new_record, 'id = ?', $cur_auth_id);
+    }
+
     db_log_warning($db, $msg, $cur_auth_id);
-    sendEmail("WARN! ".get_first_line($msg),$msg."\n".record_to_txt($db,'user_auth',$cur_auth_id),1) if ($send_alert_create);
-    } else { return; }
-return $cur_auth_id;
+    sendEmail("WARN! " . get_first_line($msg), $msg . "\n" . record_to_txt($db, 'user_auth', $cur_auth_id), 1)  if $send_alert_create;
+    return $cur_auth_id;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub new_auth {
-my $db = shift;
-my $ip = shift;
-my $ip_aton=StrToIp($ip);
-my $record=get_record_sql($db,'SELECT id FROM user_auth WHERE deleted=0 AND ip_int='.$ip_aton);
-if ($record->{id}) { return $record->{id}; }
-#default user
-my $new_user_info=get_new_user_id($db,$ip,undef,undef);
-my $new_user_id;
-if ($new_user_info->{user_id}) { $new_user_id = $new_user_info->{user_id}; }
-if ($new_user_info->{ou_id}) { $new_user_id = new_user($db,$new_user_info); }
+    my ($db, $ip) = @_;
+    return 0 unless $db && defined $ip && $ip ne '';
 
-if (is_dynamic_ou($db,$new_user_info->{ou_id})) {
-    db_log_debug($db,"The ip-address $ip belongs to a dynamic group - ignore it.");
-    return;
+    my $ip_aton = StrToIp($ip);
+    return 0 unless defined $ip_aton;
+
+    # Проверяем, существует ли уже запись с таким IP
+    my $record = get_record_sql($db,
+        "SELECT id FROM user_auth WHERE deleted = 0 AND ip_int = ?",
+        $ip_aton
+    );
+    return $record->{id} if $record && $record->{id};
+
+    # Получаем информацию о пользователе/OU
+    my $new_user_info = get_new_user_id($db, $ip, undef, undef);
+    return 0 unless $new_user_info;
+
+    my $new_user_id;
+    if ($new_user_info->{user_id}) {
+        $new_user_id = $new_user_info->{user_id};
+    } elsif ($new_user_info->{ou_id}) {
+        $new_user_id = new_user($db, $new_user_info);
     }
 
-my $send_alert = isNotifyCreate(get_notify_subnet($db,$ip));
-my $user_record=get_record_sql($db,"SELECT * FROM user_list WHERE id=".$new_user_id);
-my $timestamp=GetNowTime();
-my $new_record;
-$new_record->{ip_int}=$ip_aton;
-$new_record->{ip}=$ip;
-$new_record->{user_id}=$new_user_id;
-$new_record->{save_traf}="$save_detail";
-$new_record->{deleted}="0";
-$new_record->{created_by}='netflow';
-$new_record->{ou_id}=$user_record->{ou_id};
-$new_record->{filter_group_id}=$user_record->{filter_group_id};
-$new_record->{queue_id}=$user_record->{queue_id};
-$new_record->{enabled}="$user_record->{enabled}";
-if ($user_record->{description}) { $new_record->{description}=$user_record->{description}; }
+    return 0 unless $new_user_id;
 
-my $cur_auth_id=insert_record($db,'user_auth',$new_record);
-if ($cur_auth_id) {
-    my $msg = "New ip created by netflow! ip: $ip";
-    db_log_warning($db,$msg,$cur_auth_id);
-    sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert);
+    my $send_alert = isNotifyCreate(get_notify_subnet($db, $ip));
+
+    # Получаем данные пользователя БЕЗОПАСНО
+    my $user_record = get_record_sql($db,
+        "SELECT * FROM user_list WHERE id = ?",
+        $new_user_id
+    );
+    return 0 unless $user_record;
+
+    my $timestamp = GetNowTime();
+    my $new_record = {
+        ip_int           => $ip_aton,
+        ip               => $ip,
+        user_id          => $new_user_id,
+        save_traf        => $save_detail,
+        deleted          => 0,
+        created_by       => get_creation_method(),
+        ou_id            => $user_record->{ou_id},
+        filter_group_id  => $user_record->{filter_group_id},
+        queue_id         => $user_record->{queue_id},
+        enabled          => $user_record->{enabled} // 0,
+    };
+    $new_record->{description} = $user_record->{description} if $user_record->{description};
+
+    my $cur_auth_id = insert_record($db, 'user_auth', $new_record);
+    if ($cur_auth_id) {
+        my $msg = "New ip created by ".get_creation_method()."! ip: $ip";
+        db_log_warning($db, $msg, $cur_auth_id);
+        sendEmail("WARN! " . get_first_line($msg), $msg, 1) if $send_alert;
     }
-return $cur_auth_id;
+
+    return $cur_auth_id;
 }
 
 #--------------------------------------------------------------------------------------------------------------
@@ -1397,258 +1689,333 @@ return $list_ref;
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_device_by_ip {
-my $db = shift;
-my $ip = shift;
-my $netdev=get_record_sql($db,"SELECT * FROM devices WHERE ip='".$ip."'");
-if ($netdev and $netdev->{id}>0) { return $netdev; }
-my $auth_rec=get_record_sql($db,"SELECT user_id FROM user_auth WHERE ip='".$ip."' and deleted=0");
-if ($auth_rec and $auth_rec->{user_id}>0) {
-    $netdev=get_record_sql($db,'SELECT * FROM devices WHERE user_id='.$auth_rec->{user_id});
-    return $netdev;
+    my ($db, $ip) = @_;
+    return unless $db && defined $ip && $ip ne '';
+
+    # Ищем устройство напрямую по IP
+    my $netdev = get_record_sql($db, "SELECT * FROM devices WHERE ip = ?", $ip);
+    return $netdev if $netdev && $netdev->{id} > 0;
+
+    # Ищем user_id по IP в user_auth
+    my $auth_rec = get_record_sql($db,
+        "SELECT user_id FROM user_auth WHERE ip = ? AND deleted = 0",
+        $ip
+    );
+
+    if ($auth_rec && defined $auth_rec->{user_id} && $auth_rec->{user_id} > 0) {
+        $netdev = get_record_sql($db,
+            "SELECT * FROM devices WHERE user_id = ?",
+            $auth_rec->{user_id}
+        );
+        return $netdev;
     }
-return;
+
+    return;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub recalc_quotes {
+    my ($db, $calc_id) = @_;
+    $calc_id //= $$;
 
-my $db = shift;
-my $calc_id = shift || $$;
+    return unless get_option($db, 54);
 
-return if (!get_option($db,54));
+    clean_variables($db);
+    return if Get_Variable($db, 'RECALC');
 
-clean_variables($db);
+    my $timeshift = get_option($db, 55);
+    Set_Variable($db, 'RECALC', $calc_id, time() + $timeshift * 60);
 
-return if (Get_Variable($db,'RECALC'));
+    # --- Готовим временные метки ---
+    my $now = DateTime->now(time_zone => 'local');
 
-my $timeshift = get_option($db,55);
+    my $day_start   = $now->clone->truncate(to => 'day');
+    my $day_stop    = $day_start->clone->add(days => 1);
 
-Set_Variable($db,'RECALC',$calc_id,time()+$timeshift*60);
+    my $month_start = $now->clone->truncate(to => 'month');
+    my $month_stop  = $month_start->clone->add(months => 1);
 
-my $now = DateTime->now(time_zone=>'local');
-my $day_start = $db->quote($now->ymd("-")." 00:00:00");
-my $day_dur = DateTime::Duration->new( days => 1 );
-my $tomorrow = $now+$day_dur;
-my $day_stop = $db->quote($tomorrow->ymd("-")." 00:00:00");
+    # --- Получаем список авторизаций ---
+    my $user_auth_list_sql = q{
+        SELECT A.id as auth_id, U.id, U.day_quota, U.month_quota,
+               A.day_quota as auth_day, A.month_quota as auth_month
+        FROM user_auth AS A
+        JOIN user_list AS U ON A.user_id = U.id
+        WHERE A.deleted = 0
+        ORDER BY user_id
+    };
+    my @authlist_ref = get_records_sql($db, $user_auth_list_sql);
 
-$now->set(day=>1);
-my $month_start=$db->quote($now->ymd("-")." 00:00:00");
-my $month_dur = DateTime::Duration->new( months => 1 );
-my $next_month = $now + $month_dur;
-$next_month->set(day=>1);
-my $month_stop = $db->quote($next_month->ymd("-")." 00:00:00");
+    my %user_stats;
+    my %auth_info;
 
-#get user limits
-my $user_auth_list_sql="SELECT A.id as auth_id, U.id, U.day_quota, U.month_quota, A.day_quota as auth_day, A.month_quota as auth_month FROM user_auth as A,user_list as U WHERE A.deleted=0 ORDER by user_id";
-my @authlist_ref = get_records_sql($db,$user_auth_list_sql);
-my %user_stats;
-my %auth_info;
-foreach my $row (@authlist_ref) {
-    $auth_info{$row->{auth_id}}{user_id}=$row->{id};
-    $auth_info{$row->{auth_id}}{day_limit}=$row->{auth_day};
-    $auth_info{$row->{auth_id}}{month_limit}=$row->{auth_month};
-    $auth_info{$row->{auth_id}}{day}=0;
-    $auth_info{$row->{auth_id}}{month}=0;
-    $user_stats{$row->{id}}{day_limit}=$row->{day_quota};
-    $user_stats{$row->{id}}{month_limit}=$row->{month_quota};
-    $user_stats{$row->{id}}{day}=0;
-    $user_stats{$row->{id}}{month}=0;
-}
+    foreach my $row (@authlist_ref) {
+        $auth_info{$row->{auth_id}}{user_id}      = $row->{id};
+        $auth_info{$row->{auth_id}}{day_limit}    = $row->{auth_day} // 0;
+        $auth_info{$row->{auth_id}}{month_limit}  = $row->{auth_month} // 0;
+        $auth_info{$row->{auth_id}}{day}          = 0;
+        $auth_info{$row->{auth_id}}{month}        = 0;
 
-#recalc quotes - global
-#day
-my $day_sql="SELECT user_stats.auth_id, SUM( byte_in + byte_out ) AS traf_all FROM user_stats
-WHERE user_stats.ts>= $day_start AND user_stats.ts< $day_stop GROUP BY user_stats.auth_id";
-my @day_stats = get_records_sql($db,$day_sql);
-foreach my $row (@day_stats) {
-    my $user_id=$auth_info{$row->{auth_id}}{user_id};
-    $auth_info{$row->{auth_id}}{day}=$row->{traf_all};
-    $user_stats{$user_id}{day}+=$row->{traf_all};
-}
-
-#month
-my $month_sql="SELECT user_stats.auth_id, SUM( byte_in + byte_out ) AS traf_all FROM user_stats
-WHERE user_stats.ts>= $month_start AND user_stats.ts< $month_stop GROUP BY user_stats.auth_id";
-my @month_stats = get_records_sql($db,$month_sql);
-foreach my $row (@month_stats) {
-    my $user_id=$auth_info{$row->{auth_id}}{user_id};
-    $auth_info{$row->{auth_id}}{month}=$row->{traf_all};
-    $user_stats{$user_id}{month}+=$row->{traf_all};
-}
-
-foreach my $auth_id (keys %auth_info) {
-next if (!$auth_info{$auth_id}{day_limit});
-next if (!$auth_info{$auth_id}{month_limit});
-my $day_limit=$auth_info{$auth_id}{day_limit}*$KB*$KB;
-my $month_limit=$auth_info{$auth_id}{month_limit}*$KB*$KB;
-my $blocked_d=($auth_info{$auth_id}{day}>$day_limit);
-my $blocked_m=($auth_info{$auth_id}{month}>$month_limit);
-if ($blocked_d or $blocked_m) {
-    my $history_msg;
-    if ($blocked_d) { $history_msg=printf "Day quota limit found for auth_id: $auth_id - Current: %d Max: %d",$auth_info{$auth_id}{day},$day_limit; }
-    if ($blocked_m) { $history_msg=printf "Month quota limit found for auth_id: $auth_id - Current: %d Max: %d",$auth_info{$auth_id}{month},$month_limit; }
-    do_sql($db,"UPDATE user_auth set blocked=1, changed=1 where id=$auth_id");
-    db_log_verbose($db,$history_msg);
+        $user_stats{$row->{id}}{day_limit}        = $row->{day_quota} // 0;
+        $user_stats{$row->{id}}{month_limit}      = $row->{month_quota} // 0;
+        $user_stats{$row->{id}}{day}              = 0;
+        $user_stats{$row->{id}}{month}            = 0;
     }
-}
 
-foreach my $user_id (keys %user_stats) {
-next if (!$user_stats{$user_id}{day_limit});
-next if (!$user_stats{$user_id}{month_limit});
-my $day_limit=$user_stats{$user_id}{day_limit}*$KB*$KB;
-my $month_limit=$user_stats{$user_id}{month_limit}*$KB*$KB;
-my $blocked_d=($user_stats{$user_id}{day}>$day_limit);
-my $blocked_m=($user_stats{$user_id}{month}>$month_limit);
-if ($blocked_d or $blocked_m) {
-    my $history_msg;
-    if ($blocked_d) { $history_msg=printf "Day quota limit found for user_id: $user_id - Current: %d Max: %d",$user_stats{$user_id}{day},$day_limit; }
-    if ($blocked_m) { $history_msg=printf "Month quota limit found for user_id: $user_id - Current: %d Max: %d",$user_stats{$user_id}{month},$month_limit; }
-    do_sql($db,"UPDATE User_user set blocked=1 where id=$user_id");
-    do_sql($db,"UPDATE user_auth set blocked=1, changed=1 where user_id=$user_id");
-    db_log_verbose($db,$history_msg);
+    # --- Считаем дневной трафик ---
+    my @day_stats = get_records_sql($db,
+        "SELECT auth_id, SUM(byte_in + byte_out) AS traf_all
+         FROM user_stats
+         WHERE ts >= ? AND ts < ?
+         GROUP BY auth_id",
+        $day_start->strftime('%Y-%m-%d %H:%M:%S'),
+        $day_stop->strftime('%Y-%m-%d %H:%M:%S')
+    );
+
+    foreach my $row (@day_stats) {
+        my $user_id = $auth_info{$row->{auth_id}}{user_id};
+        $auth_info{$row->{auth_id}}{day} = $row->{traf_all} // 0;
+        $user_stats{$user_id}{day} += $row->{traf_all} // 0;
     }
-}
-Del_Variable($db,'RECALC');
+
+    # --- Считаем месячный трафик ---
+    my @month_stats = get_records_sql($db,
+        "SELECT auth_id, SUM(byte_in + byte_out) AS traf_all
+         FROM user_stats
+         WHERE ts >= ? AND ts < ?
+         GROUP BY auth_id",
+        $month_start->strftime('%Y-%m-%d %H:%M:%S'),
+        $month_stop->strftime('%Y-%m-%d %H:%M:%S')
+    );
+
+    foreach my $row (@month_stats) {
+        my $user_id = $auth_info{$row->{auth_id}}{user_id};
+        $auth_info{$row->{auth_id}}{month} = $row->{traf_all} // 0;
+        $user_stats{$user_id}{month} += $row->{traf_all} // 0;
+    }
+
+    # --- Блокировка по квотам для auth_id ---
+    foreach my $auth_id (keys %auth_info) {
+        next unless $auth_info{$auth_id}{day_limit} || $auth_info{$auth_id}{month_limit};
+
+        my $day_limit   = ($auth_info{$auth_id}{day_limit} // 0) * $KB * $KB;
+        my $month_limit = ($auth_info{$auth_id}{month_limit} // 0) * $KB * $KB;
+        my $blocked_d   = $auth_info{$auth_id}{day} > $day_limit;
+        my $blocked_m   = $auth_info{$auth_id}{month} > $month_limit;
+
+        if ($blocked_d || $blocked_m) {
+            my $history_msg;
+            if ($blocked_d) {
+                $history_msg = sprintf "Day quota limit found for auth_id: %d - Current: %d Max: %d",
+                    $auth_id, $auth_info{$auth_id}{day}, $day_limit;
+            }
+            if ($blocked_m) {
+                $history_msg = sprintf "Month quota limit found for auth_id: %d - Current: %d Max: %d",
+                    $auth_id, $auth_info{$auth_id}{month}, $month_limit;
+            }
+            do_sql($db, "UPDATE user_auth SET blocked = 1, changed = 1 WHERE id = ?", $auth_id);
+            db_log_verbose($db, $history_msg);
+        }
+    }
+
+    # --- Блокировка по квотам для user_id ---
+    foreach my $user_id (keys %user_stats) {
+        next unless $user_stats{$user_id}{day_limit} || $user_stats{$user_id}{month_limit};
+
+        my $day_limit   = ($user_stats{$user_id}{day_limit} // 0) * $KB * $KB;
+        my $month_limit = ($user_stats{$user_id}{month_limit} // 0) * $KB * $KB;
+        my $blocked_d   = $user_stats{$user_id}{day} > $day_limit;
+        my $blocked_m   = $user_stats{$user_id}{month} > $month_limit;
+
+        if ($blocked_d || $blocked_m) {
+            my $history_msg;
+            if ($blocked_d) {
+                $history_msg = sprintf "Day quota limit found for user_id: %d - Current: %d Max: %d",
+                    $user_id, $user_stats{$user_id}{day}, $day_limit;
+            }
+            if ($blocked_m) {
+                $history_msg = sprintf "Month quota limit found for user_id: %d - Current: %d Max: %d",
+                    $user_id, $user_stats{$user_id}{month}, $month_limit;
+            }
+            # Исправлено: user_list вместо User_user
+            do_sql($db, "UPDATE user_list SET blocked = 1 WHERE id = ?", $user_id);
+            do_sql($db, "UPDATE user_auth SET blocked = 1, changed = 1 WHERE user_id = ?", $user_id);
+            db_log_verbose($db, $history_msg);
+        }
+    }
+
+    Del_Variable($db, 'RECALC');
 }
 
 #--------------------------------------------------------------------------------
 
 sub process_dhcp_request {
+    my ($db, $type, $mac, $ip, $hostname, $client_id, $circuit_id, $remote_id) = @_;
 
-my ($db, $type, $mac, $ip, $hostname, $client_id, $circuit_id, $remote_id) = @_;
+    return unless $type && $type =~ /^(old|add|del)$/i;
 
-return if (!$type);
-return if ($type!~/(old|add|del)/i);
-
-my $client_hostname='';
-if ($hostname and ($hostname ne "undef" or $hostname !~ /UNDEFINED/i)) { $client_hostname=$hostname; }
-
-my $auth_network = $office_networks->match_string($ip);
-if (!$auth_network) {
-    log_error("Unknown network in dhcp request! IP: $ip");
-    return;
+    my $client_hostname = '';
+    if ($hostname && $hostname ne 'undef' && $hostname !~ /UNDEFINED/i) {
+        $client_hostname = $hostname;
     }
 
-if (!$circuit_id) { $circuit_id=''; }
-if (!$client_id) { $client_id = ''; }
-if (!$remote_id) { $remote_id = ''; }
+    my $auth_network = $office_networks->match_string($ip);
+    if (!$auth_network) {
+        log_error("Unknown network in dhcp request! IP: $ip");
+        return;
+    }
 
-my $timestamp=time();
+    $circuit_id //= '';
+    $client_id  //= '';
+    $remote_id  //= '';
 
-my $ip_aton=StrToIp($ip);
-$mac=mac_splitted(isc_mac_simplify($mac));
+    my $timestamp = time();
+    my $ip_aton = StrToIp($ip);
+    return unless defined $ip_aton;
 
-my $dhcp_event_time = GetNowTime($timestamp);
+    $mac = mac_splitted(isc_mac_simplify($mac));
 
-my $dhcp_record;
-$dhcp_record->{'mac'}=$mac;
-$dhcp_record->{'ip'}=$ip;
-$dhcp_record->{'ip_aton'}=$ip_aton;
-$dhcp_record->{'hostname'}=$client_hostname;
-$dhcp_record->{'network'}=$auth_network;
-$dhcp_record->{'type'}=$type;
-$dhcp_record->{'hostname_utf8'}=$client_hostname;
-$dhcp_record->{'ts'} = $timestamp;
-$dhcp_record->{'last_time'} = time();
-$dhcp_record->{'circuit_id'} = $circuit_id;
-$dhcp_record->{'client_id'} = $client_id;
-$dhcp_record->{'remote_id'} = $remote_id;
-$dhcp_record->{'hotspot'}=is_hotspot($dbh,$dhcp_record->{ip});
+    my $dhcp_event_time = GetNowTime($timestamp);
 
-#search actual record
-my $auth_record = get_record_sql($db,"SELECT * FROM user_auth WHERE ip='".$dhcp_record->{ip}."' and mac='".$mac."' and deleted=0 ORDER BY last_found DESC");
+    my $dhcp_record = {
+        mac           => $mac,
+        ip            => $ip,
+        ip_aton       => $ip_aton,
+        hostname      => $client_hostname,
+        network       => $auth_network,
+        type          => $type,
+        hostname_utf8 => $client_hostname,
+        ts            => $timestamp,
+        last_time     => time(),
+        circuit_id    => $circuit_id,
+        client_id     => $client_id,
+        remote_id     => $remote_id,
+        hotspot       => is_hotspot($db, $ip),  # Исправлено: $db вместо $dbh
+    };
 
-#if record not found and type del => next event
-if (!$auth_record and $type eq 'del') { return; }
+    # --- Ищем существующую запись ---
+    my $auth_record = get_record_sql($db,
+        "SELECT * FROM user_auth WHERE ip = ? AND mac = ? AND deleted = 0 ORDER BY last_found DESC",
+        $ip, $mac
+    );
 
-#if record not found - create it
-if (!$auth_record and $type=~/(add|old)/i) {
-#        db_log_warning($db,"Record for dhcp request type: ".$type." ip=".$dhcp_record->{ip}." and mac=".$mac." does not exists!");
-        my $res_id = resurrection_auth($db,$dhcp_record);
-        if (!$res_id) {  db_log_error($db,"Error creating an ip address record for ip=".$dhcp_record->{ip}." and mac=".$mac."!");  return; }
-        $auth_record = get_record_sql($db,'SELECT * FROM user_auth WHERE id='.$res_id);
-        db_log_info($db,"Check for new auth. Found id: $res_id",$res_id);
+    # Если запись не найдена и тип 'del' — выходим
+    if (!$auth_record && $type eq 'del') {
+        return;
+    }
+
+    # Если запись не найдена и тип 'add'/'old' — создаём
+    if (!$auth_record && ($type eq 'add' || $type eq 'old')) {
+        my $res_id = resurrection_auth($db, $dhcp_record);
+        if (!$res_id) {
+            db_log_error($db, "Error creating an ip address record for ip=$ip and mac=$mac!");
+            return;
         }
+        $auth_record = get_record_sql($db, "SELECT * FROM user_auth WHERE id = ?", $res_id);
+        db_log_info($db, "Check for new auth. Found id: $res_id", $res_id);
+    }
 
-my $auth_id = $auth_record->{id};
-my $auth_ou_id = $auth_record->{ou_id};
+    return unless $auth_record && $auth_record->{id};
 
-$dhcp_record->{'auth_id'} = $auth_id;
-$dhcp_record->{'auth_ou_id'} = $auth_ou_id;
+    my $auth_id = $auth_record->{id};
+    my $auth_ou_id = $auth_record->{ou_id};
 
-log_debug(uc($type).">>");
-log_debug("MAC:        ".$dhcp_record->{'mac'});
-log_debug("IP:         ".$dhcp_record->{'ip'});
-log_debug("CIRCUIT-ID: ".$dhcp_record->{circuit_id});
-log_debug("REMOTE-ID:  ".$dhcp_record->{remote_id});
-log_debug("HOSTNAME:   ".$dhcp_record->{'hostname'});
-log_debug("TYPE:       ".$dhcp_record->{'type'});
-log_debug("TIME:       ".$dhcp_event_time);
-log_debug("AUTH_ID:    ".$auth_id);
-log_debug("END GET");
+    $dhcp_record->{auth_id} = $auth_id;
+    $dhcp_record->{auth_ou_id} = $auth_ou_id;
 
-update_dns_record_by_dhcp($db,$dhcp_record,$auth_record);
+    # --- Логирование отладки ---
+    log_debug(uc($type) . ">>");
+    log_debug("MAC:        " . $dhcp_record->{mac});
+    log_debug("IP:         " . $dhcp_record->{ip});
+    log_debug("CIRCUIT-ID: " . $dhcp_record->{circuit_id});
+    log_debug("REMOTE-ID:  " . $dhcp_record->{remote_id});
+    log_debug("HOSTNAME:   " . $dhcp_record->{hostname});
+    log_debug("TYPE:       " . $dhcp_record->{type});
+    log_debug("TIME:       " . $dhcp_event_time);
+    log_debug("AUTH_ID:    " . $auth_id);
+    log_debug("END GET");
 
-if ($type=~/add/i and $dhcp_record->{hostname_utf8}) {
-                my $auth_rec;
-                $auth_rec->{dhcp_hostname} = $dhcp_record->{hostname_utf8};
-                $auth_rec->{dhcp_time}=$dhcp_event_time;
-                $auth_rec->{arp_found}=$dhcp_event_time;
-                $auth_rec->{created_by}='dhcp';
-                db_log_verbose($db,"Add lease by dhcp event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
-                update_record($db,'user_auth',$auth_rec,"id=$auth_id");
-                }
+    update_dns_record_by_dhcp($db, $dhcp_record, $auth_record);
 
-if ($type=~/old/i) {
-                my $auth_rec;
-                $auth_rec->{dhcp_action}=$type;
-                $auth_rec->{dhcp_time}=$dhcp_event_time;
-                $auth_rec->{created_by}='dhcp';
-                $auth_rec->{arp_found}=$dhcp_event_time;
-                db_log_verbose($db,"Update lease by dhcp event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
-                update_record($db,'user_auth',$auth_rec,"id=$auth_id");
-                }
+    # --- Обработка ADD ---
+    if ($type eq 'add' && $dhcp_record->{hostname_utf8}) {
+        my $auth_rec = {
+            dhcp_hostname => $dhcp_record->{hostname_utf8},
+            dhcp_time     => $dhcp_event_time,
+            arp_found     => $dhcp_event_time,
+            created_by    => 'dhcp',
+        };
+        db_log_verbose($db, "Add lease by dhcp event for dynamic clients id: $auth_id ip: $ip", $auth_id);
+        update_record($db, 'user_auth', $auth_rec, 'id = ?', $auth_id);
+    }
 
-if ($type=~/del/i and $auth_id) {
-                if ($auth_record->{dhcp_time} =~ /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})/) {
-                    my $d_time = mktime($6,$5,$4,$3,$2-1,$1-1900);
-                    if (time()-$d_time>60 and (is_dynamic_ou($db,$auth_ou_id) or is_default_ou($db,$auth_ou_id))) {
-                        db_log_info($db,"Remove user ip record by dhcp release event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
-                        my $auth_rec;
-                        $auth_rec->{dhcp_action}=$type;
-                        $auth_rec->{dhcp_time}=$dhcp_event_time;
-                        update_record($db,'user_auth',$auth_rec,"id=$auth_id");
-                        #remove user auth record if it belongs to the default pool or it is dynamic
-                        if (is_default_ou($db,$auth_ou_id) or (is_dynamic_ou($db,$auth_ou_id) and $auth_record->{dynamic})) {
-                                delete_user_auth($db,$auth_id);
-                                my $u_count=get_count_records($db,'user_auth','deleted=0 and user_id='.$auth_record->{'user_id'});
-                                if (!$u_count) { delete_user($db,$auth_record->{'user_id'}); }
-                                }
-                        }
+    # --- Обработка OLD ---
+    if ($type eq 'old') {
+        my $auth_rec = {
+            dhcp_action => $type,
+            dhcp_time   => $dhcp_event_time,
+            created_by  => 'dhcp',
+            arp_found   => $dhcp_event_time,
+        };
+        db_log_verbose($db, "Update lease by dhcp event for dynamic clients id: $auth_id ip: $ip", $auth_id);
+        update_record($db, 'user_auth', $auth_rec, 'id = ?', $auth_id);
+    }
+
+    # --- Обработка DEL ---
+    if ($type eq 'del' && $auth_id) {
+        if ($auth_record->{dhcp_time} =~ /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/) {
+            my $d_time = mktime($6, $5, $4, $3, $2 - 1, $1 - 1900);
+            if (time() - $d_time > 60 && (is_dynamic_ou($db, $auth_ou_id) || is_default_ou($db, $auth_ou_id))) {
+                db_log_info($db, "Remove user ip record by dhcp release event for dynamic clients id: $auth_id ip: $ip", $auth_id);
+                my $auth_rec = {
+                    dhcp_action => $type,
+                    dhcp_time   => $dhcp_event_time,
+                };
+                update_record($db, 'user_auth', $auth_rec, 'id = ?', $auth_id);
+
+                # Удаляем запись, если она из динамического или дефолтного пула
+                if (is_default_ou($db, $auth_ou_id) || (is_dynamic_ou($db, $auth_ou_id) && $auth_record->{dynamic})) {
+                    delete_user_auth($db, $auth_id);
+
+                    # Проверяем, остались ли другие записи у пользователя
+                    my $u_count = get_record_sql($db,
+                        "SELECT COUNT(*) AS cnt FROM user_auth WHERE deleted = 0 AND user_id = ?",
+                        $auth_record->{user_id}
+                    );
+                    if ($u_count && $u_count->{cnt} == 0) {
+                        delete_user($db, $auth_record->{user_id});
                     }
                 }
+            }
+        }
+    }
 
-if ($dhcp_record->{hotspot} and $ignore_hotspot_dhcp_log) { return $dhcp_record; }
+    # --- Пропуск логирования для hotspot или ignore_update_dhcp_event ---
+    if ($dhcp_record->{hotspot} && $ignore_hotspot_dhcp_log) {
+        return $dhcp_record;
+    }
+    if ($ignore_update_dhcp_event && $type eq 'old') {
+        return $dhcp_record;
+    }
 
-if ($ignore_update_dhcp_event and $type=~/old/i) { return $dhcp_record; }
+    # --- Логируем событие ---
+    my $dhcp_log = {
+        auth_id        => $auth_id // 0,
+        ip             => $ip,
+        ip_int         => $ip_aton,
+        mac            => $mac,
+        action         => $type,
+        dhcp_hostname  => $client_hostname,
+        ts             => $dhcp_event_time,
+        circuit_id     => $circuit_id,
+        client_id      => $client_id,
+        remote_id      => $remote_id,
+    };
 
-my $dhcp_log;
-if (!$auth_id) { $auth_id=0; }
-$dhcp_log->{'auth_id'} = $auth_id;
-$dhcp_log->{'ip'} = $dhcp_record->{'ip'};
-$dhcp_log->{'ip_int'} = $dhcp_record->{'ip_aton'};
-$dhcp_log->{'mac'} = $dhcp_record->{'mac'};
-$dhcp_log->{'action'} = $type;
-$dhcp_log->{'dhcp_hostname'} = $dhcp_record->{'hostname_utf8'};
-$dhcp_log->{'ts'} = $dhcp_event_time;
-$dhcp_log->{'circuit_id'} = $circuit_id;
-$dhcp_log->{'client_id'} = $client_id;
-$dhcp_log->{'remote_id'} = $remote_id;
+    insert_record($db, 'dhcp_log', $dhcp_log);
 
-insert_record($db,'dhcp_log',$dhcp_log);
-
-return $dhcp_record;
+    return $dhcp_record;
 }
 
 1;

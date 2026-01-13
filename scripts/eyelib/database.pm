@@ -484,59 +484,6 @@ return $db;
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub do_sql {
-my ($db, $sql, @bind_values) = @_;
-return 0 unless $db;
-return 0 unless $sql;
-unless (reconnect_db(\$db)) {
-    log_error("No database connection available for SQL: $sql");
-    return 0;
-    }
-# Логируем не-SELECT-запросы
-log_debug( $sql . (@bind_values ? ' | bind: [' . join(', ', map { defined $_ ? $_ : 'undef' } @bind_values) . ']' : '')) unless $sql =~ /^select /i;
-# Подготовка запроса
-my $sth = $db->prepare($sql) or do {
-    log_error("Unable to prepare SQL [$sql]: " . $db->errstr);
-    return 0;
-    };
-# Выполнение запроса
-my $rv;
-if (@bind_values) {
-    $rv = $sth->execute(@bind_values) or do {
-	log_error("Unable to execute SQL [$sql] with bind: [" . join(', ', map { defined $_ ? $_ : 'undef' } @bind_values) . "]: " . $sth->errstr);
-	return 0;
-	};
-    } else {
-    $rv = $sth->execute() or do {
-	log_error("Unable to execute SQL [$sql]: " . $sth->errstr);
-	return 0;
-	};
-    }
-# Обработка результатов по типу запроса
-if ($sql =~ /^insert/i) {
-    my $id;
-    if ($config_ref{DBTYPE} and $config_ref{DBTYPE} eq 'mysql') {
-	$id = $sth->{mysql_insertid};
-	} else {
-	($id) = $db->selectrow_array("SELECT lastval()");
-	}
-    $sth->finish();
-    return $id || 0;  # Возвращаем ID или 0 если ID нет
-    }
-    elsif ($sql =~ /^select /i) {
-	my $data = $sth->fetchall_arrayref({});
-	$sth->finish();
-	return $data;  # возвращаем ссылку на массив
-    }
-    else {
-    # UPDATE, DELETE, CREATE, ALTER и т.д.
-    $sth->finish();
-    return 1;
-    }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
 # Обновленная функция get_option с параметризованными запросами
 sub get_option {
     my $db = shift;
@@ -561,38 +508,91 @@ sub get_option {
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub do_sql {
+    my ($db, $sql, @bind_values) = @_;
+    return 0 unless $db && $sql;
+
+    my $mode;
+    if ($sql =~ /^\s*insert\b/i) {
+        $mode = 'id';
+    } elsif ($sql =~ /^\s*select\b/i) {
+        $mode = 'arrayref';
+    } else {
+        $mode = 'execute';
+    }
+
+    my $result = _execute_param($db, $sql, \@bind_values, { mode => $mode });
+
+    # Обработка ошибок: если _execute_param вернул undef/ложь — возвращаем 0
+    unless (defined $result) {
+        return 0;
+    }
+
+    if ($mode eq 'id') {
+        return $result;               # уже число (или 0)
+    } elsif ($mode eq 'arrayref') {
+        return ref($result) eq 'ARRAY' ? $result : 0;  # на случай ошибки
+    } else {
+        return $result ? 1 : 0;
+    }
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 # Внутренняя функция для выполнения параметризованных запросов
 sub _execute_param {
     my ($db, $sql, $params, $options) = @_;
     return unless $db && $sql;
-    
-    # Логируем не-SELECT-запросы
-    unless ($sql =~ /^\s*SELECT/i) {
-        log_debug( $sql . ($params ? ' | params: [' . join(', ', map { defined $_ ? $_ : 'undef' } @$params) . ']' : ''));
+
+    my $mode = $options->{mode} || 'execute';
+
+    # автоматическая поддержка RETURNING для PostgreSQL ---
+    my $was_modified = 0;
+    my $original_sql = $sql;
+    if ($mode eq 'id' && $sql =~ /^\s*INSERT\b/i) {
+        if ($config_ref{DBTYPE} && $config_ref{DBTYPE} eq 'Pg') {
+            # Добавляем RETURNING id, если его ещё нет
+            unless ($sql =~ /\bRETURNING\b/i) {
+                $sql .= ' RETURNING id';
+                $was_modified = 1;
+                # Теперь нам нужно получить скаляр, а не использовать lastval()
+                $mode = 'scalar';  # временно меняем режим
+            }
+        }
     }
-    
-    # Переподключение
+
+    # Логируем не-SELECT (но уже с возможным RETURNING)
+    unless ($original_sql =~ /^\s*SELECT/i) {
+        log_debug($original_sql . ($params ? ' | params: [' . join(', ', map { defined $_ ? $_ : 'undef' } @$params) . ']' : ''));
+    }
+
     unless (reconnect_db(\$db)) {
         log_error("No database connection available");
         return wantarray ? () : undef;
     }
-    
-    my $mode = $options->{mode} || 'execute';
-    
+
     my $sth = $db->prepare($sql) or do {
-        log_error("Unable to prepare SQL [$sql]: " . $db->errstr);
+        log_error("Unable to prepare SQL [$original_sql]: " . $db->errstr);
         return wantarray ? () : undef;
     };
-    
+
     my $rv = $params ? $sth->execute(@$params) : $sth->execute();
-    
+
     unless ($rv) {
-        log_error("Unable to execute SQL [$sql]" . ($params ? " with params: [" . join(', ', @$params) . "]" : "") . ": " . $sth->errstr);
+        log_error("Unable to execute SQL [$original_sql]" . ($params ? " with params: [" . join(', ', map { defined $_ ? $_ : 'undef' } @$params) . "]" : "") . ": " . $sth->errstr);
         $sth->finish();
         return wantarray ? () : undef;
     }
-    
-    if ($mode eq 'single') {
+
+    # --- Обработка результатов ---
+    if ($was_modified && $mode eq 'scalar') {
+        # Это был INSERT + RETURNING id в PostgreSQL
+        my $row = $sth->fetchrow_arrayref();
+        $sth->finish();
+        my $id = $row ? $row->[0] : 0;
+        return $id;
+    }
+    elsif ($mode eq 'single') {
         my $row = $sth->fetchrow_hashref();
         $sth->finish();
         return $row;
@@ -616,9 +616,10 @@ sub _execute_param {
         return $row ? $row->[0] : undef;
     }
     elsif ($mode eq 'id') {
-        if ($sql =~ /^\s*INSERT/i) {
+        # Сюда попадём только если НЕ было модификации (т.е. MySQL или старый Pg-путь)
+        if ($original_sql =~ /^\s*INSERT/i) {
             my $id;
-            if ($config_ref{DBTYPE} and $config_ref{DBTYPE} eq 'mysql') {
+            if ($config_ref{DBTYPE} && $config_ref{DBTYPE} eq 'mysql') {
                 $id = $sth->{mysql_insertid};
             } else {
                 ($id) = $db->selectrow_array("SELECT lastval()");
@@ -634,7 +635,6 @@ sub _execute_param {
         return 1;
     }
 }
-
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_records_sql {
@@ -716,7 +716,7 @@ foreach my $field (keys %$record) {
     if (!$old_record->{$field}) { $old_record->{$field}=''; }
     if ($record->{$field}!~/^$old_record->{$field}$/) { $result->{$field} = "$record->{$field} [ old: " . $old_record->{$field} . "]"; }
     }
-return hast_to_txt($result);
+return hash_to_text($result);
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -831,7 +831,7 @@ if ($table eq "user_auth") {
     my $cur_ou_id = $old_record->{'ou_id'} if ($old_record->{'ou_id'});
     if (exists $record->{ou_id}) { $cur_ou_id = $record->{'ou_id'}; }
     #disable update field 'created_by'
-    if ($old_record->{'created_by'} and exists ($record->{'created_by'})) { delete $record->{'created_by'}; }
+    #if ($old_record->{'created_by'} and exists ($record->{'created_by'})) { delete $record->{'created_by'}; }
     foreach my $field (keys %$record) {
 	if (exists $acl_fields{$field}) { $record->{changed}="1"; }
         if (exists $dhcp_fields{$field} and !is_system_ou($db,$cur_ou_id)) { $record->{dhcp_changed}="1"; }
