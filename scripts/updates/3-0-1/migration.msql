@@ -68,6 +68,7 @@ ALTER TABLE group_list       ADD COLUMN comment VARCHAR(250);
 ALTER TABLE ou               ADD COLUMN comment VARCHAR(250);
 ALTER TABLE subnets          ADD COLUMN comment VARCHAR(250);
 ALTER TABLE vendors          ADD COLUMN comment VARCHAR(255);
+ALTER TABLE auth_rules       ADD COLUMN comment VARCHAR(255);
 
 -- Теперь безопасно переименовываем `comment` → `description`
 ALTER TABLE acl              CHANGE COLUMN `comment` description VARCHAR(250);
@@ -81,6 +82,7 @@ ALTER TABLE ou               CHANGE COLUMN `comment` description VARCHAR(250);
 ALTER TABLE subnets          CHANGE COLUMN `comment` description VARCHAR(250);
 ALTER TABLE user_list        CHANGE COLUMN `fio` description VARCHAR(255);
 ALTER TABLE vendors          CHANGE COLUMN `comment` description VARCHAR(255);
+ALTER TABLE auth_rules       CHANGE COLUMN `comment` description VARCHAR(255);
 
 -- user_auth.comments → description
 ALTER TABLE user_auth CHANGE COLUMN `comments` description VARCHAR(250);
