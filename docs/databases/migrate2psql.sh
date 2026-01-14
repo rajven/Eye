@@ -514,5 +514,9 @@ fi
 
 eye_migrate2pgsql
 
+echo "Maybe need install:"
+echo "\t AltLinux: apt-get install php8.2-pgsql php8.2-pdo_pgsql"
+echo "\t Debian/Ubuntu: apt install php-pgsql"
+
 # Exit with success code
 exit 0
