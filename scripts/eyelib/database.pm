@@ -38,6 +38,8 @@ db_log_error
 db_log_info
 db_log_verbose
 db_log_warning
+normalize_value
+get_table_columns
 init_db
 do_sql
 _execute_param
@@ -58,6 +60,7 @@ Set_Variable
 Get_Variable
 Del_Variable
 clean_variables
+build_db_schema
 
 $add_rules
 $L_WARNING
@@ -65,6 +68,8 @@ $L_INFO
 $L_DEBUG
 $L_ERROR
 $L_VERBOSE
+
+%db_schema
 );
 
 BEGIN
@@ -108,6 +113,143 @@ our %dns_fields = (
     'dns_ptr_only'=>'1',
     'alias'=>'1',
 );
+
+our %db_schema;
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub build_db_schema {
+    my ($dbh) = @_;
+
+    # Определяем тип СУБД
+    my $db_type = lc($dbh->{Driver}->{Name});
+    die "Unsupported database driver: $db_type" 
+        unless $db_type eq 'mysql' || $db_type eq 'pg';
+
+    # Получаем имя базы данных
+    my $db_name;
+    if ($db_type eq 'mysql') {
+        ($db_name) = $dbh->selectrow_array("SELECT DATABASE()");
+    } elsif ($db_type eq 'pg') {
+        ($db_name) = $dbh->selectrow_array("SELECT current_database()");
+    }
+
+    my $db_info;
+    $db_info->{db_type}=$db_type;
+    $db_info->{db_name}=$db_name;
+    return $db_info if (exists $db_schema{$db_type}{$db_name});
+    # Получаем список таблиц
+    my @tables;
+    if ($db_type eq 'mysql') {
+        my $sth = $dbh->prepare("SHOW TABLES");
+        $sth->execute();
+        @tables = map { $_->[0] } @{$sth->fetchall_arrayref()};
+    } elsif ($db_type eq 'pg') {
+        my $sql = q{
+            SELECT tablename 
+            FROM pg_tables 
+            WHERE schemaname = 'public'
+        };
+        my $sth = $dbh->prepare($sql);
+        $sth->execute();
+        @tables = map { $_->[0] } @{$sth->fetchall_arrayref()};
+    }
+
+    # Собираем схему
+    for my $table (@tables) {
+        my $sth = $dbh->column_info(undef, undef, $table, '%');
+        while (my $col = $sth->fetchrow_hashref) {
+            my $col_name = lc($col->{COLUMN_NAME});
+            $db_schema{$db_type}{$db_name}{$table}{$col_name} = {
+                type     => $col->{TYPE_NAME} // '',
+                nullable => $col->{NULLABLE}  // 1,
+                default  => $col->{COLUMN_DEF} // undef,
+            };
+        }
+    }
+    return $db_info;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub normalize_value {
+    my ($value, $col_info) = @_;
+
+    # Если значение пустое — обрабатываем по правилам колонки
+    if (!defined $value || $value eq '' || $value =~ /^(?:NULL|\\N)$/i) {
+        return $col_info->{nullable} ? undef : _default_for_type($col_info);
+    }
+
+    my $type = lc($col_info->{type});
+
+    # --- Числовые типы: приводим к числу, если выглядит как число ---
+    if ($type =~ /^(?:tinyint|smallint|mediumint|int|integer|bigint|serial|bigserial)$/i) {
+        # Просто конвертируем строку в число (Perl сам обрежет мусор)
+        # Например: "123abc" → 123, "abc" → 0
+        return 0 + $value;
+    }
+
+    # --- Булевы: приводим к 0/1 ---
+    if ($type =~ /^(?:bool|boolean|bit)$/i) {
+        return $value ? 1 : 0;
+    }
+
+    # --- Временные типы: оставляем как есть, но фильтруем "нулевые" даты MySQL ---
+    if ($type =~ /^(?:timestamp|datetime|date|time)$/i) {
+        # Это частая проблема при миграции — '0000-00-00' ломает PostgreSQL
+        return undef if $value =~ /^0000-00-00/;
+        return $value;
+    }
+
+    # --- Все остальные типы (строки, inet, json и т.д.) — передаём как есть ---
+    return $value;
+}
+
+# Вспомогательная: безопасное значение по умолчанию
+sub _default_for_type {
+    my ($col) = @_;
+
+    # Используем DEFAULT, только если он простой литерал (не выражение)
+    if (defined $col->{default}) {
+        my $def = $col->{default};
+        # Пропускаем выражения: nextval(), CURRENT_TIMESTAMP, NOW(), uuid() и т.п.
+        if ($def !~ /(nextval|current_timestamp|now|uuid|auto_increment|::)/i) {
+            # Убираем одинарные кавычки, если строка: 'value' → value
+            if ($def =~ /^'(.*)'$/) {
+                return $1;
+            }
+            # Если похоже на число — вернём как число
+            if ($def =~ /^[+-]?\d+$/) {
+                return 0 + $def;
+            }
+            return $def;
+        }
+    }
+
+    # Фолбэк по типу
+    my $type = lc($col->{type});
+    if ($type =~ /^(?:tinyint|smallint|int|integer|bigint)/i) { return 0; }
+    if ($type =~ /^(?:char|varchar|text)/i) { return ''; }
+    if ($type =~ /^(?:timestamp|datetime)/i) { return GetNowTime(); }
+    return undef;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_table_columns {
+    my ($db, $table) = @_;
+    my %columns;
+    my $sth = $db->column_info(undef, undef, $table, '%');
+    while (my $row = $sth->fetchrow_hashref) {
+        my $name = lc($row->{COLUMN_NAME});  # ← приводим к нижнему регистру сразу!
+        $columns{$name} = {
+            type     => $row->{TYPE_NAME} // '',
+            nullable => $row->{NULLABLE}  // 1,
+            default  => $row->{COLUMN_DEF} // undef,
+        };
+    }
+    return %columns;  # возвращает список: key1, val1, key2, val2...
+}
 
 #---------------------------------------------------------------------------------------------------------------
 
@@ -732,6 +874,8 @@ unless (reconnect_db(\$db)) {
     return;
     }
 
+my $db_info= build_db_schema($db);
+
 my $dns_changed = 0;
 my $rec_id = 0;
 
@@ -749,7 +893,7 @@ my $values = '';
 my $new_str = '';
 
 foreach my $field (keys %$record) {
-    my $val = defined $record->{$field} ? $record->{$field} : undef;
+    my $val =  normalize_value($record->{$field}, $db_schema{$db_info->{db_type}}{$db_info->{db_name}}{$table}{$field});
     # Экранируем имя поля в зависимости от СУБД
     my $quoted_field = get_db_type($db) eq 'mysql'
         ? '`' . $field . '`'
@@ -819,6 +963,8 @@ unless (reconnect_db(\$db)) {
     return;
     }
 
+my $db_info = build_db_schema($db);
+
 my $select_sql = "SELECT * FROM $table WHERE $filter_sql";
 my $old_record = get_record_sql($db, $select_sql, @filter_params);
 return unless $old_record;
@@ -844,7 +990,7 @@ if ($table eq "user_auth") {
 my $diff = '';
 for my $field (keys %$record) {
         my $old_val = defined $old_record->{$field} ? $old_record->{$field} : '';
-        my $new_val = defined $record->{$field} ? $record->{$field} : '';
+        my $new_val =  normalize_value($record->{$field}, $db_schema{$db_info->{db_type}}{$db_info->{db_name}}{$table}{$field});
         if ($new_val ne $old_val) {
             $diff .= " $field => $new_val (old: $old_val),";
             $set_clause .= " $field = ?, ";
