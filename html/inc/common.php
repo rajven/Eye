@@ -923,24 +923,27 @@ function print_add_dev_interface($db, $device_id, $int_list, $int_name)
 }
 
 function print_ou_select_recursive($db, $ou_name, $ou_value, $parent_id = null, $level = 0, $hide_zero_id = false)
-{   
+{
+    // Ограничение глубины рекурсии: не более 3 уровней (0, 1, 2 → max level=2, следующий вызов будет level=3 и остановится)
+    if ($level > 2) {
+        return;
+    }
+
     $params = [];
-    
+
     if ($parent_id === null) {
-        $sql = "SELECT id, parent_id, ou_name FROM ou 
-                WHERE (parent_id IS NULL OR parent_id = 0)";
+        $sql = "SELECT id, parent_id, ou_name FROM ou WHERE (parent_id IS NULL OR parent_id = 0)";
     } else {
-        $sql = "SELECT id, parent_id, ou_name FROM ou 
-                WHERE parent_id = ?";
+        $sql = "SELECT id, parent_id, ou_name FROM ou WHERE parent_id = ?";
         $params[] = (int)$parent_id;
     }
-        
+
     if ($hide_zero_id) {
         $sql .= " AND id != 0";
     }
-        
+
     $sql .= " ORDER BY id";
-    
+
     $items = get_records_sql($db, $sql, $params);
 
     if (empty($items)) {
@@ -952,7 +955,11 @@ function print_ou_select_recursive($db, $ou_name, $ou_value, $parent_id = null, 
         $prefix = ($level > 0) ? $indent . "-&nbsp;" : "";
         $display_name = $prefix . htmlspecialchars($row['ou_name']);
         print_select_item($display_name, $row['id'], $ou_value);
-        print_ou_select_recursive($db, $ou_name, $ou_value, $row['id'], $level + 1, $hide_zero_id);
+
+        // Рекурсивный вызов — только если уровень < 3
+        if ($level < 2) { // потому что следующий уровень будет $level + 1 = 3 → запрещён
+            print_ou_select_recursive($db, $ou_name, $ou_value, $row['id'], $level + 1, $hide_zero_id);
+        }
     }
 }
     

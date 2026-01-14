@@ -141,3 +141,9 @@ ALTER TABLE `mac_vendors`  CHANGE COLUMN `companyAddress` `companyaddress` VARCH
 
 -- device_ports: ifName → ifname
 ALTER TABLE `device_ports`  CHANGE COLUMN `ifName` `ifname` VARCHAR(40) DEFAULT NULL;
+
+-- prepare group lieveling
+ALTER TABLE ou ADD COLUMN parent_id INT(11) DEFAULT NULL;
+
+-- change comment
+ALTER TABLE device_ports CHANGE COLUMN `comment` description VARCHAR(250);
