@@ -578,6 +578,9 @@ my %mysql_tables;
 for my $idx (0 .. $#tables_to_migrate) {
     my $table = $tables_to_migrate[$idx];
     my $table_num = $idx + 1;
+
+    if ($table_name =~ /(traffic_detail|sessions)/) { next; }
+
     print "[$table_num/$total_tables] Processing table: $table\n";
 
     if (!exists $pg_schema{$table}) {
@@ -600,6 +603,9 @@ for my $idx (0 .. $#tables_to_migrate) {
 
 # --- Этап 2: Проверяем, что все таблицы и колонки PG-схемы есть в MySQL ---
 for my $table (keys %pg_schema) {
+
+    if ($table_name =~ /(traffic_detail|sessions)/) { next; }
+
     if (!exists $mysql_tables{$table}) {
         print "    ❗ ERROR: Table $table from PG schema not found in source MySQL database!\n";
         $mysql_schema_status = 0;
