@@ -109,8 +109,19 @@ if (!$static_hole{$ip}{skip}) {
 print "#--- DNS ---#\n";
 
 #get userid list
-my $sSQL="SELECT id,ou_id,ip,dns_name,dhcp_hostname,dns_ptr_only FROM user_auth WHERE deleted=0 AND ip>'' AND (dns_name>'' OR dhcp_hostname>'') AND dns_name NOT LIKE '%.' ORDER by ip_int;";
-my @users = get_records_sql($dbh,$sSQL);
+my $sSQL = "
+    SELECT id, ou_id, ip, dns_name, dhcp_hostname, dns_ptr_only
+    FROM user_auth
+    WHERE deleted = 0
+      AND ip IS NOT NULL
+      AND (
+            (dns_name IS NOT NULL AND dns_name != '' AND dns_name NOT LIKE '%.')
+            OR
+            (dhcp_hostname IS NOT NULL AND dhcp_hostname != '')
+          )
+    ORDER BY ip_int
+";
+my @users = get_records_sql($dbh, $sSQL);
 foreach my $row (@users) {
 next if (!$row);
 next if (is_default_ou($dbh,$row->{ou_id}));
@@ -151,8 +162,8 @@ if (!$row->{dns_ptr_only} and $dns_name) {
 #            }
     #aliases
     if ($dns_name) {
-        my $aSQL="SELECT * FROM user_auth_alias WHERE auth_id=$row->{id} AND alias>'' AND alias NOT LIKE '%.';";
-        my @aliases = get_records_sql($dbh,$aSQL);
+        my $aSQL = "SELECT * FROM user_auth_alias WHERE auth_id = ? AND alias IS NOT NULL AND alias != '' AND alias NOT LIKE '%.'";
+        my @aliases = get_records_sql($dbh, $aSQL, $row->{id});
         print '#DNS aliases for '.$dns_name."\n" if (@aliases and scalar @aliases);
         foreach my $alias (@aliases) {
             my $dns_alias = trim($alias->{alias});
