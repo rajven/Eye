@@ -156,7 +156,7 @@ sub delete_user_auth {
     # Формируем идентификатор для лога
     my $auth_ident = $record->{ip} // '';
     if ($record->{dns_name}) {
-        $auth_ident .= '[' . $record->{dns_name} . ']';
+        $auth_ident .= ' [' . $record->{dns_name} . ']';
     }
     if ($record->{description}) {
         $auth_ident .= ' :: ' . $record->{description};

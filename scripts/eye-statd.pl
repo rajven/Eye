@@ -109,7 +109,7 @@ InitSubnets();
 init_option($hdb);
 
 #a directory for storing traffic details in text form
-$save_path = get_option($dbh,72);
+$save_path = get_option($hdb,72);
 
 #the period for resetting statistics from netflow to billing
 $timeshift = get_option($hdb,55)*60;
@@ -476,11 +476,12 @@ my $pid = fork();
 
 INIT();
 
-#log_debug("ROUTERS-SVI:".Dumper(\%routers_svi));
-#log_debug("ROUTERS by IP::".Dumper(\%routers_by_ip));
-#log_debug("ROUTERS:".Dumper(\%routers));
-#log_debug("WAN-DEVS:".Dumper(\%wan_dev));
-#log_debug("LAN-DEVS:".Dumper(\%lan_dev));
+log_verbose("Start flush traffic to DB");
+log_debug("ROUTERS-SVI:".Dumper(\%routers_svi));
+log_debug("ROUTERS by IP::".Dumper(\%routers_by_ip));
+log_debug("ROUTERS:".Dumper(\%routers));
+log_debug("WAN-DEVS:".Dumper(\%wan_dev));
+log_debug("LAN-DEVS:".Dumper(\%lan_dev));
 
 if (!defined $pid) {
     $saving = 0;
@@ -511,6 +512,8 @@ my %routers_found;
 my $last_time = time();
 my $start_time;
 
+log_debug("Netflow statistics calculation started");
+
 foreach my $traf_record (@flush_table) {
 
 #log_debug("RAW-DATA: ".hash_to_kv_csv($traf_record));
@@ -538,7 +541,7 @@ if (!$start_time) { $start_time = $traf_record->{starttime}; }
 if (!$traf_record->{snmp_out} or !$traf_record->{snmp_in}) {
     #input
     if (!$traf_record->{snmp_out} and exists $routers_svi{$router_id}{$traf_record->{snmp_in}}{$traf_record->{dst_ip}}) {
-#        log_debug("ROUTER id: $router_id I-DATA: ".hash_to_kv_csv($traf_record));
+        #log_debug("ROUTER id: $router_id I-DATA: ".hash_to_kv_csv($traf_record));
         #input
         if (!$free_networks->match_string($traf_record->{src_ip})) {
             if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}) {
@@ -551,7 +554,7 @@ if (!$traf_record->{snmp_out} or !$traf_record->{snmp_in}) {
 	}
     #output
     if (!$traf_record->{snmp_in} and exists $routers_svi{$router_id}{$traf_record->{snmp_out}}{$traf_record->{src_ip}}) {
-#        log_debug("ROUTER id: $router_id O-DATA: ".hash_to_kv_csv($traf_record));
+        #log_debug("ROUTER id: $router_id O-DATA: ".hash_to_kv_csv($traf_record));
         #output
         if (!$free_networks->match_string($traf_record->{dst_ip})) {
             if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}) {
@@ -562,7 +565,7 @@ if (!$traf_record->{snmp_out} or !$traf_record->{snmp_in}) {
             }
         next;
         }
-#    log_debug("ROUTER id: $router_id U-DATA: ".hash_to_kv_csv($traf_record));
+    #log_debug("ROUTER id: $router_id U-DATA: ".hash_to_kv_csv($traf_record));
     #unknown packet
     next;
     }
@@ -570,7 +573,7 @@ if (!$traf_record->{snmp_out} or !$traf_record->{snmp_in}) {
 #simple output traffic from router
 if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{$router_id}->{$traf_record->{snmp_in}}) {
     if (exists $routers_svi{$router_id}{$traf_record->{snmp_out}}{$traf_record->{src_ip}}) {
-#        log_debug("ROUTER id: $router_id O-SDATA: ".hash_to_kv_csv($traf_record));
+        #log_debug("ROUTER id: $router_id O-SDATA: ".hash_to_kv_csv($traf_record));
         #output
         if (!$free_networks->match_string($traf_record->{dst_ip})) {
             if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{out}) {
@@ -583,7 +586,7 @@ if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{
         }
     #It is unlikely that it will ever work out
     if (exists $routers_svi{$router_id}{$traf_record->{snmp_in}}{$traf_record->{dst_ip}}) {
-#        log_debug("ROUTER id: $router_id I-SDATA: ".hash_to_kv_csv($traf_record));
+        #log_debug("ROUTER id: $router_id I-SDATA: ".hash_to_kv_csv($traf_record));
         #input
         if (!$free_networks->match_string($traf_record->{src_ip})) {
             if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{in}) {
@@ -594,14 +597,14 @@ if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{
             }
         next;
         }
-#    log_debug("ROUTER id: $router_id U-SDATA: ".hash_to_kv_csv($traf_record));
+    #log_debug("ROUTER id: $router_id U-SDATA: ".hash_to_kv_csv($traf_record));
     #unknown packet
     next;
     } else {
     #forward
     if (!$free_networks->match_string($traf_record->{src_ip}) and !$free_networks->match_string($traf_record->{dst_ip})) {
         if ($traf_record->{direction}) {
-#	    log_debug("ROUTER id: $router_id FO-DATA: ".hash_to_kv_csv($traf_record));
+            #log_debug("ROUTER id: $router_id FO-DATA: ".hash_to_kv_csv($traf_record));
             #out
             if (exists $wan_stats{$router_id}{$traf_record->{snmp_out}}{forward_out}) {
                 $wan_stats{$router_id}{$traf_record->{snmp_out}}{forward_out}+=$traf_record->{octets};
@@ -609,7 +612,7 @@ if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{
                 $wan_stats{$router_id}{$traf_record->{snmp_out}}{forward_out}+=$traf_record->{octets};
                 }
             } else {
-#	    log_debug("ROUTER id: $router_id FI-DATA: ".hash_to_kv_csv($traf_record));
+            #log_debug("ROUTER id: $router_id FI-DATA: ".hash_to_kv_csv($traf_record));
             #in
             if (exists $wan_stats{$router_id}{$traf_record->{snmp_in}}{forward_in}) {
                 $wan_stats{$router_id}{$traf_record->{snmp_in}}{forward_in}+=$traf_record->{octets};
@@ -618,7 +621,7 @@ if (exists $wan_dev{$router_id}->{$traf_record->{snmp_out}} and exists $wan_dev{
                 }
             }
         } else {
-#	    log_debug("ROUTER id: $router_id FREE-DATA: ".hash_to_kv_csv($traf_record));
+        #log_debug("ROUTER id: $router_id FREE-DATA: ".hash_to_kv_csv($traf_record));
 	}
     }
 
@@ -699,7 +702,7 @@ if ($traf_record->{direction}) {
     }
 
 if (!$user_ip) {
-    log_debug("Unknown USER: ".hash_to_kv_csv($traf_record));
+    #log_debug("Unknown USER: ".hash_to_kv_csv($traf_record));
     next;
     }
 
@@ -729,6 +732,8 @@ push @detail_traffic, [
     ];
 }
 
+log_debug("The netflow statistics calculation is finished");
+
 @flush_table=();
 
 #start hour
@@ -737,6 +742,7 @@ my ($sec,$min,$hour,$day,$month,$year) = (localtime($last_time))[0,1,2,3,4,5];
 #save netflow
 if ($config_ref{save_detail}) {
     $save_path=~s/\/$//;
+    log_debug("Write netflow started");
     foreach my $dev_id (keys %saved_netflow) {
         my $netflow_file_path = $save_path.'/'.$dev_id.'/'.sprintf "%04d/%02d/%02d/%02d/",$year+1900,$month+1,$day,$hour;
         my $nmin = int($min/10)*10;
@@ -760,6 +766,7 @@ if ($config_ref{save_detail}) {
             @{$saved_netflow{$dev_id}}=();
             }
         }
+    log_debug("Write netflow is finished");
     }
 undef %saved_netflow;
 
@@ -778,6 +785,8 @@ my @batch_auth_status=();
 my @batch_wan_stats=();
 
 #log_debug("User STATS: ".Dumper(\%user_stats));
+
+log_debug("The user statistics calculation started");
 
 # update database
 foreach my $user_ip (keys %user_stats) {
@@ -853,9 +862,11 @@ foreach my $user_ip (keys %user_stats) {
 	}
     }
 
+log_debug("User calculation is finished");
 #print Dumper(\%wan_stats) if ($debug);
 
 # update database
+log_debug("Routers statistics started");
 foreach my $router_id (keys %wan_stats) {
     #last flow for user
     my ($sec,$min,$hour,$day,$month,$year) = (localtime($start_time))[0,1,2,3,4,5];
@@ -881,21 +892,32 @@ foreach my $router_id (keys %wan_stats) {
         ];
 	}
     }
+log_debug("Router statistics is finished");
 
+log_verbose("Try update user_auth table for ".scalar @batch_auth_status. " records");
 my $tSQL="UPDATE user_auth SET arp_found= ?, last_found= ? WHERE id= ?";
 batch_db_sql_cached($tSQL,\@batch_auth_status);
+log_verbose("Finished");
 
+log_verbose("Try update user_stats_full table for ".scalar @batch_user_stats_full. " records");
 $tSQL="INSERT INTO user_stats_full (ts,auth_id,router_id,byte_in,byte_out,pkt_in,pkt_out,step) VALUES( ?, ?, ?, ?, ?, ?, ?, ?)";
 batch_db_sql_cached($tSQL,\@batch_user_stats_full);
+log_verbose("Finished");
 
+log_verbose("Try create new records in  user_stats table for ".scalar @batch_user_stats. " records");
 $tSQL="INSERT INTO user_stats (ts,auth_id,router_id,byte_in,byte_out,pkt_in,pkt_out,step) VALUES( ?, ?, ?, ?, ?, ?, ? ,?)";
 batch_db_sql_cached($tSQL,\@batch_user_stats);
+log_verbose("Finished");
 
+log_verbose("Try update user_stats table for ".scalar @batch_user_stats_update. " records");
 $tSQL="UPDATE user_stats SET byte_in= ?, byte_out= ?, pkt_in = ?, pkt_out = ? WHERE ts = ? AND auth_id= ? AND router_id= ?";
 batch_db_sql_cached($tSQL,\@batch_user_stats_update);
+log_verbose("Finished");
 
+log_verbose("Try create new records in wan_stats table for ".scalar @batch_wan_stats. " records");
 $tSQL="INSERT INTO wan_stats (ts,router_id,interface_id,bytes_in,bytes_out,forward_in,forward_out) VALUES( ?, ?, ?, ?, ?, ?, ?)";
 batch_db_sql_cached($tSQL,\@batch_wan_stats);
+log_verbose("Finished");
 
 @batch_user_stats=();
 @batch_user_stats_update=();
@@ -904,9 +926,9 @@ batch_db_sql_cached($tSQL,\@batch_wan_stats);
 @batch_wan_stats=();
 
 if ($config_ref{enable_quotes}) {
-    db_log_debug($hdb,"Recalc quotes started");
+    log_info($hdb,"Recalc quotes started");
     foreach my $router_id (keys %routers_found) { recalc_quotes($hdb,$router_id); }
-    db_log_debug($hdb,"Recalc quotes stopped");
+    log_info($hdb,"Recalc quotes stopped");
     }
 
 if (scalar(@detail_traffic)) {
@@ -921,6 +943,8 @@ if (scalar(@detail_traffic)) {
 $hdb->disconnect();
 
 $saving = 0;
+
+log_verbose("Flush traffic to DB is finished");
 
 exit;
 }

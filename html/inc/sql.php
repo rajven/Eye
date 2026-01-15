@@ -633,7 +633,7 @@ function get_id_record($db, $table, $filter, $params=[]) {
 function set_changed($db, $id)
 {
     $auth['changed'] = 1;
-    update_record($db, "user_auth", "id=" . $id, $auth);
+    update_record($db, "user_auth", "id=?", $auth, [$id]);
 }
 
 function allow_update($table, $action = 'update', $field = '')
@@ -1234,7 +1234,7 @@ function delete_user_auth($db, $id) {
     // remove connections
     run_sql($db, 'DELETE FROM connections WHERE auth_id=' . $id);
     // remove user auth record
-    $changes = delete_record($db, "user_auth", "id=" . $id);
+    $changes = delete_record($db, "user_auth", "id=?", $id);
     if ($changes) {
         $msg = "Deleting ip-record: " . $txt_record . "::Success!\n" . $msg;
     } else {
@@ -1249,7 +1249,7 @@ function delete_user_auth($db, $id) {
 function delete_user($db,$id)
 {
 //remove user record
-$changes = delete_record($db, "user_list", "id=" . $id);
+$changes = delete_record($db, "user_list", "id=?", $id);
 //if fail - exit
 if (!isset($changes) or empty($changes)) { return; }
 //remove auth records
@@ -1262,12 +1262,12 @@ $device = get_record($db, "devices", "user_id='$id'");
 if (!empty($device)) {
     LOG_INFO($db, "Delete device for user id: $id ".dump_record($db,'devices','user_id='.$id));
     unbind_ports($db, $device['id']);
-    run_sql($db, "DELETE FROM connections WHERE device_id=" . $device['id']);
-    run_sql($db, "DELETE FROM device_l3_interfaces WHERE device_id=" . $device['id']);
-    run_sql($db, "DELETE FROM device_ports WHERE device_id=" . $device['id']);
-    run_sql($db, "DELETE FROM device_filter_instances WHERE device_id=" . $device['id']);
-    run_sql($db, "DELETE FROM gateway_subnets WHERE device_id=".$device['id']);
-    delete_record($db, "devices", "id=" . $device['id']);
+    run_sql($db, "DELETE FROM connections WHERE device_id=?", $device['id']);
+    run_sql($db, "DELETE FROM device_l3_interfaces WHERE device_id=?", $device['id']);
+    run_sql($db, "DELETE FROM device_ports WHERE device_id=?", $device['id']);
+    run_sql($db, "DELETE FROM device_filter_instances WHERE device_id=?", $device['id']);
+    run_sql($db, "DELETE FROM gateway_subnets WHERE device_id=?",$device['id']);
+    delete_record($db, "devices", "id=?", $device['id']);
     }
 //remove auth assign rules
 run_sql($db, "DELETE FROM auth_rules WHERE user_id=$id");
@@ -1278,18 +1278,18 @@ function delete_device($db,$id)
 {
 LOG_INFO($db, "Try delete device id: $id ".dump_record($db,'devices','id='.$id));
 //remove user record
-$changes = delete_record($db, "devices", "id=" . $id);
+$changes = delete_record($db, "devices", "id=?", $id);
 //if fail - exit
 if (!isset($changes) or empty($changes)) {
     LOG_INFO($db,"Device id: $id has not been deleted");
     return;
     }
 unbind_ports($db, $id);
-run_sql($db, "DELETE FROM connections WHERE device_id=" . $id);
-run_sql($db, "DELETE FROM device_l3_interfaces WHERE device_id=" . $id);
-run_sql($db, "DELETE FROM device_ports WHERE device_id=" . $id);
-run_sql($db, "DELETE FROM device_filter_instances WHERE device_id=" . $id);
-run_sql($db, "DELETE FROM gateway_subnets WHERE device_id=".$id);
+run_sql($db, "DELETE FROM connections WHERE device_id=?", $id);
+run_sql($db, "DELETE FROM device_l3_interfaces WHERE device_id=?", $id);
+run_sql($db, "DELETE FROM device_ports WHERE device_id=?", $id);
+run_sql($db, "DELETE FROM device_filter_instances WHERE device_id=?", $id);
+run_sql($db, "DELETE FROM gateway_subnets WHERE device_id=?",$id);
 return $changes;
 }
 

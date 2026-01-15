@@ -4,6 +4,22 @@ package eyelib::database;
 # Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
 
+# commit example
+# Начинаем транзакцию вручную
+#$db->{AutoCommit} = 0;
+#eval {
+#    for my $row (@rows) {
+#        insert_record($db, 'user_auth', $row);
+#        insert_record($db, 'user_auth_alias', $row2);
+#    }
+#    $db->commit();
+#};
+#if ($@) {
+#    eval { $db->rollback(); };
+#    die "Migration failed: $@";
+#}
+#$db->{AutoCommit} = 1;
+
 use utf8;
 use open ":encoding(utf8)";
 use strict;
@@ -266,23 +282,32 @@ return $res;
 }
 
 #---------------------------------------------------------------------------------------------------------------
+
 sub batch_db_sql_cached {
-    my ($sql, $data) = @_;
+    my ( $sql, $data) = @_;
     my $db=init_db();
+    # Запоминаем исходное состояние AutoCommit
+    my $original_autocommit = $db->{AutoCommit};
     eval {
-        my $sth = $db->prepare_cached($sql) or die "Unable to prepare SQL: " . $db->errstr;
+        # Выключаем AutoCommit для транзакции
+        $db->{AutoCommit} = 0;
+        my $sth = $db->prepare_cached($sql)  or die "Unable to prepare SQL: " . $db->errstr;
         for my $params (@$data) {
             next unless @$params;
             $sth->execute(@$params) or die "Unable to execute with params [" . join(',', @$params) . "]: " . $sth->errstr;
         }
-        $db->commit() if (!$db->{AutoCommit});
+        $db->commit();
         1;
     } or do {
         my $err = $@ || 'Unknown error';
         eval { $db->rollback() };
-        $db->disconnect();
-        die "batch_db_sql_cached failed: $err";
+        warn "batch_sql_cached failed: $err";
+        # Восстанавливаем AutoCommit даже при ошибке
+        $db->{AutoCommit} = $original_autocommit;
+        return 0;
     };
+    # Восстанавливаем исходный режим AutoCommit
+    $db->{AutoCommit} = $original_autocommit;
     $db->disconnect();
     return 1;
 }
@@ -312,6 +337,9 @@ sub batch_db_sql_csv {
 
     my $db = init_db();
 
+    my $original_autocommit = $db->{AutoCommit};
+    $db->{AutoCommit} = 0;
+
     if (get_db_type($db) eq 'mysql') {
         # --- MySQL: попытка LOAD DATA, fallback на INSERT ---
         log_debug("Using LOAD DATA LOCAL INFILE for MySQL");
@@ -330,13 +358,12 @@ sub batch_db_sql_csv {
         }) or do {
             my $err = "Cannot create Text::CSV: " . Text::CSV->error_diag();
             log_error($err);
+            $db->{AutoCommit} = $original_autocommit;
             $db->disconnect();
             return 0;
         };
-
         # Пишем заголовок
         $csv->print($fh, \@columns);
-
         # Пишем данные
         for my $row (@$data_rows) {
             next unless $row && ref($row) eq 'ARRAY' && @$row == @columns;
@@ -344,10 +371,8 @@ sub batch_db_sql_csv {
             $csv->print($fh, \@vals);
         }
         close $fh;
-
         my $col_list = join(', ', map { $db->quote_identifier($_) } @columns);
         my $query = qq{LOAD DATA LOCAL INFILE '$fname' INTO TABLE $table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n' IGNORE 1 LINES ($col_list)};
-
         my $load_ok = eval { $db->do($query); 1 };
         if (!$load_ok) {
             my $err = "MySQL LOAD DATA failed: $@";
@@ -355,6 +380,8 @@ sub batch_db_sql_csv {
             log_debug("Falling back to bulk INSERT for MySQL");
             goto FALLBACK_INSERT_MYSQL;
         }
+        $db->commit();
+        $db->{AutoCommit} = $original_autocommit;
 
         $db->disconnect();
         return 1;
@@ -378,12 +405,17 @@ sub batch_db_sql_csv {
                 1;
             };
 
-            if (!$success) {
+            if ($success) {
+                $db->commit();
+            } else {
+                eval { $db->rollback(); };
                 my $err = "MySQL bulk INSERT failed: $@";
                 log_error($err);
+                $db->{AutoCommit} = $original_autocommit;
                 $db->disconnect();
                 return 0;
             }
+            $db->{AutoCommit} = $original_autocommit;
         }
 
     } elsif (get_db_type($db) eq 'pg') {
@@ -425,6 +457,7 @@ sub batch_db_sql_csv {
             my $err = "Cannot create Text::CSV: " . Text::CSV->error_diag();
             log_error($err);
             eval { $db->pg_putcopyend(); };
+            $db->{AutoCommit} = $original_autocommit;
             $db->disconnect();
             return 0;
         };
@@ -445,15 +478,14 @@ sub batch_db_sql_csv {
         };
 
         if ($success) {
-            $db->disconnect();
-            return 1;
+            $db->commit();
         } else {
+            eval { $db->rollback(); };
             my $err = "CSV COPY failed: $@";
             log_error($err);
             eval { $db->pg_putcopyend(); };
             goto FALLBACK_INSERT_PG;
         }
-
         # ========================
         # Fallback для PostgreSQL
         # ========================
@@ -473,9 +505,13 @@ sub batch_db_sql_csv {
                 1;
             };
 
-            if (!$success) {
+            if ($success) {
+                $db->commit();
+            } else {
+                eval { $db->rollback(); };
                 my $err = "PostgreSQL bulk INSERT failed: $@";
                 log_error($err);
+                $db->{AutoCommit} = $original_autocommit;
                 $db->disconnect();
                 return 0;
             }
@@ -484,44 +520,49 @@ sub batch_db_sql_csv {
     } else {
         my $err = "Unsupported DBTYPE: ". get_db_type($db);
         log_error($err);
+        $db->{AutoCommit} = $original_autocommit;
         $db->disconnect();
         return 0;
     }
 
+    $db->{AutoCommit} = $original_autocommit;
     $db->disconnect();
     return 1;
 }
 #---------------------------------------------------------------------------------------------------------------
 
 sub reconnect_db {
-my $db_ref = shift;
-# Если соединение активно, ничего не делаем
-if ($$db_ref && $$db_ref->ping) {
-    return 1;
-    }
-# Переподключаемся
-eval {
-# Закрываем старое соединение если есть
-if ($$db_ref) {
-    $$db_ref->disconnect;
-    $$db_ref = undef;
-    }
-# Создаем новое соединение
-$$db_ref = init_db();
-# Проверяем что соединение установлено
-unless ($$db_ref && $$db_ref->ping) {
-    die "Failed to establish database connection";
-    }
-1;  # возвращаем истину при успехе
-} or do {
-    my $error = $@ || 'Unknown error';
-    warn "Database reconnection failed: $error";
-    $$db_ref = undef;
-    return 0;
-    };
-return 1;
-}
+    my $db_ref = shift;
 
+    # Если соединение активно — ничего не делаем
+    if ($$db_ref && $$db_ref->ping) {
+        return 1;
+    }
+
+    # Сохраняем AutoCommit из текущего соединения (если есть)
+    my $original_autocommit = 1;
+    if ($$db_ref) {
+        $original_autocommit = $$db_ref->{AutoCommit};
+        eval { $$db_ref->disconnect; };
+        $$db_ref = undef;
+    }
+
+    # Пытаемся переподключиться
+    eval {
+        $$db_ref = init_db($original_autocommit);
+        unless ($$db_ref && $$db_ref->ping) {
+            log_die "Failed to establish database connection";
+        }
+        1;
+    } or do {
+        my $error = $@ || 'Unknown error';
+        $$db_ref = undef;
+        log_die "Database reconnection failed: $error";
+        return 0;
+    };
+
+    return 1;
+}
 
 #---------------------------------------------------------------------------------------------------------------
 
@@ -603,19 +644,28 @@ if ($log_level >= $L_WARNING) { write_db_log($db,$msg,$L_WARNING,$id); }
 #---------------------------------------------------------------------------------------------------------------
 
 sub init_db {
-# Create new database handle. If we can't connect, die()
-my $db;
-if ($config_ref{DBTYPE} eq 'mysql') {
-$db = DBI->connect("dbi:mysql:database=$DBNAME;host=$DBHOST;mysql_local_infile=1","$DBUSER","$DBPASS", 
-    { RaiseError => 0, AutoCommit => 1, mysql_enable_utf8 => 1 });
-if ( !defined $db ) { die "Cannot connect to MySQL server: $DBI::errstr\n"; }
-$db->do('SET NAMES utf8mb4');
-} else {
-$db = DBI->connect("dbi:Pg:dbname=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS",
-    { RaiseError => 0, AutoCommit => 1, pg_enable_utf8 => 1, pg_server_prepare => 0 });
-if ( !defined $db ) { die "Cannot connect to PostgreSQL server: $DBI::errstr\n"; }
-}
-return $db;
+    my $autocommit = shift;
+    if (!defined $autocommit) { $autocommit = 1; }
+    my $db;
+    if ($config_ref{DBTYPE} eq 'mysql') {
+        $db = DBI->connect(
+            "dbi:mysql:database=$DBNAME;host=$DBHOST;port=3306;mysql_local_infile=1", $DBUSER, $DBPASS,
+            { RaiseError => 0, AutoCommit => $autocommit, mysql_enable_utf8 => 1 }
+        );
+        if (!defined $db) {
+            log_die "Cannot connect to MySQL server: $DBI::errstr\n";
+        }
+        $db->do('SET NAMES utf8mb4');
+    } else {
+        $db = DBI->connect(
+            "dbi:Pg:dbname=$DBNAME;host=$DBHOST;port=5432", $DBUSER, $DBPASS,
+            { RaiseError => 0, AutoCommit => $autocommit, pg_enable_utf8 => 1, pg_server_prepare => 0 }
+        );
+        if (!defined $db) {
+            log_die "Cannot connect to PostgreSQL server: $DBI::errstr\n";
+        }
+    }
+    return $db;
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -642,135 +692,6 @@ sub get_option {
     return $record->{value};
 }
 
-#---------------------------------------------------------------------------------------------------------------
-
-sub do_sql {
-    my ($db, $sql, @bind_values) = @_;
-    return 0 unless $db && $sql;
-
-    my $mode;
-    if ($sql =~ /^\s*insert\b/i) {
-        $mode = 'id';
-    } elsif ($sql =~ /^\s*select\b/i) {
-        $mode = 'arrayref';
-    } else {
-        $mode = 'execute';
-    }
-
-    my $result = _execute_param($db, $sql, \@bind_values, { mode => $mode });
-
-    # Обработка ошибок: если _execute_param вернул undef/ложь — возвращаем 0
-    unless (defined $result) {
-        return 0;
-    }
-
-    if ($mode eq 'id') {
-        return $result;               # уже число (или 0)
-    } elsif ($mode eq 'arrayref') {
-        return ref($result) eq 'ARRAY' ? $result : 0;  # на случай ошибки
-    } else {
-        return $result ? 1 : 0;
-    }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-# Внутренняя функция для выполнения параметризованных запросов
-sub _execute_param {
-    my ($db, $sql, $params, $options) = @_;
-    return unless $db && $sql;
-
-    my $mode = $options->{mode} || 'execute';
-
-    # автоматическая поддержка RETURNING для PostgreSQL ---
-    my $was_modified = 0;
-    my $original_sql = $sql;
-    if ($mode eq 'id' && $sql =~ /^\s*INSERT\b/i) {
-        if (get_db_type($db) eq 'pg') {
-            # Добавляем RETURNING id, если его ещё нет
-            unless ($sql =~ /\bRETURNING\b/i) {
-                $sql .= ' RETURNING id';
-                $was_modified = 1;
-                # Теперь нам нужно получить скаляр, а не использовать lastval()
-                $mode = 'scalar';  # временно меняем режим
-            }
-        }
-    }
-
-    # Логируем не-SELECT (но уже с возможным RETURNING)
-    unless ($original_sql =~ /^\s*SELECT/i) {
-        log_debug($original_sql . ($params ? ' | params: [' . join(', ', map { defined $_ ? $_ : 'undef' } @$params) . ']' : ''));
-    }
-
-    unless (reconnect_db(\$db)) {
-        log_error("No database connection available");
-        return wantarray ? () : undef;
-    }
-
-    my $sth = $db->prepare($sql) or do {
-        log_error("Unable to prepare SQL [$original_sql]: " . $db->errstr);
-        return wantarray ? () : undef;
-    };
-
-    my $rv = $params ? $sth->execute(@$params) : $sth->execute();
-
-    unless ($rv) {
-        log_error("Unable to execute SQL [$original_sql]" . ($params ? " with params: [" . join(', ', map { defined $_ ? $_ : 'undef' } @$params) . "]" : "") . ": " . $sth->errstr);
-        $sth->finish();
-        return wantarray ? () : undef;
-    }
-
-    # --- Обработка результатов ---
-    if ($was_modified && $mode eq 'scalar') {
-        # Это был INSERT + RETURNING id в PostgreSQL
-        my $row = $sth->fetchrow_arrayref();
-        $sth->finish();
-        my $id = $row ? $row->[0] : 0;
-        return $id;
-    }
-    elsif ($mode eq 'single') {
-        my $row = $sth->fetchrow_hashref();
-        $sth->finish();
-        return $row;
-    }
-    elsif ($mode eq 'array') {
-        my @rows;
-        while (my $row = $sth->fetchrow_hashref()) {
-            push @rows, $row;
-        }
-        $sth->finish();
-        return \@rows;
-    }
-    elsif ($mode eq 'arrayref') {
-        my $rows = $sth->fetchall_arrayref({});
-        $sth->finish();
-        return $rows;
-    }
-    elsif ($mode eq 'scalar') {
-        my $row = $sth->fetchrow_arrayref();
-        $sth->finish();
-        return $row ? $row->[0] : undef;
-    }
-    elsif ($mode eq 'id') {
-        # Сюда попадём только если НЕ было модификации (т.е. MySQL или старый Pg-путь)
-        if ($original_sql =~ /^\s*INSERT/i) {
-            my $id;
-            if (get_db_type($db) eq 'mysql') {
-                $id = $sth->{mysql_insertid};
-            } else {
-                ($id) = $db->selectrow_array("SELECT lastval()");
-            }
-            $sth->finish();
-            return $id || 0;
-        }
-        $sth->finish();
-        return 1;
-    }
-    else {
-        $sth->finish();
-        return 1;
-    }
-}
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_records_sql {
@@ -865,13 +786,160 @@ return lc($db->{Driver}->{Name});
 
 #---------------------------------------------------------------------------------------------------------------
 
+# Внутренняя функция для выполнения параметризованных запросов
+sub _execute_param {
+    my ($db, $sql, $params, $options) = @_;
+    return unless $db && $sql;
+
+    my $mode = $options->{mode} || 'execute';
+
+    # --- Автоматическая поддержка RETURNING для PostgreSQL ---
+    my $was_modified = 0;
+    my $original_sql = $sql;
+    if ($mode eq 'id' && $sql =~ /^\s*INSERT\b/i) {
+        if (get_db_type($db) eq 'pg') {
+            unless ($sql =~ /\bRETURNING\b/i) {
+                $sql .= ' RETURNING id';
+                $was_modified = 1;
+                $mode = 'scalar';
+            }
+        }
+    }
+
+    # Логируем не-SELECT
+    unless ($original_sql =~ /^\s*SELECT/i) {
+        log_debug($original_sql . ($params ? ' | params: [' . join(', ', map { defined $_ ? $_ : 'undef' } @$params) . ']' : ''));
+    }
+
+    # === не переподключаемся внутри транзакции ===
+    my $autocommit_enabled = $db->{AutoCommit};
+    unless ($autocommit_enabled) {
+        # В транзакции: нельзя переподключаться!
+        unless ($db->ping) {
+            log_error("Database connection lost during transaction");
+            return wantarray ? () : undef;
+        }
+    } else {
+        # Вне транзакции: можно переподключиться
+        unless (reconnect_db(\$db)) {
+            log_error("No database connection available");
+            return wantarray ? () : undef;
+        }
+    }
+
+    my $sth = $db->prepare($sql) or do {
+        log_error("Unable to prepare SQL [$original_sql]: " . $db->errstr);
+        return wantarray ? () : undef;
+    };
+
+    my $rv = $params ? $sth->execute(@$params) : $sth->execute();
+
+    unless ($rv) {
+        log_error("Unable to execute SQL [$original_sql]" . ($params ? " with params: [" . join(', ', map { defined $_ ? $_ : 'undef' } @$params) . "]" : "") . ": " . $sth->errstr);
+        $sth->finish();
+        return wantarray ? () : undef;
+    }
+
+    # --- Обработка результатов ---
+    if ($was_modified && $mode eq 'scalar') {
+        my $row = $sth->fetchrow_arrayref();
+        $sth->finish();
+        my $id = $row ? $row->[0] : 0;
+        return $id;
+    }
+    elsif ($mode eq 'single') {
+        my $row = $sth->fetchrow_hashref();
+        $sth->finish();
+        return $row;
+    }
+    elsif ($mode eq 'array') {
+        my @rows;
+        while (my $row = $sth->fetchrow_hashref()) {
+            push @rows, $row;
+        }
+        $sth->finish();
+        return \@rows;
+    }
+    elsif ($mode eq 'arrayref') {
+        my $rows = $sth->fetchall_arrayref({});
+        $sth->finish();
+        return $rows;
+    }
+    elsif ($mode eq 'scalar') {
+        my $row = $sth->fetchrow_arrayref();
+        $sth->finish();
+        return $row ? $row->[0] : undef;
+    }
+    elsif ($mode eq 'id') {
+        if ($original_sql =~ /^\s*INSERT/i) {
+            my $id;
+            if (get_db_type($db) eq 'mysql') {
+                $id = $sth->{mysql_insertid};
+            } else {
+                ($id) = $db->selectrow_array("SELECT lastval()");
+            }
+            $sth->finish();
+            return $id || 0;
+        }
+        $sth->finish();
+        return 1;
+    }
+    else {
+        $sth->finish();
+        return 1;
+    }
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub do_sql {
+    my ($db, $sql, @bind_values) = @_;
+    return unless $db && $sql;  # Возвращаем undef при ошибке входных данных
+
+    my $mode;
+    if ($sql =~ /^\s*insert\b/i) {
+        $mode = 'id';
+    } elsif ($sql =~ /^\s*select\b/i) {
+        $mode = 'arrayref';
+    } else {
+        $mode = 'execute';
+    }
+
+    my $result = _execute_param($db, $sql, \@bind_values, { mode => $mode });
+
+    # Если _execute_param вернул undef/ложь — это ошибка
+    unless (defined $result) {
+        return;  # Возвращаем undef (лучше, чем 0)
+    }
+
+    if ($mode eq 'id') {
+        return $result;  # число (возможно 0 — допустимо для ID)
+    } elsif ($mode eq 'arrayref') {
+        # _execute_param всегда возвращает ARRAYREF при успехе
+        return $result;
+    } else {
+        # Для UPDATE/DELETE: возвращаем количество затронутых строк или 1
+        return $result ? $result : 1;
+    }
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub insert_record {
 my ($db, $table, $record) = @_;
-return unless $db && $table;
+return unless $db && $table && ref($record) eq 'HASH' && %$record;
 
-unless (reconnect_db(\$db)) {
-    log_error("No database connection available");
-    return;
+# Переподключаемся ТОЛЬКО если не в транзакции
+if ($db->{AutoCommit}) {
+        unless (reconnect_db(\$db)) {
+            log_error("No database connection available");
+            return;
+        }
+    } else {
+        unless ($db->ping) {
+            log_error("Database connection lost during transaction");
+            return;
+        }
     }
 
 my $db_info= build_db_schema($db);
@@ -881,10 +949,10 @@ my $rec_id = 0;
 
 if ($table eq "user_auth") {
     foreach my $field (keys %$record) {
-	if (exists $acl_fields{$field}) { $record->{changed}="1"; }
-	if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
-	if (exists $dns_fields{$field}) { $dns_changed=1; }
-	}
+        if (exists $acl_fields{$field}) { $record->{changed}="1"; }
+        if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
+        if (exists $dns_fields{$field}) { $dns_changed=1; }
+        }
     }
 
 my @insert_params;
@@ -916,36 +984,36 @@ if ($result) {
     $rec_id = $result if ($table eq "user_auth");
     $new_str='id: '.$result.' '.$new_str;
     if ($table eq 'user_auth_alias' and $dns_changed) {
-	if ($record->{'alias'} and $record->{'alias'}!~/\.$/) {
-	    my $add_dns;
-	    $add_dns->{'name_type'}='CNAME';
-	    $add_dns->{'name'}=$record->{'alias'};
-	    $add_dns->{'value'}=get_dns_name($db,$record->{'auth_id'});
-	    $add_dns->{'operation_type'}='add';
-	    $add_dns->{'auth_id'}=$record->{'auth_id'};
-	    insert_record($db,'dns_queue',$add_dns);
-	    }
-	}
+        if ($record->{'alias'} and $record->{'alias'}!~/\.$/) {
+            my $add_dns;
+            $add_dns->{'name_type'}='CNAME';
+            $add_dns->{'name'}=$record->{'alias'};
+            $add_dns->{'value'}=get_dns_name($db,$record->{'auth_id'});
+            $add_dns->{'operation_type'}='add';
+            $add_dns->{'auth_id'}=$record->{'auth_id'};
+            insert_record($db,'dns_queue',$add_dns);
+            }
+        }
     if ($table eq 'user_auth' and $dns_changed) {
-	if ($record->{'dns_name'} and $record->{'ip'} and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
-	    my $add_dns;
-	    $add_dns->{'name_type'}='A';
-	    $add_dns->{'name'}=$record->{'dns_name'};
-	    $add_dns->{'value'}=$record->{'ip'};
-	    $add_dns->{'operation_type'}='add';
-	    $add_dns->{'auth_id'}=$result;
-	    insert_record($db,'dns_queue',$add_dns);
-	    }
-	if ($record->{'dns_name'} and $record->{'ip'} and $record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
-	    my $add_dns;
-	    $add_dns->{'name_type'}='PTR';
-	    $add_dns->{'name'}=$record->{'dns_name'};
-	    $add_dns->{'value'}=$record->{'ip'};
-	    $add_dns->{'operation_type'}='add';
-	    $add_dns->{'auth_id'}=$result;
-	    insert_record($db,'dns_queue',$add_dns);
-	    }
-	}
+        if ($record->{'dns_name'} and $record->{'ip'} and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+            my $add_dns;
+            $add_dns->{'name_type'}='A';
+            $add_dns->{'name'}=$record->{'dns_name'};
+            $add_dns->{'value'}=$record->{'ip'};
+            $add_dns->{'operation_type'}='add';
+            $add_dns->{'auth_id'}=$result;
+            insert_record($db,'dns_queue',$add_dns);
+            }
+        if ($record->{'dns_name'} and $record->{'ip'} and $record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+            my $add_dns;
+            $add_dns->{'name_type'}='PTR';
+            $add_dns->{'name'}=$record->{'dns_name'};
+            $add_dns->{'value'}=$record->{'ip'};
+            $add_dns->{'operation_type'}='add';
+            $add_dns->{'auth_id'}=$result;
+            insert_record($db,'dns_queue',$add_dns);
+            }
+        }
     }
 db_log_debug($db,'Add record to table '.$table.' '.$new_str,$rec_id);
 return $result;
@@ -955,12 +1023,19 @@ return $result;
 
 sub update_record {
 my ($db, $table, $record, $filter_sql, @filter_params) = @_;
-
 return unless $db && $table && $filter_sql;
 
-unless (reconnect_db(\$db)) {
-    log_error("No database connection available");
-    return;
+# Переподключаемся ТОЛЬКО если не в транзакции
+if ($db->{AutoCommit}) {
+        unless (reconnect_db(\$db)) {
+            log_error("No database connection available");
+            return;
+        }
+    } else {
+        unless ($db->ping) {
+            log_error("Database connection lost during transaction");
+            return;
+        }
     }
 
 my $db_info = build_db_schema($db);
@@ -981,9 +1056,9 @@ if ($table eq "user_auth") {
     #disable update field 'created_by'
     #if ($old_record->{'created_by'} and exists ($record->{'created_by'})) { delete $record->{'created_by'}; }
     foreach my $field (keys %$record) {
-	if (exists $acl_fields{$field}) { $record->{changed}="1"; }
+        if (exists $acl_fields{$field}) { $record->{changed}="1"; }
         if (exists $dhcp_fields{$field} and !is_system_ou($db,$cur_ou_id)) { $record->{dhcp_changed}="1"; }
-	if (exists $dns_fields{$field}) { $dns_changed=1; }
+        if (exists $dns_fields{$field}) { $dns_changed=1; }
         }
     }
 
@@ -1010,72 +1085,72 @@ $set_clause =~ s/,\s*$//;
 $diff =~ s/,\s*$//;
 
 if ($table eq 'user_auth') {
-	if ($dns_changed) {
-	    my $del_dns;
-	    if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
-		    $del_dns->{'name_type'}='A';
-		    $del_dns->{'name'}=$old_record->{'dns_name'};
-		    $del_dns->{'value'}=$old_record->{'ip'};
-		    $del_dns->{'operation_type'}='del';
-		    if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
-		    insert_record($db,'dns_queue',$del_dns);
-		    }
-	    if ($old_record->{'dns_name'} and $old_record->{'ip'} and $old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
-		    $del_dns->{'name_type'}='PTR';
-		    $del_dns->{'name'}=$old_record->{'dns_name'};
-		    $del_dns->{'value'}=$old_record->{'ip'};
-		    $del_dns->{'operation_type'}='del';
-		    if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
-		    insert_record($db,'dns_queue',$del_dns);
-		    }
-	    my $new_dns;
-	    my $dns_rec_ip = $old_record->{ip};
-	    my $dns_rec_name = $old_record->{dns_name};
-	    if ($record->{'dns_name'}) { $dns_rec_name = $record->{'dns_name'}; }
-	    if ($record->{'ip'}) { $dns_rec_ip = $record->{'ip'}; }
-	    if ($dns_rec_name and $dns_rec_ip and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
-		$new_dns->{'name_type'}='A';
-		$new_dns->{'name'}=$dns_rec_name;
-		$new_dns->{'value'}=$dns_rec_ip;
-		$new_dns->{'operation_type'}='add';
-		if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
-		insert_record($db,'dns_queue',$new_dns);
-		}
-	    if ($dns_rec_name and $dns_rec_ip and $record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
-		$new_dns->{'name_type'}='PTR';
-		$new_dns->{'name'}=$dns_rec_name;
-		$new_dns->{'value'}=$dns_rec_ip;
-		$new_dns->{'operation_type'}='add';
-		if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
-		insert_record($db,'dns_queue',$new_dns);
-		}
-	    }
-	}
+        if ($dns_changed) {
+            my $del_dns;
+            if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
+                    $del_dns->{'name_type'}='A';
+                    $del_dns->{'name'}=$old_record->{'dns_name'};
+                    $del_dns->{'value'}=$old_record->{'ip'};
+                    $del_dns->{'operation_type'}='del';
+                    if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
+                    insert_record($db,'dns_queue',$del_dns);
+                    }
+            if ($old_record->{'dns_name'} and $old_record->{'ip'} and $old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
+                    $del_dns->{'name_type'}='PTR';
+                    $del_dns->{'name'}=$old_record->{'dns_name'};
+                    $del_dns->{'value'}=$old_record->{'ip'};
+                    $del_dns->{'operation_type'}='del';
+                    if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
+                    insert_record($db,'dns_queue',$del_dns);
+                    }
+            my $new_dns;
+            my $dns_rec_ip = $old_record->{ip};
+            my $dns_rec_name = $old_record->{dns_name};
+            if ($record->{'dns_name'}) { $dns_rec_name = $record->{'dns_name'}; }
+            if ($record->{'ip'}) { $dns_rec_ip = $record->{'ip'}; }
+            if ($dns_rec_name and $dns_rec_ip and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+                $new_dns->{'name_type'}='A';
+                $new_dns->{'name'}=$dns_rec_name;
+                $new_dns->{'value'}=$dns_rec_ip;
+                $new_dns->{'operation_type'}='add';
+                if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
+                insert_record($db,'dns_queue',$new_dns);
+                }
+            if ($dns_rec_name and $dns_rec_ip and $record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+                $new_dns->{'name_type'}='PTR';
+                $new_dns->{'name'}=$dns_rec_name;
+                $new_dns->{'value'}=$dns_rec_ip;
+                $new_dns->{'operation_type'}='add';
+                if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
+                insert_record($db,'dns_queue',$new_dns);
+                }
+            }
+        }
 
 if ($table eq 'user_auth_alias') {
-	if ($dns_changed) {
-	    my $del_dns;
-	    if ($old_record->{'alias'} and $old_record->{'alias'}!~/\.$/) {
-	    $del_dns->{'name_type'}='CNAME';
-	    $del_dns->{'name'}=$old_record->{'alias'};
-	    $del_dns->{'operation_type'}='del';
-	    $del_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
-	    $del_dns->{'auth_id'}=$old_record->{auth_id};
-	    insert_record($db,'dns_queue',$del_dns);
-	    }
-	    my $new_dns;
-	    my $dns_rec_name = $old_record->{alias};
-	    if ($record->{'alias'}) { $dns_rec_name = $record->{'alias'}; }
-	    if ($dns_rec_name and $record->{'alias'}!~/\.$/) {
-		$new_dns->{'name_type'}='CNAME';
-		$new_dns->{'name'}=$dns_rec_name;
-		$new_dns->{'operation_type'}='add';
-		$new_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
-		$new_dns->{'auth_id'}=$rec_id;
-		insert_record($db,'dns_queue',$new_dns);
-		}
-	    }
-	}
+        if ($dns_changed) {
+            my $del_dns;
+            if ($old_record->{'alias'} and $old_record->{'alias'}!~/\.$/) {
+            $del_dns->{'name_type'}='CNAME';
+            $del_dns->{'name'}=$old_record->{'alias'};
+            $del_dns->{'operation_type'}='del';
+            $del_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
+            $del_dns->{'auth_id'}=$old_record->{auth_id};
+            insert_record($db,'dns_queue',$del_dns);
+            }
+            my $new_dns;
+            my $dns_rec_name = $old_record->{alias};
+            if ($record->{'alias'}) { $dns_rec_name = $record->{'alias'}; }
+            if ($dns_rec_name and $record->{'alias'}!~/\.$/) {
+                $new_dns->{'name_type'}='CNAME';
+                $new_dns->{'name'}=$dns_rec_name;
+                $new_dns->{'operation_type'}='add';
+                $new_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
+                $new_dns->{'auth_id'}=$rec_id;
+                insert_record($db,'dns_queue',$new_dns);
+                }
+            }
+        }
 
 # Формируем полный список параметров: сначала SET, потом WHERE
 my @all_params = (@update_params, @filter_params);
@@ -1084,16 +1159,23 @@ db_log_debug($db, "Change table $table for $filter_sql set: $diff", $rec_id);
 return do_sql($db, $update_sql, @all_params);
 }
 
-
 #---------------------------------------------------------------------------------------------------------------
 
 sub delete_record {
 my ($db, $table, $filter_sql, @filter_params) = @_;
 return unless $db && $table && $filter_sql;
 
-unless (reconnect_db(\$db)) {
-    log_error("No database connection available");
-    return;
+# Переподключаемся ТОЛЬКО если не в транзакции
+if ($db->{AutoCommit}) {
+        unless (reconnect_db(\$db)) {
+            log_error("No database connection available");
+            return;
+        }
+    } else {
+        unless ($db->ping) {
+            log_error("Database connection lost during transaction");
+            return;
+        }
     }
 
 my $select_sql = "SELECT * FROM $table WHERE $filter_sql";
@@ -1420,10 +1502,9 @@ if ($MY_NAME!~/upgrade.pl/) {
     init_option($dbh);
     clean_variables($dbh);
     Set_Variable($dbh);
+    warn "DBI driver name: ", $dbh->{Driver}->{Name}, "\n" if ($debug);
+    warn "Full dbh class: ", ref($dbh), "\n" if ($debug);
     }
-
-#warn "DBI driver name: ", $dbh->{Driver}->{Name}, "\n";
-#warn "Full dbh class: ", ref($dbh), "\n";
 
 1;
 }

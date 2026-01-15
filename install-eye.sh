@@ -592,6 +592,12 @@ install_source_code() {
         chmod 750 /opt/Eye/scripts
         chmod 770 /opt/Eye/scripts/log
         chown -R eye:eye /opt/Eye/scripts
+
+        if [[ -f "/opt/Eye/docs/systemd/stat-sync.service" ]]; then
+            cp /opt/Eye/docs/systemd/stat-sync.service /etc/systemd/system/
+            systemctl enable stat-sync.service
+        fi
+
     fi
 
     # Применяем патч (только если установлен бэкенд, т.к. касается SNMP в Perl)
@@ -1298,6 +1304,8 @@ setup_dhcp_server() {
     # Copy systemd services
     if [[ -f "/opt/Eye/docs/systemd/dhcp-log.service" ]]; then
         cp /opt/Eye/docs/systemd/dhcp-log.service /etc/systemd/system/
+        mkdir -p /etc/systemd/system/dnsmasq.service.d
+        cp -f /opt/Eye/docs/systemd/dnsmasq.service.d/override.conf /etc/systemd/system/dnsmasq.service.d
     fi
 
     if [[ -f "/opt/Eye/docs/systemd/dhcp-log-truncate.service" ]]; then

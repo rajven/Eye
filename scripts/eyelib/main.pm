@@ -217,7 +217,7 @@ sub log_die {
 wrlog($W_ERROR,$_[0]);
 my $worktime = time()-$BASETIME;
 log_info("Script work $worktime sec.");
-sendEmail("$HOSTNAME - $MY_NAME die! ","Process: $MY_NAME aborted with error:\n$_[0]");
+#sendEmail("$HOSTNAME - $MY_NAME die! ","Process: $MY_NAME aborted with error:\n$_[0]");
 die ($_[0]);
 }
 
