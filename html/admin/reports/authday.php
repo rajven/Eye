@@ -70,7 +70,7 @@ if ($db_type === 'mysql') {
     $sSQL = "
         SELECT 
             router_id,
-            DATE_FORMAT(ts, '$mysql_format') AS tHour,
+            DATE_FORMAT(ts, '$mysql_format') AS thour,
             SUM(byte_in) AS byte_in_sum,
             SUM(byte_out) AS byte_out_sum,
             MAX(ROUND(pkt_in / step)) AS pkt_in_max,
@@ -78,13 +78,13 @@ if ($db_type === 'mysql') {
         FROM user_stats_full
         WHERE ts >= ? AND ts < ? AND auth_id = ?$router_condition
         GROUP BY DATE_FORMAT(ts, '$mysql_format'), router_id
-        ORDER BY tHour" . ($rgateway > 0 ? '' : ', router_id');
+        ORDER BY thour" . ($rgateway > 0 ? '' : ', router_id');
 
 } elseif ($db_type === 'pgsql') {
     $sSQL = "
         SELECT 
             router_id,
-            TO_CHAR(ts, '$pg_format') AS tHour,
+            TO_CHAR(ts, '$pg_format') AS thour,
             SUM(byte_in) AS byte_in_sum,
             SUM(byte_out) AS byte_out_sum,
             MAX(ROUND(pkt_in / step)) AS pkt_in_max,
@@ -92,7 +92,7 @@ if ($db_type === 'mysql') {
         FROM user_stats_full
         WHERE ts >= ? AND ts < ? AND auth_id = ?$router_condition
         GROUP BY TO_CHAR(ts, '$pg_format'), router_id
-        ORDER BY tHour" . ($rgateway > 0 ? '' : ', router_id');
+        ORDER BY thour" . ($rgateway > 0 ? '' : ', router_id');
 
 } else {
     throw new RuntimeException("Unsupported database driver: $db_type");
@@ -113,7 +113,7 @@ print "</tr>\n";
 foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $gateway_list[$row['router_id']] . "</td>\n";
-    print "<td class=\"data\">" . $row['tHour'] . "</td>\n";
+    print "<td class=\"data\">" . $row['thour'] . "</td>\n";
     print "<td class=\"data\">" . fbytes($row['byte_in_sum']) . "</td>\n";
     print "<td class=\"data\">" . fbytes($row['byte_out_sum']) . "</td>\n";
     print "<td class=\"data\">" . fpkts($row['pkt_in_max']) . "</td>\n";

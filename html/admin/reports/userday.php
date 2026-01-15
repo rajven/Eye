@@ -104,25 +104,25 @@ foreach ($usersip as $row) {
             $sSQL = "
                 SELECT 
                     user_stats.router_id,
-                    $date_expr AS tHour,
+                    $date_expr AS thour,
                     SUM(byte_in) AS byte_in_sum,
                     SUM(byte_out) AS byte_out_sum
                 FROM user_stats
                 WHERE $detail_conditions
                 GROUP BY $date_expr, user_stats.router_id
-                ORDER BY tHour" . ($rgateway > 0 ? '' : ', user_stats.router_id');
+                ORDER BY thour" . ($rgateway > 0 ? '' : ', user_stats.router_id');
         } elseif ($db_type === 'pgsql') {
             $date_expr = "TO_CHAR(user_stats.ts, '$pg_format')";
             $sSQL = "
                 SELECT 
                     user_stats.router_id,
-                    $date_expr AS tHour,
+                    $date_expr AS thour,
                     SUM(byte_in) AS byte_in_sum,
                     SUM(byte_out) AS byte_out_sum
                 FROM user_stats
                 WHERE $detail_conditions
                 GROUP BY $date_expr, user_stats.router_id
-                ORDER BY tHour" . ($rgateway > 0 ? '' : ', user_stats.router_id');
+                ORDER BY thour" . ($rgateway > 0 ? '' : ', user_stats.router_id');
         } else {
             throw new Exception("Unsupported DB: $db_type");
         }
@@ -135,7 +135,7 @@ foreach ($usersip as $row) {
             print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
             print "<td class=\"data\"> </td>\n";
             print "<td class=\"data\">" . $gateway_list[$userrow['router_id']] . "</td>\n";
-            print "<td class=\"data\">" . $userrow['tHour'] . "</td>\n";
+            print "<td class=\"data\">" . $userrow['thour'] . "</td>\n";
             print "<td class=\"data\">" . fbytes($userrow['byte_in_sum']) . "</td>\n";
             print "<td class=\"data\">" . fbytes($userrow['byte_out_sum']) . "</td>\n";
             print "</tr>\n";
