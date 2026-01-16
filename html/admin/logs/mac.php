@@ -5,7 +5,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 
-$f_mac = mac_simplify(getParam('mac', $page_url, ''));
+$f_mac = mac_dotted(getParam('mac', $page_url, ''));
 $_SESSION[$page_url]['mac'] = $f_mac;
 
 print_log_submenu($page_url);

@@ -37,6 +37,44 @@ check_root() {
     fi
 }
 
+start_if_exists() {
+    local service="$1"
+    if systemctl cat "$service.service" >/dev/null 2>&1; then
+        systemctl start "$service"
+        return 0
+    fi
+    return 1
+}
+
+stop_if_exists() {
+    local service="$1"
+    if systemctl cat "$service.service" >/dev/null 2>&1; then
+        systemctl stop "$service"
+        return 0
+    fi
+    return 1
+}
+
+stop_eye() {
+    PHP_VERSION=$(php -v 2>/dev/null | head -n1 | grep -oP '\d+\.\d+' || echo "")
+    if [ -n "${PHP_VERSION}" ]; then
+        stop_if_exists php${PHP_VERSION}-fpm
+        fi
+    for svc in cron eye-statd dhcp-log stat-sync syslog-stat; do
+        stop_if_exists ${svc}
+        done
+}
+
+start_eye() {
+    PHP_VERSION=$(php -v 2>/dev/null | head -n1 | grep -oP '\d+\.\d+' || echo "")
+    if [ -n "${PHP_VERSION}" ]; then
+        start_if_exists php${PHP_VERSION}-fpm
+        fi
+    for svc in cron eye-statd dhcp-log stat-sync syslog-stat; do
+        start_if_exists ${svc}
+        done
+}
+
 # Detect distribution and package manager
 detect_distro() {
     if [[ -f /etc/os-release ]]; then
@@ -1737,15 +1775,14 @@ eye_upgrade() {
     echo -e "${GREEN}===========================================${NC}"
     echo ""
 
-    systemctl stop eye-statd dhcp-log stat-sync syslog-stat
+    stop_eye
 
     check_root
     detect_distro
 
     backup_current_installation || {
         echo "CRITICAL: Backup failed. Aborting upgrade."
-    
-    systemctl start eye-statd dhcp-log stat-sync syslog-stat
+        start_eye
         exit 1
     }
 
@@ -1756,7 +1793,7 @@ eye_upgrade() {
 
     /opt/Eye/scripts/updates/upgrade.pl
 
-    systemctl start eye-statd dhcp-log stat-sync syslog-stat
+    start_eye
 
     show_final_upgrade
 }

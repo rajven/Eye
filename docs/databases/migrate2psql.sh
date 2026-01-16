@@ -37,6 +37,44 @@ check_root() {
     fi
 }
 
+start_if_exists() {
+    local service="$1"
+    if systemctl cat "$service.service" >/dev/null 2>&1; then
+        systemctl start "$service"
+        return 0
+    fi
+    return 1
+}
+
+stop_if_exists() {
+    local service="$1"
+    if systemctl cat "$service.service" >/dev/null 2>&1; then
+        systemctl stop "$service"
+        return 0
+    fi
+    return 1
+}
+    
+stop_eye() {
+    PHP_VERSION=$(php -v 2>/dev/null | head -n1 | grep -oP '\d+\.\d+' || echo "")
+    if [ -n "${PHP_VERSION}" ]; then
+        stop_if_exists php${PHP_VERSION}-fpm
+        fi
+    for svc in cron eye-statd dhcp-log stat-sync syslog-stat; do
+        stop_if_exists ${svc}
+        done
+}
+
+start_eye() {
+    PHP_VERSION=$(php -v 2>/dev/null | head -n1 | grep -oP '\d+\.\d+' || echo "")
+    if [ -n "${PHP_VERSION}" ]; then
+        start_if_exists php${PHP_VERSION}-fpm
+        fi
+    for svc in cron eye-statd dhcp-log stat-sync syslog-stat; do
+        start_if_exists ${svc}
+        done
+}
+
 # Detect distribution and package manager
 detect_distro() {
     if [[ -f /etc/os-release ]]; then
@@ -512,7 +550,11 @@ if [[ -z "$DB_NAME" || -z "$DB_USER" || -z "$DB_PASS" ]]; then
     exit 1
 fi
 
+stop_eye
+
 eye_migrate2pgsql
+
+start_eye
 
 echo "Maybe need install:"
 echo "\t AltLinux: apt-get install php8.2-pgsql php8.2-pdo_pgsql"

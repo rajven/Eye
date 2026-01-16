@@ -252,7 +252,7 @@ $users_sql = "SELECT mac FROM user_auth WHERE deleted = 0";
 @users_auth = get_records_sql($dbh, $users_sql);
 foreach my $row (@users_auth) {
     next if (!$row->{mac});
-    do_sql($dbh, "DELETE FROM unknown_mac WHERE mac = ?", mac_simplify($row->{mac}));
+    do_sql($dbh, "DELETE FROM unknown_mac WHERE mac = ?", mac_dotted($row->{mac}));
 }
 
 # Clean old detailed traffic records (based on global $history setting)
@@ -327,7 +327,7 @@ my %auth_table;
 my @auth_full_list = get_records_sql($dbh, $auth_sql);
 foreach my $auth (@auth_full_list) {
     next if (!$auth);
-    my $auth_mac = mac_simplify($auth->{mac});
+    my $auth_mac = mac_dotted($auth->{mac});
     next if (exists $auth_table{$auth_mac});
     next if (!exists $connections{$auth->{id}});
 
