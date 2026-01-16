@@ -705,7 +705,7 @@ setup_mysql() {
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         print_warn "Database creation skipped. Create manually:"
-        print_warn "  mysql -u root -p < ${SQL_CREATE_FILE}"
+        print_warn "  mysql -u root -p ${DB_NAME}< ${SQL_CREATE_FILE}"
         print_warn "  mysql -u root -p ${DB_NAME} < ${SQL_DATA_FILE}"
         if [[ -f "$MYSQL_CNF_FILE" ]]; then
             rm -f "$MYSQL_CNF_FILE"
@@ -719,7 +719,10 @@ setup_mysql() {
     print_info "Importing database structure..."
 
     # Import main SQL file
-    mysql $MYSQL_OPT < ${SQL_CREATE_FILE}
+    mysql $MYSQL_OPT <<EOF
+CREATE DATABASE IF NOT EXISTS ${DB_NAME} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+EOF
+    mysql $MYSQL_OPT ${DB_NAME} < ${SQL_CREATE_FILE}
 
     if [[ $? -ne 0 ]]; then
         print_error "Error importing create_db.sql"
