@@ -1788,10 +1788,10 @@ eye_upgrade() {
     echo -e "${GREEN}===========================================${NC}"
     echo ""
 
-    stop_eye
-
     check_root
     detect_distro
+
+    stop_eye
 
     backup_current_installation || {
         echo "CRITICAL: Backup failed. Aborting upgrade."
