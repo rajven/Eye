@@ -98,7 +98,7 @@ foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['id'] . "</td>\n";
     print "<td class=\"data\">"; print_auth_simple($db_link, $row['auth_id']); print "</td>\n";
-    print "<td class=\"data\">" . $row['ts'] . "</td>\n";
+    print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
     print "<td class=\"data\">" . $gateway_list[$row['router_id']] . "</td>\n";
     $proto_name = getprotobynumber($row['proto']);
     if (!$proto_name) { $proto_name = $row['proto']; }

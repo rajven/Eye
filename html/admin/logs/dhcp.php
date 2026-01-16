@@ -90,7 +90,7 @@ foreach ($userlog as $row) {
     if ($row['action'] == "del") { $row['action'] = WEB_log_dhcp_del.": "; }
     $l_msg = $row['action'] . " " . $row['mac'] . " " . $row['ip'];
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td class=\"data\">" . $row['ts'] . "</td>\n";
+    print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
     print "<td class=\"data\">" . $row['action'] . "</td>\n";
     print "<td class=\"data\">" . $row['mac'] . "</td>\n";
     if (isset($row['auth_id']) and $row['auth_id'] > 0) {

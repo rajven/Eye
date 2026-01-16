@@ -116,7 +116,7 @@ if (!empty($t_device)) {
         print "<tr>";
         print "<td class=\"data\">" . expand_mac($db_link,$row['mac']) . "</td>\n";
         print "<td class=\"data\"><a href=\"/admin/users/editauth.php?id=".$row['id']."\">" . $name . "</a></td>\n";
-        print "<td class=\"data\">".$row['last_found']."</td>\n";
+        print "<td class=\"data\">".get_datetime_display($row['last_found'])."</td>\n";
         print "</tr>";
     }
 }
@@ -127,7 +127,7 @@ if (!empty($maclist)) {
         print "<tr>";
         print "<td class=\"data\">" . expand_mac($db_link,$row['mac']) . "</td>\n";
         print "<td class=\"data\">Unknown</td>\n";
-        print "<td class=\"data\">".$row['ts']."</td>\n";
+        print "<td class=\"data\">".get_datetime_display($row['ts'])."</td>\n";
         print "</tr>";
     }
 }

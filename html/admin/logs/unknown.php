@@ -86,7 +86,7 @@ foreach ($maclog as $row) {
     print "<td class=\"data\">" . $row['device_name'] . "</td>\n";
     print "<td class=\"data\">" . $row['port'] . "</td>\n";
     print "<td class=\"data\"><a href=/admin/logs/mac.php?mac=" . mac_dotted($row['mac']) . ">" . mac_dotted($row['mac']) . "</a></td>\n";
-    print "<td class=\"data\">" . $row['ts'] . "</td>\n";
+    print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
     print "</tr>\n";
 }
 print "</table>\n";

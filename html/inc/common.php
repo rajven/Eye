@@ -251,6 +251,14 @@ if (!function_exists('mb_ucfirst')) {
     }
 }
 
+function print_datetime($datetime) {
+if (is_empty_datetime($datetime)) { print "-"; } else { print $datetime; }
+}
+
+function get_datetime_display($datetime) {
+if (is_empty_datetime($datetime)) { return "-"; } else { return $datetime; }
+}
+
 function is_empty_datetime($datetime) {
     if (empty($datetime)) {
         return true;
