@@ -37,42 +37,55 @@ check_root() {
     fi
 }
 
-start_if_exists() {
-    local service="$1"
-    if systemctl cat "$service.service" >/dev/null 2>&1; then
-        systemctl start "$service"
-        return 0
-    fi
-    return 1
+service_exists() {
+    systemctl cat "$1.service" >/dev/null 2>&1
 }
 
-stop_if_exists() {
-    local service="$1"
-    if systemctl cat "$service.service" >/dev/null 2>&1; then
-        systemctl stop "$service"
-        return 0
+safe_start_service() {
+    local svc="$1"
+    if service_exists "$svc"; then
+        if systemctl start "$svc"; then
+            print_info "Service ${svc} has been successfully started"
+        else
+            print_error "Failed to start ${svc}"
+        fi
     fi
-    return 1
+}
+
+safe_stop_service() {
+    local svc="$1"
+    if service_exists "$svc"; then
+        if systemctl stop "$svc"; then
+            print_info "Service ${svc} has been successfully stopped"
+        else
+            print_error "Failed to stop ${svc}"
+        fi
+    fi
 }
 
 stop_eye() {
+    print_step "Stopping services"
+    local PHP_VERSION
     PHP_VERSION=$(php -v 2>/dev/null | head -n1 | grep -oP '\d+\.\d+' || echo "")
     if [ -n "${PHP_VERSION}" ]; then
-        stop_if_exists php${PHP_VERSION}-fpm
-        fi
+        safe_stop_service "php${PHP_VERSION}-fpm"
+    fi
+
     for svc in cron eye-statd dhcp-log stat-sync syslog-stat; do
-        stop_if_exists ${svc}
-        done
+        safe_stop_service "$svc"
+    done
 }
 
 start_eye() {
+    local PHP_VERSION
     PHP_VERSION=$(php -v 2>/dev/null | head -n1 | grep -oP '\d+\.\d+' || echo "")
     if [ -n "${PHP_VERSION}" ]; then
-        start_if_exists php${PHP_VERSION}-fpm
-        fi
+        safe_start_service "php${PHP_VERSION}-fpm"
+    fi
+
     for svc in cron eye-statd dhcp-log stat-sync syslog-stat; do
-        start_if_exists ${svc}
-        done
+        safe_start_service "$svc"
+    done
 }
 
 # Detect distribution and package manager
