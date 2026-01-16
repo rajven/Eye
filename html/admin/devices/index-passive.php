@@ -155,7 +155,7 @@ $params[]=$displayed;
 $params[]=$start;
 $users = get_records_sql($db_link,$sSQL, $params);
 foreach ($users as $user) {
-    if ($user['last_found'] == '0000-00-00 00:00:00') { $user['last_found'] = ''; }
+    if (is_empty_datetime($user['last_found'])) { $user['last_found'] = ''; }
     print "<tr align=center>\n";
     $cl = "data";
     print "<td class='".$cl."' style='padding:0'><input type=checkbox name=fid[] value=".$user['dev_id']."></td>\n";

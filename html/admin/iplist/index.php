@@ -244,14 +244,14 @@ $params[]=$start;
 
 $users = get_records_sql($db_link,$sSQL, $params);
 foreach ($users as $user) {
-    if ($user['dhcp_time'] == '0000-00-00 00:00:00') {
+    if (is_empty_datetime($user['dhcp_time'])) {
         $dhcp_str = '';
     } else {
         $dhcp_str = $user['dhcp_time'] . " (" . $user['dhcp_action'] . ")";
     }
-    if ($user['last_found'] == '0000-00-00 00:00:00') { $user['last_found'] = ''; }
-    if ($user['arp_found'] == '0000-00-00 00:00:00') { $user['arp_found'] = ''; }
-    if ($user['mac_found'] == '0000-00-00 00:00:00') { $user['mac_found'] = ''; }
+    if (is_empty_datetime($user['last_found'])) { $user['last_found'] = ''; }
+    if (is_empty_datetime($user['arp_found'])) { $user['arp_found'] = ''; }
+    if (is_empty_datetime($user['mac_found'])) { $user['mac_found'] = ''; }
     print "<tr align=center>\n";
     $cl = "data";
     if (!$user['enabled']) { $cl = "warn"; }

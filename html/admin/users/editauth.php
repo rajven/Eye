@@ -322,19 +322,19 @@ $device = get_record_sql($db_link, "SELECT * FROM devices WHERE user_id=?", [ $a
 $parent_name = get_login($db_link, $auth_info['user_id']);
 if (empty($parent_name)) { $parent_name=$auth_info['user_id']; }
 
-if ($auth_info['dhcp_time'] == '0000-00-00 00:00:00') {
+if (is_empty_datetime($auth_info['dhcp_time'])) {
     $dhcp_str = '';
 } else {
     $dhcp_str = $auth_info['dhcp_time'] . " (" . $auth_info['dhcp_action'] . ")";
 }
-if ($auth_info['last_found'] == '0000-00-00 00:00:00') { $auth_info['last_found'] = ''; }
-if ($auth_info['mac_found'] == '0000-00-00 00:00:00') { $auth_info['mac_found'] = ''; }
-if ($auth_info['arp_found'] == '0000-00-00 00:00:00') { $auth_info['arp_found'] = ''; }
+if (is_empty_datetime($auth_info['last_found'])) { $auth_info['last_found'] = ''; }
+if (is_empty_datetime($auth_info['mac_found'])) { $auth_info['mac_found'] = ''; }
+if (is_empty_datetime($auth_info['arp_found'])) { $auth_info['arp_found'] = ''; }
 
 $now = DateTime::createFromFormat("Y-m-d H:i:s",date('Y-m-d H:i:s'));
 $created = new DateTime($auth_info['ts']);
 
-if (empty($auth_info['end_life']) or $auth_info['end_life'] == '0000-00-00 00:00:00') { 
+if (empty($auth_info['end_life']) || is_empty_datetime($auth_info['end_life'])) { 
     $now->modify('+1 day');
     $auth_info['end_life'] = $now->format('Y-m-d H:i:s');
     }

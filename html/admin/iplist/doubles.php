@@ -88,9 +88,9 @@ foreach ($users as $row) {
 
             $f_index++;
             $user = get_record_sql($db_link,"SELECT * FROM user_auth WHERE id=?", [$f_id]);
-            if (empty($user['arp_found']) or $user['arp_found'] === '0000-00-00 00:00:00') { $user['arp_found'] = ''; }
-            if (empty($user['ts']) or $user['ts'] === '0000-00-00 00:00:00') { $user['ts'] = ''; }
-            if (empty($user['changed_time']) or $user['changed_time'] === '0000-00-00 00:00:00') { $user['changed_time'] = ''; }
+            if (empty($user['arp_found']) || is_empty_datetime($user['arp_found'])) { $user['arp_found'] = ''; }
+            if (empty($user['ts']) || is_empty_datetime($user['ts'])) { $user['ts'] = ''; }
+            if (empty($user['changed_time']) || is_empty_datetime($user['changed_time'])) { $user['changed_time'] = ''; }
             print "<tr align=center>\n";
             $cl = "data";
             print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_auth_id[] value=".$user["id"];
@@ -114,9 +114,9 @@ foreach ($users as $row) {
         if (!isset($printed[$row['id']])) {
             $f_index++;
             $user = get_record_sql($db_link,"SELECT * FROM user_auth WHERE id=?", [$row['id']]);
-            if (empty($user['arp_found']) or $user['arp_found'] === '0000-00-00 00:00:00') { $user['arp_found'] = ''; }
-            if (empty($user['ts']) or $user['ts'] === '0000-00-00 00:00:00') { $user['ts'] = ''; }
-            if (empty($user['changed_time']) or $user['changed_time'] === '0000-00-00 00:00:00') { $user['changed_time'] = ''; }
+            if (empty($user['arp_found']) || is_empty_datetime($user['arp_found'])) { $user['arp_found'] = ''; }
+            if (empty($user['ts']) || is_empty_datetime($user['ts'])) { $user['ts'] = ''; }
+            if (empty($user['changed_time']) || is_empty_datetime($user['changed_time'])) { $user['changed_time'] = ''; }
             print "<tr align=center>\n";
             $cl = "data";
             print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_auth_id[] value=".$user["id"];

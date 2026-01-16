@@ -94,9 +94,9 @@ $params[]=$start;
 
 $users = get_records_sql($db_link,$sSQL, $params);
 foreach ($users as $user) {
-    if (empty($user['last_found']) or $user['last_found'] === '0000-00-00 00:00:00') { $user['last_found'] = ''; }
-    if (empty($user['ts']) or $user['ts'] === '0000-00-00 00:00:00') { $user['ts'] = ''; }
-    if (empty($user['changed_time']) or $user['changed_time'] === '0000-00-00 00:00:00') { $user['changed_time'] = ''; }
+    if (empty($user['last_found']) || is_empty_datetime($user['last_found'])) { $user['last_found'] = ''; }
+    if (empty($user['ts']) || is_empty_datetime($user['ts'])) { $user['ts'] = ''; }
+    if (empty($user['changed_time']) || is_empty_datetime($user['changed_time'])) { $user['changed_time'] = ''; }
     print "<tr align=center>\n";
     $cl = "data";
     print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";

@@ -106,12 +106,12 @@ $params[]=$start;
 
 $users = get_records_sql($db_link,$sSQL, $params);
 foreach ($users as $user) {
-    if ($user['dhcp_time'] == '0000-00-00 00:00:00') {
+    if (is_empty_datetime($user['dhcp_time'])) {
         $dhcp_str = '';
     } else {
         $dhcp_str = $user['dhcp_time'] . " (" . $user['dhcp_action'] . ")";
     }
-    if ($user['last_found'] == '0000-00-00 00:00:00') { $user['last_found'] = ''; }
+    if (is_empty_datetime($user['last_found'])) { $user['last_found'] = ''; }
     print "<tr align=center>\n";
     $cl = "data";
     if ($user['nagios_status'] == "UP") { $cl = "up"; }

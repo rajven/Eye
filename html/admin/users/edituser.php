@@ -445,16 +445,16 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
             if (!empty($flist)) {
                 foreach ($flist as $row) {
                     $dhcp_str = '';
-                    if ($row["dhcp_time"] !== '0000-00-00 00:00:00') {
+                    if (!is_empty_datetime($row["dhcp_time"])) {
                         if (!empty($row["dhcp_action"])) { $dhcp_str = FormatDateStr('Y.m.d H:m', $row["dhcp_time"]) . " (" . $row["dhcp_action"] . ")"; }
                     }
-                    if ($row["last_found"] == '0000-00-00 00:00:00') {
+                    if (is_empty_datetime($row["last_found"])) {
                         $row["last_found"] = '';
                     }
-                    if ($row["mac_found"] == '0000-00-00 00:00:00') {
+                    if (is_empty_datetime($row["mac_found"])) {
                         $row["mac_found"] = '';
                     }
-                    if ($row["arp_found"] == '0000-00-00 00:00:00') {
+                    if (is_empty_datetime($row["arp_found"])) {
                         $row["arp_found"] = '';
                     }
                     print "<tr align=center>";

@@ -251,6 +251,46 @@ if (!function_exists('mb_ucfirst')) {
     }
 }
 
+function is_empty_datetime($datetime) {
+    if (empty($datetime)) {
+        return true;
+    }
+    
+    // Проверяем формат даты и "нулевые" значения
+    if ($datetime === '0000-00-00 00:00:00') {
+        return true;
+    }
+    
+    // Регулярное выражение для даты в формате YYYY-MM-DD HH:MM:SS
+    if (!preg_match('/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/', $datetime, $matches)) {
+        return false; // Неверный формат — считаем валидным
+    }
+    
+    $year = (int)$matches[1];
+    $month = (int)$matches[2];
+    $day = (int)$matches[3];
+    $hour = (int)$matches[4];
+    $minute = (int)$matches[5];
+    $second = (int)$matches[6];
+    
+    // Проверяем, что дата в пределах "нулевого" диапазона
+    // Unix epoch начинается с 1970-01-01 00:00:00 UTC
+    // Но из-за часовых поясов могут быть варианты вроде 1970-01-01 03:00:00
+    if ($year == 1970 && $month == 1 && $day == 1) {
+        // Допускаем небольшой диапазон часов (0-12) как "нулевую" дату
+        if ($hour >= 0 && $hour <= 12 && $minute == 0 && $second == 0) {
+            return true;
+        }
+    }
+    
+    // Также проверяем даты до 1970 года (иногда бывают)
+    if ($year < 1970) {
+        return true;
+    }
+    
+    return false;
+}
+
 function get_user_ip()
 {
     $auth_ip = getenv("HTTP_CLIENT_IP");
@@ -3618,7 +3658,7 @@ function apply_device_lock($db, $device_id, $iteration = 0)
     );
     
     // Проверяем, есть ли запись и валидна ли временная метка
-    if (empty($dev) || empty($dev['locked_timestamp']) || $dev['locked_timestamp'] === '0000-00-00 00:00:00') {
+    if (empty($dev) || is_empty_datetime($dev['locked_timestamp'])) {
         LOG_DEBUG($db, "Snmp discovery lock not found. Set and discovery.");
         return set_lock_discovery($db, (int)$device_id);
     }
