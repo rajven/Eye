@@ -275,7 +275,7 @@ sub delete_user {
     return 0 unless $id =~ /^\d+$/ && $id > 0;
 
     # Удаляем основную запись пользователя
-    my $changes = delete_record($db, "user_list", "permanent = 1 AND id = ?", $id);
+    my $changes = delete_record($db, "user_list", "permanent = 0 AND id = ?", $id);
     return 0 unless $changes;  # если не удалось — выходим
 
     # Удаляем все IP-записи (user_auth)
@@ -1899,6 +1899,7 @@ sub process_dhcp_request {
 
     # Если запись не найдена и тип 'del' — выходим
     if (!$auth_record && $type eq 'del') {
+        db_log_info($db, "Auth recrod for ip: $ip mac: $mac not found. Dhcp request type: $type");
         return;
     }
 
@@ -1913,7 +1914,10 @@ sub process_dhcp_request {
         db_log_info($db, "Check for new auth. Found id: $res_id", $res_id);
     }
 
-    return unless $auth_record && $auth_record->{id};
+    if (!$auth_record || !$auth_record->{id}) {
+        db_log_error($db, "Record not found/created for ip: $ip mac: $mac not found. Dhcp request type: $type!");
+        return;
+        }
 
     my $auth_id = $auth_record->{id};
     my $auth_ou_id = $auth_record->{ou_id};
