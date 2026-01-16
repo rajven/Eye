@@ -495,7 +495,7 @@ foreach my $device (@device_list) {
                 my $unknown_rec;
                 $unknown_rec->{port_id} = $port_id;
                 $unknown_rec->{device_id} = $dev_id;
-                $unknown_rec->{mac} = mac_dotted($simple_mac);
+                $unknown_rec->{mac} = mac_splitted($simple_mac);
                 insert_record($dbh, 'unknown_mac', $unknown_rec);
             }
         }
@@ -514,7 +514,7 @@ foreach my $mac (keys %mac_history) {
     my $history_rec;
     $history_rec->{device_id} = $h_dev_id;
     $history_rec->{port_id}   = $h_port_id;
-    $history_rec->{mac}       = mac_dotted($mac);
+    $history_rec->{mac}       = mac_splitted($mac);
     $history_rec->{ip}        = $h_ip if ($h_ip);
     $history_rec->{auth_id}   = $h_auth_id;
     insert_record($dbh, 'mac_history', $history_rec);

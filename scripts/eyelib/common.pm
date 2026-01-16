@@ -275,7 +275,7 @@ sub delete_user {
     return 0 unless $id =~ /^\d+$/ && $id > 0;
 
     # Удаляем основную запись пользователя
-    my $changes = delete_record($db, "user_list", "id = ?", $id);
+    my $changes = delete_record($db, "user_list", "permanent = 1 AND id = ?", $id);
     return 0 unless $changes;  # если не удалось — выходим
 
     # Удаляем все IP-записи (user_auth)
@@ -1874,7 +1874,7 @@ sub process_dhcp_request {
     my $ip_aton = StrToIp($ip);
     return unless defined $ip_aton;
 
-    $mac = mac_splitted(isc_mac_simplify($mac));
+    $mac = mac_splitted($mac);
 
     my $dhcp_event_time = GetNowTime($timestamp);
 
@@ -1891,14 +1891,11 @@ sub process_dhcp_request {
         circuit_id    => $circuit_id,
         client_id     => $client_id,
         remote_id     => $remote_id,
-        hotspot       => is_hotspot($db, $ip),  # Исправлено: $db вместо $dbh
+        hotspot       => is_hotspot($db, $ip),
     };
 
     # --- Ищем существующую запись ---
-    my $auth_record = get_record_sql($db,
-        "SELECT * FROM user_auth WHERE ip = ? AND mac = ? AND deleted = 0 ORDER BY last_found DESC",
-        $ip, $mac
-    );
+    my $auth_record = get_record_sql($db,"SELECT * FROM user_auth WHERE ip = ? AND mac = ? AND deleted = 0 ORDER BY last_found DESC", $ip, $mac );
 
     # Если запись не найдена и тип 'del' — выходим
     if (!$auth_record && $type eq 'del') {
@@ -1923,18 +1920,6 @@ sub process_dhcp_request {
 
     $dhcp_record->{auth_id} = $auth_id;
     $dhcp_record->{auth_ou_id} = $auth_ou_id;
-
-    # --- Логирование отладки ---
-    log_debug(uc($type) . ">>");
-    log_debug("MAC:        " . $dhcp_record->{mac});
-    log_debug("IP:         " . $dhcp_record->{ip});
-    log_debug("CIRCUIT-ID: " . $dhcp_record->{circuit_id});
-    log_debug("REMOTE-ID:  " . $dhcp_record->{remote_id});
-    log_debug("HOSTNAME:   " . $dhcp_record->{hostname});
-    log_debug("TYPE:       " . $dhcp_record->{type});
-    log_debug("TIME:       " . $dhcp_event_time);
-    log_debug("AUTH_ID:    " . $auth_id);
-    log_debug("END GET");
 
     update_dns_record_by_dhcp($db, $dhcp_record, $auth_record);
 

@@ -157,22 +157,32 @@ sub run {
                 $logline =~ s/[^\p{L}\p{N}\p{P}\p{Z}]//g;
                 log_debug("Line after filtering: $logline");
 
+                my @field_names = qw(
+                    type mac ip hostname timestamp
+                    tags sup_hostname old_hostname
+                    circuit_id remote_id client_id
+                    decoded_circuit_id decoded_remote_id
+                );
+
                 # Parse fields by semicolon
-                my (
-                    $type, $mac, $ip, $hostname, $timestamp,
-                    $tags, $sup_hostname, $old_hostname,
-                    $circuit_id, $remote_id, $client_id,
-                    $decoded_circuit_id, $decoded_remote_id
-                ) = split(/;/, $logline);
+                my @values = split(/;/, $logline);
+
+                my %dhcp_event;
+                log_verbose("GET::");
+                @dhcp_event{@field_names} = @values;
+                for my $name (@field_names) {
+                    my $val = defined $dhcp_event{$name} ? $dhcp_event{$name} : '';
+                    log_verbose("Param '$name': $val");
+                }
 
                 # Skip lines without valid event type
-                next unless $type && $type =~ /^(old|add|del)$/i;
+                next unless $dhcp_event{'type'} && $dhcp_event{'type'} =~ /^(old|add|del)$/i;
 
-                log_debug("Processing DHCP event: type='$type', MAC='$mac', IP='$ip'");
+                log_debug("Processing DHCP event: type='$dhcp_event{'type'}', MAC='$dhcp_event{'mac'}', IP='$dhcp_event{'ip'}'");
 
                 # Suppress duplicate events within $mute_time window
-                if (exists $leases{$ip} && $leases{$ip}{type} eq $type && (time() - $leases{$ip}{last_time} <= $mute_time)) {
-                    log_debug("Skipping duplicate: IP=$ip, type=$type (within $mute_time sec window)");
+                if (exists $leases{$dhcp_event{'ip'}} && $leases{$dhcp_event{'ip'}}{type} eq $dhcp_event{'type'} && (time() - $leases{$dhcp_event{'ip'}}{last_time} <= $mute_time)) {
+                    log_debug("Skipping duplicate: IP=$dhcp_event{'ip'}, type=$dhcp_event{'type'} (within $mute_time sec window)");
                     next;
                 }
 
@@ -183,12 +193,12 @@ sub run {
                 }
 
                 # Process DHCP request: update/create DB record
-                my $dhcp_record = process_dhcp_request($hdb, $type, $mac, $ip, $hostname, $client_id, $decoded_circuit_id, $decoded_remote_id);
+                my $dhcp_record = process_dhcp_request($hdb, $dhcp_event{'type'}, $dhcp_event{'mac'}, $dhcp_event{'ip'}, $dhcp_event{'hostname'}, $dhcp_event{'client_id'}, $dhcp_event{'decoded_circuit_id'}, $dhcp_event{'$decoded_remote_id'});
                 next unless $dhcp_record;
 
                 # Cache to suppress duplicates
-                $leases{$ip} = {
-                    type => $type,
+                $leases{$dhcp_event{'ip'}} = {
+                    type => $dhcp_event{'type'},
                     last_time => time()
                 };
                 my $auth_id = $dhcp_record->{auth_id};
@@ -196,15 +206,15 @@ sub run {
                 # === SWITCH AND PORT IDENTIFICATION LOGIC ===
 
                 my ($switch, $switch_port);
-                my ($t_remote_id, $t_circuit_id) = ($remote_id, $circuit_id);
+                my ($t_remote_id, $t_circuit_id) = ($dhcp_event{'remote_id'}, $dhcp_event{'circuit_id'});
 
                 # Only process connection events (add/old)
-                if ($type =~ /^(add|old)$/i) {
+                if ($dhcp_event{'type'} =~ /^(add|old)$/i) {
                     log_debug("Attempting to identify switch using Option 82 data...");
 
                     # 1. Try decoded_remote_id as MAC address
-                    if ($decoded_remote_id) {
-                        $t_remote_id = $decoded_remote_id;
+                    if ($dhcp_event{'$decoded_remote_id'}) {
+                        $t_remote_id = $dhcp_event{'$decoded_remote_id'};
                         $t_remote_id .= "0" x (12 - length($t_remote_id)) if length($t_remote_id) < 12;
                         $t_remote_id = mac_splitted(isc_mac_simplify($t_remote_id));
                         my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
@@ -213,17 +223,17 @@ sub run {
                                      "AND A.mac = ?";
                         $switch = get_record_sql($hdb, $devSQL, $t_remote_id);
                         if ($switch) {
-                            $remote_id = $t_remote_id;
-                            $circuit_id = $decoded_circuit_id;
-                            $dhcp_record->{circuit_id} = $circuit_id;
-                            $dhcp_record->{remote_id} = $remote_id;
+                            $dhcp_event{'remote_id'} = $t_remote_id;
+                            $dhcp_event{'circuit_id'} = $dhcp_event{'decoded_circuit_id'};
+                            $dhcp_record->{circuit_id} = $dhcp_event{'circuit_id'};
+                            $dhcp_record->{remote_id} = $dhcp_event{'remote_id'};
                             log_debug("Switch found via decoded_remote_id: " . $switch->{device_name});
                         }
                     }
 
                     # 2. If not found, try raw remote_id as MAC
-                    if (!$switch && $remote_id) {
-                        $t_remote_id = $remote_id;
+                    if (!$switch && $dhcp_event{'remote_id'}) {
+                        $t_remote_id = $dhcp_event{'remote_id'};
                         $t_remote_id .= "0" x (12 - length($t_remote_id)) if length($t_remote_id) < 12;
                         $t_remote_id = mac_splitted(isc_mac_simplify($t_remote_id));
                         my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
@@ -232,16 +242,16 @@ sub run {
                                      "AND A.mac = ?";
                         $switch = get_record_sql($hdb, $devSQL, $t_remote_id);
                         if ($switch) {
-                            $remote_id = $t_remote_id;
-                            $dhcp_record->{circuit_id} = $circuit_id;
-                            $dhcp_record->{remote_id} = $remote_id;
+                            $dhcp_event{'remote_id'} = $t_remote_id;
+                            $dhcp_record->{circuit_id} = $dhcp_event{'circuit_id'};
+                            $dhcp_record->{remote_id} = $dhcp_event{'remote_id'};
                             log_debug("Switch found via remote_id: " . $switch->{device_name});
                         }
                     }
 
                     # 3. If still not found, try remote_id as device name prefix
-                    if (!$switch && $remote_id) {
-                        my @id_words = split(/ /, $remote_id);
+                    if (!$switch && $dhcp_event{'remote_id'}) {
+                        my @id_words = split(/ /, $dhcp_event{'remote_id'});
                         if ($id_words[0]) {
                             my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
                                          "FROM devices AS D, user_auth AS A " .
@@ -255,8 +265,8 @@ sub run {
                     }
 
                     # 4. Special case: MikroTik (circuit-id may contain device name)
-                    if (!$switch && $circuit_id) {
-                        my @id_words = split(/ /, $circuit_id);
+                    if (!$switch && $dhcp_event{'circuit_id'}) {
+                        my @id_words = split(/ /, $dhcp_event{'circuit_id'});
                         if ($id_words[0]) {
                             my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
                                          "FROM devices AS D, user_auth AS A " .
@@ -265,9 +275,9 @@ sub run {
                             $switch = get_record_sql($hdb, $devSQL, $id_words[0] . '%');
                             if ($switch) {
                                 # MikroTik often swaps circuit-id and remote-id
-                                ($circuit_id, $remote_id) = ($remote_id, $t_circuit_id);
-                                $dhcp_record->{circuit_id} = $circuit_id;
-                                $dhcp_record->{remote_id} = $remote_id;
+                                ($dhcp_event{'circuit_id'}, $dhcp_event{'remote_id'}) = ($dhcp_event{'remote_id'}, $t_circuit_id);
+                                $dhcp_record->{circuit_id} = $dhcp_event{'circuit_id'};
+                                $dhcp_record->{remote_id} = $dhcp_event{'remote_id'};
                                 log_debug("Detected MikroTik — swapped circuit-id and remote-id");
                             }
                         }
@@ -275,7 +285,7 @@ sub run {
 
                     # === LOG IF NO SWITCH MATCH FOUND ===
                     unless ($switch) {
-                        log_warning("No matching switch found for DHCP event: IP=$ip, MAC=$mac, remote_id='$remote_id', circuit_id='$circuit_id'");
+                        log_warning("No matching switch found for DHCP event: IP=$dhcp_event{'ip'}, MAC=$dhcp_event{'mac'}, remote_id='$dhcp_event{'remote_id'}', circuit_id='$dhcp_event{'circuit_id'}'");
                     }
 
                     # === PORT IDENTIFICATION ===
@@ -303,8 +313,8 @@ sub run {
                         }
 
                         # If not found by name, try hex port (last 2 bytes of decoded_circuit_id)
-                        if (!$switch_port && $decoded_circuit_id) {
-                            my $hex_port = substr($decoded_circuit_id, -2);
+                        if (!$switch_port && $dhcp_event{'decoded_circuit_id'}) {
+                            my $hex_port = substr($dhcp_event{'decoded_circuit_id'}, -2);
                             if ($hex_port && $hex_port =~ /^[0-9a-fA-F]{2}$/) {
                                 my $t_port = hex($hex_port);
                                 $switch_port = $device_ports_h{$t_port} if exists $device_ports_h{$t_port};
@@ -314,7 +324,7 @@ sub run {
 
                         # Log and update connection
                         if ($switch_port) {
-                            db_log_verbose($hdb, "DHCP $type: IP=$ip, MAC=$mac " . $switch->{device_name} . " / " . $switch_port->{ifname});
+                            db_log_verbose($hdb, "DHCP $dhcp_event{'type'}: IP=$dhcp_event{'ip'}, MAC=$dhcp_event{'mac'} " . $switch->{device_name} . " / " . $switch_port->{ifname});
 
                             # Check if connection already exists
                             my $connection = get_records_sql($hdb, "SELECT * FROM connections WHERE auth_id = ?", $auth_id);
@@ -328,8 +338,8 @@ sub run {
                                 log_debug("New connection created: auth_id=$auth_id");
                             }
                         } else {
-                            db_log_verbose($hdb, "DHCP $type: IP=$ip, MAC=$mac " . $switch->{device_name} . " (port not identified)");
-                            log_warning("Failed to identify port for IP=$ip on switch=" . $switch->{device_name});
+                            db_log_verbose($hdb, "DHCP $dhcp_event{'type'}: IP=$dhcp_event{'ip'}, MAC=$dhcp_event{'mac'} " . $switch->{device_name} . " (port not identified)");
+                            log_warning("Failed to identify port for IP=$dhcp_event{'ip'} on switch=" . $switch->{device_name});
                         }
                     }
 
