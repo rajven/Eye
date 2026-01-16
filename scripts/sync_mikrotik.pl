@@ -358,7 +358,7 @@ my $dns_name='';
 if ($leases{$ip}{dns_name}) { $dns_name = $leases{$ip}{dns_name}; }
 $dns_name =~s/\=//g;
 
-if ($dns_name) { $description = 'description="'.$dns_name." - ".$description.'"'; } else { $description = 'description="'.$description.'"'; }
+if ($dns_name) { $description = 'comment="'.$dns_name." - ".$description.'"'; } else { $description = 'comment="'.$description.'"'; }
 
 if (!exists $active_leases{$ip}) {
     db_log_verbose($dbh,$gate_ident."Address $ip not found in router. Create static lease record.");
@@ -443,7 +443,7 @@ if (@ret_hotspot and scalar(@ret_hotspot)) {
         if (!exists $actual_hotspot_bindings{$actual_mac}) {
             db_log_info($dbh,$gate_ident."Address $actual_mac added to hotspot ip-binding");
             push(@cmd_list,':foreach i in [/ip hotspot ip-binding find where mac-address='.uc($actual_mac).' ] do={/ip hotspot ip-binding remove $i};');
-            push(@cmd_list,'/ip hotspot ip-binding add mac-address='.uc($actual_mac).'  type=bypassed  description="'.$hotspot_exceptions{$actual_mac}.'"');
+            push(@cmd_list,'/ip hotspot ip-binding add mac-address='.uc($actual_mac).'  type=bypassed  comment="'.$hotspot_exceptions{$actual_mac}.'"');
             }
         }
     }
