@@ -117,25 +117,35 @@ sub hasNotifyFlag {
 #---------------------------------------------------------------------------------------------------------
 
 sub log_file {
-return if (!$_[0]);
-return if (!$_[1]);
-return if (!$_[2]);
-open (LG,">>$_[0]") || die("Error open log file $_[0]!!! die...");
-my ($sec,$min,$hour,$mday,$mon,$year) = (localtime())[0,1,2,3,4,5];
-$mon += 1; $year += 1900;
-my @msg = split("\n",$_[2]);
-foreach my $row (@msg) {
-	next if (!$row);
-	printf LG "%04d%02d%02d-%02d%02d%02d %s [%d] %s\n",$year,$mon,$mday,$hour,$min,$sec,$_[1],$$,$row;
-	}
-close (LG);
-if ($< ==0) {
-    my $uid = getpwnam $log_owner_user;
-    my $gid = getgrnam $log_owner_user;
-    if (!$gid) { $gid=getgrnam "root"; }
-    if (!$uid) { $uid=getpwnam "root"; }
-    chown $uid, $gid, $_[0];
-    chmod oct("0660"), $_[0];
+    return if (!$_[0]);
+    return if (!$_[1]);
+    return if (!$_[2]);
+    
+    # Вместо die - предупреждение и возврат
+    unless (open (LG,">>$_[0]")) {
+        # Пишем в stderr как последнее средство
+        print STDERR "WARNING: Cannot open log file $_[0]: $!\n";
+        return;
+    }
+    
+    my ($sec,$min,$hour,$mday,$mon,$year) = (localtime())[0,1,2,3,4,5];
+    $mon += 1; $year += 1900;
+    my @msg = split("\n",$_[2]);
+    
+    foreach my $row (@msg) {
+        next if (!$row);
+        printf LG "%04d%02d%02d-%02d%02d%02d %s [%d] %s\n",$year,$mon,$mday,$hour,$min,$sec,$_[1],$$,$row;
+    }
+    
+    close (LG);
+    
+    if ($< ==0) {
+        my $uid = getpwnam $log_owner_user;
+        my $gid = getgrnam $log_owner_user;
+        if (!$gid) { $gid=getgrnam "root"; }
+        if (!$uid) { $uid=getpwnam "root"; }
+        chown $uid, $gid, $_[0];
+        chmod oct("0660"), $_[0];
     }
 }
 
