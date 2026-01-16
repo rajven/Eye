@@ -321,7 +321,7 @@ COMMENT ON TABLE group_list IS 'Группы политик фильтрации
 -- История MAC-адресов
 CREATE TABLE mac_history (
 id BIGSERIAL PRIMARY KEY,
-mac VARCHAR(12),
+mac MACADDR NOT NULL,
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 device_id BIGINT,
 port_id BIGINT,
@@ -330,7 +330,7 @@ auth_id BIGINT,
 dhcp_hostname VARCHAR(250)
 );
 COMMENT ON TABLE mac_history IS 'История перемещений MAC-адресов';
-COMMENT ON COLUMN mac_history.mac IS 'MAC-адрес (12 шестнадцатеричных символов)';
+COMMENT ON COLUMN mac_history.mac IS 'MAC-адрес';
 COMMENT ON COLUMN mac_history.ip IS 'Последний использованный IP-адрес';
 
 -- Производители MAC-адресов
@@ -446,7 +446,7 @@ COMMENT ON COLUMN traffic_detail.bytes IS 'Байтов переданно в э
 -- Неизвестные MAC-адреса
 CREATE TABLE unknown_mac (
 id BIGSERIAL PRIMARY KEY,
-mac VARCHAR(12),
+mac MACADDR NOT NULL,
 port_id BIGINT,
 device_id INTEGER,
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -473,7 +473,7 @@ dns_ptr_only SMALLINT NOT NULL DEFAULT 0,
 wikiname VARCHAR(250),
 dhcp_acl TEXT,
 queue_id INTEGER NOT NULL DEFAULT 0,
-mac VARCHAR(20) NOT NULL DEFAULT '',
+mac MACADDR,
 dhcp_action VARCHAR(10) NOT NULL DEFAULT '',
 dhcp_option_set VARCHAR(50),
 dhcp_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

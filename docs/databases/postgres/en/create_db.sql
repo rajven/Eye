@@ -321,7 +321,7 @@ COMMENT ON TABLE group_list IS 'Filtering policy groups';
 -- MAC address history
 CREATE TABLE mac_history (
 id BIGSERIAL PRIMARY KEY,
-mac VARCHAR(12),
+mac MACADDR NOT NULL,
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 device_id BIGINT,
 port_id BIGINT,
@@ -330,7 +330,7 @@ auth_id BIGINT,
 dhcp_hostname VARCHAR(250)
 );
 COMMENT ON TABLE mac_history IS 'MAC address movement history';
-COMMENT ON COLUMN mac_history.mac IS 'MAC address (12 hexadecimal characters)';
+COMMENT ON COLUMN mac_history.mac IS 'MAC address';
 COMMENT ON COLUMN mac_history.ip IS 'Last used IP address';
 
 -- MAC address vendors
@@ -445,7 +445,7 @@ COMMENT ON COLUMN traffic_detail.bytes IS 'Bytes transferred in this flow';
 -- Unknown MAC addresses
 CREATE TABLE unknown_mac (
 id BIGSERIAL PRIMARY KEY,
-mac VARCHAR(12),
+mac MACADDR NOT NULL,
 port_id BIGINT,
 device_id INTEGER,
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -472,7 +472,7 @@ dns_ptr_only SMALLINT NOT NULL DEFAULT 0,
 wikiname VARCHAR(250),
 dhcp_acl TEXT,
 queue_id INTEGER NOT NULL DEFAULT 0,
-mac VARCHAR(20) NOT NULL DEFAULT '',
+mac MACADDR,
 dhcp_action VARCHAR(10) NOT NULL DEFAULT '',
 dhcp_option_set VARCHAR(50),
 dhcp_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

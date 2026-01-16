@@ -262,7 +262,7 @@ foreach my $auth (@auth_full_list) {
 }
 
 # Load unknown MAC addresses from the database
-my @unknown_list = get_records_sql($dbh, "SELECT id, mac, port_id, device_id FROM unknown_mac WHERE mac != '' ORDER BY mac");
+my @unknown_list = get_records_sql($dbh, "SELECT id, mac, port_id, device_id FROM unknown_mac WHERE mac IS NOT NULL ORDER BY mac;");
 my %unknown_table;
 foreach my $unknown (@unknown_list) {
     next if (!$unknown);

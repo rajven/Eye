@@ -358,7 +358,7 @@ CREATE TABLE `user_auth` (
   `wikiname` varchar(250) DEFAULT NULL,
   `dhcp_acl` text DEFAULT NULL,
   `queue_id` int(11) NOT NULL DEFAULT 0,
-  `mac` varchar(20) NOT NULL DEFAULT '',
+  `mac` varchar(17) DEFAULT NULL,
   `dhcp_action` varchar(10) NOT NULL DEFAULT '',
   `dhcp_option_set` varchar(50) DEFAULT NULL,
   `dhcp_time` datetime NOT NULL DEFAULT current_timestamp(),
