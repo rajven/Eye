@@ -2204,16 +2204,23 @@ function print_device_port_select($db, $field_name, $device_id, $target_id)
     $device_id = (int)$device_id;
     $target_id = (int)$target_id;
     
-    $t_device = get_records_sql($db,
-        "SELECT D.device_name, DP.port, DP.device_id, DP.id, DP.ifname 
-         FROM devices AS D, device_ports AS DP 
-         WHERE D.deleted = 0 
-           AND D.id = DP.device_id 
-           AND (DP.device_id != ? OR DP.id = ?) 
-           AND (DP.id NOT IN (SELECT target_port_id FROM device_ports WHERE target_port_id IS NOT NULL))
-         ORDER BY D.device_name, DP.port",
-        [$device_id, $target_id]
-    );
+    $dpSQL = "
+    SELECT d.device_name,dp.port,dp.device_id,dp.id,dp.ifName
+    FROM devices d
+    JOIN device_ports dp
+        ON dp.device_id = d.id
+    WHERE d.deleted = 0
+    AND (dp.device_id <> ? OR dp.id = ?)
+    AND NOT EXISTS (
+      SELECT 1
+      FROM device_ports dp2
+      WHERE dp2.target_port_id = dp.id
+        AND dp2.target_port_id > 0
+        AND dp2.target_port_id <> ?
+    )
+    ORDER BY d.device_name, dp.port;
+    ";
+    $t_device = get_records_sql($db,$dpSQL,[$device_id, $target_id, $target_id]);
     
     print_select_item('Empty', 0, $target_id);
     
