@@ -240,7 +240,7 @@ CREATE TABLE `group_list` (
 
 CREATE TABLE `mac_history` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `mac` varchar(12) DEFAULT NULL,
+  `mac` varchar(17) DEFAULT NULL,
   `ts` DATETIME NOT NULL DEFAULT current_timestamp(),
   `device_id` bigint(20) UNSIGNED DEFAULT NULL,
   `port_id` bigint(20) UNSIGNED DEFAULT NULL,
@@ -333,7 +333,7 @@ CREATE TABLE `traffic_detail` (
 
 CREATE TABLE `unknown_mac` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `mac` varchar(12) DEFAULT NULL,
+  `mac` varchar(17) DEFAULT NULL,
   `port_id` bigint(20) UNSIGNED DEFAULT NULL,
   `device_id` int(11) DEFAULT NULL,
   `ts` DATETIME NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()

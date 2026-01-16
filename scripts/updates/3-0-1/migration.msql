@@ -152,3 +152,13 @@ ALTER TABLE `ad_comp_cache`     MODIFY COLUMN `last_found` DATETIME NOT NULL DEF
 ALTER TABLE `devices`           MODIFY COLUMN `locked_timestamp` DATETIME NULL DEFAULT CURRENT_TIMESTAMP();
 ALTER TABLE `variables`         MODIFY COLUMN `clear_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP(), MODIFY COLUMN `created` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP();
 
+-- migration mac to full
+
+-- 1. Обновляем mac_history
+ALTER TABLE `mac_history` MODIFY COLUMN `mac` VARCHAR(17) DEFAULT NULL;
+UPDATE `mac_history` SET mac = CONCAT( SUBSTRING(mac, 1, 2), ':', SUBSTRING(mac, 3, 2), ':', SUBSTRING(mac, 5, 2), ':', SUBSTRING(mac, 7, 2), ':', SUBSTRING(mac, 9, 2), ':', SUBSTRING(mac, 11, 2) ) WHERE mac IS NOT NULL AND LENGTH(mac) = 12;
+
+-- 2. Обновляем unknown_mac
+ALTER TABLE `unknown_mac` MODIFY COLUMN `mac` VARCHAR(17) DEFAULT NULL;
+UPDATE `unknown_mac` SET mac = CONCAT( SUBSTRING(mac, 1, 2), ':', SUBSTRING(mac, 3, 2), ':', SUBSTRING(mac, 5, 2), ':', SUBSTRING(mac, 7, 2), ':', SUBSTRING(mac, 9, 2), ':', SUBSTRING(mac, 11, 2) ) WHERE mac IS NOT NULL AND LENGTH(mac) = 12;
+

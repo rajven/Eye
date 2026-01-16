@@ -1712,6 +1712,7 @@ backup_current_installation() {
     #   - html/log/ — если есть
     tar -czf "$BACKUP_FILE" \
         --exclude="docs" \
+        --exclude="netflow" \
         --exclude="scripts/log" \
         --exclude="scripts/log/*" \
         --exclude="html/log" \
@@ -1736,11 +1737,15 @@ eye_upgrade() {
     echo -e "${GREEN}===========================================${NC}"
     echo ""
 
+    systemctl stop eye-statd dhcp-log stat-sync syslog-stat
+
     check_root
     detect_distro
 
     backup_current_installation || {
         echo "CRITICAL: Backup failed. Aborting upgrade."
+    
+    systemctl start eye-statd dhcp-log stat-sync syslog-stat
         exit 1
     }
 
@@ -1748,7 +1753,11 @@ eye_upgrade() {
     install_packages
     install_source_code
     import_mac_database
+
     /opt/Eye/scripts/updates/upgrade.pl
+
+    systemctl start eye-statd dhcp-log stat-sync syslog-stat
+
     show_final_upgrade
 }
 
