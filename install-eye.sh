@@ -1826,9 +1826,10 @@ eye_upgrade() {
     update_system
     install_packages
     install_source_code
-    import_mac_database
 
     /opt/Eye/scripts/updates/upgrade.pl
+
+    import_mac_database
 
     start_eye
 
