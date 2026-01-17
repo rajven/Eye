@@ -45,7 +45,7 @@ if ($config_ref{config_mode}) {
 # Clean up empty user accounts and associated devices for dynamic users and hotspot
 db_log_verbose($dbh, 'Clearing empty records.');
 
-log_info($dbh, 'Clearing empty user accounts and associated devices for dynamic users and hotspot');
+db_log_info($dbh, 'Clearing empty user accounts and associated devices for dynamic users and hotspot');
 my $u_sql = "SELECT * FROM user_list AS U WHERE (U.ou_id = ? OR U.ou_id = ?) AND (SELECT COUNT(*) FROM user_auth WHERE user_auth.deleted = 0 AND user_auth.user_id = U.id) = 0";
 my @u_ref = get_records_sql($dbh, $u_sql, $default_user_ou_id, $default_hotspot_ou_id);
 foreach my $row (@u_ref) {
@@ -55,7 +55,7 @@ foreach my $row (@u_ref) {
 
 # Clean up empty non-permanent user accounts that have no authentications or auth rules
 #if ($config_ref{clean_empty_user}) {
-#    log_info($dbh, 'Clearing empty non-permanent user accounts and associated devices');
+#    db_log_info($dbh, 'Clearing empty non-permanent user accounts and associated devices');
 #    my $u_sql = "SELECT * FROM user_list AS U WHERE U.permanent = 0 AND (SELECT COUNT(*) FROM user_auth WHERE user_auth.deleted = 0 AND user_auth.user_id = U.id) = 0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id) = 0;";
 #    my @u_ref = get_records_sql($dbh, $u_sql);
 #    foreach my $row (@u_ref) {

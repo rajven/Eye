@@ -996,9 +996,9 @@ log_verbose("Finished");
 @batch_wan_stats=();
 
 if ($config_ref{enable_quotes}) {
-    log_info($hdb,"Recalc quotes started");
+    log_info("Recalc quotes started");
     foreach my $router_id (keys %routers_found) { recalc_quotes($hdb,$router_id); }
-    log_info($hdb,"Recalc quotes stopped");
+    log_info("Recalc quotes stopped");
     }
 
 if (scalar(@detail_traffic)) {
