@@ -111,7 +111,7 @@ if (!$static_hole{$ip}{skip}) {
 print "#--- DNS ---#\n";
 
 #get userid list
-my $sSQL = "
+my $uSQL = "
     SELECT id, ou_id, ip, dns_name, dhcp_hostname, dns_ptr_only
     FROM user_auth
     WHERE deleted = 0
@@ -123,7 +123,7 @@ my $sSQL = "
           )
     ORDER BY ip_int
 ";
-my @users = get_records_sql($dbh, $sSQL);
+my @users = get_records_sql($dbh, $uSQL);
 foreach my $row (@users) {
 next if (!$row);
 next if (is_default_ou($dbh,$row->{ou_id}));
