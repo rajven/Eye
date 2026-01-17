@@ -805,25 +805,26 @@ function cidrToRange($cidr)
 {
     $range = array();
     $cidr = explode('/', $cidr);
-    if (!isset($cidr[1]) or empty($cidr[1])) {
-        $cidr[1] = 32;
-    }
-    if (!empty($cidr[1]) and $cidr[1]>32) {
-        $cidr[1] = 32;
-    }
-    $mask = (int)$cidr[1];
-    $start = (ip2long($cidr[0])) & ((-1 << (32 - $mask)));
-    $stop = $start + pow(2, (32 - $mask)) - 1;
+    $mask = isset($cidr[1]) ? (int)$cidr[1] : 32;
+    if ($mask > 32) $mask = 32;
+
+    $start = ip2long($cidr[0]) & (-1 << (32 - $mask));
+    $stop = $start + (1 << (32 - $mask)) - 1;
+
     $range[0] = long2ip($start);
     $range[1] = long2ip($stop);
     $range[2] = $mask;
-    //dhcp
-    $dhcp_size = round(($stop - $start) / 2, PHP_ROUND_HALF_UP);
-    $dhcp_start = $start + round($dhcp_size / 2, PHP_ROUND_HALF_UP);
+
+    // DHCP: выделяем половину диапазона по центру
+    $total_hosts = $stop - $start;
+    $dhcp_size = (int) round($total_hosts / 2.0);
+    $dhcp_offset = (int) round($dhcp_size / 2.0);
+    $dhcp_start = $start + $dhcp_offset;
+
     $range[3] = long2ip($dhcp_start);
     $range[4] = long2ip($dhcp_start + $dhcp_size);
-    //gateway
     $range[5] = long2ip($start + 1);
+
     return $range;
 }
 
