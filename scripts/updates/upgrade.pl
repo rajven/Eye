@@ -66,8 +66,15 @@ my $stage = 1;
 for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
     print "Stage $stage. Upgrade to $old_releases[$i]\n";
     $stage++;
-    my $dir_name = $update_dir."/".$old_releases[$i];
-    $dir_name =~s/\./-/g;
+
+    my $version_dir = $old_releases[$i];
+    $version_dir =~ s/\./-/g;
+
+    # Убираем завершающий слэш из $update_dir, если есть
+    $update_dir =~ s{/$}{};
+
+    my $dir_name = "$update_dir/$version_dir";
+
     next if (! -d $dir_name);
 
     # patch before change database schema
