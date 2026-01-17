@@ -5,6 +5,12 @@
 #
 
 use utf8;
+use strict;
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
+
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
 use Data::Dumper;

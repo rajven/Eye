@@ -2,8 +2,13 @@
 #
 # Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
+
 use utf8;
-use open ":encoding(utf8)";
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
+
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
 use strict;

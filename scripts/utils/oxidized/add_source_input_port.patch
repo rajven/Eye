@@ -1,0 +1,68 @@
+diff -urN oxidized/lib/oxidized/input/ssh.rb oxidized.patched/lib/oxidized/input/ssh.rb
+--- oxidized/lib/oxidized/input/ssh.rb	2023-06-25 13:21:13.549859510 +0300
++++ oxidized.patched/lib/oxidized/input/ssh.rb	2023-06-26 01:05:44.715259384 +0300
+@@ -121,6 +121,7 @@
+ 
+     def make_ssh_opts
+       secure = Oxidized.config.input.ssh.secure?
++      node_ssh_port = @node.input_port || vars(:ssh_port)
+       ssh_opts = {
+         number_of_password_prompts:      0,
+         keepalive:                       vars(:ssh_no_keepalive) ? false : true,
+@@ -128,7 +129,7 @@
+         append_all_supported_algorithms: true,
+         password:                        @node.auth[:password],
+         timeout:                         Oxidized.config.timeout,
+-        port:                            (vars(:ssh_port) || 22).to_i,
++        port:                            (node_ssh_port || 22).to_i,
+         forward_agent:                   false
+       }
+ 
+diff -urN oxidized/lib/oxidized/input/telnet.rb oxidized.patched/lib/oxidized/input/telnet.rb
+--- oxidized/lib/oxidized/input/telnet.rb	2023-06-25 13:21:13.549859510 +0300
++++ oxidized.patched/lib/oxidized/input/telnet.rb	2023-06-26 01:05:51.839271280 +0300
+@@ -11,11 +11,11 @@
+       @timeout = Oxidized.config.timeout
+       @node.model.cfg['telnet'].each { |cb| instance_exec(&cb) }
+       @log = File.open(Oxidized::Config::Log + "/#{@node.ip}-telnet", 'w') if Oxidized.config.input.debug?
+-      port = vars(:telnet_port) || 23
++      port = @node.input_port || vars(:telnet_port)
+ 
+       telnet_opts = {
+         'Host'    => @node.ip,
+-        'Port'    => port.to_i,
++        'Port'    => (port || 23).to_i,
+         'Timeout' => @timeout,
+         'Model'   => @node.model,
+         'Log'     => @log
+diff -urN oxidized/lib/oxidized/node.rb oxidized.patched/lib/oxidized/node.rb
+--- oxidized/lib/oxidized/node.rb	2023-06-25 13:21:13.557859532 +0300
++++ oxidized.patched/lib/oxidized/node.rb	2023-06-26 01:25:50.009837507 +0300
+@@ -6,7 +6,7 @@
+   class ModelNotFound  < OxidizedError; end
+ 
+   class Node
+-    attr_reader :name, :ip, :model, :input, :output, :group, :auth, :prompt, :vars, :last, :repo
++    attr_reader :name, :ip, :model, :input, :output, :group, :auth, :prompt, :vars, :last, :repo, :input_port
+     attr_accessor :running, :user, :email, :msg, :from, :stats, :retry, :err_type, :err_reason
+     alias running? running
+ 
+@@ -26,6 +26,7 @@
+       @auth = resolve_auth opt
+       @prompt = resolve_prompt opt
+       @vars = opt[:vars]
++      @input_port = resolve_input_port opt
+       @stats = Stats.new
+       @retry = 0
+       @repo = resolve_repo opt
+@@ -165,6 +166,10 @@
+       end
+     end
+ 
++    def resolve_input_port(opt)
++      resolve_key :input_port, opt
++    end
++
+     def resolve_output(opt)
+       output = resolve_key :output, opt, Oxidized.config.output.default
+       Oxidized.mgr.add_output(output) || raise(MethodNotFound, "#{output} not found for node #{ip}") unless Oxidized.mgr.output[output]

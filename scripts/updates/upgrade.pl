@@ -5,9 +5,11 @@
 #
 
 use utf8;
+use strict;
+use warnings;
 use Encode;
+use open qw(:std :encoding(UTF-8));
 no warnings 'utf8';
-use open ':encoding(utf-8)';
 
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
@@ -21,7 +23,7 @@ use warnings;
 
 STDOUT->autoflush(1);
 
-my $update_dir = '/opt/Eye/scripts/updates/';
+my $update_dir = '/opt/Eye/scripts/updates';
 
 opendir(my $dh, $update_dir) or die "Eror listing for $update_dir: $!";
 my @old_releases = sort grep { -d "$update_dir/$_" && !/^\.\.?$/ && /^\d/ } readdir($dh);
@@ -64,7 +66,7 @@ my $stage = 1;
 for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
     print "Stage $stage. Upgrade to $old_releases[$i]\n";
     $stage++;
-    my $dir_name = $old_releases[$i];
+    my $dir_name = $update_dir."/".$old_releases[$i];
     $dir_name =~s/\./-/g;
     next if (! -d $dir_name);
 

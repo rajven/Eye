@@ -6,6 +6,12 @@
 
 #Обновляем БД устрйств
 
+use utf8;
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
+
 use FindBin '$Bin';
 use lib "$Bin/";
 use Data::Dumper;

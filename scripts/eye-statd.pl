@@ -1,9 +1,11 @@
 #!/usr/bin/perl -w
 
 use utf8;
-use open ":encoding(utf8)";
+use warnings;
 use Encode;
+use open qw(:std :encoding(UTF-8));
 no warnings 'utf8';
+
 use English;
 use base;
 use FindBin '$Bin';
