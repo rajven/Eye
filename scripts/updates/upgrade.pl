@@ -73,22 +73,25 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
     if (@perl_patches) {
         foreach my $patch (@perl_patches) {
             next unless $patch && -e $patch;
+        
+            # Выводим полный путь к патчу
+            print "  → Applying Perl patch: $patch\n";
+        
             open(my $pipe, "-|", "$^X $patch") or die "Error applying upgrade script $patch: $!";
             while (my $line = <$pipe>) {
                 chomp $line;
                 if ($line =~ s/^:://) {
-                    # Строка начинается с "::" → выводим с \r и без перевода строки
-                    printf "\r%-80s", $line;  # дополняем пробелами до 80 символов, чтобы затереть старый текст
-                    $| = 1;  # flush
+                    printf "\r%-80s", $line;
+                    $| = 1;
                 } else {
                     print "$line\n";
                 }
             }
             close($pipe);
-            print "\n" if $pipe;
+            print "\n";
         }
     }
-    @perl_patches=();
+    @perl_patches = ();
 
     #change database schema
     # === Apply SQL patches ===
@@ -162,21 +165,25 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
     if (@perl_patches) {
         foreach my $patch (@perl_patches) {
             next unless $patch && -e $patch;
+        
+            # Выводим полный путь к патчу
+            print "  → Applying Perl patch: $patch\n";
+        
             open(my $pipe, "-|", "$^X $patch") or die "Error applying upgrade script $patch: $!";
             while (my $line = <$pipe>) {
                 chomp $line;
                 if ($line =~ s/^:://) {
-                    # Строка начинается с "::" → выводим с \r и без перевода строки
-                    printf "\r%-80s", $line;  # дополняем пробелами до 80 символов, чтобы затереть старый текст
-                    $| = 1;  # flush
+                    printf "\r%-80s", $line;
+                    $| = 1;
                 } else {
                     print "$line\n";
                 }
             }
             close($pipe);
-            print "\n" if $pipe;
+            print "\n";
         }
     }
+    @perl_patches = ();
 
 #change version
 do_sql($dbh,'UPDATE version SET version="'.$old_releases[$i].'"');
