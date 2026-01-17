@@ -77,6 +77,7 @@ stop_eye() {
 }
 
 start_eye() {
+    print_step "Starting services"
     local PHP_VERSION
     PHP_VERSION=$(php -v 2>/dev/null | head -n1 | grep -oP '\d+\.\d+' || echo "")
     if [ -n "${PHP_VERSION}" ]; then
