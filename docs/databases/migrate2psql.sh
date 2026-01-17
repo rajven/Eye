@@ -1,6 +1,6 @@
 #!/bin/bash
 # Eye Migration Script for ALT Linux/Debian/Ubuntu with PostgreSQL support
-# Version: 2.1
+# Version: 1.0
 
 # set -e
 
@@ -270,6 +270,12 @@ local   all             postgres                                peer\
     else
         LC_TYPE="en_US.UTF-8"
     fi
+
+    # === Проверка: существует ли БД? ===
+    if sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw "^\s*${DB_NAME}\s*$"; then
+        print_error "Database '$DB_NAME' already exists. The script has been stopped."
+        exit 120
+        fi
 
     print_info "Creating database '$DB_NAME' with locale '$LC_TYPE'..."
 

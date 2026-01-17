@@ -1,6 +1,6 @@
 #!/bin/bash
 # Eye Installation Script for ALT Linux/Debian/Ubuntu with PostgreSQL support
-# Version: 2.1
+# Version: 1.0
 
 # set -e
 
@@ -767,12 +767,28 @@ setup_mysql() {
     # Generate password for db user
     DB_PASS=$(pwgen 16 1)
 
-    print_info "Importing database structure..."
+    # === Проверка: существует ли база данных? ===
+    if mysql $MYSQL_OPT -sN -e "SHOW DATABASES;" | grep -q "^${DB_NAME}$"; then
+        print_error "Database '$DB_NAME' already exists. The script has been stopped."
+        exit 120
+        fi
+
+    print_info "Create database..."
 
     # Import main SQL file
     mysql $MYSQL_OPT <<EOF
 CREATE DATABASE IF NOT EXISTS ${DB_NAME} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 EOF
+    if [[ $? -ne 0 ]]; then
+        print_error "Error creating database ${DB_NAME}"
+        if [[ -f "$MYSQL_CNF_FILE" ]]; then
+            rm -f "$MYSQL_CNF_FILE"
+        fi
+        exit 121
+    fi
+
+    print_info "Importing database structure..."
+
     mysql $MYSQL_OPT ${DB_NAME} < ${SQL_CREATE_FILE}
 
     if [[ $? -ne 0 ]]; then
@@ -780,7 +796,7 @@ EOF
         if [[ -f "$MYSQL_CNF_FILE" ]]; then
             rm -f "$MYSQL_CNF_FILE"
         fi
-        return 1
+        exit 122
     fi
 
     print_info "Database structure imported"
@@ -790,7 +806,8 @@ EOF
     mysql $MYSQL_OPT ${DB_NAME} < ${SQL_DATA_FILE}
 
     if [[ $? -ne 0 ]]; then
-        print_warn "Error importing data.sql (data may already exist)"
+        print_error "Error importing data.sql !!!"
+        exit 123
     else
         print_info "Initial data imported"
     fi
@@ -808,7 +825,7 @@ EOF
         if [[ -f "$MYSQL_CNF_FILE" ]]; then
             rm -f "$MYSQL_CNF_FILE"
         fi
-        return 1
+        exit 124
     fi
 
     print_info "User $DB_USER successfully created"
@@ -871,8 +888,14 @@ local   all             postgres                                peer\
     # Check PostgreSQL access
     if ! command -v psql &> /dev/null; then
         print_error "PostgreSQL client not installed"
-        return 1
+        exit 110
     fi
+
+    # === Проверка: существует ли БД? ===
+    if sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw "^\s*${DB_NAME}\s*$"; then
+        print_error "Database '$DB_NAME' already exists. The script has been stopped."
+        exit 120
+        fi
 
     # Спросить, создавать ли БД
     read -p "Create database and user for Eye? (y/n): " -n 1 -r
@@ -914,7 +937,7 @@ local   all             postgres                                peer\
 
     if [[ $? -ne 0 ]]; then
         print_error "Failed to create database"
-        return 1
+        exit 121
     fi
 
     print_info "Database created successfully with owner '$DB_USER'"
@@ -932,7 +955,7 @@ EOF
 
     if [[ $? -ne 0 ]]; then
         print_error "Error importing create_db.sql"
-        return 1
+        exit 122
     fi
 
     print_info "Database structure imported successfully"
@@ -946,7 +969,8 @@ SET ROLE "$DB_USER";
 EOF
 
         if [[ $? -ne 0 ]]; then
-            print_warn "Warning: failed to import data (may already exist or non-critical)"
+            print_error "Warning: failed to import data (may already exist or non-critical)"
+            exit 123
         else
             print_info "Database data imported successfully"
         fi
@@ -1035,13 +1059,13 @@ setup_database() {
         fi
     else
         print_error "Unsupported database type: $DB_TYPE"
-        return 1
+        exit 130
     fi
 
     # Проверка существования файлов
     if [[ ! -f "$SQL_CREATE_FILE" || ! -f "$SQL_DATA_FILE" ]]; then
         print_error "SQL files not found for DB_TYPE=$DB_TYPE and EYE_LANG=$EYE_LANG"
-        return 1
+        exit 131
     fi
 
     print_info "Using SQL files for $EYE_LANG language"

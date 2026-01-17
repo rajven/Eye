@@ -2205,7 +2205,7 @@ function print_device_port_select($db, $field_name, $device_id, $target_id)
     $target_id = (int)$target_id;
     
     $dpSQL = "
-    SELECT d.device_name,dp.port,dp.device_id,dp.id,dp.ifName
+    SELECT d.device_name,dp.port,dp.device_id,dp.id,dp.ifname
     FROM devices d
     JOIN device_ports dp
         ON dp.device_id = d.id

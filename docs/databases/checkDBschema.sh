@@ -1,6 +1,6 @@
 #!/bin/bash
-# Eye Migration Script for ALT Linux/Debian/Ubuntu with PostgreSQL support
-# Version: 2.1
+# Eye Script validating current DB schema for ALT Linux/Debian/Ubuntu with PostgreSQL support
+# Version: 1.0
 
 # set -e
 
@@ -175,12 +175,21 @@ setup_mysql() {
         fi
     fi
 
-    print_info "Importing database structure..."
+    # === Проверка: существует ли база данных? ===
+    if mysql $MYSQL_OPT -sN -e "SHOW DATABASES;" | grep -q "^${DB_TEST}$"; then
+        print_error "Database '$DB_TEST' already exists. The script has been stopped."
+        exit 120
+        fi
+
+    print_info "Creating database..."
 
     # Import main SQL file
     mysql $MYSQL_OPT <<EOF
 CREATE DATABASE IF NOT EXISTS ${DB_TEST} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 EOF
+
+    print_info "Importing database structure..."
+
     mysql $MYSQL_OPT ${DB_TEST} < ${SQL_CREATE_FILE}
 
     if [[ $? -ne 0 ]]; then
@@ -226,6 +235,12 @@ setup_postgresql() {
     else
         LC_TYPE="en_US.UTF-8"
     fi
+
+    # === Проверка: существует ли БД? ===
+    if sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw "^\s*${DB_TEST}\s*$"; then
+        print_error "Database '$DB_TEST' already exists. The script has been stopped."
+        exit 120
+        fi
 
     print_info "Creating database '$DB_TEST' with locale '$LC_TYPE'..."
 
@@ -352,6 +367,10 @@ install_clear_db() {
 # Function to display help
 show_help() {
     echo "Usage: $0"
+    echo "\tThe script checks the correctness of the working database structure."
+    echo "\tTo do this, it creates a new empty database with a reference structure,"
+    echo "\tand then compares the two databases. "
+    echo "\tThe name of the test database is formed from the name of the working database with _test appended to it."
     echo ""
     echo "Options:"
     echo "  --help, -h     Show this help"

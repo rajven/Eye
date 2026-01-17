@@ -92,6 +92,7 @@ sub get_schema {
         for my $col (keys %cols) {
             my $info = $cols{$col};
             $schema{$table}{$col} = {
+                name     => $info->{name} // '',
                 type     => $info->{type}     // '',
                 nullable => $info->{nullable} // 1,
                 default  => normalize_default($info->{default}, $db_type),
@@ -125,6 +126,13 @@ for my $table (keys %clear_schema) {
             print "❗ ERROR: Column '$col' in table '$table' exists in clean DB but not in working DB!\n";
             $has_critical_error = 1;
             next;
+        }
+        my $clean_name = $clear_schema{$table}{$col}{name} // '';
+        my $work_name  = $work_schema{$table}{$col}{name} // '';
+        if ($clean_name ne $work_name) {
+            print "❗ ERROR: Column '$col' in table '$table' has different name case:\n";
+            print "      Clean: '$clean_name', Working: '$work_name'\n";
+            $has_critical_error = 1;
         }
 
         # === Сравнение типов ===
