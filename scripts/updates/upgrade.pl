@@ -34,7 +34,10 @@ my %old_releases_h = map {$_ => $r_index++ } @old_releases;
 my $eye_release = $old_releases[@old_releases - 1];
 
 $dbh=init_db();
-init_option($dbh);
+
+$config_ref{version}='';
+my $version_record = get_record_sql($dbh,"SELECT version FROM version WHERE version is NOT NULL");
+if ($version_record) { $config_ref{version}=$version_record->{version}; }
 
 if (!$config_ref{version} and !$ARGV[0]) {
     print "Current version unknown! Skip upgrade!\n";
@@ -64,78 +67,119 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
     my $dir_name = $old_releases[$i];
     $dir_name =~s/\./-/g;
     next if (! -d $dir_name);
-    #patch before change database schema
-    my @perl_patches = glob($dir_name.'/before*.pl');
-    if (@perl_patches and scalar @perl_patches) {
+
+    # patch before change database schema
+    my @perl_patches = glob("$dir_name/before*.pl");
+    if (@perl_patches) {
         foreach my $patch (@perl_patches) {
-            next if (!$patch or ! -e $patch);
-            open(my $pipe, "-|", "perl $patch") or die "Error in apply upgrade script $patch! Ошибка: $!";
-            while (my $line = <$pipe>) { 
-                if ($line =~ /::/) { print "\r"; $line =~s/\:\://; }
-                print $line; 
+            next unless $patch && -e $patch;
+            open(my $pipe, "-|", "$^X $patch") or die "Error applying upgrade script $patch: $!";
+            while (my $line = <$pipe>) {
+                chomp $line;
+                if ($line =~ s/^:://) {
+                    # Строка начинается с "::" → выводим с \r и без перевода строки
+                    printf "\r%-80s", $line;  # дополняем пробелами до 80 символов, чтобы затереть старый текст
+                    $| = 1;  # flush
+                } else {
+                    print "$line\n";
                 }
+            }
             close($pipe);
-            }
-        }
-    #change database schema
-    my @sql_patches;
-    if ($db_type) {
-        my @sql_patches1 = glob($dir_name.'/*.sql');
-        my @sql_patches2 = glob($dir_name.'/*.msql');
-        push(@sql_patches,@sql_patches1);
-        push(@sql_patches,@sql_patches2);
-        } else {
-        @sql_patches = glob($dir_name.'/*.psql');
-        }
-    if (@sql_patches and scalar @sql_patches) {
-        my @sorted_patches = sort @sql_patches;
-        my $i = 0;
-        while ($i < @sorted_patches) {
-            my $patch = $sorted_patches[$i];
-            $i++;
-            eval {
-                next if (!$patch or ! -e $patch);
-                next if ($patch =~ /version\.sql/);
-                my @sql_cmd = read_file($patch);
-                my $j = 0;
-                while ($j < @sql_cmd) {
-                    my $sql = $sql_cmd[$j];
-                    $j++;
-                    next if ($sql =~ /^(--|#)/);
-                    next if (!$sql);
-                    my $sql_prep = $dbh->prepare($sql);
-                    if (!$sql_prep) {
-                        warn "Unable to prepare SQL: $sql\nError: " . $dbh->errstr . "\n";
-                        next;
-                    }
-                    my $rv = $sql_prep->execute();
-                    if (!$rv) {
-                        warn "Unable to execute SQL: $sql\nError: " . $dbh->errstr . "\n";
-                    }
-                    $sql_prep->finish();
-                }
-            };
-            if ($@) {
-                chomp $@;
-                print STDERR "Error processing patch '$patch': $@\n";
-            }
+            print "\n" if $pipe;
         }
     }
-    #patch after change database schema
-    @perl_patches = glob($dir_name.'/after*.pl');
-    if (@perl_patches and scalar @perl_patches) {
-        foreach my $patch (@perl_patches) {
-            next if (!$patch or ! -e $patch);
-            open(my $pipe, "-|", "perl $patch") or die "Error in apply upgrade script $patch! Ошибка: $!";
-            while (my $line = <$pipe>) {
-                if ($line =~ /::/) { print "\r"; $line =~s/\:\://; }
-                print $line; 
-                }
-            close($pipe);
+    @perl_patches=();
+
+    #change database schema
+    # === Apply SQL patches ===
+    my @sql_patches;
+    if ($db_type) {
+        push @sql_patches, glob("$dir_name/*.sql"), glob("$dir_name/*.msql");
+    } else {
+        @sql_patches = glob("$dir_name/*.psql");
+    }
+
+    if (@sql_patches) {
+        my @sorted_patches = sort @sql_patches;
+        for my $patch (@sorted_patches) {
+            next if !$patch || !-e $patch;
+            next if $patch =~ /version\.sql$/;
+
+            print "  → Applying SQL patch: $patch\n";
+
+            my @sql_lines = read_file($patch);
+            my $stmt_num = 0;
+
+            for my $raw_line (@sql_lines) {
+                # Убираем комментарии и пустые строки
+                my $sql = $raw_line;
+                $sql =~ s/\s+$//;  # trim
+                next if $sql eq '' || $sql =~ /^(--|#)/;
+
+                $stmt_num++;
+
+                # Логируем команду
+                print "    [$stmt_num] Executing: $sql\n";
+
+                eval {
+                    my $sth = $dbh->prepare($sql);
+                    if (!$sth) {
+                        die "Prepare failed: " . $dbh->errstr;
+                    }
+
+                    my $rv = $sth->execute();
+                    if (!defined $rv) {
+                        die "Execute failed: " . $dbh->errstr;
+                    }
+
+                    # Показываем результат (если есть)
+                    if ($sql =~ /^\s*(INSERT|UPDATE|DELETE|TRUNCATE)/i) {
+                        my $rows = $sth->rows;
+                        print "        → Affected rows: $rows\n";
+                    } elsif ($sql =~ /^\s*SELECT/i) {
+                        my $rows = $sth->fetchall_arrayref({});
+                        my $count = @$rows;
+                        print "        → Selected $count row(s)\n";
+                    } else {
+                        print "        → Command executed successfully\n";
+                    }
+
+                    $sth->finish();
+                    1;
+                } or do {
+                    my $err = $@;
+                    chomp $err;
+                    print "        ❌ ERROR: $err\n";
+                # Не прерываем — продолжаем, как в оригинале
+                };
             }
+            print "  → Patch $patch applied.\n\n";
         }
-    #change version
-    do_sql($dbh,'UPDATE version SET version="'.$old_releases[$i].'"');
+    }
+
+    # patch after change database schema
+    @perl_patches = glob("$dir_name/after*.pl");
+    if (@perl_patches) {
+        foreach my $patch (@perl_patches) {
+            next unless $patch && -e $patch;
+            open(my $pipe, "-|", "$^X $patch") or die "Error applying upgrade script $patch: $!";
+            while (my $line = <$pipe>) {
+                chomp $line;
+                if ($line =~ s/^:://) {
+                    # Строка начинается с "::" → выводим с \r и без перевода строки
+                    printf "\r%-80s", $line;  # дополняем пробелами до 80 символов, чтобы затереть старый текст
+                    $| = 1;  # flush
+                } else {
+                    print "$line\n";
+                }
+            }
+            close($pipe);
+            print "\n" if $pipe;
+        }
+    }
+
+#change version
+do_sql($dbh,'UPDATE version SET version="'.$old_releases[$i].'"');
 }
 
 print "Done!\n";

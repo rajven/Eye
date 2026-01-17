@@ -361,7 +361,7 @@ CREATE TABLE `user_auth` (
   `mac` varchar(17) DEFAULT NULL,
   `dhcp_action` varchar(10) NOT NULL DEFAULT '',
   `dhcp_option_set` varchar(50) DEFAULT NULL,
-  `dhcp_time` datetime NOT NULL DEFAULT current_timestamp(),
+  `dhcp_time` datetime DEFAULT NULL,
   `dhcp_hostname` varchar(60) DEFAULT NULL,
   `last_found` datetime NOT NULL DEFAULT current_timestamp(),
   `arp_found` datetime DEFAULT NULL,
