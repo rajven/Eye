@@ -513,8 +513,8 @@ my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM filter_list where filte
 my %filters;
 my %dyn_filters;
 
-my $max_filter_rec = get_record_sql($dbh,"SELECT MAX(id) FROM filter_list");
-my $max_filter_id = $max_filter_rec->{id};
+my $max_filter_rec = get_record_sql($dbh,"SELECT MAX(id) as max_filter FROM filter_list");
+my $max_filter_id = $max_filter_rec->{max_filter};
 
 my $dyn_filters_base = $max_filter_id+1000;
 my $dyn_filters_index = $dyn_filters_base;

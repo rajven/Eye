@@ -235,7 +235,7 @@ open(FH,">",$config_ref{nagios_dir}."/dependency/dep_hosts.cfg");
 foreach my $device_name (keys %dependency) {
 my @dep_list=@{$dependency{$device_name}};
 if (@dep_list and scalar(@dep_list)) {
-    my $dep_hosts;
+    my $dep_hosts = '';
     foreach my $dep_host (@dep_list) {
 	next if (!$dep_host);
 	$dep_hosts = $dep_hosts.",".$dep_host;

@@ -250,6 +250,7 @@ my @auth_list = get_records_sql($dbh, $auth_sql, $now_day);
 my %auth_table;
 foreach my $auth (@auth_list) {
     next if (!$auth);
+    next if (!$auth->{mac});
     my $auth_mac = mac_simplify($auth->{mac});
     $auth_table{oper_table}{$auth_mac} = $auth->{id};
 }
@@ -268,6 +269,7 @@ my @unknown_list = get_records_sql($dbh, "SELECT id, mac, port_id, device_id FRO
 my %unknown_table;
 foreach my $unknown (@unknown_list) {
     next if (!$unknown);
+    next if (!$unknown->{mac});
     my $unknown_mac = mac_simplify($unknown->{mac});
     $unknown_table{$unknown_mac}{unknown_id} = $unknown->{id};
     $unknown_table{$unknown_mac}{port_id}    = $unknown->{port_id};
@@ -375,8 +377,13 @@ foreach my $device (@device_list) {
     my $sw_mac;
     if ($device->{vendor_id} eq '9') {
         my $sw_auth = get_record_sql($dbh, "SELECT mac FROM user_auth WHERE deleted = 0 AND ip = ?", $device->{ip});
-        $sw_mac = mac_simplify($sw_auth->{mac});
-        $sw_mac =~ s/.{2}$//s;  # Strip last two hex chars for prefix match
+        if (!$sw_auth->{mac}) {
+            log_error("Mac for $dev_name is undefined!");
+            $sw_mac='undef';
+            } else {
+            $sw_mac = mac_simplify($sw_auth->{mac});
+            $sw_mac =~ s/.{2}$//s;  # Strip last two hex chars for prefix match
+            }
     }
 
     # Process each MAC in the FDB

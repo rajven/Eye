@@ -123,7 +123,8 @@ my $uSQL = "
           )
     ORDER BY ip_int
 ";
-my @users = get_records_sql($dbh, $uSQL);
+
+@users = get_records_sql($dbh, $uSQL);
 foreach my $row (@users) {
 next if (!$row);
 next if (is_default_ou($dbh,$row->{ou_id}));

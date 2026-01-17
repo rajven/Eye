@@ -104,7 +104,7 @@ my $month_stop = $next_month->ymd("-") . " 00:00:00";
 my $dhcp_networks = Net::Patricia->new;
 my @subnets = get_records_sql($dbh, 'SELECT * FROM subnets WHERE office = 1 AND dhcp = 1 AND vpn = 0 ORDER BY ip_int_start');
 foreach my $subnet (@subnets) {
-    $dhcp_networks->add_string($subnet->{subnet});
+    $dhcp_networks->add_string($subnet->{subnet},$subnet);
     my $subnet_name = $subnet->{subnet};
     $subnet_name =~ s/\/\d+$//g;
     $dhcp_conf{$subnet_name}->{first_ip} = $subnet->{dhcp_start};
@@ -114,7 +114,7 @@ foreach my $subnet (@subnets) {
 # On the 1st of the month: perform "monthly amnesty" — unblock all traffic-blocked users
 if ($day == 1) {
     db_log_info($dbh, 'Monthly amnesty started');
-    db_db_log_info($dbh, "Unblocking all users blocked due to traffic quota");
+    db_log_info($dbh, "Unblocking all users blocked due to traffic quota");
     do_sql($dbh, "UPDATE user_list SET blocked = 0");
     do_sql($dbh, "UPDATE user_auth SET blocked = 0, changed = 1 WHERE blocked = 1 AND deleted = 0");
     db_log_info($dbh, 'Monthly amnesty completed');
@@ -153,20 +153,21 @@ foreach my $row (@users_auth) {
     next if (!is_dhcp_pool(\%dhcp_conf, $row->{ip_int}));
 
     # Only process IPs that belong to a DHCP-managed subnet
-    if ($dhcp_networks->match_string($row->{ip})) {
+    my $ip_subnet = $dhcp_networks->match_string($row->{ip});
+    if ($ip_subnet) {
         my $last_dhcp_time = GetUnixTimeByStr($row->{dhcp_time});
         # Lease timeout = last DHCP time + (60 * lease time in minutes)
-        my $clean_dhcp_time = $last_dhcp_time + 60 * $dhcp_networks->match_string($row->{ip});
+        my $clean_dhcp_time = $last_dhcp_time + 60 * $ip_subnet->{dhcp_lease_time};
 
         if (time() > $clean_dhcp_time) {
-            db_db_log_verbose($dbh, "Cleaning overdue DHCP lease for IP: $row->{ip}, auth_id: $row->{id}, last DHCP: $row->{dhcp_time}, clean time: " . GetTimeStrByUnixTime($clean_dhcp_time) . ", now: " . GetNowTime());
+            db_log_verbose($dbh, "Cleaning overdue DHCP lease for IP: $row->{ip}, auth_id: $row->{id}, last DHCP: $row->{dhcp_time}, clean time: " . GetTimeStrByUnixTime($clean_dhcp_time) . ", now: " . GetNowTime());
             delete_user_auth($dbh, $row->{id});
 
             # Also delete parent user if no other active sessions remain
             my $u_count = get_count_records($dbh, 'user_auth', "deleted = 0 AND user_id = ? ", $row->{user_id});
             if (!$u_count) {
                 delete_user($dbh, $row->{'user_id'});
-                db_db_log_info($dbh, "Removed dynamic user id: $row->{'user_id'} due to DHCP lease timeout");
+                db_log_info($dbh, "Removed dynamic user id: $row->{'user_id'} due to DHCP lease timeout");
             }
         }
     }
@@ -230,7 +231,7 @@ db_log_info($dbh, 'Clearing empty user accounts and associated devices for dynam
 my $u_sql = "SELECT * FROM user_list AS U WHERE (U.ou_id = ? OR U.ou_id = ? ) AND (SELECT COUNT(*) FROM user_auth WHERE user_auth.deleted = 0 AND user_auth.user_id = U.id) = 0";
 my @u_ref = get_records_sql($dbh, $u_sql, $default_hotspot_ou_id, $default_user_ou_id);
 foreach my $row (@u_ref) {
-    db_db_log_info($dbh, "Removing empty dynamic user with id: $row->{id}, login: $row->{login}");
+    db_log_info($dbh, "Removing empty dynamic user with id: $row->{id}, login: $row->{login}");
     delete_user($dbh, $row->{id});
 }
 
@@ -240,7 +241,7 @@ if ($config_ref{clean_empty_user}) {
     my $u_sql = "SELECT * FROM user_list AS U WHERE U.permanent = 0 AND (SELECT COUNT(*) FROM user_auth WHERE user_auth.deleted = 0 AND user_auth.user_id = U.id) = 0 AND (SELECT COUNT(*) FROM auth_rules WHERE auth_rules.user_id = U.id) = 0;";
     my @u_ref = get_records_sql($dbh, $u_sql);
     foreach my $row (@u_ref) {
-        db_db_log_info($dbh, "Removing empty user with id: $row->{id}, login: $row->{login}");
+        db_log_info($dbh, "Removing empty user with id: $row->{id}, login: $row->{login}");
         delete_user($dbh, $row->{id});
     }
 }
@@ -350,7 +351,7 @@ foreach my $auth (@auth_full_list) {
         $new->{ip}        = $auth->{ip};
         $new->{mac}       = $auth_mac;
         $new->{ts}        = $auth->{mac_found};
-        db_db_log_info($dbh, "Auth id: $auth->{id} ($auth_mac) found at location: device_id=$new->{device_id}, port_id=$new->{port_id}");
+        db_log_info($dbh, "Auth id: $auth->{id} ($auth_mac) found at location: device_id=$new->{device_id}, port_id=$new->{port_id}");
         insert_record($dbh, "mac_history", $new);
         next;
     }
@@ -364,7 +365,7 @@ foreach my $auth (@auth_full_list) {
         $new->{ip}        = $auth->{ip};
         $new->{mac}       = $auth_mac;
         $new->{ts}        = $auth->{mac_found};
-        db_db_log_info($dbh, "Auth id: $auth->{id} ($auth_mac) moved to new location: device_id=$new->{device_id}, port_id=$new->{port_id}");
+        db_log_info($dbh, "Auth id: $auth->{id} ($auth_mac) moved to new location: device_id=$new->{device_id}, port_id=$new->{port_id}");
         insert_record($dbh, "mac_history", $new);
     }
 }
