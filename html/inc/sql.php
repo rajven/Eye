@@ -134,31 +134,44 @@ function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $n
     $summary_fields = $audit_config[$table]['summary'];
     $monitored_fields = $audit_config[$table]['fields'];
 
-    // === 2. Нормализуем данные ===
-    if ($operation === 'insert') {
-        $old_data = array_fill_keys($monitored_fields, null);
-    } elseif ($operation === 'delete') {
-        $new_data = array_fill_keys($monitored_fields, null);
-    }
-
-    $old_data = $old_data ?: [];
-    $new_data = $new_data ?: [];
-
-    // === 3. Находим изменения ===
+    // === 3. Нормализуем данные и определяем изменения ===
     $changes = [];
-    foreach ($monitored_fields as $field) {
-	if (!isset($new_data[$field])) { continue; }
-        $old_val = $old_data[$field] ?? null;
-        $new_val = $new_data[$field] ?? null;
 
-        $old_str = is_null($old_val) ? '' : (string)$old_val;
-        $new_str = is_null($new_val) ? '' : (string)$new_val;
+    if ($operation === 'insert') {
+        // Показываем все monitored поля как новые
+        foreach ($monitored_fields as $field) {
+            if (isset($new_data[$field])) {
+                $changes[$field] = ['old' => null, 'new' => $new_data[$field]];
+            }
+        }
+    } elseif ($operation === 'delete') {
+        // Показываем все monitored поля как удалённые
+        foreach ($monitored_fields as $field) {
+            if (isset($old_data[$field])) {
+                $changes[$field] = ['old' => $old_data[$field], 'new' => null];
+            }
+        }
+    } elseif ($operation === 'update') {
+        $old_data = $old_data ?: [];
+        $new_data = $new_data ?: [];
+        foreach ($monitored_fields as $field) {
+            // Пропускаем, если поле не задано в new_data (например, частичное обновление)
+            if (!array_key_exists($field, $new_data)) {
+                continue;
+            }
+            $old_val = $old_data[$field] ?? null;
+            $new_val = $new_data[$field] ?? null;
 
-        if ($old_str !== $new_str) {
-            $changes[$field] = ['old' => $old_val, 'new' => $new_val];
+            $old_str = is_null($old_val) ? '' : (string)$old_val;
+            $new_str = is_null($new_val) ? '' : (string)$new_val;
+
+            if ($old_str !== $new_str) {
+                $changes[$field] = ['old' => $old_val, 'new' => $new_val];
+            }
         }
     }
 
+    // Если нет изменений — выходим
     if (empty($changes)) {
         return null;
     }
@@ -200,9 +213,19 @@ function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $n
     );
 
     foreach ($resolved_changes as $field => $change) {
-        $old_display = $change['old'] === null ? '[NULL]' : (string)$change['old'];
-        $new_display = $change['new'] === null ? '[NULL]' : (string)$change['new'];
-        $message .= sprintf("  %s: \"%s\" → \"%s\"\n", $field, $old_display, $new_display);
+        if ($operation === 'insert') {
+            if (!is_null($change['new'])) {
+                $message .= sprintf("  %s: %s\n", $field, (string)$change['new']);
+            }
+        } elseif ($operation === 'delete') {
+            if (!is_null($change['old'])) {
+                $message .= sprintf("  %s: %s\n", $field, (string)$change['old']);
+            }
+        } else { // update
+            $old_display = is_null($change['old']) ? '[NULL]' : (string)$change['old'];
+            $new_display = is_null($change['new']) ? '[NULL]' : (string)$change['new'];
+            $message .= sprintf("  %s: \"%s\" → \"%s\"\n", $field, $old_display, $new_display);
+        }
     }
 
     return rtrim($message);
@@ -1083,6 +1106,10 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
                     LOG_INFO($db, $changed_msg);
                     } else {
                     LOG_WARNING($db, $changed_msg);
+                    if ($table == 'user_auth' && !empty($old_record['ip'])) {
+                        $send_alert_update = isNotifyUpdate(get_notify_subnet($db, $old_record['ip']));
+                        if ($send_alert_update) { email(L_WARNING,$changed_msg); }
+                        }
                 }
             }
         }
@@ -1144,6 +1171,9 @@ function delete_record($db, $table, $filter, $filter_params = [])
     if (empty($old_record)) { return; }
     $rec_id = $old_record['id'];
 
+    //never delete permanent user
+    if ($table === 'user_list' and $old_record['permanent']) { return; }
+
     $changed_msg = prepareAuditMessage($db, $table, $old_record, [], $rec_id, 'delete');
 
     $delete_it = 1;
@@ -1174,12 +1204,14 @@ function delete_record($db, $table, $filter, $filter_params = [])
                 }
             insert_record($db, 'dns_queue', $del_dns);
             }
-        LOG_VERBOSE($db, "Deleted FROM table $table WHERE $filter $changed_log");
-        return $changed_log;
+        LOG_WARNING($db, $changed_msg);
+        if (!empty($old_record['ip'])) {
+            $send_alert_delete = isNotifyDelete(get_notify_subnet($db, $old_record['ip']));
+            if ($send_alert_delete) { email(L_WARNING,$changed_msg); }
+            }
+        return $old_record;
         }
 
-    //never delete permanent user
-    if ($table === 'user_list' and $old_record['permanent']) { return; }
 
     //remove aliases
     if ($table === 'user_auth_alias') {
@@ -1252,10 +1284,6 @@ function insert_record($db, $table, $newvalue)
         }
 
     foreach ($newvalue as $key => $value) {
-        // Логирование (без паролей)
-        if (!preg_match('/password/i', $key)) {
-            $changed_log .= " $key => " . ($value ?? 'NULL') . ",";
-        }
         $field_list[] = $key;
         $value_list[] = '?';
         $params[] = $value;
@@ -1289,6 +1317,10 @@ function insert_record($db, $table, $newvalue)
                     LOG_INFO($db, $changed_msg);
                     } else {
                     LOG_WARNING($db, $changed_msg);
+                    if ($table == 'user_auth' && !empty($newvalue['ip'])) {
+                        $send_alert_create = isNotifyCreate(get_notify_subnet($db, $newvalue['ip']));
+                        if ($send_alert_create) { email(L_WARNING,$changed_msg); }
+                        }
                 }
             }
         }
@@ -1390,40 +1422,19 @@ function get_diff_rec($db, $table, $filter, $newvalue, $only_changed = true, $fi
 }
 
 function delete_user_auth($db, $id) {
-    $msg = '';
-    $record = get_record_sql($db, 'SELECT * FROM user_auth WHERE id=' . $id);
-    $txt_record = hash_to_text($record);
     // remove aliases
-    $t_user_auth_alias = get_records_sql($db, 'SELECT * FROM user_auth_alias WHERE auth_id=' . $id);
-    if (!empty($t_user_auth_alias)) {
-        foreach ($t_user_auth_alias as $row) {
-            $alias_txt = record_to_txt($db, 'user_auth_alias', 'id=' . $row['id']);
-            if (delete_record($db, 'user_auth_alias', 'id=' . $row['id'])) {
-                $msg = "Deleting an alias: " . $alias_txt . "::Success!\n" . $msg;
-            } else {
-                $msg = "Deleting an alias: " . $alias_txt . "::Fail!\n" . $msg;
-            }
-        }
-    }
+    delete_records($db, 'user_auth_alias', 'auth_id=?', [ $id ]);
     // remove connections
-    run_sql($db, 'DELETE FROM connections WHERE auth_id=' . $id);
+    delete_records($db, 'connections', 'auth_id=?', [ $id ]);
     // remove user auth record
-    $changes = delete_record($db, "user_auth", "id=?", $id);
-    if ($changes) {
-        $msg = "Deleting ip-record: " . $txt_record . "::Success!\n" . $msg;
-    } else {
-        $msg = "Deleting ip-record: " . $txt_record . "::Fail!\n" . $msg;
-    }
-    LOG_WARNING($db, $msg);
-    $send_alert_delete = isNotifyDelete(get_notify_subnet($db, $record['ip']));
-    if ($send_alert_delete) { email(L_WARNING,$msg); }
+    $changes = delete_record($db, "user_auth", "id=?", [ $id ]);
     return $changes;
 }
 
 function delete_user($db,$id)
 {
 //remove user record
-$changes = delete_record($db, "user_list", "id=?", $id);
+$changes = delete_record($db, "user_list", "id=?", [ $id ]);
 //if fail - exit
 if (!isset($changes) or empty($changes)) { return; }
 //remove auth records
@@ -1434,41 +1445,39 @@ if (!empty($t_user_auth)) {
 //remove device
 $device = get_record($db, "devices", "user_id='$id'");
 if (!empty($device)) {
-    LOG_INFO($db, "Delete device for user id: $id ".dump_record($db,'devices','user_id='.$id));
     unbind_ports($db, $device['id']);
-    run_sql($db, "DELETE FROM connections WHERE device_id=?", $device['id']);
-    run_sql($db, "DELETE FROM device_l3_interfaces WHERE device_id=?", $device['id']);
-    run_sql($db, "DELETE FROM device_ports WHERE device_id=?", $device['id']);
-    run_sql($db, "DELETE FROM device_filter_instances WHERE device_id=?", $device['id']);
-    run_sql($db, "DELETE FROM gateway_subnets WHERE device_id=?",$device['id']);
-    delete_record($db, "devices", "id=?", $device['id']);
+    delete_records($db, "connections","device_id=?", [$device['id']]);
+    delete_records($db, "device_l3_interfaces","device_id=?", [$device['id']]);
+    delete_records($db, "device_ports","device_id=?", [$device['id']]);
+    delete_records($db, "device_filter_instances","device_id=?", [$device['id']]);
+    delete_records($db, "gateway_subnets","device_id=?",[$device['id']]);
+    delete_record($db, "devices", "id=?", [$device['id']]);
     }
 //remove auth assign rules
-run_sql($db, "DELETE FROM auth_rules WHERE user_id=$id");
+delete_records($db, "auth_rules","user_id=?",[ $id ]);
 return $changes;
 }
 
 function delete_device($db,$id)
 {
-LOG_INFO($db, "Try delete device id: $id ".dump_record($db,'devices','id='.$id));
 //remove user record
-$changes = delete_record($db, "devices", "id=?", $id);
+$changes = delete_record($db, "devices", "id=?", [$id]);
 //if fail - exit
 if (!isset($changes) or empty($changes)) {
     LOG_INFO($db,"Device id: $id has not been deleted");
     return;
     }
 unbind_ports($db, $id);
-run_sql($db, "DELETE FROM connections WHERE device_id=?", $id);
-run_sql($db, "DELETE FROM device_l3_interfaces WHERE device_id=?", $id);
-run_sql($db, "DELETE FROM device_ports WHERE device_id=?", $id);
-run_sql($db, "DELETE FROM device_filter_instances WHERE device_id=?", $id);
-run_sql($db, "DELETE FROM gateway_subnets WHERE device_id=?",$id);
+delete_records($db, "connections","device_id=?", [$id]);
+delete_records($db, "device_l3_interfaces","device_id=?", [$id]);
+delete_records($db, "device_ports","device_id=?", [$id]);
+delete_records($db, "device_filter_instances","device_id=?", [$id]);
+delete_records($db, "gateway_subnets","device_id=?",[$id]);
 return $changes;
 }
 
 function record_to_txt($db, $table, $id) {
-    $record = get_record_sql($db, 'SELECT * FROM ' . $table . ' WHERE id =' . $id);
+    $record = get_record_sql($db, 'SELECT * FROM ' . $table . ' WHERE id =?', [ $id ]);
     return hash_to_text($record);
 }
 
