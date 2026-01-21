@@ -16,7 +16,6 @@ if (getPOST("s_remove") !== null) {
             $val = trim($val);
             if ($val === '') continue;
             
-            LOG_INFO($db_link, "Remove subnet from gateway id: $val " . dump_record($db_link, 'gateway_subnets', 'id = ?', [$val]));
             delete_record($db_link, "gateway_subnets", "id = ?", [(int)$val]);
         }
     }
@@ -35,7 +34,6 @@ if (getPOST("s_create") !== null) {
             'device_id' => $id
         ];
         
-        LOG_INFO($db_link, "Add subnet id: " . $new['subnet_id'] . " for gateway id: " . $id);
         insert_record($db_link, "gateway_subnets", $new);
     }
     

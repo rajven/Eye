@@ -52,6 +52,8 @@ ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
 
 // Функция для логирования отладки сессий, нужна только для отладки
 function log_session_debug($db, $message, $data = null) {
+    return;
+/*
     $log_message = "SESSION_DEBUG: " . $message;
     if ($data !== null) {
         $log_message .= " | Data: " . (is_array($data) ? json_encode($data) : $data);
@@ -59,6 +61,7 @@ function log_session_debug($db, $message, $data = null) {
     $log_message .= " | SID: " . (session_id() ?: 'no-session-id');
     $log_message .= " | Cookies: " . ($_SERVER['HTTP_COOKIE'] ?? 'none');
     LOG_DEBUG($db, $log_message);
+*/
 }
 
 // Инициализация сессий в БД

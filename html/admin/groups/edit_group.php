@@ -53,7 +53,6 @@ if (getPOST("s_remove") !== null) {
             $val = trim($val);
             if ($val === '') continue;
             
-            LOG_INFO($db_link, "Remove rule id: $val " . dump_record($db_link, 'auth_rules', 'id = ?', [$val]));
             delete_record($db_link, "auth_rules", "id = ?", [(int)$val]);
         }
     }
@@ -129,7 +128,6 @@ if (getPOST("s_create") !== null) {
             'rule'    => $new_rule,
             'ou_id'   => $id
         ];
-        LOG_INFO($db_link, "Create new rule $new_rule for ou_id: $id");
         insert_record($db_link, "auth_rules", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);

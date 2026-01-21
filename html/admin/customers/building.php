@@ -7,7 +7,6 @@ if (getPOST("remove")) {
     $valid_ids = array_filter(array_map('intval', $fid), fn($id) => $id > 1);
 
     foreach ($valid_ids as $val) {
-        LOG_INFO($db_link, 'Remove building id: ' . $val . ' ' . dump_record($db_link, 'building', 'id=?', [$val]));
         delete_record($db_link, "building", "id=?", [$val]);
     }
 
@@ -35,7 +34,6 @@ if (getPOST("save")) {
 
         if ($name !== '') {
             $new = ['name' => $name, 'description' => $description];
-            LOG_INFO($db_link, "Change building id='{$save_id}': name=" . $name . " description=" . $description);
             update_record($db_link, "building", "id=?", $new, [$save_id]);
         }
     }
@@ -49,7 +47,6 @@ if (getPOST("create")) {
     
     if ($building_name !== '') {
         $new = ['name' => $building_name];
-        LOG_INFO($db_link, "Add building: " . $building_name);
         insert_record($db_link, "building", $new);
     }
     

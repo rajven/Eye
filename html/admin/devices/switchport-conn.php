@@ -11,7 +11,6 @@ if (getPOST("remove") !== null) {
         foreach ($fid as $val) {
             $val = trim($val);
             if ($val !== '' && $val != 1) {
-                LOG_VERBOSE($db_link, "Remove connection id: $val " . dump_record($db_link, 'connections', 'id = ?', [$val]));
                 delete_record($db_link, "connections", "id = ?", [(int)$val]);
             }
         }

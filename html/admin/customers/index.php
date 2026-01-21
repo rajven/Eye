@@ -13,14 +13,12 @@ if (getPOST("create") !== null) {
         
         if (!empty($customer)) {
             $msg_error = "Login $login already exists!";
-            LOG_ERROR($db_link, $msg_error);
         } else {
             $new = [
                 'login'    => $login,
                 'api_key'  => randomPassword(20),
                 'rights'   => 3
             ];
-            LOG_INFO($db_link, "Create new login: $login");
             $id = insert_record($db_link, "customers", $new);
             if (!empty($id)) {
                 header("Location: editcustom.php?id=$id");
@@ -41,7 +39,6 @@ if (getPOST("remove") !== null) {
         foreach ($fid as $val) {
             $val = trim($val);
             if ($val === '' or $val == '1') continue;
-            LOG_INFO($db_link, "Remove login with id: $val " . dump_record($db_link, 'customers', 'id = ?', [$val]));
             delete_record($db_link, "customers", "id = ?", [$val]);
         }
     }

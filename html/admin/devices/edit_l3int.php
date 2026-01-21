@@ -17,7 +17,6 @@ if (getPOST("s_remove") !== null) {
             $val = trim($val);
             if ($val === '') continue;
             
-            LOG_INFO($db_link, "Remove l3_interface id: $val " . dump_record($db_link, 'device_l3_interfaces', 'id = ?', [$val]));
             delete_record($db_link, "device_l3_interfaces", "id = ?", [(int)$val]);
         }
     }
@@ -66,7 +65,6 @@ if (getPOST("s_create") !== null) {
                 'device_id'      => $id
             ];
             
-            LOG_INFO($db_link, "Create new l3_interface " . $new['name']);
             insert_record($db_link, "device_l3_interfaces", $new);
         }
     }

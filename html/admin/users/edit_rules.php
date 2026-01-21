@@ -15,7 +15,6 @@ if (getPOST("s_remove") !== null) {
         foreach ($s_id as $val) {
             $val = trim($val);
             if ($val === '') continue;
-            LOG_INFO($db_link, "Remove rule id: $val " . dump_record($db_link, 'auth_rules', 'id = ?', [$val]));
             delete_record($db_link, "auth_rules", "id = ?", [(int)$val]);
         }
     }

@@ -26,9 +26,6 @@ if (getPOST("ApplyForAll", $page_url)) {
     $n_link = (int)getPOST("n_link", $page_url, 0);
     $n_handler = getPOST("n_handler", $page_url, '');
 
-    $msg = "Massive User change!";
-    LOG_WARNING($db_link, $msg);
-
     $all_ok = true;
 
     foreach ($auth_id as $val) {
@@ -87,9 +84,6 @@ if (getPOST("ApplyForAll", $page_url)) {
             $user_updates = ['ou_id' => $a_ou_id];
             $auth_updates_for_all = ['ou_id' => $a_ou_id];
 
-            $log_msg = "For user id: " . $cur_auth['user_id'] . " login: " . ($user_info['login'] ?? '') . " set: ou_id = " . $a_ou_id;
-            LOG_INFO($db_link, $log_msg);
-
             // Обновляем user_list
             $ret = update_record($db_link, "user_list", "id = ?", $user_updates, [(int)$cur_auth['user_id']]);
             if (!$ret) $all_ok = false;
@@ -113,13 +107,11 @@ if (getPOST("ApplyForAll", $page_url)) {
                             'rule' => $cur_auth['mac']
                         ];
                         insert_record($db_link, "auth_rules", $new_rule);
-                        LOG_INFO($db_link, "Created auto rule for user_id: " . $cur_auth['user_id'] . " and mac " . $cur_auth['mac']);
                     } else {
                         LOG_INFO($db_link, "Auto rule for user_id: " . $cur_auth['user_id'] . " and mac " . $cur_auth['mac'] . " already exists");
                     }
                 } else {
-                    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND rule_type = 2", [(int)$cur_auth['user_id']]);
-                    LOG_INFO($db_link, "Remove auto rule for user_id: " . $cur_auth['user_id'] . " and mac " . $cur_auth['mac']);
+                    delete_records($db_link, "auth_rules", "user_id = ? AND rule_type = 2", [(int)$cur_auth['user_id']]);
                 }
             } else {
                 LOG_ERROR($db_link, "Auto rule for user_id: " . ($cur_auth['user_id'] ?? 'N/A') . " not created. Record not found or empty mac.");
@@ -140,13 +132,11 @@ if (getPOST("ApplyForAll", $page_url)) {
                             'rule' => $cur_auth['ip']
                         ];
                         insert_record($db_link, "auth_rules", $new_rule);
-                        LOG_INFO($db_link, "Created auto rule for user_id: " . $cur_auth['user_id'] . " and ip " . $cur_auth['ip']);
                     } else {
                         LOG_INFO($db_link, "Auto rule for user_id: " . $cur_auth['user_id'] . " and ip " . $cur_auth['ip'] . " already exists");
                     }
                 } else {
-                    run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND rule_type = 1", [(int)$cur_auth['user_id']]);
-                    LOG_INFO($db_link, "Remove auto rule for user_id: " . $cur_auth['user_id'] . " and ip " . $cur_auth['ip']);
+                    delete_records($db_link, "auth_rules", "user_id = ? AND rule_type = 1", [(int)$cur_auth['user_id']]);
                 }
             } else {
                 LOG_ERROR($db_link, "Auto rule for user_id: " . ($cur_auth['user_id'] ?? 'N/A') . " not created. Record not found or empty ip.");

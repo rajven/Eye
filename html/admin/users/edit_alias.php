@@ -25,8 +25,6 @@ if (getPOST("s_remove") !== null) {
         foreach ($s_id as $val) {
             $val = trim($val);
             if ($val === '') continue;
-            
-            LOG_INFO($db_link, "Remove alias id: $val " . dump_record($db_link, 'user_auth_alias', 'id = ?', [$val]));
             delete_record($db_link, "user_auth_alias", "id = ?", [(int)$val]);
         }
     }
@@ -107,7 +105,6 @@ if (getPOST("s_create") !== null) {
             'auth_id'  => $id
         ];
         
-        LOG_INFO($db_link, "Create new alias $new_alias");
         insert_record($db_link, "user_auth_alias", $new_rec);
     }
     

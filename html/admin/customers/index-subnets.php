@@ -12,7 +12,6 @@ if (getPOST("s_remove") !== null) {
             $net_id = trim($net_id);
             if ($net_id === '') continue;
             
-            LOG_INFO($db_link, "Remove subnet id: $net_id " . dump_record($db_link, 'subnets', 'id = ?', [$net_id]));
             delete_record($db_link, "subnets", "id = ?", [$net_id]);
             delete_record($db_link, "gateway_subnets", "subnet_id = ?", [$net_id]);
         }
@@ -60,7 +59,6 @@ if (getPOST("s_create") !== null) {
             'gateway'      => ip2long($range[5] ?? $first_user_ip)
         ];
 
-        LOG_INFO($db_link, "Create new subnet $new_subnet");
         insert_record($db_link, "subnets", $new);
     }
     

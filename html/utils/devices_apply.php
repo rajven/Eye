@@ -17,9 +17,6 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
     $a_ro_community = trim(getPOST("a_ro_community", $page_url, 'public'));
     $a_rw_community = trim(getPOST("a_rw_community", $page_url, 'private'));
 
-    $msg = "Massive change devices!";
-    LOG_WARNING($db_link, $msg);
-
     $all_ok = true;
 
     foreach ($dev_id as $val) {

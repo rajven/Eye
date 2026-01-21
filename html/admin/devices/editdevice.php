@@ -76,7 +76,6 @@ if (getPOST("editdevice") !== null && isset($id)) {
                 'instance_id' => 1,
                 'device_id'   => $id
             ]);
-            LOG_INFO($db_link, "Added default firewall instance for gateway id: $id");
         }
     } else {
         // Не шлюз — удаляем все экземпляры
@@ -84,7 +83,6 @@ if (getPOST("editdevice") !== null && isset($id)) {
             $instances_count = get_count_records($db_link, 'device_filter_instances', 'device_id = ?', [$id]);
             if (!empty($instances_count) && $instances_count > 0) {
                 delete_records($db_link, 'device_filter_instances', 'device_id = ?', [$id]);
-                LOG_INFO($db_link, "Removed firewall instances for non-gateway device id: $id");
             }
         }
     }

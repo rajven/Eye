@@ -15,7 +15,6 @@ if (getPOST("s_remove") !== null) {
         foreach ($s_id as $val) {
             $val = trim($val);
             if ($val === '') continue;
-            LOG_INFO($db_link, "Remove filter instances from gateway id: $val " . dump_record($db_link, 'device_filter_instances', 'id = ?', [$val]));
             delete_record($db_link, "device_filter_instances", "id = ?", [$val]);
         }
     }
@@ -31,7 +30,6 @@ if (getPOST("s_create") !== null) {
             'instance_id' => $new_instance,
             'device_id'   => $id
         ];
-        LOG_INFO($db_link, "Add instance id: " . $new['instance_id'] . " for gateway id: " . $id);
         insert_record($db_link, "device_filter_instances", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);

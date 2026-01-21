@@ -26,9 +26,6 @@ if (getPOST("ApplyForAll", $page_url)) {
     $a_dhcp_acl = trim(getPOST("a_dhcp_acl", $page_url, ''));
     $a_dhcp_option_set = trim(getPOST("a_dhcp_option_set", $page_url, ''));
 
-    $msg = "Massive User change!";
-    LOG_WARNING($db_link, $msg);
-
     $all_ok = true;
 
     foreach ($auth_id as $user_id_raw) {
@@ -127,13 +124,11 @@ if (getPOST("ApplyForAll", $page_url)) {
                         'rule_type' => 2,
                         'rule' => $b_mac
                     ]);
-                    LOG_INFO($db_link, "Created auto rule for user_id: $user_id and mac $b_mac");
                 } else {
                     LOG_INFO($db_link, "Auto rule for user_id: $user_id and mac $b_mac already exists");
                 }
             } else {
-                run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND rule_type = 2", [$user_id]);
-                LOG_INFO($db_link, "Remove auto rule for user_id: $user_id and mac $b_mac");
+                delete_records($db_link, "auth_rules","user_id = ? AND rule_type = 2", [$user_id]);
             }
         }
 
@@ -155,13 +150,11 @@ if (getPOST("ApplyForAll", $page_url)) {
                         'rule_type' => 1,
                         'rule' => $b_ip
                     ]);
-                    LOG_INFO($db_link, "Created auto rule for user_id: $user_id and ip $b_ip");
                 } else {
                     LOG_INFO($db_link, "Auto rule for user_id: $user_id and ip $b_ip already exists");
                 }
             } else {
-                run_sql($db_link, "DELETE FROM auth_rules WHERE user_id = ? AND rule_type = 1", [$user_id]);
-                LOG_INFO($db_link, "Remove auto rule for user_id: $user_id and ip $b_ip");
+                delete_records($db_link, "auth_rules","user_id = ? AND rule_type = 1", [$user_id]);
             }
         }
 

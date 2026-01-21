@@ -175,12 +175,6 @@ if (getPOST("editauth") !== null && !$old_auth_info['deleted']) {
             $new['enabled'] = 0;
         }
 
-        // Применение изменений
-        $changes = get_diff_rec($db_link, "user_auth", "id = ?", $new, 0, [$id]);
-        if (!empty($changes)) {
-            LOG_WARNING($db_link, "Changed record for $ip! Log: " . $changes, $id);
-        }
-
         if (is_auth_bind_changed($db_link, $id, $ip, $mac)) {
             $new_id = copy_auth($db_link, $id, $new);
             if (!empty($new_id)) {
@@ -205,15 +199,13 @@ if (getPOST("moveauth") !== null && !$old_auth_info['deleted']) {
     $new_parent_id = (int)getPOST("f_new_parent", null, 0);
     $moved_auth = get_record_sql($db_link, "SELECT description FROM user_auth WHERE id = ?", [$id]);
     $changes = apply_auth_rule($db_link, $moved_auth, $new_parent_id);
-    
+
     update_record($db_link, "user_auth", "id = ?", $changes, [$id]);
-    LOG_WARNING($db_link, "IP-address moved to another user! Applyed: " . hash_to_text($changes), $id);
-    
+
     // Удаляем старые правила
     delete_records($db_link, "auth_rules", "user_id = ? AND rule = ? AND rule_type = 2", [$old_auth_info["user_id"], $old_auth_info["mac"]]);
     delete_records($db_link, "auth_rules", "user_id = ? AND rule = ? AND rule_type = 1", [$old_auth_info["user_id"], $old_auth_info["ip"]]);
-    
-    LOG_INFO($db_link, "Autorules removed for user_id: " . $old_auth_info["user_id"] . " login: " . $user_info["login"] . " by mac and ip");
+
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -297,10 +289,6 @@ if (getPOST("recovery") !== null && $old_auth_info['deleted']) {
             ];
         }
 
-        $changes = get_diff_rec($db_link, "user_auth", "id = ?", $new, 0, [$id]);
-        if (!empty($changes)) {
-            LOG_WARNING($db_link, "Recovered ip-address. Applyed: $changes", $id);
-        }
         $new = apply_auth_rule($db_link, $new, $new['user_id']);
         update_record($db_link, "user_auth", "id = ?", $new, [$id]);
     } else {

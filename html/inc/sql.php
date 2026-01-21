@@ -2,155 +2,317 @@
 if (! defined("CONFIG")) die("Not defined");
 if (! defined("SQL")) { die("Not defined"); }
 
-$numericFields = [
-    'id',
-    'option_id',
-    'min_value',
-    'max_value',
-    'draft',
-    'uniq',
-    'device_id',
-    'port_id',
-    'auth_id',
-    'rights',
-    'device_type',
-    'device_model_id',
-    'vendor_id',
-    'building_id',
-    'ip_int',
-    'control_port',
-    'port_count',
-    'snmp_version',
-    'fdb_snmp_index',
-    'discovery',
-    'netflow_save',
-    'user_acl',
-    'dhcp',
-    'nagios',
-    'active',
-    'queue_enabled',
-    'connected_user_only',
-    'user_id',
-    'deleted',
-    'discovery_locked',
-    'instance_id',
-    'snmpin',
-    'interface_type',
-    'poe_in',
-    'poe_out',
-    'snmp_index',
-    'port',
-    'target_port_id',
-    'last_mac_count',
-    'uplink',
-    'skip',
-    'vlan',
-    'ip_int_start',
-    'ip_int_stop',
-    'dhcp_start',
-    'dhcp_stop',
-    'dhcp_lease_time',
-    'gateway',
-    'office',
-    'hotspot',
-    'vpn',
-    'free',
-    'static',
-    'dhcp_update_hostname',
-    'notify',
-    'router_id',
-    'proto',
-    'src_ip',
-    'dst_ip',
-    'src_port',
-    'dst_port',
-    'bytes',
-    'pkt',
-    'filter_type',
-    'subnet_id',
-    'group_id',
-    'filter_id',
-    'order',
-    'action',
-    'default_users',
-    'default_hotspot',
-    'nagios_ping',
-    'enabled',
-    'filter_group_id',
-    'queue_id',
-    'dynamic',
-    'life_duration',
-    'parent_id',
-    'Download',
-    'Upload',
-    'byte_in',
-    'byte_out',
-    'pkt_in',
-    'pkt_out',
-    'step',
-    'bytes_in',
-    'bytes_out',
-    'forward_in',
-    'forward_out',
-    'level',
-    'last_activity',
-    'is_active',
-    'day_quota',
-    'month_quota',
-    'permanent',
-    'blocked',
-    'changed',
-    'dhcp_changed',
-    'link_check'
-];
+/**
+ * Prepares an audit log message with human-readable context using PDO.
+ *
+ * @param PDO    $pdo        Database connection
+ * @param string $table      Table name
+ * @param array|null $old_data Record data before operation (null for insert)
+ * @param array|null $new_data Record data after operation (null for delete)
+ * @param int    $record_id  Record ID
+ * @param string $operation  Operation: 'insert', 'update', 'delete'
+ * @return string|null       Audit message or null if no relevant changes
+ */
+function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $new_data, int $record_id, string $operation): ?string
+{
+    // === 1. Определяем отслеживаемые таблицы ===
+    $audit_config = [
+        'auth_rules' => [
+            'summary' => ['rule'],
+            'fields' => ['user_id', 'ou_id', 'rule_type', 'rule', 'description']
+        ],
+        'building' => [
+            'summary' => ['name'],
+            'fields' => ['name', 'description']
+        ],
+        'customers' => [
+            'summary' => ['login'],
+            'fields' => ['login', 'description', 'rights']
+        ],
+        'devices' => [
+            'summary' => ['device_name'],
+            'fields' => [
+                'device_type', 'device_model_id', 'vendor_id', 'device_name', 'building_id',
+                'ip', 'login', 'protocol', 'control_port', 'port_count', 'sn',
+                'description', 'snmp_version', 'snmp3_auth_proto', 'snmp3_priv_proto',
+                'snmp3_user_rw', 'snmp3_user_ro', 'community', 'rw_community',
+                'discovery', 'netflow_save', 'user_acl', 'dhcp', 'nagios',
+                'active', 'queue_enabled', 'connected_user_only', 'user_id'
+            ]
+        ],
+        'device_filter_instances' => [
+            'summary' => [],
+            'fields' => ['instance_id', 'device_id']
+        ],
+        'device_l3_interfaces' => [
+            'summary' => ['name'],
+            'fields' => ['device_id', 'snmpin', 'interface_type', 'name']
+        ],
+        'device_models' => [
+            'summary' => ['model_name'],
+            'fields' => ['model_name', 'vendor_id', 'poe_in', 'poe_out', 'nagios_template']
+        ],
+        'device_ports' => [
+            'summary' => ['port', 'ifname'],
+            'fields' => [
+                'device_id', 'snmp_index', 'port', 'ifname', 'port_name', 'description',
+                'target_port_id', 'auth_id', 'last_mac_count', 'uplink', 'nagios',
+                'skip', 'vlan', 'tagged_vlan', 'untagged_vlan', 'forbidden_vlan'
+            ]
+        ],
+        'filter_instances' => [
+            'summary' => ['name'],
+            'fields' => ['name', 'description']
+        ],
+        'filter_list' => [
+            'summary' => ['name'],
+            'fields' => ['name', 'description', 'proto', 'dst', 'dstport', 'srcport', 'filter_type']
+        ],
+        'gateway_subnets' => [
+            'summary' => [],
+            'fields' => ['device_id', 'subnet_id']
+        ],
+        'group_filters' => [
+            'summary' => [],
+            'fields' => ['group_id', 'filter_id', 'rule_order', 'action']
+        ],
+        'group_list' => [
+            'summary' => ['group_name'],
+            'fields' => ['instance_id', 'group_name', 'description']
+        ],
+        'ou' => [
+            'summary' => ['ou_name'],
+            'fields' => [
+                'ou_name', 'description', 'default_users', 'default_hotspot',
+                'nagios_dir', 'nagios_host_use', 'nagios_ping', 'nagios_default_service',
+                'enabled', 'filter_group_id', 'queue_id', 'dynamic', 'life_duration', 'parent_id'
+            ]
+        ],
+        'queue_list' => [
+            'summary' => ['queue_name'],
+            'fields' => ['queue_name', 'download', 'upload']
+        ],
+        'subnets' => [
+            'summary' => ['subnet'],
+            'fields' => [
+                'subnet', 'vlan_tag', 'ip_int_start', 'ip_int_stop', 'dhcp_start', 'dhcp_stop',
+                'dhcp_lease_time', 'gateway', 'office', 'hotspot', 'vpn', 'free', 'dhcp',
+                'static', 'dhcp_update_hostname', 'discovery', 'notify', 'description'
+            ]
+        ],
+        'user_auth' => [
+            'summary' => ['ip', 'dns_name'],
+            'fields' => [
+                'user_id', 'ou_id', 'ip', 'save_traf', 'enabled', 'dhcp', 'filter_group_id',
+                'dynamic', 'end_life', 'description', 'dns_name', 'dns_ptr_only', 'wikiname',
+                'dhcp_acl', 'queue_id', 'mac', 'dhcp_option_set', 'blocked', 'day_quota',
+                'month_quota', 'device_model_id', 'firmware', 'client_id', 'nagios',
+                'nagios_handler', 'link_check'
+            ]
+        ],
+        'user_auth_alias' => [
+            'summary' => ['alias'],
+            'fields' => ['auth_id', 'alias', 'description']
+        ],
+        'user_list' => [
+            'summary' => ['login'],
+            'fields' => [
+                'login', 'description', 'enabled', 'blocked', 'deleted', 'ou_id',
+                'device_id', 'filter_group_id', 'queue_id', 'day_quota', 'month_quota', 'permanent'
+            ]
+        ],
+        'vendors' => [
+            'summary' => ['name'],
+            'fields' => ['name']
+        ]
+    ];
 
-$numericFieldsSet = array_flip($numericFields);
+    if (!isset($audit_config[$table])) {
+        return null;
+    }
 
-function db_escape($connection, $value) {
-    // Обработка специальных значений
-    if ($value === null) {
-        return '';
+    $summary_fields = $audit_config[$table]['summary'];
+    $monitored_fields = $audit_config[$table]['fields'];
+
+    // === 2. Нормализуем данные ===
+    if ($operation === 'insert') {
+        $old_data = array_fill_keys($monitored_fields, null);
+    } elseif ($operation === 'delete') {
+        $new_data = array_fill_keys($monitored_fields, null);
     }
-    if (is_bool($value)) {
-        return $value ? 1 : 0;
-    }
-    if (is_int($value) || is_float($value)) {
-        return $value;
-    }
-    // Для строковых значений
-    $string = (string)$value;
-    if ($connection instanceof PDO) {
-        // Определяем тип базы данных
-        $driver = $connection->getAttribute(PDO::ATTR_DRIVER_NAME);
-        if ($driver === false) {
-            // Не удалось определить драйвер, используем универсальный метод
-            return addslashes($string);
+
+    $old_data = $old_data ?: [];
+    $new_data = $new_data ?: [];
+
+    // === 3. Находим изменения ===
+    $changes = [];
+    foreach ($monitored_fields as $field) {
+	if (!isset($new_data[$field])) { continue; }
+        $old_val = $old_data[$field] ?? null;
+        $new_val = $new_data[$field] ?? null;
+
+        $old_str = is_null($old_val) ? '' : (string)$old_val;
+        $new_str = is_null($new_val) ? '' : (string)$new_val;
+
+        if ($old_str !== $new_str) {
+            $changes[$field] = ['old' => $old_val, 'new' => $new_val];
         }
-        try {
-            $quoted = $connection->quote($string);
-            if ($quoted === false) {
-                return addslashes($string);
-            }
-            // Убираем внешние кавычки для совместимости
-            if (strlen($quoted) >= 2 && $quoted[0] === "'" && $quoted[strlen($quoted)-1] === "'") {
-                return substr($quoted, 1, -1);
-            }
-            return $quoted;
-        } catch (Exception $e) {
-            return addslashes($string);
-        }
-    } elseif ($connection instanceof mysqli) {
-        return mysqli_real_escape_string($connection, $string);
-    } elseif (is_resource($connection) && get_resource_type($connection) === 'mysql link') {
-        return mysql_real_escape_string($string, $connection);
-    } elseif (is_resource($connection) && get_resource_type($connection) === 'pgsql link') {
-        return pg_escape_string($connection, $string);
-    } else {
-        // Последнее средство
-        return addslashes($string);
     }
+
+    if (empty($changes)) {
+        return null;
+    }
+
+    // === 4. Формируем краткое описание записи ===
+    $summary_parts = [];
+    foreach ($summary_fields as $field) {
+        $val = $new_data[$field] ?? $old_data[$field] ?? null;
+        if ($val !== null && $val !== '') {
+            $summary_parts[] = (string)$val;
+        }
+    }
+
+    $summary_label = !empty($summary_parts) 
+        ? '"' . implode(' | ', $summary_parts) . '"' 
+        : "ID=$record_id";
+
+    // === 5. Расшифровка *_id полей  ===
+    $resolved_changes = [];
+    foreach ($changes as $field => $change) {
+        $old_resolved = resolveReferenceValue($db, $field, $change['old']);
+        $new_resolved = resolveReferenceValue($db, $field, $change['new']);
+        $resolved_changes[$field] = ['old' => $old_resolved, 'new' => $new_resolved];
+    }
+
+    // === 6. Формируем сообщение ===
+    $op_label = match ($operation) {
+        'insert' => 'Created',
+        'update' => 'Updated',
+        'delete' => 'Deleted',
+        default => ucfirst($operation),
+    };
+
+    $message = sprintf("[%s] %s (%s) in table `%s`:\n", 
+        $op_label, 
+        ucfirst($table), 
+        $summary_label, 
+        $table
+    );
+
+    foreach ($resolved_changes as $field => $change) {
+        $old_display = $change['old'] === null ? '[NULL]' : (string)$change['old'];
+        $new_display = $change['new'] === null ? '[NULL]' : (string)$change['new'];
+        $message .= sprintf("  %s: \"%s\" → \"%s\"\n", $field, $old_display, $new_display);
+    }
+
+    return rtrim($message);
 }
 
+// === Вспомогательная функция: расшифровка ссылок ===
+function resolveReferenceValue(PDO $db, string $field, $value): ?string
+{
+    if ($value === null || $value === '') {
+        return null;
+    }
+
+    // Только для целочисленных значений
+    if (!is_numeric($value) || (string)(int)$value !== (string)$value) {
+        return (string)$value;
+    }
+
+    $id = (int)$value;
+
+    // Простая логика разрешения имён по *_id
+    switch ($field) {
+        case 'device_id':
+            return get_device_name($db, $id) ?: "Device#{$id}";
+
+        case 'building_id':
+            return get_building($db, $id) ?: "Building#{$id}";
+
+        case 'user_id':
+            return get_login($db, $id) ?: "User#{$id}";
+
+        case 'ou_id':
+            return get_ou($db, $id) ?: "OU#{$id}";
+
+        case 'vendor_id':
+            return get_vendor_name($db, $id) ?: "Vendor#{$id}";
+
+        case 'device_model_id':
+            return get_device_model_name($db, $id) ?: "Model#{$id}";
+
+        case 'instance_id':
+            return get_filter_instance_description($db, $id) ?: "FilterInstance#{$id}";
+
+        case 'subnet_id':
+            return get_subnet_description($db, $id) ?: "Subnet#{$id}";
+
+        case 'group_id':
+            return  get_group($db, $id) ?: "FilterGroup#{$id}";
+
+        case 'filter_id':
+            return get_filter($db, $id) ?: "Filter#{$id}";
+
+        case 'filter_group_id':
+            return  get_group($db, $id) ?: "FilterGroup#{$id}";
+
+        case 'queue_id':
+            return get_queue($db, $id ) ?: "Queue#{$id}";
+
+        case 'auth_id':
+            if ($id <= 0) {
+                return 'None';
+            }
+            $stmt = $db->prepare("
+                SELECT 
+                    COALESCE(ul.login, CONCAT('User#', ua.user_id)) AS login,
+                    ua.ip,
+                    ua.dns_name
+                FROM user_auth ua
+                LEFT JOIN user_list ul ON ul.id = ua.user_id
+                WHERE ua.id = ?
+            ");
+            $stmt->execute([$id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$row) {
+                return "Auth#{$id}";
+            }
+
+            $parts = [];
+            if (!empty($row['login'])) {
+                $parts[] = "login: " . $row['login'];
+            }
+            if (!empty($row['ip'])) {
+                $parts[] = "IP: " . $row['ip'];
+            }
+            if (!empty($row['dns_name'])) {
+                $parts[] = "DNS: " . $row['dns_name'];
+            }
+
+            if (empty($parts)) {
+                return "Auth#{$id}";
+            }
+
+            return implode(', ', $parts);
+
+        case 'target_port_id':
+            if ($id === 0) return 'None';
+            $stmt = $db->prepare("
+                SELECT CONCAT(d.device_name, '[', dp.port, ']')
+                FROM device_ports dp
+                JOIN devices d ON d.id = dp.device_id
+                WHERE dp.id = ?
+            ");
+            $stmt->execute([$id]);
+            return $stmt->fetchColumn() ?: "Port#{$id}";
+
+        default:
+            // Неизвестное *_id — возвращаем как есть
+            return (string)$value;
+    }
+}
 
 function new_connection ($db_type, $db_host, $db_user, $db_password, $db_name, $db_port = null)
 {
@@ -593,7 +755,8 @@ function get_records_sql($db, $sql, $params = [])
         $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (!empty($records)) {
-            return normalize_records($records);
+//            return normalize_records($records);
+            return $records;
         }
 
         return [];
@@ -740,7 +903,6 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
     if (empty($old_record)) { return; }
     $rec_id = $old_record['id'];
 
-    $changed_log = '';
     $set_parts = [];
     $params = [];
     $network_changed = 0;
@@ -776,6 +938,7 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
         'alias' => '1',
     ];
 
+    $valid_record=[];
     foreach ($newvalue as $key => $value) {
 
         if (!allow_update($table, 'update', $key)) {
@@ -805,12 +968,12 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
                 $dns_changed = 1;
             }
         }
-        if (!preg_match('/password/i', $key)) {
-            $changed_log = $changed_log . " $key => $value (old: " . ($old_record[$key] ?? '') . "),";
-        }
         $set_parts[] = "$key = ?";
         $params[] = $value;
+	$valid_record[$key] = $value;
     }
+
+    $changed_msg = prepareAuditMessage($db, $table, $old_record, $valid_record, $rec_id, 'update');
 
     if ($table === "user_auth" and $dns_changed) {
         if (!empty($old_record['dns_name']) and !empty($old_record['ip']) and !$old_record['dns_ptr_only'] and !preg_match('/\.$/', $old_record['dns_name'])) {
@@ -834,20 +997,20 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
             insert_record($db, 'dns_queue', $del_dns);
         }
 
-        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and !$newvalue['dns_ptr_only'] and !preg_match('/\.$/', $newvalue['dns_name'])) {
+        if (!empty($valid_record['dns_name']) and !empty($valid_record['ip']) and !$valid_record['dns_ptr_only'] and !preg_match('/\.$/', $valid_record['dns_name'])) {
             $new_dns['name_type'] = 'A';
-            $new_dns['name'] = $newvalue['dns_name'];
-            $new_dns['value'] = $newvalue['ip'];
+            $new_dns['name'] = $valid_record['dns_name'];
+            $new_dns['value'] = $valid_record['ip'];
             $new_dns['operation_type'] = 'add';
             if (!empty($rec_id)) {
                 $new_dns['auth_id'] = $rec_id;
             }
             insert_record($db, 'dns_queue', $new_dns);
         }
-        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and $newvalue['dns_ptr_only'] and !preg_match('/\.$/', $newvalue['dns_name'])) {
+        if (!empty($valid_record['dns_name']) and !empty($valid_record['ip']) and $valid_record['dns_ptr_only'] and !preg_match('/\.$/', $valid_record['dns_name'])) {
             $new_dns['name_type'] = 'PTR';
-            $new_dns['name'] = $newvalue['dns_name'];
-            $new_dns['value'] = $newvalue['ip'];
+            $new_dns['name'] = $valid_record['dns_name'];
+            $new_dns['value'] = $valid_record['ip'];
             $new_dns['operation_type'] = 'add';
             if (!empty($rec_id)) {
                 $new_dns['auth_id'] = $rec_id;
@@ -871,9 +1034,9 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
             }
             insert_record($db, 'dns_queue', $del_dns);
         }
-        if (!empty($newvalue['alias'])  and !preg_match('/\.$/', $newvalue['alias'])) {
+        if (!empty($valid_record['alias'])  and !preg_match('/\.$/', $valid_record['alias'])) {
             $new_dns['name_type'] = 'CNAME';
-            $new_dns['name'] = $newvalue['alias'];
+            $new_dns['name'] = $valid_record['alias'];
             $new_dns['operation_type'] = 'add';
             if (!empty($auth_id)) {
                 $new_dns['auth_id'] = $auth_id;
@@ -895,7 +1058,6 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
         $set_parts[] = "dhcp_changed = 1";
     }
 
-    $changed_log = substr_replace($changed_log, "", -1);
     $run_sql = implode(", ", $set_parts);
 
     if ($table === 'user_auth') {
@@ -914,9 +1076,17 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
             LOG_ERROR($db, "UPDATE Request: $new_sql | params: " . json_encode($all_params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             return;
             }
-        if ($table !== "sessions") {
-            LOG_VERBOSE($db, "Change table $table WHERE $filter set $changed_log | params: " . json_encode($filter_params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+        if (!preg_match('/session/i', $table)) {
+            if (!empty($changed_msg)) {
+                if (!preg_match('/user/i', $table)) {
+                    LOG_INFO($db, $changed_msg);
+                    } else {
+                    LOG_WARNING($db, $changed_msg);
+                }
             }
+        }
+
         return $sql_result;
     } catch (PDOException $e) {
         LOG_ERROR($db, "SQL: $new_sql | params: " . json_encode($all_params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . " | error: " . $e->getMessage());
@@ -974,17 +1144,7 @@ function delete_record($db, $table, $filter, $filter_params = [])
     if (empty($old_record)) { return; }
     $rec_id = $old_record['id'];
 
-    $changed_log = 'record: ';
-    if (!empty($old_record)) {
-        asort($old_record, SORT_STRING);
-        $old_record = array_reverse($old_record, 1);
-        foreach ($old_record as $key => $value) {
-            if (empty($value) || preg_match('/\b(action|status|time|found)\b/i', $key)) {
-                continue;
-                }
-            $changed_log .= " $key => $value,";
-        }
-    }
+    $changed_msg = prepareAuditMessage($db, $table, $old_record, [], $rec_id, 'delete');
 
     $delete_it = 1;
 
@@ -1053,11 +1213,18 @@ function delete_record($db, $table, $filter, $filter_params = [])
         }
         } else { return; }
 
-    if ($table !== "sessions") {
-        LOG_VERBOSE($db, "Deleted FROM table $table WHERE $filter $changed_log");
+    if (!preg_match('/session/i', $table)) {
+        if (!empty($changed_msg)) {
+            if (!preg_match('/user/i', $table)) {
+                LOG_INFO($db, $changed_msg);
+                } else {
+                LOG_WARNING($db, $changed_msg);
+            }
+        }
     }
 
-    return $changed_log;
+    return $old_record;
+
 }
 
 function insert_record($db, $table, $newvalue)
@@ -1075,7 +1242,6 @@ function insert_record($db, $table, $newvalue)
         return;
     }
 
-    $changed_log = '';
     $field_list = [];
     $value_list = [];
     $params = [];
@@ -1115,8 +1281,16 @@ function insert_record($db, $table, $newvalue)
             return;
         }
         $last_id = $db->lastInsertId();
-        if ($table !== "sessions") {
-            LOG_VERBOSE($db, "Create record in table $table: $changed_log with id: $last_id");
+
+        if (!preg_match('/session/i', $table)) {
+            $changed_msg = prepareAuditMessage($db, $table, [], $newvalue, $last_id, 'insert');
+            if (!empty($changed_msg)) {
+                if (!preg_match('/user/i', $table)) {
+                    LOG_INFO($db, $changed_msg);
+                    } else {
+                    LOG_WARNING($db, $changed_msg);
+                }
+            }
         }
 
         if ($table === 'user_auth_alias') {

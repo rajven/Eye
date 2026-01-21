@@ -51,10 +51,6 @@ if (getPOST("edituser") !== null) {
         $new["permanent"]    = (int)getPOST("f_permanent", null, 0);
     }
 
-    $changes = get_diff_rec($db_link, "user_list", "id = ?", $new, 0, [$id]);
-    if (!empty($changes)) {
-        LOG_WARNING($db_link, "Changed user id: $id login: " . ($new["login"] ?? '') . ". \r\nApply: $changes");
-    }
     update_record($db_link, "user_list", "id = ?", $new, [$id]);
 
     // Отключаем авторизацию, если пользователь выключен
@@ -98,7 +94,6 @@ if (getPOST("addMacRule") !== null) {
 
 if (getPOST("delMacRule") !== null) {
     delete_records($db_link, "auth_rules", "user_id = ? AND rule_type = 2", [$id]);
-    LOG_INFO($db_link, "All autorules removed for id: $id login: " . $user_info["login"] . " by mac");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -120,7 +115,6 @@ if (getPOST("addIPRule") !== null) {
 
 if (getPOST("delIPRule") !== null) {
     delete_records($db_link, "auth_rules", "user_id = ? AND rule_type = 1", [$id]);
-    LOG_INFO($db_link, "Removed all auto rules for id: $id login: " . $user_info["login"] . " by ip");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -147,7 +141,6 @@ if (getPOST("showDevice") !== null) {
 
         $new_id = insert_record($db_link, "devices", $new);
         if (!empty($new_id)) {
-            LOG_INFO($db_link, "Created device with id: $new_id for auth_id: $id");
             header("Location: /admin/devices/editdevice.php?id={$new_id}");
             exit;
         }
@@ -216,7 +209,6 @@ if (getPOST("addauth") !== null) {
                 $new_auth['description'] = $fdescription;
             }
             update_record($db_link, "user_auth", "id = ?", $new_auth, [$fid]);
-            LOG_WARNING($db_link, "Add ip for login: " . $user_info["login"] . ": ip => $fip, mac => $fmac", $fid);
             header("Location: /admin/users/editauth.php?id=" . $fid);
             exit;
         }
@@ -282,7 +274,6 @@ if (getPOST("new_user") !== null) {
                 ];
                 $auth_update = apply_auth_rule($db_link, $auth_update, $new_user["id"]);
                 update_record($db_link, "user_auth", "id = ?", $auth_update, [$val]);
-                LOG_WARNING($db_link, "ip from id: $val moved to another user user_id: " . $new_user["id"], $val);
             } else {
                 $new_user_data = [
                     'login' => $login,
@@ -302,7 +293,6 @@ if (getPOST("new_user") !== null) {
                 if (!empty($l_id)) {
                     $auth_update = ['user_id' => $l_id, 'save_traf' => $save_traf];
                     update_record($db_link, "user_auth", "id = ?", $auth_update, [$val]);
-                    LOG_WARNING($db_link, "Create user from ip: login => $login. ip-record auth_id: $val moved to this user.", $val);
                 }
             }
         }

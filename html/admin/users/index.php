@@ -45,7 +45,6 @@ if (getPOST("create") !== null) {
                 $new['filter_group_id']   = 0;
             }
             $lid = insert_record($db_link, "user_list", $new);
-            LOG_WARNING($db_link, "Создан новый пользователь: Login => $login");
             if (!empty($lid)) {
                 header("Location: edituser.php?id=$lid");
                 exit;
