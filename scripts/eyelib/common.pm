@@ -42,11 +42,9 @@ get_default_ou
 get_device_by_ip
 get_dns_name
 get_dynamic_ou
-get_first_line
 get_ip_subnet
 get_new_user_id
 GetNowTime
-get_office_subnet
 get_subnets_ref
 GetTimeStrByUnixTime
 GetUnixTimeByStr
@@ -71,18 +69,6 @@ get_creation_method
 
 BEGIN
 {
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_first_line {
-my $msg = shift;
-if (!$msg) { return; }
-if ($msg=~ /(.*)(\n|\<br\>)/) {
-    $msg = $1 if ($1);
-    chomp($msg);
-    }
-return $msg;
-}
 
 #---------------------------------------------------------------------------------------------------------------
 
@@ -269,29 +255,6 @@ sub delete_device {
     do_sql($db, "DELETE FROM gateway_subnets WHERE device_id = ?", $id);
 
     return $changes;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_office_subnet {
-    my ($db, $ip) = @_;
-    return undef unless $db && defined $ip;
-
-    my @rows = get_records_sql(
-        $db,
-        "SELECT * FROM subnets WHERE office = 1 AND LENGTH(subnet) > 0"
-    );
-
-    return undef unless @rows;
-
-    my $pat = Net::Patricia->new;
-    for my $row (@rows) {
-        next unless defined $row->{subnet};
-        # Защита от некорректных подсетей в БД
-        eval { $pat->add_string($row->{subnet}, $row); 1 } or next;
-    }
-
-    return $pat->match_string($ip);
 }
 
 #---------------------------------------------------------------------------------------------------------------

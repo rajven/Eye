@@ -23,6 +23,7 @@ use MIME::Base64;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw(
+get_first_line
 isNotifyCreate
 isNotifyUpdate
 isNotifyDelete
@@ -73,6 +74,18 @@ GetTimeStrByUnixTime
 
 BEGIN
 {
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_first_line {
+my $msg = shift;
+if (!$msg) { return; }
+if ($msg=~ /(.*)(\n|\<br\>)/) {
+    $msg = $1 if ($1);
+    chomp($msg);
+    }
+return $msg;
+}
 
 #---------------------------------------------------------------------------------------------------------
 # Проверяет, установлен ли флаг создания

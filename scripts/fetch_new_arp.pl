@@ -210,6 +210,7 @@ foreach my $arp_table (@arp_array) {
         db_log_debug($dbh, "Analyze ip: $ip mac: $mac") if ($debug);
 
         my $auth_id = $users->match_string($ip);
+	
         my $arp_record;
         $arp_record->{ip}        = $ip;
         $arp_record->{mac}       = $mac;
@@ -225,9 +226,7 @@ foreach my $arp_table (@arp_array) {
             $mac_history{$simple_mac}{auth_id} = $cur_auth_id;
             $arp_record->{auth_id} = $cur_auth_id;
             # Mark as changed if IP-to-auth mapping differs from previous state
-            if ($auth_id ne $cur_auth_id) {
-                $mac_history{$simple_mac}{changed} = 1;
-            }
+            if (!$auth_id || $auth_id ne $cur_auth_id) { $mac_history{$simple_mac}{changed} = 1; }
         }
     }
 }

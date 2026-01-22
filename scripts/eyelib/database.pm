@@ -20,6 +20,9 @@ package eyelib::database;
 #}
 #$db->{AutoCommit} = 1;
 
+use warnings FATAL => 'all';
+use feature ':5.20';
+
 use utf8;
 use open ":encoding(utf8)";
 use strict;
@@ -43,6 +46,7 @@ use Text::CSV;
 our @ISA = qw(Exporter);
 
 our @EXPORT = qw(
+get_office_subnet
 get_notify_subnet
 is_hotspot
 get_queue
@@ -146,6 +150,29 @@ our %dns_fields = (
 );
 
 our %db_schema;
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_office_subnet {
+    my ($db, $ip) = @_;
+    return undef unless $db && defined $ip;
+
+    my @rows = get_records_sql(
+        $db,
+        "SELECT * FROM subnets WHERE office = 1 AND LENGTH(subnet) > 0"
+    );
+
+    return undef unless @rows;
+
+    my $pat = Net::Patricia->new;
+    for my $row (@rows) {
+        next unless defined $row->{subnet};
+        # Защита от некорректных подсетей в БД
+        eval { $pat->add_string($row->{subnet}, $row); 1 } or next;
+    }
+
+    return $pat->match_string($ip);
+}
 
 #---------------------------------------------------------------------------------------------------------------
 
@@ -1553,7 +1580,8 @@ if ($table eq "user_auth") {
 
 for my $field (keys %$record) {
         my $old_val = defined $old_record->{$field} ? $old_record->{$field} : '';
-        my $new_val =  normalize_value($record->{$field}, $db_schema{$db_info->{db_type}}{$db_info->{db_name}}{$table}{$field});
+        my $new_val =  normalize_value( $record->{$field}, $db_schema{$db_info->{db_type}}{$db_info->{db_name}}{$table}{$field});
+        $new_val = defined $new_val ? $new_val : '';
         if ($new_val ne $old_val) {
             $set_clause .= " $field = ?, ";
             push @update_params, $new_val;
