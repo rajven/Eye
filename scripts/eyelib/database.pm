@@ -1601,6 +1601,9 @@ if ($table eq "user_auth") {
     }
 
 for my $field (keys %$record) {
+        next if (!$field);
+        next if (!exists $record->{$field});
+        next if (!defined $record->{$field});
         my $old_val = defined $old_record->{$field} ? $old_record->{$field} : '';
         my $new_val =  normalize_value( $record->{$field}, $db_schema{$db_info->{db_type}}{$db_info->{db_name}}{$table}{$field});
         $new_val = defined $new_val ? $new_val : '';
@@ -1614,8 +1617,10 @@ return unless $set_clause;
 
 # Добавляем служебные поля
 if ($table eq 'user_auth') {
+    if ($record->{changed} || $record->{dhcp_changed} || $dns_changed ) {
         $set_clause .= "changed_time = ?, ";
         push @update_params, GetNowTime();
+        }
     }
 
 $set_clause =~ s/,\s*$//;
