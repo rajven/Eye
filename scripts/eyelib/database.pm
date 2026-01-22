@@ -43,6 +43,19 @@ use Text::CSV;
 our @ISA = qw(Exporter);
 
 our @EXPORT = qw(
+is_hotspot
+get_queue
+get_group
+get_subnet_description
+get_filter_instance_description
+get_vendor_name
+get_ou
+get_device_name
+get_device_model
+get_device_model_name
+get_building
+get_filter
+get_login
 StrToIp
 IpToStr
 prepare_audit_message
@@ -132,6 +145,148 @@ our %dns_fields = (
 );
 
 our %db_schema;
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub is_hotspot {
+    my ($db, $ip) = @_;
+    return 0 unless $db && defined $ip;
+
+    my @subnets = get_records_sql(
+        $db,
+        "SELECT subnet FROM subnets WHERE hotspot = 1 AND LENGTH(subnet) > 0"
+    );
+
+    my $pat = Net::Patricia->new;
+    for my $row (@subnets) {
+        $pat->add_string($row->{subnet}) if defined $row->{subnet};
+    }
+
+    return $pat->match_string($ip) ? 1 : 0;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+# Вспомогательная функция для проверки "пустого" значения
+sub _is_empty {
+    my ($val) = @_;
+    return !defined $val || $val eq '';
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_queue {
+    my ($dbh, $queue_value) = @_;
+    return '' if _is_empty($queue_value);
+    my $queue = get_record_sql($dbh, "SELECT queue_name FROM queue_list WHERE id = ?", $queue_value);
+    return $queue->{queue_name} // '';
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_group {
+    my ($dbh, $group_id) = @_;
+    return '' if _is_empty($group_id);
+    my $group = get_record_sql($dbh, "SELECT group_name FROM group_list WHERE id = ?", $group_id);
+    return $group->{group_name} // '';
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_subnet_description {
+    my ($dbh, $subnet_id) = @_;
+    return '' if _is_empty($subnet_id);
+    my $subnet = get_record_sql($dbh, "SELECT * FROM subnets WHERE id = ?", $subnet_id);
+    return '' unless $subnet;
+    my $desc = $subnet->{description} // '';
+    return "$subnet->{subnet}&nbsp;($desc)";
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_filter_instance_description {
+    my ($dbh, $instance_id) = @_;
+    return '' if _is_empty($instance_id);
+    my $instance = get_record_sql($dbh, "SELECT * FROM filter_instances WHERE id = ?", $instance_id);
+    return '' unless $instance;
+    my $desc = $instance->{description} // '';
+    return "$instance->{name}&nbsp;($desc)";
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_vendor_name {
+    my ($dbh, $v_id) = @_;
+    return '' if _is_empty($v_id);
+    my $vendor = get_record_sql($dbh, "SELECT name FROM vendors WHERE id = ?", $v_id);
+    return $vendor->{name} // '';
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_ou {
+    my ($dbh, $ou_value) = @_;
+    return undef if _is_empty($ou_value);
+    my $ou_name = get_record_sql($dbh, "SELECT ou_name FROM ou WHERE id = ?", $ou_value);
+    return $ou_name ? $ou_name->{ou_name} : undef;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_device_name {
+    my ($dbh, $device_id) = @_;
+    return undef if _is_empty($device_id);
+    my $dev = get_record_sql($dbh, "SELECT device_name FROM devices WHERE id = ?", $device_id);
+    return $dev ? $dev->{device_name} : undef;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_device_model {
+    my ($dbh, $model_value) = @_;
+    return undef if _is_empty($model_value);
+    my $model_name = get_record_sql($dbh, "SELECT model_name FROM device_models WHERE id = ?", $model_value);
+    return $model_name ? $model_name->{model_name} : undef;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_device_model_name {
+    my ($dbh, $model_value) = @_;
+    return '' if _is_empty($model_value);
+    my $row = get_record_sql($dbh, "SELECT M.id, M.model_name, V.name FROM device_models M, vendors V  WHERE M.vendor_id = V.id AND M.id = ?", $model_value);
+    return '' unless $row;
+    my $vendor = $row->{name} // '';
+    my $model = $row->{model_name} // '';
+    return "$vendor $model";
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_building {
+    my ($dbh, $building_value) = @_;
+    return undef if _is_empty($building_value);
+    my $building_name = get_record_sql($dbh, "SELECT name FROM building WHERE id = ?", $building_value);
+    return $building_name ? $building_name->{name} : undef;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_filter {
+    my ($dbh, $filter_value) = @_;
+    return '' if _is_empty($filter_value);
+    my $filter = get_record_sql($dbh, "SELECT name FROM filter_list WHERE id = ?", $filter_value);
+    return $filter->{name} // '';
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_login {
+    my ($dbh, $user_id) = @_;
+    return '' if _is_empty($user_id);
+    my $login = get_record_sql($dbh, "SELECT login FROM user_list WHERE id = ?", $user_id);
+    return $login->{login} // '';
+}
 
 #---------------------------------------------------------------------------------------------------------------
 

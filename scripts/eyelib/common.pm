@@ -54,7 +54,6 @@ GetUnixTimeByStr
 is_ad_computer
 is_default_ou
 is_dynamic_ou
-is_hotspot
 new_auth
 new_user
 process_dhcp_request
@@ -271,25 +270,6 @@ sub delete_device {
     do_sql($db, "DELETE FROM gateway_subnets WHERE device_id = ?", $id);
 
     return $changes;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub is_hotspot {
-    my ($db, $ip) = @_;
-    return 0 unless $db && defined $ip;
-
-    my @subnets = get_records_sql(
-        $db,
-        "SELECT subnet FROM subnets WHERE hotspot = 1 AND LENGTH(subnet) > 0"
-    );
-
-    my $pat = Net::Patricia->new;
-    for my $row (@subnets) {
-        $pat->add_string($row->{subnet}) if defined $row->{subnet};
-    }
-
-    return $pat->match_string($ip) ? 1 : 0;
 }
 
 #---------------------------------------------------------------------------------------------------------------

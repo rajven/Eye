@@ -259,6 +259,7 @@ $auth_sql = "SELECT id, mac FROM user_auth WHERE mac IS NOT NULL AND deleted = 0
 my @auth_full_list = get_records_sql($dbh, $auth_sql);
 foreach my $auth (@auth_full_list) {
     next if (!$auth);
+    next if (!$auth->{mac});
     my $auth_mac = mac_simplify($auth->{mac});
     next if (exists $auth_table{full_table}{$auth_mac});
     $auth_table{full_table}{$auth_mac} = $auth->{id};
