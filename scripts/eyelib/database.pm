@@ -45,6 +45,7 @@ our @ISA = qw(Exporter);
 our @EXPORT = qw(
 StrToIp
 IpToStr
+prepare_audit_message
 batch_db_sql_cached
 batch_db_sql_csv
 reconnect_db
@@ -131,6 +132,312 @@ our %dns_fields = (
 );
 
 our %db_schema;
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub prepare_audit_message {
+    my ($dbh, $table, $old_data, $new_data, $record_id, $operation) = @_;
+
+    # === 1. Конфигурация отслеживаемых таблиц ===
+    my %audit_config = (
+        'auth_rules' => {
+            summary => ['rule'],
+            fields  => ['user_id', 'ou_id', 'rule_type', 'rule', 'description']
+        },
+        'building' => {
+            summary => ['name'],
+            fields  => ['name', 'description']
+        },
+        'customers' => {
+            summary => ['login'],
+            fields  => ['login', 'description', 'rights']
+        },
+        'devices' => {
+            summary => ['device_name'],
+            fields  => [
+                'device_type', 'device_model_id', 'vendor_id', 'device_name', 'building_id',
+                'ip', 'login', 'protocol', 'control_port', 'port_count', 'sn',
+                'description', 'snmp_version', 'snmp3_auth_proto', 'snmp3_priv_proto',
+                'snmp3_user_rw', 'snmp3_user_ro', 'community', 'rw_community',
+                'discovery', 'netflow_save', 'user_acl', 'dhcp', 'nagios',
+                'active', 'queue_enabled', 'connected_user_only', 'user_id'
+            ]
+        },
+        'device_filter_instances' => {
+            summary => [],
+            fields  => ['instance_id', 'device_id']
+        },
+        'device_l3_interfaces' => {
+            summary => ['name'],
+            fields  => ['device_id', 'snmpin', 'interface_type', 'name']
+        },
+        'device_models' => {
+            summary => ['model_name'],
+            fields  => ['model_name', 'vendor_id', 'poe_in', 'poe_out', 'nagios_template']
+        },
+        'device_ports' => {
+            summary => ['port', 'ifname'],
+            fields  => [
+                'device_id', 'snmp_index', 'port', 'ifname', 'port_name', 'description',
+                'target_port_id', 'auth_id', 'last_mac_count', 'uplink', 'nagios',
+                'skip', 'vlan', 'tagged_vlan', 'untagged_vlan', 'forbidden_vlan'
+            ]
+        },
+        'filter_instances' => {
+            summary => ['name'],
+            fields  => ['name', 'description']
+        },
+        'filter_list' => {
+            summary => ['name'],
+            fields  => ['name', 'description', 'proto', 'dst', 'dstport', 'srcport', 'filter_type']
+        },
+        'gateway_subnets' => {
+            summary => [],
+            fields  => ['device_id', 'subnet_id']
+        },
+        'group_filters' => {
+            summary => [],
+            fields  => ['group_id', 'filter_id', 'rule_order', 'action']
+        },
+        'group_list' => {
+            summary => ['group_name'],
+            fields  => ['instance_id', 'group_name', 'description']
+        },
+        'ou' => {
+            summary => ['ou_name'],
+            fields  => [
+                'ou_name', 'description', 'default_users', 'default_hotspot',
+                'nagios_dir', 'nagios_host_use', 'nagios_ping', 'nagios_default_service',
+                'enabled', 'filter_group_id', 'queue_id', 'dynamic', 'life_duration', 'parent_id'
+            ]
+        },
+        'queue_list' => {
+            summary => ['queue_name'],
+            fields  => ['queue_name', 'download', 'upload']
+        },
+        'subnets' => {
+            summary => ['subnet'],
+            fields  => [
+                'subnet', 'vlan_tag', 'ip_int_start', 'ip_int_stop', 'dhcp_start', 'dhcp_stop',
+                'dhcp_lease_time', 'gateway', 'office', 'hotspot', 'vpn', 'free', 'dhcp',
+                'static', 'dhcp_update_hostname', 'discovery', 'notify', 'description'
+            ]
+        },
+        'user_auth' => {
+            summary => ['ip', 'dns_name'],
+            fields  => [
+                'user_id', 'ou_id', 'ip', 'save_traf', 'enabled', 'dhcp', 'filter_group_id',
+                'dynamic', 'end_life', 'description', 'dns_name', 'dns_ptr_only', 'wikiname',
+                'dhcp_acl', 'queue_id', 'mac', 'dhcp_option_set', 'blocked', 'day_quota',
+                'month_quota', 'device_model_id', 'firmware', 'client_id', 'nagios',
+                'nagios_handler', 'link_check', 'deleted'
+            ]
+        },
+        'user_auth_alias' => {
+            summary => ['alias'],
+            fields  => ['auth_id', 'alias', 'description']
+        },
+        'user_list' => {
+            summary => ['login'],
+            fields  => [
+                'login', 'description', 'enabled', 'blocked', 'deleted', 'ou_id',
+                'device_id', 'filter_group_id', 'queue_id', 'day_quota', 'month_quota', 'permanent'
+            ]
+        },
+        'vendors' => {
+            summary => ['name'],
+            fields  => ['name']
+        }
+    );
+
+    return undef unless exists $audit_config{$table};
+
+    my $summary_fields   = $audit_config{$table}{summary};
+    my $monitored_fields = $audit_config{$table}{fields};
+
+    # === 2. Нормализация данных и определение изменений ===
+    my %changes;
+
+    if ($operation eq 'insert') {
+        for my $field (@$monitored_fields) {
+            if (exists $new_data->{$field}) {
+                $changes{$field} = { old => undef, new => $new_data->{$field} };
+            }
+        }
+    }
+    elsif ($operation eq 'delete') {
+        for my $field (@$monitored_fields) {
+            if (exists $old_data->{$field}) {
+                $changes{$field} = { old => $old_data->{$field}, new => undef };
+            }
+        }
+    }
+    elsif ($operation eq 'update') {
+        $old_data //= {};
+        $new_data //= {};
+        for my $field (@$monitored_fields) {
+            next unless exists $new_data->{$field};  # частичное обновление
+            my $old_val = exists $old_data->{$field} ? $old_data->{$field} : undef;
+            my $new_val = $new_data->{$field};
+
+            my $old_str = !defined($old_val) ? '' : "$old_val";
+            my $new_str = !defined($new_val) ? '' : "$new_val";
+
+            if ($old_str ne $new_str) {
+                $changes{$field} = { old => $old_val, new => $new_val };
+            }
+        }
+    }
+
+    return undef unless %changes;
+
+    # === 3. Краткое описание записи ===
+    my @summary_parts;
+    for my $field (@$summary_fields) {
+        my $val = defined($new_data->{$field}) ? $new_data->{$field}
+                : (defined($old_data->{$field}) ? $old_data->{$field} : undef);
+        push @summary_parts, "$val" if defined $val && $val ne '';
+    }
+
+    my $summary_label = @summary_parts
+        ? '"' . join(' | ', @summary_parts) . '"'
+        : "ID=$record_id";
+
+    # === 4. Расшифровка *_id полей ===
+    my %resolved_changes;
+    for my $field (keys %changes) {
+        my $old_resolved = resolve_reference_value($dbh, $field, $changes{$field}{old});
+        my $new_resolved = resolve_reference_value($dbh, $field, $changes{$field}{new});
+        $resolved_changes{$field} = { old => $old_resolved, new => $new_resolved };
+    }
+
+    # === 5. Формирование сообщения ===
+    my $op_label = 'Updated';
+    if ($operation eq 'insert') {
+        $op_label = 'Created';
+    } elsif ($operation eq 'delete') {
+        $op_label = 'Deleted';
+    } else {
+        $op_label = ucfirst($operation);
+    }
+
+    my $message = sprintf("[%s] %s (%s) in table `%s`:\n",
+        $op_label,
+        ucfirst($table),
+        $summary_label,
+        $table
+    );
+
+    for my $field (sort keys %resolved_changes) {
+        my $change = $resolved_changes{$field};
+        if ($operation eq 'insert') {
+            if (defined $change->{new}) {
+                $message .= sprintf("  %s: %s\n", $field, $change->{new});
+            }
+        } elsif ($operation eq 'delete') {
+            if (defined $change->{old}) {
+                $message .= sprintf("  %s: %s\n", $field, $change->{old});
+            }
+        } else { # update
+            my $old_display = !defined($change->{old}) ? '[NULL]' : $change->{old};
+            my $new_display = !defined($change->{new}) ? '[NULL]' : $change->{new};
+            $message .= sprintf("  %s: \"%s\" → \"%s\"\n", $field, $old_display, $new_display);
+        }
+    }
+
+    chomp $message;
+    return $message;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub resolve_reference_value {
+    my ($dbh, $field, $value) = @_;
+
+    return undef if !defined $value || $value eq '';
+
+    # Проверка на целое число (как в PHP)
+    if ($value !~ /^[+-]?\d+$/) {
+        return "$value";
+    }
+    my $as_int = int($value);
+    if ("$as_int" ne "$value") {
+        return "$value";
+    }
+
+    my $id = $as_int;
+
+    if ($field eq 'device_id') {
+        return get_device_name($dbh, $id) // "Device#$id";
+    }
+    elsif ($field eq 'building_id') {
+        return get_building($dbh, $id) // "Building#$id";
+    }
+    elsif ($field eq 'user_id') {
+        return get_login($dbh, $id) // "User#$id";
+    }
+    elsif ($field eq 'ou_id') {
+        return get_ou($dbh, $id) // "OU#$id";
+    }
+    elsif ($field eq 'vendor_id') {
+        return get_vendor_name($dbh, $id) // "Vendor#$id";
+    }
+    elsif ($field eq 'device_model_id') {
+        return get_device_model_name($dbh, $id) // "Model#$id";
+    }
+    elsif ($field eq 'instance_id') {
+        return get_filter_instance_description($dbh, $id) // "FilterInstance#$id";
+    }
+    elsif ($field eq 'subnet_id') {
+        return get_subnet_description($dbh, $id) // "Subnet#$id";
+    }
+    elsif ($field eq 'group_id') {
+        return get_group($dbh, $id) // "FilterGroup#$id";
+    }
+    elsif ($field eq 'filter_id') {
+        return get_filter($dbh, $id) // "Filter#$id";
+    }
+    elsif ($field eq 'filter_group_id') {
+        return get_group($dbh, $id) // "FilterGroup#$id";
+    }
+    elsif ($field eq 'queue_id') {
+        return get_queue($dbh, $id) // "Queue#$id";
+    }
+    elsif ($field eq 'auth_id') {
+        return 'None' if $id <= 0;
+        my $sql = "
+            SELECT
+                COALESCE(ul.login, CONCAT('User#', ua.user_id)) AS login,
+                ua.ip,
+                ua.dns_name
+            FROM user_auth ua
+            LEFT JOIN user_list ul ON ul.id = ua.user_id
+            WHERE ua.id = ?
+        ";
+        my $row = get_record_sql($dbh, $sql, $id);
+        return "Auth#$id" unless $row;
+
+        my @parts;
+        push @parts, "login: $row->{login}" if $row->{login} && $row->{login} ne '';
+        push @parts, "IP: $row->{ip}"       if $row->{ip} && $row->{ip} ne '';
+        push @parts, "DNS: $row->{dns_name}" if $row->{dns_name} && $row->{dns_name} ne '';
+        return @parts ? join(', ', @parts) : "Auth#$id";
+    }
+    elsif ($field eq 'target_port_id') {
+        return 'None' if $id == 0;
+        my $sql = "
+            SELECT CONCAT(d.device_name, '[', dp.port, ']')
+            FROM device_ports dp
+            JOIN devices d ON d.id = dp.device_id
+            WHERE dp.id = ?
+        ";
+        my $name = $dbh->selectrow_array($sql, undef, $id);
+        return $name // "Port#$id";
+    }
+    else {
+        return "$value";
+    }
+}
 
 #---------------------------------------------------------------------------------------------------------------
 
@@ -958,7 +1265,6 @@ if ($table eq "user_auth") {
 my @insert_params;
 my $fields = '';
 my $values = '';
-my $new_str = '';
 
 foreach my $field (keys %$record) {
     my $val =  normalize_value($record->{$field}, $db_schema{$db_info->{db_type}}{$db_info->{db_name}}{$table}{$field});
@@ -969,10 +1275,6 @@ foreach my $field (keys %$record) {
     $fields .= "$quoted_field, ";
     $values .= "?, ";
     push @insert_params, $val;
-    # Для лога — безопасное представление
-    my $log_val = defined $val ? substr($val, 0, 200) : 'NULL';
-    $log_val =~ s/[^[:print:]]/_/g;
-    $new_str .= " $field => $log_val,";
 }
 
 $fields =~ s/,\s*$//;
@@ -980,9 +1282,30 @@ $values =~ s/,\s*$//;
 
 my $sSQL = "INSERT INTO $table($fields) VALUES($values)";
 my $result = do_sql($db,$sSQL,@insert_params);
+
 if ($result) {
-    $rec_id = $result if ($table eq "user_auth");
-    $new_str='id: '.$result.' '.$new_str;
+    $rec_id = $result;
+
+    my $changed_msg = prepare_audit_message($db, $table, undef, $record, $rec_id, 'insert');
+    if ($table !~ /session/i) {
+    if (defined $changed_msg && $changed_msg ne '') {
+        if ($table !~ /user/i) {
+            db_log_info($db, $changed_msg);
+            } else {
+            if ($table eq 'user_auth' && defined $record->{ip} && $record->{ip} ne '') {
+                if (is_hotspot($db, $record->{ip})) {
+                    db_log_info($db, $changed_msg, $rec_id);
+                    } else {
+                    db_log_warning($db, $changed_msg, $rec_id);
+                    my $send_alert_create = isNotifyCreate(get_notify_subnet($db, $record->{ip}));
+                    sendEmail("WARN! " . get_first_line($changed_msg), $changed_msg, 1) if $send_alert_create;
+                    }
+                } else {
+                db_log_warning($db, $changed_msg);
+                }
+            }
+        }
+
     if ($table eq 'user_auth_alias' and $dns_changed) {
         if ($record->{'alias'} and $record->{'alias'}!~/\.$/) {
             my $add_dns;
@@ -1015,7 +1338,7 @@ if ($result) {
             }
         }
     }
-db_log_debug($db,'Add record to table '.$table.' '.$new_str,$rec_id);
+}
 return $result;
 }
 
@@ -1062,12 +1385,10 @@ if ($table eq "user_auth") {
         }
     }
 
-my $diff = '';
 for my $field (keys %$record) {
         my $old_val = defined $old_record->{$field} ? $old_record->{$field} : '';
         my $new_val =  normalize_value($record->{$field}, $db_schema{$db_info->{db_type}}{$db_info->{db_name}}{$table}{$field});
         if ($new_val ne $old_val) {
-            $diff .= " $field => $new_val (old: $old_val),";
             $set_clause .= " $field = ?, ";
             push @update_params, $new_val;
         }
@@ -1082,7 +1403,6 @@ if ($table eq 'user_auth') {
     }
 
 $set_clause =~ s/,\s*$//;
-$diff =~ s/,\s*$//;
 
 if ($table eq 'user_auth') {
         if ($dns_changed) {
@@ -1152,11 +1472,32 @@ if ($table eq 'user_auth_alias') {
             }
         }
 
-# Формируем полный список параметров: сначала SET, потом WHERE
 my @all_params = (@update_params, @filter_params);
 my $update_sql = "UPDATE $table SET $set_clause WHERE $filter_sql";
-db_log_debug($db, "Change table $table for $filter_sql set: $diff", $rec_id);
-return do_sql($db, $update_sql, @all_params);
+my $result = do_sql($db, $update_sql, @all_params);
+
+if ($result) {
+    my $changed_msg = prepare_audit_message($db, $table, $old_record, $record , $rec_id, 'update');
+    if ($table !~ /session/i) {
+        if (defined $changed_msg && $changed_msg ne '') {
+            if ($table !~ /user/i) {
+                db_log_info($db, $changed_msg);
+                } else {
+                if (is_hotspot($db, $old_record->{ip})) {
+                    db_log_info($db, $changed_msg, $rec_id);
+                    } else {
+                    db_log_warning($db, $changed_msg, $rec_id);
+                    if ($table eq 'user_auth' && defined $old_record->{ip} && $old_record->{ip} ne '') {
+                        my $send_alert_update = isNotifyUpdate(get_notify_subnet($db, $old_record->{ip}));
+                        sendEmail("WARN! " . get_first_line($changed_msg), $changed_msg, 1) if $send_alert_update;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+return $result;
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -1182,20 +1523,7 @@ my $select_sql = "SELECT * FROM $table WHERE $filter_sql";
 my $old_record = get_record_sql($db, $select_sql, @filter_params);
 return unless $old_record;
 
-my $rec_id = 0;
-
-my $diff='';
-foreach my $field (keys %$old_record) {
-    next if (!$old_record->{$field});
-    $diff = $diff." $field => $old_record->{$field},";
-    }
-$diff=~s/,\s*$//;
-
-if ($table eq 'user_auth') {
-    $rec_id = $old_record->{'id'} if ($old_record->{'id'});
-    }
-
-db_log_debug($db,'Delete record from table '.$table.' value: '.$diff, $rec_id);
+my $rec_id = $old_record->{'id'};
 
 #never delete user ip record!
 if ($table eq 'user_auth') {
@@ -1219,6 +1547,21 @@ if ($table eq 'user_auth') {
 	$del_dns->{'auth_id'}=$old_record->{'id'};
 	insert_record($db,'dns_queue',$del_dns);
 	}
+
+    my $changed_msg = prepare_audit_message($db, $table, $old_record, undef , $rec_id, 'delete');
+    if ($ret) {
+        if (defined $changed_msg && $changed_msg ne '') {
+            if (defined $old_record->{ip} && $old_record->{ip} ne '') {
+                if (is_hotspot($db, $old_record->{ip})) {
+                    db_log_info($db, $changed_msg, $rec_id);
+                    } else {
+                    db_log_warning($db, $changed_msg, $rec_id);
+                    my $send_alert_delete = isNotifyDelete(get_notify_subnet($db, $old_record->{ip}));
+                    sendEmail("WARN! " . get_first_line($changed_msg), $changed_msg, 1) if $send_alert_delete;
+                    }
+                }
+            }
+        }
     return $ret;
     }
 
@@ -1237,7 +1580,20 @@ if ($table eq 'user_auth_alias') {
     }
 
 my $sSQL = "DELETE FROM ".$table." WHERE ".$filter_sql;
-return do_sql($db,$sSQL,@filter_params);
+my $result = do_sql($db,$sSQL,@filter_params);
+
+my $changed_msg = prepare_audit_message($db, $table, $old_record, undef , $rec_id, 'delete');
+if ($result && $table !~ /session/i) {
+    if (defined $changed_msg && $changed_msg ne '') {
+        if ($table !~ /user/i) {
+            db_log_info($db, $changed_msg);
+            } else {
+            db_log_warning($db, $changed_msg);
+            }
+        }
+    }
+
+return $result;
 }
 
 #---------------------------------------------------------------------------------------------------------------

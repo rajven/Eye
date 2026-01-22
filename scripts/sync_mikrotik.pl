@@ -30,6 +30,7 @@ use DBI;
 use Fcntl qw(:flock);
 use Parallel::ForkManager;
 use Net::DNS;
+use Getopt::Long;
 
 #$debug = 1;
 
@@ -45,14 +46,19 @@ my $fork_count = $cpu_count*10;
 #flag for operation status
 my $all_ok = 1;
 
-my @gateways =();
-#select undeleted mikrotik routers only
-if ($ARGV[0]) {
-    my $router = get_record_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) and protocol>=0 and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9 and id=?',$ARGV[0]);
-    if ($router) { push(@gateways,$router); }
-    } else {
-    @gateways = get_records_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) and protocol>=0 and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9');
-    }
+my $changes_only = 0;
+my $router_id    = undef;
+
+# Парсим аргументы
+GetOptions(
+    'changes-only|c' => \$changes_only,
+    'router-id|r=i'  => \$router_id,
+) or die "Ошибка в параметрах!\n";
+
+my @gateways = ();
+
+#save changed records
+my @changes_found = get_records_sql($dbh,"SELECT id, ip FROM user_auth WHERE changed=1");
 
 #все сети организации, работающие по dhcp
 my $dhcp_networks = new Net::Patricia;
@@ -76,10 +82,78 @@ $dhcp_conf{$subnet->{subnet}}->{first_ip_aton}=StrToIp($dhcp_info->{first_ip});
 $dhcp_conf{$subnet->{subnet}}->{last_ip_aton}=StrToIp($dhcp_info->{last_ip});
 }
 
-my $pm = Parallel::ForkManager->new($fork_count);
+#@office_network_list - все рабочие сети
 
-#save changed records
-my @changes_found = get_records_sql($dbh,"SELECT id FROM user_auth WHERE changed=1");
+if ($changes_only) {
+    my @all_gateways = get_records_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) AND protocol>=0 AND (user_acl=1 OR dhcp=1) AND deleted=0 AND vendor_id=9' );
+    my %network_to_routers;
+
+    for my $gate (@all_gateways) {
+        my $router_id = $gate->{id};
+        my $connected_only = $gate->{connected_user_only} // 0;
+        my @subnets_for_router=();
+        if ($connected_only) {
+            # Только привязанные подсети
+            my @gw_subnets = get_records_sql($dbh,"SELECT s.subnet FROM gateway_subnets gs JOIN subnets s ON gs.subnet_id = s.id WHERE gs.device_id = ? AND s.subnet IS NOT NULL", $router_id );
+            @subnets_for_router = map { $_->{subnet} } @gw_subnets;
+            } else {
+            # Все офисные сети
+            push(@subnets_for_router,@office_network_list);
+            }
+        # Добавляем роутер ко всем его подсетям
+        for my $subnet (@subnets_for_router) {
+            next unless $subnet && $subnet =~ m{^\d+\.\d+\.\d+\.\d+/\d+$};
+            $network_to_routers{$subnet} //= {};
+            $network_to_routers{$subnet}{$router_id} = 1;
+            }
+        }
+
+    my $GwPat = Net::Patricia->new(AF_INET);
+    for my $subnet (keys %network_to_routers) {
+        # Храним ссылку на хеш роутеров
+        $GwPat->add_string($subnet, \%{$network_to_routers{$subnet}});
+        }
+
+    my %selected_router_ids;
+    for my $user (@changes_found) {
+        my $ip = $user->{ip};
+        next unless $ip && $ip =~ /^\d+\.\d+\.\d+\.\d+$/;
+        my $data_ref = $GwPat->match_string($ip);
+        if ($data_ref) {
+            for my $rid (keys %$data_ref) {
+                if (defined $router_id) {
+                        $selected_router_ids{$rid} = 1 if ($router_id == $rid);
+                        } else {
+                        $selected_router_ids{$rid} = 1;
+                        }
+                }
+            }
+        }
+
+    if (%selected_router_ids) {
+        my @ids = keys %selected_router_ids;
+        my $ph = join ',', ('?') x @ids;
+        @gateways = get_records_sql($dbh, "SELECT * FROM devices WHERE id IN ($ph) AND (device_type=2 OR device_type=0) AND protocol >= 0 AND (user_acl=1 OR dhcp=1) AND deleted = 0  AND vendor_id = 9", @ids );
+        } else {
+        @gateways = ();  # Нет затронутых роутеров
+        }
+
+    if (!scalar @gateways) { exit 0; }
+
+    }
+
+    else {
+    # Если задан router_id — выбираем один роутер
+    if (defined $router_id) {
+        my $router = get_record_sql($dbh, 'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) AND protocol>=0 AND (user_acl=1 OR dhcp=1) AND deleted=0 AND vendor_id=9 AND id=?', $router_id );
+        if ($router) { push(@gateways, $router); }
+        } else {
+        # Иначе выбираем все подходящие роутеры
+        @gateways = get_records_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) AND protocol>=0 AND (user_acl=1 OR dhcp=1) AND deleted=0 AND vendor_id=9' );
+        }
+    }
+
+my $pm = Parallel::ForkManager->new($fork_count);
 
 foreach my $gate (@gateways) {
 next if (!$gate);

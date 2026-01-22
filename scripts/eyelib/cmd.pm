@@ -311,9 +311,9 @@ if ($device->{proto} eq 'ssh') {
 	    strict_mode=>0,
 	    master_opts => [ 
 	    -o => "StrictHostKeyChecking=no", 
-	    -o => "PubkeyAcceptedKeyTypes=+ssh-dss", 
+#	    -o => "PubkeyAcceptedKeyTypes=+ssh-dss", 
 	    -o => "KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1",
-	    -o => "HostKeyAlgorithms=+ssh-dss",
+#	    -o => "HostKeyAlgorithms=+ssh-dss",
 	    -o => "LogLevel=quiet",
 	    -o => "UserKnownHostsFile=/dev/null"
 	    ]
@@ -325,8 +325,19 @@ if ($device->{proto} eq 'ssh') {
 if ($device->{proto} eq 'essh') {
 	if (!$device->{port}) { $device->{port} = '22'; }
 	log_info($dev_ident."Try login to $device->{ip}:$device->{port} by ssh::expect...");
+        my @ssh_opts = (
+            'ssh',
+            '-o', 'StrictHostKeyChecking=no',
+#            '-o', 'PubkeyAcceptedKeyTypes=+ssh-dss',
+            '-o', 'KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1',
+#            '-o', 'HostKeyAlgorithms=+ssh-dss',
+            '-o', 'LogLevel=quiet',
+            '-o', 'UserKnownHostsFile=/dev/null',
+            "$device->{login}\@$device->{ip}",
+        );
 
-	$t = Expect->spawn("ssh -o StrictHostKeyChecking=no -o PubkeyAcceptedKeyTypes=+ssh-dss -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-dss -o LogLevel=quiet -o UserKnownHostsFile=/dev/null $device->{login}\@$device->{ip}");
+        $t = Expect->spawn(@ssh_opts);
+
 	$t->log_stdout(0);  # Disable logging to stdout
 
 	$t->expect(30,

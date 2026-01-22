@@ -139,7 +139,7 @@ if (!$pid) {
 	            if ($changed->{"c_count"}>0) {
                             log_info("Found changed records: ".$changed->{'c_count'});
                             my $acl_exec=get_option($hdb,37);
-                            my %result=do_exec_ref($acl_exec);
+                            my %result=do_exec_ref($acl_exec.' --changes-only');
 	                    if ($result{status} ne 0) { log_error("Error sync status at gateways"); }
 		            }
 	            }

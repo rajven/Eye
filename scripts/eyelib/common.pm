@@ -19,6 +19,7 @@ use eyelib::net_utils;
 use Data::Dumper;
 use eyelib::database;
 use DateTime;
+use DateTime::Format::Strptime;
 use POSIX qw(mktime ctime strftime);
 use File::Temp qw(tempfile);
 use DBI;
@@ -89,7 +90,7 @@ return $msg;
 
 sub unbind_ports {
     my ($db, $device_id) = @_;
-    return unless $db && defined $device_id && $device_id =~ /^\d+$/;  # защита от нечисловых ID
+    return unless $db && defined $device_id && $device_id =~ /^\d+$/;  
     # Получаем все порты устройства
     my @target = get_records_sql($db, 
         "SELECT target_port_id, id FROM device_ports WHERE device_id = ?", 
@@ -109,7 +110,6 @@ sub get_dns_name {
     my ($db, $id) = @_;
     return unless $db && defined $id;
 
-    # Защита: убедимся, что $id — положительное целое число
     return unless $id =~ /^\d+$/ && $id > 0;
 
     my $auth_record = get_record_sql(
@@ -146,39 +146,16 @@ sub delete_user_auth {
     my ($db, $id) = @_;
     return 0 unless $db && defined $id;
 
-    # Валидация ID
     return 0 unless $id =~ /^\d+$/ && $id > 0;
 
-    # Получаем основную запись
     my $record = get_record_sql($db, "SELECT * FROM user_auth WHERE id = ?", $id);
-    return 0 unless $record;  # если записи нет — выходим
+    return 0 unless $record;
 
-    # Формируем идентификатор для лога
-    my $auth_ident = $record->{ip} // '';
-    if ($record->{dns_name}) {
-        $auth_ident .= ' [' . $record->{dns_name} . ']';
-    }
-    if ($record->{description}) {
-        $auth_ident .= ' :: ' . $record->{description};
-    }
-
-    my $txt_record = hash_to_text($record) // '';
-    my $msg = "";
-
-    # --- Удаляем алиасы ---
     my @aliases = get_records_sql($db, "SELECT * FROM user_auth_alias WHERE auth_id = ?", $id);
     foreach my $alias (@aliases) {
         my $alias_id = $alias->{id};
         next unless defined $alias_id && $alias_id =~ /^\d+$/;
-
-        # Правильный вызов: таблица + ID (число)
-        my $alias_txt = record_to_txt($db, 'user_auth_alias', $alias_id) // '';
-
-        if (delete_record($db, 'user_auth_alias', 'id = ?', $alias_id)) {
-            $msg = "Deleting an alias: $alias_txt\n::Success!\n" . $msg;
-        } else {
-            $msg = "Deleting an alias: $alias_txt\n::Fail!\n" . $msg;
-        }
+        delete_record($db, 'user_auth_alias', 'id = ?', $alias_id);
     }
 
     # --- Удаляем соединения ---
@@ -186,19 +163,6 @@ sub delete_user_auth {
 
     # --- Удаляем основную запись ---
     my $changes = delete_record($db, "user_auth", "id = ?", $id);
-
-    if ($changes) {
-        $msg = "Deleting ip-record: $txt_record\n::Success!\n" . $msg;
-    } else {
-        $msg = "Deleting ip-record: $txt_record\n::Fail!\n" . $msg;
-    }
-
-    $msg = "Deleting user ip record $auth_ident\n\n" . $msg;
-    db_log_warning($db, $msg, $id);
-
-    # Отправка уведомления
-    my $send_alert = isNotifyDelete(get_notify_subnet($db, $record->{ip}));
-    sendEmail("WARN! " . get_first_line($msg), $msg, 1) if $send_alert;
 
     return $changes;
 }
@@ -209,14 +173,11 @@ sub unblock_user {
     my ($db, $user_id) = @_;
     return 0 unless $db && defined $user_id;
 
-    # Валидация ID
     return 0 unless $user_id =~ /^\d+$/ && $user_id > 0;
 
-    # Получаем пользователя
     my $user_record = get_record_sql($db, "SELECT * FROM user_list WHERE id = ?", $user_id);
-    return 0 unless $user_record;  # если нет — выходим
+    return 0 unless $user_record;
 
-    # Формируем идентификатор
     my $user_ident = 'id:' . ($user_record->{id} // '') . ' ' . ($user_record->{login} // '');
     if ($user_record->{description}) {
         $user_ident .= '[' . $user_record->{description} . ']';
@@ -226,7 +187,6 @@ sub unblock_user {
     my $send_alert = 0;
     my $any_updated = 0;
 
-    # Разблоковываем все активные IP-записи пользователя
     my @user_auth = get_records_sql($db, "SELECT * FROM user_auth WHERE deleted = 0 AND user_id = ?", $user_id);
     foreach my $record (@user_auth) {
         next unless $record->{id} && $record->{id} =~ /^\d+$/;
@@ -252,12 +212,10 @@ sub unblock_user {
         }
     }
 
-    # Разблоковываем самого пользователя в user_list
     my $user_update = { blocked => 0 };
     my $ret_id = update_record($db, 'user_list', $user_update, 'id = ?', $user_id);
 
     if ($ret_id) {
-        # Логируем даже если нет IP-записей
         db_log_info($db, $msg);
         sendEmail("WARN! " . get_first_line($msg), $msg, 1) if $send_alert;
     }
@@ -271,27 +229,22 @@ sub delete_user {
     my ($db, $id) = @_;
     return 0 unless $db && defined $id;
 
-    # Валидация ID: должно быть положительное целое число
     return 0 unless $id =~ /^\d+$/ && $id > 0;
 
-    # Удаляем основную запись пользователя
     my $changes = delete_record($db, "user_list", "permanent = 0 AND id = ?", $id);
-    return 0 unless $changes;  # если не удалось — выходим
+    return 0 unless $changes;
 
-    # Удаляем все IP-записи (user_auth)
     my @user_auth_records = get_records_sql($db, "SELECT id FROM user_auth WHERE user_id = ?", $id);
     foreach my $row (@user_auth_records) {
         next unless defined $row->{id} && $row->{id} =~ /^\d+$/;
         delete_user_auth($db, $row->{id});
     }
 
-    # Удаляем устройство, привязанное к пользователю
     my $device = get_record_sql($db, "SELECT id FROM devices WHERE user_id = ?", $id);
     if ($device && defined $device->{id} && $device->{id} =~ /^\d+$/) {
         delete_device($db, $device->{id});
     }
 
-    # Удаляем правила авторизации
     do_sql($db, "DELETE FROM auth_rules WHERE user_id = ?", $id);
 
     return $changes;
@@ -303,17 +256,14 @@ sub delete_device {
     my ($db, $id) = @_;
     return 0 unless $db && defined $id;
 
-    # Валидация: ID должен быть положительным целым числом
     return 0 unless $id =~ /^\d+$/ && $id > 0;
 
-    # Удаляем запись устройства
     my $changes = delete_record($db, "devices", "id = ?", $id);
-    return 0 unless $changes;  # если не удалось — выходим
+    return 0 unless $changes;
 
     # Отвязываем порты
     unbind_ports($db, $id);
 
-    # Удаляем связанные данные
     do_sql($db, "DELETE FROM connections WHERE device_id = ?", $id);
     do_sql($db, "DELETE FROM device_l3_interfaces WHERE device_id = ?", $id);
     do_sql($db, "DELETE FROM device_ports WHERE device_id = ?", $id);
@@ -516,7 +466,6 @@ sub get_new_user_id {
         }
     }
 
-    # --- Значение по умолчанию ---
     $result->{ou_id} //= $default_user_ou_id;
 
     return $result;
@@ -526,8 +475,6 @@ sub get_new_user_id {
 sub set_changed {
     my ($db, $id) = @_;
     return unless $db && defined $id;
-
-    # Опционально: валидация ID как числа
     return unless $id =~ /^\d+$/;
 
     my $update_record = { changed => 1 };
@@ -544,7 +491,6 @@ return unless defined $auth_id;
 # Валидация: auth_id должен быть положительным целым числом
 return unless $auth_id =~ /^\d+$/ && $auth_id > 0;
 
-# Переподключение
 if (!$hdb || !$hdb->ping) { $hdb = init_db(); }
 return unless $hdb;
 
@@ -912,7 +858,6 @@ if ($fqdn ne '' and !$dynamic_ok) {
 
 #------------------------------------------------------------------------------------------------------------
 
-use DateTime::Format::Strptime;
 
 sub apply_device_lock {
     my $db = shift;
@@ -1432,15 +1377,18 @@ sub resurrection_auth {
         return $record->{id};
     }
 
+    my $send_alert_create = isNotifyCreate(get_notify_subnet($db, $ip));
+
     # --- Проверка статической подсети ---
     my $user_subnet = $office_networks->match_string($ip);
     if ($user_subnet && $user_subnet->{static}) {
-        db_log_warning($db, "Unknown ip+mac found in static subnet! Abort create record for ip: $ip mac: [$mac]");
+        my $msg = "Found new unknown ip+mac in static subnet! Abort create record for this: $ip [$mac]";
+        db_log_warning($db, $msg);
+        sendEmail("WARN! " . get_first_line($msg), $msg, 1) if $send_alert_create;
         return 0;
     }
 
     my $send_alert_update = isNotifyUpdate(get_notify_subnet($db, $ip));
-    my $send_alert_create = isNotifyCreate(get_notify_subnet($db, $ip));
 
     # --- Ищем другие записи с этим MAC в той же подсети ---
     my $mac_exists = find_mac_in_subnet($db, $ip, $mac);
@@ -1451,13 +1399,9 @@ sub resurrection_auth {
         $ip_aton
     );
 
-    my $msg = '';
-
     if ($ip_record_same && $ip_record_same->{id}) {
         if (!$ip_record_same->{mac}) {
             # Обновляем запись без MAC
-            $msg = "$auth_ident\nUse auth record with no mac: " . hash_to_text($ip_record_same);
-            db_log_verbose($db, $msg);
             $new_record->{mac} = $mac;
             $new_record->{dhcp} = 0 if $mac_exists && $mac_exists->{count};
             if ($action =~ /^(add|old|del)$/i) {
@@ -1469,12 +1413,11 @@ sub resurrection_auth {
                 $new_record->{created_by}  = $action // get_creation_method();
                 }
             update_record($db, 'user_auth', $new_record, 'id = ?', $ip_record_same->{id});
-            sendEmail("WARN! " . get_first_line($msg), $msg, 1) if $send_alert_update;
             return $ip_record_same->{id};
         } elsif ($ip_record_same->{mac}) {
             # MAC изменился — удаляем старую запись
             if (!$ip_record->{hotspot}) {
-                $msg = "For ip: $ip mac change detected! Old mac: [$ip_record_same->{mac}] New mac: [$mac]. Disable old auth_id: $ip_record_same->{id}";
+                my $msg = "For ip: $ip mac change detected! Old mac: [$ip_record_same->{mac}] New mac: [$mac]. Disable old auth_id: $ip_record_same->{id}";
                 db_log_warning($db, $msg, $ip_record_same->{id});
                 sendEmail("WARN! " . get_first_line($msg), $msg, 1) if $send_alert_update;
             }
@@ -1522,13 +1465,14 @@ sub resurrection_auth {
     );
 
     my $cur_auth_id;
+    my $msg = '';
     if ($auth_exists && $auth_exists->{id}) {
         # Воскрешаем старую запись
         $cur_auth_id = $auth_exists->{id};
         $msg = "$auth_ident Resurrection auth_id: $cur_auth_id with ip: $ip and mac: $mac";
         if (!$ip_record->{hotspot}) { db_log_warning($db, $msg); } else { db_log_info($db, $msg); }
         update_record($db, 'user_auth', $new_record, 'id = ?', $cur_auth_id);
-    } else {
+        } else {
         # Создаём новую
         $cur_auth_id = insert_record($db, 'user_auth', $new_record);
         if ($cur_auth_id) {
@@ -1559,7 +1503,9 @@ sub resurrection_auth {
         $new_record->{enabled}         = $user_record->{enabled} // 0;
         update_record($db, 'user_auth', $new_record, 'id = ?', $cur_auth_id);
     }
-
+    my $final_record = get_record_sql($db, "SELECT * FROM user_auth WHERE id = ?", $cur_auth_id);
+    my $changed_msg = prepare_audit_message($db, 'user_auth', undef, $final_record , $cur_auth_id, 'insert');
+    $msg .= "\n". $changed_msg;
     db_log_warning($db, $msg, $cur_auth_id);
     sendEmail("WARN! " . get_first_line($msg), $msg . "\n" . record_to_txt($db, 'user_auth', $cur_auth_id), 1)  if $send_alert_create;
     return $cur_auth_id;
@@ -1619,11 +1565,6 @@ sub new_auth {
     $new_record->{description} = $user_record->{description} if $user_record->{description};
 
     my $cur_auth_id = insert_record($db, 'user_auth', $new_record);
-    if ($cur_auth_id) {
-        my $msg = "New ip created by ".get_creation_method()."! ip: $ip";
-        db_log_warning($db, $msg, $cur_auth_id);
-        sendEmail("WARN! " . get_first_line($msg), $msg, 1) if $send_alert;
-    }
 
     return $cur_auth_id;
 }

@@ -107,7 +107,7 @@ function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $n
                 'dynamic', 'end_life', 'description', 'dns_name', 'dns_ptr_only', 'wikiname',
                 'dhcp_acl', 'queue_id', 'mac', 'dhcp_option_set', 'blocked', 'day_quota',
                 'month_quota', 'device_model_id', 'firmware', 'client_id', 'nagios',
-                'nagios_handler', 'link_check'
+                'nagios_handler', 'link_check', 'deleted'
             ]
         ],
         'user_auth_alias' => [
@@ -1105,14 +1105,20 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
                 if (!preg_match('/user/i', $table)) {
                     LOG_INFO($db, $changed_msg);
                     } else {
-                    LOG_WARNING($db, $changed_msg);
                     if ($table == 'user_auth' && !empty($old_record['ip'])) {
-                        $send_alert_update = isNotifyUpdate(get_notify_subnet($db, $old_record['ip']));
-                        if ($send_alert_update) { email(L_WARNING,$changed_msg); }
+                        if (is_hotspot($db, $old_record['ip'])) {
+                            LOG_INFO($db, $changed_msg, $rec_id);
+                            } else {
+                            LOG_WARNING($db, $changed_msg, $rec_id);
+                            $send_alert_update = isNotifyUpdate(get_notify_subnet($db, $old_record['ip']));
+                            if ($send_alert_update) { email(L_WARNING,$changed_msg); }
+                            }
+                        } else {
+                        LOG_WARNING($db, $changed_msg);
                         }
+                    }
                 }
             }
-        }
 
         return $sql_result;
     } catch (PDOException $e) {
@@ -1204,10 +1210,16 @@ function delete_record($db, $table, $filter, $filter_params = [])
                 }
             insert_record($db, 'dns_queue', $del_dns);
             }
-        LOG_WARNING($db, $changed_msg);
         if (!empty($old_record['ip'])) {
-            $send_alert_delete = isNotifyDelete(get_notify_subnet($db, $old_record['ip']));
-            if ($send_alert_delete) { email(L_WARNING,$changed_msg); }
+            if (is_hotspot($db, $old_record['ip'])) { 
+                LOG_INFO($db, $changed_msg, $rec_id); 
+                } else {
+                LOG_WARNING($db, $changed_msg, $rec_id);
+                $send_alert_delete = isNotifyDelete(get_notify_subnet($db, $old_record['ip']));
+                if ($send_alert_delete) { email(L_WARNING,$changed_msg); }
+                }
+            } else {
+            LOG_WARNING($db, $changed_msg, $rec_id);
             }
         return $old_record;
         }
@@ -1316,14 +1328,20 @@ function insert_record($db, $table, $newvalue)
                 if (!preg_match('/user/i', $table)) {
                     LOG_INFO($db, $changed_msg);
                     } else {
-                    LOG_WARNING($db, $changed_msg);
                     if ($table == 'user_auth' && !empty($newvalue['ip'])) {
-                        $send_alert_create = isNotifyCreate(get_notify_subnet($db, $newvalue['ip']));
-                        if ($send_alert_create) { email(L_WARNING,$changed_msg); }
+                        if (is_hotspot($db, $newvalue['ip'])) {
+                            LOG_INFO($db, $changed_msg, $last_id);
+                            } else {
+                            LOG_WARNING($db, $changed_msg, $last_id);
+                            $send_alert_create = isNotifyCreate(get_notify_subnet($db, $newvalue['ip']));
+                            if ($send_alert_create) { email(L_WARNING,$changed_msg); }
+                            }
+                        } else {
+                        LOG_WARNING($db, $changed_msg);
                         }
+                    }
                 }
             }
-        }
 
         if ($table === 'user_auth_alias') {
             //dns
