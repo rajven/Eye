@@ -60,28 +60,6 @@ my @gateways = ();
 #save changed records
 my @changes_found = get_records_sql($dbh,"SELECT id, ip FROM user_auth WHERE changed=1");
 
-#все сети организации, работающие по dhcp
-my $dhcp_networks = new Net::Patricia;
-my %dhcp_conf;
-
-my @subnets=get_records_sql($dbh,'SELECT * FROM subnets WHERE dhcp=1 and office=1 and vpn=0 ORDER BY ip_int_start');
-foreach my $subnet (@subnets) {
-next if (!$subnet->{gateway});
-my $dhcp_info=GetDhcpRange($subnet->{subnet});
-$dhcp_networks->add_string($subnet->{subnet},$subnet->{subnet});
-$dhcp_conf{$subnet->{subnet}}->{first_pool_ip}=IpToStr($subnet->{dhcp_start});
-$dhcp_conf{$subnet->{subnet}}->{last_pool_ip}=IpToStr($subnet->{dhcp_stop});
-$dhcp_conf{$subnet->{subnet}}->{relay_ip}=IpToStr($subnet->{gateway});
-$dhcp_conf{$subnet->{subnet}}->{gateway}=IpToStr($subnet->{gateway});
-#раскрываем подсеть
-$dhcp_conf{$subnet->{subnet}}->{network} = $dhcp_info->{network};
-$dhcp_conf{$subnet->{subnet}}->{masklen} = $dhcp_info->{masklen};
-$dhcp_conf{$subnet->{subnet}}->{first_ip} = $dhcp_info->{first_ip};
-$dhcp_conf{$subnet->{subnet}}->{last_ip} = $dhcp_info->{last_ip};
-$dhcp_conf{$subnet->{subnet}}->{first_ip_aton}=StrToIp($dhcp_info->{first_ip});
-$dhcp_conf{$subnet->{subnet}}->{last_ip_aton}=StrToIp($dhcp_info->{last_ip});
-}
-
 #@office_network_list - все рабочие сети
 
 if ($changes_only) {
@@ -133,7 +111,7 @@ if ($changes_only) {
     if (%selected_router_ids) {
         my @ids = keys %selected_router_ids;
         my $ph = join ',', ('?') x @ids;
-        @gateways = get_records_sql($dbh, "SELECT * FROM devices WHERE id IN ($ph) AND (device_type=2 OR device_type=0) AND protocol >= 0 AND (user_acl=1 OR dhcp=1) AND deleted = 0  AND vendor_id = 9", @ids );
+        @gateways = get_records_sql($dbh, "SELECT * FROM devices WHERE id IN ($ph)", @ids );
         } else {
         @gateways = ();  # Нет затронутых роутеров
         }
@@ -152,6 +130,28 @@ if ($changes_only) {
         @gateways = get_records_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) AND protocol>=0 AND (user_acl=1 OR dhcp=1) AND deleted=0 AND vendor_id=9' );
         }
     }
+
+#все сети организации, работающие по dhcp
+my $dhcp_networks = new Net::Patricia;
+my %dhcp_conf;
+
+my @subnets=get_records_sql($dbh,'SELECT * FROM subnets WHERE dhcp=1 and office=1 and vpn=0 ORDER BY ip_int_start');
+foreach my $subnet (@subnets) {
+next if (!$subnet->{gateway});
+my $dhcp_info=GetDhcpRange($subnet->{subnet});
+$dhcp_networks->add_string($subnet->{subnet},$subnet->{subnet});
+$dhcp_conf{$subnet->{subnet}}->{first_pool_ip}=IpToStr($subnet->{dhcp_start});
+$dhcp_conf{$subnet->{subnet}}->{last_pool_ip}=IpToStr($subnet->{dhcp_stop});
+$dhcp_conf{$subnet->{subnet}}->{relay_ip}=IpToStr($subnet->{gateway});
+$dhcp_conf{$subnet->{subnet}}->{gateway}=IpToStr($subnet->{gateway});
+#раскрываем подсеть
+$dhcp_conf{$subnet->{subnet}}->{network} = $dhcp_info->{network};
+$dhcp_conf{$subnet->{subnet}}->{masklen} = $dhcp_info->{masklen};
+$dhcp_conf{$subnet->{subnet}}->{first_ip} = $dhcp_info->{first_ip};
+$dhcp_conf{$subnet->{subnet}}->{last_ip} = $dhcp_info->{last_ip};
+$dhcp_conf{$subnet->{subnet}}->{first_ip_aton}=StrToIp($dhcp_info->{first_ip});
+$dhcp_conf{$subnet->{subnet}}->{last_ip_aton}=StrToIp($dhcp_info->{last_ip});
+}
 
 my $pm = Parallel::ForkManager->new($fork_count);
 
