@@ -1219,26 +1219,31 @@ sub find_mac_in_subnet {
     return unless $db && defined $ip && defined $mac && $ip ne '' && $mac ne '';
 
     my $ip_subnet = get_ip_subnet($db, $ip);
-    return unless $ip_subnet && defined $ip_subnet->{ip_int_start} && defined $ip_subnet->{ip_int_stop};
+    return unless $ip_subnet
+        && exists $ip_subnet->{ip_int_start}
+        && exists $ip_subnet->{ip_int_stop};
 
-    # Безопасный параметризованный запрос
     my @t_auth = get_records_sql($db,
-        "SELECT * FROM user_auth 
-         WHERE ip_int BETWEEN ? AND ? 
-           AND mac = ? 
-           AND deleted = 0 
+        "SELECT * FROM user_auth
+         WHERE ip_int BETWEEN ? AND ?
+           AND mac = ?
+           AND deleted = 0
          ORDER BY id",
         $ip_subnet->{ip_int_start},
         $ip_subnet->{ip_int_stop},
         $mac
     );
 
+    # Если ничего не найдено — вернуть undef
     return unless @t_auth;
 
+    # Формируем результат в требуемом формате
     my $result = { count => 0, items => {} };
     for my $i (0 .. $#t_auth) {
-        $result->{count}++;
-        $result->{items}{$result->{count}} = $t_auth[$i];
+        my $row = $t_auth[$i];
+        my $n = $i + 1;
+        $result->{count} = $n;
+        $result->{items}{$n} = $row;
     }
 
     return $result;
@@ -1335,7 +1340,10 @@ sub resurrection_auth {
         if (!$ip_record_same->{mac}) {
             # Обновляем запись без MAC
             $new_record->{mac} = $mac;
-            $new_record->{dhcp} = 0 if $mac_exists && $mac_exists->{count};
+            if ($mac_exists && $mac_exists->{count}>=1) {
+                # выключаем dhcp если есть записи в этой же подсети с другим ip и этим маком
+                $new_record->{dhcp} = 0;
+                }
             if ($action =~ /^(add|old|del)$/i) {
                 $new_record->{dhcp_action} = $action;
                 $new_record->{dhcp_time}   = $timestamp;
@@ -1372,7 +1380,9 @@ sub resurrection_auth {
 
     # --- Повторная проверка ---
     $mac_exists = find_mac_in_subnet($db, $ip, $mac);
-    $new_record->{dhcp} = 0 if $mac_exists && $mac_exists->{count};
+    if ($mac_exists && $mac_exists->{count}>=1) {
+        $new_record->{dhcp} = 0 
+        }
 
     # --- Готовим полную запись ---
     $new_record->{ip_int}      = $ip_aton;
@@ -1439,7 +1449,7 @@ sub resurrection_auth {
     my $changed_msg = prepare_audit_message($db, 'user_auth', undef, $final_record , $cur_auth_id, 'insert');
     $msg .= "\n". $changed_msg;
     db_log_warning($db, $msg, $cur_auth_id);
-    sendEmail("WARN! " . get_first_line($msg), $msg . "\n" . record_to_txt($db, 'user_auth', $cur_auth_id), 1)  if $send_alert_create;
+    sendEmail("WARN! " . get_first_line($msg), $msg , 1)  if $send_alert_create;
     return $cur_auth_id;
 }
 

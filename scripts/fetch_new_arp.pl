@@ -69,7 +69,6 @@ foreach my $row (@u_ref) {
 # Clean temporary (dynamic) user authentication records that have expired
 my $now = DateTime->now(time_zone => 'local');
 
-
 my $clear_time_str = $now->strftime('%Y-%m-%d %H:%M:%S');
 my $users_sql = "SELECT * FROM user_auth WHERE deleted = 0 AND dynamic = 1 AND end_life <= ?";
 my @users_auth = get_records_sql($dbh, $users_sql, $clear_time_str);
@@ -194,40 +193,24 @@ foreach my $arp_table (@arp_array) {
         next if (!$mac);
         next if ($mac =~ /ff:ff:ff:ff:ff:ff/i);                     # Skip broadcast MAC
         next if ($mac !~ /(\S{2}):(\S{2}):(\S{2}):(\S{2}):(\S{2}):(\S{2})/);  # Validate MAC format
-
         my $simple_mac = mac_simplify($mac);
         $ip = trim($ip);
         my $ip_aton = StrToIp($ip);
-
-        # Initialize MAC history entry
-        $mac_history{$simple_mac}{changed} = 0;
-        $mac_history{$simple_mac}{ip}      = $ip;
-        $mac_history{$simple_mac}{auth_id} = 0;
-
         # Skip IPs outside configured office networks
         next if (!$office_networks->match_string($ip));
-
-        db_log_debug($dbh, "Analyze ip: $ip mac: $mac") if ($debug);
-
+        log_debug("Analyze ip: $ip mac: $mac") if ($debug);
         my $auth_id = $users->match_string($ip);
-	
         my $arp_record;
         $arp_record->{ip}        = $ip;
         $arp_record->{mac}       = $mac;
         $arp_record->{type}      = 'arp';
         $arp_record->{ip_aton}   = $ip_aton;
         $arp_record->{hotspot}   = is_hotspot($dbh, $ip);
-
         # Attempt to resurrect or map this ARP entry to a known auth record
         my $cur_auth_id = resurrection_auth($dbh, $arp_record);
         if (!$cur_auth_id) {
-            db_log_warning($dbh, "Unknown record " . Dumper($arp_record));
-        } else {
-            $mac_history{$simple_mac}{auth_id} = $cur_auth_id;
-            $arp_record->{auth_id} = $cur_auth_id;
-            # Mark as changed if IP-to-auth mapping differs from previous state
-            if (!$auth_id || $auth_id ne $cur_auth_id) { $mac_history{$simple_mac}{changed} = 1; }
-        }
+            log_warning("Unknown record " . Dumper($arp_record)) 
+            }
     }
 }
 
@@ -243,22 +226,20 @@ foreach my $connection (@connections_list) {
 }
 
 # Build operational and full MAC-to-auth lookup tables
-my $auth_sql = "SELECT id, mac FROM user_auth WHERE mac IS NOT NULL AND deleted = 0 AND last_found >= ? ORDER BY id ASC";
+my $auth_sql = "SELECT id, mac FROM user_auth WHERE mac IS NOT NULL AND deleted = 0 AND arp_found >= ? ORDER BY id ASC";
 my @auth_list = get_records_sql($dbh, $auth_sql, $now_day);
 
 my %auth_table;
 foreach my $auth (@auth_list) {
-    next if (!$auth);
-    next if (!$auth->{mac});
+    next if (!$auth || !$auth->{mac});
     my $auth_mac = mac_simplify($auth->{mac});
     $auth_table{oper_table}{$auth_mac} = $auth->{id};
 }
 
-$auth_sql = "SELECT id, mac FROM user_auth WHERE mac IS NOT NULL AND deleted = 0 ORDER BY last_found DESC";
+$auth_sql = "SELECT id, mac FROM user_auth WHERE mac IS NOT NULL AND deleted = 0 ORDER BY arp_found DESC, id DESC";
 my @auth_full_list = get_records_sql($dbh, $auth_sql);
 foreach my $auth (@auth_full_list) {
-    next if (!$auth);
-    next if (!$auth->{mac});
+    next if (!$auth || !$auth->{mac});
     my $auth_mac = mac_simplify($auth->{mac});
     next if (exists $auth_table{full_table}{$auth_mac});
     $auth_table{full_table}{$auth_mac} = $auth->{id};
@@ -277,8 +258,7 @@ foreach my $unknown (@unknown_list) {
 }
 
 # Fetch all SNMP-enabled devices (switches, routers, etc.) for FDB discovery
-my @device_list = get_records_sql($dbh, "SELECT * FROM devices WHERE deleted = 0 AND discovery = 1 AND device_type <= 2 AND snmp_version > 0");
-
+my @device_list = get_records_sql($dbh,"SELECT * FROM devices WHERE deleted = 0 AND (device_type = 2 OR device_type = 0) AND discovery = 1 AND snmp_version > 0");
 my @fdb_array = ();
 
 # Initialize parallel manager for FDB (forwarding database) collection
@@ -435,8 +415,18 @@ foreach my $device (@device_list) {
                 : $auth_table{full_table}{$simple_mac};
 
             unless (exists $auth_table{oper_table}{$simple_mac}) {
-                db_log_debug($dbh, "MAC not found in current ARP table. Using historical auth_id: $auth_id [$simple_mac] at device $dev_name [$port]", $auth_id);
-            }
+                log_debug($dbh, "MAC not found in current ARP table. Using historical auth_id: $auth_id [$simple_mac] at device $dev_name [$port]", $auth_id);
+                }
+
+            $mac_history{$simple_mac}{auth_id} = $auth_id;
+            $mac_history{$simple_mac}{changed} = 0;
+
+            my $auth_rec;
+            $auth_rec->{last_found} = $now_str;
+            $auth_rec->{mac_found}  = $now_str;
+            #update_record($dbh, 'user_auth', $auth_rec, "id = ?", $auth_id);
+            # update ALL active ip record
+            update_records($dbh, 'user_auth', "deleted = 0 AND mac = ?", $auth_rec, $mac_splitted);
 
             if (exists $connections{$auth_id}) {
                 if ($port_id == $connections{$auth_id}{port}) {
@@ -449,18 +439,10 @@ foreach my $device (@device_list) {
                     }
                     next;
                 }
-
                 # Port changed: update connection and log
                 $connections{$auth_id}{port} = $port_id;
                 $mac_history{$simple_mac}{changed} = 1;
-                $mac_history{$simple_mac}{auth_id} = $auth_id;
-                db_log_info($dbh, "Found auth_id: $auth_id ip: $mac_history{$simple_mac}{ip} [$mac_splitted] at device $dev_name [$port]. Update connection.", $auth_id);
-
-                my $auth_rec;
-                $auth_rec->{last_found} = $now_str;
-                $auth_rec->{mac_found}  = $now_str;
-                update_record($dbh, 'user_auth', $auth_rec, "id = ?", $auth_id);
-
+                db_log_info($dbh, "Found auth_id: $auth_id mac: [$mac_splitted] at device $dev_name [$port]. Update connection.", $auth_id);
                 my $conn_rec;
                 $conn_rec->{port_id}   = $port_id;
                 $conn_rec->{device_id} = $dev_id;
@@ -468,15 +450,8 @@ foreach my $device (@device_list) {
             } else {
                 # New connection for known user
                 $mac_history{$simple_mac}{changed} = 1;
-                $mac_history{$simple_mac}{auth_id} = $auth_id;
                 $connections{$auth_id}{port} = $port_id;
-                db_log_info($dbh, "Found auth_id: $auth_id ip: $mac_history{$simple_mac}{ip} [$mac_splitted] at device $dev_name [$port]. Create connection.", $auth_id);
-
-                my $auth_rec;
-                $auth_rec->{last_found} = $now_str;
-                $auth_rec->{mac_found}  = $now_str;
-                update_record($dbh, 'user_auth', $auth_rec, "id = ?", $auth_id);
-
+                db_log_info($dbh, "Found auth_id: $auth_id mac: [$mac_splitted] at device $dev_name [$port]. Create connection.", $auth_id);
                 my $conn_rec;
                 $conn_rec->{port_id}   = $port_id;
                 $conn_rec->{device_id} = $dev_id;
@@ -519,7 +494,6 @@ foreach my $mac (keys %mac_history) {
     my $h_ip      = $mac_history{$mac}->{ip};
     my $h_auth_id = $mac_history{$mac}->{auth_id} || 0;
     next if (!$h_dev_id);
-
     my $history_rec;
     $history_rec->{device_id} = $h_dev_id;
     $history_rec->{port_id}   = $h_port_id;

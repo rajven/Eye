@@ -46,6 +46,7 @@ use Text::CSV;
 our @ISA = qw(Exporter);
 
 our @EXPORT = qw(
+update_records
 get_office_subnet
 get_notify_subnet
 is_hotspot
@@ -1537,6 +1538,27 @@ return $result;
 
 #---------------------------------------------------------------------------------------------------------------
 
+sub update_records {
+    my ($db, $table, $filter, $newvalue, @filter_params) = @_;
+
+    # Получаем ID всех записей, подходящих под фильтр
+    my $uSQL = "SELECT id FROM $table WHERE $filter";
+    my @ids = get_records_sql($db, $uSQL, @filter_params);
+
+    # Если ничего не найдено — считаем успехом
+    return 1 unless @ids;
+
+    # Обновляем каждую запись по отдельности
+    for my $record (@ids) {
+        next unless ref $record eq 'HASH' && defined $record->{id};
+        update_record($db, $table, $newvalue, "id = ?", $record->{id});
+    }
+
+    return 1;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
 sub update_record {
 my ($db, $table, $record, $filter_sql, @filter_params) = @_;
 return unless $db && $table && $filter_sql;
@@ -1588,7 +1610,7 @@ for my $field (keys %$record) {
         }
     }
 
-return 1 unless $set_clause;
+return unless $set_clause;
 
 # Добавляем служебные поля
 if ($table eq 'user_auth') {
@@ -2052,8 +2074,8 @@ if ($MY_NAME!~/upgrade.pl/) {
     init_option($dbh);
     clean_variables($dbh);
     Set_Variable($dbh);
-    warn "DBI driver name: ", $dbh->{Driver}->{Name}, "\n" if ($debug);
-    warn "Full dbh class: ", ref($dbh), "\n" if ($debug);
+#    warn "DBI driver name: ", $dbh->{Driver}->{Name}, "\n" if ($debug);
+#    warn "Full dbh class: ", ref($dbh), "\n" if ($debug);
     }
 
 1;
