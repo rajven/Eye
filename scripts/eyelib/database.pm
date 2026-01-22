@@ -43,6 +43,7 @@ use Text::CSV;
 our @ISA = qw(Exporter);
 
 our @EXPORT = qw(
+get_notify_subnet
 is_hotspot
 get_queue
 get_group
@@ -145,6 +146,16 @@ our %dns_fields = (
 );
 
 our %db_schema;
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_notify_subnet {
+my $db = shift;
+my $ip  = shift;
+my $notify_flag = get_office_subnet($db,$ip);
+if ($notify_flag) { return $notify_flag->{notify}; }
+return 0;
+}
 
 #---------------------------------------------------------------------------------------------------------------
 

@@ -45,7 +45,6 @@ get_dynamic_ou
 get_first_line
 get_ip_subnet
 get_new_user_id
-get_notify_subnet
 GetNowTime
 get_office_subnet
 get_subnets_ref
@@ -293,16 +292,6 @@ sub get_office_subnet {
     }
 
     return $pat->match_string($ip);
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_notify_subnet {
-my $db = shift;
-my $ip  = shift;
-my $notify_flag = get_office_subnet($db,$ip);
-if ($notify_flag) { return $notify_flag->{notify}; }
-return 0;
 }
 
 #---------------------------------------------------------------------------------------------------------------
