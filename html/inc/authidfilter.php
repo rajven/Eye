@@ -1,12 +1,20 @@
 <?php
-if (! defined("CONFIG")) die("Not defined");
+if (!defined("CONFIG")) die("Not defined");
 
-if (isset($_GET['auth_id'])) { $auth_id = $_GET["auth_id"] * 1; }
-if (isset($_POST['auth_id'])) { $auth_id = $_POST["auth_id"] * 1; }
-if (!isset($auth_id)) {
-    if (isset($_SESSION[$page_url]['auth_id'])) { $auth_id = $_SESSION[$page_url]['auth_id']*1; }
-    }
-if (!isset($auth_id) and isset($default_auth_id)) { $auth_id=$default_auth_id; }
-if (!isset($auth_id)) { header("Location: /admin/index.php"); }
-$_SESSION[$page_url]['auth_id']=$auth_id;
+// Получаем auth_id из GET, POST или сессии, с валидацией как целого числа
+$auth_id = getParam('auth_id', $page_url, null, FILTER_VALIDATE_INT);
+
+// Если не получили из запроса/сессии, пробуем использовать значение по умолчанию
+if ($auth_id === null && isset($default_auth_id)) {
+    $auth_id = (int)$default_auth_id;
+}
+
+// Если всё ещё нет auth_id - редирект
+if ($auth_id === null || $auth_id <= 0) {
+    header("Location: /admin/index.php");
+    exit;
+}
+
+// Сохраняем в сессии
+$_SESSION[$page_url]['auth_id'] = $auth_id;
 ?>

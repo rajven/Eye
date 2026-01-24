@@ -1,8 +1,14 @@
-#!/usr/bin/perl -CS
+#!/usr/bin/perl
 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
+
+use utf8;
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
 
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
@@ -15,13 +21,14 @@ use eyelib::config;
 use eyelib::main;
 use eyelib::net_utils;
 use eyelib::database;
+use eyelib::common;
 
 my $OU_ID=$ARGV[0];
 my $ou_filter=" and L.ou_id=$OU_ID ";
 if (!$OU_ID) { $ou_filter=''; }
 
 #get userid list
-my $user_auth_list = $dbh->prepare( "SELECT A.ip,A.ip_int,A.dns_name FROM User_auth as A, User_list as L where L.id=A.user_id and A.deleted=0 $ou_filter ORDER by ip_int" );
+my $user_auth_list = $dbh->prepare( "SELECT A.ip,A.ip_int,A.dns_name FROM user_auth as A, user_list as L where L.id=A.user_id and A.deleted=0 $ou_filter ORDER by ip_int" );
 if ( !defined $user_auth_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
 
 $user_auth_list->execute;

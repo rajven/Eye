@@ -3,17 +3,17 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-$device=get_record($db_link,'devices',"id=".$id);
+$device=get_record($db_link,'devices',"id=?", [$id]);
 $snmp = getSnmpAccess($device);
-$user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
+$user_info = get_record_sql($db_link,"SELECT * FROM user_list WHERE id=?", [$device['user_id']]);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
 print_device_submenu($page_url);
 print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login']);
 
-$sSQL = "SELECT port, snmp_index FROM `device_ports` WHERE device_id=".$id;
-$ports_info = get_records_sql($db_link, $sSQL);
+$sSQL = "SELECT port, snmp_index FROM device_ports WHERE device_id=?";
+$ports_info = get_records_sql($db_link, $sSQL, [ $id ]);
 $ports_by_snmp_index=NULL;
 foreach ($ports_info as &$row) { $ports_by_snmp_index[$row["snmp_index"]]=$row["port"]; }
 
@@ -26,7 +26,7 @@ if (!apply_device_lock($db_link,$id)) {
 
 <div id="contsubmenu">
 <?php
-$ports = get_records($db_link,'device_ports',"device_id=$id AND uplink=0 ORDER BY port");
+$ports = get_records($db_link,'device_ports',"device_id=? AND uplink=0 ORDER BY port", [ $id ]);
 print "<b>".WEB_device_mac_table_show."&nbsp".$device['device_name']." (".$device['ip']."):</b>\n";
 
 $snmp_ok = 0;
@@ -66,5 +66,5 @@ if ($snmp_ok) {
 	}
 
 unset_lock_discovery($db_link,$id);
-require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.simple.php");
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.php");
 ?>

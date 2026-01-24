@@ -43,7 +43,7 @@ if (isset($_POST["refresh_nagios"]) and is_option($db_link, 40)) {
 }
 
 if (isset($_POST["up_nagios"])) {
-    run_sql($db_link,"UPDATE User_auth SET nagios_status='UP'");
+    run_sql($db_link,"UPDATE user_auth SET nagios_status='UP'");
     run_sql($db_link,"UPDATE devices SET nagios_status='UP'");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -74,27 +74,15 @@ if (isset($_POST["discovery2"]) and is_option($db_link, 41)) {
 }
 
 if (!empty($_POST["save_traf_all"]) and $_POST["save_traf_all"]) {
-    run_sql($db_link, 'Update User_auth SET save_traf=1');
+    run_sql($db_link, 'Update user_auth SET save_traf=1');
     LOG_INFO($db_link, "Enable save traffic for all!");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
 if (!empty($_POST["not_save_traf_all"]) and $_POST["not_save_traf_all"]) {
-    run_sql($db_link, 'Update User_auth SET save_traf=0');
+    run_sql($db_link, 'Update user_auth SET save_traf=0');
     LOG_INFO($db_link, "Disable save traffic for all!");
-    header("Location: " . $_SERVER["REQUEST_URI"]);
-    exit;
-}
-
-if (isset($_POST["s_remove"])) {
-    $s_id = $_POST["s_id"];
-    foreach ($s_id as $key => $val) {
-        if (isset($val)) {
-            LOG_INFO($db_link, "Remove subnet id: $val ". dump_record($db_link,'subnets','id='.$val));
-            delete_record($db_link, "subnets", "id=" . $val);
-        }
-    }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }

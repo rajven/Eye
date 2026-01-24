@@ -1,8 +1,15 @@
 #!/usr/bin/perl
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
+
+use utf8;
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
+
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
 use strict;
@@ -14,6 +21,7 @@ use eyelib::config;
 use eyelib::main;
 use eyelib::net_utils;
 use eyelib::database;
+use eyelib::common;
 
 my $time_shift=$ARGV[0];
 
@@ -39,7 +47,7 @@ $nets{$scope_name}->add_string($net);
 }
 
 #get userid list
-my $user_auth_list = $dbh->prepare( "SELECT id,ip,ip_int,mac,dns_name FROM User_auth where deleted=0 $time_filter ORDER by ip_int" );
+my $user_auth_list = $dbh->prepare( "SELECT id,ip,ip_int,mac,dns_name FROM user_auth where deleted=0 $time_filter ORDER by ip_int" );
 if ( !defined $user_auth_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
 
 $user_auth_list->execute;

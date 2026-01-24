@@ -1,19 +1,25 @@
 <?php
-if (! defined("CONFIG")) die("Not defined");
+if (!defined("CONFIG")) die("Not defined");
 
-if (!isset($default_sort)) { $default_sort=''; }
-if (!isset($default_order)) { $default_order='ASC'; }
+$default_sort  = $default_sort  ?? '';
+$default_order = $default_order ?? 'ASC';
 
-if (isset($_GET['sort'])) { $sort_field = $_GET["sort"]; } else {
-    if (isset($_SESSION[$page_url]['sort_field'])) { $sort_field=$_SESSION[$page_url]['sort_field']; } else { $sort_field = $default_sort; }
-    }
+// Получаем параметры
+$sort_field = getParam('sort', $page_url, $default_sort);
+$order      = strtoupper(getParam('order', $page_url, $default_order));
 
-if (isset($_GET['order'])) { $order = strtoupper($_GET["order"]); } else {
-    if (isset($_SESSION[$page_url]['order'])) { $order=strtoupper($_SESSION[$page_url]['order']); } else { $order = $default_order; }
-    }
+// Валидация: sort_field должно быть одним словом (буквы, цифры, подчёркивания, дефисы)
+if (!preg_match('/^[a-zA-Z0-9_-]+$/', $sort_field)) {
+    $sort_field = $default_sort;
+}
 
-if (strtoupper($order) === 'ASC') { $new_order = 'DESC'; } else { $new_order = 'ASC'; }
+// Валидация: order только ASC или DESC
+if ($order !== 'ASC' && $order !== 'DESC') {
+    $order = $default_order;
+}
 
-$_SESSION[$page_url]['order']=$order;
-$_SESSION[$page_url]['sort_field']=$sort_field;
+$new_order = ($order === 'ASC') ? 'DESC' : 'ASC';
+
+$_SESSION[$page_url]['sort_field'] = $sort_field;
+$_SESSION[$page_url]['order']      = $order;
 ?>

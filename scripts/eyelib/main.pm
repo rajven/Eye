@@ -1,7 +1,7 @@
 package eyelib::main;
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
 
 use utf8;
@@ -15,6 +15,7 @@ use base 'Exporter';
 use vars qw(@EXPORT @ISA);
 use eyelib::config;
 use Socket;
+use POSIX;
 use IO::Select;
 use IO::Handle;
 use Crypt::CBC;
@@ -22,6 +23,7 @@ use MIME::Base64;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw(
+get_first_line
 isNotifyCreate
 isNotifyUpdate
 isNotifyDelete
@@ -65,10 +67,25 @@ translit
 crypt_string
 decrypt_string
 netdev_set_auth
+GetNowTime
+GetUnixTimeByStr
+GetTimeStrByUnixTime
 );
 
 BEGIN
 {
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_first_line {
+my $msg = shift;
+if (!$msg) { return; }
+if ($msg=~ /(.*)(\n|\<br\>)/) {
+    $msg = $1 if ($1);
+    chomp($msg);
+    }
+return $msg;
+}
 
 #---------------------------------------------------------------------------------------------------------
 # Проверяет, установлен ли флаг создания
@@ -113,25 +130,35 @@ sub hasNotifyFlag {
 #---------------------------------------------------------------------------------------------------------
 
 sub log_file {
-return if (!$_[0]);
-return if (!$_[1]);
-return if (!$_[2]);
-open (LG,">>$_[0]") || die("Error open log file $_[0]!!! die...");
-my ($sec,$min,$hour,$mday,$mon,$year) = (localtime())[0,1,2,3,4,5];
-$mon += 1; $year += 1900;
-my @msg = split("\n",$_[2]);
-foreach my $row (@msg) {
-	next if (!$row);
-	printf LG "%04d%02d%02d-%02d%02d%02d %s [%d] %s\n",$year,$mon,$mday,$hour,$min,$sec,$_[1],$$,$row;
-	}
-close (LG);
-if ($< ==0) {
-    my $uid = getpwnam $log_owner_user;
-    my $gid = getgrnam $log_owner_user;
-    if (!$gid) { $gid=getgrnam "root"; }
-    if (!$uid) { $uid=getpwnam "root"; }
-    chown $uid, $gid, $_[0];
-    chmod oct("0660"), $_[0];
+    return if (!$_[0]);
+    return if (!$_[1]);
+    return if (!$_[2]);
+    
+    # Вместо die - предупреждение и возврат
+    unless (open (LG,">>$_[0]")) {
+        # Пишем в stderr как последнее средство
+        print STDERR "WARNING: Cannot open log file $_[0]: $!\n";
+        return;
+    }
+    
+    my ($sec,$min,$hour,$mday,$mon,$year) = (localtime())[0,1,2,3,4,5];
+    $mon += 1; $year += 1900;
+    my @msg = split("\n",$_[2]);
+    
+    foreach my $row (@msg) {
+        next if (!$row);
+        printf LG "%04d%02d%02d-%02d%02d%02d %s [%d] %s\n",$year,$mon,$mday,$hour,$min,$sec,$_[1],$$,$row;
+    }
+    
+    close (LG);
+    
+    if ($< ==0) {
+        my $uid = getpwnam $log_owner_user;
+        my $gid = getgrnam $log_owner_user;
+        if (!$gid) { $gid=getgrnam "root"; }
+        if (!$uid) { $uid=getpwnam "root"; }
+        chown $uid, $gid, $_[0];
+        chmod oct("0660"), $_[0];
     }
 }
 
@@ -213,7 +240,7 @@ sub log_die {
 wrlog($W_ERROR,$_[0]);
 my $worktime = time()-$BASETIME;
 log_info("Script work $worktime sec.");
-sendEmail("$HOSTNAME - $MY_NAME die! ","Process: $MY_NAME aborted with error:\n$_[0]");
+#sendEmail("$HOSTNAME - $MY_NAME die! ","Process: $MY_NAME aborted with error:\n$_[0]");
 die ($_[0]);
 }
 
@@ -829,6 +856,44 @@ sub crypt_string {
     );
 
 my $result = encode_base64($cipher_handle->encrypt($simple_string));
+return $result;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub GetNowTime {
+my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime(time());
+$month += 1;
+$year += 1900;
+my $now_str=sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
+return $now_str;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub GetUnixTimeByStr {
+my $time_str = shift;
+$time_str =~s/\//-/g;
+$time_str = trim($time_str);
+my ($sec,$min,$hour,$day,$mon,$year) = (localtime())[0,1,2,3,4,5];
+$year+=1900;
+$mon++;
+if ($time_str =~/^([0-9]{2,4})\-([0-9]{1,2})-([0-9]{1,2})\s+/) {
+$year = $1; $mon = $2; $day = $3;
+}
+if ($time_str =~/([0-9]{1,2})\:([0-9]{1,2})\:([0-9]{1,2})$/) {
+$hour = $1; $min = $2; $sec = $3;
+}
+my $result = mktime($sec,$min,$hour,$day,$mon-1,$year-1900);
+return $result;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub GetTimeStrByUnixTime {
+my $time = shift || time();
+my ($sec, $min, $hour, $mday, $mon, $year) = (localtime($time))[0,1,2,3,4,5];
+my $result = strftime("%Y-%m-%d %H:%M:%S",$sec, $min, $hour, $mday, $mon, $year);
 return $result;
 }
 

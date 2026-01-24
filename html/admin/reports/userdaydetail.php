@@ -6,8 +6,16 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 
-$usersip = mysqli_query($db_link, "SELECT ip,user_id,comments FROM User_auth WHERE User_auth.id=$id");
-list ($fip, $parent, $fcomm) = mysqli_fetch_array($usersip);
+$usersip = get_record_sql($db_link, "SELECT ip, ip_int,user_id,description FROM user_auth WHERE id=?", [ $id ]);
+if (empty($usersip)) {
+    header("location: /admin/reports/index-full.php");
+    exit;
+}
+$gateway_list = get_gateways($db_link);
+
+$fip = $usersip['ip'];
+$parent = $usersip['user_id'];
+$fcomm = $usersip['description'];
 
 $rdns = 0;
 if (isset($_POST['dns'])) { $rdns=$_POST['dns']*1; }
@@ -39,28 +47,44 @@ DNS:&nbsp <input type=checkbox name=dns value="1" <?php print $dns_checked; ?>>
 <td class="data" width=80><b><?php echo WEB_bytes; ?></b></td>
 </tr>
 <?php
-$ip_aton = ip2long($fip);
+// Беззнаковое представление IP
+$ip_long = sprintf('%u', ip2long($fip));
+$params = [$date1, $date2, (int)$id, $ip_long];
+$conditions = [
+    "ts >= ?",
+    "ts < ?",
+    "auth_id = ?",
+    "dst_ip = ?"
+];
+if (!empty($rgateway) && $rgateway > 0) {
+    $conditions[] = "router_id = ?";
+    $params[] = (int)$rgateway;
+}
+$where = implode(' AND ', $conditions);
+$fsql = "
+    SELECT proto, src_ip, src_port, SUM(bytes) AS tin
+    FROM traffic_detail
+    WHERE $where
+    GROUP BY src_ip, src_port, proto
+    ORDER BY tin DESC
+    LIMIT 10
+";
 
-$gateway_filter='';
-if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) AND"; }
-
-$fsql = "SELECT A.proto, A.src_ip, A.src_port, SUM(A.bytes) as tin FROM Traffic_detail A
-            WHERE $gateway_filter (auth_id='$id') and  `timestamp`>='$date1' and `timestamp`<'$date2' and (A.dst_ip='$ip_aton')
-            GROUP BY A.src_ip, A.src_port, A.proto ORDER BY tin DESC LIMIT 0,10";
-$userdata = mysqli_query($db_link, $fsql);
-while (list ($uproto, $uip, $uport, $ubytes) = mysqli_fetch_array($userdata)) {
+$userdata = get_records_sql($db_link, $fsql, $params);
+foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    $proto_name = getprotobynumber($uproto);
-    if (!$proto_name) { $proto_name=$uproto; }
+    $proto_name = getprotobynumber($row['proto']);
+    if (!$proto_name) { $proto_name = $row['proto']; }
     print "<td class=\"data\">" . $proto_name . "</td>\n";
-    print "<td class=\"data\" align=left>" . long2ip($uip) . "</td>\n";
+    print "<td class=\"data\" align=left>" . long2ip($row['src_ip']) . "</td>\n";
     $ip_name = '-';
-    if ($rdns) { $ip_name = ResolveIP($db_link,$uip); }
+    if ($rdns) { $ip_name = ResolveIP($db_link, $row['src_ip']); }
     print "<td class=\"data\" align=left>" . $ip_name . "</td>\n";
-    print "<td class=\"data\">" . $uport . "</td>\n";
-    print "<td class=\"data\" align=right>" . fbytes($ubytes) . "</td>\n";
+    print "<td class=\"data\">" . $row['src_port'] . "</td>\n";
+    print "<td class=\"data\" align=right>" . fbytes($row['tin']) . "</td>\n";
     print "</tr>\n";
 }
+
 ?>
 </table>
 <b><?php echo WEB_report_top10_out; ?></b>
@@ -73,21 +97,39 @@ while (list ($uproto, $uip, $uport, $ubytes) = mysqli_fetch_array($userdata)) {
 <td class="data" width=80><b><?php echo WEB_bytes; ?></b></td>
 </tr>
 <?php
-$fsql = "SELECT A.proto, A.dst_ip, A.dst_port, SUM(A.bytes) as tout FROM Traffic_detail A
-        WHERE $gateway_filter (auth_id='$id') and  `timestamp`>='$date1' and `timestamp`<'$date2' and (A.src_ip='$ip_aton')
-        GROUP BY A.dst_ip, A.dst_port, A.proto ORDER BY tout DESC LIMIT 0,10";
-$userdata = mysqli_query($db_link, $fsql);
-while (list ($uproto, $uip, $uport, $ubytes) = mysqli_fetch_array($userdata)) {
+$params = [$date1, $date2, (int)$id, $ip_long];
+$conditions = [
+    "ts >= ?",
+    "ts < ?",
+    "auth_id = ?",
+    "src_ip = ?"
+];
+if (!empty($rgateway) && $rgateway > 0) {
+    $conditions[] = "router_id = ?";
+    $params[] = (int)$rgateway;
+}
+$where = implode(' AND ', $conditions);
+$fsql = "
+    SELECT proto, dst_ip, dst_port, SUM(bytes) AS tout
+    FROM traffic_detail
+    WHERE $where
+    GROUP BY dst_ip, dst_port, proto
+    ORDER BY tout DESC
+    LIMIT 10
+";
+
+$userdata = get_records_sql($db_link, $fsql, $params);
+foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    $proto_name = getprotobynumber($uproto);
-    if (!$proto_name) { $proto_name=$uproto; }
+    $proto_name = getprotobynumber($row['proto']);
+    if (!$proto_name) { $proto_name = $row['proto']; }
     print "<td class=\"data\">" . $proto_name . "</td>\n";
-    print "<td class=\"data\" align=left>" . long2ip($uip) . "</td>\n";
+    print "<td class=\"data\" align=left>" . long2ip($row['dst_ip']) . "</td>\n";
     $ip_name = '-';
-    if ($rdns) { $ip_name = ResolveIP($db_link,$uip); }
+    if ($rdns) { $ip_name = ResolveIP($db_link, $row['dst_ip']); }
     print "<td class=\"data\" align=left>" . $ip_name . "</td>\n";
-    print "<td class=\"data\">" . $uport . "</td>\n";
-    print "<td class=\"data\" align=right>" . fbytes($ubytes) . "</td>\n";
+    print "<td class=\"data\">" . $row['dst_port'] . "</td>\n";
+    print "<td class=\"data\" align=right>" . fbytes($row['tout']) . "</td>\n";
     print "</tr>\n";
 }
 ?>

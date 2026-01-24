@@ -6,7 +6,7 @@
 #refresh dnsmasq dhcp server config's
 02 * * * * root /opt/Eye/scripts/update-dnsmasq
 
-#maybe any user
+#maybe user
 
 #garbage trash
 01 0 * * * eye /opt/Eye/scripts/garbage.pl
@@ -15,7 +15,7 @@
 #03 * * * * eye /opt/Eye/scripts/sync_mikrotik.pl
 
 #passive scan network => 2 * arp_timeout (default min: 2 * 5m)
-*/25 * * * * eye /opt/Eye/scripts/fetch_new_arp.pl
+*/11 * * * * eye /opt/Eye/scripts/fetch_new_arp.pl
 
 #active scan network (with fping subnets before analyze)
-20 10,13,19 * * * eye /opt/Eye/scripts/fetch_new_arp.pl 1
+20 10,13,16,19 * * * eye /opt/Eye/scripts/fetch_new_arp.pl 1

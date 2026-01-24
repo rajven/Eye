@@ -1,8 +1,27 @@
 package eyelib::database;
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
+
+# commit example
+# Начинаем транзакцию вручную
+#$db->{AutoCommit} = 0;
+#eval {
+#    for my $row (@rows) {
+#        insert_record($db, 'user_auth', $row);
+#        insert_record($db, 'user_auth_alias', $row2);
+#    }
+#    $db->commit();
+#};
+#if ($@) {
+#    eval { $db->rollback(); };
+#    die "Migration failed: $@";
+#}
+#$db->{AutoCommit} = 1;
+
+use warnings FATAL => 'all';
+use feature ':5.20';
 
 use utf8;
 use open ":encoding(utf8)";
@@ -21,82 +40,72 @@ use DateTime;
 use POSIX qw(mktime ctime strftime);
 use File::Temp qw(tempfile);
 use DBI;
+use DBD::Pg qw(:pg_types);
+use Text::CSV;
 
 our @ISA = qw(Exporter);
 
 our @EXPORT = qw(
-batch_db_sql
-reconnect_db
+update_records
+get_office_subnet
+get_notify_subnet
+is_hotspot
+get_queue
+get_group
+get_subnet_description
+get_filter_instance_description
+get_vendor_name
+get_ou
+get_device_name
+get_device_model
+get_device_model_name
+get_building
+get_filter
+get_login
+StrToIp
+IpToStr
+prepare_audit_message
 batch_db_sql_cached
 batch_db_sql_csv
-db_log_warning
+reconnect_db
+write_db_log
 db_log_debug
 db_log_error
 db_log_info
 db_log_verbose
-delete_record
-record_to_txt
-unblock_user
-do_sql
-Get_Variable
-Set_Variable
-Del_Variable
-get_count_records
-get_record_sql
-get_records_sql
-get_device_by_ip
-get_diff_rec
-get_id_record
-get_new_user_id
-is_hotspot
-GetNowTime
-GetUnixTimeByStr
-GetTimeStrByUnixTime
-get_option
-process_dhcp_request
-get_subnets_ref
+db_log_warning
+normalize_value
+get_table_columns
 init_db
-init_option
-insert_record
-apply_device_lock
-set_lock_discovery
-unset_lock_discovery
-find_mac_in_subnet
-IpToStr
-unbind_ports
-resurrection_auth
-new_auth
-StrToIp
-get_first_line
-is_ad_computer
-get_dynamic_ou
-is_dynamic_ou
-get_default_ou
-is_default_ou
-update_dns_record
-update_dns_record_by_dhcp
-create_dns_cname
-delete_dns_cname
-create_dns_hostname
-delete_dns_hostname
-create_dns_ptr
-delete_dns_ptr
+do_sql
+_execute_param
+do_sql_param
+get_option_safe
+get_count_records
+get_id_record
+get_records_sql
+get_record_sql
+get_diff_rec
 update_record
-delete_user_auth
-delete_user
-delete_device
-write_db_log
-set_changed
-recalc_quotes
+insert_record
+delete_record
+get_option
+init_option
+is_system_ou
+Set_Variable
+Get_Variable
+Del_Variable
 clean_variables
-get_office_subnet
-get_notify_subnet
+build_db_schema
+
 $add_rules
 $L_WARNING
 $L_INFO
 $L_DEBUG
 $L_ERROR
 $L_VERBOSE
+
+%db_schema
 );
 
 BEGIN
@@ -113,43 +122,661 @@ our $L_VERBOSE = 3;
 our $L_DEBUG = 255;
 
 our %acl_fields = (
-'ip' => '1',
-'ip_int' => '1',
-'enabled'=>'1',
-'dhcp'=>'1',
-'filter_group_id'=>'1',
-'deleted'=>'1',
-'dhcp_acl'=>'1',
-'queue_id'=>'1',
-'mac'=>'1',
-'blocked'=>'1'
+    'ip' => '1',
+    'ip_int' => '1',
+    'enabled'=>'1',
+    'dhcp'=>'1',
+    'filter_group_id'=>'1',
+    'deleted'=>'1',
+    'dhcp_acl'=>'1',
+    'queue_id'=>'1',
+    'mac'=>'1',
+    'blocked'=>'1'
 );
 
 our %dhcp_fields = (
-'ip' => '1',
-'dhcp_acl'=>'1',
-'dhcp_option_set'=>'1',
-'dhcp'=>'1',
-'deleted'=>'1',
-'mac'=>'1',
+    'ip' => '1',
+    'dhcp_acl'=>'1',
+    'dhcp_option_set'=>'1',
+    'dhcp'=>'1',
+    'deleted'=>'1',
+    'mac'=>'1',
 );
 
 our %dns_fields = (
-'ip' => '1',
-'dns_name'=>'1',
-'dns_ptr_only'=>'1',
-'alias'=>'1',
+    'ip' => '1',
+    'dns_name'=>'1',
+    'dns_ptr_only'=>'1',
+    'alias'=>'1',
 );
+
+our %db_schema;
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub StrToIp{
+sub get_office_subnet {
+    my ($db, $ip) = @_;
+    return undef unless $db && defined $ip;
+
+    my @rows = get_records_sql(
+        $db,
+        "SELECT * FROM subnets WHERE office = 1 AND LENGTH(subnet) > 0"
+    );
+
+    return undef unless @rows;
+
+    my $pat = Net::Patricia->new;
+    for my $row (@rows) {
+        next unless defined $row->{subnet};
+        # Защита от некорректных подсетей в БД
+        eval { $pat->add_string($row->{subnet}, $row); 1 } or next;
+    }
+
+    return $pat->match_string($ip);
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_notify_subnet {
+my $db = shift;
+my $ip  = shift;
+my $notify_flag = get_office_subnet($db,$ip);
+if ($notify_flag) { return $notify_flag->{notify}; }
+return 0;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub is_hotspot {
+    my ($db, $ip) = @_;
+    return 0 unless $db && defined $ip;
+
+    my @subnets = get_records_sql(
+        $db,
+        "SELECT subnet FROM subnets WHERE hotspot = 1 AND LENGTH(subnet) > 0"
+    );
+
+    my $pat = Net::Patricia->new;
+    for my $row (@subnets) {
+        $pat->add_string($row->{subnet}) if defined $row->{subnet};
+    }
+
+    return $pat->match_string($ip) ? 1 : 0;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+# Вспомогательная функция для проверки "пустого" значения
+sub _is_empty {
+    my ($val) = @_;
+    return !defined $val || $val eq '';
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_queue {
+    my ($dbh, $queue_value) = @_;
+    return '' if _is_empty($queue_value);
+    my $queue = get_record_sql($dbh, "SELECT queue_name FROM queue_list WHERE id = ?", $queue_value);
+    return $queue->{queue_name} // '';
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_group {
+    my ($dbh, $group_id) = @_;
+    return '' if _is_empty($group_id);
+    my $group = get_record_sql($dbh, "SELECT group_name FROM group_list WHERE id = ?", $group_id);
+    return $group->{group_name} // '';
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_subnet_description {
+    my ($dbh, $subnet_id) = @_;
+    return '' if _is_empty($subnet_id);
+    my $subnet = get_record_sql($dbh, "SELECT * FROM subnets WHERE id = ?", $subnet_id);
+    return '' unless $subnet;
+    my $desc = $subnet->{description} // '';
+    return "$subnet->{subnet}&nbsp;($desc)";
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_filter_instance_description {
+    my ($dbh, $instance_id) = @_;
+    return '' if _is_empty($instance_id);
+    my $instance = get_record_sql($dbh, "SELECT * FROM filter_instances WHERE id = ?", $instance_id);
+    return '' unless $instance;
+    my $desc = $instance->{description} // '';
+    return "$instance->{name}&nbsp;($desc)";
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_vendor_name {
+    my ($dbh, $v_id) = @_;
+    return '' if _is_empty($v_id);
+    my $vendor = get_record_sql($dbh, "SELECT name FROM vendors WHERE id = ?", $v_id);
+    return $vendor->{name} // '';
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_ou {
+    my ($dbh, $ou_value) = @_;
+    return undef if _is_empty($ou_value);
+    my $ou_name = get_record_sql($dbh, "SELECT ou_name FROM ou WHERE id = ?", $ou_value);
+    return $ou_name ? $ou_name->{ou_name} : undef;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_device_name {
+    my ($dbh, $device_id) = @_;
+    return undef if _is_empty($device_id);
+    my $dev = get_record_sql($dbh, "SELECT device_name FROM devices WHERE id = ?", $device_id);
+    return $dev ? $dev->{device_name} : undef;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_device_model {
+    my ($dbh, $model_value) = @_;
+    return undef if _is_empty($model_value);
+    my $model_name = get_record_sql($dbh, "SELECT model_name FROM device_models WHERE id = ?", $model_value);
+    return $model_name ? $model_name->{model_name} : undef;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_device_model_name {
+    my ($dbh, $model_value) = @_;
+    return '' if _is_empty($model_value);
+    my $row = get_record_sql($dbh, "SELECT M.id, M.model_name, V.name FROM device_models M, vendors V  WHERE M.vendor_id = V.id AND M.id = ?", $model_value);
+    return '' unless $row;
+    my $vendor = $row->{name} // '';
+    my $model = $row->{model_name} // '';
+    return "$vendor $model";
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_building {
+    my ($dbh, $building_value) = @_;
+    return undef if _is_empty($building_value);
+    my $building_name = get_record_sql($dbh, "SELECT name FROM building WHERE id = ?", $building_value);
+    return $building_name ? $building_name->{name} : undef;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_filter {
+    my ($dbh, $filter_value) = @_;
+    return '' if _is_empty($filter_value);
+    my $filter = get_record_sql($dbh, "SELECT name FROM filter_list WHERE id = ?", $filter_value);
+    return $filter->{name} // '';
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_login {
+    my ($dbh, $user_id) = @_;
+    return '' if _is_empty($user_id);
+    my $login = get_record_sql($dbh, "SELECT login FROM user_list WHERE id = ?", $user_id);
+    return $login->{login} // '';
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub prepare_audit_message {
+    my ($dbh, $table, $old_data, $new_data, $record_id, $operation) = @_;
+
+    # === 1. Конфигурация отслеживаемых таблиц ===
+    my %audit_config = (
+        'auth_rules' => {
+            summary => ['rule'],
+            fields  => ['user_id', 'ou_id', 'rule_type', 'rule', 'description']
+        },
+        'building' => {
+            summary => ['name'],
+            fields  => ['name', 'description']
+        },
+        'customers' => {
+            summary => ['login'],
+            fields  => ['login', 'description', 'rights']
+        },
+        'devices' => {
+            summary => ['device_name'],
+            fields  => [
+                'device_type', 'device_model_id', 'vendor_id', 'device_name', 'building_id',
+                'ip', 'login', 'protocol', 'control_port', 'port_count', 'sn',
+                'description', 'snmp_version', 'snmp3_auth_proto', 'snmp3_priv_proto',
+                'snmp3_user_rw', 'snmp3_user_ro', 'community', 'rw_community',
+                'discovery', 'netflow_save', 'user_acl', 'dhcp', 'nagios',
+                'active', 'queue_enabled', 'connected_user_only', 'user_id'
+            ]
+        },
+        'device_filter_instances' => {
+            summary => [],
+            fields  => ['instance_id', 'device_id']
+        },
+        'device_l3_interfaces' => {
+            summary => ['name'],
+            fields  => ['device_id', 'snmpin', 'interface_type', 'name']
+        },
+        'device_models' => {
+            summary => ['model_name'],
+            fields  => ['model_name', 'vendor_id', 'poe_in', 'poe_out', 'nagios_template']
+        },
+        'device_ports' => {
+            summary => ['port', 'ifname'],
+            fields  => [
+                'device_id', 'snmp_index', 'port', 'ifname', 'port_name', 'description',
+                'target_port_id', 'auth_id', 'last_mac_count', 'uplink', 'nagios',
+                'skip', 'vlan', 'tagged_vlan', 'untagged_vlan', 'forbidden_vlan'
+            ]
+        },
+        'filter_instances' => {
+            summary => ['name'],
+            fields  => ['name', 'description']
+        },
+        'filter_list' => {
+            summary => ['name'],
+            fields  => ['name', 'description', 'proto', 'dst', 'dstport', 'srcport', 'filter_type']
+        },
+        'gateway_subnets' => {
+            summary => [],
+            fields  => ['device_id', 'subnet_id']
+        },
+        'group_filters' => {
+            summary => [],
+            fields  => ['group_id', 'filter_id', 'rule_order', 'action']
+        },
+        'group_list' => {
+            summary => ['group_name'],
+            fields  => ['instance_id', 'group_name', 'description']
+        },
+        'ou' => {
+            summary => ['ou_name'],
+            fields  => [
+                'ou_name', 'description', 'default_users', 'default_hotspot',
+                'nagios_dir', 'nagios_host_use', 'nagios_ping', 'nagios_default_service',
+                'enabled', 'filter_group_id', 'queue_id', 'dynamic', 'life_duration', 'parent_id'
+            ]
+        },
+        'queue_list' => {
+            summary => ['queue_name'],
+            fields  => ['queue_name', 'download', 'upload']
+        },
+        'subnets' => {
+            summary => ['subnet'],
+            fields  => [
+                'subnet', 'vlan_tag', 'ip_int_start', 'ip_int_stop', 'dhcp_start', 'dhcp_stop',
+                'dhcp_lease_time', 'gateway', 'office', 'hotspot', 'vpn', 'free', 'dhcp',
+                'static', 'dhcp_update_hostname', 'discovery', 'notify', 'description'
+            ]
+        },
+        'user_auth' => {
+            summary => ['ip', 'dns_name'],
+            fields  => [
+                'user_id', 'ou_id', 'ip', 'save_traf', 'enabled', 'dhcp', 'filter_group_id',
+                'dynamic', 'end_life', 'description', 'dns_name', 'dns_ptr_only', 'wikiname',
+                'dhcp_acl', 'queue_id', 'mac', 'dhcp_option_set', 'blocked', 'day_quota',
+                'month_quota', 'device_model_id', 'firmware', 'client_id', 'nagios',
+                'nagios_handler', 'link_check', 'deleted'
+            ]
+        },
+        'user_auth_alias' => {
+            summary => ['alias'],
+            fields  => ['auth_id', 'alias', 'description']
+        },
+        'user_list' => {
+            summary => ['login'],
+            fields  => [
+                'login', 'description', 'enabled', 'blocked', 'deleted', 'ou_id',
+                'device_id', 'filter_group_id', 'queue_id', 'day_quota', 'month_quota', 'permanent'
+            ]
+        },
+        'vendors' => {
+            summary => ['name'],
+            fields  => ['name']
+        }
+    );
+
+    return undef unless exists $audit_config{$table};
+
+    my $summary_fields   = $audit_config{$table}{summary};
+    my $monitored_fields = $audit_config{$table}{fields};
+
+    # === 2. Нормализация данных и определение изменений ===
+    my %changes;
+
+    if ($operation eq 'insert') {
+        for my $field (@$monitored_fields) {
+            if (exists $new_data->{$field}) {
+                $changes{$field} = { old => undef, new => $new_data->{$field} };
+            }
+        }
+    }
+    elsif ($operation eq 'delete') {
+        for my $field (@$monitored_fields) {
+            if (exists $old_data->{$field}) {
+                $changes{$field} = { old => $old_data->{$field}, new => undef };
+            }
+        }
+    }
+    elsif ($operation eq 'update') {
+        $old_data //= {};
+        $new_data //= {};
+        for my $field (@$monitored_fields) {
+            next unless exists $new_data->{$field};  # частичное обновление
+            my $old_val = exists $old_data->{$field} ? $old_data->{$field} : undef;
+            my $new_val = $new_data->{$field};
+
+            my $old_str = !defined($old_val) ? '' : "$old_val";
+            my $new_str = !defined($new_val) ? '' : "$new_val";
+
+            if ($old_str ne $new_str) {
+                $changes{$field} = { old => $old_val, new => $new_val };
+            }
+        }
+    }
+
+    return undef unless %changes;
+
+    # === 3. Краткое описание записи ===
+    my @summary_parts;
+    for my $field (@$summary_fields) {
+        my $val = defined($new_data->{$field}) ? $new_data->{$field}
+                : (defined($old_data->{$field}) ? $old_data->{$field} : undef);
+        push @summary_parts, "$val" if defined $val && $val ne '';
+    }
+
+    my $summary_label = @summary_parts
+        ? '"' . join(' | ', @summary_parts) . '"'
+        : "ID=$record_id";
+
+    # === 4. Расшифровка *_id полей ===
+    my %resolved_changes;
+    for my $field (keys %changes) {
+        my $old_resolved = resolve_reference_value($dbh, $field, $changes{$field}{old});
+        my $new_resolved = resolve_reference_value($dbh, $field, $changes{$field}{new});
+        $resolved_changes{$field} = { old => $old_resolved, new => $new_resolved };
+    }
+
+    # === 5. Формирование сообщения ===
+    my $op_label = 'Updated';
+    if ($operation eq 'insert') {
+        $op_label = 'Created';
+    } elsif ($operation eq 'delete') {
+        $op_label = 'Deleted';
+    } else {
+        $op_label = ucfirst($operation);
+    }
+
+    my $message = sprintf("[%s] %s (%s) in table `%s`:\n",
+        $op_label,
+        ucfirst($table),
+        $summary_label,
+        $table
+    );
+
+    for my $field (sort keys %resolved_changes) {
+        my $change = $resolved_changes{$field};
+        if ($operation eq 'insert') {
+            if (defined $change->{new}) {
+                $message .= sprintf("  %s: %s\n", $field, $change->{new});
+            }
+        } elsif ($operation eq 'delete') {
+            if (defined $change->{old}) {
+                $message .= sprintf("  %s: %s\n", $field, $change->{old});
+            }
+        } else { # update
+            my $old_display = !defined($change->{old}) ? '[NULL]' : $change->{old};
+            my $new_display = !defined($change->{new}) ? '[NULL]' : $change->{new};
+            $message .= sprintf("  %s: \"%s\" → \"%s\"\n", $field, $old_display, $new_display);
+        }
+    }
+
+    chomp $message;
+    return $message;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub resolve_reference_value {
+    my ($dbh, $field, $value) = @_;
+
+    return undef if !defined $value || $value eq '';
+
+    # Проверка на целое число (как в PHP)
+    if ($value !~ /^[+-]?\d+$/) {
+        return "$value";
+    }
+    my $as_int = int($value);
+    if ("$as_int" ne "$value") {
+        return "$value";
+    }
+
+    my $id = $as_int;
+
+    if ($field eq 'device_id') {
+        return get_device_name($dbh, $id) // "Device#$id";
+    }
+    elsif ($field eq 'building_id') {
+        return get_building($dbh, $id) // "Building#$id";
+    }
+    elsif ($field eq 'user_id') {
+        return get_login($dbh, $id) // "User#$id";
+    }
+    elsif ($field eq 'ou_id') {
+        return get_ou($dbh, $id) // "OU#$id";
+    }
+    elsif ($field eq 'vendor_id') {
+        return get_vendor_name($dbh, $id) // "Vendor#$id";
+    }
+    elsif ($field eq 'device_model_id') {
+        return get_device_model_name($dbh, $id) // "Model#$id";
+    }
+    elsif ($field eq 'instance_id') {
+        return get_filter_instance_description($dbh, $id) // "FilterInstance#$id";
+    }
+    elsif ($field eq 'subnet_id') {
+        return get_subnet_description($dbh, $id) // "Subnet#$id";
+    }
+    elsif ($field eq 'group_id') {
+        return get_group($dbh, $id) // "FilterGroup#$id";
+    }
+    elsif ($field eq 'filter_id') {
+        return get_filter($dbh, $id) // "Filter#$id";
+    }
+    elsif ($field eq 'filter_group_id') {
+        return get_group($dbh, $id) // "FilterGroup#$id";
+    }
+    elsif ($field eq 'queue_id') {
+        return get_queue($dbh, $id) // "Queue#$id";
+    }
+    elsif ($field eq 'auth_id') {
+        return 'None' if $id <= 0;
+        my $sql = "
+            SELECT
+                COALESCE(ul.login, CONCAT('User#', ua.user_id)) AS login,
+                ua.ip,
+                ua.dns_name
+            FROM user_auth ua
+            LEFT JOIN user_list ul ON ul.id = ua.user_id
+            WHERE ua.id = ?
+        ";
+        my $row = get_record_sql($dbh, $sql, $id);
+        return "Auth#$id" unless $row;
+
+        my @parts;
+        push @parts, "login: $row->{login}" if $row->{login} && $row->{login} ne '';
+        push @parts, "IP: $row->{ip}"       if $row->{ip} && $row->{ip} ne '';
+        push @parts, "DNS: $row->{dns_name}" if $row->{dns_name} && $row->{dns_name} ne '';
+        return @parts ? join(', ', @parts) : "Auth#$id";
+    }
+    elsif ($field eq 'target_port_id') {
+        return 'None' if $id == 0;
+        my $sql = "
+            SELECT CONCAT(d.device_name, '[', dp.port, ']')
+            FROM device_ports dp
+            JOIN devices d ON d.id = dp.device_id
+            WHERE dp.id = ?
+        ";
+        my $name = $dbh->selectrow_array($sql, undef, $id);
+        return $name // "Port#$id";
+    }
+    else {
+        return "$value";
+    }
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub build_db_schema {
+    my ($dbh) = @_;
+
+    # Определяем тип СУБД
+    my $db_type = lc($dbh->{Driver}->{Name});
+    die "Unsupported database driver: $db_type" 
+        unless $db_type eq 'mysql' || $db_type eq 'pg';
+
+    # Получаем имя базы данных
+    my $db_name;
+    if ($db_type eq 'mysql') {
+        ($db_name) = $dbh->selectrow_array("SELECT DATABASE()");
+    } elsif ($db_type eq 'pg') {
+        ($db_name) = $dbh->selectrow_array("SELECT current_database()");
+    }
+
+    my $db_info;
+    $db_info->{db_type}=$db_type;
+    $db_info->{db_name}=$db_name;
+    return $db_info if (exists $db_schema{$db_type}{$db_name});
+    # Получаем список таблиц
+    my @tables;
+    if ($db_type eq 'mysql') {
+        my $sth = $dbh->prepare("SHOW TABLES");
+        $sth->execute();
+        @tables = map { $_->[0] } @{$sth->fetchall_arrayref()};
+    } elsif ($db_type eq 'pg') {
+        my $sql = q{
+            SELECT tablename 
+            FROM pg_tables 
+            WHERE schemaname = 'public'
+        };
+        my $sth = $dbh->prepare($sql);
+        $sth->execute();
+        @tables = map { $_->[0] } @{$sth->fetchall_arrayref()};
+    }
+
+    # Собираем схему
+    for my $table (@tables) {
+        my $sth = $dbh->column_info(undef, undef, $table, '%');
+        while (my $col = $sth->fetchrow_hashref) {
+            my $col_name = lc($col->{COLUMN_NAME});
+            $db_schema{$db_type}{$db_name}{$table}{$col_name} = {
+                type     => $col->{TYPE_NAME} // '',
+                nullable => $col->{NULLABLE}  // 1,
+                default  => $col->{COLUMN_DEF} // undef,
+            };
+        }
+    }
+    return $db_info;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub normalize_value {
+    my ($value, $col_info) = @_;
+
+    # Если значение пустое — обрабатываем по правилам колонки
+    if (!defined $value || $value eq '' || $value =~ /^(?:NULL|\\N)$/i) {
+        return $col_info->{nullable} ? undef : _default_for_type($col_info);
+    }
+
+    my $type = lc($col_info->{type});
+
+    # --- Числовые типы: приводим к числу, если выглядит как число ---
+    if ($type =~ /^(?:tinyint|smallint|mediumint|int|integer|bigint|serial|bigserial)$/i) {
+        # Просто конвертируем строку в число (Perl сам обрежет мусор)
+        # Например: "123abc" → 123, "abc" → 0
+        return 0 + $value;
+    }
+
+    # --- Булевы: приводим к 0/1 ---
+    if ($type =~ /^(?:bool|boolean|bit)$/i) {
+        return $value ? 1 : 0;
+    }
+
+    # --- Временные типы: оставляем как есть, но фильтруем "нулевые" даты MySQL ---
+    if ($type =~ /^(?:timestamp|datetime|date|time)$/i) {
+        # Это частая проблема при миграции — '0000-00-00' ломает PostgreSQL
+        return undef if $value =~ /^0000-00-00/;
+        return $value;
+    }
+
+    # --- Все остальные типы (строки, inet, json и т.д.) — передаём как есть ---
+    return $value;
+}
+
+# Вспомогательная: безопасное значение по умолчанию
+sub _default_for_type {
+    my ($col) = @_;
+
+    # Используем DEFAULT, только если он простой литерал (не выражение)
+    if (defined $col->{default}) {
+        my $def = $col->{default};
+        # Пропускаем выражения: nextval(), CURRENT_TIMESTAMP, NOW(), uuid() и т.п.
+        if ($def !~ /(nextval|current_timestamp|now|uuid|auto_increment|::)/i) {
+            # Убираем одинарные кавычки, если строка: 'value' → value
+            if ($def =~ /^'(.*)'$/) {
+                return $1;
+            }
+            # Если похоже на число — вернём как число
+            if ($def =~ /^[+-]?\d+$/) {
+                return 0 + $def;
+            }
+            return $def;
+        }
+    }
+
+    # Фолбэк по типу
+    my $type = lc($col->{type});
+    if ($type =~ /^(?:tinyint|smallint|int|integer|bigint)/i) { return 0; }
+    if ($type =~ /^(?:char|varchar|text)/i) { return ''; }
+    if ($type =~ /^(?:timestamp|datetime)/i) { return GetNowTime(); }
+    return undef;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_table_columns {
+    my ($db, $table) = @_;
+    my %columns;
+    my $sth = $db->column_info(undef, undef, $table, '%');
+    while (my $row = $sth->fetchrow_hashref) {
+        my $name = lc($row->{COLUMN_NAME});  # ← приводим к нижнему регистру сразу!
+        $columns{$name} = {
+            type     => $row->{TYPE_NAME} // '',
+            nullable => $row->{NULLABLE}  // 1,
+            default  => $row->{COLUMN_DEF} // undef,
+        };
+    }
+    return %columns;  # возвращает список: key1, val1, key2, val2...
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub StrToIp {
 return unpack('N',pack('C4',split(/\./,$_[0])));
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub IpToStr{
+sub IpToStr {
 my $nIP = shift;
 my $res = (($nIP>>24) & 255) .".". (($nIP>>16) & 255) .".". (($nIP>>8) & 255) .".". ($nIP & 255);
 return $res;
@@ -157,184 +784,285 @@ return $res;
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub batch_db_sql {
-my $db=shift;
-my $batch_sql=shift;
-return if (!$db);
-$db->{AutoCommit} = 0;
-my $apply = 0;
-my $sth;
-my @msg = ();
-if (ref($batch_sql) eq 'ARRAY') { @msg = @$batch_sql; } else { @msg = split("\n",$batch_sql); }
-foreach my $sSQL (@msg) {
-    next if (!$sSQL);
-    $sth = $db->prepare($sSQL) or die "Unable to prepare $sSQL" . $db->errstr;
-    $sth->execute() or die "Unable to prepare $sSQL" . $db->errstr;
-    $apply = 1;
-    }
-if ($apply) { $sth->finish(); }
-$db->{AutoCommit} = 1;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
 sub batch_db_sql_cached {
-my $db = DBI->connect("dbi:$config_ref{DBTYPE}:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 0 });
-if ( !defined $db ) { die "Cannot connect to $config_ref{DBTYPE} server: $DBI::errstr\n"; }
-if ($config_ref{DBTYPE} eq 'mysql') {
-    $db->do('SET NAMES utf8mb4');
-    $db->{'mysql_enable_utf8'} = 1;
-    }
-my $table= shift;
-my $batch_sql=shift;
-return if (!$db);
-my @msg = ();
-if (ref($batch_sql) eq 'ARRAY') { @msg = @$batch_sql; } else { @msg = split("\n",$batch_sql); }
-my $sth = $db->prepare_cached($table) or die "Unable to prepare:" . $db->errstr;
-foreach my $sSQL (@msg) {
-    next if (!$sSQL);
-    $sth->execute(@$sSQL) or die "Unable to execute:" . $db->errstr;
-    }
-$db->commit();
-$db->disconnect();
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub batch_db_sql_csv {
-my $db;
-if ($config_ref{DBTYPE} eq 'mysql') {
-    $db = DBI->connect("dbi:$config_ref{DBTYPE}:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 1, mysql_local_infile=> 1 });
-    } else {
-    $db = DBI->connect("dbi:$config_ref{DBTYPE}:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 1 });
-    }
-if ( !defined $db ) { die "Cannot connect to $config_ref{DBTYPE} server: $DBI::errstr\n"; }
-
-return if (!$db);
-
-if ($config_ref{DBTYPE} eq 'mysql') {
-    $db->do('SET NAMES utf8mb4');
-    $db->{'mysql_enable_utf8'} = 1;
-    }
-
-my $table= shift;
-my $data = shift;
-my $fh = File::Temp->new(UNLINK=>1);
-my $fname = $fh->filename;
-binmode($fh,':utf8');
-foreach my $row (@$data) {
-    next if (!$row);
-    my @tmp = @$row;
-    my $values = 'NULL';
-    for (my $i = 0; $i <@tmp ; $i++) {
-	$values.=',"'.$tmp[$i].'"';
-	}
-    $values =~s/,$//;
-    print $fh $values."\r\n";
-    }
-close $fh;
-my $query = qq{ LOAD DATA LOCAL INFILE '$fname' INTO TABLE $table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n'; };
-$db->do($query);
-$db->disconnect;
-File::Temp::cleanup();
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub reconnect_db {
-    my $db_ref = shift;
-    # Если соединение активно, ничего не делаем
-    if ($$db_ref && $$db_ref->ping) {
-        return 1;
-    }
-    # Переподключаемся
+    my ( $sql, $data) = @_;
+    my $db=init_db();
+    # Запоминаем исходное состояние AutoCommit
+    my $original_autocommit = $db->{AutoCommit};
     eval {
-        # Закрываем старое соединение если есть
-        if ($$db_ref) {
-            $$db_ref->disconnect;
-            $$db_ref = undef;
+        # Выключаем AutoCommit для транзакции
+        $db->{AutoCommit} = 0;
+        my $sth = $db->prepare_cached($sql)  or die "Unable to prepare SQL: " . $db->errstr;
+        for my $params (@$data) {
+            next unless @$params;
+            $sth->execute(@$params) or die "Unable to execute with params [" . join(',', @$params) . "]: " . $sth->errstr;
         }
-        # Создаем новое соединение
-        $$db_ref = init_db();
-        # Проверяем что соединение установлено
-        unless ($$db_ref && $$db_ref->ping) {
-            die "Failed to establish database connection";
-        }
-        1;  # возвращаем истину при успехе
+        $db->commit();
+        1;
     } or do {
-        my $error = $@ || 'Unknown error';
-        warn "Database reconnection failed: $error";
-        $$db_ref = undef;
+        my $err = $@ || 'Unknown error';
+        eval { $db->rollback() };
+        warn "batch_sql_cached failed: $err";
+        # Восстанавливаем AutoCommit даже при ошибке
+        $db->{AutoCommit} = $original_autocommit;
         return 0;
     };
+    # Восстанавливаем исходный режим AutoCommit
+    $db->{AutoCommit} = $original_autocommit;
+    $db->disconnect();
     return 1;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub do_sql {
-    my ($db, $sql, @bind_values) = @_;
-    return 0 unless $db;
-    return 0 unless $sql;
+sub batch_db_sql_csv {
+    my ($table, $data) = @_;
+    return 0 unless @$data;
 
-    unless (reconnect_db(\$db)) {
-        log_error("No database connection available for SQL: $sql");
+    # Первая строка — заголовки (имена столбцов)
+    my $header_row = shift @$data;
+    unless ($header_row && ref($header_row) eq 'ARRAY' && @$header_row) {
+        log_error("First row must be column names (array reference)");
         return 0;
     }
+    my @columns = @$header_row;
 
-    # Логируем не-SELECT-запросы
-    log_debug( $sql . (@bind_values ? ' | bind: [' . join(', ', map { defined $_ ? $_ : 'undef' } @bind_values) . ']' : '')) unless $sql =~ /^select /i;
-    # Подготовка запроса
-    my $sth = $db->prepare($sql) or do {
-        log_error("Unable to prepare SQL [$sql]: " . $db->errstr);
-        return 0;
-    };
-    # Выполнение запроса
-    my $rv;
-    if (@bind_values) {
-        $rv = $sth->execute(@bind_values) or do {
-            log_error("Unable to execute SQL [$sql] with bind: [" . join(', ', map { defined $_ ? $_ : 'undef' } @bind_values) . "]: " . $sth->errstr);
-            return 0;
-        };
-    } else {
-        $rv = $sth->execute() or do {
-            log_error("Unable to execute SQL [$sql]: " . $sth->errstr);
-            return 0;
-        };
-    }
-    # Обработка результатов по типу запроса
-    if ($sql =~ /^insert/i) {
-        my $id;
-        if ($config_ref{DBTYPE} and $config_ref{DBTYPE} eq 'mysql') {
-            $id = $sth->{mysql_insertid};
-        } else {
-            ($id) = $db->selectrow_array("SELECT lastval()");
-        }
-        $sth->finish();
-        return $id || 0;  # Возвращаем ID или 0 если ID нет
-    }
-    elsif ($sql =~ /^select /i) {
-        my $data = $sth->fetchall_arrayref({});
-        $sth->finish();
-        return $data;  # возвращаем ссылку на массив
-    }
-    else {
-        # UPDATE, DELETE, CREATE, ALTER и т.д.
-        $sth->finish();
+    # Теперь @$data содержит только строки данных
+    my $data_rows = $data;
+
+    # Если нет данных — только заголовок
+    unless (@$data_rows) {
+        log_debug("No data rows to insert, only header");
         return 1;
     }
-}
 
+    my $db = init_db();
+
+    my $original_autocommit = $db->{AutoCommit};
+    $db->{AutoCommit} = 0;
+
+    if (get_db_type($db) eq 'mysql') {
+        # --- MySQL: попытка LOAD DATA, fallback на INSERT ---
+        log_debug("Using LOAD DATA LOCAL INFILE for MySQL");
+
+        my $fh = File::Temp->new(UNLINK => 1);
+        my $fname = $fh->filename;
+        binmode($fh, ':utf8');
+
+        my $csv = Text::CSV->new({
+            binary         => 1,
+            quote_char     => '"',
+            escape_char    => '"',
+            sep_char       => ',',
+            eol            => "\r\n",
+            always_quote   => 1,
+        }) or do {
+            my $err = "Cannot create Text::CSV: " . Text::CSV->error_diag();
+            log_error($err);
+            $db->{AutoCommit} = $original_autocommit;
+            $db->disconnect();
+            return 0;
+        };
+        # Пишем заголовок
+        $csv->print($fh, \@columns);
+        # Пишем данные
+        for my $row (@$data_rows) {
+            next unless $row && ref($row) eq 'ARRAY' && @$row == @columns;
+            my @vals = map { defined($_) ? $_ : 'NULL' } @$row;
+            $csv->print($fh, \@vals);
+        }
+        close $fh;
+        my $col_list = join(', ', map { $db->quote_identifier($_) } @columns);
+        my $query = qq{LOAD DATA LOCAL INFILE '$fname' INTO TABLE $table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n' IGNORE 1 LINES ($col_list)};
+        my $load_ok = eval { $db->do($query); 1 };
+        if (!$load_ok) {
+            my $err = "MySQL LOAD DATA failed: $@";
+            log_error($err);
+            log_debug("Falling back to bulk INSERT for MySQL");
+            goto FALLBACK_INSERT_MYSQL;
+        }
+        $db->commit();
+        $db->{AutoCommit} = $original_autocommit;
+
+        $db->disconnect();
+        return 1;
+
+        # ========================
+        # Fallback для MySQL
+        # ========================
+        FALLBACK_INSERT_MYSQL:
+        {
+            my $quoted_cols = join(', ', map { $db->quote_identifier($_) } @columns);
+            my $placeholders = join(',', ('?') x @columns);
+            my $sql = "INSERT INTO $table ($quoted_cols) VALUES ($placeholders)";
+            my $sth = $db->prepare($sql);
+
+            my $success = eval {
+                for my $row (@$data_rows) {
+                    next unless $row && ref($row) eq 'ARRAY' && @$row == @columns;
+                    my @vals = map { defined($_) ? $_ : undef } @$row;
+                    $sth->execute(@vals);
+                }
+                1;
+            };
+
+            if ($success) {
+                $db->commit();
+            } else {
+                eval { $db->rollback(); };
+                my $err = "MySQL bulk INSERT failed: $@";
+                log_error($err);
+                $db->{AutoCommit} = $original_autocommit;
+                $db->disconnect();
+                return 0;
+            }
+            $db->{AutoCommit} = $original_autocommit;
+        }
+
+    } elsif (get_db_type($db) eq 'pg') {
+
+        if (!$db->can('pg_putcopydata') || !$db->can('pg_putcopyend')) {
+            log_debug("pg_putcopydata/pg_putcopyend not available — falling back to bulk INSERT");
+            goto FALLBACK_INSERT_PG;
+        }
+
+        my $col_list = join(', ', map { $db->quote_identifier($_) } @columns);
+        my $copy_sql = "COPY $table ($col_list) FROM STDIN WITH (FORMAT CSV, HEADER true)";
+
+        my $use_header_as_data;
+        my $start_ok = eval { $db->do($copy_sql); 1 };
+
+        if (!$start_ok) {
+            log_debug("COPY with HEADER failed: $@ — trying without HEADER");
+            $copy_sql = "COPY $table ($col_list) FROM STDIN WITH (FORMAT CSV)";
+            $start_ok = eval { $db->do($copy_sql); 1 };
+            if (!$start_ok) {
+                log_debug("COPY failed entirely: $@ — falling back to bulk INSERT");
+                goto FALLBACK_INSERT_PG;
+            }
+            $use_header_as_data = 1;
+        } else {
+            $use_header_as_data = 0;
+        }
+
+        log_debug("Using CSV COPY for PostgreSQL");
+
+        my $csv = Text::CSV->new({
+            binary         => 1,
+            quote_char     => '"',
+            escape_char    => '"',
+            sep_char       => ',',
+            eol            => "\n",
+            always_quote   => 1,
+        }) or do {
+            my $err = "Cannot create Text::CSV: " . Text::CSV->error_diag();
+            log_error($err);
+            eval { $db->pg_putcopyend(); };
+            $db->{AutoCommit} = $original_autocommit;
+            $db->disconnect();
+            return 0;
+        };
+
+        my $success = eval {
+            if ($use_header_as_data) {
+                $csv->combine(@columns);
+                $db->pg_putcopydata($csv->string);
+            }
+            for my $row (@$data_rows) {
+                next unless $row && ref($row) eq 'ARRAY' && @$row == @columns;
+                my @vals = map { defined($_) ? $_ : undef } @$row;
+                $csv->combine(@vals);
+                $db->pg_putcopydata($csv->string);
+            }
+            $db->pg_putcopyend();
+            1;
+        };
+
+        if ($success) {
+            $db->commit();
+        } else {
+            eval { $db->rollback(); };
+            my $err = "CSV COPY failed: $@";
+            log_error($err);
+            eval { $db->pg_putcopyend(); };
+            goto FALLBACK_INSERT_PG;
+        }
+        # ========================
+        # Fallback для PostgreSQL
+        # ========================
+        FALLBACK_INSERT_PG:
+        {
+            my $quoted_cols = join(', ', map { $db->quote_identifier($_) } @columns);
+            my $placeholders = join(',', ('?') x @columns);
+            my $sql = "INSERT INTO $table ($quoted_cols) VALUES ($placeholders)";
+            my $sth = $db->prepare($sql);
+
+            my $success = eval {
+                for my $row (@$data_rows) {
+                    next unless $row && ref($row) eq 'ARRAY' && @$row == @columns;
+                    my @vals = map { defined($_) ? $_ : undef } @$row;
+                    $sth->execute(@vals);
+                }
+                1;
+            };
+
+            if ($success) {
+                $db->commit();
+            } else {
+                eval { $db->rollback(); };
+                my $err = "PostgreSQL bulk INSERT failed: $@";
+                log_error($err);
+                $db->{AutoCommit} = $original_autocommit;
+                $db->disconnect();
+                return 0;
+            }
+        }
+
+    } else {
+        my $err = "Unsupported DBTYPE: ". get_db_type($db);
+        log_error($err);
+        $db->{AutoCommit} = $original_autocommit;
+        $db->disconnect();
+        return 0;
+    }
+
+    $db->{AutoCommit} = $original_autocommit;
+    $db->disconnect();
+    return 1;
+}
 #---------------------------------------------------------------------------------------------------------------
 
-sub get_first_line {
-my $msg = shift;
-if (!$msg) { return; }
-if ($msg=~ /(.*)(\n|\<br\>)/) {
-    $msg = $1 if ($1);
-    chomp($msg);
+sub reconnect_db {
+    my $db_ref = shift;
+
+    # Если соединение активно — ничего не делаем
+    if ($$db_ref && $$db_ref->ping) {
+        return 1;
     }
-return $msg;
+
+    # Сохраняем AutoCommit из текущего соединения (если есть)
+    my $original_autocommit = 1;
+    if ($$db_ref) {
+        $original_autocommit = $$db_ref->{AutoCommit};
+        eval { $$db_ref->disconnect; };
+        $$db_ref = undef;
+    }
+
+    # Пытаемся переподключиться
+    eval {
+        $$db_ref = init_db($original_autocommit);
+        unless ($$db_ref && $$db_ref->ping) {
+            log_die "Failed to establish database connection";
+        }
+        1;
+    } or do {
+        my $error = $@ || 'Unknown error';
+        $$db_ref = undef;
+        log_die "Database reconnection failed: $error";
+        return 0;
+    };
+
+    return 1;
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -351,8 +1079,8 @@ my $db_log = 0;
 
 # Переподключение
 unless (reconnect_db(\$db)) {
-    log_error("No database connection available");
-    $db_log = 0;
+log_error("No database connection available");
+$db_log = 0;
 }
 
 if ($level eq $L_ERROR and $log_level >= $L_ERROR) { log_error($msg); $db_log = 1; }
@@ -362,9 +1090,9 @@ if ($level eq $L_VERBOSE and $log_level >= $L_VERBOSE) { log_verbose($msg); $db_
 if ($level eq $L_DEBUG and $log_level >= $L_DEBUG) { log_debug($msg); return; }
 
 if ($db_log) {
-    #my $new_id = do_sql($dbh, 'INSERT INTO User_list (login) VALUES (?)', 'Ivan');
-    do_sql($db,'INSERT INTO worklog(customer,message,level,auth_id,ip) VALUES( ?, ?, ?, ?, ?)',$MY_NAME,$msg,$level,$auth_id,$config_ref{self_ip});
-    }
+#my $new_id = do_sql($dbh, 'INSERT INTO user_list (login) VALUES (?)', 'Ivan');
+do_sql($db,'INSERT INTO worklog(customer,message,level,auth_id,ip) VALUES( ?, ?, ?, ?, ?)',$MY_NAME,$msg,$level,$auth_id,$config_ref{self_ip});
+}
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -382,9 +1110,9 @@ sub db_log_error {
 my $db = shift;
 my $msg = shift;
 if ($log_level >= $L_ERROR) {
-    sendEmail("ERROR! ".get_first_line($msg),$msg,1);
-    write_db_log($db,$msg,$L_ERROR);
-    }
+sendEmail("ERROR! ".get_first_line($msg),$msg,1);
+write_db_log($db,$msg,$L_ERROR);
+}
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -417,28 +1145,101 @@ if ($log_level >= $L_WARNING) { write_db_log($db,$msg,$L_WARNING,$id); }
 #---------------------------------------------------------------------------------------------------------------
 
 sub init_db {
-# Create new database handle. If we can't connect, die()
-my $db = DBI->connect("dbi:$config_ref{DBTYPE}:database=$DBNAME;host=$DBHOST","$DBUSER","$DBPASS", { RaiseError => 0, AutoCommit => 1 });
-if ( !defined $db ) { die "Cannot connect to mySQL server: $DBI::errstr\n"; }
-if ($config_ref{DBTYPE} eq 'mysql') {
-    $db->do('SET NAMES utf8mb4');
-    $db->{'mysql_enable_utf8'} = 1;
+    my $autocommit = shift;
+    if (!defined $autocommit) { $autocommit = 1; }
+    my $db;
+    if ($config_ref{DBTYPE} eq 'mysql') {
+        $db = DBI->connect(
+            "dbi:mysql:database=$DBNAME;host=$DBHOST;port=3306;mysql_local_infile=1", $DBUSER, $DBPASS,
+            { RaiseError => 0, AutoCommit => $autocommit, mysql_enable_utf8 => 1 }
+        );
+        if (!defined $db) {
+            log_die "Cannot connect to MySQL server: $DBI::errstr\n";
+        }
+        $db->do('SET NAMES utf8mb4');
+    } else {
+        $db = DBI->connect(
+            "dbi:Pg:dbname=$DBNAME;host=$DBHOST;port=5432", $DBUSER, $DBPASS,
+            { RaiseError => 0, AutoCommit => $autocommit, pg_enable_utf8 => 1, pg_server_prepare => 0 }
+        );
+        if (!defined $db) {
+            log_die "Cannot connect to PostgreSQL server: $DBI::errstr\n";
+        }
     }
-return $db;
+    return $db;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+# Обновленная функция get_option с параметризованными запросами
+sub get_option {
+    my $db = shift;
+    my $option_id = shift;
+    return if (!$option_id);
+    return if (!$db);
+    my $sql = q{
+    SELECT
+    COALESCE(c.value, co.default_value) AS value,
+    co.option_type
+    FROM config_options co
+    LEFT JOIN config c ON c.option_id = co.id
+    WHERE co.id = ?
+    };
+    my $record = get_record_sql($db, $sql, $option_id);
+    unless ($record) {
+        log_error("Option ID $option_id not found in config_options table");
+        return;
+    }
+    return $record->{value};
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_records_sql {
+my ($db, $sql, @params) = @_;
+my @result;
+return @result if (!$db);
+return @result if (!$sql);
+unless (reconnect_db(\$db)) {
+    log_error("No database connection available");
+    return @result;
+    }
+my $result_ref = _execute_param($db, $sql, \@params, { mode => 'array' });
+if (ref($result_ref) eq 'ARRAY') {
+        @result = @$result_ref;
+    }
+return @result;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_record_sql {
+my ($db, $sql, @params) = @_;
+my @result;
+return @result if (!$db);
+return @result if (!$sql);
+# Добавляем LIMIT только если его еще нет в запросе
+if ($sql !~ /\bLIMIT\s+\d+/i && $sql !~ /\bFETCH\s+FIRST\s+\d+/i) {
+        $sql .= ' LIMIT 1';
+    }
+# Переподключение
+unless (reconnect_db(\$db)) {
+    log_error("No database connection available");
+    return;
+    }
+return _execute_param($db, $sql, \@params, { mode => 'single' });
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_count_records {
-my $db = shift;
-my $table = shift;
-my $filter = shift;
+my ($db, $table, $filter, @params) = @_;
 my $result = 0;
 return $result if (!$db);
 return $result if (!$table);
 my $sSQL='SELECT COUNT(*) as rec_cnt FROM '.$table;
 if ($filter) { $sSQL=$sSQL." WHERE ".$filter; }
-my $record = get_record_sql($db,$sSQL);
+my $record = get_record_sql($db,$sSQL, @params);
 if ($record->{rec_cnt}) { $result = $record->{rec_cnt}; }
 return $result;
 }
@@ -446,259 +1247,208 @@ return $result;
 #---------------------------------------------------------------------------------------------------------------
 
 sub get_id_record {
-my $db = shift;
-my $table = shift;
-my $filter = shift;
+my ($db, $table, $filter, @params) = @_;
 my $result = 0;
 return $result if (!$db);
 return $result if (!$table);
-my $record = get_record_sql($db,"SELECT id FROM $table WHERE $filter");
+my $record = get_record_sql($db,"SELECT id FROM $table WHERE $filter", @params);
 if ($record->{id}) { $result = $record->{id}; }
 return $result;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub get_records_sql {
-my $db = shift;
-my $table = shift;
-my @result;
-return @result if (!$db);
-return @result if (!$table);
-unless (reconnect_db(\$db)) {
-    log_error("No database connection available");
-    return 0;
-}
-my $list = $db->prepare( $table ) or die "Unable to prepare $table:" . $db->errstr;
-$list->execute() or die "Unable to execute $table: " . $db->errstr;
-while(my $row_ref = $list->fetchrow_hashref()) { push(@result,$row_ref); }
-$list->finish();
-return @result;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_record_sql {
-my $db = shift;
-my $tsql = shift;
-my @result;
-return @result if (!$db);
-return @result if (!$tsql);
-$tsql.=' LIMIT 1';
-my $row_ref;
-# Переподключение
-unless (reconnect_db(\$db)) {
-    log_error("No database connection available");
-    return;
-}
-eval {
-    my $list = $db->prepare($tsql) or die "Unable to prepare $tsql: " . $db->errstr;
-    $list->execute() or die "Unable to execute $tsql: " . $db->errstr;
-    $row_ref = $list->fetchrow_hashref();
-    $list->finish();
-};
-if ($@) {
-    log_error("Error apply sql: $tsql err:".$@);
-    die "Error apply sql: $tsql";
-    }
-return $row_ref;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub unbind_ports {
-my $db = shift;
-my $device_id = shift;
-return if (!$db);
-return if (!$device_id);
-my @target = get_records_sql($db, "SELECT U.target_port_id,U.id FROM device_ports U WHERE U.device_id=".$device_id);
-foreach my $row (@target) {
-        do_sql($db, "UPDATE device_ports SET target_port_id=0 WHERE target_port_id=".$row->{id});
-        do_sql($db, "UPDATE device_ports SET target_port_id=0 WHERE id=".$row->{id});
-    }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
 sub get_diff_rec {
-my $db = shift;
-my $table = shift;
-my $value = shift;
-my $filter = shift;
-return if (!$db);
-return if (!$table);
-return if (!$filter);
-my $old_value = get_record_sql($db,"SELECT * FROM $table WHERE $filter");
-my $result;
-foreach my $field (keys %$value) {
-    if (!$value->{$field}) { $value->{$field}=''; }
-    if (!$old_value->{$field}) { $old_value->{$field}=''; }
-    if ($value->{$field}!~/^$old_value->{$field}$/) { $result->{$field} = "$value->{$field} [ old: " . $old_value->{$field} . "]"; }
-    }
-return hast_to_txt($result);
-}
+my ($db, $table, $record, $filter_sql, @filter_params) = @_;
+return unless $db && $table && $filter_sql;
 
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_dns_name {
-my $db = shift;
-my $id = shift;
-my $auth_record = get_record_sql($db,"SELECT dns_name FROM User_auth WHERE deleted=0 AND id=".$id);
-if ($auth_record and $auth_record->{'dns_name'}) { return $auth_record->{'dns_name'}; }
-return;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub update_record {
-my $db = shift;
-my $table = shift;
-my $record = shift;
-my $filter = shift;
-
-return if (!$db);
-return if (!$table);
-return if (!$filter);
-
-# Переподключение
 unless (reconnect_db(\$db)) {
     log_error("No database connection available");
     return;
-}
-
-my $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter");
-my $diff='';
-my $change_str='';
-my $found_changed=0;
-
-my $rec_id = 0;
-my $dns_changed = 0;
-
-if ($table eq "User_auth") {
-    $rec_id = $old_record->{'id'} if ($old_record->{'id'});
-    #disable update field 'created_by'
-    if ($old_record->{'created_by'} and exists ($record->{'created_by'})) { delete $record->{'created_by'}; }
-    foreach my $field (keys %$record) {
-        if (exists $acl_fields{$field}) { $record->{changed}="1"; }
-        if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
-        if (exists $dns_fields{$field}) { $dns_changed=1; }
-        }
     }
-
+my $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter_sql",@filter_params);
+return unless $old_record;
+my $result;
 foreach my $field (keys %$record) {
-    if (!defined $record->{$field}) { $record->{$field}=''; }
-    if (!defined $old_record->{$field}) { $old_record->{$field}=''; }
-    my $old_value = quotemeta($old_record->{$field});
-    my $new_value = $record->{$field};
-    $new_value=~s/\'//g;
-    $new_value=~s/\"//g;
-    if ($new_value!~/^$old_value$/) {
-	$diff = $diff." $field => $record->{$field} (old: $old_record->{$field}),";
-	$change_str = $change_str." `$field`=".$db->quote($record->{$field}).",";
-	$found_changed++;
-	}
+    if (!$record->{$field}) { $record->{$field}=''; }
+    if (!$old_record->{$field}) { $old_record->{$field}=''; }
+    if ($record->{$field}!~/^$old_record->{$field}$/) { $result->{$field} = "$record->{$field} [ old: " . $old_record->{$field} . "]"; }
+    }
+return hash_to_text($result);
 }
 
-if ($found_changed) {
-    $change_str=~s/\,$//;
-    $diff=~s/\,$//;
-    if ($table eq 'User_auth') {
-        $change_str .= ", `changed_time`='".GetNowTime()."'"; 
-        if ($dns_changed) {
-                my $del_dns;
-                if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
-                    $del_dns->{'name_type'}='A';
-                    $del_dns->{'name'}=$old_record->{'dns_name'};
-                    $del_dns->{'value'}=$old_record->{'ip'};
-                    $del_dns->{'type'}='del';
-                    if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
-                    insert_record($db,'dns_queue',$del_dns);
-                    }
-                if ($old_record->{'dns_name'} and $old_record->{'ip'} and $old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
-                    $del_dns->{'name_type'}='PTR';
-                    $del_dns->{'name'}=$old_record->{'dns_name'};
-                    $del_dns->{'value'}=$old_record->{'ip'};
-                    $del_dns->{'type'}='del';
-                    if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
-                    insert_record($db,'dns_queue',$del_dns);
-                    }
-                my $new_dns;
-                my $dns_rec_ip = $old_record->{ip};
-                my $dns_rec_name = $old_record->{dns_name};
-                if ($record->{'dns_name'}) { $dns_rec_name = $record->{'dns_name'}; }
-                if ($record->{'ip'}) { $dns_rec_ip = $record->{'ip'}; }
-                if ($dns_rec_name and $dns_rec_ip and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
-                    $new_dns->{'name_type'}='A';
-                    $new_dns->{'name'}=$dns_rec_name;
-                    $new_dns->{'value'}=$dns_rec_ip;
-                    $new_dns->{'type'}='add';
-                    if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
-                    insert_record($db,'dns_queue',$new_dns);
-                    }
-                if ($dns_rec_name and $dns_rec_ip and $record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
-                    $new_dns->{'name_type'}='PTR';
-                    $new_dns->{'name'}=$dns_rec_name;
-                    $new_dns->{'value'}=$dns_rec_ip;
-                    $new_dns->{'type'}='add';
-                    if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
-                    insert_record($db,'dns_queue',$new_dns);
-                    }
-                }
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_db_type {
+my $db = shift;
+return lc($db->{Driver}->{Name});
+#'mysql', 'pg'
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+# Внутренняя функция для выполнения параметризованных запросов
+sub _execute_param {
+    my ($db, $sql, $params, $options) = @_;
+    return unless $db && $sql;
+
+    my $mode = $options->{mode} || 'execute';
+
+    # --- Автоматическая поддержка RETURNING для PostgreSQL ---
+    my $was_modified = 0;
+    my $original_sql = $sql;
+    if ($mode eq 'id' && $sql =~ /^\s*INSERT\b/i) {
+        if (get_db_type($db) eq 'pg') {
+            unless ($sql =~ /\bRETURNING\b/i) {
+                $sql .= ' RETURNING id';
+                $was_modified = 1;
+                $mode = 'scalar';
+            }
         }
-    if ($table eq 'User_auth_alias') {
-        if ($dns_changed) {
-                my $del_dns;
-                if ($old_record->{'alias'} and $old_record->{'alias'}!~/\.$/) {
-                    $del_dns->{'name_type'}='CNAME';
-                    $del_dns->{'name'}=$old_record->{'alias'};
-                    $del_dns->{'type'}='del';
-                    $del_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
-                    $del_dns->{'auth_id'}=$old_record->{auth_id};
-                    insert_record($db,'dns_queue',$del_dns);
-                    }
-                my $new_dns;
-                my $dns_rec_name = $old_record->{alias};
-                if ($record->{'alias'}) { $dns_rec_name = $record->{'alias'}; }
-                if ($dns_rec_name and $record->{'alias'}!~/\.$/) {
-                    $new_dns->{'name_type'}='CNAME';
-                    $new_dns->{'name'}=$dns_rec_name;
-                    $new_dns->{'type'}='add';
-                    $new_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
-                    $new_dns->{'auth_id'}=$rec_id; 
-                    insert_record($db,'dns_queue',$new_dns);
-                    }
-                }
-        }
-    my $sSQL = "UPDATE $table SET $change_str WHERE $filter";
-    db_log_debug($db,'Change table '.$table.' for '.$filter.' set: '.$diff, $rec_id);
-    do_sql($db,$sSQL);
     }
-return 1;
+
+    # Логируем не-SELECT
+    unless ($original_sql =~ /^\s*SELECT/i) {
+        log_debug($original_sql . ($params ? ' | params: [' . join(', ', map { defined $_ ? $_ : 'undef' } @$params) . ']' : ''));
+    }
+
+    # === не переподключаемся внутри транзакции ===
+    my $autocommit_enabled = $db->{AutoCommit};
+    unless ($autocommit_enabled) {
+        # В транзакции: нельзя переподключаться!
+        unless ($db->ping) {
+            log_error("Database connection lost during transaction");
+            return wantarray ? () : undef;
+        }
+    } else {
+        # Вне транзакции: можно переподключиться
+        unless (reconnect_db(\$db)) {
+            log_error("No database connection available");
+            return wantarray ? () : undef;
+        }
+    }
+
+    my $sth = $db->prepare($sql) or do {
+        log_error("Unable to prepare SQL [$original_sql]: " . $db->errstr);
+        return wantarray ? () : undef;
+    };
+
+    my $rv = $params ? $sth->execute(@$params) : $sth->execute();
+
+    unless ($rv) {
+        log_error("Unable to execute SQL [$original_sql]" . ($params ? " with params: [" . join(', ', map { defined $_ ? $_ : 'undef' } @$params) . "]" : "") . ": " . $sth->errstr);
+        $sth->finish();
+        return wantarray ? () : undef;
+    }
+
+    # --- Обработка результатов ---
+    if ($was_modified && $mode eq 'scalar') {
+        my $row = $sth->fetchrow_arrayref();
+        $sth->finish();
+        my $id = $row ? $row->[0] : 0;
+        return $id;
+    }
+    elsif ($mode eq 'single') {
+        my $row = $sth->fetchrow_hashref();
+        $sth->finish();
+        return $row;
+    }
+    elsif ($mode eq 'array') {
+        my @rows;
+        while (my $row = $sth->fetchrow_hashref()) {
+            push @rows, $row;
+        }
+        $sth->finish();
+        return \@rows;
+    }
+    elsif ($mode eq 'arrayref') {
+        my $rows = $sth->fetchall_arrayref({});
+        $sth->finish();
+        return $rows;
+    }
+    elsif ($mode eq 'scalar') {
+        my $row = $sth->fetchrow_arrayref();
+        $sth->finish();
+        return $row ? $row->[0] : undef;
+    }
+    elsif ($mode eq 'id') {
+        if ($original_sql =~ /^\s*INSERT/i) {
+            my $id;
+            if (get_db_type($db) eq 'mysql') {
+                $id = $sth->{mysql_insertid};
+            } else {
+                ($id) = $db->selectrow_array("SELECT lastval()");
+            }
+            $sth->finish();
+            return $id || 0;
+        }
+        $sth->finish();
+        return 1;
+    }
+    else {
+        $sth->finish();
+        return 1;
+    }
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub do_sql {
+    my ($db, $sql, @bind_values) = @_;
+    return unless $db && $sql;  # Возвращаем undef при ошибке входных данных
+
+    my $mode;
+    if ($sql =~ /^\s*insert\b/i) {
+        $mode = 'id';
+    } elsif ($sql =~ /^\s*select\b/i) {
+        $mode = 'arrayref';
+    } else {
+        $mode = 'execute';
+    }
+
+    my $result = _execute_param($db, $sql, \@bind_values, { mode => $mode });
+
+    # Если _execute_param вернул undef/ложь — это ошибка
+    unless (defined $result) {
+        return;  # Возвращаем undef (лучше, чем 0)
+    }
+
+    if ($mode eq 'id') {
+        return $result;  # число (возможно 0 — допустимо для ID)
+    } elsif ($mode eq 'arrayref') {
+        # _execute_param всегда возвращает ARRAYREF при успехе
+        return $result;
+    } else {
+        # Для UPDATE/DELETE: возвращаем количество затронутых строк или 1
+        return $result ? $result : 1;
+    }
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub insert_record {
-my $db = shift;
-my $table = shift;
-my $record = shift;
-return if (!$db);
-return if (!$table);
-my $change_str='';
-my $fields='';
-my $values='';
-my $new_str='';
+my ($db, $table, $record) = @_;
+return unless $db && $table && ref($record) eq 'HASH' && %$record;
 
-my $rec_id = 0;
+# Переподключаемся ТОЛЬКО если не в транзакции
+if ($db->{AutoCommit}) {
+        unless (reconnect_db(\$db)) {
+            log_error("No database connection available");
+            return;
+        }
+    } else {
+        unless ($db->ping) {
+            log_error("Database connection lost during transaction");
+            return;
+        }
+    }
+
+my $db_info= build_db_schema($db);
+
 my $dns_changed = 0;
+my $rec_id = 0;
 
-# Переподключение
-unless (reconnect_db(\$db)) {
-    log_error("No database connection available");
-    return;
-}
-
-if ($table eq "User_auth") {
+if ($table eq "user_auth") {
     foreach my $field (keys %$record) {
         if (exists $acl_fields{$field}) { $record->{changed}="1"; }
         if (exists $dhcp_fields{$field}) { $record->{dhcp_changed}="1"; }
@@ -706,1354 +1456,375 @@ if ($table eq "User_auth") {
         }
     }
 
-foreach my $field (keys %$record) {
-    if (!defined $record->{$field}) { $record->{$field}=''; }
-    my $new_value = $record->{$field};
-    $new_value=~s/\'//g;
-    $new_value=~s/\"//g;
-    $record->{$field} = $new_value;
-    $fields = $fields."`$field`,";
-    $values = $values." ".$db->quote($record->{$field}).",";
-    $new_str = $new_str." $field => $record->{$field},";
-    }
+my @insert_params;
+my $fields = '';
+my $values = '';
 
-$fields=~s/,$//;
-$values=~s/,$//;
-$new_str=~s/,$//;
+foreach my $field (keys %$record) {
+    my $val =  normalize_value($record->{$field}, $db_schema{$db_info->{db_type}}{$db_info->{db_name}}{$table}{$field});
+    # Экранируем имя поля в зависимости от СУБД
+    my $quoted_field = get_db_type($db) eq 'mysql'
+        ? '`' . $field . '`'
+        : '"' . $field . '"';
+    $fields .= "$quoted_field, ";
+    $values .= "?, ";
+    push @insert_params, $val;
+}
+
+$fields =~ s/,\s*$//;
+$values =~ s/,\s*$//;
 
 my $sSQL = "INSERT INTO $table($fields) VALUES($values)";
-my $result = do_sql($db,$sSQL);
+my $result = do_sql($db,$sSQL,@insert_params);
+
 if ($result) {
-    $rec_id = $result if ($table eq "User_auth");
-    $new_str='id: '.$result.' '.$new_str;
-    if ($table eq 'User_auth_alias' and $dns_changed) {
-        if ($record->{'alias'} and $record->{'alias'}!~/\.$/) {
-                    my $add_dns;
-                    $add_dns->{'name_type'}='CNAME';
-                    $add_dns->{'name'}=$record->{'alias'};
-                    $add_dns->{'value'}=get_dns_name($db,$record->{'auth_id'});
-                    $add_dns->{'type'}='add';
-                    $add_dns->{'auth_id'}=$record->{'auth_id'};
-                    insert_record($db,'dns_queue',$add_dns);
+    $rec_id = $result;
+
+    my $changed_msg = prepare_audit_message($db, $table, undef, $record, $rec_id, 'insert');
+    if ($table !~ /session/i) {
+    if (defined $changed_msg && $changed_msg ne '') {
+        if ($table !~ /user/i) {
+            db_log_info($db, $changed_msg);
+            } else {
+            if ($table eq 'user_auth' && defined $record->{ip} && $record->{ip} ne '') {
+                if (is_hotspot($db, $record->{ip})) {
+                    db_log_info($db, $changed_msg, $rec_id);
+                    } else {
+                    db_log_warning($db, $changed_msg, $rec_id);
+                    my $send_alert_create = isNotifyCreate(get_notify_subnet($db, $record->{ip}));
+                    sendEmail("WARN! " . get_first_line($changed_msg), $changed_msg, 1) if $send_alert_create;
                     }
+                } else {
+                db_log_warning($db, $changed_msg);
+                }
+            }
         }
-    if ($table eq 'User_auth' and $dns_changed) {
-        if ($record->{'dns_name'} and $record->{'ip'} and $dns_changed and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
-                    my $add_dns;
-                    $add_dns->{'name_type'}='A';
-                    $add_dns->{'name'}=$record->{'dns_name'};
-                    $add_dns->{'value'}=$record->{'ip'};
-                    $add_dns->{'type'}='add';
-                    $add_dns->{'auth_id'}=$result;
-                    insert_record($db,'dns_queue',$add_dns);
-                    }
-        if ($record->{'dns_name'} and $record->{'ip'} and $dns_changed and $record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
-                    my $add_dns;
-                    $add_dns->{'name_type'}='PTR';
-                    $add_dns->{'name'}=$record->{'dns_name'};
-                    $add_dns->{'value'}=$record->{'ip'};
-                    $add_dns->{'type'}='add';
-                    $add_dns->{'auth_id'}=$result;
-                    insert_record($db,'dns_queue',$add_dns);
-                    }
+
+    if ($table eq 'user_auth_alias' and $dns_changed) {
+        if ($record->{'alias'} and $record->{'alias'}!~/\.$/) {
+            my $add_dns;
+            $add_dns->{'name_type'}='CNAME';
+            $add_dns->{'name'}=$record->{'alias'};
+            $add_dns->{'value'}=get_dns_name($db,$record->{'auth_id'});
+            $add_dns->{'operation_type'}='add';
+            $add_dns->{'auth_id'}=$record->{'auth_id'};
+            insert_record($db,'dns_queue',$add_dns);
+            }
+        }
+    if ($table eq 'user_auth' and $dns_changed) {
+        if ($record->{'dns_name'} and $record->{'ip'} and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+            my $add_dns;
+            $add_dns->{'name_type'}='A';
+            $add_dns->{'name'}=$record->{'dns_name'};
+            $add_dns->{'value'}=$record->{'ip'};
+            $add_dns->{'operation_type'}='add';
+            $add_dns->{'auth_id'}=$result;
+            insert_record($db,'dns_queue',$add_dns);
+            }
+        if ($record->{'dns_name'} and $record->{'ip'} and $record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+            my $add_dns;
+            $add_dns->{'name_type'}='PTR';
+            $add_dns->{'name'}=$record->{'dns_name'};
+            $add_dns->{'value'}=$record->{'ip'};
+            $add_dns->{'operation_type'}='add';
+            $add_dns->{'auth_id'}=$result;
+            insert_record($db,'dns_queue',$add_dns);
+            }
         }
     }
-db_log_debug($db,'Add record to table '.$table.' '.$new_str,$rec_id);
+}
+return $result;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub update_records {
+    my ($db, $table, $filter, $newvalue, @filter_params) = @_;
+
+    # Получаем ID всех записей, подходящих под фильтр
+    my $uSQL = "SELECT id FROM $table WHERE $filter";
+    my @ids = get_records_sql($db, $uSQL, @filter_params);
+
+    # Если ничего не найдено — считаем успехом
+    return 1 unless @ids;
+
+    # Обновляем каждую запись по отдельности
+    for my $record (@ids) {
+        next unless ref $record eq 'HASH' && defined $record->{id};
+        update_record($db, $table, $newvalue, "id = ?", $record->{id});
+    }
+
+    return 1;
+}
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub update_record {
+my ($db, $table, $record, $filter_sql, @filter_params) = @_;
+return unless $db && $table && $filter_sql;
+
+# Переподключаемся ТОЛЬКО если не в транзакции
+if ($db->{AutoCommit}) {
+        unless (reconnect_db(\$db)) {
+            log_error("No database connection available");
+            return;
+        }
+    } else {
+        unless ($db->ping) {
+            log_error("Database connection lost during transaction");
+            return;
+        }
+    }
+
+my $db_info = build_db_schema($db);
+
+my $select_sql = "SELECT * FROM $table WHERE $filter_sql";
+my $old_record = get_record_sql($db, $select_sql, @filter_params);
+return unless $old_record;
+
+my @update_params;
+my $set_clause = '';
+my $dns_changed = 0;
+my $rec_id = $old_record->{id} || 0;
+
+if ($table eq "user_auth") {
+    $rec_id = $old_record->{'id'} if ($old_record->{'id'});
+    my $cur_ou_id = $old_record->{'ou_id'} if ($old_record->{'ou_id'});
+    if (exists $record->{ou_id}) { $cur_ou_id = $record->{'ou_id'}; }
+    #disable update field 'created_by'
+    #if ($old_record->{'created_by'} and exists ($record->{'created_by'})) { delete $record->{'created_by'}; }
+    foreach my $field (keys %$record) {
+        if (exists $acl_fields{$field}) { $record->{changed}="1"; }
+        if (exists $dhcp_fields{$field} and !is_system_ou($db,$cur_ou_id)) { $record->{dhcp_changed}="1"; }
+        if (exists $dns_fields{$field}) { $dns_changed=1; }
+        }
+    }
+
+for my $field (keys %$record) {
+        next if (!$field);
+        next if (!exists $record->{$field});
+        next if (!defined $record->{$field});
+        my $old_val = defined $old_record->{$field} ? $old_record->{$field} : '';
+        my $new_val =  normalize_value( $record->{$field}, $db_schema{$db_info->{db_type}}{$db_info->{db_name}}{$table}{$field});
+        $new_val = defined $new_val ? $new_val : '';
+        if ($new_val ne $old_val) {
+            $set_clause .= " $field = ?, ";
+            push @update_params, $new_val;
+        }
+    }
+
+return unless $set_clause;
+
+# Добавляем служебные поля
+if ($table eq 'user_auth') {
+    if ($record->{changed} || $record->{dhcp_changed} || $dns_changed ) {
+        $set_clause .= "changed_time = ?, ";
+        push @update_params, GetNowTime();
+        }
+    }
+
+$set_clause =~ s/,\s*$//;
+
+if ($table eq 'user_auth') {
+        if ($dns_changed) {
+            my $del_dns;
+            if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
+                    $del_dns->{'name_type'}='A';
+                    $del_dns->{'name'}=$old_record->{'dns_name'};
+                    $del_dns->{'value'}=$old_record->{'ip'};
+                    $del_dns->{'operation_type'}='del';
+                    if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
+                    insert_record($db,'dns_queue',$del_dns);
+                    }
+            if ($old_record->{'dns_name'} and $old_record->{'ip'} and $old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
+                    $del_dns->{'name_type'}='PTR';
+                    $del_dns->{'name'}=$old_record->{'dns_name'};
+                    $del_dns->{'value'}=$old_record->{'ip'};
+                    $del_dns->{'operation_type'}='del';
+                    if ($rec_id) { $del_dns->{'auth_id'}=$rec_id; }
+                    insert_record($db,'dns_queue',$del_dns);
+                    }
+            my $new_dns;
+            my $dns_rec_ip = $old_record->{ip};
+            my $dns_rec_name = $old_record->{dns_name};
+            if ($record->{'dns_name'}) { $dns_rec_name = $record->{'dns_name'}; }
+            if ($record->{'ip'}) { $dns_rec_ip = $record->{'ip'}; }
+            if ($dns_rec_name and $dns_rec_ip and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+                $new_dns->{'name_type'}='A';
+                $new_dns->{'name'}=$dns_rec_name;
+                $new_dns->{'value'}=$dns_rec_ip;
+                $new_dns->{'operation_type'}='add';
+                if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
+                insert_record($db,'dns_queue',$new_dns);
+                }
+            if ($dns_rec_name and $dns_rec_ip and $record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+                $new_dns->{'name_type'}='PTR';
+                $new_dns->{'name'}=$dns_rec_name;
+                $new_dns->{'value'}=$dns_rec_ip;
+                $new_dns->{'operation_type'}='add';
+                if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
+                insert_record($db,'dns_queue',$new_dns);
+                }
+            }
+        }
+
+if ($table eq 'user_auth_alias') {
+        if ($dns_changed) {
+            my $del_dns;
+            if ($old_record->{'alias'} and $old_record->{'alias'}!~/\.$/) {
+            $del_dns->{'name_type'}='CNAME';
+            $del_dns->{'name'}=$old_record->{'alias'};
+            $del_dns->{'operation_type'}='del';
+            $del_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
+            $del_dns->{'auth_id'}=$old_record->{auth_id};
+            insert_record($db,'dns_queue',$del_dns);
+            }
+            my $new_dns;
+            my $dns_rec_name = $old_record->{alias};
+            if ($record->{'alias'}) { $dns_rec_name = $record->{'alias'}; }
+            if ($dns_rec_name and $record->{'alias'}!~/\.$/) {
+                $new_dns->{'name_type'}='CNAME';
+                $new_dns->{'name'}=$dns_rec_name;
+                $new_dns->{'operation_type'}='add';
+                $new_dns->{'value'}=get_dns_name($db,$old_record->{auth_id});
+                $new_dns->{'auth_id'}=$rec_id;
+                insert_record($db,'dns_queue',$new_dns);
+                }
+            }
+        }
+
+my @all_params = (@update_params, @filter_params);
+my $update_sql = "UPDATE $table SET $set_clause WHERE $filter_sql";
+my $result = do_sql($db, $update_sql, @all_params);
+
+if ($result) {
+    my $changed_msg = prepare_audit_message($db, $table, $old_record, $record , $rec_id, 'update');
+    if ($table !~ /session/i) {
+        if (defined $changed_msg && $changed_msg ne '') {
+            if ($table !~ /user/i) {
+                db_log_info($db, $changed_msg);
+                } else {
+                if (is_hotspot($db, $old_record->{ip})) {
+                    db_log_info($db, $changed_msg, $rec_id);
+                    } else {
+                    db_log_warning($db, $changed_msg, $rec_id);
+                    if ($table eq 'user_auth' && defined $old_record->{ip} && $old_record->{ip} ne '') {
+                        my $send_alert_update = isNotifyUpdate(get_notify_subnet($db, $old_record->{ip}));
+                        sendEmail("WARN! " . get_first_line($changed_msg), $changed_msg, 1) if $send_alert_update;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 return $result;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub delete_record {
-my $db = shift;
-my $table = shift;
-my $filter = shift;
-return if (!$db);
-return if (!$table);
-return if (!$filter);
-my $rec_id = 0;
+my ($db, $table, $filter_sql, @filter_params) = @_;
+return unless $db && $table && $filter_sql;
 
-# Переподключение
-unless (reconnect_db(\$db)) {
-    log_error("No database connection available");
-    return;
-}
-
-my $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter");
-
-my $diff='';
-foreach my $field (keys %$old_record) {
-    if (!$old_record->{$field}) { $old_record->{$field}=''; }
-    $diff = $diff." $field => $old_record->{$field},";
-    }
-$diff=~s/,$//;
-
-if ($table eq 'User_auth') {
-    $rec_id = $old_record->{'id'} if ($old_record->{'id'});
+# Переподключаемся ТОЛЬКО если не в транзакции
+if ($db->{AutoCommit}) {
+        unless (reconnect_db(\$db)) {
+            log_error("No database connection available");
+            return;
+        }
+    } else {
+        unless ($db->ping) {
+            log_error("Database connection lost during transaction");
+            return;
+        }
     }
 
-db_log_debug($db,'Delete record from table  '.$table.' value: '.$diff, $rec_id);
+my $select_sql = "SELECT * FROM $table WHERE $filter_sql";
+my $old_record = get_record_sql($db, $select_sql, @filter_params);
+return unless $old_record;
+
+my $rec_id = $old_record->{'id'};
+
 #never delete user ip record!
-if ($table eq 'User_auth') {
-    my $sSQL = "UPDATE User_auth SET changed=1, deleted=1, changed_time='".GetNowTime()."' WHERE ".$filter;
-    my $ret = do_sql($db,$sSQL);
+if ($table eq 'user_auth') {
+    my $sSQL = "UPDATE user_auth SET changed = 1, deleted = 1, changed_time = ? WHERE $filter_sql";
+    my $ret = do_sql($db, $sSQL, GetNowTime(), @filter_params);
     if ($old_record->{'dns_name'} and $old_record->{'ip'} and !$old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
-            my $del_dns;
-            $del_dns->{'name_type'}='A';
-            $del_dns->{'name'}=$old_record->{'dns_name'};
-            $del_dns->{'value'}=$old_record->{'ip'};
-            $del_dns->{'type'}='del';
-            $del_dns->{'auth_id'}=$old_record->{'id'};
-            insert_record($db,'dns_queue',$del_dns);
-            }
+	my $del_dns;
+	$del_dns->{'name_type'}='A';
+	$del_dns->{'name'}=$old_record->{'dns_name'};
+	$del_dns->{'value'}=$old_record->{'ip'};
+	$del_dns->{'operation_type'}='del';
+	$del_dns->{'auth_id'}=$old_record->{'id'};
+	insert_record($db,'dns_queue',$del_dns);
+	}
     if ($old_record->{'dns_name'} and $old_record->{'ip'} and $old_record->{'dns_ptr_only'} and $old_record->{'dns_name'}!~/\.$/) {
-            my $del_dns;
-            $del_dns->{'name_type'}='PTR';
-            $del_dns->{'name'}=$old_record->{'dns_name'};
-            $del_dns->{'value'}=$old_record->{'ip'};
-            $del_dns->{'type'}='del';
-            $del_dns->{'auth_id'}=$old_record->{'id'};
-            insert_record($db,'dns_queue',$del_dns);
+	my $del_dns;
+	$del_dns->{'name_type'}='PTR';
+	$del_dns->{'name'}=$old_record->{'dns_name'};
+	$del_dns->{'value'}=$old_record->{'ip'};
+	$del_dns->{'operation_type'}='del';
+	$del_dns->{'auth_id'}=$old_record->{'id'};
+	insert_record($db,'dns_queue',$del_dns);
+	}
+
+    my $changed_msg = prepare_audit_message($db, $table, $old_record, undef , $rec_id, 'delete');
+    if ($ret) {
+        if (defined $changed_msg && $changed_msg ne '') {
+            if (defined $old_record->{ip} && $old_record->{ip} ne '') {
+                if (is_hotspot($db, $old_record->{ip})) {
+                    db_log_info($db, $changed_msg, $rec_id);
+                    } else {
+                    db_log_warning($db, $changed_msg, $rec_id);
+                    my $send_alert_delete = isNotifyDelete(get_notify_subnet($db, $old_record->{ip}));
+                    sendEmail("WARN! " . get_first_line($changed_msg), $changed_msg, 1) if $send_alert_delete;
+                    }
+                }
             }
+        }
     return $ret;
     }
 
-if ($table eq 'User_list' and $old_record->{'permanent'}) { return; }
+if ($table eq 'user_list' and $old_record->{'permanent'}) { return; }
 
-if ($table eq 'User_auth_alias') {
+if ($table eq 'user_auth_alias') {
     if ($old_record->{'alias'} and $old_record->{'auth_id'} and $old_record->{'alias'}!~/\.$/) {
-            my $del_dns;
-            $del_dns->{'name_type'}='CNAME';
-            $del_dns->{'name'}=$old_record->{'alias'};
-            $del_dns->{'value'}=get_dns_name($db,$old_record->{'auth_id'});
-            $del_dns->{'type'}='del';
-            $del_dns->{'auth_id'}=$old_record->{'auth_id'};
-            insert_record($db,'dns_queue',$del_dns);
-            }
-    }
-
-my $sSQL = "DELETE FROM ".$table." WHERE ".$filter;
-return do_sql($db,$sSQL);
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub record_to_txt {
-my $db = shift;
-my $table = shift;
-my $id = shift;
-my $record = get_record_sql($db,'SELECT * FROM '.$table.' WHERE id='.$id);
-return hash_to_text($record);
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub delete_user_auth {
-my $db = shift;
-my $id = shift;
-
-my $record = get_record_sql($db,'SELECT * FROM User_auth WHERE id='.$id);
-my $auth_ident = $record->{ip};
-$auth_ident = $auth_ident . '['.$record->{dns_name} .']' if ($record->{dns_name});
-$auth_ident = $auth_ident . ' :: '.$record->{comments} if ($record->{dns_name});
-my $msg = "";
-my $txt_record = hash_to_text($record);
-#remove aliases
-my @t_User_auth_alias = get_records_sql($db,'SELECT * FROM User_auth_alias WHERE auth_id='.$id);
-if (@t_User_auth_alias and scalar @t_User_auth_alias) {
-    foreach my $row ( @t_User_auth_alias) {
-        my $alias_txt = record_to_txt($db,'User_auth_alias','id='.$row->{'id'});
-        if (delete_record($db,'User_auth_alias','id='.$row->{'id'})) {
-            $msg = "Deleting an alias: ". $alias_txt . "\n::Success!\n" . $msg;
-            } else {
-            $msg = "Deleting an alias: ". $alias_txt . "\n::Fail!\n" . $msg;
-            }
-        }
-    }
-#remove connections
-do_sql($db,'DELETE FROM connections WHERE auth_id='.$id);
-#remove user auth record
-my $changes = delete_record($db, "User_auth", "id=" . $id);
-if ($changes) {
-    $msg = "Deleting ip-record: ". $txt_record . "\n::Success!\n" . $msg;
-    } else {
-    $msg = "Deleting ip-record: ". $txt_record . "\n::Fail!\n" . $msg;
-    }
-
-$msg = "Deleting user ip record $auth_ident\n\n".$msg;
-db_log_warning($db, $msg, $id);
-my $send_alert = isNotifyDelete(get_notify_subnet($db,$record->{ip}));
-sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert);
-return $changes;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub unblock_user {
-my $db = shift;
-my $user_id = shift;
-my $user_record = get_record_sql($db,'SELECT * FROM User_list WHERE id='.$user_id);
-my $user_ident = 'id:'. $user_record->{'id'} . ' '. $user_record->{'login'};
-$user_ident = $user_ident . '[' . $user_record->{'fio'} . ']' if ($user_record->{'fio'});
-my $msg = "Amnistuyemo blocked by traffic user $user_ident \nInternet access for the user's IP address has been restored:\n";
-my @user_auth = get_records_sql($db,'SELECT * FROM User_auth WHERE deleted=0 AND user_id='.$user_id);
-my $send_alert = 0;
-if (@user_auth and scalar @user_auth) {
-    foreach my $record (@user_auth) {
-        $send_alert = ($send_alert or isNotifyUpdate(get_notify_subnet($db,$record->{ip})));
-        my $auth_ident = $record->{ip};
-        $auth_ident = $auth_ident . '['.$record->{dns_name} .']' if ($record->{dns_name});
-        $auth_ident = $auth_ident . ' :: '.$record->{comments} if ($record->{dns_name});
-        my $new;
-        $new->{'blocked'}=0;
-        $new->{'changed'}=1;
-        my $ret_id = update_record($db,'User_auth',$new,'id='.$record->{'id'});
-        if ($ret_id) {
-            $msg = $msg ."\n".$auth_ident;
-            }
-        }
-    }
-my $new;
-$new->{'blocked'}=0;
-my $ret_id = update_record($db,'User_list','id='.$user_id);
-if ($ret_id) {
-    db_log_info($db,$msg);
-    sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert);
-    }
-return $ret_id;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub delete_user {
-my $db = shift;
-my $id = shift;
-#remove user record
-my $changes = delete_record($db, "User_list", "id=" . $id);
-#if fail - exit
-if (!$changes) { return; }
-#remove auth records
-my @t_User_auth = get_records_sql($db,'SELECT * FROM User_auth WHERE user_id='.$id);
-if (@t_User_auth and scalar @t_User_auth) {
-    foreach my $row ( @t_User_auth ) { delete_user_auth($db,$row->{'id'}); }
-    }
-#remove device
-my $device = get_record_sql($db, "SELECT * FROM devices WHERE user_id=".$id);
-if ($device) { delete_device($db,$device->{'id'}); }
-#remove auth assign rules
-do_sql($db, "DELETE FROM auth_rules WHERE user_id=$id");
-return $changes;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub delete_device {
-my $db = shift;
-my $id = shift;
-#remove user record
-my $changes = delete_record($db, "devices", "id=" . $id);
-#if fail - exit
-if (!$changes) { return; }
-unbind_ports($db, $id);
-do_sql($db, "DELETE FROM connections WHERE device_id=" . $id);
-do_sql($db, "DELETE FROM device_l3_interfaces WHERE device_id=" . $id);
-do_sql($db, "DELETE FROM device_ports WHERE device_id=" . $id);
-do_sql($db, "DELETE FROM device_filter_instances WHERE device_id=" . $id);
-do_sql($db, "DELETE FROM gateway_subnets WHERE device_id=".$id);
-return $changes;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub GetNowTime {
-my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime(time());
-$month += 1;
-$year += 1900;
-my $now_str=sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
-return $now_str;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub is_hotspot {
-my $db = shift;
-my $ip  = shift;
-my $users = new Net::Patricia;
-#check hotspot
-my @ip_rules = get_records_sql($db,'SELECT * FROM subnets WHERE hotspot=1 AND LENGTH(subnet)>0');
-foreach my $row (@ip_rules) { $users->add_string($row->{subnet}); }
-if ($users->match_string($ip)) { return 1; }
-return 0;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_office_subnet {
-my $db = shift;
-my $ip  = shift;
-my $subnets = new Net::Patricia;
-my @ip_rules = get_records_sql($db,'SELECT * FROM subnets WHERE office=1 AND LENGTH(subnet)>0');
-foreach my $row (@ip_rules) { $subnets->add_string($row->{subnet},$row); }
-return $subnets->match_string($ip);
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_notify_subnet {
-my $db = shift;
-my $ip  = shift;
-my $notify_flag = get_office_subnet($db,$ip);
-if ($notify_flag) { return $notify_flag->{notify}; }
-return 0;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_new_user_id {
-my $db = shift;
-my $ip  = shift;
-my $mac = shift;
-my $hostname = shift;
-
-my $result;
-#check user rules
-$mac = mac_simplify($mac);
-
-$result->{ip} = $ip;
-$result->{mac} = mac_splitted($mac);
-$result->{dhcp_hostname} = $hostname;
-$result->{ou_id}=undef;
-$result->{user_id}=undef;
-
-my $hotspot_users = new Net::Patricia;
-#check hotspot
-my @hotspot_rules = get_records_sql($db,'SELECT * FROM subnets WHERE hotspot=1 AND LENGTH(subnet)>0');
-foreach my $row (@hotspot_rules) { $hotspot_users->add_string($row->{subnet},$default_hotspot_ou_id); }
-if ($hotspot_users->match_string($ip)) { $result->{ou_id}=$hotspot_users->match_string($ip); return $result; }
-
-#check ip
-if (defined $ip and $ip) {
-    my $users = new Net::Patricia;
-    #check ip rules
-    my @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND user_id IS NOT NULL');
-    foreach my $row (@ip_rules) { eval { $users->add_string($row->{rule},$row->{user_id}); }; }
-    if ($users->match_string($ip)) { $result->{user_id}=$users->match_string($ip); return $result; }
-    }
-
-#check mac
-if (defined $mac and $mac) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0 AND user_id IS NOT NULL');
-    foreach my $user (@user_rules) {
-	my $rule = mac_simplify($user->{rule});
-        if ($mac=~/$rule/i) { $result->{user_id}=$user->{user_id}; return $result; }
-        }
-    }
-#check hostname
-if (defined $hostname and $hostname) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0 AND user_id IS NOT NULL');
-    foreach my $user (@user_rules) {
-        if ($hostname=~/$user->{rule}/i) { $result->{user_id}=$user->{user_id}; return $result; }
-        }
-    }
-
-#check ou rules
-
-#check ip
-if (defined $ip and $ip) {
-    my $users = new Net::Patricia;
-    #check ip rules
-    my @ip_rules = get_records_sql($db,'SELECT * FROM auth_rules WHERE type=1 and LENGTH(rule)>0 AND ou_id IS NOT NULL');
-    foreach my $row (@ip_rules) { eval { $users->add_string($row->{rule},$row->{ou_id}); }; }
-    if ($users->match_string($ip)) { $result->{ou_id}=$users->match_string($ip); return $result; }
-    }
-
-#check mac
-if (defined $mac and $mac) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=2 AND LENGTH(rule)>0 AND ou_id IS NOT NULL');
-    foreach my $user (@user_rules) {
-	my $rule = mac_simplify($user->{rule});
-        if ($mac=~/$rule/i) { $result->{ou_id}=$user->{ou_id}; return $result; }
-        }
-    }
-
-#check hostname
-if (defined $hostname and $hostname) {
-    my @user_rules=get_records_sql($db,'SELECT * FROM auth_rules WHERE type=3 AND LENGTH(rule)>0 AND ou_id IS NOT NULL');
-    foreach my $user (@user_rules) {
-        if ($hostname=~/$user->{rule}/i) { $result->{ou_id}=$user->{ou_id}; return $result; }
-        }
-    }
-
-if (!$result->{ou_id}) { $result->{ou_id}=$default_user_ou_id; }
-
-return $result;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub set_changed {
-my $db = shift;
-my $id = shift;
-return if (!$db or !$id);
-my $update_record;
-$update_record->{changed}=1;
-update_record($db,'User_auth',$update_record,"id=$id");
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub update_dns_record {
-
-my $hdb = shift;
-my $auth_id = shift;
-
-return if (!$config_ref{enable_dns_updates});
-
-# Переподключение
-if (!$hdb or !$hdb->ping) { $hdb = init_db(); }
-
-#get domain
-my $ad_zone = get_option($hdb,33);
-
-#get dns server
-my $ad_dns = get_option($hdb,3);
-
-my $enable_ad_dns_update = ($ad_zone and $ad_dns and $config_ref{enable_dns_updates});
-
-log_debug("Auth id: ".$auth_id);
-log_debug("enable_ad_dns_update: ".$enable_ad_dns_update);
-log_debug("DNS update flags - zone: ".$ad_zone.", dns: ".$ad_dns.", enable_ad_dns_update: ".$enable_ad_dns_update);
-
-my @dns_queue = get_records_sql($hdb,"SELECT * FROM dns_queue WHERE auth_id=".$auth_id." AND `value`>'' AND `value` NOT LIKE '%.'ORDER BY id ASC");
-
-if (!@dns_queue or !scalar @dns_queue) { return; }
-
-foreach my $dns_cmd (@dns_queue) {
-
-my $fqdn = '';
-my $fqdn_ip = '';
-my $fqdn_parent = '';
-my $static_exists = 0;
-my $static_ref = '';
-my $static_ok = 0;
-
-eval {
-
-if ($dns_cmd->{name_type}=~/^cname$/i) {
-    #skip update unknown domain
-    if ($dns_cmd->{name} =~/\.$/ or $dns_cmd->{value} =~/\.$/) { next; }
-
-    $fqdn=lc($dns_cmd->{name});
-    $fqdn=~s/\.$ad_zone$//i;
-#    $fqdn=~s/\.$//;
-    if ($dns_cmd->{value}) {
-        $fqdn_parent=lc($dns_cmd->{value});
-        $fqdn_parent=~s/\.$ad_zone$//i;
-#        $fqdn_parent=~s/\.$//;
-        }
-
-    $fqdn = $fqdn.".".$ad_zone;
-    $fqdn_parent = $fqdn_parent.".".$ad_zone;
-
-    #remove cname
-    if ($dns_cmd->{type} eq 'del') {
-        delete_dns_cname($fqdn_parent,$fqdn,$ad_zone,$ad_dns,$hdb);
-        }
-    #create cname
-    if ($dns_cmd->{type} eq 'add') {
-        create_dns_cname($fqdn_parent,$fqdn,$ad_zone,$ad_dns,$hdb);
-        }
-    }
-
-if ($dns_cmd->{name_type}=~/^a$/i) {
-    #skip update unknown domain
-    if ($dns_cmd->{name} =~/\.$/ or $dns_cmd->{value} =~/\.$/) { next; }
-    $fqdn=lc($dns_cmd->{name});
-    $fqdn=~s/\.$ad_zone$//i;
-#    $fqdn=~s/\.$//;
-    if (!$dns_cmd->{value}) { next; }
-    $fqdn_ip=lc($dns_cmd->{value});
-    $fqdn = $fqdn.".".$ad_zone;
-    #dns update disabled?
-    my $maybe_update_dns=( $enable_ad_dns_update and $office_networks->match_string($fqdn_ip) );
-    if (!$maybe_update_dns) {
-        db_log_info($hdb,"FOUND Auth_id: $auth_id. DNS update disabled.");
-        next;
-        }
-    #get aliases
-    my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE auth_id=".$auth_id);
-    #remove A & PTR
-    if ($dns_cmd->{type} eq 'del') {
-        #remove aliases
-        if (@aliases and scalar @aliases) {
-                foreach my $alias (@aliases) {
-                    delete_dns_cname($fqdn,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
-                    delete_dns_hostname($fqdn,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
-                }
-            }
-        #remove main record
-        delete_dns_hostname($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
-        delete_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
-        }
-    #create A & PTR
-    if ($dns_cmd->{type} eq 'add') {
-        my @dns_record=ResolveNames($fqdn,$dns_server);
-        $static_exists = (scalar @dns_record>0);
-        if ($static_exists) {
-            $static_ref = join(' ',@dns_record);
-            foreach my $dns_a (@dns_record) {
-                if ($dns_a=~/^$fqdn_ip$/) { $static_ok = 1; }
-                }
-            db_log_debug($hdb,"Dns record for static record $fqdn: $static_ref");
-            }
-        #skip update if already exists
-        if ($static_ok) {
-            db_log_debug($hdb,"Static record for $fqdn [$static_ok] correct.");
-            next;
-            }
-        #create record
-        create_dns_hostname($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
-        create_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
-        #create aliases
-        if (@aliases and scalar @aliases) {
-                foreach my $alias (@aliases) {
-                    create_dns_cname($fqdn,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
-                }
-            }
-        }
-    }
-#PTR
-if ($dns_cmd->{name_type}=~/^ptr$/i) {
-    $fqdn=lc($dns_cmd->{name});
-    $fqdn=~s/\.$ad_zone$//i;
-#    $fqdn=~s/\.$//;
-    if (!$dns_cmd->{value}) { next; }
-    $fqdn_ip=lc($dns_cmd->{value});
-    #skip update unknown domain
-    if ($fqdn =~/\.$/) { next; }
-    $fqdn = $fqdn.".".$ad_zone;
-    #dns update disabled?
-    my $maybe_update_dns=( $enable_ad_dns_update and $office_networks->match_string($fqdn_ip) );
-    if (!$maybe_update_dns) {
-        db_log_info($hdb,"FOUND Auth_id: $auth_id. DNS update disabled.");
-        next;
-        }
-    #remove A & PTR
-    if ($dns_cmd->{type} eq 'del') {
-        #remove main record
-        delete_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
-        }
-    #create A & PTR
-    if ($dns_cmd->{type} eq 'add') {
-        #create record
-        create_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
-        }
-    }
-
-};
-if ($@) { log_error("Error dns commands: $@"); }
-}
-
-}
-
-#---------------------------------------------------------------------------------------------------------------
-sub is_ad_computer {
-
-my $hdb = shift;
-my $computer_name = shift;
-
-if (!$computer_name or $computer_name =~/UNDEFINED/i) { return 0; }
-
-my $ad_check = get_option($hdb,73);
-if (!$ad_check) { return 1; }
-
-my $ad_zone = get_option($hdb,33);
-
-if ($computer_name =~/\./) {
-    if ($computer_name!~/\.$ad_zone$/i) { 
-        db_log_verbose($hdb,"The domain of the computer $computer_name does not match the domain of the organization $ad_zone. Skip update.");
-        return 0;
-        }
-    }
-
-if ($computer_name =~/^(.+)\./) {
-    $computer_name = $1;
-    }
-
-my $ad_computer_name = trim($computer_name).'$';
-
-my $name_in_cache = get_record_sql($hdb,"SELECT * FROM ad_comp_cache WHERE name='".$computer_name."'");
-if ($name_in_cache) { return 1; }
-
-my %name_found=do_exec_ref('/usr/bin/getent passwd '.$ad_computer_name);
-if (!$name_found{output} or $name_found{status} ne 0) {
-    db_log_verbose($hdb,"The computer ".uc($ad_computer_name)." was not found in the domain $ad_zone. Skip update.");
-    return 0;
-    }
-
-do_sql($hdb,"INSERT INTO ad_comp_cache(name) VALUES('".$computer_name."') ON DUPLICATE KEY UPDATE name='".$computer_name."';");
-return 1;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub update_dns_record_by_dhcp {
-
-my $hdb = shift;
-my $dhcp_record = shift;
-my $auth_record = shift;
-
-return if (!$config_ref{enable_dns_updates});
-
-my $ad_zone = get_option($hdb,33);
-my $ad_dns = get_option($hdb,3);
-
-$update_hostname_from_dhcp = get_option($hdb,46) || 0;
-my $subnets_dhcp = get_subnets_ref($hdb);
-my $enable_ad_dns_update = ($ad_zone and $ad_dns and $update_hostname_from_dhcp);
-
-log_debug("Dhcp record: ".Dumper($dhcp_record));
-log_debug("Subnets: ".Dumper($subnets_dhcp->{$dhcp_record->{network}->{subnet}}));
-log_debug("enable_ad_dns_update: ".$enable_ad_dns_update);
-log_debug("DNS update flags - zone: ".$ad_zone.",dns: ".$ad_dns.", update_hostname_from_dhcp: ".$update_hostname_from_dhcp.", enable_ad_dns_update: ".$enable_ad_dns_update. ", network dns-update enabled: ".$subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname});
-
-my $maybe_update_dns=($enable_ad_dns_update and $subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname} and (is_ad_computer($hdb,$dhcp_record->{hostname_utf8}) and ($dhcp_record->{type}=~/add/i or $dhcp_record->{type}=~/old/i)));
-if (!$maybe_update_dns) {
-    db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id}. DNS update don't needed.");
-    return 0;
-    }
-
-log_debug("DNS update enabled.");
-#update dns block
-my $fqdn_static;
-if ($auth_record->{dns_name}) {
-    $fqdn_static=lc($auth_record->{dns_name});
-    if ($fqdn_static!~/\.$ad_zone$/i) {
-            $fqdn_static=~s/\.$//;
-            $fqdn_static=lc($fqdn_static.'.'.$ad_zone);
-            }
-    }
-
-my $fqdn=lc(trim($dhcp_record->{hostname_utf8}));
-if ($fqdn!~/\.$ad_zone$/i) {
-    $fqdn=~s/\.$//;
-    $fqdn=lc($fqdn.'.'.$ad_zone);
-    }
-
-db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id} dns_name: $fqdn_static dhcp_hostname: $fqdn");
-
-#check exists static dns name
-my $static_exists = 0;
-my $dynamic_exists = 0;
-my $static_ok = 0;
-my $dynamic_ok = 0;
-my $static_ref;
-my $dynamic_ref;
-
-if ($fqdn_static ne '') {
-    my @dns_record=ResolveNames($fqdn_static,$dns_server);
-    $static_exists = (scalar @dns_record>0);
-    if ($static_exists) {
-            $static_ref = join(' ',@dns_record);
-            foreach my $dns_a (@dns_record) {
-                if ($dns_a=~/^$dhcp_record->{ip}$/) { $static_ok = $dns_a; }
-                }
-            }
-    } else { $static_ok = 1; }
-
-if ($fqdn ne '') {
-    my @dns_record=ResolveNames($fqdn,$dns_server);
-    $dynamic_exists = (scalar @dns_record>0);
-    if ($dynamic_exists) {
-            $dynamic_ref = join(' ',@dns_record);
-            foreach my $dns_a (@dns_record) {
-                if ($dns_a=~/^$dhcp_record->{ip}$/) { $dynamic_ok = $dns_a; }
-                }
-            }
-    }
-
-db_log_debug($hdb,"Dns record for static record $fqdn_static: $static_ok");
-db_log_debug($hdb,"Dns record for dhcp-hostname $fqdn: $dynamic_ok");
-
-if ($fqdn_static ne '') {
-    if (!$static_ok) {
-        db_log_info($hdb,"Static record mismatch! Expected $fqdn_static => $dhcp_record->{ip}, recivied: $static_ref");
-        if (!$static_exists) {
-                db_log_info($hdb,"Static dns hostname defined but not found. Create it ($fqdn_static => $dhcp_record->{ip})!");
-                create_dns_hostname($fqdn_static,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
-                }
-        } else {
-	db_log_debug($hdb,"Static record for $fqdn_static [$static_ok] correct.");
+	my $del_dns;
+	$del_dns->{'name_type'}='CNAME';
+	$del_dns->{'name'}=$old_record->{'alias'};
+	$del_dns->{'value'}=get_dns_name($db,$old_record->{'auth_id'});
+	$del_dns->{'operation_type'}='del';
+	$del_dns->{'auth_id'}=$old_record->{'auth_id'};
+	insert_record($db,'dns_queue',$del_dns);
 	}
     }
 
-if ($fqdn ne '' and $dynamic_ok ne '') { db_log_debug($hdb,"Dynamic record for $fqdn [$dynamic_ok] correct. No changes required."); }
+my $sSQL = "DELETE FROM ".$table." WHERE ".$filter_sql;
+my $result = do_sql($db,$sSQL,@filter_params);
 
-if ($fqdn ne '' and !$dynamic_ok) {
-    log_error("Dynamic record mismatch! Expected: $fqdn => $dhcp_record->{ip}, recivied: $dynamic_ref. Checking the status.");
-    #check exists hostname
-    my $another_hostname_exists = 0;
-    my $hostname_filter = ' LOWER(dns_name) REGEXP("^'.lc($dhcp_record->{hostname_utf8}).'\.*$")';
-    if ($fqdn_static ne '' and $fqdn !~/$fqdn_static/) {
-	    $hostname_filter = $hostname_filter . ' or LOWER(dns_name) REGEXP("^'.lc($auth_record->{dns_name}).'\.*$")';
-	    }
-    #check exists another records with some static hostname
-    my $filter_sql = 'SELECT * FROM User_auth WHERE id<>'.$auth_record->{id}.' and deleted=0 and ('.$hostname_filter.') ORDER BY last_found DESC';
-    db_log_debug($hdb,"Search dhcp hostname by: ".$filter_sql);
-    my $name_record = get_record_sql($hdb,$filter_sql);
-    if ($name_record->{dns_name} =~/^$fqdn$/i or $name_record->{dns_name} =~/^$dhcp_record->{hostname_utf8}$/i) {
-	    $another_hostname_exists = 1;
-	    }
-    if (!$another_hostname_exists) {
-            if ($fqdn_static and $fqdn_static ne '') {
-                    if ($fqdn_static!~/$fqdn/) {
-                        db_log_info($hdb,"Hostname from dhcp request $fqdn differs from static dns hostname $fqdn_static. Ignore dynamic binding!");
-#                        delete_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
-#                        create_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
-                        }
-                    } else {
-        	    db_log_info($hdb,"Rewrite aliases if exists for $fqdn => $dhcp_record->{ip}");
-                    #get and remove aliases
-                    my @aliases = get_records_sql($hdb,"SELECT * FROM User_auth_alias WHERE auth_id=".$auth_record->{id});
-                    if (@aliases and scalar @aliases) {
-                            foreach my $alias (@aliases) {
-                                delete_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
-                            }
-                        }
-        	    db_log_info($hdb,"Static dns hostname not defined. Create dns record by dhcp request. $fqdn => $dhcp_record->{ip}");
-        	    create_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
-                    if (@aliases and scalar @aliases) {
-                            foreach my $alias (@aliases) {
-                                create_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
-                            }
-                        }
-        	    }
-	    } else {
-            db_log_error($hdb,"Found another record with some hostname id: $name_record->{id} ip: $name_record->{ip} hostname: $name_record->{dns_name}. Skip update.");
+my $changed_msg = prepare_audit_message($db, $table, $old_record, undef , $rec_id, 'delete');
+if ($result && $table !~ /session/i) {
+    if (defined $changed_msg && $changed_msg ne '') {
+        if ($table !~ /user/i) {
+            db_log_info($db, $changed_msg);
+            } else {
+            db_log_warning($db, $changed_msg);
             }
-    }
-#end update dns block
-}
-
-#------------------------------------------------------------------------------------------------------------
-
-sub apply_device_lock {
-    my $db = shift;
-    my $device_id = shift;
-    my $iteration = shift || 0;
-    $iteration++;
-    if ($iteration>2) { return 0; }
-    my $dev = get_record_sql($db,"SELECT `discovery_locked`, `locked_timestamp`, UNIX_TIMESTAMP(`locked_timestamp`) as u_locked_timestamp  FROM devices WHERE id=".$device_id);
-    if (!$dev) { return 0; }
-    if (!$dev->{'discovery_locked'}) { return set_lock_discovery($db,$device_id); }
-    #if timestamp undefined, set and return
-    if (!$dev->{'locked_timestamp'}) { return set_lock_discovery($db,$device_id); }
-    #wait for discovery
-    my $wait_time = $dev->{'locked_timestamp'} + 30 - time();
-    if ($wait_time<0) { return set_lock_discovery($db,$device_id); }
-    sleep($wait_time);
-    return apply_device_lock($db,$device_id,$iteration);
-}
-
-#------------------------------------------------------------------------------------------------------------
-
-sub set_lock_discovery {
-    my $db = shift;
-    my $device_id = shift;
-    my $new;
-    $new->{'discovery_locked'} = 1;
-    $new->{'locked_timestamp'} = GetNowTime();
-    if (update_record($db,'devices',$new,'id='.$device_id)) { return 1; } 
-    return 0;
-}
-
-#------------------------------------------------------------------------------------------------------------
-
-sub unset_lock_discovery {
-    my $db = shift;
-    my $device_id = shift;
-    my $new;
-    $new->{'discovery_locked'} = 0;
-    $new->{'locked_timestamp'} = GetNowTime();
-    if (update_record($db,'devices',$new,'id='.$device_id)) { return 1; } 
-    return 0;
-}
-
-#------------------------------------------------------------------------------------------------------------
-
-sub create_dns_cname {
-my $fqdn = shift;
-my $alias = shift;
-my $zone = shift;
-my $server = shift;
-my $db = shift;
-#skip update domain controllers
-if (!$db) {
-    log_info("DNS-UPDATE: Add => Zone $zone Server: $server CNAME: $alias for $fqdn"); 
-    } else {
-    db_log_info($db,"DNS-UPDATE: Add => Zone $zone Server: $server CNAME: $alias for $fqdn ");
-    }
-my $ad_zone = get_option($db,33);
-my $nsupdate_file = "/tmp/".$fqdn."-nsupdate";
-my @add_dns;
-if ($config_ref{dns_server_type}=~/windows/i) {
-    push(@add_dns,"gsstsig");
-    push(@add_dns,"server $server");
-    push(@add_dns,"zone $zone");
-    push(@add_dns,"update add $alias 3600 cname $fqdn.");
-    push(@add_dns,"send");
-    write_to_file($nsupdate_file,\@add_dns);
-    do_exec('/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"');
+        }
     }
 
-if ($config_ref{dns_server_type}=~/bind/i) {
-    push(@add_dns,"server $server");
-    push(@add_dns,"zone $zone");
-    push(@add_dns,"update add $alias 3600 cname $fqdn.");
-    push(@add_dns,"send");
-    write_to_file($nsupdate_file,\@add_dns);
-    do_exec('/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"');
-    }
-
-if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub delete_dns_cname {
-my $fqdn = shift;
-my $alias = shift;
-my $zone = shift;
-my $server = shift;
-my $db = shift;
-if (!$db) {
-    log_info("DNS-UPDATE: Delete => Zone $zone Server: $server CNAME: $alias for $fqdn ");
-    } else {
-    db_log_info($db,"DNS-UPDATE: Delete => Zone $zone Server: $server CNAME: $alias for $fqdn");
-    }
-my $ad_zone = get_option($db,33);
-my $nsupdate_file = "/tmp/".$fqdn."-nsupdate";
-my @add_dns;
-if ($config_ref{dns_server_type}=~/windows/i) {
-    push(@add_dns,"gsstsig");
-    push(@add_dns,"server $server");
-    push(@add_dns,"zone $zone");
-    push(@add_dns,"update delete $alias cname ");
-    push(@add_dns,"send");
-    write_to_file($nsupdate_file,\@add_dns);
-    do_exec('/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"');
-    }
-
-if ($config_ref{dns_server_type}=~/bind/i) {
-    push(@add_dns,"server $server");
-    push(@add_dns,"zone $zone");
-    push(@add_dns,"update delete $alias cname");
-    push(@add_dns,"send");
-    write_to_file($nsupdate_file,\@add_dns);
-    do_exec('/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"');
-    }
-
-if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
-}
-
-#------------------------------------------------------------------------------------------------------------
-
-sub create_dns_hostname {
-my $fqdn = shift;
-my $ip = shift;
-my $zone = shift;
-my $server = shift;
-my $db = shift;
-#skip update domain controllers
-if ($fqdn=~/^dc[0-9]{1,2}\./i) { return; }
-if (!$db) {
-    log_info("DNS-UPDATE: Add => Zone $zone Server: $server A: $fqdn IP: $ip"); 
-    } else {
-    db_log_info($db,"DNS-UPDATE: Add => Zone $zone Server: $server A: $fqdn IP: $ip");
-    }
-my $ad_zone = get_option($db,33);
-my $nsupdate_file = "/tmp/".$fqdn."-nsupdate";
-my @add_dns;
-if ($config_ref{dns_server_type}=~/windows/i) {
-    push(@add_dns,"gsstsig");
-    push(@add_dns,"server $server");
-    push(@add_dns,"zone $zone");
-    push(@add_dns,"update add $fqdn 3600 A $ip");
-    push(@add_dns,"send");
-    write_to_file($nsupdate_file,\@add_dns);
-    do_exec('/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"');
-    }
-
-if ($config_ref{dns_server_type}=~/bind/i) {
-    push(@add_dns,"server $server");
-    push(@add_dns,"zone $zone");
-    push(@add_dns,"update add $fqdn 3600 A $ip");
-    push(@add_dns,"send");
-    write_to_file($nsupdate_file,\@add_dns);
-    do_exec('/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"');
-    }
-
-if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub delete_dns_hostname {
-my $fqdn = shift;
-my $ip = shift;
-my $zone = shift;
-my $server = shift;
-my $db = shift;
-#skip update domain controllers
-if ($fqdn=~/^dc[0-9]{1,2}\./i) { return; }
-if (!$db) {
-    log_info("DNS-UPDATE: Delete => Zone $zone Server: $server A: $fqdn IP: $ip"); 
-    } else {
-    db_log_info($db,"DNS-UPDATE: Delete => Zone $zone Server: $server A: $fqdn IP: $ip");
-    }
-my $ad_zone = get_option($db,33);
-my $nsupdate_file = "/tmp/".$fqdn."-nsupdate";
-my @add_dns;
-if ($config_ref{dns_server_type}=~/windows/i) {
-    push(@add_dns,"gsstsig");
-    push(@add_dns,"server $server");
-    push(@add_dns,"zone $zone");
-    push(@add_dns,"update delete $fqdn A");
-    push(@add_dns,"send");
-    write_to_file($nsupdate_file,\@add_dns);
-    do_exec('/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"');
-    }
-
-if ($config_ref{dns_server_type}=~/bind/i) {
-    push(@add_dns,"server $server");
-    push(@add_dns,"zone $zone");
-    push(@add_dns,"update delete $fqdn A");
-    push(@add_dns,"send");
-    write_to_file($nsupdate_file,\@add_dns);
-    do_exec('/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"');
-    }
-
-if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub create_dns_ptr {
-my $fqdn = shift;
-my $ip = shift;
-my $ad_zone = shift;
-my $server = shift;
-my $db = shift;
-
-my $radr;
-my $zone;
-
-#skip update domain controllers
-if ($fqdn=~/^dc[0-9]{1,2}\./i) { return; }
-if ($ip =~ /([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(\/[0-9]{1,2}){0,1}/) {
-    return 0 if($1 > 255 || $2 > 255 || $3 > 255 || $4 > 255);
-    $radr = "$4.$3.$2.$1.in-addr.arpa";
-    $zone = "$3.$2.$1.in-addr.arpa";
-    }
-
-if (!$radr or !$zone) { return 0; }
-
-if (!$db) { return 0; }
-
-db_log_info($db,"DNS-UPDATE: Zone $zone Server: $server A: $fqdn PTR: $ip");
-
-my $nsupdate_file = "/tmp/".$radr."-nsupdate";
-
-my @add_dns;
-
-if ($config_ref{dns_server_type}=~/windows/i) {
-    push(@add_dns,"gsstsig");
-    push(@add_dns,"server $server");
-    push(@add_dns,"zone $zone");
-    push(@add_dns,"update add $radr 3600 PTR $fqdn.");
-    push(@add_dns,"send");
-    write_to_file($nsupdate_file,\@add_dns);
-    my $run_cmd = '/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"';
-    do_exec($run_cmd);
-    }
-
-if ($config_ref{dns_server_type}=~/bind/i) {
-    push(@add_dns,"server $server");
-    push(@add_dns,"zone $zone");
-    push(@add_dns,"update add $radr 3600 PTR $fqdn.");
-    push(@add_dns,"send");
-    write_to_file($nsupdate_file,\@add_dns);
-    my $run_cmd = '/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"';
-    do_exec($run_cmd);
-    }
-
-if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub delete_dns_ptr {
-my $fqdn = shift;
-my $ip = shift;
-my $ad_zone = shift;
-my $server = shift;
-my $db = shift;
-
-my $radr;
-my $zone;
-
-#skip update domain controllers
-if ($fqdn=~/^dc[0-9]{1,2}\./i) { return; }
-if ($ip =~ /([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(\/[0-9]{1,2}){0,1}/) {
-    return 0 if($1 > 255 || $2 > 255 || $3 > 255 || $4 > 255);
-    $radr = "$4.$3.$2.$1.in-addr.arpa";
-    $zone = "$3.$2.$1.in-addr.arpa";
-    }
-if (!$radr or !$zone) { return 0; }
-
-if (!$db) { return 0 ; }
-
-db_log_info($db,"DNS-UPDATE: Delete => Zone $zone Server: $server A: $fqdn PTR: $ip");
-
-my $nsupdate_file = "/tmp/".$radr."-nsupdate";
-
-my @add_dns;
-
-if ($config_ref{dns_server_type}=~/windows/i) {
-    push(@add_dns,"gsstsig");
-    push(@add_dns,"server $server");
-    push(@add_dns,"zone $zone");
-    push(@add_dns,"update delete $radr PTR");
-    push(@add_dns,"send");
-    write_to_file($nsupdate_file,\@add_dns);
-    my $run_cmd = '/usr/bin/kinit -k -t /opt/Eye/scripts/cfg/dns_updater.keytab dns_updater@'.uc($ad_zone).' && /usr/bin/nsupdate "'.$nsupdate_file.'"';
-    do_exec($run_cmd);
-    }
-
-if ($config_ref{dns_server_type}=~/bind/i) {
-    push(@add_dns,"server $server");
-    push(@add_dns,"zone $zone");
-    push(@add_dns,"update delete $radr PTR");
-    push(@add_dns,"send");
-    write_to_file($nsupdate_file,\@add_dns);
-    my $run_cmd = '/usr/bin/nsupdate -k /etc/bind/rndc.key "'.$nsupdate_file.'"';
-    do_exec($run_cmd);
-    }
-
-if (-e "$nsupdate_file") { unlink "$nsupdate_file"; }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub new_user {
-my $db = shift;
-my $user_info = shift;
-my $user;
-if ($user_info->{mac}) {
-    $user->{login}=mac_splitted($user_info->{mac});
-    } else {
-    $user->{login}=$user_info->{ip};
-    }
-
-if ($user_info->{dhcp_hostname}) { $user->{fio}=$user_info->{dhcp_hostname}; } 
-if (!$user->{fio}) { $user->{fio}=$user_info->{ip}; }
-
-my $login_count = get_count_records($db,"User_list","(login LIKE '".$user->{login}."(%)') OR (login='".$user->{login}."')");
-if ($login_count) { $login_count++; $user->{login} .="(".$login_count.")"; }
-
-$user->{ou_id} = $user_info->{ou_id};
-my $ou_info = get_record_sql($db,"SELECT * FROM OU WHERE id=".$user_info->{'ou_id'});
-if ($ou_info) {
-    $user->{'enabled'} = $ou_info->{'enabled'};
-    $user->{'queue_id'} = $ou_info->{'queue_id'};
-    $user->{'filter_group_id'} = $ou_info->{'filter_group_id'};
-    }
-
-my $result = insert_record($db,"User_list",$user);
-if ($result and $config_ref{auto_mac_rule} and $user_info->{mac}) {
-    my $auth_rule;
-    $auth_rule->{user_id} = $result;
-    $auth_rule->{type} = 2;
-    $auth_rule->{rule} = mac_splitted($user_info->{mac});
-    insert_record($db,"auth_rules",$auth_rule);
-    }
 return $result;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
-sub get_ip_subnet {
-    my $db = shift;
-    my $ip = shift;
-    if (!$ip) { return; }
-    my $ip_aton = StrToIp($ip);
-    my $user_subnet = get_record_sql($db, "SELECT * FROM `subnets` WHERE hotspot=1 or office=1 and ( ".$ip_aton." >= ip_int_start and ".$ip_aton." <= ip_int_stop)");
-    return $user_subnet;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub find_mac_in_subnet {
-    my $db = shift;
-    my $ip = shift;
-    my $mac = shift;
-    if (!$ip or !$mac) { return; }
-    my $ip_subnet = get_ip_subnet($db, $ip);
-    if (!$ip_subnet) { return; }
-    my @t_auth = get_records_sql($db, "SELECT * FROM User_auth WHERE ip_int>=" . $ip_subnet->{'ip_int_start'} . " and ip_int<=" . $ip_subnet->{'ip_int_stop'} . " and mac='" . $mac . "' and deleted=0 ORDER BY id");
-    my $auth_count = 0;
-    my $result;
-    $result->{'count'} = 0;
-    foreach my $row (@t_auth) {
-        next if (!$row);
-        $auth_count++;
-        $result->{'count'} = $auth_count;
-        $result->{items}{$auth_count} = $row;
-        }
-    return $result;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub resurrection_auth {
-my $db = shift;
-my $ip_record = shift;
-
-my $ip = $ip_record->{'ip'};
-my $mac = $ip_record->{'mac'};
-my $action = $ip_record->{'type'};
-my $hostname = $ip_record->{'hostname_utf8'};
-my $client_id = $ip_record->{'client-id'};
-
-if (!exists $ip_record->{ip_aton}) { $ip_record->{ip_aton}=StrToIp($ip); }
-if (!exists $ip_record->{hotspot}) { $ip_record->{hotspot}=is_hotspot($db,$ip); }
-
-my $auth_ident = "Found new ip-address: " . $ip;
-$auth_ident = $auth_ident . ' ['.$mac .']' if ($mac);
-$auth_ident = $auth_ident . ' :: '.$hostname if ($hostname);
-
-my $ip_aton=$ip_record->{ip_aton};
-
-my $timestamp=GetNowTime();
-
-my $record=get_record_sql($db,'SELECT * FROM User_auth WHERE `deleted`=0 AND `ip_int`='.$ip_aton.' AND `mac`="'.$mac.'"');
-
-my $new_record;
-$new_record->{last_found}=$timestamp;
-$new_record->{arp_found}=$timestamp;
-
-if ($client_id) { $new_record->{'client-id'} = $client_id; }
-
-#auth found?
-if ($record->{user_id}) {
-    #update timestamp and return
-    if ($action=~/^(add|old|del)$/i) {
-	    $new_record->{dhcp_action}=$action;
-	    $new_record->{created_by}='dhcp';
-	    $new_record->{dhcp_time}=$timestamp;
-	    if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
-	    }
-    update_record($db,'User_auth',$new_record,"id=$record->{id}");
-    return $record->{id};
-    }
-
-my $user_subnet=$office_networks->match_string($ip);
-if ($user_subnet->{static}) {
-    db_log_warning($db,"Unknown ip+mac found in static subnet! Abort create record for ip: $ip mac: [".$mac."]");
-    return 0;
-    }
-
-my $send_alert_update = isNotifyUpdate(get_notify_subnet($db,$ip));
-my $send_alert_create = isNotifyCreate(get_notify_subnet($db,$ip));
-#my $send_alert_delete = isNotifyDelete(get_notify_subnet($db,$ip));
-
-my $mac_exists=find_mac_in_subnet($db,$ip,$mac);
-
-my $msg = '';
-
-#search changed mac
-$record=get_record_sql($db,'SELECT * FROM User_auth WHERE `ip_int`='.$ip_aton." and deleted=0");
-if ($record->{id}) {
-    #if found record with same ip but without mac - update it
-    if (!$record->{mac}) {
-        $msg = $auth_ident. "\nUse auth record with no mac: " . hash_to_text($record);
-        db_log_verbose($db,$msg);
-        $new_record->{mac}=$mac;
-        #disable dhcp for same mac in one ip subnet
-        if ($mac_exists and $mac_exists->{'count'}) { $new_record->{dhcp}=0; }
-        if ($action=~/^(add|old|del)$/i) {
-	        $new_record->{dhcp_action}=$action;
-	        $new_record->{dhcp_time}=$timestamp;
-                $new_record->{created_by}='dhcp';
-	        if ($hostname) { $new_record->{dhcp_hostname} = $hostname; }
-                }
-        update_record($db,'User_auth',$new_record,"id=$record->{id}");
-        sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert_update);
-        return $record->{id};
-        }
-    #if found record with same ip but another mac - delete old record
-    if ($record->{mac}) {
-        if (!$ip_record->{hotspot}) {
-            my $msg = "For ip: $ip mac change detected! Old mac: [".$record->{mac}."] New mac: [".$mac."]. Disable old auth_id: $record->{id}";
-            db_log_warning($db,$msg,$record->{id});
-            sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert_update);
-            }
-        delete_user_auth($db,$record->{id});
-        }
-    }
-
-#default user
-my $new_user_info=get_new_user_id($db,$ip,$mac,$hostname);
-my $new_user_id;
-if ($new_user_info->{user_id}) { $new_user_id = $new_user_info->{user_id}; }
-if (!$new_user_id) { $new_user_id = new_user($db,$new_user_info); }
-
-if ($mac_exists) {
-    #deleting the user's entry if the address belongs to a dynamic group
-    foreach my $dup_record_id (keys %{$mac_exists->{items}}) {
-        my $dup_record = $mac_exists->{items}{$dup_record_id};
-        next if (!$dup_record);
-        #remove old dynamic record with some mac
-        if ($dup_record->{dynamic}) {
-            delete_user_auth($db,$dup_record->{id});
-            }
-        }
-    }
-
-#recheck
-$mac_exists=find_mac_in_subnet($db,$ip,$mac);
-
-#disable dhcp for same mac in one ip subnet
-if ($mac_exists and $mac_exists->{'count'}) { $new_record->{dhcp}=0; }
-
-#seek old auth with same ip and mac
-my $auth_exists=get_count_records($db,'User_auth',"ip_int=".$ip_aton." and mac='".$mac."'");
-
-$new_record->{ip_int}=$ip_aton;
-$new_record->{ip}=$ip;
-$new_record->{mac}=$mac;
-$new_record->{user_id}=$new_user_id;
-$new_record->{save_traf}="$save_detail";
-$new_record->{deleted}="0";
-if ($action=~/^(add|old|del)$/i) {
-    $new_record->{dhcp_action}=$action;
-    $new_record->{dhcp_time}=$timestamp;
-    $new_record->{created_by}='dhcp';
-    } else {
-    $new_record->{created_by}=$action;
-    }
-
-my $cur_auth_id= 0;
-if ($auth_exists) {
-    #found ->Resurrection old record
-    my $resurrection_id = get_id_record($db,'User_auth',"ip_int=".$ip_aton." and mac='".$mac."'");
-    $msg = $auth_ident . " Resurrection auth_id: $resurrection_id with ip: $ip and mac: $mac";
-    if (!$ip_record->{hotspot}) { db_log_warning($db,$msg); } else { db_log_info($db,$msg); }
-    if (update_record($db,'User_auth',$new_record,"id=$resurrection_id")) { $cur_auth_id = $resurrection_id; }
-    } else {
-    #not found ->create new record
-    $msg = $auth_ident ."\n";
-    $cur_auth_id = insert_record($db,'User_auth',$new_record);
-    if ($cur_auth_id) {
-        if (!$ip_record->{hotspot}) { db_log_warning($db,$msg); } else { db_log_info($db,$msg); }
-        }
-    }
-#filter and status
-$cur_auth_id=get_id_record($db,'User_auth',"ip='$ip' and mac='$mac' and deleted=0 ORDER BY last_found DESC") if (!$cur_auth_id);
-if ($cur_auth_id) {
-    my $user_record=get_record_sql($db,"SELECT * FROM User_list WHERE id=".$new_user_id);
-    if ($user_record) {
-	    my $ou_info = get_record_sql($db,'SELECT * FROM OU WHERE id='.$user_record->{ou_id});
-	    if ($ou_info and $ou_info->{'dynamic'}) {
-                    # Устанавливаем значение по умолчанию, если не задано
-                    if (!$ou_info->{'life_duration'}) { 
-                            $ou_info->{'life_duration'} = 24.0;  # Явно указываем дробное число
-                            }
-                    my $now = DateTime->now(time_zone => 'local');
-                    # Разбиваем life_duration на часы и минуты (для дробного значения)
-                    my $hours = int($ou_info->{'life_duration'});  # Целая часть (часы)
-                    my $minutes = ($ou_info->{'life_duration'} - $hours) * 60;  # Дробная часть → минуты
-                    # Создаём продолжительность с учётом дробных часов (в виде часов + минут)
-                    my $duration = DateTime::Duration->new( hours   => $hours, minutes => $minutes);
-                    my $eof = $now + $duration;
-                    $new_record->{'dynamic'} = 1;
-                    $new_record->{'eof'} = $eof->strftime('%Y-%m-%d %H:%M:%S');
-		    }
-	    $new_record->{ou_id}=$user_record->{ou_id};
-	    $new_record->{comments}=$user_record->{fio};
-	    $new_record->{filter_group_id}=$user_record->{filter_group_id};
-	    $new_record->{queue_id}=$user_record->{queue_id};
-	    $new_record->{enabled}="$user_record->{enabled}";
-            update_record($db,'User_auth',$new_record,"id=$cur_auth_id");
-	    }
-    db_log_warning($db, $msg, $cur_auth_id);
-    sendEmail("WARN! ".get_first_line($msg),$msg."\n".record_to_txt($db,'User_auth',$cur_auth_id),1) if ($send_alert_create);
-    } else { return; }
-return $cur_auth_id;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub new_auth {
-my $db = shift;
-my $ip = shift;
-my $ip_aton=StrToIp($ip);
-my $record=get_record_sql($db,'SELECT id FROM User_auth WHERE `deleted`=0 AND `ip_int`='.$ip_aton);
-if ($record->{id}) { return $record->{id}; }
-#default user
-my $new_user_info=get_new_user_id($db,$ip,undef,undef);
-my $new_user_id;
-if ($new_user_info->{user_id}) { $new_user_id = $new_user_info->{user_id}; }
-if ($new_user_info->{ou_id}) { $new_user_id = new_user($db,$new_user_info); }
-
-if (is_dynamic_ou($db,$new_user_info->{ou_id})) {
-    db_log_debug($db,"The ip-address $ip belongs to a dynamic group - ignore it.");
-    return;
-    }
-
-my $send_alert = isNotifyCreate(get_notify_subnet($db,$ip));
-my $user_record=get_record_sql($db,"SELECT * FROM User_list WHERE id=".$new_user_id);
-my $timestamp=GetNowTime();
-my $new_record;
-$new_record->{ip_int}=$ip_aton;
-$new_record->{ip}=$ip;
-$new_record->{user_id}=$new_user_id;
-$new_record->{save_traf}="$save_detail";
-$new_record->{deleted}="0";
-$new_record->{created_by}='netflow';
-$new_record->{ou_id}=$user_record->{ou_id};
-$new_record->{filter_group_id}=$user_record->{filter_group_id};
-$new_record->{queue_id}=$user_record->{queue_id};
-$new_record->{enabled}="$user_record->{enabled}";
-if ($user_record->{fio}) { $new_record->{comments}=$user_record->{fio}; }
-
-my $cur_auth_id=insert_record($db,'User_auth',$new_record);
-if ($cur_auth_id) {
-    my $msg = "New ip created by netflow! ip: $ip";
-    db_log_warning($db,$msg,$cur_auth_id);
-    sendEmail("WARN! ".get_first_line($msg),$msg,1) if ($send_alert);
-    }
-return $cur_auth_id;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_option {
-my $db=shift;
-my $option_id=shift;
-return if (!$option_id);
-return if (!$db);
-my $default_option = get_record_sql($db,'SELECT * FROM config_options WHERE id='.$option_id);
-my $config_options = get_record_sql($db,'SELECT * FROM config WHERE option_id='.$option_id);
-my $result;
-if (!$config_options) {
-    if ($default_option->{'type'}=~/^(int|bool)/i) { $result = $default_option->{'default_value'}*1; };
-    if ($default_option->{'type'}=~/^(string|text)/i) { $result = $default_option->{'default_value'}; }
-    if ($default_option->{'type'}=~/^list/i) { $result = $default_option->{'default_value'}; }
-    return $result;
-    }
-$result = $config_options->{'value'};
-return $result;
+sub is_system_ou {
+    my ($db, $ou_id) = @_;
+    return 0 if !defined $ou_id || $ou_id !~ /^\d+$/ || $ou_id <= 0;
+    my $sql = "SELECT 1 FROM ou WHERE id = ? AND (default_users = 1 OR default_hotspot = 1)";
+    my $record = get_record_sql($db, $sql, $ou_id);
+    return $record ? 1 : 0;
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -2071,7 +1842,7 @@ $config_ref{self_ip} = '127.0.0.1';
 if ($DBHOST ne '127.0.0.1') {
     my $ip_route = qx(ip r get $DBHOST 2>&1 | head -1);
     if ($? == 0) {
-        if ($ip_route =~ /src\s+(\d+\.\d+\.\d+\.\d+)/) { $config_ref{self_ip} = $1; }
+	if ($ip_route =~ /src\s+(\d+\.\d+\.\d+\.\d+)/) { $config_ref{self_ip} = $1; }
         }
     }
 
@@ -2189,10 +1960,10 @@ $history_syslog_day = get_option($db,48);
 
 $history_trafstat_day = get_option($db,49);
 
-my $ou = get_record_sql($db,"SELECT id FROM OU WHERE default_users = 1");
+my $ou = get_record_sql($db,"SELECT id FROM ou WHERE default_users = 1");
 if (!$ou) { $default_user_ou_id = 0; } else { $default_user_ou_id = $ou->{'id'}; }
 
-$ou = get_record_sql($db,"SELECT id FROM OU WHERE default_hotspot = 1");
+$ou = get_record_sql($db,"SELECT id FROM ou WHERE default_hotspot = 1 ");
 if (!$ou) { $default_hotspot_ou_id = $default_user_ou_id; } else { $default_hotspot_ou_id = $ou->{'id'}; }
 
 @subnets=get_records_sql($db,'SELECT * FROM subnets ORDER BY ip_int_start');
@@ -2217,432 +1988,87 @@ $all_networks = new Net::Patricia;
 @all_network_list=();
 
 foreach my $net (@subnets) {
-next if (!$net->{subnet});
-$subnets_ref{$net->{subnet}}=$net;
-if ($net->{office}) {
+    next if (!$net->{subnet});
+    $subnets_ref{$net->{subnet}}=$net;
+    if ($net->{office}) {
 	push(@office_network_list,$net->{subnet});
-        $office_networks->add_string($net->{subnet},$net);
-        }
-
-if ($net->{free}) {
+	$office_networks->add_string($net->{subnet},$net);
+	}
+    if ($net->{free}) {
 	push(@free_network_list,$net->{subnet});
-        $free_networks->add_string($net->{subnet},$net);
-        }
-
-if ($net->{vpn}) {
+	$free_networks->add_string($net->{subnet},$net);
+	}
+    if ($net->{vpn}) {
 	push(@vpn_network_list,$net->{subnet});
-        $vpn_networks->add_string($net->{subnet},$net);
-        }
-
-if ($net->{hotspot}) {
-        push(@hotspot_network_list,$net->{subnet});
-        push(@all_network_list,$net->{subnet});
-        $hotspot_networks->add_string($net->{subnet},$net);
-        }
-push(@all_network_list,$net->{subnet});
-$all_networks->add_string($net->{subnet},$net);
-}
-
-}
-
-#--------------------------------------------------------------------------------------------------------------
-
-sub get_dynamic_ou {
-my $db = shift;
-my @dynamic=();
-my @ou_list = get_records_sql($db,"SELECT id FROM OU WHERE dynamic = 1");
-foreach my $group (@ou_list) {
-    next if (!$group);
-    push(@dynamic,$group->{id});
+	$vpn_networks->add_string($net->{subnet},$net);
+	}
+    if ($net->{hotspot}) {
+	push(@hotspot_network_list,$net->{subnet});
+	push(@all_network_list,$net->{subnet});
+	$hotspot_networks->add_string($net->{subnet},$net);
+	}
+    push(@all_network_list,$net->{subnet});
+    $all_networks->add_string($net->{subnet},$net);
     }
-return wantarray ? @dynamic : \@dynamic;
-}
-
-#--------------------------------------------------------------------------------------------------------------
-
-sub get_default_ou {
-my $db = shift;
-my @dynamic=();
-my $ou = get_record_sql($db,"SELECT id FROM OU WHERE default_users = 1");
-if (!$ou) { push(@dynamic,0); } else { push(@dynamic,$ou->{'id'}); }
-$ou = get_record_sql($db,"SELECT id FROM OU WHERE default_hotspot = 1");
-if ($ou) { push(@dynamic,$ou->{id}); }
-return wantarray ? @dynamic : \@dynamic;
-}
-
-#--------------------------------------------------------------------------------------------------------------
-
-sub is_dynamic_ou {
-my $db = shift;
-my $ou_id = shift;
-my @dynamic=get_dynamic_ou($db);
-if (in_array(\@dynamic,$ou_id)) { return 1; }
-return 0;
-}
-
-#--------------------------------------------------------------------------------------------------------------
-
-sub is_default_ou {
-my $db = shift;
-my $ou_id = shift;
-my @dynamic=get_default_ou($db);
-if (in_array(\@dynamic,$ou_id)) { return 1; }
-return 0;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_subnets_ref {
-my $db = shift;
-my @list=get_records_sql($db,'SELECT * FROM subnets ORDER BY ip_int_start');
-my $list_ref;
-foreach my $net (@list) {
-next if (!$net->{subnet});
-$list_ref->{$net->{subnet}}=$net;
-}
-return $list_ref;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_device_by_ip {
-my $db = shift;
-my $ip = shift;
-my $netdev=get_record_sql($db,'SELECT * FROM devices WHERE ip="'.$ip.'"');
-if ($netdev and $netdev->{id}>0) { return $netdev; }
-my $auth_rec=get_record_sql($db,'SELECT user_id FROM User_auth WHERE ip="'.$ip.'" and deleted=0');
-if ($auth_rec and $auth_rec->{user_id}>0) {
-    $netdev=get_record_sql($db,'SELECT * FROM devices WHERE user_id='.$auth_rec->{user_id});
-    return $netdev;
-    }
-return;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub GetUnixTimeByStr {
-my $time_str = shift;
-$time_str =~s/\//-/g;
-$time_str = trim($time_str);
-my ($sec,$min,$hour,$day,$mon,$year) = (localtime())[0,1,2,3,4,5];
-$year+=1900;
-$mon++;
-if ($time_str =~/^([0-9]{2,4})\-([0-9]{1,2})-([0-9]{1,2})\s+/) {
-    $year = $1; $mon = $2; $day = $3;
-    }
-if ($time_str =~/([0-9]{1,2})\:([0-9]{1,2})\:([0-9]{1,2})$/) {
-    $hour = $1; $min = $2; $sec = $3;
-    }
-my $result = mktime($sec,$min,$hour,$day,$mon-1,$year-1900);
-return $result;
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub GetTimeStrByUnixTime {
-my $time = shift || time();
-my ($sec, $min, $hour, $mday, $mon, $year) = (localtime($time))[0,1,2,3,4,5];
-my $result = strftime("%Y-%m-%d %H:%M:%S",$sec, $min, $hour, $mday, $mon, $year);
-return $result;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub Set_Variable {
-my $db = shift;
-my $name = shift || $MY_NAME;
-my $value = shift || $$;
-my $timeshift = shift || 60;
+    my ($db, $name, $value, $timeshift) = @_;
+    $name //= $MY_NAME;
+    $value //= $$;
+    $timeshift //= 60;
 
-Del_Variable($db,$name);
-my $clean_variables = time() + $timeshift;
-my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_variables);
-$month++;
-$year += 1900;
-my $clean_str=sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
-my $clean_variables_date=$db->quote($clean_str);
-do_sql($db,"INSERT INTO variables(name,value,clear_time) VALUES('".$name."','".$value."',".$clean_variables_date.");");
+    Del_Variable($db, $name);
+
+    my $clean_time = time() + $timeshift;
+    my ($sec, $min, $hour, $day, $month, $year) = localtime($clean_time);
+    $month++;
+    $year += 1900;
+    my $clear_time_str = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $year, $month, $day, $hour, $min, $sec;
+
+    my $sql = "INSERT INTO variables (name, value, clear_time) VALUES (?, ?, ?)";
+    do_sql($db, $sql, $name, $value, $clear_time_str);
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub Get_Variable {
-my $db = shift;
-my $name = shift || $MY_NAME;
-my $variable=get_record_sql($db,'SELECT `value` FROM `variables` WHERE name="'.$name.'"');
-if (!$variable and $variable->{'value'}) { return $variable->{'value'}; }
-return;
+    my $db = shift;
+    my $name = shift || $MY_NAME;
+    my $variable = get_record_sql($db, 'SELECT value FROM variables WHERE name = ?', $name);
+    if ($variable and $variable->{'value'}) { return $variable->{'value'}; }
+    return;
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub Del_Variable {
-my $db = shift;
-my $name = shift || $MY_NAME;
-do_sql($db,"DELETE FROM `variables` WHERE name='".$name."';");
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub recalc_quotes {
-
-my $db = shift;
-my $calc_id = shift || $$;
-
-return if (!get_option($db,54));
-
-clean_variables($db);
-
-return if (Get_Variable($db,'RECALC'));
-
-my $timeshift = get_option($db,55);
-
-Set_Variable($db,'RECALC',$calc_id,time()+$timeshift*60);
-
-my $now = DateTime->now(time_zone=>'local');
-my $day_start = $db->quote($now->ymd("-")." 00:00:00");
-my $day_dur = DateTime::Duration->new( days => 1 );
-my $tomorrow = $now+$day_dur;
-my $day_stop = $db->quote($tomorrow->ymd("-")." 00:00:00");
-
-$now->set(day=>1);
-my $month_start=$db->quote($now->ymd("-")." 00:00:00");
-my $month_dur = DateTime::Duration->new( months => 1 );
-my $next_month = $now + $month_dur;
-$next_month->set(day=>1);
-my $month_stop = $db->quote($next_month->ymd("-")." 00:00:00");
-
-#get user limits
-my $user_auth_list_sql="SELECT A.id as auth_id, U.id, U.day_quota, U.month_quota, A.day_quota as auth_day, A.month_quota as auth_month FROM User_auth as A,User_list as U WHERE A.deleted=0 ORDER by user_id";
-my @authlist_ref = get_records_sql($db,$user_auth_list_sql);
-my %user_stats;
-my %auth_info;
-foreach my $row (@authlist_ref) {
-    $auth_info{$row->{auth_id}}{user_id}=$row->{id};
-    $auth_info{$row->{auth_id}}{day_limit}=$row->{auth_day};
-    $auth_info{$row->{auth_id}}{month_limit}=$row->{auth_month};
-    $auth_info{$row->{auth_id}}{day}=0;
-    $auth_info{$row->{auth_id}}{month}=0;
-    $user_stats{$row->{id}}{day_limit}=$row->{day_quota};
-    $user_stats{$row->{id}}{month_limit}=$row->{month_quota};
-    $user_stats{$row->{id}}{day}=0;
-    $user_stats{$row->{id}}{month}=0;
-}
-
-#recalc quotes - global
-#day
-my $day_sql="SELECT User_stats.auth_id, SUM( byte_in + byte_out ) AS traf_all FROM User_stats
-WHERE User_stats.`timestamp`>= $day_start AND User_stats.`timestamp`< $day_stop GROUP BY User_stats.auth_id";
-my @day_stats = get_records_sql($db,$day_sql);
-foreach my $row (@day_stats) {
-    my $user_id=$auth_info{$row->{auth_id}}{user_id};
-    $auth_info{$row->{auth_id}}{day}=$row->{traf_all};
-    $user_stats{$user_id}{day}+=$row->{traf_all};
-}
-
-#month
-my $month_sql="SELECT User_stats.auth_id, SUM( byte_in + byte_out ) AS traf_all FROM User_stats
-WHERE User_stats.`timestamp`>= $month_start AND User_stats.`timestamp`< $month_stop GROUP BY User_stats.auth_id";
-my @month_stats = get_records_sql($db,$month_sql);
-foreach my $row (@month_stats) {
-    my $user_id=$auth_info{$row->{auth_id}}{user_id};
-    $auth_info{$row->{auth_id}}{month}=$row->{traf_all};
-    $user_stats{$user_id}{month}+=$row->{traf_all};
-}
-
-foreach my $auth_id (keys %auth_info) {
-next if (!$auth_info{$auth_id}{day_limit});
-next if (!$auth_info{$auth_id}{month_limit});
-my $day_limit=$auth_info{$auth_id}{day_limit}*$KB*$KB;
-my $month_limit=$auth_info{$auth_id}{month_limit}*$KB*$KB;
-my $blocked_d=($auth_info{$auth_id}{day}>$day_limit);
-my $blocked_m=($auth_info{$auth_id}{month}>$month_limit);
-if ($blocked_d or $blocked_m) {
-    my $history_msg;
-    if ($blocked_d) { $history_msg=printf "Day quota limit found for auth_id: $auth_id - Current: %d Max: %d",$auth_info{$auth_id}{day},$day_limit; }
-    if ($blocked_m) { $history_msg=printf "Month quota limit found for auth_id: $auth_id - Current: %d Max: %d",$auth_info{$auth_id}{month},$month_limit; }
-    do_sql($db,"UPDATE User_auth set blocked=1, changed=1 where id=$auth_id");
-    db_log_verbose($db,$history_msg);
-    }
-}
-
-foreach my $user_id (keys %user_stats) {
-next if (!$user_stats{$user_id}{day_limit});
-next if (!$user_stats{$user_id}{month_limit});
-my $day_limit=$user_stats{$user_id}{day_limit}*$KB*$KB;
-my $month_limit=$user_stats{$user_id}{month_limit}*$KB*$KB;
-my $blocked_d=($user_stats{$user_id}{day}>$day_limit);
-my $blocked_m=($user_stats{$user_id}{month}>$month_limit);
-if ($blocked_d or $blocked_m) {
-    my $history_msg;
-    if ($blocked_d) { $history_msg=printf "Day quota limit found for user_id: $user_id - Current: %d Max: %d",$user_stats{$user_id}{day},$day_limit; }
-    if ($blocked_m) { $history_msg=printf "Month quota limit found for user_id: $user_id - Current: %d Max: %d",$user_stats{$user_id}{month},$month_limit; }
-    do_sql($db,"UPDATE User_user set blocked=1 where id=$user_id");
-    do_sql($db,"UPDATE User_auth set blocked=1, changed=1 where user_id=$user_id");
-    db_log_verbose($db,$history_msg);
-    }
-}
-Del_Variable($db,'RECALC');
+    my ($db, $name) = @_;
+    $name //= $MY_NAME;
+    do_sql($db, "DELETE FROM variables WHERE name = ?", $name);
 }
 
 #---------------------------------------------------------------------------------------------------------------
 
 sub clean_variables {
-my $db = shift;
-#clean temporary variables
-my $clean_variables = time();
-my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime($clean_variables);
-$month++;
-$year += 1900;
-my $now_str=sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
-my $clean_variables_date=$db->quote($now_str);
-do_sql($db,"DELETE FROM `variables` WHERE clear_time<=$clean_variables_date");
+    my ($db) = @_;
 
-#clean old AD computer cache
-my $now = DateTime->now(time_zone=>'local');
-my $day_dur = DateTime::Duration->new( days => 1 );
-my $clean_date = $now - $day_dur;
-my $clean_str = $db->quote($clean_date->ymd("-")." 00:00:00");
-do_sql($db,"DELETE FROM `ad_comp_cache` WHERE last_found<=$clean_str");
-}
+    # 1. Clean temporary variables
+    my $now = time();
+    my ($sec, $min, $hour, $day, $month, $year) = localtime($now);
+    $month++;
+    $year += 1900;
+    my $now_str = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $year, $month, $day, $hour, $min, $sec;
 
-#--------------------------------------------------------------------------------
+    do_sql($db, "DELETE FROM variables WHERE clear_time <= ?", $now_str);
 
-sub process_dhcp_request {
+    # 2. Clean old AD computer cache
+    my $yesterday = DateTime->now(time_zone => 'local')->subtract(days => 1);
+    my $clean_str = $yesterday->strftime("%Y-%m-%d 00:00:00");
 
-my ($db, $type, $mac, $ip, $hostname, $client_id, $circuit_id, $remote_id) = @_;
-
-return if (!$type);
-return if ($type!~/(old|add|del)/i);
-
-my $client_hostname='';
-if ($hostname and ($hostname ne "undef" or $hostname !~ /UNDEFINED/i)) { $client_hostname=$hostname; }
-
-my $auth_network = $office_networks->match_string($ip);
-if (!$auth_network) {
-    log_error("Unknown network in dhcp request! IP: $ip");
-    return;
-    }
-
-if (!$circuit_id) { $circuit_id=''; }
-if (!$client_id) { $client_id = ''; }
-if (!$remote_id) { $remote_id = ''; }
-
-my $timestamp=time();
-
-my $ip_aton=StrToIp($ip);
-$mac=mac_splitted(isc_mac_simplify($mac));
-
-my $dhcp_event_time = GetNowTime($timestamp);
-
-my $dhcp_record;
-$dhcp_record->{'mac'}=$mac;
-$dhcp_record->{'ip'}=$ip;
-$dhcp_record->{'ip_aton'}=$ip_aton;
-$dhcp_record->{'hostname'}=$client_hostname;
-$dhcp_record->{'network'}=$auth_network;
-$dhcp_record->{'type'}=$type;
-$dhcp_record->{'hostname_utf8'}=$client_hostname;
-$dhcp_record->{'timestamp'} = $timestamp;
-$dhcp_record->{'last_time'} = time();
-$dhcp_record->{'circuit-id'} = $circuit_id;
-$dhcp_record->{'client-id'} = $client_id;
-$dhcp_record->{'remote-id'} = $remote_id;
-$dhcp_record->{'hotspot'}=is_hotspot($dbh,$dhcp_record->{ip});
-
-#search actual record
-my $auth_record = get_record_sql($db,'SELECT * FROM User_auth WHERE ip="'.$dhcp_record->{ip}.'" and mac="'.$mac.'" and deleted=0 ORDER BY last_found DESC');
-
-#if record not found and type del => next event
-if (!$auth_record and $type eq 'del') { return; }
-
-#if record not found - create it
-if (!$auth_record and $type=~/(add|old)/i) {
-#        db_log_warning($db,"Record for dhcp request type: ".$type." ip=".$dhcp_record->{ip}." and mac=".$mac." does not exists!");
-        my $res_id = resurrection_auth($db,$dhcp_record);
-        if (!$res_id) {  db_log_error($db,"Error creating an ip address record for ip=".$dhcp_record->{ip}." and mac=".$mac."!");  return; }
-        $auth_record = get_record_sql($db,'SELECT * FROM User_auth WHERE id='.$res_id);
-        db_log_info($db,"Check for new auth. Found id: $res_id",$res_id);
-        }
-
-my $auth_id = $auth_record->{id};
-my $auth_ou_id = $auth_record->{ou_id};
-
-$dhcp_record->{'auth_id'} = $auth_id;
-$dhcp_record->{'auth_ou_id'} = $auth_ou_id;
-
-log_debug(uc($type).">>");
-log_debug("MAC:        ".$dhcp_record->{'mac'});
-log_debug("IP:         ".$dhcp_record->{'ip'});
-log_debug("CIRCUIT-ID: ".$dhcp_record->{'circuit-id'});
-log_debug("REMOTE-ID:  ".$dhcp_record->{'remote-id'});
-log_debug("HOSTNAME:   ".$dhcp_record->{'hostname'});
-log_debug("TYPE:       ".$dhcp_record->{'type'});
-log_debug("TIME:       ".$dhcp_event_time);
-log_debug("AUTH_ID:    ".$auth_id);
-log_debug("END GET");
-
-update_dns_record_by_dhcp($db,$dhcp_record,$auth_record);
-
-if ($type=~/add/i and $dhcp_record->{hostname_utf8}) {
-                my $auth_rec;
-                $auth_rec->{dhcp_hostname} = $dhcp_record->{hostname_utf8};
-                $auth_rec->{dhcp_time}=$dhcp_event_time;
-                $auth_rec->{arp_found}=$dhcp_event_time;
-                $auth_rec->{created_by}='dhcp';
-                db_log_verbose($db,"Add lease by dhcp event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
-                update_record($db,'User_auth',$auth_rec,"id=$auth_id");
-                }
-
-if ($type=~/old/i) {
-                my $auth_rec;
-                $auth_rec->{dhcp_action}=$type;
-                $auth_rec->{dhcp_time}=$dhcp_event_time;
-                $auth_rec->{created_by}='dhcp';
-                $auth_rec->{arp_found}=$dhcp_event_time;
-                db_log_verbose($db,"Update lease by dhcp event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
-                update_record($db,'User_auth',$auth_rec,"id=$auth_id");
-                }
-
-if ($type=~/del/i and $auth_id) {
-                if ($auth_record->{dhcp_time} =~ /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})/) {
-                    my $d_time = mktime($6,$5,$4,$3,$2-1,$1-1900);
-                    if (time()-$d_time>60 and (is_dynamic_ou($db,$auth_ou_id) or is_default_ou($db,$auth_ou_id))) {
-                        db_log_info($db,"Remove user ip record by dhcp release event for dynamic clients id: $auth_id ip: $dhcp_record->{ip}",$auth_id);
-                        my $auth_rec;
-                        $auth_rec->{dhcp_action}=$type;
-                        $auth_rec->{dhcp_time}=$dhcp_event_time;
-                        update_record($db,'User_auth',$auth_rec,"id=$auth_id");
-                        #remove user auth record if it belongs to the default pool or it is dynamic
-                        if (is_default_ou($db,$auth_ou_id) or (is_dynamic_ou($db,$auth_ou_id) and $auth_record->{dynamic})) {
-                                delete_user_auth($db,$auth_id);
-                                my $u_count=get_count_records($db,'User_auth','deleted=0 and user_id='.$auth_record->{'user_id'});
-                                if (!$u_count) { delete_user($db,$auth_record->{'user_id'}); }
-                                }
-                        }
-                    }
-                }
-
-if ($dhcp_record->{hotspot} and $ignore_hotspot_dhcp_log) { return $dhcp_record; }
-
-if ($ignore_update_dhcp_event and $type=~/old/i) { return $dhcp_record; }
-
-my $dhcp_log;
-if (!$auth_id) { $auth_id=0; }
-$dhcp_log->{'auth_id'} = $auth_id;
-$dhcp_log->{'ip'} = $dhcp_record->{'ip'};
-$dhcp_log->{'ip_int'} = $dhcp_record->{'ip_aton'};
-$dhcp_log->{'mac'} = $dhcp_record->{'mac'};
-$dhcp_log->{'action'} = $type;
-$dhcp_log->{'dhcp_hostname'} = $dhcp_record->{'hostname_utf8'};
-$dhcp_log->{'timestamp'} = $dhcp_event_time;
-$dhcp_log->{'circuit-id'} = $circuit_id;
-$dhcp_log->{'client-id'} = $client_id;
-$dhcp_log->{'remote-id'} = $remote_id;
-
-insert_record($db,'dhcp_log',$dhcp_log);
-
-return $dhcp_record;
+    do_sql($db, "DELETE FROM ad_comp_cache WHERE last_found <= ?", $clean_str);
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -2653,6 +2079,8 @@ if ($MY_NAME!~/upgrade.pl/) {
     init_option($dbh);
     clean_variables($dbh);
     Set_Variable($dbh);
+#    warn "DBI driver name: ", $dbh->{Driver}->{Name}, "\n" if ($debug);
+#    warn "Full dbh class: ", ref($dbh), "\n" if ($debug);
     }
 
 1;

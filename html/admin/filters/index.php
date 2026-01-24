@@ -2,32 +2,48 @@
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
 
-if (isset($_POST["create"])) {
-    $fname = $_POST["newfilter"];
-    $ftype = 0;
-    if (isset($_POST['filter_type'])) {
-        $ftype = $_POST["filter_type"] * 1;
-    }
-    if (isset($fname)) {
-        $new['name'] = $fname;
-        $new['type'] = $ftype;
-        $new_id = insert_record($db_link, "Filter_list", $new);
-        header("Location: editfilter.php?id=$new_id");
-        exit;
-    }
-}
-
-if (isset($_POST["remove"])) {
-    $fid = $_POST["fid"];
-    foreach ($fid as $key => $val) {
-        if ($val) {
-            run_sql($db_link, "DELETE FROM Group_filters WHERE filter_id=" . $val);
-            delete_record($db_link, "Filter_list", "id=$val");
+// Создание нового фильтра
+if (getPOST("create") !== null) {
+    $fname = trim(getPOST("newfilter", null, ''));
+    $ftype = (int)getPOST("filter_type", null, 0);
+    
+    if ($fname !== '') {
+        $new_id = insert_record($db_link, "filter_list", [
+            'name'         => $fname,
+            'filter_type'  => $ftype
+        ]);
+        
+        if ($new_id) {
+            header("Location: editfilter.php?id=$new_id");
+            exit;
         }
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
+
+// Удаление фильтров
+if (getPOST("remove") !== null) {
+    $fid = getPOST("fid", null, []);
+    
+    if (!empty($fid) && is_array($fid)) {
+        foreach ($fid as $val) {
+            $val = trim($val);
+            if ($val === '') continue;
+            
+            // Удаляем из связей
+            delete_records($db_link, "group_filters", "filter_id = ?", [(int)$val]);
+            
+            // Удаляем сам фильтр
+            delete_record($db_link, "filter_list", "id = ?", [(int)$val]);
+        }
+    }
+    
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
 unset($_POST);
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
 print_filters_submenu($page_url);
@@ -44,18 +60,18 @@ print_filters_submenu($page_url);
                 <td><b><?php echo WEB_traffic_dest_address; ?></b></td>
                 <td><b><?php echo WEB_traffic_dst_port; ?></b></td>
                 <td><b><?php echo WEB_traffic_src_port; ?></b></td>
-                <td><b><?php echo WEB_cell_comment; ?></b></td>
+                <td><b><?php echo WEB_cell_description; ?></b></td>
                 <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>"></td>
             </tr>
             <?php
-            $filters = get_records_sql($db_link, 'SELECT * FROM Filter_list ORDER BY name');
+            $filters = get_records_sql($db_link, 'SELECT * FROM filter_list ORDER BY name');
             foreach ($filters as $row) {
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=" . $row['id'] . "></td>\n";
                 print "<td class=\"data\" ><input type=hidden name=\"id\" value=" . $row['id'] . ">" . $row['id'] . "</td>\n";
                 print "<td class=\"data\" align=left><a href=editfilter.php?id=" . $row['id'] . ">" . $row['name'] . "</a></td>\n";
-                if (empty($row['comment'])) {
-                    $row['comment'] = '';
+                if (empty($row['description'])) {
+                    $row['description'] = '';
                 }
                 if (empty($row['proto'])) {
                     $row['proto'] = '';
@@ -69,20 +85,20 @@ print_filters_submenu($page_url);
                 if (empty($row['srcport'])) {
                     $row['srcport'] = '';
                 }
-                if ($row['type'] == 0) {
+                if ($row['filter_type'] == 0) {
                     print "<td class=\"data\">IP фильтр</td>\n";
                     print "<td class=\"data\">" . $row['proto'] . "</td>\n";
                     print "<td class=\"data\">" . $row['dst'] . "</td>\n";
                     print "<td class=\"data\">" . $row['dstport'] . "</td>\n";
                     print "<td class=\"data\">" . $row['srcport'] . "</td>\n";
-                    print "<td class=\"data\">" . $row['comment'] . "</td>\n";
+                    print "<td class=\"data\">" . $row['description'] . "</td>\n";
                 } else {
                     print "<td class=\"data\">Name фильтр</td>\n";
                     print "<td class=\"data\"></td>\n";
                     print "<td class=\"data\">" . $row['dst'] . "</td>\n";
                     print "<td class=\"data\"></td>\n";
                     print "<td class=\"data\"></td>\n";
-                    print "<td class=\"data\">" . $row['comment'] . "</td>\n";
+                    print "<td class=\"data\">" . $row['description'] . "</td>\n";
                 }
                 print "<td></td></tr>";
             }

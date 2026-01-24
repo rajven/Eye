@@ -6,7 +6,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/consts.php");
 
 function get_ifmib_index_table($ip, $snmp)
 {
-    $ifmib_map = NULL;
+    $ifmib_map = [];
 
     $is_mikrotik = walk_snmp($ip, $snmp, MIKROTIK_DHCP_SERVER);
     $mk_ros_version = 0;
@@ -59,12 +59,14 @@ function get_ifmib_index_table($ip, $snmp)
 //get mac table by selected snmp oid
 function get_mac_table($ip, $snmp, $oid, $index_map)
 {
+    $fdb_table = [];
+
     if (!isset($ip)) {
-        return;
+        return $fdb_table;
     }
 
     if (!isset($oid)) {
-        return;
+        return $fdb_table;
     }
 
     $mac_table = walk_snmp($ip, $snmp, $oid);
@@ -104,14 +106,14 @@ function get_mac_table($ip, $snmp, $oid, $index_map)
 //get ip interfaces
 function getIpAdEntIfIndex($db, $ip, $snmp)
 {
+    $result = [];
     if (!isset($ip)) {
-        return;
+        return $result;
     }
     //oid+ip = index
     $ip_table = walk_snmp($ip, $snmp, ipAdEntIfIndex);
     //oid+index=name
     $int_table = walk_snmp($ip, $snmp, ifDescr);
-    $result = [];
     if (isset($ip_table) and gettype($ip_table) == 'array' and count($ip_table) > 0) {
         foreach ($ip_table as $key => $value) {
             if (empty($value)) {
@@ -135,9 +137,9 @@ function getIpAdEntIfIndex($db, $ip, $snmp)
             $result[$interface_index]['index'] = $interface_index;
             $result[$interface_index]['name'] = $interface_name;
             //type: 0 - local, 1 - WAN
-            $result[$interface_index]['type'] = 1;
+            $result[$interface_index]['interface_type'] = 1;
             if (is_our_network($db, $interface_ip)) {
-                $result[$interface_index]['type'] = 0;
+                $result[$interface_index]['interface_type'] = 0;
             }
         }
     }
@@ -147,9 +149,10 @@ function getIpAdEntIfIndex($db, $ip, $snmp)
 //get mac table by analyze all available tables
 function get_fdb_table($ip, $snmp)
 {
+    $fdb_table = [];
 
     if (!isset($ip)) {
-        return;
+        return $fdb_table;
     }
 
     $ifindex_map = get_ifmib_index_table($ip, $snmp);
@@ -166,11 +169,10 @@ function get_fdb_table($ip, $snmp)
     $snmp_cisco = $snmp;
 
     // maybe cisco?!
-    if (!isset($fdb_table) or empty($fdb_table) or count($fdb_table) == 0) {
+    if (empty($fdb_table) or count($fdb_table) == 0) {
         $vlan_table = walk_snmp($ip, $snmp, CISCO_VLAN_OID);
-        if (empty($vlan_table)) {
-            return;
-        }
+        if (!isset($fdb_table) or empty($vlan_table)) { return $fdb_table; }
+
         foreach ($vlan_table as $vlan_oid => $value) {
             if (empty($vlan_oid)) {
                 continue;
@@ -626,7 +628,7 @@ function get_switch_vlans($vendor, $ip, $snmp)
         //all vlan at switch
         $vlan_list = walk_snmp($ip, $snmp, vtpVlanName);
         if (empty($vlan_list)) {
-            return;
+            return $vlan_status;
         }
         foreach ($vlan_list as $key => $value) {
             if (empty($value)) {

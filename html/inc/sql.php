@@ -1,31 +1,436 @@
 <?php
 if (! defined("CONFIG")) die("Not defined");
-
 if (! defined("SQL")) { die("Not defined"); }
 
-
-function new_connection ($db_host, $db_user, $db_password, $db_name)
+/**
+ * Prepares an audit log message with human-readable context using PDO.
+ *
+ * @param PDO    $pdo        Database connection
+ * @param string $table      Table name
+ * @param array|null $old_data Record data before operation (null for insert)
+ * @param array|null $new_data Record data after operation (null for delete)
+ * @param int    $record_id  Record ID
+ * @param string $operation  Operation: 'insert', 'update', 'delete'
+ * @return string|null       Audit message or null if no relevant changes
+ */
+function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $new_data, int $record_id, string $operation): ?string
 {
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+    // === 1. Определяем отслеживаемые таблицы ===
+    $audit_config = [
+        'auth_rules' => [
+            'summary' => ['rule'],
+            'fields' => ['user_id', 'ou_id', 'rule_type', 'rule', 'description']
+        ],
+        'building' => [
+            'summary' => ['name'],
+            'fields' => ['name', 'description']
+        ],
+        'customers' => [
+            'summary' => ['login'],
+            'fields' => ['login', 'description', 'rights']
+        ],
+        'devices' => [
+            'summary' => ['device_name'],
+            'fields' => [
+                'device_type', 'device_model_id', 'vendor_id', 'device_name', 'building_id',
+                'ip', 'login', 'protocol', 'control_port', 'port_count', 'sn',
+                'description', 'snmp_version', 'snmp3_auth_proto', 'snmp3_priv_proto',
+                'snmp3_user_rw', 'snmp3_user_ro', 'community', 'rw_community',
+                'discovery', 'netflow_save', 'user_acl', 'dhcp', 'nagios',
+                'active', 'queue_enabled', 'connected_user_only', 'user_id'
+            ]
+        ],
+        'device_filter_instances' => [
+            'summary' => [],
+            'fields' => ['instance_id', 'device_id']
+        ],
+        'device_l3_interfaces' => [
+            'summary' => ['name'],
+            'fields' => ['device_id', 'snmpin', 'interface_type', 'name']
+        ],
+        'device_models' => [
+            'summary' => ['model_name'],
+            'fields' => ['model_name', 'vendor_id', 'poe_in', 'poe_out', 'nagios_template']
+        ],
+        'device_ports' => [
+            'summary' => ['port', 'ifname'],
+            'fields' => [
+                'device_id', 'snmp_index', 'port', 'ifname', 'port_name', 'description',
+                'target_port_id', 'auth_id', 'last_mac_count', 'uplink', 'nagios',
+                'skip', 'vlan', 'tagged_vlan', 'untagged_vlan', 'forbidden_vlan'
+            ]
+        ],
+        'filter_instances' => [
+            'summary' => ['name'],
+            'fields' => ['name', 'description']
+        ],
+        'filter_list' => [
+            'summary' => ['name'],
+            'fields' => ['name', 'description', 'proto', 'dst', 'dstport', 'srcport', 'filter_type']
+        ],
+        'gateway_subnets' => [
+            'summary' => [],
+            'fields' => ['device_id', 'subnet_id']
+        ],
+        'group_filters' => [
+            'summary' => [],
+            'fields' => ['group_id', 'filter_id', 'rule_order', 'action']
+        ],
+        'group_list' => [
+            'summary' => ['group_name'],
+            'fields' => ['instance_id', 'group_name', 'description']
+        ],
+        'ou' => [
+            'summary' => ['ou_name'],
+            'fields' => [
+                'ou_name', 'description', 'default_users', 'default_hotspot',
+                'nagios_dir', 'nagios_host_use', 'nagios_ping', 'nagios_default_service',
+                'enabled', 'filter_group_id', 'queue_id', 'dynamic', 'life_duration', 'parent_id'
+            ]
+        ],
+        'queue_list' => [
+            'summary' => ['queue_name'],
+            'fields' => ['queue_name', 'download', 'upload']
+        ],
+        'subnets' => [
+            'summary' => ['subnet'],
+            'fields' => [
+                'subnet', 'vlan_tag', 'ip_int_start', 'ip_int_stop', 'dhcp_start', 'dhcp_stop',
+                'dhcp_lease_time', 'gateway', 'office', 'hotspot', 'vpn', 'free', 'dhcp',
+                'static', 'dhcp_update_hostname', 'discovery', 'notify', 'description'
+            ]
+        ],
+        'user_auth' => [
+            'summary' => ['ip', 'dns_name'],
+            'fields' => [
+                'user_id', 'ou_id', 'ip', 'save_traf', 'enabled', 'dhcp', 'filter_group_id',
+                'dynamic', 'end_life', 'description', 'dns_name', 'dns_ptr_only', 'wikiname',
+                'dhcp_acl', 'queue_id', 'mac', 'dhcp_option_set', 'blocked', 'day_quota',
+                'month_quota', 'device_model_id', 'firmware', 'client_id', 'nagios',
+                'nagios_handler', 'link_check', 'deleted'
+            ]
+        ],
+        'user_auth_alias' => [
+            'summary' => ['alias'],
+            'fields' => ['auth_id', 'alias', 'description']
+        ],
+        'user_list' => [
+            'summary' => ['login'],
+            'fields' => [
+                'login', 'description', 'enabled', 'blocked', 'deleted', 'ou_id',
+                'device_id', 'filter_group_id', 'queue_id', 'day_quota', 'month_quota', 'permanent'
+            ]
+        ],
+        'vendors' => [
+            'summary' => ['name'],
+            'fields' => ['name']
+        ]
+    ];
 
-$result = mysqli_connect($db_host,$db_user,$db_password,$db_name);
-
-if (! $result) {
-    echo "Error connect to MYSQL " . PHP_EOL;
-    echo "Errno: " . mysqli_connect_errno() . PHP_EOL;
-    echo "Error message: " . mysqli_connect_error() . PHP_EOL;
-    exit();
+    if (!isset($audit_config[$table])) {
+        return null;
     }
 
-/* enable utf8 */
-if (!mysqli_set_charset($result,'utf8mb4')) {
-    printf("Error loading utf8: %s\n", mysqli_error($result));
-    exit();
+    $summary_fields = $audit_config[$table]['summary'];
+    $monitored_fields = $audit_config[$table]['fields'];
+
+    // === 3. Нормализуем данные и определяем изменения ===
+    $changes = [];
+
+    if ($operation === 'insert') {
+        // Показываем все monitored поля как новые
+        foreach ($monitored_fields as $field) {
+            if (isset($new_data[$field])) {
+                $changes[$field] = ['old' => null, 'new' => $new_data[$field]];
+            }
+        }
+    } elseif ($operation === 'delete') {
+        // Показываем все monitored поля как удалённые
+        foreach ($monitored_fields as $field) {
+            if (isset($old_data[$field])) {
+                $changes[$field] = ['old' => $old_data[$field], 'new' => null];
+            }
+        }
+    } elseif ($operation === 'update') {
+        $old_data = $old_data ?: [];
+        $new_data = $new_data ?: [];
+        foreach ($monitored_fields as $field) {
+            // Пропускаем, если поле не задано в new_data (например, частичное обновление)
+            if (!array_key_exists($field, $new_data)) {
+                continue;
+            }
+            $old_val = $old_data[$field] ?? null;
+            $new_val = $new_data[$field] ?? null;
+
+            $old_str = is_null($old_val) ? '' : (string)$old_val;
+            $new_str = is_null($new_val) ? '' : (string)$new_val;
+
+            if ($old_str !== $new_str) {
+                $changes[$field] = ['old' => $old_val, 'new' => $new_val];
+            }
+        }
     }
 
-//mysqli_options($result, MYSQLI_OPT_INT_AND_FLOAT_NATIVE, 1);
+    // Если нет изменений — выходим
+    if (empty($changes)) {
+        return null;
+    }
 
-return $result;
+    // === 4. Формируем краткое описание записи ===
+    $summary_parts = [];
+    foreach ($summary_fields as $field) {
+        $val = $new_data[$field] ?? $old_data[$field] ?? null;
+        if ($val !== null && $val !== '') {
+            $summary_parts[] = (string)$val;
+        }
+    }
+
+    $summary_label = !empty($summary_parts) 
+        ? '"' . implode(' | ', $summary_parts) . '"' 
+        : "ID=$record_id";
+
+    // === 5. Расшифровка *_id полей  ===
+    $resolved_changes = [];
+    foreach ($changes as $field => $change) {
+        $old_resolved = resolveReferenceValue($db, $field, $change['old']);
+        $new_resolved = resolveReferenceValue($db, $field, $change['new']);
+        $resolved_changes[$field] = ['old' => $old_resolved, 'new' => $new_resolved];
+    }
+
+    // === 6. Формируем сообщение ===
+    $op_label = match ($operation) {
+        'insert' => 'Created',
+        'update' => 'Updated',
+        'delete' => 'Deleted',
+        default => ucfirst($operation),
+    };
+
+    $message = sprintf("[%s] %s (%s) in table `%s`:\n", 
+        $op_label, 
+        ucfirst($table), 
+        $summary_label, 
+        $table
+    );
+
+    foreach ($resolved_changes as $field => $change) {
+        if ($operation === 'insert') {
+            if (!is_null($change['new'])) {
+                $message .= sprintf("  %s: %s\n", $field, (string)$change['new']);
+            }
+        } elseif ($operation === 'delete') {
+            if (!is_null($change['old'])) {
+                $message .= sprintf("  %s: %s\n", $field, (string)$change['old']);
+            }
+        } else { // update
+            $old_display = is_null($change['old']) ? '[NULL]' : (string)$change['old'];
+            $new_display = is_null($change['new']) ? '[NULL]' : (string)$change['new'];
+            $message .= sprintf("  %s: \"%s\" → \"%s\"\n", $field, $old_display, $new_display);
+        }
+    }
+
+    return rtrim($message);
+}
+
+// === Вспомогательная функция: расшифровка ссылок ===
+function resolveReferenceValue(PDO $db, string $field, $value): ?string
+{
+    if ($value === null || $value === '') {
+        return null;
+    }
+
+    // Только для целочисленных значений
+    if (!is_numeric($value) || (string)(int)$value !== (string)$value) {
+        return (string)$value;
+    }
+
+    $id = (int)$value;
+
+    // Простая логика разрешения имён по *_id
+    switch ($field) {
+        case 'device_id':
+            return get_device_name($db, $id) ?: "Device#{$id}";
+
+        case 'building_id':
+            return get_building($db, $id) ?: "Building#{$id}";
+
+        case 'user_id':
+            return get_login($db, $id) ?: "User#{$id}";
+
+        case 'ou_id':
+            return get_ou($db, $id) ?: "OU#{$id}";
+
+        case 'vendor_id':
+            return get_vendor_name($db, $id) ?: "Vendor#{$id}";
+
+        case 'device_model_id':
+            return get_device_model_name($db, $id) ?: "Model#{$id}";
+
+        case 'instance_id':
+            return get_filter_instance_description($db, $id) ?: "FilterInstance#{$id}";
+
+        case 'subnet_id':
+            return get_subnet_description($db, $id) ?: "Subnet#{$id}";
+
+        case 'group_id':
+            return  get_group($db, $id) ?: "FilterGroup#{$id}";
+
+        case 'filter_id':
+            return get_filter($db, $id) ?: "Filter#{$id}";
+
+        case 'filter_group_id':
+            return  get_group($db, $id) ?: "FilterGroup#{$id}";
+
+        case 'queue_id':
+            return get_queue($db, $id ) ?: "Queue#{$id}";
+
+        case 'auth_id':
+            if ($id <= 0) {
+                return 'None';
+            }
+            $stmt = $db->prepare("
+                SELECT 
+                    COALESCE(ul.login, CONCAT('User#', ua.user_id)) AS login,
+                    ua.ip,
+                    ua.dns_name
+                FROM user_auth ua
+                LEFT JOIN user_list ul ON ul.id = ua.user_id
+                WHERE ua.id = ?
+            ");
+            $stmt->execute([$id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$row) {
+                return "Auth#{$id}";
+            }
+
+            $parts = [];
+            if (!empty($row['login'])) {
+                $parts[] = "login: " . $row['login'];
+            }
+            if (!empty($row['ip'])) {
+                $parts[] = "IP: " . $row['ip'];
+            }
+            if (!empty($row['dns_name'])) {
+                $parts[] = "DNS: " . $row['dns_name'];
+            }
+
+            if (empty($parts)) {
+                return "Auth#{$id}";
+            }
+
+            return implode(', ', $parts);
+
+        case 'target_port_id':
+            if ($id === 0) return 'None';
+            $stmt = $db->prepare("
+                SELECT CONCAT(d.device_name, '[', dp.port, ']')
+                FROM device_ports dp
+                JOIN devices d ON d.id = dp.device_id
+                WHERE dp.id = ?
+            ");
+            $stmt->execute([$id]);
+            return $stmt->fetchColumn() ?: "Port#{$id}";
+
+        default:
+            // Неизвестное *_id — возвращаем как есть
+            return (string)$value;
+    }
+}
+
+function new_connection ($db_type, $db_host, $db_user, $db_password, $db_name, $db_port = null)
+{
+// Создаем временный логгер для отладки до установки соединения
+//    $temp_debug_message = function($message) {
+//        error_log("DB_CONNECTION_DEBUG: " . $message);
+//    };
+
+//    $temp_debug_message("Starting new_connection function");
+//    $temp_debug_message("DB parameters - type: $db_type, host: $db_host, user: $db_user, db: $db_name");
+
+    if (function_exists('filter_var') && defined('FILTER_SANITIZE_FULL_SPECIAL_CHARS')) {
+        $db_host = filter_var($db_host, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+    } else {
+        // Для PHP < 8.1
+        $db_host = htmlspecialchars($db_host, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+    $db_name = preg_replace('/[^a-zA-Z0-9_-]/', '', $db_name);
+
+    try {
+//        $temp_debug_message("Constructing DSN");
+        
+        // Определяем DSN в зависимости от типа базы данных
+        $dsn = "";
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ];
+        
+        if ($db_type === 'mysql') {
+            $dsn = "mysql:host=$db_host;dbname=$db_name;charset=utf8mb4";
+            if (!empty($db_port)) { $dsn .= ";port=$db_port"; }
+        } elseif ($db_type === 'pgsql' || $db_type === 'postgresql') {
+            $dsn = "pgsql:host=$db_host;dbname=$db_name";
+            if (!empty($db_port)) { $dsn .= ";port=$db_port"; }
+            $options[PDO::PGSQL_ATTR_DISABLE_PREPARES] = false;
+        } else {
+            throw new Exception("Unsupported database type: $db_type. Supported types: mysql, pgsql");
+        }
+
+//        $temp_debug_message("DSN: $dsn");
+//        $temp_debug_message("PDO options: " . json_encode($options));
+//        $temp_debug_message("Attempting to create PDO connection");
+
+        $result = new PDO($dsn, $db_user, $db_password, $options);
+        // Устанавливаем кодировку для PostgreSQL
+        if ($db_type === 'pgsql' || $db_type === 'postgresql') {
+                $result->exec("SET client_encoding TO 'UTF8'");
+            }
+
+//        $temp_debug_message("PDO connection created successfully");
+//        $temp_debug_message("PDO connection info: " . ($result->getAttribute(PDO::ATTR_CONNECTION_STATUS) ?? 'N/A for PostgreSQL'));
+        // Проверяем наличие атрибутов перед использованием
+        if ($db_type === 'mysql') {
+//            $temp_debug_message("PDO client version: " . $result->getAttribute(PDO::ATTR_CLIENT_VERSION));
+//            $temp_debug_message("PDO server version: " . $result->getAttribute(PDO::ATTR_SERVER_VERSION));
+            // Проверка кодировки для MySQL
+            $stmt = $result->query("SHOW VARIABLES LIKE 'character_set_connection'");
+            $charset = $stmt->fetch(PDO::FETCH_ASSOC);
+//            $temp_debug_message("Database character set: " . ($charset['Value'] ?? 'not set'));
+        } elseif ($db_type === 'pgsql' || $db_type === 'postgresql') {
+            // Проверка кодировки для PostgreSQL
+            $stmt = $result->query("SHOW server_encoding");
+            $charset = $stmt->fetch(PDO::FETCH_ASSOC);
+//            $temp_debug_message("PostgreSQL server encoding: " . ($charset['server_encoding'] ?? 'not set'));
+            // Получаем версию PostgreSQL
+            $stmt = $result->query("SELECT version()");
+            $version = $stmt->fetch(PDO::FETCH_ASSOC);
+//            $temp_debug_message("PostgreSQL version: " . ($version['version'] ?? 'unknown'));
+        }
+
+        return $result;
+
+    } catch (PDOException $e) {
+        // Логируем ошибку через error_log, так как соединение не установлено
+        error_log("DB_CONNECTION_ERROR: Failed to connect to $db_type");
+        error_log("DB_CONNECTION_ERROR: DSN: $dsn");
+        error_log("DB_CONNECTION_ERROR: User: $db_user");
+        error_log("DB_CONNECTION_ERROR: Error code: " . $e->getCode());
+        error_log("DB_CONNECTION_ERROR: Error message: " . $e->getMessage());
+        error_log("DB_CONNECTION_ERROR: Trace: " . $e->getTraceAsString());
+
+        // Также выводим в консоль для немедленной обратной связи
+        echo "Error connect to $db_type " . PHP_EOL;
+        echo "Error message: " . $e->getMessage() . PHP_EOL;
+        echo "DSN: $dsn" . PHP_EOL;
+
+        exit();
+    } catch (Exception $e) {
+        // Обработка других исключений (например, неподдерживаемый тип БД)
+        error_log("DB_CONNECTION_ERROR: " . $e->getMessage());
+        echo "Error: " . $e->getMessage() . PHP_EOL;
+        exit();
+    }
 }
 
 /**
@@ -146,372 +551,369 @@ function is_assoc($array) {
     return array_keys($array) !== range(0, count($array) - 1);
 }
 
-function run_sql($db, $query)
-{
-    // Проверка прав доступа для UPDATE, DELETE, INSERT
-    if (preg_match('/^\s*(UPDATE|DELETE|INSERT)/i', $query)) {
-        $table_name = null;
-        // Определяем имя таблицы для проверки прав
-        if (preg_match('/^\s*UPDATE\s+(\w+)/i', $query, $matches)) {
-            $table_name = $matches[1];
-            $operation = 'update';
-        } elseif (preg_match('/^\s*DELETE\s+FROM\s+(\w+)/i', $query, $matches)) {
-            $table_name = $matches[1];
-            $operation = 'del';
-        } elseif (preg_match('/^\s*INSERT\s+INTO\s+(\w+)/i', $query, $matches)) {
-            $table_name = $matches[1];
-            $operation = 'add';
-        }
-        // Проверяем права доступа
-        if ($table_name && !allow_update($table_name, $operation)) {
-            LOG_DEBUG($db, "Access denied: $query");
-            return false;
+/**
+ * Нормализует значение поля: преобразует NULL в 0 для числовых полей или в пустую строку для строковых
+ * 
+ * @param string $key Имя поля
+ * @param mixed $value Значение поля
+ * @return mixed Нормализованное значение
+ */
+function normalize_field_value($key, $value) {
+    if ($value === null or $value === 'NULL') {
+	if (isset($numericFieldsSet[$key])) {
+            return 0;
+        } else {
+            return '';
         }
     }
-    // Выполняем запрос
-    $sql_result = mysqli_query($db, $query);
-    if (!$sql_result) {
-        LOG_ERROR($db, "At simple SQL: $query :" . mysqli_error($db));
+    return $value;
+}
+
+/**
+ * Нормализует всю запись (ассоциативный массив)
+ * 
+ * @param array $record Запись из БД
+ * @return array Нормализованная запись
+ */
+function normalize_record($record) {
+    if (!is_array($record) || empty($record)) {
+        return $record;
+    }
+    
+    $normalized = [];
+    foreach ($record as $key => $value) {
+        $normalized[$key] = normalize_field_value($key, $value);
+    }
+    
+    return $normalized;
+}
+
+/**
+ * Нормализует массив записей
+ * 
+ * @param array $records Массив записей из БД
+ * @return array Нормализованные записи
+ */
+function normalize_records($records) {
+    if (!is_array($records) || empty($records)) {
+        return $records;
+    }
+    
+    $normalized = [];
+    foreach ($records as $index => $record) {
+        $normalized[$index] = normalize_record($record);
+    }
+    
+    return $normalized;
+}
+
+/**
+ * Выполняет SQL-запрос с поддержкой параметров.
+ * 
+ * @param PDO $db
+ * @param string $query
+ * @param array $params (опционально)
+ * @return mixed
+ */
+function run_sql($db, $query, $params = [])
+{
+    // Определяем тип запроса и таблицу для проверки прав
+    $table_name = null;
+    $operation = null;
+
+    if (preg_match('/^\s*UPDATE\s+([a-zA-Z_][a-zA-Z0-9_]*)/i', $query, $matches)) {
+        $table_name = $matches[1];
+        $operation = 'update';
+    } elseif (preg_match('/^\s*DELETE\s+FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/i', $query, $matches)) {
+        $table_name = $matches[1];
+        $operation = 'del';
+    } elseif (preg_match('/^\s*INSERT\s+INTO\s+([a-zA-Z_][a-zA-Z0-9_]*)/i', $query, $matches)) {
+        $table_name = $matches[1];
+        $operation = 'add';
+    }
+
+    // Проверка прав доступа
+    if ($table_name && $operation && !allow_update($table_name, $operation)) {
+        LOG_DEBUG($db, "Access denied: $query");
         return false;
     }
-    // Возвращаем результат в зависимости от типа запроса
-    if (preg_match('/^\s*SELECT/i', $query)) {
-        // Для SELECT возвращаем результат запроса
-        return $sql_result;
-    } elseif (preg_match('/^\s*INSERT/i', $query)) {
-        // Для INSERT возвращаем ID вставленной записи
-        return mysqli_insert_id($db);
-    } elseif (preg_match('/^\s*UPDATE/i', $query)) {
-        // Для UPDATE возвращаем 1 (успех)
-        return 1;
-    } elseif (preg_match('/^\s*DELETE/i', $query)) {
-        // Для DELETE также возвращаем 1 (успех)
-        return 1;
+
+    try {
+        $stmt = $db->prepare($query);
+        $success = $stmt->execute($params);
+
+        if (!$success) {
+            LOG_ERROR($db, "Query execution failed: $query | params: " . json_encode($params));
+            return false;
+        }
+
+        // Возвращаем результат в зависимости от типа запроса
+        if (preg_match('/^\s*SELECT/i', $query)) {
+            return $stmt; // PDOStatement для последующего fetch
+        } elseif (preg_match('/^\s*INSERT/i', $query)) {
+            return $db->lastInsertId();
+        } elseif (preg_match('/^\s*(UPDATE|DELETE)/i', $query)) {
+            return $stmt->rowCount();
+        }
+
+        return $stmt;
+
+    } catch (PDOException $e) {
+        LOG_ERROR($db, "SQL error: $query | params: " . json_encode($params) . " | " . $e->getMessage());
+        return false;
     }
-    // Для других типов запросов возвращаем результат как есть
-    return $sql_result;
 }
 
-function get_count_records($db, $table, $filter)
+function get_count_records($db, $table, $filter, $filter_params = [])
 {
+    // Валидация имени таблицы (защита от SQL-инъекций)
+    if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)) {
+        return 0;
+    }
+
+    $sql = "SELECT COUNT(*) AS cnt FROM $table";
     if (!empty($filter)) {
-        $filter = 'where ' . $filter;
+        $sql .= " WHERE $filter";
     }
-    $t_count = mysqli_query($db, "SELECT count(*) FROM $table $filter");
-    list($count) = mysqli_fetch_array($t_count);
-    if (!isset($count)) {
-        $count = 0;
-    }
-    return $count;
+
+    $result = get_record_sql($db, $sql, $filter_params);
+    return !empty($result['cnt']) ? (int)$result['cnt'] : 0;
 }
 
-function get_id_record($db, $table, $filter)
+/**
+ * Получить одну запись из таблицы по фильтру
+ */
+function get_record($db, $table, $filter, $filter_params = [])
 {
-    if (isset($filter)) {
-        $filter = 'WHERE ' . $filter;
+    if (empty($table) || empty($filter)) {
+        return null;
     }
-    $t_record = mysqli_query($db, "SELECT id FROM $table $filter limit 1");
-    list($id) = mysqli_fetch_array($t_record);
-    return $id;
+    // Валидация имени таблицы
+    if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)) {
+        LOG_ERROR($db, "Invalid table name: $table");
+        return null;
+    }
+    if (preg_match('/=$/', trim($filter))) {
+        LOG_ERROR($db, "Search record ($table) with illegal filter '$filter'! Skip command.");
+        return null;
+    }
+    $sql = "SELECT * FROM $table WHERE $filter";
+    return get_record_sql($db, $sql, $filter_params);
 }
 
-function set_changed($db, $id)
+/**
+ * Получить несколько записей из таблицы по фильтру
+ */
+function get_records($db, $table, $filter = '', $filter_params = [])
 {
-    $auth['changed'] = 1;
-    update_record($db, "User_auth", "id=" . $id, $auth);
+    if (empty($table)) {
+        return [];
+    }
+
+    // Валидация имени таблицы
+    if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)) {
+        LOG_ERROR($db, "Invalid table name: $table");
+        return [];
+    }
+
+    if (!empty($filter)) {
+        if (preg_match('/=$/', trim($filter))) {
+            LOG_ERROR($db, "Search records ($table) with illegal filter '$filter'! Skip command.");
+            return [];
+        }
+        $filter = "WHERE $filter";
+    }
+
+    $sql = "SELECT * FROM $table $filter";
+    return get_records_sql($db, $sql, $filter_params);
 }
 
-//action: add,update,del
-function allow_update($table, $action = 'update', $field = '')
+/**
+ * Получить одну запись по произвольному SQL-запросу
+ *
+ * @param PDO $db
+ * @param string $sql
+ * @param array|null $params
+ * @return array|null
+ */
+function get_record_sql($db, $sql, $params = []) {
+    if (empty($sql)) {
+        return null;
+    }
+
+    // Добавляем LIMIT 1, если его нет (только если нет параметризованных запросов!)
+    // Важно: не трогаем запрос, если он уже содержит LIMIT с placeholder'ом
+    if (!preg_match('/\bLIMIT\s+(\?|\d+)/i', $sql) && !preg_match('/\bLIMIT\s+\d+\s*(?:OFFSET\s+\d+)?\s*$/i', $sql)) {
+        $sql .= " LIMIT 1";
+    }
+
+    $result = get_records_sql($db, $sql, $params);
+
+    return !empty($result) ? $result[0] : null;
+}
+
+/**
+ * Получить несколько записей по произвольному SQL-запросу
+ *
+ * @param PDO $db
+ * @param string $sql
+ * @param array|null $params
+ * @return array
+ */
+function get_records_sql($db, $sql, $params = [])
 {
-    //always allow modification for tables
-    if (preg_match('/(variables|dns_cache|worklog|sessions)/i', $table)) {
-        return 1;
+    if (empty($sql)) {
+        return [];
     }
 
-    if (isset($_SESSION['login'])) {
-        $work_user = $_SESSION['login'];
-    }
-    if (isset($_SESSION['user_id'])) {
-        $work_id = $_SESSION['user_id'];
-    }
-    if (isset($_SESSION['acl'])) {
-        $user_level = $_SESSION['acl'];
-    }
-    if (!isset($work_user) or !isset($work_id) or empty($user_level)) {
-        return 0;
-    }
+    // Приводим $params к массиву
+    $params = $params ?: [];
 
-    //always allow Administrator
-    if ($user_level == 1) {
-        return 1;
-    }
+    // Логируем в DEBUG
+    // LOG_DEBUG($db, "SQL: $sql | params: " . json_encode($params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
-    //always forbid ViewOnly
-    if ($user_level == 3) {
-        return 0;
-    }
+    try {
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    //allow tables for Operator
-    if (preg_match('/(dns_queue|User_auth_alias)/i', $table)) {
-        return 1;
-    }
-
-    if ($action == 'update') {
-        $operator_acl = [
-            'User_auth' => [
-                'comments' => '1',
-                'dns_name' => '1',
-                'dns_ptr_only' => '1',
-                'firmware' => '1',
-                'link_check' => '1',
-                'nagios' => '1',
-                'nagios_handler' => '1',
-                'Wikiname' => '1'
-            ],
-            'User_list' => [
-                'fio' => '1',
-                'login' => '1',
-            ],
-        ];
-        if (!isset($operator_acl[$table])) {
-            return 0;
+        if (!empty($records)) {
+//            return normalize_records($records);
+            return $records;
         }
-        if (isset($operator_acl[$table]) and empty($field)) {
-            return 1;
-        }
-        if (!isset($operator_acl[$table][$field])) {
-            return 0;
-        }
-        if (empty($operator_acl[$table][$field]) or $operator_acl[$table][$field] == '0') {
-            return 0;
-        }
-        return 1;
+
+        return [];
+
+    } catch (PDOException $e) {
+        // Логируем ошибку с параметрами
+        LOG_ERROR($db, "SQL error: $sql | params: " . json_encode($params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . " | " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Получить одно значение поля по SQL-запросу
+ */
+function get_single_field($db, $sql, $params = []) {
+    $record = get_record_sql($db, $sql, $params);
+
+    if (!empty($record) && is_array($record)) {
+        return reset($record) ?: 0;
     }
 
     return 0;
 }
 
-function get_record_field($db, $table, $field, $filter)
-{
-    if (!isset($table)) {
-#        LOG_ERROR($db, "Search in unknown table! Skip command.");
-        return;
+/**
+ * Получить ID записи из таблицы по фильтру
+ */
+function get_id_record($db, $table, $filter, $params=[]) {
+    if (empty($filter)) {
+        return 0;
     }
-    if (!isset($filter)) {
-#        LOG_ERROR($db, "Search filter is empty! Skip command.");
-        return;
-    }
-    if (!isset($field)) {
-#        LOG_ERROR($db, "Search field is empty! Skip command.");
-        return;
-    }
-    if (preg_match('/=$/', $filter)) {
-        LOG_ERROR($db, "Search record ($table) with illegal filter $filter! Skip command.");
-        return;
-    }
-    $old_sql = "SELECT $field FROM $table WHERE $filter LIMIT 1";
-    $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "SQL: $old_sql :" . mysqli_error($db));
-    $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
-    foreach ($old as $key => $value) {
-        if (!isset($value) or $value === 'NULL') {
-            $value = '';
-        }
-        $result[$key] = $value;
-    }
-    return $result[$field];
+    
+    $record = get_record($db, $table, $filter, $params);
+    return !empty($record['id']) ? $record['id'] : 0;
 }
 
-function get_record($db, $table, $filter)
+function set_changed($db, $id)
 {
-    if (!isset($table)) {
-#        LOG_ERROR($db, "Search in unknown table! Skip command.");
-        return;
-    }
-    if (!isset($filter)) {
-#        LOG_ERROR($db, "Search filter is empty! Skip command.");
-        return;
-    }
-    if (preg_match('/=$/', $filter)) {
-        LOG_ERROR($db, "Search record ($table) with illegal filter $filter! Skip command.");
-        return;
-    }
-    $get_sql = "SELECT * FROM $table WHERE $filter LIMIT 1";
-    $get_record = mysqli_query($db, $get_sql);
-    if (!$get_record) {
-        LOG_ERROR($db, "SQL: $get_sql :" . mysqli_error($db));
-        return;
-    }
-    $fields = [];
-    while ($field = mysqli_fetch_field($get_record)) {
-        $f_table = $field->table;
-        $f_name = $field->name;
-        $fields[$f_table][$f_name] = $field;
-    }
-    $record = mysqli_fetch_array($get_record, MYSQLI_ASSOC);
-    $result = NULL;
-    if (!empty($record)) {
-        foreach ($record as $key => $value) {
-            if (!isset($value) or $value === 'NULL' or $value == NULL) {
-                if (!empty($key) and !empty($fields[$table]) and !empty($fields[$table][$key])) {
-                    if (in_array($fields[$table][$key]->type, MYSQL_FIELD_DIGIT)) {
-                        $value = 0;
-                    }
-                    if (in_array($fields[$table][$key]->type, MYSQL_FIELD_STRING)) {
-                        $value = '';
-                    }
-                }
-            }
-            if (!empty($key)) {
-                $result[$key] = $value;
-            }
-        }
-    }
-    return $result;
+    $auth['changed'] = 1;
+    update_record($db, "user_auth", "id=?", $auth, [$id]);
 }
 
-function get_records($db, $table, $filter)
+function allow_update($table, $action = 'update', $field = '')
 {
-    if (!isset($table)) {
-#        LOG_ERROR($db, "Search in unknown table! Skip command.");
-        return;
+    // 1. Таблицы с полным доступом (регистронезависимо, но без regex)
+    static $full_access_tables = [
+        'variables' => true,
+        'dns_cache' => true,
+        'worklog' => true,
+        'sessions' => true
+    ];
+    if (isset($full_access_tables[strtolower($table)])) {
+        return 1;
     }
-    if (isset($filter) and preg_match('/=$/', $filter)) {
-        LOG_ERROR($db, "Search record ($table) with illegal filter $filter! Skip command.");
-        return;
+
+    // 2. Получение данных сессии (единая точка)
+    $login = $_SESSION['login'] ?? null;
+    $user_id = $_SESSION['user_id'] ?? null;
+    $acl = $_SESSION['acl'] ?? null;
+
+    // Проверка аутентификации
+    if (!$login || !$user_id || !$acl) {
+        return 0;
     }
-    $s_filter = '';
-    if (isset($filter)) {
-        $s_filter = 'WHERE ' . $filter;
+
+    // Приведение ACL к целому числу
+    $user_level = (int)$acl;
+
+    // 3. Права по уровням
+    if ($user_level === 1) {        // Администратор
+        return 1;
     }
-    $get_sql = "SELECT * FROM $table $s_filter";
-    $get_record = mysqli_query($db, $get_sql);
-    if (!$get_record) {
-        LOG_ERROR($db, "SQL: $get_sql :" . mysqli_error($db));
-        return;
+    if ($user_level === 3) {        // ViewOnly
+        return 0;
     }
-    $fields = [];
-    while ($field = mysqli_fetch_field($get_record)) {
-        $f_table = $field->table;
-        $f_name = $field->name;
-        $fields[$f_table][$f_name] = $field;
+
+    // 4. Таблицы с полным доступом для оператора
+    static $operator_tables = [
+        'dns_queue' => true,
+        'user_auth_alias' => true
+    ];
+    if (isset($operator_tables[strtolower($table)])) {
+        return 1;
     }
-    $result = NULL;
-    $index = 0;
-    while ($rec = mysqli_fetch_array($get_record, MYSQLI_ASSOC)) {
-        foreach ($rec as $key => $value) {
-            if (!isset($value) or $value === 'NULL' or $value == NULL) {
-                if (!empty($key) and !empty($fields[$table]) and !empty($fields[$table][$key])) {
-                    if (in_array($fields[$table][$key]->type, MYSQL_FIELD_DIGIT)) {
-                        $value = 0;
-                    }
-                    if (in_array($fields[$table][$key]->type, MYSQL_FIELD_STRING)) {
-                        $value = '';
-                    }
-                }
-            }
-            $result[$index][$key] = $value;
+
+    // 5. Проверка полей для оператора (только при update)
+    if ($action === 'update') {
+        static $operator_acl = [
+            'user_auth' => [
+                'description' => true,
+                'dns_name' => true,
+                'dns_ptr_only' => true,
+                'firmware' => true,
+                'link_check' => true,
+                'nagios' => true,
+                'nagios_handler' => true,
+                'Wikiname' => true
+            ],
+            'user_list' => [
+                'description' => true,
+                'login' => true
+            ]
+        ];
+
+        // Проверка существования таблицы в ACL
+        if (!isset($operator_acl[$table])) {
+            return 0;
         }
-        $index++;
+
+        // Если поле не указано — разрешаем (полный доступ к таблице)
+        if ($field === '') {
+            return 1;
+        }
+
+        // Проверка прав на конкретное поле
+        return $operator_acl[$table][$field] ?? 0;
     }
-    return $result;
+
+    return 0;
 }
 
-function get_records_sql($db, $sql)
+function update_record($db, $table, $filter, $newvalue, $filter_params = [])
 {
-    $result = NULL;
-    if (empty($sql)) {
-#        LOG_ERROR($db, "Empty query! Skip command.");
-        return $result;
-    }
-    $records = mysqli_query($db, $sql);
-    if (!$records) {
-        LOG_ERROR($db, "SQL: $sql :" . mysqli_error($db));
-        return $result;
-    }
-    $fields = [];
-    //we assume that fields with the same name have the same type
-    while ($field = mysqli_fetch_field($records)) {
-        $f_name = $field->name;
-        $fields[$f_name] = $field;
-    }
-    $index = 0;
-    while ($rec = mysqli_fetch_array($records, MYSQLI_ASSOC)) {
-        foreach ($rec as $key => $value) {
-            if (!isset($value) or $value === 'NULL' or $value == NULL) {
-                if (!empty($key) and !empty($fields[$key])) {
-                    if (in_array($fields[$key]->type, MYSQL_FIELD_DIGIT)) {
-                        $value = 0;
-                    }
-                    if (in_array($fields[$key]->type, MYSQL_FIELD_STRING)) {
-                        $value = '';
-                    }
-                }
-            }
-            if (!empty($key)) {
-                $result[$index][$key] = $value;
-            }
-        }
-        $index++;
-    }
-    return $result;
-}
-
-function get_record_sql($db, $sql)
-{
-    $result = NULL;
-    if (!isset($sql)) {
-#        LOG_ERROR($db, "Empty query! Skip command.");
-        return $result;
-    }
-    $record = mysqli_query($db, $sql . " LIMIT 1");
-    if (!isset($record)) {
-        LOG_ERROR($db, "SQL: $sql LIMIT 1: " . mysqli_error($db));
-        return $result;
-    }
-    $fields = [];
-    //we assume that fields with the same name have the same type
-    while ($field = mysqli_fetch_field($record)) {
-        $f_name = $field->name;
-        $fields[$f_name] = $field;
-    }
-    $rec = mysqli_fetch_array($record, MYSQLI_ASSOC);
-    if (!empty($rec)) {
-        foreach ($rec as $key => $value) {
-            if (!isset($value) or $value === 'NULL' or $value == NULL) {
-                if (!empty($key) and !empty($fields[$key])) {
-                    if (in_array($fields[$key]->type, MYSQL_FIELD_DIGIT)) {
-                        $value = 0;
-                    }
-                    if (in_array($fields[$key]->type, MYSQL_FIELD_STRING)) {
-                        $value = '';
-                    }
-                }
-            }
-            if (!empty($key)) {
-                $result[$key] = $value;
-            }
-        }
-    }
-    return $result;
-}
-
-function update_record($db, $table, $filter, $newvalue)
-{
-    if (!isset($table)) {
-#        LOG_WARNING($db, "Change record for unknown table! Skip command.");
+    if (!isset($table) || trim($table) === '') {
         return;
     }
-    if (!isset($filter)) {
-#        LOG_WARNING($db, "Change record ($table) with empty filter! Skip command.");
+    if (!isset($filter) || trim($filter) === '') {
         return;
     }
-    if (preg_match('/=$/', $filter)) {
+    if (preg_match('/=$/', trim($filter))) {
         LOG_WARNING($db, "Change record ($table) with illegal filter $filter! Skip command.");
         return;
     }
-    if (!isset($newvalue)) {
-#        LOG_WARNING($db, "Change record ($table [ $filter ]) with empty data! Skip command.");
+    if (!isset($newvalue) || !is_array($newvalue)) {
         return;
     }
 
@@ -520,17 +922,12 @@ function update_record($db, $table, $filter, $newvalue)
         return 1;
     }
 
-    $old_sql = "SELECT * FROM $table WHERE $filter";
-    $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "SQL: $old_sql :" . mysqli_error($db));
-    $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
+    $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter",$filter_params);
+    if (empty($old_record)) { return; }
+    $rec_id = $old_record['id'];
 
-    $rec_id = NULL;
-    if (!empty($old['id'])) {
-        $rec_id = $old['id'];
-    }
-
-    $changed_log = '';
-    $run_sql = '';
+    $set_parts = [];
+    $params = [];
     $network_changed = 0;
     $dhcp_changed = 0;
     $dns_changed = 0;
@@ -564,6 +961,7 @@ function update_record($db, $table, $filter, $newvalue)
         'alias' => '1',
     ];
 
+    $valid_record=[];
     foreach ($newvalue as $key => $value) {
 
         if (!allow_update($table, 'update', $key)) {
@@ -574,10 +972,10 @@ function update_record($db, $table, $filter, $newvalue)
             $value = '';
         }
         $value = trim($value);
-        if (strcmp($old[$key], $value) == 0) {
+        if (isset($old_record[$key]) && strcmp($old_record[$key], $value) == 0) {
             continue;
         }
-        if ($table === "User_auth") {
+        if ($table === "user_auth") {
             if (!empty($acl_fields["$key"])) {
                 $network_changed = 1;
             }
@@ -588,54 +986,55 @@ function update_record($db, $table, $filter, $newvalue)
                 $dns_changed = 1;
             }
         }
-        if ($table === "User_auth_alias") {
+        if ($table === "user_auth_alias") {
             if (!empty($dns_fields["$key"])) {
                 $dns_changed = 1;
             }
         }
-        if (!preg_match('/password/i', $key)) {
-            $changed_log = $changed_log . " $key => $value (old: $old[$key]),";
-        }
-        $run_sql = $run_sql . " `" . $key . "`='" . mysqli_real_escape_string($db, $value) . "',";
+        $set_parts[] = "$key = ?";
+        $params[] = $value;
+	$valid_record[$key] = $value;
     }
 
-    if ($table === "User_auth" and $dns_changed) {
-        if (!empty($old['dns_name']) and !empty($old['ip']) and !$old['dns_ptr_only'] and !preg_match('/\.$/', $old['dns_name'])) {
+    $changed_msg = prepareAuditMessage($db, $table, $old_record, $valid_record, $rec_id, 'update');
+
+    if ($table === "user_auth" and $dns_changed) {
+        if (!empty($old_record['dns_name']) and !empty($old_record['ip']) and !$old_record['dns_ptr_only'] and !preg_match('/\.$/', $old_record['dns_name'])) {
             $del_dns['name_type'] = 'A';
-            $del_dns['name'] = $old['dns_name'];
-            $del_dns['value'] = $old['ip'];
-            $del_dns['type'] = 'del';
+            $del_dns['name'] = $old_record['dns_name'];
+            $del_dns['value'] = $old_record['ip'];
+            $del_dns['operation_type'] = 'del';
             if (!empty($rec_id)) {
                 $del_dns['auth_id'] = $rec_id;
             }
             insert_record($db, 'dns_queue', $del_dns);
         }
-        if (!empty($old['dns_name']) and !empty($old['ip']) and $old['dns_ptr_only'] and !preg_match('/\.$/', $old['dns_name'])) {
+        if (!empty($old_record['dns_name']) and !empty($old_record['ip']) and $old_record['dns_ptr_only'] and !preg_match('/\.$/', $old_record['dns_name'])) {
             $del_dns['name_type'] = 'PTR';
-            $del_dns['name'] = $old['dns_name'];
-            $del_dns['value'] = $old['ip'];
-            $del_dns['type'] = 'del';
+            $del_dns['name'] = $old_record['dns_name'];
+            $del_dns['value'] = $old_record['ip'];
+            $del_dns['operation_type'] = 'del';
             if (!empty($rec_id)) {
                 $del_dns['auth_id'] = $rec_id;
             }
             insert_record($db, 'dns_queue', $del_dns);
         }
 
-        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and !$newvalue['dns_ptr_only'] and !preg_match('/\.$/', $newvalue['dns_name'])) {
+        if (!empty($valid_record['dns_name']) and !empty($valid_record['ip']) and !$valid_record['dns_ptr_only'] and !preg_match('/\.$/', $valid_record['dns_name'])) {
             $new_dns['name_type'] = 'A';
-            $new_dns['name'] = $newvalue['dns_name'];
-            $new_dns['value'] = $newvalue['ip'];
-            $new_dns['type'] = 'add';
+            $new_dns['name'] = $valid_record['dns_name'];
+            $new_dns['value'] = $valid_record['ip'];
+            $new_dns['operation_type'] = 'add';
             if (!empty($rec_id)) {
                 $new_dns['auth_id'] = $rec_id;
             }
             insert_record($db, 'dns_queue', $new_dns);
         }
-        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and $newvalue['dns_ptr_only'] and !preg_match('/\.$/', $newvalue['dns_name'])) {
+        if (!empty($valid_record['dns_name']) and !empty($valid_record['ip']) and $valid_record['dns_ptr_only'] and !preg_match('/\.$/', $valid_record['dns_name'])) {
             $new_dns['name_type'] = 'PTR';
-            $new_dns['name'] = $newvalue['dns_name'];
-            $new_dns['value'] = $newvalue['ip'];
-            $new_dns['type'] = 'add';
+            $new_dns['name'] = $valid_record['dns_name'];
+            $new_dns['value'] = $valid_record['ip'];
+            $new_dns['operation_type'] = 'add';
             if (!empty($rec_id)) {
                 $new_dns['auth_id'] = $rec_id;
             }
@@ -643,25 +1042,25 @@ function update_record($db, $table, $filter, $newvalue)
         }
     }
 
-    if ($table === "User_auth_alias" and $dns_changed) {
+    if ($table === "user_auth_alias" and $dns_changed) {
         $auth_id = NULL;
-        if ($old['auth_id']) {
-            $auth_id = $old['auth_id'];
+        if ($old_record['auth_id']) {
+            $auth_id = $old_record['auth_id'];
         }
-        if (!empty($old['alias']) and !preg_match('/\.$/', $old['alias'])) {
+        if (!empty($old_record['alias']) and !preg_match('/\.$/', $old_record['alias'])) {
             $del_dns['name_type'] = 'CNAME';
-            $del_dns['name'] = $old['alias'];
-            $del_dns['type'] = 'del';
+            $del_dns['name'] = $old_record['alias'];
+            $del_dns['operation_type'] = 'del';
             if (!empty($auth_id)) {
                 $del_dns['auth_id'] = $auth_id;
                 $del_dns['value'] = get_dns_name($db, $auth_id);
             }
             insert_record($db, 'dns_queue', $del_dns);
         }
-        if (!empty($newvalue['alias'])  and !preg_match('/\.$/', $newvalue['alias'])) {
+        if (!empty($valid_record['alias'])  and !preg_match('/\.$/', $valid_record['alias'])) {
             $new_dns['name_type'] = 'CNAME';
-            $new_dns['name'] = $newvalue['alias'];
-            $new_dns['type'] = 'add';
+            $new_dns['name'] = $valid_record['alias'];
+            $new_dns['operation_type'] = 'add';
             if (!empty($auth_id)) {
                 $new_dns['auth_id'] = $auth_id;
                 $new_dns['value'] = get_dns_name($db, $auth_id);
@@ -670,47 +1069,99 @@ function update_record($db, $table, $filter, $newvalue)
         }
     }
 
-    if (empty($run_sql)) {
+    if (empty($set_parts)) {
         return 1;
     }
 
     if ($network_changed) {
-        $run_sql = $run_sql . " `changed`='1',";
+        $set_parts[] = "changed = 1";
     }
 
     if ($dhcp_changed) {
-        $run_sql = $run_sql . " `dhcp_changed`='1',";
+        $set_parts[] = "dhcp_changed = 1";
     }
 
-    $changed_log = substr_replace($changed_log, "", -1);
-    $run_sql = substr_replace($run_sql, "", -1);
+    $run_sql = implode(", ", $set_parts);
 
-    if ($table === 'User_auth') {
+    if ($table === 'user_auth') {
         $changed_time = GetNowTimeString();
-        $run_sql = $run_sql . ", `changed_time`='" . $changed_time . "'";
+        $run_sql .= ", changed_time = ?";
+        $params[] = $changed_time;
     }
 
     $new_sql = "UPDATE $table SET $run_sql WHERE $filter";
-    LOG_DEBUG($db, "Run sql: $new_sql");
-    $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "SQL: $new_sql :" . mysqli_error($db));
-    if (!$sql_result) {
-        LOG_ERROR($db, "UPDATE Request: $new_sql :" . mysqli_error($db));
+    $all_params = array_merge($params, $filter_params);
+    LOG_DEBUG($db, "Run sql: $new_sql | params: " . json_encode($all_params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    try {
+        $stmt = $db->prepare($new_sql);
+        $sql_result = $stmt->execute($all_params);
+        if (!$sql_result) {
+            LOG_ERROR($db, "UPDATE Request: $new_sql | params: " . json_encode($all_params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            return;
+            }
+
+        if (!preg_match('/session/i', $table)) {
+            if (!empty($changed_msg)) {
+                if (!preg_match('/user/i', $table)) {
+                    LOG_INFO($db, $changed_msg);
+                    } else {
+                    if ($table == 'user_auth' && !empty($old_record['ip'])) {
+                        if (is_hotspot($db, $old_record['ip'])) {
+                            LOG_INFO($db, $changed_msg, $rec_id);
+                            } else {
+                            LOG_WARNING($db, $changed_msg, $rec_id);
+                            $send_alert_update = isNotifyUpdate(get_notify_subnet($db, $old_record['ip']));
+                            if ($send_alert_update) { email(L_WARNING,$changed_msg); }
+                            }
+                        } else {
+                        LOG_WARNING($db, $changed_msg);
+                        }
+                    }
+                }
+            }
+
+        return $sql_result;
+    } catch (PDOException $e) {
+        LOG_ERROR($db, "SQL: $new_sql | params: " . json_encode($all_params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . " | error: " . $e->getMessage());
         return;
     }
-    if ($table !== "sessions") {
-        LOG_VERBOSE($db, "Change table $table WHERE $filter set $changed_log");
-    }
-    return $sql_result;
 }
 
-function delete_record($db, $table, $filter)
+function delete_records($db, $table, $filter, $filter_params = [])
+{
+    // Сначала получаем ID записей, подходящих под фильтр
+    $records = get_records_sql($db, "SELECT id FROM $table WHERE $filter", $filter_params);
+    if (empty($records)) {
+        return true; // ничего не найдено — успех
+    }
+    // Удаляем каждую запись через уже существующую функцию delete_record
+    foreach ($records as $record) {
+        // Формируем фильтр по id и вызываем delete_record
+        delete_record($db, $table, "id = ?", [$record['id']]);
+    }
+    return true;
+}
+
+function update_records($db, $table, $filter, $newvalue, $filter_params = [])
+{
+    // Получаем ID всех записей, подходящих под фильтр
+    $records = get_records_sql($db, "SELECT id FROM $table WHERE $filter", $filter_params);
+    if (empty($records)) {
+        return true; // ничего не найдено — считаем успехом
+    }
+    // Обновляем каждую запись по отдельности через уже существующую логику
+    foreach ($records as $record) {
+        update_record($db, $table, "id = ?", $newvalue, [$record['id']]);
+    }
+    return true;
+}
+
+function delete_record($db, $table, $filter, $filter_params = [])
 {
     if (!allow_update($table, 'del')) {
-#        LOG_INFO($db, "User does not have write permission");
         return;
     }
     if (!isset($table)) {
-#        LOG_WARNING($db, "Delete FROM unknown table! Skip command.");
         return;
     }
     if (!isset($filter)) {
@@ -722,92 +1173,69 @@ function delete_record($db, $table, $filter)
         return;
     }
 
-    $old_sql = "SELECT * FROM $table WHERE $filter";
-    $old_record = mysqli_query($db, $old_sql) or LOG_ERROR($db, "SQL: $old_sql :" . mysqli_error($db));
-    $old = mysqli_fetch_array($old_record, MYSQLI_ASSOC);
+    $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter",$filter_params);
+    if (empty($old_record)) { return; }
+    $rec_id = $old_record['id'];
 
-    $rec_id = NULL;
-    if (!empty($old['id'])) {
-        $rec_id = $old['id'];
-    }
+    //never delete permanent user
+    if ($table === 'user_list' and $old_record['permanent']) { return; }
 
-    $changed_log = 'record: ';
-    if (!empty($old)) {
-        asort($old, SORT_STRING);
-        $old = array_reverse($old, 1);
-        foreach ($old as $key => $value) {
-            if (empty($value)) {
-                continue;
-            }
-            if (preg_match('/action/', $key)) {
-                continue;
-            }
-            if (preg_match('/status/', $key)) {
-                continue;
-            }
-            if (preg_match('/time/', $key)) {
-                continue;
-            }
-            if (preg_match('/found/', $key)) {
-                continue;
-            }
-            $changed_log = $changed_log . " $key => $value,";
-        }
-    }
+    $changed_msg = prepareAuditMessage($db, $table, $old_record, [], $rec_id, 'delete');
 
     $delete_it = 1;
 
     //never delete user ip record
-    if ($table === 'User_auth') {
+    if ($table === 'user_auth') {
         $delete_it = 0;
-        $changed_time = GetNowTimeString();
-        $new_sql = "UPDATE $table SET deleted=1, changed=1, `changed_time`='" . $changed_time . "' WHERE $filter";
-        LOG_DEBUG($db, "Run sql: $new_sql");
-        $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "SQL: $new_sql :" . mysqli_error($db));
-        if (!$sql_result) {
-            LOG_ERROR($db, "UPDATE Request (from delete): " . mysqli_error($db));
-            return;
-            }
+        update_record($db, $table, $filter, [ 'deleted'=>1, 'changed'=>1 ], $filter_params);
         //dns - A-record
-        if (!empty($old['dns_name']) and !empty($old['ip']) and !$old['dns_ptr_only']  and !preg_match('/\.$/', $old['dns_name'])) {
+        if (!empty($old_record['dns_name']) and !empty($old_record['ip']) and !$old_record['dns_ptr_only']  and !preg_match('/\.$/', $old_record['dns_name'])) {
             $del_dns['name_type'] = 'A';
-            $del_dns['name'] = $old['dns_name'];
-            $del_dns['value'] = $old['ip'];
-            $del_dns['type'] = 'del';
+            $del_dns['name'] = $old_record['dns_name'];
+            $del_dns['value'] = $old_record['ip'];
+            $del_dns['operation_type'] = 'del';
             if (!empty($rec_id)) {
                 $del_dns['auth_id'] = $rec_id;
                 }
             insert_record($db, 'dns_queue', $del_dns);
             }
         //ptr
-        if (!empty($old['dns_name']) and !empty($old['ip']) and $old['dns_ptr_only']  and !preg_match('/\.$/', $old['dns_name'])) {
+        if (!empty($old_record['dns_name']) and !empty($old_record['ip']) and $old_record['dns_ptr_only']  and !preg_match('/\.$/', $old_record['dns_name'])) {
             $del_dns['name_type'] = 'PTR';
-            $del_dns['name'] = $old['dns_name'];
-            $del_dns['value'] = $old['ip'];
-            $del_dns['type'] = 'del';
+            $del_dns['name'] = $old_record['dns_name'];
+            $del_dns['value'] = $old_record['ip'];
+            $del_dns['operation_type'] = 'del';
             if (!empty($rec_id)) {
                 $del_dns['auth_id'] = $rec_id;
                 }
             insert_record($db, 'dns_queue', $del_dns);
             }
-        LOG_VERBOSE($db, "Deleted FROM table $table WHERE $filter $changed_log");
-        return $changed_log;
+        if (!empty($old_record['ip'])) {
+            if (is_hotspot($db, $old_record['ip'])) { 
+                LOG_INFO($db, $changed_msg, $rec_id); 
+                } else {
+                LOG_WARNING($db, $changed_msg, $rec_id);
+                $send_alert_delete = isNotifyDelete(get_notify_subnet($db, $old_record['ip']));
+                if ($send_alert_delete) { email(L_WARNING,$changed_msg); }
+                }
+            } else {
+            LOG_WARNING($db, $changed_msg, $rec_id);
+            }
+        return $old_record;
         }
 
-    //never delete permanent user
-    if ($table === 'User_list' and $old['permanent']) { return; }
 
     //remove aliases
-    if ($table === 'User_auth_alias') {
+    if ($table === 'user_auth_alias') {
         //dns
-        if (!empty($old['alias'])  and !preg_match('/\.$/', $old['alias'])) {
+        if (!empty($old_record['alias'])  and !preg_match('/\.$/', $old_record['alias'])) {
             $del_dns['name_type'] = 'CNAME';
-            $del_dns['name'] = $old['alias'];
+            $del_dns['name'] = $old_record['alias'];
             $del_dns['value'] = '';
-            $del_dns['type'] = 'del';
-            if (!empty($old['auth_id'])) {
-                $del_dns['auth_id'] = $old['auth_id'];
-                $del_dns['value'] = get_dns_name($db, $old['auth_id']);
+            $del_dns['operation_type'] = 'del';
+            if (!empty($old_record['auth_id'])) {
+                $del_dns['auth_id'] = $old_record['auth_id'];
+                $del_dns['value'] = get_dns_name($db, $old_record['auth_id']);
             }
             insert_record($db, 'dns_queue', $del_dns);
         }
@@ -815,259 +1243,264 @@ function delete_record($db, $table, $filter)
 
     if ($delete_it) {
         $new_sql = "DELETE FROM $table WHERE $filter";
-        LOG_DEBUG($db, "Run sql: $new_sql");
-        $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "SQL: $new_sql :" . mysqli_error($db));
-        if (!$sql_result) {
-            LOG_ERROR($db, "DELETE Request: $new_sql : " . mysqli_error($db));
+        LOG_DEBUG($db, "Run sql: $new_sql | params: " . json_encode($filter_params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        try {
+            $stmt = $db->prepare($new_sql);
+            $sql_result = $stmt->execute($filter_params);
+            if ($sql_result === false) {
+                LOG_ERROR($db, "DELETE Request: $new_sql | params: " . json_encode($filter_params));
+                return;
+            }
+        } catch (PDOException $e) {
+            LOG_ERROR($db, "SQL: $new_sql | params: " . json_encode($filter_params) . " : " . $e->getMessage());
             return;
         }
-    } else { return; }
+        } else { return; }
 
-    if ($table !== "sessions") {
-        LOG_VERBOSE($db, "Deleted FROM table $table WHERE $filter $changed_log");
+    if (!preg_match('/session/i', $table)) {
+        if (!empty($changed_msg)) {
+            if (!preg_match('/user/i', $table)) {
+                LOG_INFO($db, $changed_msg);
+                } else {
+                LOG_WARNING($db, $changed_msg);
+            }
+        }
     }
-    return $changed_log;
+
+    return $old_record;
+
 }
 
 function insert_record($db, $table, $newvalue)
 {
     if (!allow_update($table, 'add')) {
-#        LOG_WARNING($db, "User does not have write permission");
+        // LOG_WARNING($db, "User does not have write permission");
         return;
     }
-    if (!isset($table)) {
-#        LOG_WARNING($db, "Create record for unknown table! Skip command.");
+    if (!isset($table) || empty($table)) {
+        // LOG_WARNING($db, "Create record for unknown table! Skip command.");
         return;
     }
-    if (empty($newvalue)) {
-#        LOG_WARNING($db, "Create record ($table) with empty data! Skip command.");
+    if (empty($newvalue) || !is_array($newvalue)) {
+        // LOG_WARNING($db, "Create record ($table) with empty data! Skip command.");
         return;
     }
 
-    $changed_log = '';
-    $field_list = '';
-    $value_list = '';
+    $field_list = [];
+    $value_list = [];
+    $params = [];
+
+    if ($table === 'user_auth') {
+        $newvalue['changed']=1;
+        if (!empty($newvalue['ou_id']) and !is_system_ou($db,$newvalue['ou_id'])) { $newvalue['dhcp_changed']=1; }
+        }
+
     foreach ($newvalue as $key => $value) {
-        if (empty($value) and $value != '0') {
-            $value = '';
-        }
-        if (!preg_match('/password/i', $key)) {
-            $changed_log = $changed_log . " $key => $value,";
-        }
-        $field_list = $field_list . "`" . $key . "`,";
-        $value = trim($value);
-        $value_list = $value_list . "'" . mysqli_real_escape_string($db, $value) . "',";
+        $field_list[] = $key;
+        $value_list[] = '?';
+        $params[] = $value;
     }
-    if (empty($value_list)) {
+
+    if (empty($field_list)) {
         return;
     }
 
-    $changed_log = substr_replace($changed_log, "", -1);
-    $field_list = substr_replace($field_list, "", -1);
-    $value_list = substr_replace($value_list, "", -1);
-    $new_sql = "insert into $table(" . $field_list . ") values(" . $value_list . ")";
-    LOG_DEBUG($db, "Run sql: $new_sql");
-    $sql_result = mysqli_query($db, $new_sql) or LOG_ERROR($db, "SQL: $new_sql :" . mysqli_error($db));
-    if (!$sql_result) {
-        LOG_ERROR($db, "INSERT Request:" . mysqli_error($db));
-        return;
-    }
-    $last_id = mysqli_insert_id($db);
-    if ($table !== "sessions") {
-        LOG_VERBOSE($db, "Create record in table $table: $changed_log with id: $last_id");
-    }
-    if ($table === 'User_auth') {
-        run_sql($db, "UPDATE User_auth SET changed=1, dhcp_changed=1 WHERE id=" . $last_id);
-    }
+    // Формируем SQL
+    $field_list_str = implode(',', $field_list);
+    $value_list_str = implode(',', $value_list);
+    $new_sql = "INSERT INTO $table ($field_list_str) VALUES ($value_list_str)";
 
-    if ($table === 'User_auth_alias') {
-        //dns
-        if (!empty($newvalue['alias'])  and !preg_match('/\.$/', $newvalue['alias'])) {
-            $add_dns['name_type'] = 'CNAME';
-            $add_dns['name'] = $newvalue['alias'];
-            $add_dns['value'] = get_dns_name($db, $newvalue['auth_id']);
-            $add_dns['type'] = 'add';
-            $add_dns['auth_id'] = $newvalue['auth_id'];
-            insert_record($db, 'dns_queue', $add_dns);
-        }
-    }
+    LOG_DEBUG($db, "Run sql: $new_sql | params: " . json_encode($params, JSON_UNESCAPED_UNICODE));
 
-    if ($table === 'User_auth') {
-        //dns - A-record
-        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and !$newvalue['dns_ptr_only']  and !preg_match('/\.$/', $newvalue['dns_name'])) {
-            $add_dns['name_type'] = 'A';
-            $add_dns['name'] = $newvalue['dns_name'];
-            $add_dns['value'] = $newvalue['ip'];
-            $add_dns['type'] = 'add';
-            $add_dns['auth_id'] = $last_id;
-            insert_record($db, 'dns_queue', $add_dns);
-        }
-        //dns - ptr
-        if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and $newvalue['dns_ptr_only'] and !preg_match('/\.$/', $newvalue['dns_name'])) {
-            $add_dns['name_type'] = 'PTR';
-            $add_dns['name'] = $newvalue['dns_name'];
-            $add_dns['value'] = $newvalue['ip'];
-            $add_dns['type'] = 'add';
-            $add_dns['auth_id'] = $last_id;
-            insert_record($db, 'dns_queue', $add_dns);
-        }
-    }
+    try {
+        $stmt = $db->prepare($new_sql);
+        $sql_result = $stmt->execute($params);
 
-    return $last_id;
+        if (!$sql_result) {
+            LOG_ERROR($db, "INSERT Request");
+            return;
+        }
+        $last_id = $db->lastInsertId();
+
+        if (!preg_match('/session/i', $table)) {
+            $changed_msg = prepareAuditMessage($db, $table, [], $newvalue, $last_id, 'insert');
+            if (!empty($changed_msg)) {
+                if (!preg_match('/user/i', $table)) {
+                    LOG_INFO($db, $changed_msg);
+                    } else {
+                    if ($table == 'user_auth' && !empty($newvalue['ip'])) {
+                        if (is_hotspot($db, $newvalue['ip'])) {
+                            LOG_INFO($db, $changed_msg, $last_id);
+                            } else {
+                            LOG_WARNING($db, $changed_msg, $last_id);
+                            $send_alert_create = isNotifyCreate(get_notify_subnet($db, $newvalue['ip']));
+                            if ($send_alert_create) { email(L_WARNING,$changed_msg); }
+                            }
+                        } else {
+                        LOG_WARNING($db, $changed_msg);
+                        }
+                    }
+                }
+            }
+
+        if ($table === 'user_auth_alias') {
+            //dns
+            if (!empty($newvalue['alias'])  and !preg_match('/\.$/', $newvalue['alias'])) {
+                $add_dns['name_type'] = 'CNAME';
+                $add_dns['name'] = $newvalue['alias'];
+                $add_dns['value'] = get_dns_name($db, $newvalue['auth_id']);
+                $add_dns['operation_type'] = 'add';
+                $add_dns['auth_id'] = $newvalue['auth_id'];
+                insert_record($db, 'dns_queue', $add_dns);
+            }
+        }
+
+        if ($table === 'user_auth') {
+            //dns - A-record
+            if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and !$newvalue['dns_ptr_only']  and !preg_match('/\.$/', $newvalue['dns_name'])) {
+                $add_dns['name_type'] = 'A';
+                $add_dns['name'] = $newvalue['dns_name'];
+                $add_dns['value'] = $newvalue['ip'];
+                $add_dns['operation_type'] = 'add';
+                $add_dns['auth_id'] = $last_id;
+                insert_record($db, 'dns_queue', $add_dns);
+            }
+            //dns - ptr
+            if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and $newvalue['dns_ptr_only'] and !preg_match('/\.$/', $newvalue['dns_name'])) {
+                $add_dns['name_type'] = 'PTR';
+                $add_dns['name'] = $newvalue['dns_name'];
+                $add_dns['value'] = $newvalue['ip'];
+                $add_dns['operation_type'] = 'add';
+                $add_dns['auth_id'] = $last_id;
+                insert_record($db, 'dns_queue', $add_dns);
+            }
+        }
+
+        return $last_id;
+
+    } catch (PDOException $e) {
+        LOG_ERROR($db, "SQL error: $new_sql | params: " . json_encode($params) . " | " . $e->getMessage());
+        return false;
+    }
 }
 
-function dump_record($db, $table, $filter)
+function dump_record($db, $table, $filter, $params = [])
 {
     $result = '';
-    $old = get_record($db, $table, $filter);
+    $old = get_record($db, $table, $filter, $params);
     if (empty($old)) {
         return $result;
     }
-    $result = 'record: ' . get_rec_str($old);
+    $result = 'record: ' . hash_to_text($old);
     return $result;
 }
 
-function get_rec_str($array)
+function get_diff_rec($db, $table, $filter, $newvalue, $only_changed = true, $filter_params = [])
 {
-    $result = '';
-    foreach ($array as $key => $value) {
-        $result .= "[" . $key . "]=" . $value . ", ";
-    }
-    $result = preg_replace('/,\s+$/', '', $result);
-    return $result;
-}
-
-function get_diff_rec($db, $table, $filter, $newvalue, $only_changed = false)
-{
-    if (!isset($table) || !isset($filter) || !isset($newvalue)) {
+    if (empty($table) || empty($filter) || !is_array($newvalue)) {
         return '';
     }
-    $old_sql = "SELECT * FROM `$table` WHERE $filter";
-    $result = mysqli_query($db, $old_sql);
-    if (!$result) {
-        LOG_ERROR($db, "SQL: $old_sql :" . mysqli_error($db));
+    // Валидация имени таблицы
+    if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)) {
         return '';
     }
-    $old = mysqli_fetch_array($result, MYSQLI_ASSOC);
-    if (!$old) {
-        // Запись не найдена — возможно, ошибка или новая запись
-        return "Record not found for filter: $filter";
-    }
+    $old_sql = "SELECT * FROM $table WHERE $filter";
+    $old_record = get_record_sql($db, $old_sql, $filter_params);
+    if (empty($old_record)) { return ''; }
+    
     $changed = [];
     $unchanged = [];
     foreach ($newvalue as $key => $new_val) {
-        // Пропускаем ключи, которых нет в старой записи (например, служебные поля)
-        if (!array_key_exists($key, $old)) {
-            continue;
+            // Пропускаем поля, отсутствующие в БД
+            if (!array_key_exists($key, $old_record)) {
+                continue;
+            }
+            $old_record_val = $old_record[$key];
+            // Приведение к строке с учётом NULL
+            $old_record_str = ($old_record_val === null) ? '' : (string)$old_record_val;
+            $new_str = ($new_val === null) ? '' : (string)$new_val;
+            if ($old_record_str !== $new_str) {
+                $changed[$key] = "$new_str [old: $old_record_str]";
+            } elseif (!$only_changed) {
+                $unchanged[$key] = $old_record_val;
+            }
         }
-        $old_val = $old[$key];
-        // Сравниваем как строки, но аккуратно с null
-        $old_str = ($old_val === null) ? '' : (string)$old_val;
-        $new_str = ($new_val === null) ? '' : (string)$new_val;
-        if ($old_str !== $new_str) {
-            $changed[$key] = $new_str . ' [ old: ' . $old_str . ' ]';
-        } else {
-            $unchanged[$key] = $old_val;
-        }
-    }
     if ($only_changed) {
-        return empty($changed) ? '' : hash_to_text($changed);
-    }
-    $output = '';
+            return !empty($changed) ? hash_to_text($changed) : '';
+        }
     if (!empty($changed)) {
-        $output .= hash_to_text($changed);
-    } else {
-        $output .= "# no changes";
-    }
+            $output = hash_to_text($changed);
+        } else {
+            $output = "";
+        }
     if (!empty($unchanged)) {
-        $output .= "\r\nHas not changed:\r\n" . hash_to_text($unchanged);
-    }
+            $output .= "\r\nHas not changed:\r\n" . hash_to_text($unchanged);
+        }
     return $output;
 }
 
 function delete_user_auth($db, $id) {
-    $msg = '';
-    $record = get_record_sql($db, 'SELECT * FROM User_auth WHERE id=' . $id);
-    $txt_record = hash_to_text($record);
     // remove aliases
-    $t_User_auth_alias = get_records_sql($db, 'SELECT * FROM User_auth_alias WHERE auth_id=' . $id);
-    if (!empty($t_User_auth_alias)) {
-        foreach ($t_User_auth_alias as $row) {
-            $alias_txt = record_to_txt($db, 'User_auth_alias', 'id=' . $row['id']);
-            if (delete_record($db, 'User_auth_alias', 'id=' . $row['id'])) {
-                $msg = "Deleting an alias: " . $alias_txt . "::Success!\n" . $msg;
-            } else {
-                $msg = "Deleting an alias: " . $alias_txt . "::Fail!\n" . $msg;
-            }
-        }
-    }
+    delete_records($db, 'user_auth_alias', 'auth_id=?', [ $id ]);
     // remove connections
-    run_sql($db, 'DELETE FROM connections WHERE auth_id=' . $id);
+    delete_records($db, 'connections', 'auth_id=?', [ $id ]);
     // remove user auth record
-    $changes = delete_record($db, "User_auth", "id=" . $id);
-    if ($changes) {
-        $msg = "Deleting ip-record: " . $txt_record . "::Success!\n" . $msg;
-    } else {
-        $msg = "Deleting ip-record: " . $txt_record . "::Fail!\n" . $msg;
-    }
-    LOG_WARNING($db, $msg);
-    $send_alert_delete = isNotifyDelete(get_notify_subnet($db, $record['ip']));
-    if ($send_alert_delete) { email(L_WARNING,$msg); }
+    $changes = delete_record($db, "user_auth", "id=?", [ $id ]);
     return $changes;
 }
 
 function delete_user($db,$id)
 {
 //remove user record
-$changes = delete_record($db, "User_list", "id=" . $id);
+$changes = delete_record($db, "user_list", "id=?", [ $id ]);
 //if fail - exit
 if (!isset($changes) or empty($changes)) { return; }
 //remove auth records
-$t_User_auth = get_records($db,'User_auth',"user_id=$id");
-if (!empty($t_User_auth)) {
-    foreach ( $t_User_auth as $row ) { delete_user_auth($db,$row['id']); }
+$t_user_auth = get_records($db,'user_auth',"user_id=$id");
+if (!empty($t_user_auth)) {
+    foreach ( $t_user_auth as $row ) { delete_user_auth($db,$row['id']); }
     }
 //remove device
 $device = get_record($db, "devices", "user_id='$id'");
 if (!empty($device)) {
-    LOG_INFO($db, "Delete device for user id: $id ".dump_record($db,'devices','user_id='.$id));
     unbind_ports($db, $device['id']);
-    run_sql($db, "DELETE FROM connections WHERE device_id=" . $device['id']);
-    run_sql($db, "DELETE FROM device_l3_interfaces WHERE device_id=" . $device['id']);
-    run_sql($db, "DELETE FROM device_ports WHERE device_id=" . $device['id']);
-    run_sql($db, "DELETE FROM device_filter_instances WHERE device_id=" . $device['id']);
-    run_sql($db, "DELETE FROM gateway_subnets WHERE device_id=".$device['id']);
-    delete_record($db, "devices", "id=" . $device['id']);
+    delete_records($db, "connections","device_id=?", [$device['id']]);
+    delete_records($db, "device_l3_interfaces","device_id=?", [$device['id']]);
+    delete_records($db, "device_ports","device_id=?", [$device['id']]);
+    delete_records($db, "device_filter_instances","device_id=?", [$device['id']]);
+    delete_records($db, "gateway_subnets","device_id=?",[$device['id']]);
+    delete_record($db, "devices", "id=?", [$device['id']]);
     }
 //remove auth assign rules
-run_sql($db, "DELETE FROM auth_rules WHERE user_id=$id");
+delete_records($db, "auth_rules","user_id=?",[ $id ]);
 return $changes;
 }
 
 function delete_device($db,$id)
 {
-LOG_INFO($db, "Try delete device id: $id ".dump_record($db,'devices','id='.$id));
 //remove user record
-$changes = delete_record($db, "devices", "id=" . $id);
+$changes = delete_record($db, "devices", "id=?", [$id]);
 //if fail - exit
 if (!isset($changes) or empty($changes)) {
     LOG_INFO($db,"Device id: $id has not been deleted");
     return;
     }
 unbind_ports($db, $id);
-run_sql($db, "DELETE FROM connections WHERE device_id=" . $id);
-run_sql($db, "DELETE FROM device_l3_interfaces WHERE device_id=" . $id);
-run_sql($db, "DELETE FROM device_ports WHERE device_id=" . $id);
-run_sql($db, "DELETE FROM device_filter_instances WHERE device_id=" . $id);
-run_sql($db, "DELETE FROM gateway_subnets WHERE device_id=".$id);
+delete_records($db, "connections","device_id=?", [$id]);
+delete_records($db, "device_l3_interfaces","device_id=?", [$id]);
+delete_records($db, "device_ports","device_id=?", [$id]);
+delete_records($db, "device_filter_instances","device_id=?", [$id]);
+delete_records($db, "gateway_subnets","device_id=?",[$id]);
 return $changes;
 }
 
 function record_to_txt($db, $table, $id) {
-    $record = get_record_sql($db, 'SELECT * FROM ' . $table . ' WHERE id =' . $id);
+    $record = get_record_sql($db, 'SELECT * FROM ' . $table . ' WHERE id =?', [ $id ]);
     return hash_to_text($record);
 }
 
-$db_link = new_connection(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+if (!defined("DB_TYPE")) { define("DB_TYPE","mysql"); }
+
+$db_link = new_connection(DB_TYPE, DB_HOST, DB_USER, DB_PASS, DB_NAME);
 
 ?>

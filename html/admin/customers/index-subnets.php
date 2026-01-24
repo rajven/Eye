@@ -3,42 +3,65 @@
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
 
-if (isset($_POST["s_remove"])) {
-    if (!empty($_POST["s_id"])) {
-        $s_id = $_POST["s_id"];
-        foreach ($s_id as $key => $net_id) {
-            if (isset($net_id)) {
-                LOG_INFO($db_link, "Remove subnet id: $net_id ". dump_record($db_link,'subnets','id='.$val));
-                delete_record($db_link, "subnets", "id=" . $net_id);
-                delete_record($db_link, "gateway_subnets", "subnet_id=" . $net_id);
-            }
+// Удаление подсетей
+if (getPOST("s_remove") !== null) {
+    $s_id = getPOST("s_id", null, []);
+    
+    if (!empty($s_id) && is_array($s_id)) {
+        foreach ($s_id as $net_id) {
+            $net_id = trim($net_id);
+            if ($net_id === '') continue;
+            
+            delete_record($db_link, "subnets", "id = ?", [$net_id]);
+            delete_record($db_link, "gateway_subnets", "subnet_id = ?", [$net_id]);
         }
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST["s_create"])) {
-    $new_subnet = $_POST["s_create_subnet"];
-    if (isset($new_subnet)) {
-        $new['subnet'] = trim($new_subnet);
-        $range = cidrToRange($new['subnet']);
-        $first_user_ip = $range[0];
-        $last_user_ip = $range[1];
-        $cidr = $range[2][1];
-        if (isset($cidr) and $cidr < 32) {
-            $ip = $first_user_ip . '/' . $cidr;
+// Создание новой подсети
+if (getPOST("s_create") !== null) {
+    $new_subnet = trim(getPOST("s_create_subnet", null, ''));
+
+    if ($new_subnet !== '') {
+        $range = cidrToRange($new_subnet);
+        $first_user_ip = $range[0] ?? '';
+        $last_user_ip  = $range[1] ?? '';
+        $cidr          = $range[2] ?? null;
+        // Формируем корректный CIDR
+        if ($cidr !== null && $cidr < 32) {
+            $new_subnet = "$first_user_ip/$cidr";
         } else {
-            $ip = $first_user_ip;
+            $range = cidrToRange($first_user_ip.'/24');
+            $first_user_ip = $range[0] ?? '';
+            $last_user_ip  = $range[1] ?? '';
+            $cidr          = $range[2] ?? null;
+            if ($cidr !== null && $cidr < 32) {
+                $new_subnet = "$first_user_ip/$cidr";
+                } else {
+                //abort
+                header("Location: " . $_SERVER["REQUEST_URI"]);
+                exit;
+                }
         }
-        $new['ip_int_start'] = ip2long($first_user_ip);
-        $new['ip_int_stop'] = ip2long($last_user_ip);
-        $new['dhcp_start'] = ip2long($range[3]);
-        $new['dhcp_stop'] = ip2long($range[4]);
-        $new['gateway'] = ip2long($range[5]);
-        LOG_INFO($db_link, "Create new subnet $new_subnet");
+
+        $start_ip = ip2long($first_user_ip);
+        $stop_ip = ip2long($last_user_ip);
+
+        $new = [
+            'subnet' => $new_subnet,
+            'ip_int_start' => $start_ip,
+            'ip_int_stop'  => $stop_ip,
+            'dhcp_start'   => ip2long($range[3] ?? $first_user_ip),
+            'dhcp_stop'    => ip2long($range[4] ?? $first_user_ip),
+            'gateway'      => ip2long($range[5] ?? $first_user_ip)
+        ];
+
         insert_record($db_link, "subnets", $new);
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -75,10 +98,10 @@ print_control_submenu($page_url);
                 <td><b><?php echo WEB_network_dyndns; ?></b></td>
                 <td><b><?php echo WEB_network_discovery; ?></b></td>
                 <td><b><?php echo WEB_network_notify; ?></b></td>
-                <td><b><?php echo WEB_cell_comment; ?></b></td>
+                <td><b><?php echo WEB_cell_description; ?></b></td>
             </tr>
             <?php
-            $t_subnets = get_records($db_link, 'subnets', 'True ORDER BY ip_int_start');
+            $t_subnets = get_records_sql($db_link, 'SELECT * FROM subnets ORDER BY ip_int_start');
             foreach ($t_subnets as $row) {
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=s_id[] value='" . $row['id'] . "'></td>\n";
@@ -93,7 +116,7 @@ print_control_submenu($page_url);
                 print_td_yes_no($row['dhcp_update_hostname']);
                 print_td_yes_no($row['discovery']);
                 print "<td class=\"data\">" . printFlagsByFirstLetter($row['notify']) . " </td>\n";
-                print "<td class=\"data\">" . $row['comment'] . " </td>\n";
+                print "<td class=\"data\">" . $row['description'] . " </td>\n";
                 print "</tr>\n";
                 }
             ?>

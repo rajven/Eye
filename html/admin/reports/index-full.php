@@ -9,6 +9,7 @@ $default_order='DESC';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
+$gateway_list = get_gateways($db_link);
 
 print_reports_submenu($page_url);
 
@@ -24,44 +25,70 @@ print_reports_submenu($page_url);
 
 <?php
 
-$sort_sql=" ORDER BY tin DESC";
+// === 1. Выбор таблицы статистики ===
+$traffic_stat_table = ($days_shift >= ($config["traffic_ipstat_history"] ?? 30)) 
+    ? 'user_stats' 
+    : 'user_stats_full';
 
-if (!empty($sort_field) and !empty($order)) { $sort_sql = " ORDER BY $sort_field $order"; }
+// === 2. Безопасная сортировка ===
+$allowed_sort_fields = ['tin', 'tout', 'pin', 'pout', 'id', 'router_id'];
+$allowed_orders = ['ASC', 'DESC'];
 
-$gateway_list = get_gateways($db_link);
+$sort_field = in_array($sort_field, $allowed_sort_fields, true) ? $sort_field : 'tin';
+$order = in_array(strtoupper($order), $allowed_orders, true) ? strtoupper($order) : 'DESC';
 
-$trafSQL = "SELECT 
-User_list.login,User_list.ou_id,User_auth.user_id, User_auth.ip, User_stats_full.auth_id, 
-User_stats_full.router_id, SUM( byte_in ) AS tin, SUM( byte_out ) AS tout, MAX(ROUND(`pkt_in`/`step`)) as pin, MAX(ROUND(`pkt_out`/`step`)) as pout 
-FROM User_stats_full,User_auth,User_list WHERE User_list.id=User_auth.user_id 
-AND User_stats_full.auth_id = User_auth.id 
-AND User_stats_full.timestamp>='$date1' 
-AND User_stats_full.timestamp<'$date2' 
+$sort_sql = " ORDER BY $sort_field $order";
+
+// === 3. Базовые параметры ===
+$sql_params = [$date1, $date2];
+
+// === 4. Формируем запрос ===
+$trafSQL = "
+    SELECT 
+        user_auth.id,
+        {$traffic_stat_table}.router_id,
+        SUM(byte_in) AS tin,
+        SUM(byte_out) AS tout,
+        MAX(ROUND(pkt_in / step)) AS pin,
+        MAX(ROUND(pkt_out / step)) AS pout
+    FROM {$traffic_stat_table}
+    JOIN user_auth ON {$traffic_stat_table}.auth_id = user_auth.id
+    JOIN user_list ON user_list.id = user_auth.user_id
+    WHERE {$traffic_stat_table}.ts >= ?
+      AND {$traffic_stat_table}.ts < ?
 ";
 
+// === 5. Дополнительные условия ===
 if ($rou !== 0) {
-    $trafSQL = $trafSQL . " AND User_list.ou_id=$rou";
+    $trafSQL .= " AND user_list.ou_id = ?";
+    $sql_params[] = (int)$rou;
+}
+if ($rgateway > 0) {
+    $trafSQL .= " AND {$traffic_stat_table}.router_id = ?";
+    $sql_params[] = (int)$rgateway;
 }
 
-if ($rgateway == 0) {
-    $trafSQL = $trafSQL . " GROUP by User_auth.id,User_stats_full.router_id";
-} else {
-    $trafSQL = $trafSQL . " AND User_stats_full.router_id=$rgateway GROUP by User_auth.id,User_stats_full.router_id";
-}
+// === 6. GROUP BY (корректный для текущего SELECT) ===
+$trafSQL .= " GROUP BY user_auth.id, {$traffic_stat_table}.router_id";
 
-$countSQL = "SELECT Count(*) FROM ($trafSQL) A";
+// === 7. Подсчёт записей ===
+$countSQL = "SELECT COUNT(*) FROM ($trafSQL) AS subquery";
+$count_records = (int)get_single_field($db_link, $countSQL, $sql_params);
 
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
-if ($page>$total) { $page=$total; }
-if ($page<1) { $page=1; }
-$start = ($page * $displayed) - $displayed;
+// === 8. Пагинация ===
+$total = ceil($count_records / $displayed);
+$page = max(1, min($page, $total));
+$start = ($page - 1) * $displayed; // исправлено
 
-#set sort
-$trafSQL=$trafSQL ." $sort_sql LIMIT $start,$displayed";
+print_navigation($page_url, $page, $displayed, $count_records, $total);
 
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+// === 9. Добавляем сортировку, LIMIT, OFFSET ===
+$trafSQL .= $sort_sql . " LIMIT ? OFFSET ?";
+$sql_params[] = (int)$displayed;
+$sql_params[] = (int)$start;
+
+// === 10. Выполняем запрос ===
+$traf = get_records_sql($db_link, $trafSQL, $sql_params);
 
 print "<br><br>\n";
 print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
@@ -78,25 +105,25 @@ print "</tr>\n";
 $total_in = 0;
 $total_out = 0;
 
-$traf = mysqli_query($db_link, $trafSQL);
-
-while (list ($s_login,$s_ou_id,$u_id,$s_ip,$s_auth_id, $s_router_id, $traf_day_in, $traf_day_out, $p_in, $p_out) = mysqli_fetch_array($traf)) {
-    if ($traf_day_in + $traf_day_out ==0) { continue; }
-    $total_in += $traf_day_in;
-    $total_out += $traf_day_out;
-    if (!empty($gateway_list[$s_router_id])) { $s_router = $gateway_list[$s_router_id]; } else { $s_router=''; }
-    $cl = "data";
-    if ($traf_day_out > 2 * $traf_day_in) { $cl = "nb"; }
+foreach ($traf as $row) {
+    if ($row['tin'] + $row['tout'] == 0) { continue; }
+    $total_in += $row['tin'];
+    $total_out += $row['tout'];
+    $s_router = !empty($gateway_list[$row['router_id']]) ? $gateway_list[$row['router_id']] : '';
+    $cl = $row['tout'] > 2 * $row['tin'] ? "nb" : "data";
+    $a_SQL='SELECT ip,U.login FROM user_auth, user_list as U where user_auth.user_id=U.id and user_auth.id=?';
+    $auth_record = get_record_sql($db_link,$a_SQL,[$row['id']]);
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td align=left class=\"$cl\">$s_login</td>\n";
-    print "<td align=left class=\"$cl\"><a href=authday.php?id=$s_auth_id&date_start=$date1&date_stop=$date2>$s_ip</a></td>\n";
+    print "<td align=left class=\"$cl\">" . $auth_record['login'] . "</td>\n";
+    print "<td align=left class=\"$cl\"><a href=authday.php?id=" . $row['id'] . "&date_start=$date1&date_stop=$date2>" . $auth_record['ip'] . "</a></td>\n";
     print "<td align=left class=\"$cl\">$s_router</td>\n";
-    print "<td class=\"$cl\">" . fbytes($traf_day_in) . "</td>\n";
-    print "<td class=\"$cl\">" . fbytes($traf_day_out) . "</td>\n";
-    print "<td class=\"$cl\">" . fpkts($p_in) . "</td>\n";
-    print "<td class=\"$cl\">" . fpkts($p_out) . "</td>\n";
+    print "<td class=\"$cl\">" . fbytes($row['tin']) . "</td>\n";
+    print "<td class=\"$cl\">" . fbytes($row['tout']) . "</td>\n";
+    print "<td class=\"$cl\">" . fpkts($row['pin']) . "</td>\n";
+    print "<td class=\"$cl\">" . fpkts($row['pout']) . "</td>\n";
     print "</tr>\n";
 }
+
 print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
 print "<td class=\"data\" colspan=2><b>".WEB_title_itog."</b></td>\n";
 print "<td class=\"data\"><b></b></td>\n";
@@ -109,7 +136,7 @@ print "</tr>\n";
 </table>
 
 <?php
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 
 <script>
@@ -131,5 +158,5 @@ document.getElementById('gateway').addEventListener('change', function(event) {
 </script>
 
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

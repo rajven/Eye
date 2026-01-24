@@ -5,44 +5,47 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 
 $msg_error = "";
 
-$old_auth_info = get_record_sql($db_link, "SELECT * FROM User_auth WHERE id=" . $id);
+$old_auth_info = get_record_sql($db_link, "SELECT * FROM user_auth WHERE id = ?", [$id]);
 if (empty($old_auth_info)) {
     header("Location: /admin/");
-    }
+    exit;
+}
 
 $parent_id = $old_auth_info['user_id'];
-
-$user_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=" . $parent_id);
+$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$parent_id]);
 $parent_ou_id = $user_info['ou_id'];
 $user_enabled = $user_info['enabled'];
 
-if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
-    $ip = normalizeIpAddress(substr(trim($_POST["f_ip"]), 0, 18));
+// === РЕДАКТИРОВАНИЕ ЗАПИСИ АВТОРИЗАЦИИ ==========================================
+if (getPOST("editauth") !== null && !$old_auth_info['deleted']) {
+    $ip = normalizeIpAddress(substr(trim(getPOST("f_ip", null, '')), 0, 18));
+    
     if (!empty($ip)) {
         $ip_aton = ip2long($ip);
-        $mac = mac_dotted($_POST["f_mac"]);
-        //search mac
+        $mac = mac_dotted(getPOST("f_mac", null, ''));
+        // Проверка MAC
         $mac_exists = find_mac_in_subnet($db_link, $ip, $mac);
-        if (isset($mac_exists) and $mac_exists['count'] >= 1 and !in_array($parent_id, $mac_exists['users_id'])) {
-            $dup_sql = "SELECT * FROM User_list WHERE id=" . $mac_exists['users_id']['0'];
-            $dup_info = get_record_sql($db_link, $dup_sql);
-            $msg_error = "Mac already exists at another user in this subnet! Skip creating $ip [$mac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
+        if (!empty($mac_exists) && ($mac_exists['count'] ?? 0) >= 1 && !in_array($parent_id, $mac_exists['users_id'] ?? [])) {
+            $dup_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$mac_exists['users_id'][0] ?? 0]);
+            $msg_error = "Mac already exists at another user in this subnet! Skip creating $ip [$mac].<br>Old user id: " . ($dup_info['id'] ?? '') . " login: " . ($dup_info['login'] ?? '');
             $_SESSION[$page_url]['msg'] = $msg_error;
             LOG_ERROR($db_link, $msg_error);
             header("Location: " . $_SERVER["REQUEST_URI"]);
             exit;
         }
-        //disable dhcp for secondary ip
-        $f_dhcp = $_POST["f_dhcp"] * 1;
-        if (!empty($mac_exists) and in_array($parent_id, $mac_exists['users_id'])) {
-            if ($parent_id != $mac_exists['users_id'][0]) {
+
+        // DHCP для вторичного IP
+        $f_dhcp = (int)getPOST("f_dhcp", null, 0);
+        if (!empty($mac_exists) && in_array($parent_id, $mac_exists['users_id'] ?? [])) {
+            if ($parent_id != ($mac_exists['users_id'][0] ?? null)) {
                 $f_dhcp = 0;
             }
         }
-        //search ip
-        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
+
+        // Проверка дубликата IP
+        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM user_auth WHERE ip_int = ? AND id <> ? AND deleted = 0", [$ip_aton, $id]);
         if (!empty($dup_ip_record)) {
-            $dup_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=" . $dup_ip_record['user_id']);
+            $dup_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$dup_ip_record['user_id']]);
             $msg_error = "$ip already exists. Skip creating $ip [$mac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
             $_SESSION[$page_url]['msg'] = $msg_error;
             LOG_ERROR($db_link, $msg_error);
@@ -50,126 +53,139 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
             exit;
         }
 
-        $new['ip'] = $ip;
-        $new['ou_id'] = $parent_ou_id;
-        $new['ip_int'] = $ip_aton;
-        $new['mac'] = mac_dotted($_POST["f_mac"]);
-        $new['comments'] = $_POST["f_comments"];
-        $new['WikiName'] = $_POST["f_wiki"];
-        $f_dnsname = trim($_POST["f_dns_name"]);
-        $new['dns_ptr_only']=0;
-        if (isset($_POST["f_dns_ptr"]) or !empty($f_dns_name)) { $new['dns_ptr_only']=1; }
+        $new = [
+            'ip'          => $ip,
+            'ou_id'       => $parent_ou_id,
+            'ip_int'      => $ip_aton,
+            'mac'         => $mac,
+            'description' => trim(getPOST("f_description", null, '')),
+            'wikiname'    => trim(getPOST("f_wiki", null, ''))
+        ];
 
-        //update device managment ip
-        $device = get_record_sql($db_link,"SELECT * FROM devices WHERE ip_int=".$old_auth_info['ip_int']);
-        if (!empty($device)) {
-            $dev['ip'] = $ip;
-            $dev['ip_int']=$ip_aton;
-            update_record($db_link,"devices","id=".$device['id'],$dev);
-            }
-
-        $dns_alias_count = get_count_records($db_link,'User_auth_alias','auth_id='.$id);
-        if (!empty($f_dnsname) and !$new['dns_ptr_only']) {
-            $domain_zone = get_option($db_link, 33);
-            $domain_zone = ltrim($domain_zone, '.');
-            $f_dnsname = preg_replace('/\.' . str_replace('.', '\.', $domain_zone) . '$/', '', $f_dnsname);
-//            $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
-            $f_dnsname = preg_replace('/\s+/','-',$f_dnsname);
-//            $f_dnsname = preg_replace('/\./','-',$f_dnsname);
-            //disable change dns name when exists aliases
-            if ($dns_alias_count >0 and $f_dnsname !== $old_auth_info['dns_name']) {
-                $f_dnsname =  $old_auth_info['dns_name'];
-                } else {
-                $valid_dns = checkValidHostname($f_dnsname);
-                $uniq_dns = checkUniqHostname($db_link,$id,$f_dnsname);
-                if ($valid_dns and $uniq_dns) {
-                        $new['dns_name'] = $f_dnsname;
-                        } else {
-                        if (!$uniq_dns) {
-                            $msg_error = "DNS $f_dnsname already exists at: ".searchHostname($db_link,$id,$f_dnsname)." Discard changes!";
-                            } else {
-                            $msg_error = "DNS $f_dnsname not valid! Discard changes!";
-                            }
-                        $_SESSION[$page_url]['msg'] = $msg_error;
-                        LOG_ERROR($db_link, $msg_error);
-                        header("Location: " . $_SERVER["REQUEST_URI"]);
-                        exit;
-                        }
-                }
-            }
-
-        if (empty($f_dnsname) or $new['dns_ptr_only']) {
-            //remove all dns aliases
+        $f_dnsname = trim(getPOST("f_dns_name", null, ''));
+        $f_dns_ptr_present = (getPOST("f_dns_ptr", null, null) !== null);
+        if (empty($f_dnsname)) {
+            $new['dns_ptr_only'] = 0;
             $new['dns_name'] = '';
-            $t_User_auth_alias = get_records($db_link,'User_auth_alias',"auth_id=$id ORDER BY alias");
-            if (!empty($t_User_auth_alias)) {
-                foreach ( $t_User_auth_alias as $row ) {
-                    LOG_INFO($db_link, "Remove alias id: ".$row['id']." for auth_id: $id :: ".dump_record($db_link,'User_auth_alias','id='.$row['id']));
-                    delete_record($db_link,'User_auth_alias','id='.$row['id']);
-                    }
+            } else {
+            $new['dns_ptr_only'] = $f_dns_ptr_present ? 1 : 0;
+            }
+        
+        // Обновление IP в devices
+        $device = get_record_sql($db_link, "SELECT * FROM devices WHERE ip_int = ?", [$old_auth_info['ip_int']]);
+        if (!empty($device)) {
+            update_record($db_link, "devices", "id = ?", [
+                'ip'     => $ip,
+                'ip_int' => $ip_aton
+            ], [$device['id']]);
+        }
+
+        // Обработка DNS-имени и алиасов
+        $dns_alias_count = get_count_records($db_link, 'user_auth_alias', 'auth_id = ?', [$id]);
+        if (!empty($f_dnsname) && !$new['dns_ptr_only']) {
+            $domain_zone = ltrim(get_option($db_link, 33), '.');
+            $escaped_zone = preg_quote($domain_zone, '/');
+            $f_dnsname = preg_replace('/\.' . $escaped_zone . '$/i', '', $f_dnsname);
+            $f_dnsname = preg_replace('/\s+/', '-', $f_dnsname);
+
+            if ($dns_alias_count > 0 && $f_dnsname !== $old_auth_info['dns_name']) {
+                $f_dnsname = $old_auth_info['dns_name'];
+            } else {
+                $valid_dns = checkValidHostname($f_dnsname);
+                $uniq_dns = checkUniqHostname($db_link, $id, $f_dnsname);
+                if ($valid_dns && $uniq_dns) {
+                    $new['dns_name'] = $f_dnsname;
+                } else {
+                    $msg_error = !$uniq_dns 
+                        ? "DNS $f_dnsname already exists at: " . searchHostname($db_link, $id, $f_dnsname) . " Discard changes!"
+                        : "DNS $f_dnsname not valid! Discard changes!";
+                    $_SESSION[$page_url]['msg'] = $msg_error;
+                    LOG_ERROR($db_link, $msg_error);
+                    header("Location: " . $_SERVER["REQUEST_URI"]);
+                    exit;
                 }
             }
-
-        if ($old_auth_info['dns_ptr_only'] and !$new['dns_ptr_only']) {
-            $new['dns_name'] = ''; 
-            }
-
-        if (!empty($f_dnsname) and $new['dns_ptr_only']) {
-            $domain_zone = get_option($db_link, 33);
-            $domain_zone = ltrim($domain_zone, '.');
-            $f_dnsname = preg_replace('/\.' . str_replace('.', '\.', $domain_zone) . '$/', '', $f_dnsname);
-//            $f_dnsname = preg_replace('/\.$/','',$f_dnsname);
-            $f_dnsname = preg_replace('/\s+/','-',$f_dnsname);
-//            $f_dnsname = preg_replace('/\./','-',$f_dnsname);
-            $new['dns_name'] = $f_dnsname;
-            }
-
-        $new['save_traf'] = $_POST["f_save_traf"] * 1;
-        $new['dhcp_acl'] = trim($_POST["f_acl"]);
-        $new['dhcp_option_set'] = trim($_POST["f_dhcp_option_set"]);
-        $new['dynamic'] = trim($_POST["f_dynamic"]);
-        if ($new['dynamic']) { $new['eof'] =  trim($_POST["f_eof"]); }
-        if (get_const('default_user_ou_id') == $parent_ou_id or get_const('default_hotspot_ou_id') == $parent_ou_id) {
-            $new['nagios_handler'] = '';
-            $new['enabled'] = 0;
-            $new['link_check'] = 0;
-            $new['nagios'] = 0;
-            $new['blocked'] = 0;
-            $new['day_quota'] = 0;
-            $new['month_quota'] = 0;
-            $new['queue_id'] = 0;
-            $new['filter_group_id'] = 0;
-        } else {
-            $new['nagios_handler'] = $_POST["f_handler"];
-            $new['enabled'] = get_int($_POST["f_enabled"]);
-            $new['link_check'] = get_int($_POST["f_link"]);
-            $new['nagios'] = get_int($_POST["f_nagios"]);
-            $new['dhcp'] = $f_dhcp;
-            $new['blocked'] = get_int($_POST["f_blocked"]);
-            $new['day_quota'] = get_int($_POST["f_day_q"]);
-            $new['month_quota'] = get_int($_POST["f_month_q"]);
-            $new['queue_id'] = get_int($_POST["f_queue_id"]);
-            $new['filter_group_id'] = get_int($_POST["f_group_id"]);
         }
+
+        // Удаление алиасов при отключении DNS
+        if (empty($f_dnsname) || $new['dns_ptr_only']) {
+            $new['dns_name'] = '';
+            $t_user_auth_alias = get_records($db_link, 'user_auth_alias', "auth_id = ? ORDER BY alias", [$id]);
+            if (!empty($t_user_auth_alias)) {
+                foreach ($t_user_auth_alias as $row) {
+                    LOG_INFO($db_link, "Remove alias id: " . $row['id'] . " for auth_id: $id :: " . dump_record($db_link, 'user_auth_alias', 'id = ?', [$row['id']]));
+                    delete_record($db_link, 'user_auth_alias', 'id = ?', [$row['id']]);
+                }
+            }
+        }
+
+        // PTR-only режим
+        if ($old_auth_info['dns_ptr_only'] && !$new['dns_ptr_only']) {
+            $new['dns_name'] = '';
+        }
+        if (!empty($f_dnsname) && $new['dns_ptr_only']) {
+            $domain_zone = ltrim(get_option($db_link, 33), '.');
+            $escaped_zone = preg_quote($domain_zone, '/');
+            $f_dnsname = preg_replace('/\.' . $escaped_zone . '$/i', '', $f_dnsname);
+            $f_dnsname = preg_replace('/\s+/', '-', $f_dnsname);
+            $new['dns_name'] = $f_dnsname;
+        }
+
+        // Остальные поля
+        $new['save_traf']         = (int)getPOST("f_save_traf", null, 0);
+        $new['dhcp_acl']          = trim(getPOST("f_acl", null, ''));
+        $new['dhcp_option_set']   = trim(getPOST("f_dhcp_option_set", null, ''));
+        $new['dynamic']           = (int)(getPOST("f_dynamic", null, 0));
+        if ($new['dynamic']) {
+            $new['end_life'] = trim(getPOST("f_end_life", null, ''));
+        }
+
+        // Настройки по OU
+        if (get_const('default_user_ou_id') == $parent_ou_id || get_const('default_hotspot_ou_id') == $parent_ou_id) {
+            $new += [
+                'nagios_handler'    => '',
+                'enabled'           => 0,
+                'link_check'        => 0,
+                'nagios'            => 0,
+                'blocked'           => 0,
+                'day_quota'         => 0,
+                'month_quota'       => 0,
+                'queue_id'          => 0,
+                'filter_group_id'   => 0
+            ];
+        } else {
+            $new += [
+                'nagios_handler'    => trim(getPOST("f_handler", null, '')),
+                'enabled'           => (int)getPOST("f_enabled", null, 0),
+                'link_check'        => (int)getPOST("f_link", null, 0),
+                'nagios'            => (int)getPOST("f_nagios", null, 0),
+                'dhcp'              => $f_dhcp,
+                'blocked'           => (int)getPOST("f_blocked", null, 0),
+                'day_quota'         => (int)getPOST("f_day_q", null, 0),
+                'month_quota'       => (int)getPOST("f_month_q", null, 0),
+                'queue_id'          => (int)getPOST("f_queue_id", null, 0),
+                'filter_group_id'   => (int)getPOST("f_group_id", null, 0)
+            ];
+        }
+
         if ($new['nagios'] == 0) {
             $new['nagios_status'] = 'UP';
-            }
-        if (!$user_enabled) { $new['enabled']=0; }
-        $changes = get_diff_rec($db_link, "User_auth", "id='$id'", $new, 0);
-        if (!empty($changes)) {
-            LOG_WARNING($db_link, "Changed record for $ip! Log: " . $changes, $id);
-            }
+        }
+        if (!$user_enabled) {
+            $new['enabled'] = 0;
+        }
+
         if (is_auth_bind_changed($db_link, $id, $ip, $mac)) {
             $new_id = copy_auth($db_link, $id, $new);
             if (!empty($new_id)) {
-                header("Location: /admin/users/editauth.php?id=" . $new_id, TRUE, 302);
-                } else {
-                header("Location: " . $_SERVER["REQUEST_URI"]);
-                }
-            exit;
+                header("Location: /admin/users/editauth.php?id=" . $new_id, true, 302);
             } else {
-            update_record($db_link, "User_auth", "id='$id'", $new);
+                header("Location: " . $_SERVER["REQUEST_URI"]);
             }
+            exit;
+        } else {
+            update_record($db_link, "user_auth", "id = ?", $new, [$id]);
+        }
     } else {
         $msg_error = "$msg_ip_error xxx.xxx.xxx.xxx";
         $_SESSION[$page_url]['msg'] = $msg_error;
@@ -178,97 +194,103 @@ if (isset($_POST["editauth"]) and !$old_auth_info['deleted']) {
     exit;
 }
 
-if (isset($_POST["moveauth"]) and !$old_auth_info['deleted']) {
-    $new_parent_id = $_POST["f_new_parent"] * 1;
-    $moved_auth = get_record_sql($db_link,"SELECT comments FROM User_auth WHERE id=".$id);
+// === ПЕРЕМЕЩЕНИЕ ЗАПИСИ =========================================================
+if (getPOST("moveauth") !== null && !$old_auth_info['deleted']) {
+    $new_parent_id = (int)getPOST("f_new_parent", null, 0);
+    $moved_auth = get_record_sql($db_link, "SELECT description FROM user_auth WHERE id = ?", [$id]);
     $changes = apply_auth_rule($db_link, $moved_auth, $new_parent_id);
-    update_record($db_link, "User_auth", "id='$id'", $changes);
-    LOG_WARNING($db_link, "IP-address moved to another user! Applyed: " . get_rec_str($changes), $id);
-    run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["mac"]."' AND type=2");
-    run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$old_auth_info["user_id"]." AND rule='".$old_auth_info["ip"]."' AND type=1");
-    LOG_INFO($db_link,"Autorules removed for user_id: ".$old_auth_info["user_id"]." login: ".$user_info["login"]." by mac and ip");
+
+    update_record($db_link, "user_auth", "id = ?", $changes, [$id]);
+
+    // Удаляем старые правила
+    delete_records($db_link, "auth_rules", "user_id = ? AND rule = ? AND rule_type = 2", [$old_auth_info["user_id"], $old_auth_info["mac"]]);
+    delete_records($db_link, "auth_rules", "user_id = ? AND rule = ? AND rule_type = 1", [$old_auth_info["user_id"], $old_auth_info["ip"]]);
+
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST["recovery"]) and $old_auth_info['deleted']) {
-    $ip = trim($_POST["f_ip"]);
+// === ВОССТАНОВЛЕНИЕ УДАЛЁННОЙ ЗАПИСИ ===========================================
+if (getPOST("recovery") !== null && $old_auth_info['deleted']) {
+    $ip = trim(getPOST("f_ip", null, ''));
     if (checkValidIp($ip)) {
         $ip_aton = ip2long($ip);
-        $mac = mac_dotted($_POST["f_mac"]);
-        //search mac
+        $mac = mac_dotted(getPOST("f_mac", null, ''));
+        
+        // Проверка MAC
         $mac_exists = find_mac_in_subnet($db_link, $ip, $mac);
-        if (isset($mac_exists) and $mac_exists['count'] >= 1 and !in_array($parent_id, $mac_exists['users_id'])) {
-            $dup_sql = "SELECT * FROM User_list WHERE id=" . $mac_exists['users_id']['0'];
-            $dup_info = get_record_sql($db_link, $dup_sql);
-            $msg_error = "Mac already exists at another user in this subnet! Skip creating $ip [$mac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
+        if (!empty($mac_exists) && ($mac_exists['count'] ?? 0) >= 1 && !in_array($parent_id, $mac_exists['users_id'] ?? [])) {
+            $dup_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$mac_exists['users_id'][0] ?? 0]);
+            $msg_error = "Mac already exists at another user in this subnet! Skip creating $ip [$mac].<br>Old user id: " . ($dup_info['id'] ?? '') . " login: " . ($dup_info['login'] ?? '');
             $_SESSION[$page_url]['msg'] = $msg_error;
             LOG_ERROR($db_link, $msg_error);
             header("Location: " . $_SERVER["REQUEST_URI"]);
             exit;
         }
-        //disable dhcp for secondary ip
-        $f_dhcp = $_POST["f_dhcp"] * 1;
-        if (in_array($parent_id, $mac_exists['users_id'])) {
-            if ($parent_id != $mac_exists['users_id'][0]) {
+
+        // DHCP для вторичного IP
+        $f_dhcp = (int)getPOST("f_dhcp", null, 0);
+        if (!empty($mac_exists) && in_array($parent_id, $mac_exists['users_id'] ?? [])) {
+            if ($parent_id != ($mac_exists['users_id'][0] ?? null)) {
                 $f_dhcp = 0;
             }
         }
-        //search ip
-        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `ip_int`=$ip_aton AND id<>$id AND deleted=0");
+
+        // Проверка дубликата IP
+        $dup_ip_record = get_record_sql($db_link, "SELECT * FROM user_auth WHERE ip_int = ? AND id <> ? AND deleted = 0", [$ip_aton, $id]);
         if (!empty($dup_ip_record)) {
-            $dup_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=" . $dup_ip_record['user_id']);
+            $dup_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$dup_ip_record['user_id']]);
             $msg_error = "$ip already exists. Skip creating $ip [$mac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
             $_SESSION[$page_url]['msg'] = $msg_error;
             LOG_ERROR($db_link, $msg_error);
             header("Location: " . $_SERVER["REQUEST_URI"]);
             exit;
         }
-        $new['deleted'] = 0;
-        $new['dynamic'] = 0;
-        $new['dns_name']='';
 
-        $parent_id = $old_auth_info['user_id'];
+        $new = ['deleted' => 0, 'dynamic' => 0, 'dns_name' => ''];
 
-        $old_parent = get_record_sql($db_link, "SELECT * FROM User_list WHERE id=".$parent_id);
+        $old_parent = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$parent_id]);
         if (empty($old_parent)) {
-            $new_user_info = get_new_user_id($db_link, $ip, $mac, NULL);
-            if ($new_user_info['user_id']) { $new_user_id = $new_user_info['user_id']; }
-            if (empty($new_user_id)) { $new_user_id = new_user($db_link, $new_user_info); }
-            $new['user_id'] = $new_user_id;
+            $new_user_info = get_new_user_id($db_link, $ip, $mac, null);
+            $new_user_id = $new_user_info['user_id'] ?? null;
+            if (empty($new_user_id)) {
+                $new_user_id = new_user($db_link, $new_user_info);
             }
+            $new['user_id'] = $new_user_id;
+        }
 
-        //save comments
-        $new['comments']=$old_parent['comments'];
+        $new['description'] = $old_parent['description'] ?? '';
 
-        if (get_const('default_user_ou_id') == $parent_ou_id or get_const('default_hotspot_ou_id') == $parent_ou_id) {
-            $new['nagios_handler'] = '';
-            $new['enabled'] = 0;
-            $new['link_check'] = 0;
-            $new['nagios'] = 0;
-            $new['blocked'] = 0;
-            $new['day_quota'] = 0;
-            $new['month_quota'] = 0;
-            $new['queue_id'] = 0;
-            $new['filter_group_id'] = 0;
+        // Настройки по OU
+        if (get_const('default_user_ou_id') == $parent_ou_id || get_const('default_hotspot_ou_id') == $parent_ou_id) {
+            $new += [
+                'nagios_handler'    => '',
+                'enabled'           => 0,
+                'link_check'        => 0,
+                'nagios'            => 0,
+                'blocked'           => 0,
+                'day_quota'         => 0,
+                'month_quota'       => 0,
+                'queue_id'          => 0,
+                'filter_group_id'   => 0
+            ];
         } else {
-            $new['nagios_handler'] = $_POST["f_handler"];
-            $new['enabled'] = get_int($_POST["f_enabled"]);
-            $new['link_check'] = get_int($_POST["f_link"]);
-            $new['nagios'] = get_int($_POST["f_nagios"]);
-            $new['dhcp'] = get_int($_POST["f_dhcp"]);
-            $new['blocked'] = get_int($_POST["f_blocked"]);
-            $new['day_quota'] = get_int($_POST["f_day_q"]);
-            $new['month_quota'] = get_int($_POST["f_month_q"]);
-            $new['queue_id'] = get_int($_POST["f_queue_id"]);
-            $new['filter_group_id'] = get_int($_POST["f_group_id"]);
+            $new += [
+                'nagios_handler'    => trim(getPOST("f_handler", null, '')),
+                'enabled'           => (int)getPOST("f_enabled", null, 0),
+                'link_check'        => (int)getPOST("f_link", null, 0),
+                'nagios'            => (int)getPOST("f_nagios", null, 0),
+                'dhcp'              => (int)getPOST("f_dhcp", null, 0),
+                'blocked'           => (int)getPOST("f_blocked", null, 0),
+                'day_quota'         => (int)getPOST("f_day_q", null, 0),
+                'month_quota'       => (int)getPOST("f_month_q", null, 0),
+                'queue_id'          => (int)getPOST("f_queue_id", null, 0),
+                'filter_group_id'   => (int)getPOST("f_group_id", null, 0)
+            ];
         }
-        $changes = get_diff_rec($db_link, "User_auth", "id='$id'", $new, 0);
-        if (!empty($changes)) {
-            LOG_WARNING($db_link, "Recovered ip-address. Applyed: $changes", $id);
-        }
+
         $new = apply_auth_rule($db_link, $new, $new['user_id']);
-        update_record($db_link, "User_auth", "id='$id'", $new);
+        update_record($db_link, "user_auth", "id = ?", $new, [$id]);
     } else {
         $msg_error = "$msg_ip_error xxx.xxx.xxx.xxx/xx";
         $_SESSION[$page_url]['msg'] = $msg_error;
@@ -281,28 +303,28 @@ unset($_POST);
 
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
 
-$sSQL = "SELECT * FROM User_auth WHERE id=$id";
-$auth_info = get_record_sql($db_link, $sSQL);
-$device = get_record_sql($db_link, "SELECT * FROM devices WHERE user_id=" . $auth_info['user_id']);
+$sSQL = "SELECT * FROM user_auth WHERE id=?";
+$auth_info = get_record_sql($db_link, $sSQL, [ $id ]);
+$device = get_record_sql($db_link, "SELECT * FROM devices WHERE user_id=?", [ $auth_info['user_id'] ]);
 
 $parent_name = get_login($db_link, $auth_info['user_id']);
 if (empty($parent_name)) { $parent_name=$auth_info['user_id']; }
 
-if ($auth_info['dhcp_time'] == '0000-00-00 00:00:00') {
+if (is_empty_datetime($auth_info['dhcp_time'])) {
     $dhcp_str = '';
 } else {
     $dhcp_str = $auth_info['dhcp_time'] . " (" . $auth_info['dhcp_action'] . ")";
 }
-if ($auth_info['last_found'] == '0000-00-00 00:00:00') { $auth_info['last_found'] = ''; }
-
-if ($auth_info['arp_found'] == '0000-00-00 00:00:00') { $auth_info['arp_found'] = ''; }
+if (is_empty_datetime($auth_info['last_found'])) { $auth_info['last_found'] = ''; }
+if (is_empty_datetime($auth_info['mac_found'])) { $auth_info['mac_found'] = ''; }
+if (is_empty_datetime($auth_info['arp_found'])) { $auth_info['arp_found'] = ''; }
 
 $now = DateTime::createFromFormat("Y-m-d H:i:s",date('Y-m-d H:i:s'));
-$created = DateTime::createFromFormat("Y-m-d H:i:s",$auth_info['timestamp']);
+$created = new DateTime($auth_info['ts']);
 
-if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') { 
+if (empty($auth_info['end_life']) || is_empty_datetime($auth_info['end_life'])) { 
     $now->modify('+1 day');
-    $auth_info['eof'] = $now->format('Y-m-d H:i:s');
+    $auth_info['end_life'] = $now->format('Y-m-d H:i:s');
     }
 
 ?>
@@ -328,16 +350,16 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
         <table class="data">
             <tr>
                 <td width=230><?php print WEB_cell_dns_name . " &nbsp | &nbsp "; print_url(WEB_cell_aliases, $alias_link); ?></td>
-                <td width=200><?php print WEB_cell_comment; ?></td>
+                <td width=200><?php print WEB_cell_description; ?></td>
                 <td width=70><?php print WEB_cell_enabled; ?></td>
                 <td><?php print WEB_cell_traf; ?></td>
                 <td></td>
             </tr>
             <tr>
-                <td><input type="text" name="f_dns_name" size="14"  value="<?php echo $auth_info['dns_name']; ?>" pattern="^([a-zA-Z0-9-]{1,63})(\.[a-zA-Z0-9-]{1,63})*\.?$">
-                    <input type="checkbox" id="f_dns_ptr" name="f_dns_ptr" value="1" <?php echo $f_dns_ptr; ?>> &nbsp ptr
+                <td style="white-space: nowrap;"><input type="text" name="f_dns_name" size="14"  value="<?php echo $auth_info['dns_name']; ?>" pattern="^([a-zA-Z0-9-]{1,63})(\.[a-zA-Z0-9-]{1,63})*\.?$">
+                    <input type="checkbox" id="f_dns_ptr" name="f_dns_ptr" value="1" <?php echo $f_dns_ptr; ?>> &nbsp <?php print WEB_cell_ptr_only; ?>
                 </td>
-                <td><input type="text" name="f_comments" value="<?php echo $auth_info['comments']; ?>"></td>
+                <td><input type="text" name="f_description" value="<?php echo $auth_info['description']; ?>"></td>
                 <td><?php print_qa_select('f_enabled', $auth_info['enabled']); ?></td>
                 <td><?php print_qa_select('f_save_traf', $auth_info['save_traf']); ?></td>
                 <td></td>
@@ -374,14 +396,14 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
                 <td><?php print WEB_cell_nagios_handler; ?></td>
                 <td width=200>
                     <?php
-                    if (!empty($auth_info['WikiName'])) {
+                    if (!empty($auth_info['wikiname'])) {
                         $wiki_url = rtrim(get_option($db_link, 60), '/');
                         if (preg_match('/127.0.0.1/', $wiki_url)) {
                             print WEB_cell_wikiname;
                         } else {
                             $wiki_web = rtrim(get_option($db_link, 63), '/');
                             $wiki_web = ltrim($wiki_web, '/');
-                            $wiki_link = $wiki_url . '/' . $wiki_web . '/' . $auth_info['WikiName'];
+                            $wiki_link = $wiki_url . '/' . $wiki_web . '/' . $auth_info['wikiname'];
                             print_url(WEB_cell_wikiname, $wiki_link);
                         }
                     } else {
@@ -402,7 +424,7 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
                     } ?></td>
             <tr>
                 <td><input type="text" name="f_handler" value="<?php echo $auth_info['nagios_handler']; ?>"></td>
-                <td><input type="text" name="f_wiki" value="<?php echo $auth_info['WikiName']; ?>"></td>
+                <td><input type="text" name="f_wiki" value="<?php echo $auth_info['wikiname']; ?>"></td>
                 <td><?php if (empty($device) or (!empty($device) and $device['device_type'] > 2)) {
                         print_qa_select('f_nagios', $auth_info['nagios']);
                     } ?>
@@ -415,15 +437,18 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
             </tr>
             <tr>
                 <td><?php print WEB_cell_temporary; ?></td>
-                <?php if ($auth_info['dynamic']) { print "<td class='cell_red'>"; } else { print "<td>"; } ?>
-                <?php print WEB_cell_eof; ?></td>
+                <?php if ($auth_info['dynamic']) { print "<td>"; } else { print "<td>"; } ?>
+                <div style="color: #7B1FA2;">
+                <?php print WEB_cell_end_life; ?>
+                </div>
+                </td>
                 <td></td>
                 <td></td>
                 <td></td>
             </tr>
             <tr>
                 <td><?php print_qa_select('f_dynamic',$auth_info['dynamic']); ?></td>
-                <td><input type="datetime-local" id="f_eof" name="f_eof" min="<?php print $created->format('Y-m-d H:i:s'); ?>" value="<?php print $auth_info['eof']; ?>" 
+                <td><input type="datetime-local" id="f_end_life" name="f_end_life" min="<?php print $created->format('Y-m-d H:i:s'); ?>" value="<?php print $auth_info['end_life']; ?>" 
                 <?php if (!$auth_info['dynamic']) { print "disabled"; } ?>
                 step=1 ></td>
                 <td></td>
@@ -431,7 +456,8 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
                 <td></td>
             </tr>
             <tr>
-                <td colspan=3><input type="submit" name="moveauth" value=<?php print WEB_btn_move; ?>><?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?></td>
+                <td colspan=3><input type="submit" name="moveauth" value=<?php print WEB_btn_move; ?>>
+                <?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?></td>
                 <?php
                 if ($auth_info['deleted']) {
                     print "<td ><font color=red>" . WEB_deleted . ": " . $auth_info['changed_time'] . "</font></td>";
@@ -456,7 +482,7 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
             </tr>
             <tr>
                 <td><?php print WEB_cell_created; ?></td>
-                <td class="data" align=right><?php print $auth_info['timestamp']; ?></td>
+                <td class="data" align=right><?php print $auth_info['ts']; ?></td>
                 <td><?php print WEB_cell_connection . ": "; ?></td>
                 <td class="data" align=right><?php print get_connection($db_link, $id) ; ?></td>
             </tr>
@@ -469,8 +495,8 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
             <tr>
                 <td ><?php print WEB_cell_arp_found . ": "; ?></td>
                 <td class="data" align=right><?php print $auth_info['arp_found'] ; ?></td>
-                <td ><?php print WEB_cell_last_found . ": "; ?></td>
-                <td class="data" align=right><?php print $auth_info['last_found'] ; ?></td>
+                <td ><?php print WEB_cell_mac_found . ": "; ?></td>
+                <td class="data" align=right><?php print $auth_info['mac_found'] ; ?></td>
             </tr>
             <tr>
             </tr>
@@ -489,7 +515,7 @@ if (empty($auth_info['eof']) or $auth_info['eof'] == '0000-00-00 00:00:00') {
 <script>
 document.getElementById('f_dynamic').addEventListener('change', function(event) {
   const selectValue = this.value;
-  const inputField = document.getElementById('f_eof');
+  const inputField = document.getElementById('f_end_life');
   if (selectValue === '1') {
     inputField.disabled = false;
   } else {
@@ -498,4 +524,4 @@ document.getElementById('f_dynamic').addEventListener('change', function(event) 
 });
 </script>
 
-<?php require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.simple.php"); ?>
+<?php require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.php"); ?>

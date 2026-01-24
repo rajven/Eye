@@ -4,26 +4,32 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-$device=get_record($db_link,'devices',"id=".$id);
-$user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
+$device = get_record($db_link, 'devices', "id = ?", [$id]);
+$user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$device['user_id']]);
 
-if (isset($_POST["s_remove"])) {
-    $s_id = $_POST["gs_id"];
-    foreach ($s_id as $key => $val) {
-        if (isset($val)) {
-            LOG_INFO($db_link, "Remove filter instances from gateway id: $val ". dump_record($db_link,'device_filter_instances','id='.$val));
-            delete_record($db_link, "device_filter_instances", "id=" . $val);
+// Удаление фильтров
+if (getPOST("s_remove") !== null) {
+    $s_id = getPOST("gs_id", null, []);
+    
+    if (!empty($s_id) && is_array($s_id)) {
+        foreach ($s_id as $val) {
+            $val = trim($val);
+            if ($val === '') continue;
+            delete_record($db_link, "device_filter_instances", "id = ?", [$val]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST["s_create"])) {
-    if (!empty($_POST["new_instance"])) {
-        $new['instance_id'] = trim($_POST["new_instance"]);
-        $new['device_id'] = $id;
-        LOG_INFO($db_link, "Add instance id: ".$new['instance_id']." for gateway id: ".$id);
+// Создание нового фильтра
+if (getPOST("s_create") !== null) {
+    $new_instance = trim(getPOST("new_instance", null, ''));
+    if ($new_instance !== '') {
+        $new = [
+            'instance_id' => $new_instance,
+            'device_id'   => $id
+        ];
         insert_record($db_link, "device_filter_instances", $new);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -57,7 +63,7 @@ print_url($device['device_name'],"/admin/devices/editdevice.php?id=$id"); ?>
         </td>
 </tr>
 <?php
-$gateway_instances = get_records_sql($db_link,'SELECT device_filter_instances.*,filter_instances.name,filter_instances.comment FROM device_filter_instances LEFT JOIN filter_instances ON device_filter_instances.instance_id = filter_instances.id WHERE device_filter_instances.device_id='.$id);
+$gateway_instances = get_records_sql($db_link,'SELECT device_filter_instances.*,filter_instances.name,filter_instances.description FROM device_filter_instances LEFT JOIN filter_instances ON device_filter_instances.instance_id = filter_instances.id WHERE device_filter_instances.device_id=?',[ $id ]);
 foreach ( $gateway_instances as $row ) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0' width=30><input type=checkbox name=gs_id[] value='{$row['id']}'></td>\n";

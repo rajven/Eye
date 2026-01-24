@@ -3,71 +3,93 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 
-if (isset($_POST["editgroup"])) {
-    $new['group_name'] = $_POST["f_group_name"];
-    $new['instance_id'] = $_POST["f_instance_id"]*1;
-    $new['comment'] = $_POST["f_group_comment"];
-    update_record($db_link, "Group_list", "id='$id'", $new);
+$group = get_record_sql($db_link, "SELECT * FROM group_list WHERE id=?", [ $id ]);
+
+// Редактирование группы
+if (getPOST("editgroup") !== null) {
+    $new = [
+        'group_name'    => trim(getPOST("f_group_name", null, $group['group_name'])),
+        'instance_id'   => (int)getPOST("f_instance_id", null, 1),
+        'description'   => trim(getPOST("f_group_description", null, ''))
+    ];
+    update_record($db_link, "group_list", "id = ?", $new, [$id]);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST["addfilter"])) {
-    $filter_id = $_POST["newfilter"] * 1;
-    $max_record = get_record_sql($db_link, "SELECT MAX(G.order) as morder FROM Group_filters as G where G.group_id='$id'");
-    if (empty($max_record)) {
-        $forder = 1;
-    } else {
-        $forder = $max_record["morder"] * 1 + 1;
+// Добавление фильтра в группу
+if (getPOST("addfilter") !== null) {
+    $filter_id = (int)getPOST("newfilter", null, 0);
+    
+    if ($filter_id > 0) {
+        $max_record = get_record_sql($db_link, "SELECT MAX(G.rule_order) as morder FROM group_filters AS G WHERE G.group_id = ?", [$id]);
+        $forder = (!empty($max_record) && isset($max_record['morder'])) 
+            ? ((int)$max_record['morder'] + 1) 
+            : 1;
+
+        $new = [
+            'group_id'     => $id,
+            'filter_id'    => $filter_id,
+            'rule_order'   => $forder,
+            'action'       => 1
+        ];
+        insert_record($db_link, "group_filters", $new);
     }
-    $new['group_id'] = $id;
-    $new['filter_id'] = $filter_id;
-    $new['order'] = $forder;
-    $new['action'] = 1;
-    insert_record($db_link, "Group_filters", $new);
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST["removefilter"])) {
-    $f_group_filter = $_POST["f_group_filter"];
-    foreach ($f_group_filter as $key => $val) {
-        if (!empty($val)) {
-            delete_record($db_link, "Group_filters", "id=" . $val * 1);
+// Удаление фильтров из группы
+if (getPOST("removefilter") !== null) {
+    $f_group_filter = getPOST("f_group_filter", null, []);
+    
+    if (!empty($f_group_filter) && is_array($f_group_filter)) {
+        foreach ($f_group_filter as $val) {
+            $val = trim($val);
+            if ($val !== '') {
+                delete_record($db_link, "group_filters", "id = ?", [(int)$val]);
+            }
         }
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST["updateFilters"])) {
-    if (!empty($_POST["f_group_filter"])) {
-        $f_group_filter = $_POST["f_group_filter"];
+// Обновление порядка и действий фильтров
+if (getPOST("updateFilters") !== null) {
+    $f_group_filter = getPOST("f_group_filter", null, []);
+    
+    if (!empty($f_group_filter) && is_array($f_group_filter)) {
+        $f_ord    = getPOST("f_ord",    null, []);
+        $f_action = getPOST("f_action", null, []);
+        
         LOG_DEBUG($db_link, "Update filters for group id: " . $id);
-        for ($i = 0; $i < count($f_group_filter); ++$i) {
-            $group_filter_id = $f_group_filter[$i];
-            if (empty($_POST["f_ord"][$group_filter_id])) {
-                $new['order'] = $i;
-            } else {
-                $new['order'] = $_POST["f_ord"][$group_filter_id] * 1;
-            }
-            if (empty($_POST["f_action"][$group_filter_id])) {
-                $new['action'] = 0;
-            } else {
-                $new['action'] = $_POST["f_action"][$group_filter_id] * 1;
-            }
-            if (!empty($new)) {
-                update_record($db_link, "Group_filters", "id=" . $group_filter_id, $new);
-            }
+        
+        foreach ($f_group_filter as $i => $group_filter_id) {
+            $group_filter_id = (int)$group_filter_id;
+            if ($group_filter_id <= 0) continue;
+            
+            $new = [
+                'rule_order' => isset($f_ord[$group_filter_id]) 
+                    ? (int)$f_ord[$group_filter_id] 
+                    : $i,
+                'action'     => isset($f_action[$group_filter_id]) 
+                    ? (int)$f_action[$group_filter_id] 
+                    : 0
+            ];
+            
+            update_record($db_link, "group_filters", "id = ?", $new, [$group_filter_id]);
         }
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
 unset($_POST);
 
-$group = get_record_sql($db_link, "SELECT * FROM Group_list WHERE id=" . $id);
 
 print_filters_submenu($page_url);
 
@@ -85,8 +107,8 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
                 <td class='data' align=right><input type="submit" name="editgroup" value="<?php echo WEB_btn_save; ?>"></td>
             </tr>
             <tr>
-                <td><?php echo WEB_cell_comment; ?></td>
-                <td class='data'><input type="text" name="f_group_comment" value="<?php echo $group['comment']; ?>"></td>
+                <td><?php echo WEB_cell_description; ?></td>
+                <td class='data'><input type="text" name="f_group_description" value="<?php echo $group['description']; ?>"></td>
                 <td class='data'></td>
             </tr>
             <tr>
@@ -107,12 +129,12 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
             </tr>
 
             <?php
-            $sSQL = "SELECT G.id, G.filter_id, F.name, G.order, G.action, F.comment FROM Group_filters G, Filter_list F WHERE F.id=G.filter_id and group_id=$id Order by G.order";
-            $flist = get_records_sql($db_link, $sSQL);
+            $sSQL = "SELECT G.id, G.filter_id, F.name, G.rule_order, G.action, F.description FROM group_filters G, filter_list F WHERE F.id=G.filter_id and group_id=? ORDER BY G.rule_order";
+            $flist = get_records_sql($db_link, $sSQL, [ $id ]);
             foreach ($flist as $row) {
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_group_filter[] value=" . $row['id'] . "></td>\n";
-                print "<td class=\"data\" align=left><input type=text name=f_ord[" . $row['id'] . "] value=" . $row['order'] . " size=4 ></td>\n";
+                print "<td class=\"data\" align=left><input type=text name=f_ord[" . $row['id'] . "] value=" . $row['rule_order'] . " size=4 ></td>\n";
                 print "<td class=\"data\" align=left><a href=editfilter.php?id=" . $row['filter_id'] . ">" . $row['name'] . "</a></td>\n";
                 $cl = "data";
                 if ($row['action']) {
@@ -123,7 +145,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
                 print "<td class=" . $cl . ">";
                 print_action_select('f_action[' . $row['id'] . ']', $row['action']);
                 print "</td>";
-                print "<td colspan=2 class=\"data\" align=left>" . $row['comment'] . "</a></td>\n";
+                print "<td colspan=2 class=\"data\" align=left>" . $row['description'] . "</a></td>\n";
                 print "</tr>";
             }
             ?>

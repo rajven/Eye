@@ -5,40 +5,41 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
 
-if (isset($_POST['dhcp_show'])) { $f_dhcp = $_POST['dhcp_show']; }
-    else {
-    if (isset($_SESSION[$page_url]['f_dhcp'])) { $f_dhcp=$_SESSION[$page_url]['f_dhcp']; } else { $f_dhcp = 'all'; }
-    }
+$f_dhcp = getPOST('dhcp_show', $page_url, 'all');
+$f_ip   = getPOST('ip',        $page_url, '');
 
-if (isset($_POST['ip'])) { $f_ip = $_POST['ip']; }
-if (!isset($f_ip) and isset($_SESSION[$page_url]['ip'])) { $f_ip=$_SESSION[$page_url]['ip']; }
-if (!isset($f_ip)) { $f_ip=''; }
-
-$_SESSION[$page_url]['f_dhcp']=$f_dhcp;
-$_SESSION[$page_url]['ip']=$f_ip;
+$_SESSION[$page_url]['f_dhcp'] = $f_dhcp;
+$_SESSION[$page_url]['ip']     = $f_ip;
 
 $dhcp_where = '';
-if ($f_dhcp != 'all') { $dhcp_where = " and action='$f_dhcp' "; }
+$params=[ $date1, $date2 ];
+if ($f_dhcp != 'all') { $dhcp_where = " and action=?"; $params[]=$f_dhcp; }
 
 if (empty($rcidr)) { $cidr_filter = ''; } else {
     $cidr_range = cidrToRange($rcidr);
-    if (!empty($cidr_range)) { $cidr_filter = " and (ip_int>=".ip2long($cidr_range[0])." and ip_int<=".ip2long($cidr_range[1]).")"; }
+    if (!empty($cidr_range)) { $cidr_filter = " and (ip_int>=? and ip_int<=?)"; }
+    $params[]=ip2long($cidr_range[0]);
+    $params[]=ip2long($cidr_range[1]);
     }
 
 if (!empty($f_ip)) {
     if (checkValidIp($f_ip)) { 
-        $dhcp_where = " and ip_int=inet_aton('" . $f_ip . "') "; 
+        $dhcp_where = " and ip_int=?"; 
+        $params[]=ip2long($f_ip);
         } else {
         if (checkValidMac($f_ip)) { 
-            $dhcp_where = " and mac='" . mac_dotted($f_ip) . "'  "; 
-            } else { $dhcp_where = " and dhcp_hostname like '".$f_ip."%'"; }
+            $dhcp_where = " and mac=?";
+            $params[]= mac_dotted($f_ip);
+            } else { 
+    	    $dhcp_where = " and dhcp_hostname like ?";
+    	    $params[]=$f_ip.'%';
+    	    }
         }
     }
 
 $dhcp_where .= $cidr_filter;
 
 print_log_submenu($page_url);
-
 
 ?>
 
@@ -56,14 +57,13 @@ print_log_submenu($page_url);
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM dhcp_log WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $dhcp_where";
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
+$countSQL="SELECT Count(*) FROM dhcp_log WHERE ts>=? AND ts<? $dhcp_where";
+$count_records = get_single_field($db_link,$countSQL, $params);
+$total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed; 
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 <br>
 <table class="data" width="900">
@@ -78,8 +78,11 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <?php
 
 #speedup dhcp log paging
-$sSQL = "SELECT * FROM dhcp_log as D JOIN (SELECT id FROM dhcp_log WHERE `timestamp`>='$date1' and `timestamp`<'$date2' $dhcp_where ORDER BY `id` DESC LIMIT $start,$displayed) AS I ON D.id = I.id";
-$userlog = get_records_sql($db_link, $sSQL);
+$sSQL = "SELECT * FROM dhcp_log as D JOIN (SELECT id FROM dhcp_log WHERE ts>=? and ts<? $dhcp_where ORDER BY id DESC LIMIT ? OFFSET ?) AS I ON D.id = I.id";
+$params[]=$displayed;
+$params[]=$start;
+
+$userlog = get_records_sql($db_link, $sSQL, $params);
 
 foreach ($userlog as $row) {
     if ($row['action'] == "old") { $row['action'] = WEB_log_dhcp_old.": "; }
@@ -87,7 +90,7 @@ foreach ($userlog as $row) {
     if ($row['action'] == "del") { $row['action'] = WEB_log_dhcp_del.": "; }
     $l_msg = $row['action'] . " " . $row['mac'] . " " . $row['ip'];
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
+    print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
     print "<td class=\"data\">" . $row['action'] . "</td>\n";
     print "<td class=\"data\">" . $row['mac'] . "</td>\n";
     if (isset($row['auth_id']) and $row['auth_id'] > 0) {
@@ -99,6 +102,6 @@ foreach ($userlog as $row) {
     print "</tr>\n";
     }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

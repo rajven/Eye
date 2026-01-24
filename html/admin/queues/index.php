@@ -2,24 +2,57 @@
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 
-if (isset($_POST['save'])) {
-    $len = is_array($_POST['r_id']) ? count($_POST['r_id']) : 0;
-    for ($i = 0; $i < $len; $i ++) {
-        $id = intval($_POST['r_id'][$i]);
-        $new['queue_name'] = trim($_POST['f_queue_name'][$i]);
-        $new['Download'] = $_POST['f_down'][$i] * 1;
-        $new['Upload'] = $_POST['f_up'][$i] * 1;
-        update_record($db_link, "Queue_list", "id='{$id}'", $new);
+// Сохранение ОТМЕЧЕННЫХ записей
+if (getPOST("save") !== null) {
+    $selected_ids = getPOST("f_id", null, []);        // отмеченные чекбоксы
+    $all_ids      = getPOST("r_id", null, []);        // все ID
+    $names        = getPOST("f_queue_name", null, []);
+    $downs        = getPOST("f_down", null, []);
+    $ups          = getPOST("f_up", null, []);
+
+    if (!empty($selected_ids) && is_array($selected_ids)) {
+        $selected_ids = array_map('intval', $selected_ids);
+        $selected_set = array_flip($selected_ids);
+
+        foreach ($all_ids as $i => $id) {
+            $id = (int)$id;
+            if ($id <= 0 || !isset($selected_set[$id])) continue;
+
+            $name = trim($names[$i] ?? '');
+            if ($name === '') continue;
+
+            update_record($db_link, "queue_list", "id = ?", [
+                'queue_name' => $name,
+                'download'   => (int)($downs[$i] ?? 0),
+                'upload'     => (int)($ups[$i] ?? 0)
+            ], [$id]);
+        }
+    }
+
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
+// Удаление отмеченных
+if (getPOST("remove") !== null) {
+    $f_id = getPOST("f_id", null, []);
+    if (!empty($f_id) && is_array($f_id)) {
+        foreach ($f_id as $id) {
+            $id = (int)$id;
+            if ($id > 0) {
+                delete_record($db_link, "queue_list", "id = ?", [$id]);
+            }
+        }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST["create"])) {
-    $queue_name = $_POST["new_queue"];
-    if (isset($queue_name)) {
-        $q['queue_name'] = $queue_name;
-        insert_record($db_link, "Queue_list", $q);
+// Создание новой очереди
+if (getPOST("create") !== null) {
+    $queue_name = trim(getPOST("new_queue", null, ''));
+    if ($queue_name !== '') {
+        insert_record($db_link, "queue_list", ['queue_name' => $queue_name]);
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -31,33 +64,44 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 <div id="cont">
 <b><?php echo WEB_list_queues; ?></b> <br>
 <form name="def" action="index.php" method="post">
+
+<!-- ЕДИНАЯ КНОПКА СОХРАНЕНИЯ -->
+<div style="margin-top: 10px; text-align: right;">
+    <input type="submit" name="save" value="<?php echo WEB_btn_save; ?>">
+    <input type="submit" 
+           onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" 
+           name="remove" 
+           value="<?php echo WEB_btn_delete; ?>">
+</div>
+
 <table class="data">
 <tr align="center">
-	<td><input type="checkbox" onClick="checkAll(this.checked);"></td>
-	<td><b>Id</b></td>
-	<td><b><?php echo WEB_cell_name; ?></b></td>
-	<td><b>Download</b></td>
-	<td><b>Upload</b></td>
-	<td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>"></td>
+    <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
+    <td><b>Id</b></td>
+    <td><b><?php echo WEB_cell_name; ?></b></td>
+    <td><b>Download</b></td>
+    <td><b>Upload</b></td>
 </tr>
 <?php
-$t_queue=get_records($db_link, "Queue_list",'TRUE ORDER BY id');
+$t_queue = get_records_sql($db_link, "SELECT * FROM queue_list ORDER BY id");
 foreach ($t_queue as $row) {
     print "<tr align=center>\n";
-    print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
-    print "<td class=\"data\"><input type=\"hidden\" name='r_id[]' value='{$row['id']}'>{$row['id']}</td>\n";
-    print "<td class=\"data\"><input type=\"text\" name='f_queue_name[]' value='{$row['queue_name']}'></td>\n";
-    print "<td class=\"data\"><input type=\"text\" name='f_down[]' value='{$row['Download']}'></td>\n";
-    print "<td class=\"data\"><input type=\"text\" name='f_up[]' value='{$row['Upload']}'></td>\n";
-    print "<td class=\"data\"><input type=\"submit\" name=\"save\" value='".WEB_btn_save."'></td>\n";
+    print "<td class=\"data\" style='padding:0'><input type=\"checkbox\" name=\"f_id[]\" value=\"{$row['id']}\"></td>\n";
+    print "<td class=\"data\"><input type=\"hidden\" name=\"r_id[]\" value=\"{$row['id']}\">{$row['id']}</td>\n";
+    print "<td class=\"data\"><input type=\"text\" name=\"f_queue_name[]\" value=\"" . htmlspecialchars($row['queue_name']) . "\"></td>\n";
+    print "<td class=\"data\"><input type=\"text\" name=\"f_down[]\" value=\"{$row['download']}\"></td>\n";
+    print "<td class=\"data\"><input type=\"text\" name=\"f_up[]\" value=\"{$row['upload']}\"></td>\n";
     print "</tr>\n";
 }
 ?>
 </table>
-<div>
-<input type=text name=new_queue value="New_queue">
-<input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
+
+
+<div style="margin-top: 15px;">
+    <input type="text" name="new_queue" value="New_queue">
+    <input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
 </div>
+
 </form>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");

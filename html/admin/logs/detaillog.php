@@ -8,31 +8,26 @@ $default_sort='id';
 $sort_table = 'A';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 
-if (isset($_POST['ip'])) { $f_ip = $_POST['ip']; }
-if (isset($_GET['ip'])) { $f_ip = $_GET['ip']; }
-if (!isset($f_ip) and isset($_SESSION[$page_url]['ip'])) { $f_ip=$_SESSION[$page_url]['ip']; }
-if (empty($f_ip)) { $f_ip = '127.0.0.1'; }
-
-$_SESSION[$page_url]['ip']=$f_ip;
+$f_ip = getParam('ip', $page_url, '127.0.0.1');
+$_SESSION[$page_url]['ip'] = $f_ip;
 
 $ip_where = '';
+$params=[];
 
 if (!empty($f_ip)) {
     if (checkValidIp($f_ip)) {
-        $ip_where = " (src_ip=inet_aton('" . $f_ip . "') or dst_ip=inet_aton('" . $f_ip . "')) AND "; 
+        $ip_where = " (src_ip=? or dst_ip=?) AND "; 
+        $params[]=ip2long($f_ip);
+        $params[]=ip2long($f_ip);
         }
     }
 
-$rdns = 0;
-if (isset($_POST['dns'])) { $rdns=$_POST['dns']*1; }
-$_SESSION[$page_url]['dns']=$rdns;
-$dns_checked='';
-if ($rdns) { $dns_checked='checked="checked"'; }
-
+$rdns = getPOST('dns', $page_url, 0, FILTER_VALIDATE_INT);
+$_SESSION[$page_url]['dns'] = $rdns;
+$dns_checked = $rdns ? 'checked="checked"' : '';
 $dns_cache=NULL;
 
 print_log_submenu($page_url);
-/* print_trafdetail_submenu($page_url,"id=$id&date_start=$date1&date_stop=$date2","<b>".WEB_log_detail_for."<a href=/admin/users/editauth.php?id=$id>$f_ip</a></b> ::&nbsp"); */
 
 ?>
 
@@ -57,16 +52,20 @@ $sort_url = "<a href='detaillog.php?date_start=\"".$date1.'"&date_stop="'.$date2
 if (!empty($f_ip)) { $sort_url .='&f_ip="'.$f_ip.'"'; }
 
 $gateway_filter='';
-if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(router_id=$rgateway) AND"; }
+if (!empty($rgateway) and $rgateway>0) { 
+    $gateway_filter="(router_id=?) AND"; $params[]=$rgateway; 
+    }
 
-$countSQL="SELECT Count(*) FROM Traffic_detail as A WHERE $gateway_filter $ip_where `timestamp`>='$date1' AND `timestamp`<'$date2'";
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
+$countSQL="SELECT Count(*) FROM traffic_detail as A WHERE $gateway_filter $ip_where ts>=? AND ts< ? ";
+$params[]=$date1;
+$params[]=$date2;
+
+$count_records = get_single_field($db_link,$countSQL, $params);
+$total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 $gateway_list = get_gateways($db_link);
 ?>
 
@@ -75,7 +74,7 @@ $gateway_list = get_gateways($db_link);
 <tr align="center">
 <td class="data" width=20><b><?php $url = $sort_url.'&sort=id&order='.$new_order."'>id</a>"; print $url; ?></b></td>
 <td class="data" width=20><b><?php echo WEB_cell_login; ?></b></td>
-<td class="data" width=150><b><?php $url = $sort_url.'&sort=timestamp&order='.$new_order."'>".WEB_date."</a>"; print $url; ?></b></td>
+<td class="data" width=150><b><?php $url = $sort_url.'&sort=ts&order='.$new_order."'>".WEB_date."</a>"; print $url; ?></b></td>
 <td class="data" width=30><b><?php echo WEB_cell_gateway; ?></b></td>
 <td class="data" width=30><b><?php echo WEB_traffic_proto; ?></b></td>
 <td class="data" width=150><b><?php $url = $sort_url.'&sort=src_ip&order='.$new_order."'>".WEB_traffic_source_address."</a>"; print $url; ?></b></td>
@@ -88,36 +87,39 @@ $gateway_list = get_gateways($db_link);
 <td class="data" width=80><b><?php $url = $sort_url.'&sort=pkt&order='.$new_order."'>Pkt</a>"; print $url; ?></b></td>
 </tr>
 <?php
-$fsql = "SELECT A.id, A.auth_id, A.`timestamp`, A.router_id, A.proto, A.src_ip, A.src_port, A.dst_ip, A.dst_port, A.bytes, A.pkt FROM Traffic_detail as A JOIN (SELECT id FROM Traffic_detail 
-        WHERE $gateway_filter $ip_where `timestamp`>='$date1' AND `timestamp`<'$date2'
-        ORDER BY `timestamp` ASC LIMIT $start,$displayed) as T ON A.id = T.id ORDER BY $sort_table.$sort_field $order";
-$userdata = mysqli_query($db_link, $fsql);
-while (list ($uid, $auth_id, $udata, $urouter, $uproto, $sip, $sport,$dip, $dport, $ubytes, $upkt) = mysqli_fetch_array($userdata)) {
+$fsql = "SELECT A.id, A.auth_id, A.ts, A.router_id, A.proto, A.src_ip, A.src_port, A.dst_ip, A.dst_port, A.bytes, A.pkt FROM traffic_detail as A JOIN (SELECT id FROM traffic_detail 
+        WHERE $gateway_filter $ip_where ts>= ? AND ts< ?
+        ORDER BY ts ASC LIMIT ? OFFSET ?) as T ON A.id = T.id ORDER BY $sort_table.$sort_field $order";
+$params[]=$displayed;
+$params[]=$start;
+
+$userdata = get_records_sql($db_link, $fsql, $params);
+foreach ($userdata as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td class=\"data\">$uid</td>\n";
-    print "<td class=\"data\">"; print_auth_simple($db_link,$auth_id); print "</td>\n";
-    print "<td class=\"data\">$udata</td>\n";
-    print "<td class=\"data\">$gateway_list[$urouter]</td>\n";
-    $proto_name = getprotobynumber($uproto);
-    if (!$proto_name) { $proto_name=$uproto; }
+    print "<td class=\"data\">" . $row['id'] . "</td>\n";
+    print "<td class=\"data\">"; print_auth_simple($db_link, $row['auth_id']); print "</td>\n";
+    print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
+    print "<td class=\"data\">" . $gateway_list[$row['router_id']] . "</td>\n";
+    $proto_name = getprotobynumber($row['proto']);
+    if (!$proto_name) { $proto_name = $row['proto']; }
     print "<td class=\"data\">" . $proto_name . "</td>\n";
-    print "<td class=\"data\" align=left>" . long2ip($sip) . "</td>\n";
+    print "<td class=\"data\" align=left>" . long2ip($row['src_ip']) . "</td>\n";
     $ip_name = '-';
-    if ($rdns) { $ip_name = ResolveIP($db_link,$sip); }
+    if ($rdns) { $ip_name = ResolveIP($db_link, $row['src_ip']); }
     print "<td class=\"data\" align=left>" . $ip_name . "</td>\n";
-    print "<td class=\"data\">" .$sport . "</td>\n";
-    print "<td class=\"data\" align=left>" . long2ip($dip) . "</td>\n";
+    print "<td class=\"data\">" . $row['src_port'] . "</td>\n";
+    print "<td class=\"data\" align=left>" . long2ip($row['dst_ip']) . "</td>\n";
     $ip_name = '-';
-    if ($rdns) { $ip_name = ResolveIP($db_link,$dip); }
+    if ($rdns) { $ip_name = ResolveIP($db_link, $row['dst_ip']); }
     print "<td class=\"data\" align=left>" . $ip_name . "</td>\n";
-    print "<td class=\"data\">" . $dport . "</td>\n";
-    print "<td class=\"data\" align=right>" . fbytes($ubytes) . "</td>\n";
-    print "<td class=\"data\" align=right>" . $upkt . "</td>\n";
+    print "<td class=\"data\">" . $row['dst_port'] . "</td>\n";
+    print "<td class=\"data\" align=right>" . fbytes($row['bytes']) . "</td>\n";
+    print "<td class=\"data\" align=right>" . $row['pkt'] . "</td>\n";
     print "</tr>\n";
 }
 ?>
 </table>
-<?php print_navigation($page_url,$page,$displayed,$count_records[0],$total); ?>
+<?php print_navigation($page_url,$page,$displayed,$count_records,$total); ?>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

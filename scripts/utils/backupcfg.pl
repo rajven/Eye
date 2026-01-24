@@ -1,11 +1,15 @@
-#!/usr/bin/perl -CS
+#!/usr/bin/perl 
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
 
 use utf8;
-use open ":encoding(utf8)";
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
+
 use English;
 use base;
 use FindBin '$Bin';
@@ -17,6 +21,7 @@ use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 use eyelib::net_utils;
 use eyelib::cmd;
 use Fcntl qw(:flock);
@@ -29,7 +34,7 @@ $|=1;
 my $debug = 1;
 
 if ($ARGV[0]) {
-    my $device=get_record_sql($dbh,'SELECT * FROM devices WHERE id='.$ARGV[0]);
+    my $device=get_record_sql($dbh,'SELECT * FROM devices WHERE id=?',$ARGV[0]);
     $device = netdev_set_auth($device);
     print "Backup switch $device->{device_name} ip: $device->{ip} ...";
     netdev_backup($device,$tftp_server);

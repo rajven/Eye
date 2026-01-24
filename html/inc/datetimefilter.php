@@ -4,7 +4,7 @@ if (!defined("CONFIG")) die("Not defined");
 
 $date_shift = getParam('date_shift', $page_url, 'h');
 $date_start = getParam('date_start', $page_url, '');
-$date_stop = getParam('date_stop', $page_url, ''); // Исправлено: было 'date_start'
+$date_stop = getParam('date_stop', $page_url, '');
 
 // Инициализация переменных
 $datetime_start = null;
@@ -19,7 +19,7 @@ $shift_array = [ 'h', '8h', 'd', 'm' ];
 // если время не передано или установлен интервал сдвига - обновить время
 if (empty($date_start) || empty($date_stop) || in_array($date_shift, $shift_array)) {
     // Устанавливаем конечную дату = текущее время
-    $datetime_stop = new DateTime();
+    $datetime_stop = (new DateTime())->modify('+1 minute');
     $date2 = $datetime_stop->format('Y-m-d H:i');
     $time_stop = $datetime_stop->getTimestamp();
     
@@ -66,7 +66,7 @@ if (empty($date_start) || empty($date_stop) || in_array($date_shift, $shift_arra
 // Защита от невалидных дат
 if (!$datetime_start || !$datetime_stop) {
     // Устанавливаем значения по умолчанию при ошибке
-    $datetime_stop = new DateTime();
+    $datetime_stop = (new DateTime())->modify('+1 minute');
     $datetime_start = clone $datetime_stop;
     $datetime_start->modify('-1 day');
     

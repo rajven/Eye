@@ -3,13 +3,13 @@
 if (!defined("CONFIG"))die("Not defined");
 
 setlocale(LC_ALL, 'ru_RU.UTF8');
-
-define("HTML_LANG","english");
-#define("HTML_LANG","russian");
+define("HTML_LANG","russian");
 
 define("HTML_STYLE","white");
 
 define("DB_HOST","localhost");
+//db_type => mysql OR pgsql
+define("DB_TYPE","db_type");
 define("DB_NAME","stat");
 define("DB_USER","user");
 define("DB_PASS","password");

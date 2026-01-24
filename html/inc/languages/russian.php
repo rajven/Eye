@@ -34,7 +34,7 @@ define("WEB_msg_login","Вход");
 define("WEB_msg_username","Имя пользователя");
 define("WEB_msg_password","Пароль");
 define("WEB_msg_fullname","ФИО");
-define("WEB_msg_comment","Комментарий");
+define("WEB_msg_description","Комментарий");
 define("WEB_msg_now","Сейчас");
 define("WEB_msg_forbidden","Запрещено");
 define("WEB_msg_traffic_blocked","Блок по трафику");
@@ -175,7 +175,6 @@ define("WEB_title_itog","Итого");
 
 /* table cell names */
 define("WEB_cell_login","Логин");
-define("WEB_cell_fio","ФИО");
 define("WEB_cell_ou","Группа");
 define("WEB_cell_enabled","Включен");
 define("WEB_cell_blocked","Блокировка");
@@ -188,7 +187,7 @@ define("WEB_cell_mac","MAC");
 define("WEB_cell_clientid","Client-id");
 define("WEB_cell_host_firmware","Прошивка");
 define("WEB_cell_sn","SN");
-define("WEB_cell_comment","Комментарий");
+define("WEB_cell_description","Комментарий");
 define("WEB_cell_wikiname","Wiki Name");
 define("WEB_cell_filter","Фильтр");
 define("WEB_cell_proxy","Proxy");
@@ -200,6 +199,8 @@ define("WEB_cell_shaper","Шейпер");
 define("WEB_cell_connection","Подключен");
 define("WEB_cell_last_found","Был mac/arp");
 define("WEB_cell_arp_found","Был arp");
+define("WEB_cell_mac_found","Был mac");
+define("WEB_cell_ptr_only","Только PTR");
 define("WEB_cell_dns_name","Имя в dns");
 define("WEB_cell_aliases","Альясы");
 define("WEB_cell_host_model","Модель устройства");
@@ -232,7 +233,7 @@ define("WEB_cell_poe_in","Питается по POE");
 define("WEB_cell_poe_out","POE");
 define("WEB_cell_dynamic","Динамическая");
 define("WEB_cell_temporary","Временная запись");
-define("WEB_cell_eof","Дата ликвидация");
+define("WEB_cell_end_life","Дата ликвидация");
 define("WEB_cell_life_hours","Часов жизни");
 
 /* lists name */

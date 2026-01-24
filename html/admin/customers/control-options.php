@@ -3,37 +3,53 @@
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
 
-if (isset($_POST["remove"])) {
-    if (!empty($_POST["f_id"])) {
-        $fid = $_POST["f_id"];
+if (getPOST("remove")) {
+    $fid = getPOST("f_id", null, []);
+    if (!empty($fid) && is_array($fid)) {
         foreach ($fid as $option_id => $config_id) {
-            $opt_def = get_record($db_link, "config_options", "id=" . $option_id);
-            LOG_INFO($db_link, WEB_config_remove_option . " id: " . $config_id . " name: " . $opt_def["option_name"]);
-            delete_record($db_link, "config", "id=" . $config_id);
+            $option_id = (int)$option_id;
+            $config_id = (int)$config_id;
+            
+            if ($option_id <= 0 || $config_id <= 0) continue;
+
+            $opt_def = get_record($db_link, "config_options", "id = ?", [$option_id]);
+            if ($opt_def) {
+                LOG_INFO($db_link, WEB_config_remove_option . " id: " . $config_id . " name: " . ($opt_def["option_name"] ?? ''));
+            }
+            delete_record($db_link, "config", "id = ?", [$config_id]);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST['save'])) {
-    if (!empty($_POST["f_id"])) {
-        $fid = $_POST["f_id"];
+if (getPOST("save")) {
+    $fid = getPOST("f_id", null, []);
+    $f_config_value = getPOST("f_config_value", null, []);
+    if (!empty($fid) && is_array($fid)) {
         foreach ($fid as $option_id => $config_id) {
-            $value = $_POST['f_config_value'][$config_id];
-            $option = get_record_sql($db_link, "SELECT * FROM config_options WHERE id=" . $option_id);
-            if (isset($value)) {
-                $new['value'] = $value;
-            }
-            //crypt password
-            if ($option_id == 29) { 
-                $new['value']=crypt_string($value); 
+            $option_id = (int)$option_id;
+            $config_id = (int)$config_id;
+            
+            if ($option_id <= 0 || $config_id <= 0) continue;
+
+            $value = trim($f_config_value[$config_id] ?? '');
+            $option = get_record($db_link, "config_options", "id = ?", [$option_id]);
+
+            if (!$option) continue;
+
+            $new = [];
+            if ($option_id == 29) {
+                // Пароль — шифруем
+                $new['value'] = crypt_string($value);
             } else {
-            //log event if changed option not password
-                LOG_INFO($db_link, WEB_config_set_option . " id: " . $config_id . " name: " . $option["option_name"] . " = " . $value);
+                // Обычное значение
+                $new['value'] = $value;
+                LOG_INFO($db_link, WEB_config_set_option . " id: " . $config_id . " name: " . ($option["option_name"] ?? '') . " = " . $value);
             }
+
             if (!empty($new)) {
-                update_record($db_link, "config", "id=" . $config_id, $new);
+                update_record($db_link, "config", "id = ?", $new, [$config_id]);
             }
         }
     }
@@ -41,14 +57,19 @@ if (isset($_POST['save'])) {
     exit;
 }
 
-if (isset($_POST["create"])) {
-    $new_option = $_POST["f_new_option"];
-    if (isset($new_option)) {
-        $new['option_id'] = $new_option;
-        $new['value'] = get_option($db_link, $new_option);
-        $opt_def = get_record($db_link, "config_options", "id=$new_option");
-        LOG_INFO($db_link, WEB_config_add_option . " id: " . $new_option . " name: " . $opt_def["option_name"] . " = " . $new['value']);
-        insert_record($db_link, "config", $new);
+if (getPOST("create")) {
+    $new_option = (int)getPOST("f_new_option", null, 0);
+    
+    if ($new_option > 0) {
+        $opt_def = get_record($db_link, "config_options", "id = ?", [$new_option]);
+        if ($opt_def) {
+            $new = [
+                'option_id' => $new_option,
+                'value' => get_option($db_link, $new_option)
+            ];
+            LOG_INFO($db_link, WEB_config_add_option . " id: " . $new_option . " name: " . ($opt_def["option_name"] ?? '') . " = " . ($new['value'] ?? ''));
+            insert_record($db_link, "config", $new);
+        }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -72,24 +93,24 @@ print_control_submenu($page_url);
                 <td width=20><input type="checkbox" onClick="checkAll(this.checked);"></td>
                 <td width=150><b><?php print WEB_config_option; ?></b></td>
                 <td width=150><b><?php print WEB_config_value; ?></b></td>
-                <td width=350><b><?php print WEB_msg_comment; ?></b></td>
+                <td width=350><b><?php print WEB_msg_description; ?></b></td>
                 <td class="warn">
                     <input type="submit" onclick="return confirm('<?php print WEB_btn_delete; ?>?')" name="remove" value="<?php print WEB_btn_remove; ?>">
                 </td>
                 <td class="up">
-                    <button name='save'><?php print WEB_btn_save; ?></button>
+                    <button name='save' value='save'><?php print WEB_btn_save; ?></button>
                 </td>
             </tr>
 
             <?php
-            $descr_field = "description." . HTML_LANG;
-            $config_sql = "SELECT `config`.`id`,`option_id`,`option_name`,`value`,`type`,`" . $descr_field . "`,`min_value`,`max_value` FROM `config`,`config_options` WHERE `config`.`option_id`=`config_options`.`id` AND `config_options`.`draft`=0 ORDER BY `option_name`";
-            $t_config = mysqli_query($db_link, $config_sql);
-            while ($row = mysqli_fetch_array($t_config)) {
+            $descr_field = "description_" . HTML_LANG;
+            $config_sql = "SELECT config.id,option_id,option_name,value,option_type," . $descr_field . ",min_value,max_value FROM config,config_options WHERE config.option_id=config_options.id AND config_options.draft=0 ORDER BY option_name";
+            $t_config = get_records_sql($db_link, $config_sql);
+            foreach ($t_config as $row) {
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[" . $row["option_id"] . "] value='" . $row['id'] . "'></td>\n";
                 print "<td class=\"data\"><input type=\"text\" value='" . $row['option_name'] . "' disabled=true readonly=true></td>\n";
-                $type = $row['type'];
+                $type = $row['option_type'];
                 print "<td class=\"data\">";
                 $option_value = $row['value'];
                 if ($row['option_id'] == 29) {

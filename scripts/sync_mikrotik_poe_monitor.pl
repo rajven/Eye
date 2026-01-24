@@ -1,8 +1,14 @@
 #!/usr/bin/perl -w
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
+
+use utf8;
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
 
 use FindBin '$Bin';
 use lib "$Bin/";
@@ -17,6 +23,7 @@ use Net::Patricia;
 use Date::Parse;
 use eyelib::net_utils;
 use eyelib::database;
+use eyelib::common;
 use DBI;
 use utf8;
 use Fcntl qw(:flock);
@@ -40,7 +47,7 @@ my $switch_ip=$device->{ip};
 
 my @cmd_list=();
 
-my @auth_list = get_records_sql($dbh,"SELECT DP.port,AU.ip,AU.dns_name FROM `device_ports` AS DP, `User_auth` as AU, `connections` as C WHERE DP.id=C.port_id and C.auth_id=AU.id and AU.deleted=0 and AU.nagios=1 and C.device_id=".$device->{id}."");
+my @auth_list = get_records_sql($dbh,"SELECT DP.port,AU.ip,AU.dns_name FROM device_ports AS DP, user_auth as AU, connections as C WHERE DP.id=C.port_id and C.auth_id=AU.id and AU.deleted=0 and AU.nagios=1 and C.device_id=?",$device->{id});
 
 my %work_list;
 foreach my $auth (@auth_list) {

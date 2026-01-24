@@ -1,7 +1,7 @@
 package eyelib::config;
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
 
 use utf8;
@@ -24,7 +24,6 @@ use constant {
     NOTIFY_DELETE => 1 << 2, # 0100 - удаление
 };
 
-# Предопределенная комбинация
 use constant NOTIFY_ALL => NOTIFY_CREATE | NOTIFY_UPDATE | NOTIFY_DELETE; # 0111
 
 @ISA = qw(Exporter);
@@ -137,8 +136,8 @@ our %config_ref;
 
 ### current script pathname
 our @FN=split("/",$0);
-### script pid file name
 
+### script pid file name
 $config_ref{my_name}=$FN[-1];
 
 $config_ref{pid_dir} ='/run';

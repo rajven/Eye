@@ -1,4 +1,32 @@
+# Changelog 2.9.1 - release
+
+- Added PostgreSQL support (EXPERIMENTAL — DO NOT USE IN PRODUCTION!)
+- html: switched to use PDO
+- added perl-Net-SNMP module patch to support sha512 in AltLinux
+- The installer has been added 
+- Old versions of the database dump have been removed 
+- The installation now uses php-fpm by default. 
+- Revised English translation 
+- Redesigned the import of vendor mac address data
+- bugfix: fixed clearing of lease records when changing dnsmasq configuration html: added support for php 8.4
+- The name of the dynamic address elimination field is now written in red font for temporary recording
+- Added a check on the database connection activity in the backend, since the automatic reconnect is no longer in use.
+- The debug log is not written to the database.
+- The CNAME output method in dnsmasq has been changed. Now the alias is given as an A record, since dnsmasq does not resolve the parent record, and the secondary one does not send the IP address to the CNAME.
+- improved the function of checking the availability of the host in the web interface
+- double encoding of the redirect url has been removed
+- bugfix: when the subnet was changed, the default gateway was not recalculated. bugfix: the multiplication of the redirect address with an invalid login has been removed.
+- bugfix: removed the artifacts of working with snmp for mikrotik candles updated to the current version of oxidized 0.34.3 pack for a list with support for custom ssh|telnet ports
+- bugfix: duplication of styles has been removed
+- bugfix: Fixed the handling of possible looping in the switch connection scheme
+- bugfix: fixed sorting the list of devices by name and location
+- bugfix: fixed an ancient bug with permanent deletion of the ip address record from the backend
+- In the search string, * (asterisk) can work anywhere except at the end of the string.
+- bugfix: authorization has been fixed. Authorization is no longer reset when opening a direct link. 
+- bugfix: The address import script now handles dns name changes correctly.
+
 # Changelog 2.8.2 - release
+
 - html: The default interval is 1 hour for displaying logs and reports.
 - html: The search in the list of all addresses now takes into account the filters set
 - html: The IP address can be written using the russain letter Ю instead of a dot.
@@ -14,6 +42,7 @@
 - always remove dynamic user ip record by dhcp release request
 
 # Changelog 2.8.0 - draft
+
 - fixed upgrade script name
 - The rule of the only mac in the subnet has been implemented for dynamic records.
 - The ability to set a group has been added to mass editing from the address list.

@@ -1,11 +1,15 @@
-#!/usr/bin/perl
+#!/usr/bin/perl 
 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
 
 use utf8;
-use open ":encoding(utf8)";
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
+
 use English;
 use base;
 use FindBin '$Bin';
@@ -19,6 +23,7 @@ use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 use eyelib::net_utils;
 use File::Basename;
 use File::Path;

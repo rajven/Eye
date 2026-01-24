@@ -4,187 +4,150 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php")
 
 if (!defined("CONFIG")) die("Not defined");
 
-if (isset($_POST["ApplyForAll"])) {
+$page_url = null;
 
-    $auth_id = $_POST["fid"];
+if (getPOST("ApplyForAll", $page_url)) {
 
-    if (empty($_POST["a_new_ou"])) {
-        $_POST["a_new_ou"] = 0;
-    }
-    if (empty($_POST["a_enabled"])) {
-        $_POST["a_enabled"] = 0;
-    }
-    if (empty($_POST["a_dhcp"])) {
-        $_POST["a_dhcp"] = 0;
-    }
-    if (empty($_POST["a_queue_id"])) {
-        $_POST["a_queue_id"] = 0;
-    }
-    if (empty($_POST["a_group_id"])) {
-        $_POST["a_group_id"] = 0;
-    }
-    if (empty($_POST["a_traf"])) {
-        $_POST["a_traf"] = 0;
-    }
+    // Получаем массив ID авторизаций
+    $auth_id = getPOST("fid", $page_url, []);
 
-    if (empty($_POST["n_enabled"])) {
-        $_POST["n_enabled"] = 0;
-    }
+    // Получаем и валидируем все параметры через getPOST
+    $a_ou_id = (int)getPOST("a_new_ou", $page_url, 0);
+    $a_enabled = (int)getPOST("a_enabled", $page_url, 0);
+    $a_dhcp = (int)getPOST("a_dhcp", $page_url, 0);
+    $a_dhcp_acl = trim(getPOST("a_dhcp_acl", $page_url, ''));
+    $a_dhcp_option_set = trim(getPOST("a_dhcp_option_set", $page_url, ''));
+    $a_queue = (int)getPOST("a_queue_id", $page_url, 0);
+    $a_group = (int)getPOST("a_group_id", $page_url, 0);
+    $a_traf = (int)getPOST("a_traf", $page_url, 0);
+    $a_bind_mac = (int)getPOST("a_bind_mac", $page_url, 0);
+    $a_bind_ip = (int)getPOST("a_bind_ip", $page_url, 0);
+    $n_enabled = (int)getPOST("n_enabled", $page_url, 0);
+    $n_link = (int)getPOST("n_link", $page_url, 0);
+    $n_handler = getPOST("n_handler", $page_url, '');
 
-    if (empty($_POST["n_link"])) {
-        $_POST["n_link"] = 0;
-    }
+    $all_ok = true;
 
-    if (empty($_POST["a_bind_mac"])) {
-        $_POST["a_bind_mac"] = 0;
-    }
+    foreach ($auth_id as $val) {
+        $id = (int)$val;
+        if ($id <= 0) continue;
 
-    if (empty($_POST["a_bind_ip"])) {
-        $_POST["a_bind_ip"] = 0;
-    }
+        // Получаем текущую авторизацию и пользователя
+        $cur_auth = get_record_sql($db_link, "SELECT * FROM user_auth WHERE id = ?", [$id]);
+        if (!$cur_auth) continue;
 
-    $a_ou_id    = $_POST["a_new_ou"] * 1;
-    $a_enabled  = $_POST["a_enabled"] * 1;
-    $a_dhcp     = $_POST["a_dhcp"] * 1;
-    $a_dhcp_acl = trim($_POST["a_dhcp_acl"]);
-    $a_dhcp_option_set = trim($_POST["a_dhcp_option_set"]);
-    $a_queue    = $_POST["a_queue_id"] * 1;
-    $a_group    = $_POST["a_group_id"] * 1;
-    $a_traf     = $_POST["a_traf"] * 1;
+        $user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [(int)$cur_auth["user_id"]]);
+        if (!$user_info) continue;
 
-    $a_bind_mac = $_POST["a_bind_mac"]*1;
-    $a_bind_ip  = $_POST["a_bind_ip"]*1;
+        // Формируем данные для обновления auth
+        $auth_updates = [];
 
-    $n_enabled = $_POST["n_enabled"] * 1;
-    $n_link    = $_POST["n_link"] * 1;
-    $n_handler = $_POST["n_handler"];
+        if (getPOST("e_enabled", $page_url) !== null) {
+            $auth_updates['enabled'] = (int)($user_info["enabled"] * $a_enabled);
+        }
+        if (getPOST("e_group_id", $page_url) !== null) {
+            $auth_updates['filter_group_id'] = $a_group;
+        }
+        if (getPOST("e_queue_id", $page_url) !== null) {
+            $auth_updates['queue_id'] = $a_queue;
+        }
+        if (getPOST("e_dhcp", $page_url) !== null) {
+            $auth_updates['dhcp'] = $a_dhcp;
+        }
+        if (getPOST("e_dhcp_acl", $page_url) !== null) {
+            $auth_updates['dhcp_acl'] = $a_dhcp_acl;
+        }
+        if (getPOST("e_dhcp_option_set", $page_url) !== null) {
+            $auth_updates['dhcp_option_set'] = $a_dhcp_option_set;
+        }
+        if (getPOST("e_traf", $page_url) !== null) {
+            $auth_updates['save_traf'] = $a_traf;
+        }
+        if (getPOST("e_nag_enabled", $page_url) !== null) {
+            $auth_updates['nagios'] = $n_enabled;
+        }
+        if (getPOST("e_nag_link", $page_url) !== null) {
+            $auth_updates['link_check'] = $n_link;
+        }
+        if (getPOST("e_nag_handler", $page_url) !== null) {
+            $auth_updates['nagios_handler'] = $n_handler;
+        }
 
-    $msg = "Massive User change!";
-    LOG_WARNING($db_link, $msg);
+        // Обновляем запись в user_auth
+        if (!empty($auth_updates)) {
+            $ret = update_record($db_link, "user_auth", "id = ?", $auth_updates, [$id]);
+            if (!$ret) $all_ok = false;
+        }
 
-    $all_ok = 1;
-    foreach ($auth_id as $key => $val) {
-        if ($val) {
-            unset($auth);
-            //check user state
-            $cur_auth = get_record_sql($db_link, "SELECT * FROM User_auth WHERE `id`=" . $val);
-            if (!empty($cur_auth)) { $user_info = get_record_sql($db_link, "SELECT * FROM User_list WHERE `id`=" . $cur_auth["user_id"]); }
+        // Изменение группы пользователя
+        if (getPOST("e_new_ou", $page_url) !== null && $a_ou_id >0) {
+            $user_updates = ['ou_id' => $a_ou_id];
+            $auth_updates_for_all = ['ou_id' => $a_ou_id];
 
+            // Обновляем user_list
+            $ret = update_record($db_link, "user_list", "id = ?", $user_updates, [(int)$cur_auth['user_id']]);
+            if (!$ret) $all_ok = false;
 
-            if (isset($_POST["e_enabled"])) {
-                if (!empty($user_info)) { $a_enabled = $user_info["enabled"] * $a_enabled; }
-                $auth['enabled'] = $a_enabled;
-            }
-            if (isset($_POST["e_group_id"])) {
-                $auth['filter_group_id'] = $a_group;
-            }
-            if (isset($_POST["e_queue_id"])) {
-                $auth['queue_id'] = $a_queue;
-            }
-            if (isset($_POST["e_dhcp"])) {
-                $auth['dhcp'] = $a_dhcp;
-            }
-            if (isset($_POST["e_dhcp_acl"])) {
-                $auth['dhcp_acl'] = $a_dhcp_acl;
-            }
-            if (isset($_POST["e_dhcp_option_set"])) {
-                $auth['dhcp_option_set'] = $a_dhcp_option_set;
-            }
-            if (isset($_POST["e_traf"])) {
-                $auth['save_traf'] = $a_traf;
-            }
-            //nagios
-            if (isset($_POST["e_nag_enabled"])) {
-                $auth['nagios'] = $n_enabled;
-            }
-            if (isset($_POST["e_nag_link"])) {
-                $auth['link_check'] = $n_link;
-            }
-            if (isset($_POST["e_nag_handler"])) {
-                $auth['nagios_handler'] = $n_handler;
-            }
+            // Обновляем все записи user_auth для этого пользователя
+            $ret = update_records($db_link, "user_auth", "user_id = ?", $auth_updates_for_all, [(int)$cur_auth['user_id']]);
+            if (!$ret) $all_ok = false;
+        }
 
-            if (!empty($auth)) {
-                $ret = update_record($db_link, "User_auth", "id='" . $val . "'", $auth);
-                if (!$ret) { $all_ok = 0; }
-            }
-
-            //change user group
-            if (isset($_POST["e_new_ou"]) and !empty($a_ou_id) and !empty($user_info)) {
-                $user['ou_id'] = $a_ou_id;
-                $u_auth['ou_id'] = $a_ou_id;
-                //change user group
-                $msg = " For user id: " . $cur_auth['user_id'] . " login: " . $user_info['login'] . " set: ou_id = ".$a_ou_id;
-                LOG_INFO($db_link,$msg);
-                $ret = update_record($db_link, "User_list", "id='" . $cur_auth['user_id'] . "'", $user);
-                if (!$ret) { $all_ok = 0; }
-                //change user ip
-                $auth_list = get_records_sql($db_link, "SELECT * FROM User_auth WHERE user_id=" . $cur_auth['user_id']);
-                if (!empty($auth_list)) {
-                        foreach ($auth_list as $row) {
-                            if (empty($row)) { continue; }
-                            $ret = update_record($db_link, "User_auth", "id='" . $row["id"] . "'", $u_auth);
-                            if (!$ret) { $all_ok = 0; }
-                            }
-                        }
-                unset($user);
+        // Правило привязки MAC
+        if (getPOST("e_bind_mac", $page_url) !== null) {
+            if ($cur_auth && !empty($cur_auth['mac'])) {
+                if ($a_bind_mac) {
+                    $user_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id = ? AND rule_type = 2", [(int)$cur_auth['user_id']]);
+                    $mac_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = 2", [$cur_auth['mac']]);
+                    
+                    if (!$user_rule && !$mac_rule) {
+                        $new_rule = [
+                            'user_id' => (int)$cur_auth['user_id'],
+                            'rule_type' => 2,
+                            'rule' => $cur_auth['mac']
+                        ];
+                        insert_record($db_link, "auth_rules", $new_rule);
+                    } else {
+                        LOG_INFO($db_link, "Auto rule for user_id: " . $cur_auth['user_id'] . " and mac " . $cur_auth['mac'] . " already exists");
+                    }
+                } else {
+                    delete_records($db_link, "auth_rules", "user_id = ? AND rule_type = 2", [(int)$cur_auth['user_id']]);
                 }
-
-            //bind mac rule
-            if (isset($_POST["e_bind_mac"])) {
-                $first_auth = get_record_sql($db_link,"SELECT user_id,mac FROM User_auth WHERE id=".$val);
-                if (!empty($first_auth) and !empty($first_auth['mac'])) {
-                    if ($a_bind_mac) {
-                            $auth_rules_user = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=2");
-                            $auth_rules_mac = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE rule='".$first_auth['mac']."' AND type=2");
-                            if (empty($auth_rules_user) and empty($auth_rules_mac)) {
-                                $new['user_id']=$first_auth['user_id'];
-                                $new['type']=2;
-                                $new['rule']=$first_auth['mac'];
-                                insert_record($db_link,"auth_rules",$new);
-                                LOG_INFO($db_link,"Created auto rule for user_id: ".$first_auth['user_id']." and mac ".$first_auth['mac']);
-                                } else {
-                                LOG_INFO($db_link,"Auto rule for user_id: ".$first_auth['user_id']." and mac ".$first_auth['mac']." already exists");
-                                }
-                            } else {
-                                run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=2");
-                                LOG_INFO($db_link,"Remove auto rule for user_id: ".$first_auth['user_id']." and mac ".$first_auth['mac']);
-                            }
-                    } else {
-                        LOG_ERROR($db_link,"Auto rule for user_id: ".$first_auth['user_id']." not created. Record not found or empty mac.");
-                    }
+            } else {
+                LOG_ERROR($db_link, "Auto rule for user_id: " . ($cur_auth['user_id'] ?? 'N/A') . " not created. Record not found or empty mac.");
             }
+        }
 
-            //bind ip rule
-            if (isset($_POST["e_bind_ip"])) {
-                $first_auth = get_record_sql($db_link,"SELECT user_id,ip FROM User_auth WHERE id=".$val);
-                if (!empty($first_auth) and !empty($first_auth['ip'])) {
-                    if ($a_bind_ip) {
-                            $auth_rules_user = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=1");
-                            $auth_rules_ip = get_record_sql($db_link,"SELECT * FROM auth_rules WHERE rule='".$first_auth['ip']."' AND type=1");
-                            if (empty($auth_rules_user) and empty($auth_rules_ip)) {
-                                $new['user_id']=$first_auth['user_id'];
-                                $new['type']=1;
-                                $new['rule']=$first_auth['ip'];
-                                insert_record($db_link,"auth_rules",$new);
-                                LOG_INFO($db_link,"Created auto rule for user_id: ".$first_auth['user_id']." and ip ".$first_auth['ip']);
-                                } else {
-                                LOG_INFO($db_link,"Auto rule for user_id: ".$first_auth['user_id']." and ip ".$first_auth['ip']." already exists");
-                                }
-                            } else {
-                                run_sql($db_link,"DELETE FROM auth_rules WHERE user_id=".$first_auth['user_id']." AND type=1");
-                                LOG_INFO($db_link,"Remove auto rule for user_id: ".$first_auth['user_id']." and ip ".$first_auth['ip']);
-                            }
+        // Правило привязки IP
+        if (getPOST("e_bind_ip", $page_url) !== null) {
+            if ($cur_auth && !empty($cur_auth['ip'])) {
+                if ($a_bind_ip) {
+                    $user_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id = ? AND rule_type = 1", [(int)$cur_auth['user_id']]);
+                    $ip_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = 1", [$cur_auth['ip']]);
+                    
+                    if (!$user_rule && !$ip_rule) {
+                        $new_rule = [
+                            'user_id' => (int)$cur_auth['user_id'],
+                            'rule_type' => 1,
+                            'rule' => $cur_auth['ip']
+                        ];
+                        insert_record($db_link, "auth_rules", $new_rule);
                     } else {
-                        LOG_ERROR($db_link,"Auto rule for user_id: ".$first_auth['user_id']." not created. Record not found or empty ip.");
+                        LOG_INFO($db_link, "Auto rule for user_id: " . $cur_auth['user_id'] . " and ip " . $cur_auth['ip'] . " already exists");
                     }
+                } else {
+                    delete_records($db_link, "auth_rules", "user_id = ? AND rule_type = 1", [(int)$cur_auth['user_id']]);
+                }
+            } else {
+                LOG_ERROR($db_link, "Auto rule for user_id: " . ($cur_auth['user_id'] ?? 'N/A') . " not created. Record not found or empty ip.");
             }
-
         }
     }
+
     if ($all_ok) {
         print "Success!";
     } else {
         print "Fail!";
     }
 }
+?>

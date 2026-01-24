@@ -4,20 +4,26 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php")
 
 if (!defined("CONFIG")) die("Not defined");
 
-if (isset($_POST["RemoveDevice"]) and (isset($_POST["f_deleted"]))) {
-	if ($_POST["f_deleted"] * 1) {
-		$all_ok = 1;
-		$dev_ids = $_POST["fid"];
-		foreach ($dev_ids as $key => $val) {
-		    if ($val) {
-                            $changes = delete_device($db_link,$val);
-                            if (empty($changes)) { $all_ok = 0; }
-                        }
-                }
-		if ($all_ok) {
-			print "Success!";
-		} else {
-			print "Fail!";
-		}
-	}
+$page_url = null;
+
+$remove_action = getPOST('RemoveDevice', null, null);
+$f_deleted     = getPOST('f_deleted', null, null);
+
+if ($remove_action !== null && $f_deleted !== '') {
+    $dev_ids = getPOST('fid', null, []);
+    $all_ok = true;
+
+    foreach ($dev_ids as $val) {
+        $id = (int)$val;
+        if ($id > 0) {
+            $changes = delete_device($db_link, $id);
+            if (empty($changes)) {
+                $all_ok = false;
+            }
+        }
+    }
+
+    echo $all_ok ? 'Success!' : 'Fail!';
 }
+
+?>

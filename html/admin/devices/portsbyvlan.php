@@ -16,14 +16,13 @@ print_device_submenu($page_url);
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.vlan=$id";
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
+$countSQL="SELECT Count(*) FROM device_ports AS DP, devices AS D WHERE D.id = DP.device_id AND DP.vlan=?";
+$count_records = get_single_field($db_link,$countSQL, [ $id ]);
+$total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed; 
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 
 <table class="data">
@@ -32,16 +31,16 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td><?php echo WEB_device_port_name; ?></td>
 </tr>
 <?php
-$sSQL = "SELECT DP.id, DP.port, D.id, D.device_name FROM `device_ports` AS DP, devices AS D WHERE D.id = DP.device_id AND DP.vlan=$id";
-$ports_info = mysqli_query($db_link, $sSQL);
-while (list ($f_port_id,$f_port,$f_switch_id,$f_switch) = mysqli_fetch_array($ports_info)) {
+$sSQL = "SELECT DP.id, DP.port, DP.device_id, D.device_name FROM device_ports AS DP, devices AS D WHERE D.id = DP.device_id AND DP.vlan=?";
+$ports_info = get_records_sql($db_link, $sSQL, [ $id ]);
+foreach ($ports_info as $row) {
     print "<tr>";
-    print "<td class=\"data\"><a href=\"/admin/devices/editdevice.php?id=$f_switch_id\">" . $f_switch . "</a></td>\n";
-    print "<td class=\"data\"><a href=\"/admin/devices/editport.php?id=$f_port_id\">" . $f_port . "</a></td>\n";
+    print "<td class=\"data\"><a href=\"/admin/devices/editdevice.php?id=".$row['device_id']."\">" . $row['device_name']. "</a></td>\n";
+    print "<td class=\"data\"><a href=\"/admin/devices/editport.php?id=".$row['id']."\">" . $row['port'] . "</a></td>\n";
     print "</tr>";
 }
 ?>
 </table>
-<?php print_navigation($page_url,$page,$displayed,$count_records[0],$total); 
+<?php print_navigation($page_url,$page,$displayed,$count_records,$total); 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

@@ -1,8 +1,14 @@
-#!/usr/bin/perl -CS
+#!/usr/bin/perl 
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
+
+use utf8;
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
 
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
@@ -14,6 +20,7 @@ use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 
 setpriority(0,0,19);
 
@@ -24,7 +31,7 @@ my $named_db_path='/etc/bind/masters';
 my $DNS1=$config_ref{dns_server};
 my $DNS1_IP=$config_ref{dns_server};
 
-my $dns_server_record = get_record_sql($dbh,"SELECT id,ip,dns_name FROM User_auth WHERE deleted=0 AND ip='".$DNS1_IP."'");
+my $dns_server_record = get_record_sql($dbh,"SELECT id,ip,dns_name FROM user_auth WHERE deleted=0 AND ip=?",$DNS1_IP);
 
 if ($dns_server_record and $dns_server_record->{dns_name}) { 
     my $ns1=$dns_server_record->{dns_name};
@@ -44,7 +51,7 @@ my $named_conf=$named_root.'/etc/bind/named.dynamic';
 
 my %zones;
 
-my $sSQL="SELECT id,ou_id,ip,dns_name,dhcp_hostname,dns_ptr_only FROM User_auth WHERE deleted=0 AND ip>'' AND (dns_name>'' OR dhcp_hostname>'') AND dns_name NOT LIKE '%.' ORDER by ip_int;";
+my $sSQL="SELECT id,ou_id,ip,dns_name,dhcp_hostname,dns_ptr_only FROM user_auth WHERE deleted=0 AND ip>'' AND (dns_name>'' OR dhcp_hostname>'') AND dns_name NOT LIKE '%.' ORDER by ip_int;";
 my @authlist_ref = get_records_sql($dbh,$sSQL);
 foreach my $row (@authlist_ref) {
 next if (!$row);
@@ -70,7 +77,7 @@ next if (!$office_networks->match_string($ip));
 my $default_name=$dns_name;
 $zones{$domain_name}{A}{$default_name}=$ip;
 
-my @dns_aliases=get_records_sql($dbh,"SELECT * FROM User_auth_alias WHERE auth_id=$row->{id} AND alias>'' AND alias NOT LIKE '%.' ORDER BY alias");
+my @dns_aliases=get_records_sql($dbh,"SELECT * FROM user_auth_alias WHERE auth_id=$row->{id} AND alias>'' AND alias NOT LIKE '%.' ORDER BY alias");
 foreach my $alias (@dns_aliases) {
         my $dns_alias = trim($alias->{alias});
 #        $dns_alias =~s/$domain_name//i;

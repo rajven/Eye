@@ -3,104 +3,117 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 
-if (isset($_POST['s_save'])) {
-        $new = [];
+$sSQL = "SELECT * FROM subnets WHERE id= ?";
+$subnet_info = get_record_sql($db_link, $sSQL, [ $id ]);
 
-        // === INPUT CLEANING =====================================================================================
-        $new['subnet'] = trim($_POST['s_subnet']);
-        $new['vlan_tag'] = normalize_vlan($_POST['s_vlan']);
-        $new['office'] = intval_or_zero($_POST['s_office']);
-        $new['hotspot'] = intval_or_zero($_POST['s_hotspot']);
-        $new['vpn'] = intval_or_zero($_POST['s_vpn']);
-        $new['free'] = intval_or_zero($_POST['s_free']);
-        $new['dhcp'] = intval_or_zero($_POST['s_dhcp']);
-        $new['dhcp_lease_time'] = intval_or_zero($_POST['s_lease_time']);
-        $new['static'] = intval_or_zero($_POST['s_static']);
-        $new['discovery'] = intval_or_zero($_POST['s_discovery']);
-        $new['notify'] = intval_or_zero($_POST['s_notify']);
-        $new['dhcp_update_hostname'] = intval_or_zero($_POST['s_dhcp_update']);
-        $new['comment'] = trim($_POST['s_comment']);
+if (getPOST("s_save") !== null) {
+    $new = [];
 
-        // === CIDR / RANGE PROCESSING =============================================================================
+    // === INPUT CLEANING =====================================================================================
+    $new['subnet']              = trim(getPOST("s_subnet", null, $subnet_info['subnet']));
 
-        $range = cidrToRange($new['subnet']);
-        $first_ip     = $range[0];
-        $last_ip      = $range[1];
-        $cidr         = $range[2][1] ?? null;
-        $new['subnet'] = ($cidr && $cidr <= 32) ? "$first_ip/$cidr" : '';
-        $new['ip_int_start'] = ip2long($first_ip);
-        $new['ip_int_stop']  = ip2long($last_ip);
+    // === CIDR / RANGE PROCESSING ============================================================================
+    $range = cidrToRange($new['subnet']);
+    $first_ip = $range[0];
+    $last_ip  = $range[1];
+    $cidr     = $range[2] ?? null;
 
-        // === GATEWAY ===============================================================================================
-
-        $gateway_fallback = ip2long($range[5]);
-        $new['gateway'] = get_dhcp_gateway($_POST['s_gateway'], $gateway_fallback);
-
-        // === GATEWAY VALIDATION ===================================================================================
-
-        if ( !$new['gateway'] || $new['gateway'] <= $new['ip_int_start'] || $new['gateway'] >= $new['ip_int_stop'] ) {
-              // если введённый gateway не подходит — используем дефолтный
-                $new['gateway'] = $gateway_fallback;
-            }
-
-        // === DHCP RANGE VALIDATION ================================================================================
-
-        $dhcp_start = ip2long(trim($_POST['s_dhcp_start']));
-        $dhcp_stop  = ip2long(trim($_POST['s_dhcp_stop']));
-
-        if (!validate_dhcp_range(
-            $dhcp_start,
-            $dhcp_stop,
-            $new['ip_int_start'],
-            $new['ip_int_stop']
-        )) {
-            // fallback пул
-            $dhcp_start = ip2long($range[3]);
-            $dhcp_stop  = ip2long($range[4]);
+    // Формируем корректный CIDR
+    if ($cidr !== null && $cidr < 32) {
+            $new['subnet'] = "$first_ip/$cidr";
+        } else {
+            $range = cidrToRange($first_ip.'/24');
+            $first_ip = $range[0];
+            $last_ip  = $range[1];
+            $cidr     = $range[2] ?? null;
+            if ($cidr !== null && $cidr < 32) {
+                $new['subnet'] = "$first_ip/$cidr";
+                } else {
+                //abort
+                header("Location: " . $_SERVER["REQUEST_URI"]);
+                exit;
+                }
         }
 
-        $new['dhcp_start'] = $dhcp_start;
-        $new['dhcp_stop']  = $dhcp_stop;
+    $new['vlan_tag']            = normalize_vlan(getPOST("s_vlan", null, 1));
+    $new['office']              = intval_or_zero(getPOST("s_office", null, 0));
+    $new['hotspot']             = intval_or_zero(getPOST("s_hotspot", null, 0));
+    $new['vpn']                 = intval_or_zero(getPOST("s_vpn", null, 0));
+    $new['free']                = intval_or_zero(getPOST("s_free", null, 0));
+    $new['dhcp']                = intval_or_zero(getPOST("s_dhcp", null, 0));
+    $new['dhcp_lease_time']     = intval_or_zero(getPOST("s_lease_time", null, 0));
+    $new['static']              = intval_or_zero(getPOST("s_static", null, 0));
+    $new['discovery']           = intval_or_zero(getPOST("s_discovery", null, 0));
+    $new['notify']              = intval_or_zero(getPOST("s_notify", null, 0));
+    $new['dhcp_update_hostname']= intval_or_zero(getPOST("s_dhcp_update", null, 0));
+    $new['description']         = trim(getPOST("s_description", null, ''));
 
+    $new['ip_int_start']        = ip2long($first_ip);
+    $new['ip_int_stop']         = ip2long($last_ip);
 
-        // === MODE DEPENDENCY RULES ================================================================================
+    // === GATEWAY ============================================================================================
+    $gateway_fallback = ip2long($range[5]);
+    $new['gateway'] = get_dhcp_gateway(getPOST("s_gateway", null, ''), $gateway_fallback);
 
-        if ($new['hotspot']) {
-            $new['dhcp_update_hostname'] = 0;
-            $new['discovery'] = 0;
-            $new['vpn'] = 0;
+    // === GATEWAY VALIDATION =================================================================================
+    if (!$new['gateway'] || $new['gateway'] <= $new['ip_int_start'] || $new['gateway'] >= $new['ip_int_stop']) {
+        $new['gateway'] = $gateway_fallback;
+    }
+
+    // === DHCP RANGE VALIDATION =============================================================================
+    $dhcp_start = ip2long(trim(getPOST("s_dhcp_start", null, $range[3])));
+    $dhcp_stop  = ip2long(trim(getPOST("s_dhcp_stop", null, $range[4])));
+
+    if (!validate_dhcp_range($dhcp_start, $dhcp_stop, $new['ip_int_start'], $new['ip_int_stop'])) {
+        // fallback пул
+        $dhcp_start = ip2long($range[3]);
+        $dhcp_stop  = ip2long($range[4]);
+    }
+
+    $new['dhcp_start'] = $dhcp_start;
+    $new['dhcp_stop']  = $dhcp_stop;
+
+    // === MODE DEPENDENCY RULES =============================================================================
+
+    if ($dhcp_start === $dhcp_stop ) {
+        $new['dhcp'] = 0;
         }
 
-        if ($new['vpn']) {
-            $new['discovery'] = 0;
-            $new['dhcp'] = 0;
-        }
+    if ($new['hotspot']) {
+        $new['dhcp_update_hostname'] = 0;
+        $new['discovery'] = 0;
+        $new['vpn'] = 0;
+    }
 
-        if ($new['office']) {
-            $new['free'] = 0;
-        }
+    if ($new['vpn']) {
+        $new['discovery'] = 0;
+        $new['dhcp'] = 0;
+    }
 
-        if (!$new['office']) {
-            $new['discovery'] = 0;
-            $new['dhcp'] = 0;
-            $new['static'] = 0;
-            $new['dhcp_update_hostname'] = 0;
-            $new['gateway'] = 0;
-            $new['dhcp_start'] = 0;
-            $new['dhcp_stop'] = 0;
-        }
+    if ($new['office']) {
+        $new['free'] = 0;
+    }
 
-        update_record($db_link, "subnets", "id='$id'", $new);
-        header("Location: /admin/customers/index-subnets.php");
-        exit;
+    if (!$new['office']) {
+        $new['discovery'] = 0;
+        $new['dhcp'] = 0;
+        $new['static'] = 0;
+        $new['dhcp_update_hostname'] = 0;
+        $new['gateway'] = 0;
+        $new['dhcp_start'] = 0;
+        $new['dhcp_stop'] = 0;
+    }
+
+    update_record($db_link, "subnets", "id = ?", $new, [$id]);
+
+    header("Location: /admin/customers/index-subnets.php");
+    exit;
 }
 
 unset($_POST);
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
 print_control_submenu($page_url);
 
-$sSQL = "SELECT * FROM subnets WHERE id=$id";
-$subnet_info = get_record_sql($db_link, $sSQL);
 ?>
 
 <div id="cont">
@@ -128,9 +141,9 @@ $subnet_info = get_record_sql($db_link, $sSQL);
             
             <tr>
                 <td></td>
-                <td><b><?php echo WEB_cell_comment; ?></b></td>
+                <td><b><?php echo WEB_cell_description; ?></b></td>
                 <td colspan="2" class="data">
-                    <input type="text" name="s_comment" value="<?php echo $subnet_info['comment']; ?>">
+                    <input type="text" name="s_description" value="<?php echo $subnet_info['description']; ?>">
                 </td>
             </tr>
             

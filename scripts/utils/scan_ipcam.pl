@@ -1,7 +1,11 @@
-#!/usr/bin/perl
+#!/usr/bin/perl 
 
 use utf8;
-use open ":encoding(utf8)";
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
+
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
 use DBI;
@@ -20,6 +24,7 @@ use Net::SNMP qw(ticks_to_time TRANSLATE_NONE);
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 use Fcntl qw(:flock);
 
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
@@ -69,7 +74,7 @@ $result->{text} = trim($result->{text});
 return $result;
 }
 
-my @auth_list=get_records_sql($dbh,'SELECT * FROM User_auth WHERE deleted=0 and nagios=1');
+my @auth_list=get_records_sql($dbh,'SELECT * FROM user_auth WHERE deleted=0 and nagios=1');
 
 ##################################### User auth analyze ################################################
 
@@ -79,7 +84,7 @@ if (scalar(@auth_list)>0) {
         my $ip = $auth->{'ip'};
         $ip =~s/\/\d+$//g;
         #get user
-        my $login = get_record_sql($dbh,"SELECT * FROM User_list WHERE id=".$auth->{'user_id'});
+        my $login = get_record_sql($dbh,"SELECT * FROM user_list WHERE id=".$auth->{'user_id'});
         next if ($login->{ou_id} ne 5);
 
         my $cam_dev = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=".$auth->{'user_id'});

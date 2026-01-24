@@ -1,9 +1,11 @@
-#!/usr/bin/perl
+#!/usr/bin/perl 
 
-use strict;
+use utf8;
 use warnings;
 use Encode;
+use open qw(:std :encoding(UTF-8));
 no warnings 'utf8';
+
 use English;
 use LWP::UserAgent;
 use JSON;
@@ -194,9 +196,9 @@ sub process_ovpn_config {
 
     # Обрабатываем каждый auth record
     foreach my $auth (@$ip_list) {
-        next unless $auth->{comments} && $auth->{ip};
+        next unless $auth->{description} && $auth->{ip};
         next if (!$ServerNet->match_string($auth->{ip}));
-        my $username = $auth->{comments};
+        my $username = $auth->{description};
         my $ip = $auth->{ip};
         process_ccd_file($ccd_dir, $username, $ip, $network_mask);
     }

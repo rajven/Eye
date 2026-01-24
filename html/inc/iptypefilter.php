@@ -1,11 +1,6 @@
 <?php
-if (! defined("CONFIG")) die("Not defined");
+if (!defined("CONFIG")) die("Not defined");
 
-if (isset($_GET['ip_type'])) { $ip_type = $_GET["ip_type"] * 1; }
-if (isset($_POST['ip_type'])) { $ip_type = $_POST["ip_type"] * 1; }
-if (!isset($ip_type)) {
-    if (isset($_SESSION[$page_url]['ip_type'])) { $ip_type = $_SESSION[$page_url]['ip_type']*1; }
-    }
-if (!isset($ip_type)) { $ip_type = 0; }
-$_SESSION[$page_url]['ip_type']=$ip_type;
+$ip_type = getParam('ip_type', $page_url, 0, FILTER_VALIDATE_INT);
+$_SESSION[$page_url]['ip_type'] = (int)$ip_type;
 ?>

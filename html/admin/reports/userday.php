@@ -7,7 +7,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 
-$user=get_record_sql($db_link,'SELECT * FROM User_list WHERE id='.$id);
+$user=get_record_sql($db_link,'SELECT * FROM user_list WHERE id=?', [ $id ]);
 
 ?>
 
@@ -32,32 +32,41 @@ $user=get_record_sql($db_link,'SELECT * FROM User_list WHERE id='.$id);
 </tr>
 
 <?php
+
 $gateway_list = get_gateways($db_link);
 
-$gateway_filter='';
-if (!empty($rgateway) and $rgateway>0) { $gateway_filter="(User_stats.router_id=$rgateway) AND"; }
-
-$sSQL = "SELECT id,ip,comments FROM User_auth WHERE (User_auth.user_id=$id) Order by IP";
-$usersip = mysqli_query($db_link, $sSQL);
+$sSQL = "SELECT id,ip,description FROM user_auth WHERE (user_auth.user_id=?) ORDER BY IP";
+$usersip = get_records_sql($db_link, $sSQL, [ $id ]);
 
 $ipcount = 0;
 $itog_in = 0;
 $itog_out = 0;
 
-while ($row = mysqli_fetch_array($usersip)) {
+// Определяем тип СУБД один раз (лучше вынести выше, но для примера — здесь)
+$db_type = $db_link->getAttribute(PDO::ATTR_DRIVER_NAME);
 
-    $fid = $row["id"];
+foreach ($usersip as $row) {
+    $fid = (int)$row["id"];
     $fip = $row["ip"];
-    $fcomm = $row["comments"];
+    $fcomm = $row["description"];
 
-    $sSQL = "SELECT SUM(byte_in)+SUM(byte_out) as t_sum FROM User_stats 
-    WHERE $gateway_filter User_stats.timestamp>='$date1' AND User_stats.timestamp<'$date2'AND auth_id=$fid";
+    $params = [$date1, $date2];
+    $conditions = ["user_stats.ts >= ?", "user_stats.ts < ?"];
+    
+    if (!empty($rgateway) && $rgateway > 0) {
+        $conditions[] = "user_stats.router_id = ?";
+        $params[] = (int)$rgateway;
+    }
+    $conditions[] = "auth_id = ?";
+    $params[] = $fid;
 
-    $day_summary = get_record_sql($db_link, $sSQL);
-    if (!empty($day_summary)) { $summ = $day_summary['t_sum']; } else { $summ = 0; }
+    $whereClause = implode(' AND ', $conditions);
+    $sSQL = "SELECT SUM(byte_in) + SUM(byte_out) AS t_sum FROM user_stats WHERE $whereClause";
+    $day_summary = get_record_sql($db_link, $sSQL, $params);
+    $summ = !empty($day_summary) ? (float)($day_summary['t_sum'] ?? 0) : 0;
 
     if ($summ > 0) {
-        $ipcount ++;
+        $ipcount++;
         print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
         print "<td class=\"data\" ><b><a href=/admin/users/editauth.php?id=$fid>$fip</a></b></td>\n";
         print "<td class=\"data\" colspan=2>$fcomm</td>\n";
@@ -65,39 +74,73 @@ while ($row = mysqli_fetch_array($usersip)) {
         print "<td class=\"data\" ><a href=/admin/reports/userdaydetaillog.php?id=$fid&date_start=$date1&date_stop=$date2>".WEB_report_detail."</a></td>\n";
         print "</tr>\n";
 
-	$display_date_format='%Y-%m-%d %H';
-	if ($days_shift <=1) { $display_date_format='%Y-%m-%d %H'; }
-	if ($days_shift >1 and $days_shift <=30) { $display_date_format='%Y-%m-%d'; }
-	if ($days_shift >30 and $days_shift <=730) { $display_date_format='%Y-%m'; }
-	if ($days_shift >730) { $display_date_format='%Y'; }
-
-        $sSQL = "SELECT User_stats.router_id,DATE_FORMAT(User_stats.timestamp,'$display_date_format') as tHour,SUM(byte_in),SUM(byte_out) 
-        FROM User_stats 
-        WHERE User_stats.timestamp>='$date1' AND User_stats.timestamp<'$date2' and auth_id=$fid";
-        if ($rgateway == 0) {
-            $sSQL = $sSQL . " GROUP BY DATE_FORMAT(User_stats.timestamp,'$display_date_format'),User_stats.router_id 
-            ORDER BY tHour,User_stats.router_id";
+        // === 2. Формат даты в зависимости от СУБД ===
+        if ($days_shift <= 1) {
+            $mysql_format = '%Y-%m-%d %H';
+            $pg_format    = 'YYYY-MM-DD HH24';
+        } elseif ($days_shift <= 30) {
+            $mysql_format = '%Y-%m-%d';
+            $pg_format    = 'YYYY-MM-DD';
+        } elseif ($days_shift <= 730) {
+            $mysql_format = '%Y-%m';
+            $pg_format    = 'YYYY-MM';
         } else {
-            $sSQL = $sSQL . " and User_stats.router_id=$rgateway 
-            GROUP BY DATE_FORMAT(User_stats.timestamp,'$display_date_format'),User_stats.router_id 
-            ORDER BY tHour";
+            $mysql_format = '%Y';
+            $pg_format    = 'YYYY';
         }
 
-        $userdata = mysqli_query($db_link, $sSQL);
+        // === 3. Параметры для детального запроса ===
+        $detail_params = [$date1, $date2, $fid];
+        $detail_conditions = "user_stats.ts >= ? AND user_stats.ts < ? AND auth_id = ?";
+
+        if ($rgateway > 0) {
+            $detail_conditions .= " AND user_stats.router_id = ?";
+            $detail_params[] = (int)$rgateway;
+        }
+
+        // === 4. Запрос в зависимости от СУБД ===
+        if ($db_type === 'mysql') {
+            $date_expr = "DATE_FORMAT(user_stats.ts, '$mysql_format')";
+            $sSQL = "
+                SELECT 
+                    user_stats.router_id,
+                    $date_expr AS thour,
+                    SUM(byte_in) AS byte_in_sum,
+                    SUM(byte_out) AS byte_out_sum
+                FROM user_stats
+                WHERE $detail_conditions
+                GROUP BY $date_expr, user_stats.router_id
+                ORDER BY thour" . ($rgateway > 0 ? '' : ', user_stats.router_id');
+        } elseif ($db_type === 'pgsql') {
+            $date_expr = "TO_CHAR(user_stats.ts, '$pg_format')";
+            $sSQL = "
+                SELECT 
+                    user_stats.router_id,
+                    $date_expr AS thour,
+                    SUM(byte_in) AS byte_in_sum,
+                    SUM(byte_out) AS byte_out_sum
+                FROM user_stats
+                WHERE $detail_conditions
+                GROUP BY $date_expr, user_stats.router_id
+                ORDER BY thour" . ($rgateway > 0 ? '' : ', user_stats.router_id');
+        } else {
+            throw new Exception("Unsupported DB: $db_type");
+        }
+
+        $userdata = get_records_sql($db_link, $sSQL, $detail_params);
 
         $sum_in = 0;
         $sum_out = 0;
-
-        while (list ($u_router_id, $udata, $uin, $uout) = mysqli_fetch_array($userdata)) {
+        foreach ($userdata as $userrow) {
             print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
             print "<td class=\"data\"> </td>\n";
-            print "<td class=\"data\">$gateway_list[$u_router_id]</td>\n";
-            print "<td class=\"data\">" . $udata . "</td>\n";
-            print "<td class=\"data\">" . fbytes($uin) . "</td>\n";
-            print "<td class=\"data\">" . fbytes($uout) . "</td>\n";
+            print "<td class=\"data\">" . $gateway_list[$userrow['router_id']] . "</td>\n";
+            print "<td class=\"data\">" . $userrow['thour'] . "</td>\n";
+            print "<td class=\"data\">" . fbytes($userrow['byte_in_sum']) . "</td>\n";
+            print "<td class=\"data\">" . fbytes($userrow['byte_out_sum']) . "</td>\n";
             print "</tr>\n";
-            $sum_in += $uin;
-            $sum_out += $uout;
+            $sum_in += $userrow['byte_in_sum'];
+            $sum_out += $userrow['byte_out_sum'];
         }
         print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
         print "<td class=\"data\"><b>" . WEB_title_sum . "</b></td>\n";

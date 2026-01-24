@@ -1,13 +1,15 @@
 #!/usr/bin/perl
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
 
 use utf8;
-use open ":encoding(utf8)";
+use warnings;
 use Encode;
+use open qw(:std :encoding(UTF-8));
 no warnings 'utf8';
+
 use English;
 use base;
 use FindBin '$Bin';
@@ -21,6 +23,7 @@ use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 use eyelib::net_utils;
 use File::Basename;
 use File::Path;
@@ -59,7 +62,7 @@ print "dhcp-option=net:net-$subnet_name,option:router,$dhcp_conf{$subnet_name}->
 }
 
 #get userid list
-my $sSQL="SELECT id,ip,ip_int,mac,comments,dns_name,dhcp_option_set,dhcp_acl,ou_id FROM User_auth where dhcp=1 and deleted=0 ORDER by ip_int";
+my $sSQL="SELECT id,ip,ip_int,mac,description,dns_name,dhcp_option_set,dhcp_acl,ou_id FROM user_auth where dhcp=1 and deleted=0 ORDER by ip_int";
 my @users = get_records_sql($dbh,$sSQL);
 foreach my $row (@users) {
 next if (!$row);
@@ -82,7 +85,7 @@ if (exists $mac_subnets{$subnet}{macs}{$row->{mac}}) {
 
 $mac_subnets{$subnet}{macs}{$row->{mac}} = $row;
 
-print '#Comment:'.$row->{comments}."\n" if ($row->{comments});
+print '#Comment:'.$row->{description}."\n" if ($row->{description});
 my $dns_name = '';
 if ($row->{dns_name}) {
     print '#DNS:'.$row->{dns_name}."\n";
@@ -108,8 +111,20 @@ if (!$static_hole{$ip}{skip}) {
 print "#--- DNS ---#\n";
 
 #get userid list
-my $sSQL="SELECT id,ou_id,ip,dns_name,dhcp_hostname,dns_ptr_only FROM User_auth WHERE deleted=0 AND ip>'' AND (dns_name>'' OR dhcp_hostname>'') AND dns_name NOT LIKE '%.' ORDER by ip_int;";
-my @users = get_records_sql($dbh,$sSQL);
+my $uSQL = "
+    SELECT id, ou_id, ip, dns_name, dhcp_hostname, dns_ptr_only
+    FROM user_auth
+    WHERE deleted = 0
+      AND ip IS NOT NULL
+      AND (
+            (dns_name IS NOT NULL AND dns_name != '' AND dns_name NOT LIKE '%.')
+            OR
+            (dhcp_hostname IS NOT NULL AND dhcp_hostname != '')
+          )
+    ORDER BY ip_int
+";
+
+@users = get_records_sql($dbh, $uSQL);
 foreach my $row (@users) {
 next if (!$row);
 next if (is_default_ou($dbh,$row->{ou_id}));
@@ -129,7 +144,7 @@ next if (!$dns_name);
 
 #if (!$row->{dns_ptr_only} and ($dns_name or $row->{dhcp_hostname})) {
 if (!$row->{dns_ptr_only} and $dns_name) {
-    print '#Comment:'.$row->{comments}."\n" if ($row->{comments});
+    print '#Comment:'.$row->{description}."\n" if ($row->{description});
     if ($dns_name) {
         print '#DNS A-record '.$dns_name."\n";
         print 'address=/'.$dns_name.'/'.$row->{ip}."\n";
@@ -150,8 +165,8 @@ if (!$row->{dns_ptr_only} and $dns_name) {
 #            }
     #aliases
     if ($dns_name) {
-        my $aSQL="SELECT * FROM `User_auth_alias` WHERE auth_id=$row->{id} AND alias>'' AND alias NOT LIKE '%.';";
-        my @aliases = get_records_sql($dbh,$aSQL);
+        my $aSQL = "SELECT * FROM user_auth_alias WHERE auth_id = ? AND alias IS NOT NULL AND alias != '' AND alias NOT LIKE '%.'";
+        my @aliases = get_records_sql($dbh, $aSQL, $row->{id});
         print '#DNS aliases for '.$dns_name."\n" if (@aliases and scalar @aliases);
         foreach my $alias (@aliases) {
             my $dns_alias = trim($alias->{alias});

@@ -5,7 +5,7 @@ img                             { border: 0; }
 label                           { float:left; padding-right:10px; }
 .main                           { float:left }
 
-.timestamp                      { font-size: 10pt; color: #4169E1; padding: 1px; }
+.ts                             { font-size: 10pt; color: #4169E1; padding: 1px; }
 hr                              { border: none; border-top: 1px solid #000; margin: 0 0; }
 
 table                           { font-family: tahoma; font-size: 12pt; border-spacing: 1px; }

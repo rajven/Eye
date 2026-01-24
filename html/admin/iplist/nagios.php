@@ -10,23 +10,26 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/gatefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/enabledfilter.php");
 
-$sort_table = 'User_auth';
-if ($sort_field == 'login') { $sort_table = 'User_list'; }
-if ($sort_field == 'fio') { $sort_table = 'User_list'; }
+$sort_table = 'user_auth';
+if ($sort_field == 'login') { $sort_table = 'user_list'; }
+if ($sort_field == 'description') { $sort_table = 'user_list'; }
 
 $sort_url = "<a href=nagios.php?ou=" . $rou; 
 
-if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and User_list.ou_id=$rou "; }
+$params=[];
+if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and user_list.ou_id=?"; $params[]=$rou; }
 
 if ($rsubnet == 0) { $subnet_filter = ''; } else {
     $subnet_range = get_subnet_range($db_link,$rsubnet);
-    if (!empty($subnet_range)) { $subnet_filter = " and User_auth.ip_int>=".$subnet_range['start']." and User_auth.ip_int<=".$subnet_range['stop']; }
+    if (!empty($subnet_range)) { $subnet_filter = " and user_auth.ip_int>=? and user_auth.ip_int<=?"; }
+    $params[]=$subnet_range['start'];
+    $params[]=$subnet_range['stop'];
     }
 
 $enabled_filter='';
 if ($enabled>0) {
-    if ($enabled===2) { $enabled_filter = ' and User_auth.nagios=1'; }
-    if ($enabled===1) { $enabled_filter = ' and User_auth.nagios=0'; }
+    if ($enabled===2) { $enabled_filter = ' and user_auth.nagios=1'; }
+    if ($enabled===1) { $enabled_filter = ' and user_auth.nagios=0'; }
     }
 
 $ip_list_filter = $ou_filter.$subnet_filter.$enabled_filter;
@@ -67,14 +70,13 @@ print_ip_submenu($page_url);
 </div>
 
 <?php
-$countSQL="SELECT Count(*) FROM User_auth, User_list WHERE User_auth.user_id = User_list.id AND User_auth.deleted =0 $ip_list_filter";
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
+$countSQL="SELECT Count(*) FROM user_auth, user_list WHERE user_auth.user_id = user_list.id AND user_auth.deleted =0 $ip_list_filter";
+$count_records = get_single_field($db_link,$countSQL, $params);
+$total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed; 
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 <br>
 
@@ -86,7 +88,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
-		<td align=Center><?php print WEB_cell_comment; ?></td>
+		<td align=Center><?php print WEB_cell_description; ?></td>
 		<td align=Center><?php print WEB_cell_wikiname; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=nagios&order=$new_order>" . WEB_cell_nagios; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=link_check&order=$new_order>" . WEB_cell_link; ?></td>
@@ -96,18 +98,20 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 	</tr>
 <?php
 
-$sSQL = "SELECT User_auth.*, User_list.login FROM User_auth, User_list
-WHERE User_auth.user_id = User_list.id AND User_auth.deleted =0 $ip_list_filter
-ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
+$sSQL = "SELECT user_auth.*, user_list.login FROM user_auth, user_list
+WHERE user_auth.user_id = user_list.id AND user_auth.deleted =0 $ip_list_filter
+ORDER BY $sort_table.$sort_field $order LIMIT ? OFFSET ?";
+$params[]=$displayed;
+$params[]=$start;
 
-$users = get_records_sql($db_link,$sSQL);
+$users = get_records_sql($db_link,$sSQL, $params);
 foreach ($users as $user) {
-    if ($user['dhcp_time'] == '0000-00-00 00:00:00') {
+    if (is_empty_datetime($user['dhcp_time'])) {
         $dhcp_str = '';
     } else {
         $dhcp_str = $user['dhcp_time'] . " (" . $user['dhcp_action'] . ")";
     }
-    if ($user['last_found'] == '0000-00-00 00:00:00') { $user['last_found'] = ''; }
+    if (is_empty_datetime($user['last_found'])) { $user['last_found'] = ''; }
     print "<tr align=center>\n";
     $cl = "data";
     if ($user['nagios_status'] == "UP") { $cl = "up"; }
@@ -119,17 +123,17 @@ foreach ($users as $user) {
     print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
     if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
-        print "<td class=\"$cl\" width=200>".$user['comments']." [" . $user['dhcp_hostname'] . "]</td>\n";
+        print "<td class=\"$cl\" width=200>".$user['description']." [" . $user['dhcp_hostname'] . "]</td>\n";
     } else {
-        print "<td class=\"$cl\" width=200>".$user['comments']."</td>\n";
+        print "<td class=\"$cl\" width=200>".$user['description']."</td>\n";
     }
-    if (!empty($user['WikiName'])) {
+    if (!empty($user['wikiname'])) {
         $wiki_url = rtrim(get_option($db_link, 60),'/');
         if (preg_match('/127.0.0.1/', $wiki_url)) { print "<td class=\"$cl\" ></td>\n"; } else {
             $wiki_web = rtrim(get_option($db_link, 63),'/');
             $wiki_web = ltrim($wiki_web,'/');
-            $wiki_link = $wiki_url.'/'.$wiki_web.'/'.$user['WikiName'];
-            print "<td class=\"$cl\" >"; print_url($user['WikiName'],$wiki_link); print "</td>\n";
+            $wiki_link = $wiki_url.'/'.$wiki_web.'/'.$user['wikiname'];
+            print "<td class=\"$cl\" >"; print_url($user['wikiname'],$wiki_link); print "</td>\n";
             }
         } else {
         print "<td class=\"$cl\" ></td>\n";
@@ -151,7 +155,7 @@ foreach ($users as $user) {
     print "</tr>\n";
 }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 <br>
 <table class="data">
@@ -189,5 +193,5 @@ document.getElementById('rows').addEventListener('change', function(event) {
 </script>
 
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

@@ -4,20 +4,11 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 
-if (isset($_POST['ip'])) { $f_ip = $_POST['ip']; }
-if (isset($_GET['ip'])) { $f_ip = $_GET['ip']; }
-if (!isset($f_ip) and isset($_SESSION[$page_url]['ip'])) { $f_ip=$_SESSION[$page_url]['ip']; }
-if (!isset($f_ip)) { $f_ip=''; }
-
-$_SESSION[$page_url]['ip']=$f_ip;
+$f_ip = getParam('ip', $page_url, '');
+$_SESSION[$page_url]['ip'] = $f_ip;
 
 print_log_submenu($page_url);
 
-$ip_where = '';
-if (!empty($f_ip)) {
-    if (checkValidIp($f_ip)) { $ip_where = " and ip_int=inet_aton('" . $f_ip . "') "; }
-    if (checkValidMac($f_ip)) { $ip_where = " and mac='" . mac_dotted($f_ip) . "'  "; }
-    }
 ?>
 
 <div id="cont">
@@ -31,14 +22,41 @@ if (!empty($f_ip)) {
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM User_auth WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $ip_where";
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
-if ($page>$total) { $page=$total; }
-if ($page<1) { $page=1; }
-$start = ($page * $displayed) - $displayed; 
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+$params = [$date1, $date2];
+$conditions = [];
+
+if (!empty($f_ip)) {
+    if (checkValidIp($f_ip)) {
+        $ip_long = sprintf('%u', ip2long($f_ip));
+        $conditions[] = "ip_int = ?";
+        $params[] = $ip_long;
+    } elseif (checkValidMac($f_ip)) {
+        $conditions[] = "mac = ?";
+        $params[] = mac_dotted($f_ip);
+    }
+}
+
+$whereClause = !empty($conditions) ? ' AND ' . implode(' AND ', $conditions) : '';
+
+$countSQL = "SELECT COUNT(*) FROM user_auth WHERE ts >= ? AND ts < ?" . $whereClause;
+$count_records = (int)get_single_field($db_link, $countSQL, $params);
+$total = ceil($count_records / $displayed);
+$page = max(1, min($page, $total));
+$start = ($page - 1) * $displayed;
+
+print_navigation($page_url, $page, $displayed, $count_records, $total);
+
+$dataParams = array_merge($params, [$displayed, $start]);
+
+$sSQL = "
+    SELECT * FROM user_auth 
+    WHERE ts >= ? AND ts < ?" . $whereClause . "
+    ORDER BY id DESC 
+    LIMIT ? OFFSET ?
+";
+
+$iplog = get_records_sql($db_link, $sSQL, $dataParams);
+
 ?>
 <br>
 <table class="data">
@@ -54,14 +72,11 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
 <?php
 
-$sSQL = "SELECT * FROM User_auth WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $ip_where ORDER BY id DESC LIMIT $start,$displayed";
-
-$iplog = get_records_sql($db_link, $sSQL);
 foreach ($iplog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
     print "<td class=\"data\">" . $row['id'] . "</td>\n";
-    print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
-    print "<td class=\"data\">" . $row['last_found'] . "</td>\n";
+    print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
+    print "<td class=\"data\">" . get_datetime_display($row['last_found']) . "</td>\n";
     if (isset($row['id']) and $row['id'] > 0) {
         print "<td class=\"data\"><a href=/admin/users/editauth.php?id=".$row['id'].">" . $row['ip'] . "</a></td>\n";
     } else {
@@ -73,6 +88,6 @@ foreach ($iplog as $row) {
     print "</tr>\n";
 }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

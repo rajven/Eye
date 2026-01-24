@@ -1,13 +1,15 @@
 #!/usr/bin/perl
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
 
 use utf8;
-use open ":encoding(utf8)";
+use warnings;
 use Encode;
+use open qw(:std :encoding(UTF-8));
 no warnings 'utf8';
+
 use English;
 use base;
 use FindBin '$Bin';
@@ -18,6 +20,7 @@ use FileHandle;
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 use Data::Dumper;
 use DBI;
 use Time::Local;
@@ -164,8 +167,8 @@ eval {
             }
 
         my $q_msg=$db->quote($message);
-        my $ssql="INSERT INTO remote_syslog(device_id,ip,message) values('".$id."','".$host_ip."',".$q_msg.")";
-        do_sql($db,$ssql);
+        my $ssql="INSERT INTO remote_syslog(device_id,ip,message) values(?,?,?)";
+        do_sql($db,$ssql,$id,$host_ip,$q_msg);
 
         foreach my $pattern (keys %warning_patterns) {
             next if (!$pattern);

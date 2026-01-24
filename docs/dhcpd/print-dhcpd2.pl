@@ -70,7 +70,7 @@ if (! -d "$dir_name" ) { mkpath($dir_name); }
 if (! -d "$new_dir" ) { mkpath($new_dir); }
 
 #get userid list
-my $sSQL="SELECT id,ip,ip_int,mac,comments,dns_name FROM User_auth where dhcp=1 and deleted=0 and ou_id !=".$default_user_ou_id." and ou_id !=".$default_hotspot_ou_id." ORDER by ip_int";
+my $sSQL="SELECT id,ip,ip_int,mac,comments,dns_name FROM user_auth where dhcp=1 and deleted=0 and ou_id !=".$default_user_ou_id." and ou_id !=".$default_hotspot_ou_id." ORDER by ip_int";
 
 my @users = get_records_sql($dbh,$sSQL);
 

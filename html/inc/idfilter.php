@@ -1,15 +1,14 @@
 <?php
-if (! defined("CONFIG")) die("Not defined");
+if (!defined("CONFIG")) die("Not defined");
 
-if (empty($id) and !empty($_SESSION[$page_url]['id'])) { $id = $_SESSION[$page_url]['id']; }
+// Получаем id из GET/POST, если не задан — из сессии, если нет — из $default_id
+$id = getParam('id', $page_url, $default_id ?? null);
 
-if (empty($id) and !empty($default_id)) { $id=$default_id; }
-
+// Если всё ещё пусто — редирект
 if (empty($id)) {
     header("Location: /admin/index.php");
     exit;
-    }
+}
 
-$_SESSION[$page_url]['id']=$id;
-
+$_SESSION[$page_url]['id'] = $id;
 ?>

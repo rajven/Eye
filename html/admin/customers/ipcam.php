@@ -6,22 +6,36 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 
 $f_ou_id = IPCAM_GROUP_ID;
 
-if (isset($_POST['port_on'])) {
-    $len = is_array($_POST['port_on']) ? count($_POST['port_on']) : 0;
-    for ($i = 0; $i < $len; $i ++) {
-        $building_id = intval($_POST['port_on'][$i]);
-        set_port_for_group($db_link, $f_ou_id, $building_id, 1);
+// Включение портов
+if (getPOST("port_on") !== null) {
+    $port_on = getPOST("port_on", null, []);
+    
+    if (is_array($port_on)) {
+        foreach ($port_on as $building_id) {
+            $building_id = (int)$building_id;
+            if ($building_id > 0) {
+                set_port_for_group($db_link, $f_ou_id, $building_id, 1);
+            }
+        }
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
-if (isset($_POST['port_off'])) {
-    $len = is_array($_POST['port_off']) ? count($_POST['port_off']) : 0;
-    for ($i = 0; $i < $len; $i ++) {
-        $building_id = intval($_POST['port_off'][$i]);
-        set_port_for_group($db_link, $f_ou_id, $building_id, 0);
+// Отключение портов
+if (getPOST("port_off") !== null) {
+    $port_off = getPOST("port_off", null, []);
+    
+    if (is_array($port_off)) {
+        foreach ($port_off as $building_id) {
+            $building_id = (int)$building_id;
+            if ($building_id > 0) {
+                set_port_for_group($db_link, $f_ou_id, $building_id, 0);
+            }
+        }
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -41,7 +55,7 @@ print_ou_select($db_link, 'f_ou_id', $f_ou_id);
 print "</td>\n";
 print "</tr>\n";
 print "<tr><td colspan=3><br></td></tr>\n";
-$t_config = get_records_sql($db_link, "select id,name from building order by name");
+$t_config = get_records_sql($db_link, "SELECT * FROM building ORDER BY name");
 foreach ($t_config as $row) {
     print "<tr align=center>\n";
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";

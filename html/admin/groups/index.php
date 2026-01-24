@@ -2,29 +2,37 @@
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 
-if (isset($_POST["remove"])) {
-    $fid = $_POST["f_id"];
-    foreach ($fid as $key => $val) {
-        if (isset($val) and $val > 0) {
-            run_sql($db_link, "UPDATE User_list SET ou_id=0 WHERE ou_id=$val");
-            run_sql($db_link, "UPDATE User_auth SET ou_id=0 WHERE ou_id=$val");
-            run_sql($db_link, "DELETE FROM auth_rules WHERE ou_id=$val");
-            delete_record($db_link, "OU", "id=" . $val);
-            }
+// Удаление OU
+if (getPOST("remove") !== null) {
+    $fid = getPOST("f_id", null, []);
+    
+    if (!empty($fid) && is_array($fid)) {
+        foreach ($fid as $val) {
+            $val = (int)$val;
+            if ($val <= 0) continue;
+            // Обнуляем привязки в user_list
+            update_records($db_link, "user_list", "ou_id = ?", ['ou_id' => 0], [$val]);
+            // Обнуляем привязки в user_auth
+            update_records($db_link, "user_auth", "ou_id = ?", ['ou_id' => 0], [$val]);
+            // Удаляем правила авторизации
+            delete_records($db_link, "auth_rules", "ou_id = ?", [$val]);
+            // Удаляем сам OU
+            delete_record($db_link, "ou", "id = ?", [$val]);
         }
+    }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
-    }
+}
 
-if (isset($_POST["create"])) {
-    $ou_name = $_POST["new_ou"];
-    if (isset($ou_name)) {
-        $new['ou_name'] = $ou_name;
-        insert_record($db_link, "OU", $new);
-        }
+// Создание нового OU
+if (getPOST("create") !== null) {
+    $ou_name = trim(getPOST("new_ou", null, ''));
+    if ($ou_name !== '') {
+        insert_record($db_link, "ou", ['ou_name' => $ou_name]);
+    }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
-    }
+}
 
 unset($_POST);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
@@ -44,7 +52,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 </td>
 </tr>
 <?php
-$t_ou = get_records($db_link,'OU','TRUE ORDER BY ou_name');
+$t_ou = get_records_sql($db_link,'SELECT * FROM ou ORDER BY ou_name');
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";

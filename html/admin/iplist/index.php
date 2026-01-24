@@ -14,36 +14,40 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/dynfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/dhcpfilter.php");
 
 
-$sort_table = 'User_auth';
-if ($sort_field == 'login') { $sort_table = 'User_list'; }
-if ($sort_field == 'fio') { $sort_table = 'User_list'; }
-if ($sort_field == 'ou_name') { $sort_table = 'OU'; }
+$sort_table = 'user_auth';
+if ($sort_field == 'login') { $sort_table = 'user_list'; }
+if ($sort_field == 'description') { $sort_table = 'user_list'; }
+if ($sort_field == 'ou_name') { $sort_table = 'ou'; }
+
+$params=[];
 
 $sort_url = "<a href=index.php?ou=" . $rou;
 
-if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and User_list.ou_id=$rou "; }
+if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and user_list.ou_id=?"; $params[]=$rou; }
 
 if (empty($rcidr)) { $cidr_filter = ''; } else {
     $cidr_range = cidrToRange($rcidr);
-    if (!empty($cidr_range)) { $cidr_filter = " and User_auth.ip_int>=".ip2long($cidr_range[0])." and User_auth.ip_int<=".ip2long($cidr_range[1]); }
+    if (!empty($cidr_range)) { $cidr_filter = " and user_auth.ip_int>=? and user_auth.ip_int<=?"; }
+    $params[]=ip2long($cidr_range[0]);
+    $params[]=ip2long($cidr_range[1]);
     }
 
 $enabled_filter='';
 if ($enabled>0) {
-    if ($enabled===2) { $enabled_filter = ' and (User_auth.enabled=1 and User_list.enabled=1)'; }
-    if ($enabled===1) { $enabled_filter = ' and (User_auth.enabled=0 or User_list.enabled=0)'; }
+    if ($enabled===2) { $enabled_filter = ' and (user_auth.enabled=1 and user_list.enabled=1)'; }
+    if ($enabled===1) { $enabled_filter = ' and (user_auth.enabled=0 or user_list.enabled=0)'; }
     }
 
 $dynamic_filter='';
 if ($dynamic_enabled>0) {
-    if ($dynamic_enabled ==1) { $dynamic_filter = ' and User_auth.dynamic=1'; }
-    if ($dynamic_enabled ==2) { $dynamic_filter = ' and User_auth.dynamic=0'; }
+    if ($dynamic_enabled ==1) { $dynamic_filter = ' and user_auth.dynamic=1'; }
+    if ($dynamic_enabled ==2) { $dynamic_filter = ' and user_auth.dynamic=0'; }
     }
 
 $dhcp_filter='';
 if ($dhcp_enabled>0) {
-    if ($dhcp_enabled ==1) { $dhcp_filter = ' and User_auth.dhcp=1'; }
-    if ($dhcp_enabled ==2) { $dhcp_filter = ' and User_auth.dhcp=0'; }
+    if ($dhcp_enabled ==1) { $dhcp_filter = ' and user_auth.dhcp=1'; }
+    if ($dhcp_enabled ==2) { $dhcp_filter = ' and user_auth.dhcp=0'; }
     }
 
 if (isset($_POST['search_str'])) { $f_search_str = trim($_POST['search_str']); }
@@ -56,23 +60,33 @@ $f_search=replaceSpecialChars($f_search_str);
 $ip_list_type_filter='';
 if ($ip_type>0) {
     //suspicious - dhcp not found 3 last days
-    if ($ip_type===3) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('add', 'old', 'del') and (ABS(User_auth.dhcp_time - User_auth.arp_found)>259200) and (UNIX_TIMESTAMP()-User_auth.arp_found)<259200)"; }
+    if ($ip_type===3) { $ip_list_type_filter = " and (user_auth.dhcp_action IN ('add', 'old', 'del') and (ABS(user_auth.dhcp_time - user_auth.arp_found)>259200) and (UNIX_TIMESTAMP()-user_auth.arp_found)<259200)"; }
     //dhcp
-    if ($ip_type===2) { $ip_list_type_filter = " and (User_auth.dhcp_action IN ('add', 'old', 'del'))"; }
+    if ($ip_type===2) { $ip_list_type_filter = " and (user_auth.dhcp_action IN ('add', 'old', 'del'))"; }
     //static
-    if ($ip_type===1) { $ip_list_type_filter = " and (User_auth.dhcp_action NOT IN ('add', 'old', 'del'))"; }
+    if ($ip_type===1) { $ip_list_type_filter = " and (user_auth.dhcp_action NOT IN ('add', 'old', 'del'))"; }
     }
 
 $ip_where = '';
 if (!empty($f_search_str)) {
     $f_ip = normalizeIpAddress($f_search_str);
     if (!empty($f_ip)) { 
-        $ip_where = " and ip_int=inet_aton('" . $f_ip . "') ";
+        $ip_where = " and ip=?";
+        $params[]= $f_ip;
         $f_search_str = $f_ip;
         } else {
-        if (checkValidMac($f_search_str)) { $ip_where =" and mac='" . mac_dotted($f_search_str) ."'"; }
-            else {
-            $ip_where =" and (mac like '" . mac_dotted($f_search) . "%' or login like '".$f_search."%' or comments like '".$f_search."%' or dns_name like '".$f_search."%' or dhcp_hostname like '".$f_search."%')"; 
+        if (checkValidMac($f_search_str)) { 
+    	    $ip_where =" and mac=?"; 
+    	    $params[]= mac_dotted($f_search_str);
+    	    } else {
+            $ip_where =" and (mac LIKE ? or login LIKE ? or user_auth.description LIKE ? or user_list.description LIKE ? or dns_name LIKE ? or dhcp_hostname LIKE ?)";
+            $mac_search = MaybeMac($f_search);
+            if (!empty($mac_search)) { $params[]=MaybeMac($f_search).'%'; } else { $params[]=$f_search_str.'%'; }
+            $params[]=$f_search.'%';
+            $params[]=$f_search.'%';
+            $params[]=$f_search.'%';
+            $params[]=$f_search.'%';
+            $params[]=$f_search.'%';
             }
         }
     }
@@ -135,7 +149,7 @@ print_ip_submenu($page_url);
         <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
-        <tr><td><input type=checkbox class="putField" name="e_new_ou" value='1'></td><td align=left><?php print WEB_cell_ou."</td><td align=right>";print_ou_select($db_link, 'a_new_ou', 0); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_new_ou" value='1'></td><td align=left><?php print WEB_cell_ou."</td><td align=right>";print_ou_set($db_link, 'a_new_ou', 0); ?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_enabled" value='1'></td><td align=left><?php print WEB_cell_enabled."</td><td align=right>";print_qa_select('a_enabled', 1);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_group_id" value='1'></td><td align=left><?php print WEB_cell_filter."</td><td align=right>";print_filter_group_select($db_link, 'a_group_id', 0);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td align=left><?php print WEB_cell_shaper."</td><td align=right>";print_queue_select($db_link, 'a_queue_id', 0);?></td></tr>
@@ -181,20 +195,19 @@ print_ip_submenu($page_url);
 <form id="def" name="def">
 
 <?php
-$countSQL="SELECT Count(*) FROM User_auth
-LEFT JOIN User_list
-ON User_auth.user_id = User_list.id
-LEFT JOIN OU
-ON OU.id=User_list.ou_id
-WHERE User_auth.deleted =0 $ip_list_filter";
+$countSQL="SELECT Count(*) FROM user_auth
+LEFT JOIN user_list
+ON user_auth.user_id = user_list.id
+LEFT JOIN ou
+ON ou.id=user_list.ou_id
+WHERE user_auth.deleted =0 $ip_list_filter";
 
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
+$count_records = get_single_field($db_link,$countSQL, $params);
+$total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 <br>
 
@@ -205,41 +218,45 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
                 <td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
                 <td align=Center><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>
                 <td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
-                <td align=Center><?php print WEB_cell_comment; ?></td>
+                <td align=Center><?php print WEB_cell_description; ?></td>
                 <td align=Center><?php print WEB_cell_dns_name; ?></td>
                 <td align=Center><?php print WEB_cell_filter; ?></td>
                 <td align=Center><?php print WEB_cell_shaper; ?></td>
                 <td align=Center><?php print WEB_cell_traf; ?></td>
                 <td align=Center><?php print WEB_cell_dhcp; ?></td>
                 <td align=Center><?php print WEB_cell_acl; ?></td>
-                <td align=Center><?php print $sort_url . "&sort=arp_found&order=$new_order>Last</a>"; ?></td>
+                <td align=Center><?php print $sort_url . "&sort=arp_found&order=$new_order>Arp/Mac</a>"; ?></td>
                 <td align=Center><?php print WEB_cell_connection; ?></td>
         </tr>
 <?php
 
-$sSQL = "SELECT User_auth.*, User_list.login, User_list.enabled as UEnabled, User_list.blocked as UBlocked, OU.ou_name
-FROM User_auth
-LEFT JOIN User_list
-ON User_auth.user_id = User_list.id
-LEFT JOIN OU
-ON OU.id=User_list.ou_id
-WHERE User_auth.deleted =0 $ip_list_filter
-ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
+$sSQL = "SELECT user_auth.*, user_list.login, user_list.enabled as uenabled, user_list.blocked as ublocked, ou.ou_name
+FROM user_auth
+LEFT JOIN user_list
+ON user_auth.user_id = user_list.id
+LEFT JOIN ou
+ON ou.id=user_list.ou_id
+WHERE user_auth.deleted =0 $ip_list_filter
+ORDER BY $sort_table.$sort_field $order LIMIT ? OFFSET ?";
 
-$users = get_records_sql($db_link,$sSQL);
+$params[]=$displayed;
+$params[]=$start;
+
+$users = get_records_sql($db_link,$sSQL, $params);
 foreach ($users as $user) {
-    if ($user['dhcp_time'] == '0000-00-00 00:00:00') {
+    if (is_empty_datetime($user['dhcp_time'])) {
         $dhcp_str = '';
     } else {
         $dhcp_str = $user['dhcp_time'] . " (" . $user['dhcp_action'] . ")";
     }
-    if ($user['last_found'] == '0000-00-00 00:00:00') { $user['last_found'] = ''; }
-    if ($user['arp_found'] == '0000-00-00 00:00:00') { $user['arp_found'] = ''; }
+    if (is_empty_datetime($user['last_found'])) { $user['last_found'] = ''; }
+    if (is_empty_datetime($user['arp_found'])) { $user['arp_found'] = ''; }
+    if (is_empty_datetime($user['mac_found'])) { $user['mac_found'] = ''; }
     print "<tr align=center>\n";
     $cl = "data";
     if (!$user['enabled']) { $cl = "warn"; }
     if ($user['blocked']) { $cl = "error"; }
-    if (!$user['UEnabled'] or $user['UBlocked']) { $cl = "off"; }
+    if ($user['uenabled'] !== 1 || $user['ublocked'] == 1) { $cl = "off"; }
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$user['id']."></td>\n";
     print "<td class=\"$cl\" >".$user['ou_name']."</td>\n";
     if (empty($user['login'])) { $user_name = $user['user_id']; } else { $user_name = $user['login']; }
@@ -247,26 +264,42 @@ foreach ($users as $user) {
     print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
     if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
-        print "<td class=\"$cl\" width=200 >".$user['comments']." [" . $user['dhcp_hostname'] . "]</td>\n";
+        print "<td class=\"$cl\" width=200 >".$user['description']." [" . $user['dhcp_hostname'] . "]</td>\n";
     } else {
-        print "<td class=\"$cl\" width=200 >".$user['comments']."</td>\n";
+        print "<td class=\"$cl\" width=200 >".$user['description']."</td>\n";
     }
-    print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
+
+    $aliases = get_records_sql($db_link, 'SELECT * FROM user_auth_alias WHERE auth_id=?', [$user['id']]);
+    $dns_display = $user['dns_name'];
+    if ($user["dns_ptr_only"]) { $dns_display.='&nbsp(ptr)'; }
+    if (!empty($aliases)) {
+        $dns_display .= '<hr>';
+        $alias_list = [];
+        foreach ($aliases as $alias) {
+            $alias_list[] = htmlspecialchars($alias['alias'], ENT_QUOTES, 'UTF-8');
+        }
+        $dns_display .= implode('<br>', $alias_list);
+    }
+    print "<td class=\"$cl\" >".$dns_display."</td>\n";
     print "<td class=\"$cl\" >" . get_group($db_link, $user['filter_group_id']) . "</td>\n";
     print "<td class=\"$cl\" >" . get_queue($db_link, $user['queue_id']) . "</td>\n";
     print_td_qa($user['save_traf'],FALSE,$cl);
     print_td_qa($user['dhcp'],FALSE,$cl);
     print "<td class=\"$cl\" >".$user['dhcp_acl']."</td>\n";
-    if (empty($user['arp_found'])) {
-        print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
-        } else {
-        print "<td class=\"$cl\" >".$user['arp_found']."</td>\n";
-        }
+    print "<td class=\"$cl\" >";
+    if (!empty($user['arp_found'])) {
+        print $user['arp_found'];
+        } else { print "-"; }
+    print "&nbsp/&nbsp";
+    if (!empty($user['mac_found'])) {
+        print $user['mac_found'];
+        } else { print "-"; }
+    print "</td>\n";
     print "<td class=\"$cl\" >" . get_connection($db_link, $user['id']) . "</td>\n";
     print "</tr>\n";
 }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 <br>
 <table class="data">
@@ -282,6 +315,7 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <script src="/js/remodal-auth.js"></script>
 
 <script>
+    
 document.getElementById('ou').addEventListener('change', function(event) {
   const buttonApply = document.getElementById('btn_filter');
   buttonApply.click();
@@ -321,5 +355,5 @@ document.getElementById('dynamic_enabled').addEventListener('change', function(e
 </script>
 
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

@@ -1,9 +1,14 @@
-#!/usr/bin/perl -CS
+#!/usr/bin/perl 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
+
 use utf8;
-use open ":encoding(utf8)";
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
+
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
 use strict;
@@ -14,6 +19,7 @@ use eyelib::config;
 use eyelib::main;
 use eyelib::net_utils;
 use eyelib::database;
+use eyelib::common;
 
 my %huntgroups=(
 '2'=>'eltex',
@@ -33,7 +39,7 @@ my %huntgroups=(
 
 my @device_list = get_records_sql($dbh,"SELECT * FROM devices WHERE device_type<=2 ORDER BY device_name" );
 foreach my $device (sort @device_list) {
-my @auth_list = get_records_sql($dbh,"SELECT * FROM User_auth WHERE deleted=0 AND user_id=".$device->{user_id});
+my @auth_list = get_records_sql($dbh,"SELECT * FROM user_auth WHERE deleted=0 AND user_id=?",$device->{user_id});
     print "#$device->{device_name}\n";
     foreach my $auth (sort @auth_list) {
     if (exists $huntgroups{$device->{vendor_id}}) {

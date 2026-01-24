@@ -3,23 +3,25 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
-$device=get_record($db_link,'devices',"id=".$id);
+$device=get_record($db_link,'devices',"id=?", [ $id ]);
 
-if (isset($_POST["remove"])) {
-    $fid = $_POST["f_id"];
-    foreach ($fid as $key => $val) {
-        if (isset($val) and $val != 1) {
-                LOG_VERBOSE($db_link, "Remove connection id: $val ".dump_record($db_link,'connections','id='.$val));
-                delete_record($db_link, "connections", "id=" . $val);
+if (getPOST("remove") !== null) {
+    $fid = getPOST("f_id", null, []);
+    if (!empty($fid) && is_array($fid)) {
+        foreach ($fid as $val) {
+            $val = trim($val);
+            if ($val !== '' && $val != 1) {
+                delete_record($db_link, "connections", "id = ?", [(int)$val]);
             }
         }
-        header("Location: " . $_SERVER["REQUEST_URI"]);
-        exit;
     }
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
 
 unset($_POST);
 
-$user_info = get_record_sql($db_link,"SELECT * FROM User_list WHERE id=".$device['user_id']);
+$user_info = get_record_sql($db_link,"SELECT * FROM user_list WHERE id=?", [ $device['user_id'] ]);
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
@@ -43,11 +45,11 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 
 <?php
 
-$connections = get_records_sql($db_link,"SELECT C.* FROM `connections` as C,`User_auth` as A WHERE A.id=C.auth_id AND A.deleted=0 AND C.device_id=$id ORDER BY C.port_id ASC");
+$connections = get_records_sql($db_link,"SELECT C.* FROM connections as C,user_auth as A WHERE A.id=C.auth_id AND A.deleted=0 AND C.device_id=? ORDER BY C.port_id ASC", [ $id ]);
 foreach ($connections as $key => $value) {
 print "<tr align=center>\n";
 print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$value['id']}'></td>\n";
-$port = get_record($db_link,"device_ports","id=".$value['port_id']);
+$port = get_record($db_link,"device_ports","id=?", [$value['port_id']]);
 print "<td class=\"data\">". $port['port'] . "</a></td>\n";
 print "<td class=\"data\">";
 print_auth_detail($db_link, $value['auth_id']);
@@ -60,5 +62,5 @@ print "</table>\n";
 </form>
 
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

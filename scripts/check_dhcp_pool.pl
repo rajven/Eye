@@ -1,13 +1,15 @@
 #!/usr/bin/perl
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
 
 use utf8;
-use open ":encoding(utf8)";
+use warnings;
 use Encode;
+use open qw(:std :encoding(UTF-8));
 no warnings 'utf8';
+
 use English;
 use base;
 use FindBin '$Bin';
@@ -21,6 +23,7 @@ use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 use eyelib::net_utils;
 use File::Basename;
 use File::Path;
@@ -45,27 +48,33 @@ my $dhcp_networks = new Net::Patricia;
 
 my @subnets=get_records_sql($dbh,'SELECT * FROM subnets WHERE dhcp=1 and office=1 and vpn=0 and hotspot=0 ORDER BY ip_int_start');
 foreach my $subnet (@subnets) {
-next if (!$subnet->{gateway});
-my $subnet_name = $subnet->{subnet};
-$subnet_name=~s/\/\d+$//g;
-$dhcp_networks->add_string($subnet->{subnet},$subnet_name);
-$dhcp_conf{$subnet_name}->{first_ip}=IpToStr($subnet->{dhcp_start});
-$dhcp_conf{$subnet_name}->{last_ip}=IpToStr($subnet->{dhcp_stop});
-$dhcp_conf{$subnet_name}->{first_ip_aton}=$subnet->{dhcp_start};
-$dhcp_conf{$subnet_name}->{last_ip_aton}=$subnet->{dhcp_stop};
-$dhcp_conf{$subnet_name}->{dhcp_pool_size}=$subnet->{dhcp_stop}-$subnet->{dhcp_start};
+    next if (!$subnet->{gateway});
+    my $subnet_name = $subnet->{subnet};
+    $subnet_name=~s/\/\d+$//g;
+    $dhcp_networks->add_string($subnet->{subnet},$subnet_name);
+    $dhcp_conf{$subnet_name}->{first_ip}=IpToStr($subnet->{dhcp_start});
+    $dhcp_conf{$subnet_name}->{last_ip}=IpToStr($subnet->{dhcp_stop});
+    $dhcp_conf{$subnet_name}->{first_ip_aton}=$subnet->{dhcp_start};
+    $dhcp_conf{$subnet_name}->{last_ip_aton}=$subnet->{dhcp_stop};
+    $dhcp_conf{$subnet_name}->{dhcp_pool_size}=$subnet->{dhcp_stop}-$subnet->{dhcp_start};
 }
 
 #get userid list
-my $sSQL="SELECT id,ip,ip_int,mac,comments,dns_name FROM User_auth where dhcp=1 and deleted=0 and ou_id<>$default_hotspot_ou_id and ou_id<>$default_user_ou_id ORDER by ip_int";
-my @users = get_records_sql($dbh,$sSQL);
+my $sSQL = "SELECT id, ip, ip_int, mac, description, dns_name 
+           FROM user_auth 
+           WHERE dhcp = 1 
+             AND deleted = 0 
+             AND ou_id NOT IN (?, ?)
+           ORDER BY ip_int";
+my @users = get_records_sql($dbh, $sSQL, $default_hotspot_ou_id, $default_user_ou_id);
+
 foreach my $row (@users) {
-next if (!$row);
-next if (!$dhcp_networks->match_string($row->{ip}));
-next if (!$row->{mac});
-next if (!$row->{ip});
-my $subnet_name = $dhcp_networks->match_string($row->{ip});
-if (in_array([$dhcp_conf{$subnet_name}->{first_ip_aton} .. $dhcp_conf{$subnet_name}->{last_ip_aton}],$row->{ip_int})) { $dhcp_conf{$subnet_name}->{dhcp_pool_size}--; }
+    next if (!$row);
+    next if (!$dhcp_networks->match_string($row->{ip}));
+    next if (!$row->{mac});
+    next if (!$row->{ip});
+    my $subnet_name = $dhcp_networks->match_string($row->{ip});
+    if (in_array([$dhcp_conf{$subnet_name}->{first_ip_aton} .. $dhcp_conf{$subnet_name}->{last_ip_aton}],$row->{ip_int})) { $dhcp_conf{$subnet_name}->{dhcp_pool_size}--; }
 }
 
 my @warning=();

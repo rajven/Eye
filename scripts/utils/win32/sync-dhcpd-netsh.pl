@@ -1,8 +1,14 @@
 #!/usr/bin/perl
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
+
+use utf8;
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
 
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
@@ -14,6 +20,7 @@ use eyelib::config;
 use eyelib::main;
 use eyelib::net_utils;
 use eyelib::database;
+use eyelib::common;
 use Text::Iconv;
 
 exit;
@@ -67,14 +74,14 @@ foreach my $scope (keys %dhcp_scope) {
         next if ($row!~/Add reservedip/i);
         $row=~s/\"//g;
         $row = $converter->convert($row);
-        my ($a1,$a2,$a3,$a4,$a5,$a6,$a7,$reserved_ip,$reserved_mac,$hostname,$comment,$dhcp_type)=split(/ /,$row);
+        my ($a1,$a2,$a3,$a4,$a5,$a6,$a7,$reserved_ip,$reserved_mac,$hostname,$description,$dhcp_type)=split(/ /,$row);
         if (length($reserved_mac)>12) {
             $dhcp_state_current{$scope}{$reserved_ip}{clientid}=$reserved_mac;
             } else {
             $dhcp_state_current{$scope}{$reserved_ip}{mac}=mac_simplify($reserved_mac);
             }
         $dhcp_state_current{$scope}{$reserved_ip}{hostname}=$hostname;
-        $dhcp_state_current{$scope}{$reserved_ip}{comment}=$comment;
+        $dhcp_state_current{$scope}{$reserved_ip}{description}=$description;
         }
     $run_cmd=$winexe." -U '".$domain_auth."' '//".$dhcp_server."' \"netsh Dhcp Server Scope ".$scope." show clients\" 2>/dev/null";
     @scope_dump=`$run_cmd`;
@@ -105,7 +112,7 @@ if (!$test_only) {
 ######################################### configuration ###############################################
 
 #get userid list
-my $user_auth_list = $dbh->prepare( "SELECT id,ip,ip_int,mac,clientid,dns_name FROM User_auth where deleted=0 ORDER by ip_int" );
+my $user_auth_list = $dbh->prepare( "SELECT id,ip,ip_int,mac,clientid,dns_name FROM user_auth where deleted=0 ORDER by ip_int" );
 if ( !defined $user_auth_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
 
 $user_auth_list->execute;

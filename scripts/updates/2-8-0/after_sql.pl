@@ -13,6 +13,7 @@ use lib "/opt/Eye/scripts";
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 use strict;
 use warnings;
 use Data::Dumper;
@@ -39,7 +40,7 @@ if (!$force and $upgrade_from ne $config_ref{version}) { print "Illegal version.
 
 print 'Apply patch for version: '.$config_ref{version}.' upgrade to: '.$this_release."\n";
 
-my @authlist_ref = get_records_sql($dbh,"SELECT * FROM User_auth WHERE dns_name>''" );
+my @authlist_ref = get_records_sql($dbh,"SELECT * FROM user_auth WHERE dns_name>''" );
 
 my $total = scalar @authlist_ref;
 
@@ -84,7 +85,7 @@ foreach my $row (@authlist_ref) {
 
     # --- Обновляем, только если имя изменилось
     if (exists $new->{dns_name} && $new->{dns_name} ne $original_name) {
-        do_sql($dbh, 'UPDATE User_auth SET dns_name = ? WHERE id = ?', $new->{dns_name}, $row->{id});
+        do_sql($dbh, 'UPDATE user_auth SET dns_name = ? WHERE id = ?', $new->{dns_name}, $row->{id});
     }
 }
 

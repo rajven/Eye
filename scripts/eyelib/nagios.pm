@@ -12,6 +12,7 @@ use vars qw(@EXPORT @ISA);
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 use eyelib::snmp;
 use Time::Local;
 use Data::Dumper;
@@ -257,11 +258,11 @@ if (in_array([0,1,2],$device->{type})) {
             print(FH "       }\n\n");
     	    }
 	foreach my $conn (@{$device->{downlinks}}) {
-	    #id,port,snmp_index,comment
+	    #id,port,snmp_index,description
 	    print(FH "define service{\n");
     	    print(FH "       use                        $default_service\n");
             print(FH "       host_name                  $device->{name}\n");
-            my $port_description=translit($conn->{comment});
+            my $port_description=translit($conn->{description});
             if ($conn->{target_port_id}) { $port_description = $conn->{downlink_name}; }
             print(FH "       service_description port $conn->{port} - $port_description \n");
 	    if ($device->{snmp}->{version}<3) {
@@ -274,7 +275,7 @@ if (in_array([0,1,2],$device->{type})) {
 	    print(FH "define service{\n");
     	    print(FH "       use                        service-snmp-crc\n");
             print(FH "       host_name                  $device->{name}\n");
-            my $port_description=translit($conn->{comment});
+            my $port_description=translit($conn->{description});
             if ($conn->{target_port_id}) { $port_description = $conn->{downlink_name}; }
             print(FH "       service_description port $conn->{port} - $port_description CRC Errors\n");
             print(FH "       check_command              check_snmp_switch_crc!$snmp_string!$conn->{snmp_index}\n");
@@ -283,7 +284,7 @@ if (in_array([0,1,2],$device->{type})) {
 	    print(FH "define service{\n");
     	    print(FH "       use                        service-snmp-bandwidth\n");
             print(FH "       host_name                  $device->{name}\n");
-            my $port_description=translit($conn->{comment});
+            my $port_description=translit($conn->{description});
             if ($conn->{target_port_id}) { $port_description = $conn->{downlink_name}; }
             print(FH "       service_description port $conn->{port} - $port_description bandwidth usage\n");
             print(FH "       check_command              check_snmp_bandwidth!$snmp_string!$conn->{snmp_index}\n");

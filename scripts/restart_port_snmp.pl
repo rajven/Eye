@@ -1,8 +1,14 @@
 #!/usr/bin/perl
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
+
+use utf8;
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
 
 use FindBin '$Bin';
 use lib "$Bin/";
@@ -14,6 +20,7 @@ use eyelib::config;
 use eyelib::main;
 use eyelib::net_utils;
 use eyelib::database;
+use eyelib::common;
 use eyelib::snmp;
 use Net::SNMP qw(:snmp);
 
@@ -38,7 +45,7 @@ my $HOST_IP = $ARGV[0];
 
 my $IP_ATON=StrToIp($HOST_IP);
 
-my $auth_rec = get_record_sql($dbh,'SELECT * FROM User_auth WHERE deleted=0 and ip_int='.$IP_ATON);
+my $auth_rec = get_record_sql($dbh,'SELECT * FROM user_auth WHERE deleted=0 and ip_int=?',$IP_ATON);
 if (!$auth_rec) { db_log_error("Record with ip $HOST_IP not found! Bye."); exit; }
 
 my $auth_id = $auth_rec->{id};
@@ -53,7 +60,7 @@ my $dev_port = get_record_sql($dbh,$d_sql);
 
 if (!$dev_port) { db_log_error($dbh,"Connection for $HOST_IP not found! Bye."); exit; }
 
-my $switch = get_record_sql($dbh,'SELECT * FROM devices WHERE id='.$dev_port->{id});
+my $switch = get_record_sql($dbh,'SELECT * FROM devices WHERE id=?',$dev_port->{id});
 
 if (!$switch) { db_log_error($dbh,"Switch for $HOST_IP not found! Bye."); exit; }
 
@@ -61,7 +68,7 @@ setCommunity($switch);
 
 my $ip=$dev_port->{ip};
 my $model_id=$dev_port->{device_model_id};
-my $model_rec = get_record_sql($dbh,'SELECT model_name FROM device_models WHERE id='.$model_id);
+my $model_rec = get_record_sql($dbh,'SELECT model_name FROM device_models WHERE id=?',$model_id);
 my $model = $model_rec->{model_name};
 my $port=$dev_port->{port};
 my $vendor_id = $dev_port->{vendor_id};

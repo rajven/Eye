@@ -1,8 +1,13 @@
-#!/usr/bin/perl
+#!/usr/bin/perl 
 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
+use utf8;
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
 
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
@@ -75,7 +80,7 @@ my $IP_ATON=StrToIp($host_ip);
 print(TRAPFILE "$date [".$$."] search host by ip [$host_ip] aton: $IP_ATON\n");
 
 #get device
-my $sSQL="SELECT dns_name FROM User_auth where deleted=0 and ip_int='".$IP_ATON."'";
+my $sSQL="SELECT dns_name FROM user_auth where deleted=0 and ip_int='".$IP_ATON."'";
 my $ret=get_custom_record($dbh,$sSQL);
 my $device_name=$ret->{dns_name};
 print(TRAPFILE "$date [".$$."] name: $device_name\n");

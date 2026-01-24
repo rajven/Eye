@@ -1,10 +1,15 @@
-#!/usr/bin/perl -CS
+#!/usr/bin/perl 
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
 
 use utf8;
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
+
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
 use strict;
@@ -14,6 +19,7 @@ use Socket;
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 
 my @router_list = get_records_sql($dbh,"SELECT D.*, DM.model_name, B.name AS building_name FROM devices D
 LEFT JOIN device_models DM ON D.device_model_id = DM.id
@@ -22,11 +28,13 @@ WHERE D.deleted = 0 and device_type<=2 ORDER BY building_name,ip");
 
 foreach my $device (@router_list) {
 next if (!$device->{password} or !$device->{login});
+next if (!$device->{ip});
+next if ($device->{protocol} eq '-1');
 $device = netdev_set_auth($device);
 my $oxi_model = 'dcnos';
 my $comware_cmdline = '';
 my $vendor = get_record_sql($dbh,"SELECT * FROM vendors WHERE id=".$device->{vendor_id});
-my $model = get_record_sql($dbh,"SELECT * FROM `device_models` WHERE id=".$device->{device_model_id});
+my $model = get_record_sql($dbh,"SELECT * FROM device_models WHERE id=".$device->{device_model_id});
 my $building = get_record_sql($dbh,"SELECT * FROM building WHERE id=".$device->{building_id});
 if ($vendor->{name} =~/zyxel/i) { $oxi_model = 'zynoscli'; }
 if ($vendor->{name} =~/snr/i) { $oxi_model = 'dcnos'; }

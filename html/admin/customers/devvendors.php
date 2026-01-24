@@ -4,55 +4,53 @@ $default_displayed=25;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 
-if (isset($_POST['save'])) {
-    $saved = array();
-    //button save
-    $len = is_array($_POST['save']) ? count($_POST['save']) : 0;
-    for ($i = 0; $i < $len; $i ++) {
-        $save_id = intval($_POST['save'][$i]);
-        if ($save_id == 0) { continue;  }
-        if ($save_id<10000) { continue; }
-        array_push($saved,$save_id);
-        }
-    //select box
-    $len = is_array($_POST['f_id']) ? count($_POST['f_id']) : 0;
-    if ($len>0) {
-        for ($i = 0; $i < $len; $i ++) {
-            $save_id = intval($_POST['f_id'][$i]);
-            if ($save_id == 0) { continue; }
-            if ($save_id<10000) { continue; }
-            if (!in_array($save_id, $saved)) { array_push($saved,$save_id); }
+// Сохранение изменений
+if (getPOST("save") !== null) {
+    $selected_ids = getPOST("f_id", null, []);
+    
+    if (!empty($selected_ids) && is_array($selected_ids)) {
+        // Преобразуем в целые числа и оставляем только >= 10000
+        $selected_ids = array_filter(array_map('intval', $selected_ids), fn($id) => $id >= 10000);
+        
+        if (!empty($selected_ids)) {
+            $r_ids   = array_map('intval', getPOST("r_id",   null, []));
+            $f_names = getPOST("f_name", null, []);
+            
+            foreach ($selected_ids as $vendor_id) {
+                $idx = array_search($vendor_id, $r_ids, true);
+                if ($idx === false) continue;
+                
+                $name = trim($f_names[$idx] ?? '');
+                if ($name === '') continue;
+                
+                update_record($db_link, "vendors", "id = ?", ['name' => $name], [$vendor_id]);
             }
         }
-    //save changes
-    $len = is_array($saved) ? count($saved) : 0;
-    for ($i = 0; $i < $len; $i ++) {
-        $save_id = intval($saved[$i]);
-        if ($save_id == 0) { continue;  }
-        if ($save_id<10000) { continue; }
-        $len_all = is_array($_POST['r_id']) ? count($_POST['r_id']) : 0;
-        for ($j = 0; $j < $len_all; $j ++) {
-            if (intval($_POST['r_id'][$j]) != $save_id) { continue; }
-            $new['name'] = $_POST['f_name'][$j];
-            update_record($db_link, "vendors", "id='{$save_id}'", $new);
-            }
-        }
+    }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
-    }
+}
 
-if (isset($_POST["create"])) {
-    $vendor_name = $_POST["new_vendor"];
-    if (isset($vendor_name)) {
-	$max_record = get_record_sql($db_link,"SELECT MAX(id) as max_id FROM vendors");
-	if (!isset($max_record) or $max_record['max_id']<10000) { $next_id = 10000; } else { $next_id = $max_record['max_id'] + 1; }
-        $new['id'] = $next_id;
-        $new['name'] = $vendor_name;
-        insert_record($db_link, "vendors", $new);
-        }
+// Создание нового производителя
+if (getPOST("create") !== null) {
+    $vendor_name = trim(getPOST("new_vendor", null, ''));
+    
+    if ($vendor_name !== '') {
+        $max_record = get_record_sql($db_link, "SELECT MAX(id) AS max_id FROM vendors");
+        $next_id = (isset($max_record['max_id']) && $max_record['max_id'] >= 10000)
+            ? (int)$max_record['max_id'] + 1
+            : 10000;
+            
+        insert_record($db_link, "vendors", [
+            'id'   => $next_id,
+            'name' => $vendor_name
+        ]);
+    }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
-    }
+}
 
 unset($_POST);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
@@ -73,14 +71,14 @@ print_control_submenu($page_url);
 </table>
 
 <?php
+
 $countSQL="SELECT Count(*) FROM vendors";
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
+$count_records = get_single_field($db_link,$countSQL);
+$total=ceil($count_records/$displayed);
 if ($page>$total) { $page=$total; }
 if ($page<1) { $page=1; }
 $start = ($page * $displayed) - $displayed;
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 
 ?>
 <table class="data">
@@ -91,7 +89,9 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 <td><input type="submit" name='save' value="<?php echo WEB_btn_save; ?>"></td>
 </tr>
 <?php
-$t_ou = get_records_sql($db_link,"SELECT * FROM vendors ORDER BY name LIMIT $start,$displayed");
+$params[]=$displayed;
+$params[]=$start;
+$t_ou = get_records_sql($db_link,"SELECT * FROM vendors ORDER BY name LIMIT ? OFFSET ?", $params);
 foreach ($t_ou as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";

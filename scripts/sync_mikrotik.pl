@@ -1,13 +1,15 @@
 #!/usr/bin/perl
 
 #
-# Copyright (C) Roman Dmitiriev, rnd@rajven.ru
+# Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
 
 use utf8;
-use open ":encoding(utf8)";
+use warnings;
 use Encode;
+use open qw(:std :encoding(UTF-8));
 no warnings 'utf8';
+
 use English;
 use base;
 use FindBin '$Bin';
@@ -23,10 +25,12 @@ use Net::Patricia;
 use Date::Parse;
 use eyelib::net_utils;
 use eyelib::database;
+use eyelib::common;
 use DBI;
 use Fcntl qw(:flock);
 use Parallel::ForkManager;
 use Net::DNS;
+use Getopt::Long;
 
 #$debug = 1;
 
@@ -42,13 +46,89 @@ my $fork_count = $cpu_count*10;
 #flag for operation status
 my $all_ok = 1;
 
-my @gateways =();
-#select undeleted mikrotik routers only
-if ($ARGV[0]) {
-    my $router = get_record_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) and protocol>=0 and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9 and id='.$ARGV[0]);
-    if ($router) { push(@gateways,$router); }
-    } else {
-    @gateways = get_records_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) and protocol>=0 and (user_acl=1 or dhcp=1) and deleted=0 and vendor_id=9');
+my $changes_only = 0;
+my $router_id    = undef;
+
+# Парсим аргументы
+GetOptions(
+    'changes-only|c' => \$changes_only,
+    'router-id|r=i'  => \$router_id,
+) or die "Ошибка в параметрах!\n";
+
+my @gateways = ();
+
+#save changed records
+my @changes_found = get_records_sql($dbh,"SELECT id, ip FROM user_auth WHERE changed=1");
+
+#@office_network_list - все рабочие сети
+
+if ($changes_only) {
+    my @all_gateways = get_records_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) AND protocol>=0 AND (user_acl=1 OR dhcp=1) AND deleted=0 AND vendor_id=9' );
+    my %network_to_routers;
+
+    for my $gate (@all_gateways) {
+        my $router_id = $gate->{id};
+        my $connected_only = $gate->{connected_user_only} // 0;
+        my @subnets_for_router=();
+        if ($connected_only) {
+            # Только привязанные подсети
+            my @gw_subnets = get_records_sql($dbh,"SELECT s.subnet FROM gateway_subnets gs JOIN subnets s ON gs.subnet_id = s.id WHERE gs.device_id = ? AND s.subnet IS NOT NULL", $router_id );
+            @subnets_for_router = map { $_->{subnet} } @gw_subnets;
+            } else {
+            # Все офисные сети
+            push(@subnets_for_router,@office_network_list);
+            }
+        # Добавляем роутер ко всем его подсетям
+        for my $subnet (@subnets_for_router) {
+            next unless $subnet && $subnet =~ m{^\d+\.\d+\.\d+\.\d+/\d+$};
+            $network_to_routers{$subnet} //= {};
+            $network_to_routers{$subnet}{$router_id} = 1;
+            }
+        }
+
+    my $GwPat = Net::Patricia->new(AF_INET);
+    for my $subnet (keys %network_to_routers) {
+        # Храним ссылку на хеш роутеров
+        $GwPat->add_string($subnet, \%{$network_to_routers{$subnet}});
+        }
+
+    my %selected_router_ids;
+    for my $user (@changes_found) {
+        my $ip = $user->{ip};
+        next unless $ip && $ip =~ /^\d+\.\d+\.\d+\.\d+$/;
+        my $data_ref = $GwPat->match_string($ip);
+        if ($data_ref) {
+            for my $rid (keys %$data_ref) {
+                if (defined $router_id) {
+                        $selected_router_ids{$rid} = 1 if ($router_id == $rid);
+                        } else {
+                        $selected_router_ids{$rid} = 1;
+                        }
+                }
+            }
+        }
+
+    if (%selected_router_ids) {
+        my @ids = keys %selected_router_ids;
+        my $ph = join ',', ('?') x @ids;
+        @gateways = get_records_sql($dbh, "SELECT * FROM devices WHERE id IN ($ph)", @ids );
+        } else {
+        @gateways = ();  # Нет затронутых роутеров
+        }
+
+    if (!scalar @gateways) { exit 0; }
+
+    }
+
+    else {
+    # Если задан router_id — выбираем один роутер
+    if (defined $router_id) {
+        my $router = get_record_sql($dbh, 'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) AND protocol>=0 AND (user_acl=1 OR dhcp=1) AND deleted=0 AND vendor_id=9 AND id=?', $router_id );
+        if ($router) { push(@gateways, $router); }
+        } else {
+        # Иначе выбираем все подходящие роутеры
+        @gateways = get_records_sql($dbh,'SELECT * FROM devices WHERE (device_type=2 OR device_type=0) AND protocol>=0 AND (user_acl=1 OR dhcp=1) AND deleted=0 AND vendor_id=9' );
+        }
     }
 
 #все сети организации, работающие по dhcp
@@ -74,9 +154,6 @@ $dhcp_conf{$subnet->{subnet}}->{last_ip_aton}=StrToIp($dhcp_info->{last_ip});
 }
 
 my $pm = Parallel::ForkManager->new($fork_count);
-
-#save changed records
-my @changes_found = get_records_sql($dbh,"SELECT id FROM User_auth WHERE changed=1");
 
 foreach my $gate (@gateways) {
 next if (!$gate);
@@ -115,7 +192,7 @@ my %hotspot_exceptions;
 my @lan_int=();
 my @wan_int=();
 
-my @l3_int = get_records_sql($dbh,'SELECT * FROM device_l3_interfaces WHERE device_id='.$gate->{'id'});
+my @l3_int = get_records_sql($dbh,'SELECT * FROM device_l3_interfaces WHERE device_id=?',$gate->{'id'});
 foreach my $l3 (@l3_int) {
 $l3->{'name'}=~s/\"//g;
 if ($l3->{'interface_type'} eq '0') { push(@lan_int,$l3->{'name'}); }
@@ -123,7 +200,7 @@ if ($l3->{'interface_type'} eq '1') { push(@wan_int,$l3->{'name'}); }
 }
 
 #формируем список подключенных к роутеру сетей
-my @gw_subnets = get_records_sql($dbh,"SELECT gateway_subnets.*,subnets.subnet FROM gateway_subnets LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id WHERE gateway_subnets.device_id=".$gate->{'id'});
+my @gw_subnets = get_records_sql($dbh,"SELECT gateway_subnets.*,subnets.subnet FROM gateway_subnets LEFT JOIN subnets ON gateway_subnets.subnet_id = subnets.id WHERE gateway_subnets.device_id=?",$gate->{'id'});
 if (@gw_subnets and scalar @gw_subnets) {
     foreach my $gw_subnet (@gw_subnets) {
         if ($gw_subnet and $gw_subnet->{'subnet'}) {
@@ -230,7 +307,8 @@ my @auth_records=();
 foreach my $dhcp_subnet (@dhcp_subnets) {
     next if (!$dhcp_subnet);
     next if (!exists $dhcp_conf{$dhcp_subnet});
-    my @tmp1=get_records_sql($dbh,"SELECT * from User_auth WHERE dhcp=1 and `ip_int`>=".$dhcp_conf{$dhcp_subnet}->{first_ip_aton}." and `ip_int`<=".$dhcp_conf{$dhcp_subnet}->{last_ip_aton}." and deleted=0 and ou_id !=".$default_user_ou_id." and ou_id !=".$default_hotspot_ou_id." ORDER BY ip_int");
+    my $a_sql = "SELECT * FROM user_auth WHERE deleted = 0 AND dhcp = 1 AND ip_int BETWEEN ? AND ? AND ou_id NOT IN (?, ?) ORDER BY ip_int";
+    my @tmp1=get_records_sql($dbh,$a_sql,$dhcp_conf{$dhcp_subnet}->{first_ip_aton},$dhcp_conf{$dhcp_subnet}->{last_ip_aton},$default_user_ou_id, $default_hotspot_ou_id);
     push(@auth_records,@tmp1);
     undef @tmp1;
 }
@@ -244,17 +322,17 @@ my $found_subnet = $dhcp_networks->match_string($lease->{ip});
 next if (!$found_subnet);
 next if ($lease->{ip} eq $dhcp_conf{$found_subnet}->{relay_ip});
 $leases{$lease->{ip}}{ip}=$lease->{ip};
-$leases{$lease->{ip}}{comment}=$lease->{id};
+$leases{$lease->{ip}}{description}=$lease->{id};
 $leases{$lease->{ip}}{id}=$lease->{id};
 $leases{$lease->{ip}}{dns_name}=$lease->{dns_name};
-if ($lease->{comments}) { $leases{$lease->{ip}}{comment}=translit($lease->{comments}); }
+if ($lease->{description}) { $leases{$lease->{ip}}{description}=translit($lease->{description}); }
 $leases{$lease->{ip}}{mac}=uc(mac_splitted($lease->{mac}));
 if ($lease->{dhcp_acl}) {
     $leases{$lease->{ip}}{acl}=trim($lease->{dhcp_acl});
     $leases{$lease->{ip}}{acl}=~s/;/,/g;
     if ($leases{$lease->{ip}}{acl}=~/hotspot\-free/) {
         $hotspot_exceptions{$leases{$lease->{ip}}{mac}}=$leases{$lease->{ip}}{mac};
-        $hotspot_exceptions{$leases{$lease->{ip}}{mac}}=$leases{$lease->{ip}}{comment} if ($leases{$lease->{ip}}{comment});
+        $hotspot_exceptions{$leases{$lease->{ip}}{mac}}=$leases{$lease->{ip}}{description} if ($leases{$lease->{ip}}{description});
         }
     }
 if ($lease->{dhcp_option_set}) {
@@ -349,14 +427,14 @@ if ($leases{$ip}{acl}) { $acl = 'address-lists='.$leases{$ip}{acl}; }
 my $dhcp_option_set='';
 if ($leases{$ip}{dhcp_option_set}) { $dhcp_option_set = 'dhcp-option-set='.$leases{$ip}{dhcp_option_set}; }
 
-my $comment = $leases{$ip}{comment};
-$comment =~s/\=//g;
+my $description = $leases{$ip}{description};
+$description =~s/\=//g;
 
 my $dns_name='';
 if ($leases{$ip}{dns_name}) { $dns_name = $leases{$ip}{dns_name}; }
 $dns_name =~s/\=//g;
 
-if ($dns_name) { $comment = 'comment="'.$dns_name." - ".$comment.'"'; } else { $comment = 'comment="'.$comment.'"'; }
+if ($dns_name) { $description = 'comment="'.$dns_name." - ".$description.'"'; } else { $description = 'comment="'.$description.'"'; }
 
 if (!exists $active_leases{$ip}) {
     db_log_verbose($dbh,$gate_ident."Address $ip not found in router. Create static lease record.");
@@ -367,7 +445,7 @@ if (!exists $active_leases{$ip}) {
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
     #add new bind
-    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' '.$dhcp_option_set.' server=dhcp-'.$int.' '.$comment);
+    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' '.$dhcp_option_set.' server=dhcp-'.$int.' '.$description);
     #clear arp record
     push(@cmd_list,'/ip arp remove [find mac-address='.uc($leases{$ip}{mac}).']');
     next;
@@ -381,7 +459,7 @@ if ($leases{$ip}{mac}!~/$active_leases{$ip}{mac}/i) {
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where address='.$ip.' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find address='.$ip.']');
     #add new bind
-    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' '.$dhcp_option_set.' server=dhcp-'.$int.' '.$comment);
+    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' '.$dhcp_option_set.' server=dhcp-'.$int.' '.$description);
     #clear arp record
     push(@cmd_list,'/ip arp remove [find mac-address='.uc($leases{$ip}{mac}).']');
     next;
@@ -390,7 +468,7 @@ if (!(!$leases{$ip}{acl} and !$active_leases{$ip}{acl}) and $leases{$ip}{acl} ne
     db_log_error($dbh,$gate_ident."Acl mismatch for ip $ip. stat: $leases{$ip}{acl} active: $active_leases{$ip}{acl}. Create static lease record.");
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where mac-address='.uc($leases{$ip}{mac}).' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find mac-address='.uc($leases{$ip}{mac}).']');
-    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' '.$dhcp_option_set.' server=dhcp-'.$int.' '.$comment);
+    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' '.$dhcp_option_set.' server=dhcp-'.$int.' '.$description);
     #clear arp record
     push(@cmd_list,'/ip arp remove [find mac-address='.uc($leases{$ip}{mac}).']');
     next;
@@ -399,7 +477,7 @@ if (!(!$leases{$ip}{dhcp_option_set} and !$active_leases{$ip}{dhcp_option_set}) 
     db_log_error($dbh,$gate_ident."Acl mismatch for ip $ip. stat: $leases{$ip}{acl} active: $active_leases{$ip}{acl}. Create static lease record.");
     push(@cmd_list,':foreach i in [/ip dhcp-server lease find where mac-address='.uc($leases{$ip}{mac}).' ] do={/ip dhcp-server lease remove $i};');
     push(@cmd_list,'/ip dhcp-server lease remove [find mac-address='.uc($leases{$ip}{mac}).']');
-    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' '.$dhcp_option_set.' server=dhcp-'.$int.' '.$comment);
+    push(@cmd_list,'/ip dhcp-server lease add address='.$ip.' mac-address='.$leases{$ip}{mac}.' '.$acl.' '.$dhcp_option_set.' server=dhcp-'.$int.' '.$description);
     #clear arp record
     push(@cmd_list,'/ip arp remove [find mac-address='.uc($leases{$ip}{mac}).']');
     next;
@@ -425,7 +503,7 @@ if (@ret_hotspot and scalar(@ret_hotspot)) {
             }
         if (exists $data{'mac-address'}) {
             $actual_hotspot_bindings{$data{'mac-address'}} = $data{'mac-address'};
-            $actual_hotspot_bindings{$data{'mac-address'}} = $data{comment} if (exists $data{comment});
+            $actual_hotspot_bindings{$data{'mac-address'}} = $data{description} if (exists $data{description});
             }
     }
     log_debug("Actual bindings:".Dumper(\%actual_hotspot_bindings));
@@ -454,18 +532,18 @@ if ($gate->{user_acl}) {
 db_log_verbose($dbh,$gate_ident."Sync user state at router $router_name [".$router_ip."] started.");
 
 #get userid list
-my $user_auth_sql="SELECT User_auth.ip, User_auth.filter_group_id, User_auth.queue_id, User_auth.id
-FROM User_auth, User_list
-WHERE User_auth.user_id = User_list.id
-AND User_auth.deleted =0
-AND User_auth.enabled =1
-AND User_auth.blocked =0
-AND User_list.blocked =0
-AND User_list.enabled =1
-AND User_auth.ou_id <> $default_hotspot_ou_id
+my $user_auth_sql="SELECT user_auth.ip, user_auth.filter_group_id, user_auth.queue_id, user_auth.id
+FROM user_auth, user_list
+WHERE user_auth.user_id = user_list.id
+AND user_auth.deleted =0
+AND user_auth.enabled =1
+AND user_auth.blocked =0
+AND user_list.blocked =0
+AND user_list.enabled =1
+AND user_auth.ou_id <> ?
 ORDER BY ip_int";
 
-my @authlist_ref = get_records_sql($dbh,$user_auth_sql);
+my @authlist_ref = get_records_sql($dbh,$user_auth_sql,$default_hotspot_ou_id);
 my %users;
 my %lists;
 my %found_users;
@@ -489,28 +567,28 @@ log_debug($gate_ident."Users status:".Dumper(\%users));
 $lists{'group_all'}=1;
 
 #get queue list
-my @queuelist_ref = get_records_sql($dbh,"SELECT * FROM Queue_list");
+my @queuelist_ref = get_records_sql($dbh,"SELECT * FROM queue_list");
 
 my %queues;
 foreach my $row (@queuelist_ref) {
 $lists{'queue_'.$row->{id}}=1;
-next if ((!$row->{Download}) and !($row->{Upload}));
+next if ((!$row->{download}) and !($row->{upload}));
 $queues{'queue_'.$row->{id}}{id}=$row->{id};
-$queues{'queue_'.$row->{id}}{down}=$row->{Download};
-$queues{'queue_'.$row->{id}}{up}=$row->{Upload};
+$queues{'queue_'.$row->{id}}{down}=$row->{download};
+$queues{'queue_'.$row->{id}}{up}=$row->{upload};
 }
 
 log_debug($gate_ident."Queues status:".Dumper(\%queues));
 
 my @filter_instances = get_records_sql($dbh,"SELECT * FROM filter_instances");
 
-my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM Filter_list where type=0");
+my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM filter_list where filter_type=0");
 
 my %filters;
 my %dyn_filters;
 
-my $max_filter_rec = get_record_sql($dbh,"SELECT MAX(id) FROM Filter_list");
-my $max_filter_id = $max_filter_rec->{id};
+my $max_filter_rec = get_record_sql($dbh,"SELECT MAX(id) as max_filter FROM filter_list");
+my $max_filter_id = $max_filter_rec->{max_filter};
 
 my $dyn_filters_base = $max_filter_id+1000;
 my $dyn_filters_index = $dyn_filters_base;
@@ -552,14 +630,14 @@ log_debug($gate_ident."Filters status:". Dumper(\%filters));
 log_debug($gate_ident."DNS-filters status:". Dumper(\%dyn_filters));
 
 #clean unused filter records
-do_sql($dbh,"DELETE FROM Group_filters WHERE group_id NOT IN (SELECT id FROM Group_list)");
-do_sql($dbh,"DELETE FROM Group_filters WHERE filter_id NOT IN (SELECT id FROM Filter_list)");
+do_sql($dbh,"DELETE FROM group_filters WHERE group_id NOT IN (SELECT id FROM group_list)");
+do_sql($dbh,"DELETE FROM group_filters WHERE filter_id NOT IN (SELECT id FROM filter_list)");
 
-my @groups_list = get_records_sql($dbh,"SELECT * FROM Group_list");
+my @groups_list = get_records_sql($dbh,"SELECT * FROM group_list");
 my %groups;
 foreach my $group (@groups_list) { $groups{'group_'.$group->{id}}=$group; }
 
-my @grouplist_ref = get_records_sql($dbh,"SELECT `group_id`,`filter_id`,`order`,`action` FROM Group_filters ORDER BY Group_filters.group_id,Group_filters.order");
+my @grouplist_ref = get_records_sql($dbh,"SELECT group_id,filter_id,rule_order,action FROM group_filters ORDER BY group_filters.group_id,group_filters.rule_order");
 
 my %group_filters;
 my $index = 0;
@@ -644,7 +722,7 @@ my $instance_name = 'Users';
 if ($filter_instance->{id}>1) {
     $instance_name = 'Users-'.$filter_instance->{name};
     #check filter instance exist at gateway
-    my $instance_ok = get_record_sql($dbh,"SELECT * FROM device_filter_instances WHERE device_id=$gate->{'id'} AND instance_id=$filter_instance->{id}");
+    my $instance_ok = get_record_sql($dbh,"SELECT * FROM device_filter_instances WHERE device_id= ? AND instance_id=?", $gate->{'id'}, $filter_instance->{id});
     #skip insatnce if not found
     if (!$instance_ok) { next; }
     }
@@ -1040,7 +1118,7 @@ $pm->wait_all_children;
 #clear changed
 if ($all_ok) {
     foreach my $row (@changes_found) {
-        do_sql($dbh,"UPDATE User_auth SET changed=0 WHERE id=".$row->{id});
+        do_sql($dbh,"UPDATE user_auth SET changed=0 WHERE id=?",$row->{id});
         }
     }
 

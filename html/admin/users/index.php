@@ -3,39 +3,55 @@ $default_displayed = 500;
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
-$default_ou=get_const('default_user_ou_id');
-
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
 $default_sort='login';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 
 $msg_error = "";
 
-if (isset($_POST["create"])) {
-    $login = trim($_POST["newlogin"]);
-    if (!empty($login)) {
-        $lcount = get_count_records($db_link,"User_list","LCase(login)=LCase('$login')");
+if (getPOST("create") !== null) {
+    $login = trim(getPOST("newlogin", null, ''));
+    
+    if ($login !== '') {
+        // Проверка существования логина
+        $lcount = get_count_records($db_link, "user_list", "LOWER(login) = LOWER(?)", [$login]);
+        
         if ($lcount > 0) {
-            $msg_error = WEB_cell_login." ".$login." ".$msg_exists."!";
-            unset($_POST);
+            $msg_error = WEB_cell_login . " " . $login . " " . $msg_exists . "!";
         } else {
-            $new['login'] = $login;
-            $new['ou_id'] = $rou;
-            $ou_info = get_record_sql($db_link,"SELECT * FROM OU WHERE id=".$rou);
-	    if (!empty($ou_info)) {
-		if (empty($ou_info['enabled'])) { $ou_info['enabled'] = 0; }
-		if (empty($ou_info['queue_id'])) { $ou_info['queue_id'] = 0; }
-		if (empty($ou_info['filter_group_id'])) { $ou_info['filter_group_id'] = 0; }
-	        $new['enabled'] = $ou_info['enabled'];
-	        $new['queue_id'] = $ou_info['queue_id'];
-	        $new['filter_group_id'] = $ou_info['filter_group_id'];
-	        }
-            $lid=insert_record($db_link, "User_list", $new);
-            LOG_WARNING($db_link,"Создан новый пользователь: Login => $login");
-            header("Location: edituser.php?id=$lid");
-            exit;
+            $new = ['login' => $login];
+            // Определение OU
+            if ($rou > 0) {
+                $new['ou_id'] = $rou;
+            } else {
+                $rou = 3;
+                $ou_exists = get_record_sql($db_link, "SELECT id FROM ou WHERE id = ?", [$rou]);
+                if (empty($ou_exists)) {
+                    $new['ou_id'] = $default_user_ou_id; // по умолчанию
+                } else {
+                    $new['ou_id'] = $rou;
+                }
+            }
+            // Наследование настроек от OU
+            $ou_info = get_record_sql($db_link, "SELECT * FROM ou WHERE id = ?", [$new['ou_id']]);
+            if (!empty($ou_info)) {
+                $new['enabled']           = isset($ou_info['enabled']) ? (int)$ou_info['enabled'] : 0;
+                $new['queue_id']          = isset($ou_info['queue_id']) ? (int)$ou_info['queue_id'] : 0;
+                $new['filter_group_id']   = isset($ou_info['filter_group_id']) ? (int)$ou_info['filter_group_id'] : 0;
+            } else {
+                // Если OU не найден — значения по умолчанию
+                $new['enabled']           = 0;
+                $new['queue_id']          = 0;
+                $new['filter_group_id']   = 0;
+            }
+            $lid = insert_record($db_link, "user_list", $new);
+            if (!empty($lid)) {
+                header("Location: edituser.php?id=$lid");
+                exit;
+            }
         }
     }
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -102,22 +118,55 @@ if ($msg_error) {
 
 <?php
 
-$sort_table = 'U';
 $sort_url = "<a href=/admin/users/index.php?";
 
-if ($rou == 0) { $filter = "U.ou_id=O.id and U.deleted=0"; } else { $filter = "U.OU_id=O.id and U.deleted=0 and U.ou_id=$rou"; }
+// === 1. Базовые условия ===
+$params = [];
+$conditions = ["U.deleted = 0", "U.ou_id = O.id"];
 
-$countSQL = "SELECT Count(*) FROM User_list U, OU O WHERE $filter";
+if ($rou != 0) {
+    $conditions[] = "U.ou_id = ?";
+    $params[] = (int)$rou;
+}
 
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
-$total=ceil($count_records[0]/$displayed);
-if ($page>$total) { $page=$total; }
-if ($page<1) { $page=1; }
-$start = ($page * $displayed) - $displayed;
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+$whereClause = implode(' AND ', $conditions);
 
-$sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month_quota, U.blocked, U.permanent FROM User_list U, OU O WHERE $filter ORDER BY $sort_table.$sort_field $order LIMIT $start,$displayed";
+// === 2. Безопасная сортировка (БЕЛЫЙ СПИСОК!) ===
+$allowed_sort_fields = ['id', 'login', 'description', 'ou_name', 'enabled', 'day_quota', 'month_quota', 'blocked', 'permanent'];
+$allowed_order = ['ASC', 'DESC'];
+
+$sort_field = in_array($sort_field, $allowed_sort_fields, true) ? $sort_field : 'id';
+$order = in_array(strtoupper($order), $allowed_order, true) ? strtoupper($order) : 'ASC';
+
+// === 3. Подсчёт записей ===
+$countSQL = "SELECT COUNT(*) FROM user_list U JOIN ou O ON U.ou_id = O.id WHERE $whereClause";
+$count_records = (int)get_single_field($db_link, $countSQL, $params);
+
+// === 4. Пагинация ===
+$total = ceil($count_records / $displayed);
+$page = max(1, min($page, $total));
+$start = ($page - 1) * $displayed;
+
+print_navigation($page_url, $page, $displayed, $count_records, $total);
+
+// === 5. Запрос данных ===
+$limit = (int)$displayed;
+$offset = (int)$start;
+
+$dataParams = array_merge($params, [$limit, $offset]);
+
+$sSQL = "
+    SELECT 
+        U.id, U.login, U.description, O.ou_name, U.enabled, 
+        U.day_quota, U.month_quota, U.blocked, U.permanent
+    FROM user_list U
+    JOIN ou O ON U.ou_id = O.id
+    WHERE $whereClause
+    ORDER BY U.$sort_field $order
+    LIMIT ? OFFSET ?
+";
+
+$users = get_records_sql($db_link, $sSQL, $dataParams);
 
 ?>
 
@@ -128,7 +177,7 @@ $sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month
 <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
 <td><b><?php print $sort_url . "sort=id&order=$new_order>id</a>"; ?></b></td>
 <td><b><?php print $sort_url . "sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></b></td>
-<td><b><?php print $sort_url . "sort=fio&order=$new_order>" . WEB_cell_fio . "</a>"; ?></b></td>
+<td><b><?php print $sort_url . "sort=description&order=$new_order>" . WEB_cell_description . "</a>"; ?></b></td>
 <td><b><?php print WEB_cell_rule; ?></b></td>
 <td><b><?php print WEB_cell_ou; ?></b></td>
 <td><b><?php print WEB_cell_enabled; ?></b></td>
@@ -138,10 +187,9 @@ $sSQL = "SELECT U.id, U.login, U.fio, O.ou_name, U.enabled, U.day_quota, U.month
 </tr>
 <?php
 
-$users = get_records_sql($db_link, $sSQL);
 
 foreach ($users as $row) {
-    $auth_customs = get_count_records($db_link,"User_auth","user_id=".$row['id']." AND deleted=0 AND enabled <>'".$row['enabled']."'");
+    $auth_customs = get_count_records($db_link,"user_auth","user_id=? AND deleted=0 AND enabled <>?", [ $row['id'],$row['enabled'] ] );
     $cl = "data";
     if (! $row['enabled']) {
         $cl = "off";
@@ -162,8 +210,8 @@ foreach ($users as $row) {
     print "<td class=\"$cl_id\">".$row['id']."</td>\n";
     if (empty($row['login'])) { $row['login']=$row['id']; }
     print "<td class=\"$cl\" align=left><a href=edituser.php?id=".$row['id'].">" . $row['login'] . "</a></td>\n";
-    print "<td class=\"$cl\">".$row['fio']."</td>\n";
-    $rules_count = get_count_records($db_link,"auth_rules","user_id=".$row['id']);
+    print "<td class=\"$cl\">".$row['description']."</td>\n";
+    $rules_count = get_count_records($db_link,"auth_rules","user_id=?", [$row['id']]);
     print "<td class=\"$cl\">".$rules_count."</td>\n";
     print "<td class=\"$cl\">".$row['ou_name']."</td>\n";
     print "<td class=\"$cl\">".get_qa($row['enabled']) . "</td>\n";
@@ -175,7 +223,7 @@ foreach ($users as $row) {
 </table>
 
 <?php
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 
 </form>
@@ -208,5 +256,5 @@ document.getElementById('rows').addEventListener('change', function(event) {
 </script>
 
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

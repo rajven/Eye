@@ -1,0 +1,162 @@
+-- Переименование таблиц в нижний регистр
+RENAME TABLE Customers TO customers;
+RENAME TABLE OU TO ou;
+RENAME TABLE User_auth TO user_auth;
+RENAME TABLE User_list TO user_list;
+RENAME TABLE User_stats TO user_stats;
+RENAME TABLE User_stats_full TO user_stats_full;
+RENAME TABLE User_auth_alias TO user_auth_alias;
+RENAME TABLE Wan_stats TO wan_stats;
+RENAME TABLE Traffic_detail TO traffic_detail;
+RENAME TABLE Unknown_mac TO unknown_mac;
+RENAME TABLE Group_filters TO group_filters;
+RENAME TABLE Group_list TO group_list;
+RENAME TABLE Filter_list TO filter_list;
+RENAME TABLE Queue_list TO queue_list;
+
+-- Изменение типов и имён столбцов
+ALTER TABLE wan_stats CHANGE COLUMN `in` bytes_in BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE wan_stats CHANGE COLUMN `out` bytes_out BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE group_filters CHANGE COLUMN `order` rule_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE user_auth CHANGE COLUMN `client-id` client_id VARCHAR(250);
+ALTER TABLE customers CHANGE COLUMN `Login` login VARCHAR(20) DEFAULT NULL;
+
+-- Переименовываем eof → end_life в user_auth
+ALTER TABLE user_auth CHANGE COLUMN `eof` end_life DATETIME NULL DEFAULT NULL;
+
+ALTER TABLE dhcp_log CHANGE COLUMN `client-id` client_id VARCHAR(250);
+ALTER TABLE dhcp_log CHANGE COLUMN `circuit-id` circuit_id VARCHAR(255);
+ALTER TABLE dhcp_log CHANGE COLUMN `remote-id` remote_id VARCHAR(255);
+
+-- Точки в именах
+ALTER TABLE acl CHANGE COLUMN `description.english` description_english VARCHAR(250) NOT NULL;
+ALTER TABLE acl CHANGE COLUMN `description.russian` description_russian VARCHAR(250) NOT NULL;
+
+ALTER TABLE config_options CHANGE COLUMN `description.english` description_english TEXT;
+ALTER TABLE config_options CHANGE COLUMN `description.russian` description_russian TEXT;
+
+ALTER TABLE device_types CHANGE COLUMN `name.russian` name_russian VARCHAR(50);
+ALTER TABLE device_types CHANGE COLUMN `name.english` name_english VARCHAR(50);
+
+-- timestamp → ts
+ALTER TABLE dhcp_log        CHANGE COLUMN `timestamp` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE dhcp_queue      CHANGE COLUMN `timestamp` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE dns_cache       CHANGE COLUMN `timestamp` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE mac_history     CHANGE COLUMN `timestamp` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE user_auth       CHANGE COLUMN `timestamp` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE user_stats      CHANGE COLUMN `timestamp` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE user_stats_full CHANGE COLUMN `timestamp` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE worklog         CHANGE COLUMN `timestamp` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE user_list       CHANGE COLUMN `timestamp` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE traffic_detail  CHANGE COLUMN `timestamp` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE unknown_mac     CHANGE COLUMN `timestamp` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE user_auth_alias CHANGE COLUMN `timestamp` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- time/date → ts
+DELETE FROM wan_stats WHERE `time` <= '1970-01-01 03:00:00' OR `time` = '0000-00-00 00:00:00';
+ALTER TABLE wan_stats     CHANGE COLUMN `time` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE remote_syslog CHANGE COLUMN `date` ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- Добавляем столбец `comment` во все нужные таблицы 
+ALTER TABLE building         ADD COLUMN `comment` VARCHAR(255);
+ALTER TABLE customers        ADD COLUMN `comment` VARCHAR(255);
+ALTER TABLE devices          ADD COLUMN `comment` VARCHAR(255);
+ALTER TABLE filter_instances ADD COLUMN `comment` VARCHAR(255);
+ALTER TABLE filter_list      ADD COLUMN `comment` VARCHAR(255);
+ALTER TABLE group_list       ADD COLUMN `comment` VARCHAR(255);
+ALTER TABLE ou               ADD COLUMN `comment` VARCHAR(255);
+ALTER TABLE subnets          ADD COLUMN `comment` VARCHAR(255);
+ALTER TABLE auth_rules       ADD COLUMN `comment` VARCHAR(255);
+ALTER TABLE device_ports     ADD COLUMN `comment` description VARCHAR(255);
+
+-- Теперь безопасно переименовываем `comment` → `description`
+ALTER TABLE building         CHANGE COLUMN `comment` description VARCHAR(250);
+ALTER TABLE customers        CHANGE COLUMN `comment` description VARCHAR(255);
+ALTER TABLE devices          CHANGE COLUMN `comment` description VARCHAR(255);
+ALTER TABLE filter_instances CHANGE COLUMN `comment` description VARCHAR(200);
+ALTER TABLE filter_list      CHANGE COLUMN `comment` description VARCHAR(250);
+ALTER TABLE group_list       CHANGE COLUMN `comment` description VARCHAR(250);
+ALTER TABLE ou               CHANGE COLUMN `comment` description VARCHAR(250);
+ALTER TABLE subnets          CHANGE COLUMN `comment` description VARCHAR(250);
+ALTER TABLE user_list        CHANGE COLUMN `fio` description VARCHAR(255);
+ALTER TABLE auth_rules       CHANGE COLUMN `comment` description VARCHAR(255);
+ALTER TABLE device_ports     CHANGE COLUMN `comment` description VARCHAR(255);
+ALTER TABLE user_auth        CHANGE COLUMN `comments` description VARCHAR(250);
+
+-- Добавляем поле mac_found в user_auth
+ALTER TABLE user_auth ADD COLUMN mac_found DATETIME NULL DEFAULT NULL;
+UPDATE user_auth SET mac_found = last_found WHERE last_found IS NOT NULL;
+
+-- type → уточнённые имена
+ALTER TABLE config_options           CHANGE COLUMN `type` option_type VARCHAR(100) NOT NULL;
+ALTER TABLE dns_queue                CHANGE COLUMN `type` operation_type VARCHAR(10) NOT NULL DEFAULT 'add';
+ALTER TABLE filter_list              CHANGE COLUMN `type` filter_type SMALLINT NOT NULL DEFAULT 0;
+ALTER TABLE auth_rules               CHANGE COLUMN `type` rule_type INT(11) NOT NULL;
+ALTER TABLE device_l3_interfaces     CHANGE COLUMN `type` interface_type INT(11) NOT NULL DEFAULT 0;
+
+-- user_stats - add pkt counters
+ALTER TABLE `user_stats` ADD COLUMN `pkt_in` int(11) NOT NULL DEFAULT 0;
+ALTER TABLE `user_stats` ADD COLUMN `pkt_out` int(11) NOT NULL DEFAULT 0;
+ALTER TABLE `user_stats` ADD COLUMN `step` int(11) NOT NULL DEFAULT 3600;
+
+ALTER TABLE `user_stats_full` MODIFY COLUMN `pkt_in` int(11) NOT NULL DEFAULT 0;
+ALTER TABLE `user_stats_full` MODIFY COLUMN `pkt_out` int(11) NOT NULL DEFAULT 0;
+
+-- Set default value for ip to NULL
+ALTER TABLE `dhcp_log`       MODIFY COLUMN `ip` varchar(15) NULL DEFAULT NULL;
+ALTER TABLE `dhcp_queue`     MODIFY COLUMN `ip` varchar(15) NULL DEFAULT NULL;
+ALTER TABLE `mac_history`    MODIFY COLUMN `ip` varchar(16) NULL DEFAULT NULL;
+ALTER TABLE `remote_syslog`  MODIFY COLUMN `ip` varchar(15) NULL DEFAULT NULL;
+ALTER TABLE `user_auth`      MODIFY COLUMN `ip` varchar(18) NULL DEFAULT NULL;
+
+-- Add ACL for disable user
+INSERT INTO acl (id, name, description_english, description_russian) VALUES (0, 'Disabled', 'User disabled', 'Пользователь отключен');
+
+-- queue_list
+ALTER TABLE queue_list CHANGE COLUMN `Download` `download` INT(11) NOT NULL DEFAULT 0;
+ALTER TABLE queue_list CHANGE COLUMN `Upload` `upload` INT(11) NOT NULL DEFAULT 0;
+
+-- speedup worklog
+ALTER TABLE `worklog` ADD INDEX `idx_ts` (`ts`);
+
+-- Исправление таблицы traffic_detail: src_ip/dst_ip → BIGINT
+ALTER TABLE `traffic_detail` MODIFY `src_ip` BIGINT NOT NULL DEFAULT 0, MODIFY `dst_ip` BIGINT NOT NULL DEFAULT 0;
+
+-- Исправление customers: убрать строковые 'NULL'
+ALTER TABLE `customers` MODIFY `login` VARCHAR(20) DEFAULT NULL, MODIFY `password` VARCHAR(255) DEFAULT NULL;
+
+-- 1. Переименовать `SN` → `sn` в таблице `devices`
+ALTER TABLE `devices` CHANGE COLUMN `SN` `sn` VARCHAR(80) DEFAULT NULL;
+
+-- 2. Переименовать `WikiName` → `wikiname` в таблице `user_auth`
+ALTER TABLE `user_auth` CHANGE COLUMN `WikiName` `wikiname` VARCHAR(250) DEFAULT NULL;
+
+-- mac_vendors: companyName → companyname
+ALTER TABLE `mac_vendors`  CHANGE COLUMN `companyName` `companyname` VARCHAR(255) DEFAULT NULL;
+
+-- mac_vendors: companyAddress → companyaddress
+ALTER TABLE `mac_vendors`  CHANGE COLUMN `companyAddress` `companyaddress` VARCHAR(255) DEFAULT NULL;
+
+-- device_ports: ifName → ifname
+ALTER TABLE `device_ports`  CHANGE COLUMN `ifName` `ifname` VARCHAR(40) DEFAULT NULL;
+
+-- prepare group lieveling
+ALTER TABLE ou ADD COLUMN parent_id INT(11) DEFAULT NULL;
+
+-- change timestamp to datetime
+ALTER TABLE `ad_comp_cache`     MODIFY COLUMN `last_found` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP();
+ALTER TABLE `devices`           MODIFY COLUMN `locked_timestamp` DATETIME NULL DEFAULT CURRENT_TIMESTAMP();
+ALTER TABLE `variables`         MODIFY COLUMN `clear_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP(), MODIFY COLUMN `created` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP();
+
+-- migration mac to full
+
+-- 1. Обновляем mac_history
+ALTER TABLE `mac_history` MODIFY COLUMN `mac` VARCHAR(17) DEFAULT NULL;
+UPDATE `mac_history` SET mac = CONCAT( SUBSTRING(mac, 1, 2), ':', SUBSTRING(mac, 3, 2), ':', SUBSTRING(mac, 5, 2), ':', SUBSTRING(mac, 7, 2), ':', SUBSTRING(mac, 9, 2), ':', SUBSTRING(mac, 11, 2) ) WHERE mac IS NOT NULL AND LENGTH(mac) = 12;
+
+-- 2. Обновляем unknown_mac
+ALTER TABLE `unknown_mac` MODIFY COLUMN `mac` VARCHAR(17) DEFAULT NULL;
+UPDATE `unknown_mac` SET mac = CONCAT( SUBSTRING(mac, 1, 2), ':', SUBSTRING(mac, 3, 2), ':', SUBSTRING(mac, 5, 2), ':', SUBSTRING(mac, 7, 2), ':', SUBSTRING(mac, 9, 2), ':', SUBSTRING(mac, 11, 2) ) WHERE mac IS NOT NULL AND LENGTH(mac) = 12;
+
+-- remove default timestamp for dhcp event
+ALTER TABLE `user_auth` MODIFY COLUMN `dhcp_time` DATETIME NULL DEFAULT NULL;

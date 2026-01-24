@@ -1,184 +1,369 @@
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 
-$action='';
-$ip='';
-$mac='';
-$rec_id='';
-$ip_aton=NULL;
-$f_subnet='';
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
 
-//MODE
-if (!empty($_GET['get'])) { $action = 'get_'.$_GET['get']; }
-if (!empty($_GET['send'])) { $action = 'send_'.$_GET['send']; }
-if (!empty($_POST['get'])) { $action = 'get_'.$_POST['get']; }
-if (!empty($_POST['send'])) { $action = 'send_'.$_POST['send']; }
+login($db_link);
 
-//GET
-if (!empty($_GET['ip'])) { $ip = $_GET['ip']; }
-if (!empty($_GET['mac'])) { $mac = mac_dotted(trim($_GET['mac'])); }
-if (!empty($_GET['id'])) { $rec_id = $_GET['id']; }
-if (!empty($_GET['subnet'])) { $f_subnet = $_GET['subnet']; }
+// Получаем параметры через безопасные функции
+$action_get  = getParam('get');
+$action_send = getParam('send');
+$ip          = getParam('ip', null, null, FILTER_VALIDATE_IP, ['flags' => FILTER_FLAG_IPV4]);
+$mac_raw     = getParam('mac');
+$rec_id      = getParam('id', null, null, FILTER_VALIDATE_INT);
+$f_subnet    = getParam('subnet');
 
-//POST
-if (!empty($_POST['ip'])) { $ip = $_POST['ip']; }
-if (!empty($_POST['mac'])) { $mac = mac_dotted($_POST['mac']); }
-if (!empty($_POST['id'])) { $rec_id = $_POST['id']; }
-if (!empty($_POST['subnet'])) { $f_subnet = $_POST['subnet']; }
+// Новые параметры для универсальных методов
+$table       = getParam('table');
+$filter      = getParam('filter'); // JSON-строка для кастомного фильтра
+$update_data = getParam('data'); // JSON-данные для обновления
+
+// Параметры пагинации
+$limit_param = getParam('limit', null, null, FILTER_VALIDATE_INT);
+$offset_param = getParam('offset', null, null, FILTER_VALIDATE_INT);
+$limit = ($limit_param !== null && $limit_param > 0) ? min((int)$limit_param, 1000) : 1000;
+$offset = ($offset_param !== null && $offset_param >= 0) ? (int)$offset_param : 0;
+
+// Обработка MAC-адреса
+$mac = '';
+if (!empty($mac_raw) && checkValidMac($mac_raw)) {
+    $mac = mac_dotted(trim($mac_raw));
+}
+
+// Определяем действие
+$action = '';
+if (!empty($action_get))  { $action = 'get_' . $action_get; }
+if (!empty($action_send)) { $action = 'send_' . $action_send; }
+
+// Дополнительные параметры для send_dhcp
+$dhcp_hostname = getParam('hostname', '');
+$dhcp_action   = getParam('action', 1, FILTER_VALIDATE_INT);
+
+// === Список разрешённых таблиц ===
+$allowed_tables = [
+    'building',
+    'devices',
+    'device_models',
+    'ou',
+    'queue_list',
+    'group_list',
+    'subnets',
+    'config',
+    'user_auth',
+    'user_list',
+    'vendors'
+];
+
+function do_exit() {
+    exit;
+}
+
+// === Валидация таблицы ===
+function validate_table($table_name, $allowed) {
+    return in_array($table_name, $allowed) ? $table_name : null;
+}
+
+// === Безопасное получение данных из таблицы ===
+function safe_get_records($db, $table, $filter = null, $limit = 1000, $offset = 0) {
+    global $allowed_tables;
+    
+    if (!validate_table($table, $allowed_tables)) {
+        return ['error' => 'Invalid table name'];
+    }
+    
+    $sql = "SELECT * FROM " . $table;
+    $params = [];
+    
+    if ($filter) {
+        // Фильтр в формате: {"field":"value","field2":"value2"}
+        $filter_arr = json_decode($filter, true);
+        if (is_array($filter_arr) && !empty($filter_arr)) {
+            $conditions = [];
+            foreach ($filter_arr as $field => $value) {
+                // Защита от SQL-инъекции: проверяем имя поля
+                if (!preg_match('/^[a-z_][a-z0-9_]*$/i', $field)) {
+                    continue;
+                }
+                $conditions[] = "$field = ?";
+                $params[] = $value;
+            }
+            if (!empty($conditions)) {
+                $sql .= " WHERE " . implode(" AND ", $conditions);
+            }
+        }
+    }
+    
+    $sql .= " LIMIT " . (int)$limit;
+    if ($offset > 0) {
+        $sql .= " OFFSET " . (int)$offset;
+    }
+    
+    return get_records_sql($db, $sql, $params);
+}
+
+// === Безопасное получение одной записи ===
+function safe_get_record($db, $table, $id) {
+    global $allowed_tables;
+    
+    if (!validate_table($table, $allowed_tables)) {
+        return ['error' => 'Invalid table name'];
+    }
+    
+    if (!is_numeric($id) || $id <= 0) {
+        return ['error' => 'Invalid ID'];
+    }
+    
+    $pk_field = 'id'; // Все таблицы используют 'id' как первичный ключ
+    return get_record_sql($db, "SELECT * FROM $table WHERE $pk_field = ?", [(int)$id]);
+}
 
 if (!empty($action)) {
 
-      if (!empty($ip) and checkValidIp($ip))  { $ip_aton=ip2long($ip); }
+    // Преобразуем IP в BIGINT (если валиден)
+    $ip_aton = null;
+    if (!empty($ip)) { 
+        $ip_aton = sprintf('%u', ip2long($ip)); 
+    }
 
-      //return user auth record
-      //api.php?login=<LOGIN>&api_key=<API_KEY>&get=user_auth&{mac=<MAC>|ip=<IP>}
-      if ($action ==='get_user_auth') {
-          $result=[];
-          $sql='';
-          LOG_VERBOSE($db_link,"API: Get User Auth record with ip: $ip mac: $mac id: $rec_id");
-          if (!empty($mac) and !empty($ip_aton)) { 
-                $sql="SELECT * FROM User_auth WHERE `ip_int`=".$ip_aton." AND `mac`='".$mac."' AND deleted=0"; 
-              } else {
-              if (!empty($ip_aton)) { $sql = "SELECT * FROM User_auth WHERE `ip_int`=".$ip_aton." AND deleted=0"; }
-              if (!empty($mac)) { $sql="SELECT * FROM User_auth WHERE `mac`='".$mac."' AND deleted=0"; }
-              }
-          if (!empty($rec_id)) { $sql="SELECT * FROM User_auth WHERE id=".$rec_id; }
-          if (!empty($sql)) {
-              $result=get_record_sql($db_link,$sql);
-              if (!empty($result)) {
-                  LOG_VERBOSE($db_link,"API: Record found.");
-                  try {
-                    $json = json_encode($result, JSON_THROW_ON_ERROR);
-                    header('Content-Type: application/json');
-                    echo $json;
-                    }
-                  catch (JsonException $exception) {
-                    LOG_ERROR($db_link,"API: Error decoding JSON. Error: ".$exception->getMessage());
-                    exit($exception->getMessage());
-                  }
-                } else {
-                  LOG_VERBOSE($db_link,"API: Not found.");
-                }
-             } else {
-              LOG_VERBOSE($db_link,"API: not enough parameters");
-             }
-          }
+    // === УНИВЕРСАЛЬНЫЙ МЕТОД: get_table_record ===
+    if ($action === 'get_table_record' && !empty($table) && $rec_id > 0) {
+        $result = safe_get_record($db_link, $table, $rec_id);
+        
+        if (isset($result['error'])) {
+            http_response_code(400);
+            echo json_encode($result);
+            do_exit();
+        }
+        
+        if ($result) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        } else {
+            http_response_code(404);
+            echo json_encode(['error' => 'Record not found']);
+        }
+        do_exit();
+    }
 
-      //return user records
-      //api.php?login=<LOGIN>&api_key=<API_KEY>&get=user&id=<ID>
-      if ($action ==='get_user') {
-          $result=[];
-          $sql='';
-          LOG_VERBOSE($db_link,"API: Get User record with id: $rec_id");
-          if (!empty($rec_id)) {
-                $sql="SELECT * FROM User_list WHERE id=$rec_id";
-                $result=get_record_sql($db_link,$sql);
-                if (!empty($result)) {
-                    LOG_VERBOSE($db_link,"API: User record found.");
-                    $sql="SELECT * FROM User_auth WHERE deleted=0 AND user_id=".$rec_id;
-                    $result_auth=get_records_sql($db_link,$sql);
-                    try {
-                        if (!empty($result_auth)) { $result["auth"]=$result_auth; } else { $result["auth"]=''; }
-                        $json_user = json_encode($result, JSON_THROW_ON_ERROR);
-                        header('Content-Type: application/json');
-                        echo $json_user;
-                        }
-                    catch (JsonException $exception) {
-                        LOG_ERROR($db_link,"API: Error decoding JSON. Error: ".$exception->getMessage());
-                        exit($exception->getMessage());
-                      }
-                } else {
-                  LOG_VERBOSE($db_link,"API: User not found.");
-                }
-             } else {
-              LOG_VERBOSE($db_link,"API: not enough parameters");
-             }
-          }
+    // === УНИВЕРСАЛЬНЫЙ МЕТОД: get_table_list ===
+    if ($action === 'get_table_list' && !empty($table)) {
+        $result = safe_get_records($db_link, $table, $filter, $limit, $offset);
+        
+        if (isset($result['error'])) {
+            http_response_code(400);
+            echo json_encode($result);
+            do_exit();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($result ?: [], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        do_exit();
+    }
 
-      //return all records for dhcp server
-      //api.php?login=<LOGIN>&api_key=<API_KEY>&get=dhcp_all
-      if ($action ==='get_dhcp_all') {
-            $result=[];
-            LOG_VERBOSE($db_link,"API: Get all dhcp records");
-            $sql = "SELECT ua.id, ua.ip, ua.ip_int, ua.mac, ua.comments, ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id, SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
-                FROM  User_auth ua JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
-                WHERE ua.dhcp = 1 AND ua.deleted = 0 AND s.dhcp = 1 ORDER BY ua.ip_int";
-            $result = get_records_sql($db_link, $sql);
-            if (!empty($result)) {
-                    LOG_VERBOSE($db_link, "API: " . count($result) . " records found.");
-                    try {
-                        header('Content-Type: application/json');
-                        echo json_encode($result, JSON_THROW_ON_ERROR);
-                    } catch (JsonException $exception) {
-                        LOG_ERROR($db_link, "API: JSON encoding error: " . $exception->getMessage());
-                        exit("JSON error");
-                        }
-                    } else {
-                        LOG_VERBOSE($db_link, "API: No records found.");
-                        header('Content-Type: application/json');
-                        echo json_encode([]);
-                    }
+    // === ОБНОВЛЕНИЕ USER_LIST ===
+    if ($action === 'send_update_user' && $rec_id > 0 && !empty($update_data)) {
+        $data = json_decode($update_data, true);
+        
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid data format']);
+            do_exit();
+        }
+        
+        // Разрешённые поля для обновления
+        $allowed_fields = [
+            'login', 'description', 'enabled', 'blocked', 'ou_id', 
+            'filter_group_id', 'queue_id', 'day_quota', 'month_quota', 'permanent'
+        ];
+        
+        $update_fields = [];
+        foreach ($data as $key => $value) {
+            if (in_array($key, $allowed_fields)) {
+                $update_fields[$key] = $value;
             }
+        }
+        
+        if (empty($update_fields)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'No valid fields to update']);
+            do_exit();
+        }
+        
+        // Проверяем существование пользователя
+        $existing = get_record_sql($db_link, "SELECT id FROM user_list WHERE id = ?", [$rec_id]);
+        if (!$existing) {
+            http_response_code(404);
+            echo json_encode(['error' => 'User not found']);
+            do_exit();
+        }
+        
+        // Выполняем обновление
+        if (update_record($db_link, 'user_list', 'id = ?', $update_fields, [$rec_id])) {
+            LOG_VERBOSE($db_link, "API: User $rec_id updated successfully");
+            http_response_code(200);
+            echo json_encode(['status' => 'updated', 'id' => $rec_id]);
+        } else {
+            LOG_ERROR($db_link, "API: Failed to update user $rec_id");
+            http_response_code(500);
+            echo json_encode(['error' => 'Update failed']);
+        }
+        do_exit();
+    }
 
-      //return all record in subnet for dhcp-server
-      //api.php?login=<LOGIN>&api_key=<API_KEY>&get=dhcp_subnet&subnet=<SUBNET>
-      if ($action ==='get_dhcp_subnet' and !empty($f_subnet)) {
-            $result=[];
-            $f_subnet = trim($f_subnet, "'");
-            LOG_VERBOSE($db_link,"API: Get dhcp records for subnet ".$f_subnet);
-            $sql = "SELECT ua.id, ua.ip, ua.ip_int, ua.mac, ua.comments, ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id, SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
-                FROM  User_auth ua JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
-                WHERE ua.dhcp = 1 AND ua.deleted = 0 AND s.dhcp = 1 AND SUBSTRING_INDEX(s.subnet, '/', 1) = '".$f_subnet."' ORDER BY ua.ip_int";
-            $result = get_records_sql($db_link, $sql);
-            if (!empty($result)) {
-                    LOG_VERBOSE($db_link, "API: " . count($result) . " records found.");
-                    try {
-                        header('Content-Type: application/json');
-                        echo json_encode($result, JSON_THROW_ON_ERROR);
-                    } catch (JsonException $exception) {
-                        LOG_ERROR($db_link, "API: JSON encoding error: " . $exception->getMessage());
-                        exit("JSON error");
-                        }
-                    } else {
-                        LOG_VERBOSE($db_link, "API: No records found.");
-                        header('Content-Type: application/json');
-                        echo json_encode([]);
-                    }
+    // === get_user_auth ===
+    if ($action === 'get_user_auth') {
+        LOG_VERBOSE($db_link, "API: Get User Auth record with ip: $ip mac: $mac id: $rec_id");
+        
+        $result = null;
+        $sql = "";
+        $params = [];
+
+        if ($rec_id > 0) {
+            $sql = "SELECT * FROM user_auth WHERE id = ?";
+            $params = [$rec_id];
+        } elseif ($ip_aton !== null && !empty($mac)) {
+            $sql = "SELECT * FROM user_auth WHERE ip_int = ? AND mac = ? AND deleted = 0";
+            $params = [$ip_aton, $mac];
+        } elseif ($ip_aton !== null) {
+            $sql = "SELECT * FROM user_auth WHERE ip_int = ? AND deleted = 0";
+            $params = [$ip_aton];
+        } elseif (!empty($mac)) {
+            $sql = "SELECT * FROM user_auth WHERE mac = ? AND deleted = 0";
+            $params = [$mac];
+        }
+
+        if ($sql) {
+            $result = get_record_sql($db_link, $sql, $params);
+            if ($result) {
+                LOG_VERBOSE($db_link, "API: Record found.");
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            } else {
+                LOG_VERBOSE($db_link, "API: Not found.");
+                http_response_code(404);
+                echo json_encode(['error' => 'Not found']);
             }
+        } else {
+            LOG_VERBOSE($db_link, "API: not enough parameters");
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing parameters']);
+        }
+        do_exit();
+    }
 
-      //add dhcp log record
-      //api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=<MAC>&ip=<IP>&action=<0|1>[&hostname=<HOSTNAME>]
-      if ($action ==='send_dhcp') {
-          if (!empty($ip) and !empty($mac)) {
-              $dhcp_hostname = '';
-              if (!empty($_GET["hostname"])) { $dhcp_hostname = trim($_GET["hostname"]); }
-              if (!empty($_POST["hostname"])) { $dhcp_hostname = trim($_POST["hostname"]); }
-              $faction = $_GET["action"] * 1;
-              $dhcp_action = 'add';
-              if ($faction == 1) { $dhcp_action = 'add'; }
-              if ($faction == 0) { $dhcp_action = 'del'; }
-              LOG_VERBOSE($db_link, "API: external dhcp request for $ip [$mac] $dhcp_action");
-              if (checkValidIp($ip) and is_our_network($db_link, $ip)) {
-                    $new['action']=$dhcp_action;
-                    $new['mac']=$mac;
-                    $new['ip']=$ip;
-                    $new['dhcp_hostname']=$dhcp_hostname;
-                    insert_record($db_link,"dhcp_queue",$new);
-                    } else { LOG_ERROR($db_link, "$ip - wrong network!"); }
-              }
-          }
-      } else {
-        LOG_WARNING($db_link,"API: Unknown request");
-      }
+    // === get_user ===
+    if ($action === 'get_user') {
+        LOG_VERBOSE($db_link, "API: Get User record with id: $rec_id");
+        
+        if ($rec_id > 0) {
+            $user = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$rec_id]);
+            if ($user) {
+                $auth_records = get_records_sql($db_link, 
+                    "SELECT * FROM user_auth WHERE deleted = 0 AND user_id = ? ORDER BY id LIMIT 100", 
+                    [$rec_id]
+                );
+                $user['auth'] = $auth_records ?: [];
+                
+                LOG_VERBOSE($db_link, "API: User record found.");
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode($user, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            } else {
+                LOG_VERBOSE($db_link, "API: User not found.");
+                http_response_code(404);
+                echo json_encode(['error' => 'User not found']);
+            }
+        } else {
+            LOG_VERBOSE($db_link, "API: not enough parameters");
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing user ID']);
+        }
+        do_exit();
+    }
 
-ob_end_flush();
+    // === get_dhcp_all ===
+    if ($action === 'get_dhcp_all') {
+        LOG_VERBOSE($db_link, "API: Get all dhcp records");
+        $result = get_records_sql($db_link, "
+            SELECT 
+                ua.id, ua.ip, ua.ip_int, ua.mac, ua.description, 
+                ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id,
+                SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
+            FROM user_auth ua 
+            JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
+            WHERE ua.dhcp = 1 AND ua.deleted = 0 AND s.dhcp = 1 
+            ORDER BY ua.ip_int
+            LIMIT ? OFFSET ?
+        ", [$limit, $offset]);
+        
+        LOG_VERBOSE($db_link, "API: " . count($result) . " records found.");
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($result ?: [], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        do_exit();
+    }
 
-// Легкая очистка сессии без установки кук
-if (session_status() === PHP_SESSION_ACTIVE) {
-    $_SESSION = [];
-    session_destroy();
+    // === get_dhcp_subnet ===
+    if ($action === 'get_dhcp_subnet' && !empty($f_subnet)) {
+        // Валидация подсети как IPv4-адреса
+        if (!filter_var($f_subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid subnet format']);
+            do_exit();
+        }
+        
+        LOG_VERBOSE($db_link, "API: Get dhcp records for subnet " . $f_subnet);
+        $result = get_records_sql($db_link, "
+            SELECT 
+                ua.id, ua.ip, ua.ip_int, ua.mac, ua.description, 
+                ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id,
+                SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
+            FROM user_auth ua 
+            JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
+            WHERE ua.dhcp = 1 AND ua.deleted = 0 AND s.dhcp = 1 
+              AND SUBSTRING_INDEX(s.subnet, '/', 1) = ?
+            ORDER BY ua.ip_int
+            LIMIT ? OFFSET ?
+        ", [$f_subnet, $limit, $offset]);
+
+        LOG_VERBOSE($db_link, "API: " . count($result) . " records found.");
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($result ?: [], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        do_exit();
+    }
+
+    // === send_dhcp ===
+    if ($action === 'send_dhcp') {
+        if ($ip && $mac) {
+            $faction = $dhcp_action !== null ? (int)$dhcp_action : 1;
+            $action_str = ($faction === 0) ? 'del' : 'add';
+
+            LOG_VERBOSE($db_link, "API: external dhcp request for $ip [$mac] $action_str");
+            
+            if (is_our_network($db_link, $ip)) {
+                insert_record($db_link, "dhcp_queue", [
+                    'action' => $action_str,
+                    'mac' => $mac,
+                    'ip' => $ip,
+                    'dhcp_hostname' => $dhcp_hostname
+                ]);
+                http_response_code(201);
+                echo json_encode(['status' => 'queued']);
+            } else {
+                LOG_ERROR($db_link, "$ip - wrong network!");
+                http_response_code(400);
+                echo json_encode(['error' => 'IP not in allowed network']);
+            }
+        } else {
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing IP or MAC']);
+        }
+        do_exit();
+    }
+
+} else {
+    LOG_WARNING($db_link, "API: Unknown request");
+    http_response_code(400);
+    echo json_encode(['error' => 'Unknown action']);
 }
 
-unset($_GET);
-unset($_POST);
+do_exit();
+
 ?>

@@ -5,15 +5,8 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 
-if (isset($_POST['mac'])) { $f_mac = mac_simplify($_POST['mac']); }
-if (isset($_GET['mac'])) { $f_mac = mac_simplify($_GET['mac']); }
-if (!isset($f_mac) and isset($_SESSION[$page_url]['mac'])) { $f_mac=$_SESSION[$page_url]['mac']; }
-if (!isset($f_mac)) { $f_mac=''; }
-
-$_SESSION[$page_url]['mac']=$f_mac;
-
-$mac_where = '';
-if (!empty($f_mac)) { $mac_where = " and mac='$f_mac' "; }
+$f_mac = mac_dotted(getParam('mac', $page_url, ''));
+$_SESSION[$page_url]['mac'] = $f_mac;
 
 print_log_submenu($page_url);
 ?>
@@ -27,16 +20,32 @@ print_log_submenu($page_url);
 </form>
 
 <?php
-$countSQL="SELECT Count(*) FROM mac_history WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $mac_where ORDER BY id DESC";
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
+$params = [$date1, $date2];
+$conditions = [];
+if (!empty($f_mac)) {
+    $conditions[] = "mac = ?";
+    $params[] = $f_mac;
+}
+$whereClause = !empty($conditions) ? ' AND ' . implode(' AND ', $conditions) : '';
+$countSQL = "SELECT COUNT(*) FROM mac_history WHERE ts >= ? AND ts < ?" . $whereClause;
+$count_records = (int)get_single_field($db_link, $countSQL, $params);
+$total = ceil($count_records / $displayed);
+$page = max(1, min($page, $total));
+$start = ($page - 1) * $displayed;
+print_navigation($page_url, $page, $displayed, $count_records, $total);
 
-$total=ceil($count_records[0]/$displayed);
-if ($page>$total) { $page=$total; }
-if ($page<1) { $page=1; }
-$start = ($page * $displayed) - $displayed; 
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+$dataParams = array_merge($params, [$displayed, $start]);
+
+$sSQL = "
+    SELECT * FROM mac_history 
+    WHERE ts >= ? AND ts < ?" . $whereClause . "
+    ORDER BY ts DESC 
+    LIMIT ? OFFSET ?
+";
+
+$maclog = get_records_sql($db_link, $sSQL, $dataParams);
 ?>
+
 <br>
 <table class="data" width="850">
 <tr align="center">
@@ -48,12 +57,9 @@ print_navigation($page_url,$page,$displayed,$count_records[0],$total);
 
 <?php
 
-$sSQL = "SELECT * FROM mac_history WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $mac_where ORDER BY `timestamp` DESC LIMIT $start,$displayed";
-$maclog = get_records_sql($db_link, $sSQL);
-
 foreach ($maclog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
+    print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
     print "<td class=\"data\">" . expand_mac($db_link,mac_dotted($row['mac'])) . "</td>\n";
     print "<td class=\"data\">" . get_port($db_link, $row['port_id']) . "</td>\n";
     if (isset($row['auth_id']) and $row['auth_id'] > 0) {
@@ -64,6 +70,6 @@ foreach ($maclog as $row) {
     print "</tr>\n";
 }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

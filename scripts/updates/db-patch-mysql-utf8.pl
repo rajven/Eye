@@ -5,14 +5,23 @@
 #
 
 use utf8;
+use strict;
+use warnings;
+use Encode;
+use open qw(:std :encoding(UTF-8));
+no warnings 'utf8';
+
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
 use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::common;
 use strict;
 use warnings;
+
+exit 100 if ($config_ref{DBTYPE} and $config_ref{DBTYPE} ne 'mysql');
 
 my @tables = get_records_sql($dbh,"SHOW TABLES");
 my @db_tables=();

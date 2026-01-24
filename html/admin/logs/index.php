@@ -6,11 +6,8 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/datetimefilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/loglevelfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/logfilter.php");
 
-if (isset($_POST['user_ip'])) { $fuser_ip = $_POST['user_ip']; }
-if (isset($_GET['user_ip'])) { $fuser_ip = $_GET['user_ip']; }
-if (!isset($fuser_ip) and isset($_SESSION[$page_url]['user_ip'])) { $fuser_ip=$_SESSION[$page_url]['user_ip']; }
-if (!isset($fuser_ip)) { $fuser_ip=''; }
-$_SESSION[$page_url]['user_ip']=$fuser_ip;
+$fuser_ip = getParam('user_ip', $page_url, '');
+$_SESSION[$page_url]['user_ip'] = $fuser_ip;
 
 print_log_submenu($page_url);
 ?>
@@ -27,30 +24,69 @@ print_log_submenu($page_url);
 </form>
 
 <?php
-$log_filter ='';
+// === 1. Формируем базовые параметры и условия ===
+$params = [$date1, $date2];
+$conditions = [];
 
-if ($display_log_level == L_ERROR) { $log_filter = " and `level`=". L_ERROR." "; }
-if ($display_log_level == L_WARNING) { $log_filter = " and `level`<=".L_WARNING." "; }
-if ($display_log_level == L_INFO) { $log_filter = " and `level`<=".L_INFO." "; }
-if ($display_log_level == L_VERBOSE) { $log_filter = " and `level`<=".L_VERBOSE." "; }
-if ($display_log_level == L_DEBUG) { $log_filter = ""; }
+// Уровень логирования
+if ($display_log_level == L_ERROR) {
+    $conditions[] = "level = ?";
+    $params[] = L_ERROR;
+} elseif ($display_log_level == L_WARNING) {
+    $conditions[] = "level <= ?";
+    $params[] = L_WARNING;
+} elseif ($display_log_level == L_INFO) {
+    $conditions[] = "level <= ?";
+    $params[] = L_INFO;
+} elseif ($display_log_level == L_VERBOSE) {
+    $conditions[] = "level <= ?";
+    $params[] = L_VERBOSE;
+}
+// L_DEBUG: не добавляем условие (показываем всё)
 
-if (!empty($fcustomer)) { $log_filter = $log_filter." and customer LIKE '".$fcustomer."'"; }
-if (!empty($fmessage)) { $log_filter = $log_filter." and message LIKE '".$fmessage."'"; }
-if (!empty($fuser_ip)) { $log_filter = $log_filter." and ip LIKE '".$fuser_ip."'"; }
+// Остальные фильтры — ВСЕ через параметры!
+if (!empty($fcustomer)) {
+    $conditions[] = "customer LIKE ?";
+    $params[] = '%' . $fcustomer . '%';
+}
+if (!empty($fmessage)) {
+    $conditions[] = "message LIKE ?";
+    $params[] = '%' . $fmessage . '%';
+}
+if (!empty($fuser_ip)) {
+    $conditions[] = "ip LIKE ?";
+    $params[] = '%' . $fuser_ip . '%';
+}
 
-$countSQL="SELECT Count(*) FROM worklog WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $log_filter";
-$res = mysqli_query($db_link, $countSQL);
-$count_records = mysqli_fetch_array($res);
+// Собираем WHERE-часть
+$whereClause = !empty($conditions) ? ' AND ' . implode(' AND ', $conditions) : '';
 
-$total=ceil($count_records[0]/$displayed);
-if ($page>$total) { $page=$total; }
-if ($page<1) { $page=1; }
-$start = ($page * $displayed) - $displayed; 
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+// === 2. Подсчёт общего количества записей ===
+$countSQL = "SELECT COUNT(*) FROM worklog WHERE ts >= ? AND ts < ?" . $whereClause;
+$count_records = (int)get_single_field($db_link, $countSQL, $params);
 
-#speedup paging
-$sSQL = "SELECT * FROM (SELECT * FROM worklog WHERE `timestamp`>='$date1' AND `timestamp`<'$date2' $log_filter ) AS W ORDER BY timestamp DESC LIMIT $start,$displayed";
+// === 3. Пагинация ===
+$total = ceil($count_records / $displayed);
+$page = max(1, min($page, $total)); // корректное ограничение страницы
+$start = ($page - 1) * $displayed;   // исправлено: OFFSET должен быть (page-1)*limit
+
+print_navigation($page_url, $page, $displayed, $count_records, $total);
+
+// === 4. Запрос данных с пагинацией ===
+// Добавляем LIMIT и OFFSET как параметры (приводим к int!)
+$limit = (int)$displayed;
+$offset = (int)$start;
+
+$dataParams = array_merge($params, [$limit, $offset]);
+
+$sSQL = "
+    SELECT * FROM worklog 
+    WHERE ts >= ? AND ts < ?" . $whereClause . "
+    ORDER BY ts DESC 
+    LIMIT ? OFFSET ?
+";
+
+$userlog = get_records_sql($db_link, $sSQL, $dataParams);
 
 ?>
 <br>
@@ -65,10 +101,10 @@ $sSQL = "SELECT * FROM (SELECT * FROM worklog WHERE `timestamp`>='$date1' AND `t
 </tr>
 
 <?php
-$userlog = get_records_sql($db_link, $sSQL);
+
 foreach ($userlog as $row) {
     print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
-    print "<td class=\"data\">" . $row['timestamp'] . "</td>\n";
+    print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
     print "<td class=\"data\">" . $row['customer'] . "</td>\n";
     $msg_level = 'INFO';
     if ($row['level'] == L_ERROR) { $msg_level='ERROR'; }
@@ -82,6 +118,6 @@ foreach ($userlog as $row) {
     print "</tr>\n";
 }
 print "</table>\n";
-print_navigation($page_url,$page,$displayed,$count_records[0],$total);
+print_navigation($page_url,$page,$displayed,$count_records,$total);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

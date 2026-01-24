@@ -7,154 +7,177 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/common.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header_public.php");
 
-if (! isset($auth_ip)) { $auth_ip = get_user_ip(); }
-if (! isset($auth_ip)) { print "Error detecting user!!!"; }
+// === 1. Безопасное получение IP ===
+$auth_ip = get_user_ip();
+if (!$auth_ip || !filter_var($auth_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+    print "<div id=\"cont\">";
+    print "<font color=red><b>".WEB_auth_unknown."</b></font>";
+    require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
+    exit;
+}
 
-/* month */
-$pmdate_start = DateTime::createFromFormat("Y-m-d",date("Y-m-1"));
-$date1m = $pmdate_start->format('Y-m-d');
-$pmdate_stop = DateTime::createFromFormat("Y-m-d",date("Y-m-d"));
-$pmdate_stop->modify('+1 day');
-$date2m = $pmdate_stop->format('Y-m-d');
+// === 2. Преобразуем IP в BIGINT (беззнаковый) ===
+$ip_long = sprintf('%u', ip2long($auth_ip));
 
-/* day */
-$pdate_start = DateTime::createFromFormat("Y-m-d",date("Y-m-d"));
-$date1 = $pdate_start->format('Y-m-d');
-$pdate_start->modify('+1 day');
-$date2 = $pdate_start->format('Y-m-d');
+// === 3. Находим авторизацию и пользователя за один JOIN ===
+$sql = "
+    SELECT 
+        ul.id AS user_id,
+        ul.login,
+        ul.description,
+        ul.enabled AS user_enabled,
+        ul.blocked AS user_blocked,
+        ul.month_quota,
+        ul.day_quota,
+        ul.filter_group_id,
+        ul.queue_id,
+
+        ua.id AS auth_id,
+        ua.ip_int,
+        ua.enabled AS auth_enabled,
+        ua.blocked AS auth_blocked,
+        ua.month_quota AS auth_month_quota,
+        ua.day_quota AS auth_day_quota
+    FROM user_auth ua
+    JOIN user_list ul ON ua.user_id = ul.id
+    WHERE ua.ip_int = ? AND ua.deleted = 0 AND ul.deleted = 0
+";
+$record = get_record_sql($db_link, $sql, [$ip_long]);
+
+if (!$record) {
+    print "<div id=\"cont\">";
+    print "<font color=red><b>".WEB_cell_ip . "&nbsp;" . htmlspecialchars($auth_ip, ENT_QUOTES) . "&nbsp; - " . WEB_unknown . "!</b></font>";
+    require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
+    exit;
+}
+
+// === 4. Подготавливаем данные ===
+$auth_id = $record['auth_id'];
+$user_id = $record['user_id'];
+
+$KB = get_const('KB') ? 1024 : 1000;
+
+// Квоты пользователя
+$user_month_quota = ($record['month_quota'] ?? 0) * $KB * $KB;
+$user_day_quota   = ($record['day_quota']   ?? 0) * $KB * $KB;
+
+// Квоты IP (auth)
+$auth_month_quota = ($record['auth_month_quota'] ?? $record['month_quota'] ?? 0) * $KB * $KB;
+$auth_day_quota   = ($record['auth_day_quota']   ?? $record['day_quota']   ?? 0) * $KB * $KB;
+
+// === 5. Вычисляем временные границы ===
+$now = new DateTime();
+$date1 = $now->format('Y-m-d 00:00:00');
+$date2 = $now->format('Y-m-d 23:59:59');
+
+$date1m = $now->format('Y-m-01 00:00:00');
+$date2m = (clone $now)->modify('last day of this month')->format('Y-m-d 23:59:59');
+
+// === 6. Получаем трафик за день и месяц ===
+$day_traffic = get_record_sql($db_link, "
+    SELECT 
+        SUM(CASE WHEN ua.id = ? THEN us.byte_in ELSE 0 END) AS auth_in,
+        SUM(CASE WHEN ua.id = ? THEN us.byte_out ELSE 0 END) AS auth_out,
+        SUM(us.byte_in) AS user_in,
+        SUM(us.byte_out) AS user_out
+    FROM user_stats us
+    JOIN user_auth ua ON us.auth_id = ua.id
+    WHERE us.ts >= ? AND us.ts < ? AND ua.user_id = ? AND ua.deleted = 0
+", [$auth_id, $auth_id, $date1, $date2, $user_id]);
+
+$month_traffic = get_record_sql($db_link, "
+    SELECT 
+        SUM(CASE WHEN ua.id = ? THEN us.byte_in ELSE 0 END) AS auth_in,
+        SUM(CASE WHEN ua.id = ? THEN us.byte_out ELSE 0 END) AS auth_out,
+        SUM(us.byte_in) AS user_in,
+        SUM(us.byte_out) AS user_out
+    FROM user_stats us
+    JOIN user_auth ua ON us.auth_id = ua.id
+    WHERE us.ts >= ? AND us.ts < ? AND ua.user_id = ? AND ua.deleted = 0
+", [$auth_id, $auth_id, $date1m, $date2m, $user_id]);
+
+$day_auth_sum_in   = $day_traffic['auth_in']   ?? 0;
+$day_auth_sum_out  = $day_traffic['auth_out']  ?? 0;
+$day_user_sum_in   = $day_traffic['user_in']   ?? 0;
+$day_user_sum_out  = $day_traffic['user_out']  ?? 0;
+
+$month_auth_sum_in  = $month_traffic['auth_in']  ?? 0;
+$month_auth_sum_out = $month_traffic['auth_out'] ?? 0;
+$month_user_sum_in  = $month_traffic['user_in']  ?? 0;
+$month_user_sum_out = $month_traffic['user_out'] ?? 0;
 
 ?>
 
 <div id="cont">
-
-<?php
-$ip_aton = ip2long($auth_ip);
-if (! $ip_aton) { $ip_aton = 0; }
-
-$sSQL = "SELECT * FROM User_auth WHERE ip_int='".$ip_aton."' and deleted = 0";
-$auth = get_record_sql($db_link,$sSQL);
-if (! isset($auth) or empty($auth)) { print "<font color=red><b>".WEB_cell_ip."&nbsp". $auth_ip ."&nbsp - ".WEB_unknown."!</b><br></font>"; die; }
-
-$id = $auth['id'];
-$user_id = $auth['user_id'];
-
-$uSQL = "SELECT * FROM User_list WHERE id='".$user_id."'";
-$user = get_record_sql($db_link,$uSQL);
-
-if (! isset($user) or empty($user)) { print "<font color=red><b>".WEB_cell_ip."&nbsp". $auth_ip .WEB_user_deleted."</b><br></font>"; die; }
-
-if (empty($user['month_quota'])) { $user['month_quota']=0; }
-if (empty($user['day_quota'])) { $user['day_quota']=0; }
-if (empty($auth['month_quota'])) { $auth['month_quota']=0; }
-if (empty($auth['day_quota'])) { $auth['day_quota']=0; }
-
-$KB = get_const('KB');
-if ($KB) { $KB = 1024; } else { $KB = 1000; }
-$user['month_quota'] = $user['month_quota'] * $KB * $KB;
-$user['day_quota'] = $user['day_quota'] * $KB * $KB;
-$auth['month_quota'] = $auth['month_quota'] * $KB * $KB;
-$auth['day_quota'] = $auth['day_quota'] * $KB * $KB;
-
-?>
 <table>
 <tr>
-<td><b><?php echo WEB_msg_now; ?></b></td><td><?php print GetNowTimeString(); ?></td></tr>
-<tr>
-<td><b><?php echo WEB_cell_login; ?></b></td> <td><?php print $user['login']; ?></td>
-</tr><tr>
-<td><b><?php echo WEB_cell_fio; ?></b></td> <td><?php print $user['fio']; ?></td>
-</tr><tr>
-<td> <?php echo WEB_msg_access_login; ?> </td> <td><b><?php 
-if ($user['enabled'] and !$user['blocked']) { print WEB_msg_enabled; }
-if (!$user['enabled']) { print "<font color=red>".WEB_msg_disabled."</font> &nbsp"; }
-if ($user['blocked']) { print "<font colot=red>".WEB_msg_traffic_blocked."</font>"; }
-?></b>
-</td></tr>
-<tr>
-<td> <?php echo WEB_msg_access_ip; ?> </td> <td><b><?php 
-if ($user['enabled'] and !$user['blocked'] and !$auth['blocked'] and $auth['enabled']) { print WEB_msg_enabled; }
-if (!$user['enabled'] or !$auth['enabled']) { print "<font color=red>".WEB_msg_disabled."</font> &nbsp"; }
-if ($auth['blocked']) { print "<font color=red>".WEB_msg_traffic_blocked."</font>"; }
-?></b>
-</td>
+    <td><b><?php echo WEB_msg_now; ?></b></td>
+    <td><?php print GetNowTimeString(); ?></td>
 </tr>
-<tr><td><?php echo WEB_cell_filter; ?></td><td><?php print get_group($db_link, $auth["filter_group_id"]); ?> </td></tr>
-<tr><td><?php echo WEB_cell_shaper; ?></td><td><?php print get_queue($db_link, $auth["queue_id"]); ?></td></tr>
-<tr><td><?php echo WEB_cell_login_quote_month; ?> </td><td><?php print fbytes($user['month_quota']); ?> </td></tr>
-<tr><td><?php echo WEB_cell_login_quote_day; ?> </td><td><?php print fbytes($user['day_quota']); ?> </td></tr>
-<tr><td><?php echo WEB_cell_ip_quote_month; ?> </td><td><?php print fbytes($auth['month_quota']); ?> </td></tr>
-<tr><td><?php echo WEB_cell_ip_quote_day;?> </td><td><?php print fbytes($auth['day_quota']); ?> </td></tr>
+<tr>
+    <td><b><?php echo WEB_cell_login; ?></b></td>
+    <td><?php print htmlspecialchars($record['login'], ENT_QUOTES); ?></td>
+</tr>
+<tr>
+    <td><b><?php echo WEB_cell_description; ?></b></td>
+    <td><?php print htmlspecialchars($record['description'], ENT_QUOTES); ?></td>
+</tr>
+<tr>
+    <td><?php echo WEB_msg_access_login; ?></td>
+    <td><b>
+<?php
+if ($record['user_enabled'] && !$record['user_blocked']) {
+    echo WEB_msg_enabled;
+} else {
+    if (!$record['user_enabled']) {
+        echo '<font color="red">' . WEB_msg_disabled . '</font>&nbsp;';
+    }
+    if ($record['user_blocked']) {
+        echo '<font color="red">' . WEB_msg_traffic_blocked . '</font>';
+    }
+}
+?>
+    </b></td>
+</tr>
+<!-- Аналогично для IP-статуса -->
+<tr>
+    <td><?php echo WEB_msg_access_ip; ?></td>
+    <td><b>
+<?php
+$user_active = $record['user_enabled'] && !$record['user_blocked'];
+$auth_active = $user_active && $record['auth_enabled'] && !$record['auth_blocked'];
+if ($auth_active) {
+    echo WEB_msg_enabled;
+} else {
+    // Если пользователь неактивен — IP выключен из-за пользователя
+    if (!$user_active) {
+        echo '<font color="red">' . WEB_msg_disabled . '</font>&nbsp;';
+    } elseif (!$record['auth_enabled']) {
+        echo '<font color="red">' . WEB_msg_disabled . '</font>&nbsp;';
+    }
+    if ($record['auth_blocked']) {
+        echo '<font color="red">' . WEB_msg_traffic_blocked . '</font>';
+    }
+}
+?>
+    </b></td>
+</tr>
+<tr><td><?php echo WEB_cell_filter; ?></td><td><?php print get_group($db_link, $record["filter_group_id"]); ?> </td></tr>
+<tr><td><?php echo WEB_cell_shaper; ?></td><td><?php print get_queue($db_link, $record["queue_id"]); ?></td></tr>
+<tr><td><?php echo WEB_cell_login_quote_month; ?> </td><td><?php print fbytes($user_month_quota); ?> </td></tr>
+<tr><td><?php echo WEB_cell_login_quote_day; ?> </td><td><?php print fbytes($user_day_quota); ?> </td></tr>
+<tr><td><?php echo WEB_cell_ip_quote_month; ?> </td><td><?php print fbytes($auth_month_quota); ?> </td></tr>
+<tr><td><?php echo WEB_cell_ip_quote_day; ?> </td><td><?php print fbytes($auth_day_quota); ?> </td></tr>
+
+<!-- Трафик -->
+<tr class='data'><td><b><?php echo WEB_traffic_stats . " " . WEB_cell_ip; ?></b></td><td><?php echo htmlspecialchars($auth_ip, ENT_QUOTES); ?></td></tr>
+<tr class='data'><td><?php echo WEB_public_day_traffic; ?></td><td><?php echo fbytes($day_auth_sum_in) . " / " . fbytes($day_auth_sum_out); ?></td></tr>
+<tr class='data'><td><?php echo WEB_public_month_traffic; ?></td><td><?php echo fbytes($month_auth_sum_in) . " / " . fbytes($month_auth_sum_out); ?></td></tr>
+<tr class='data'><td><b><?php echo WEB_traffic_stats . " " . WEB_cell_login; ?></b></td><td><?php echo htmlspecialchars($record['login'], ENT_QUOTES); ?></td></tr>
+<tr class='data'><td><?php echo WEB_public_day_traffic; ?></td><td><?php echo fbytes($day_user_sum_in) . " / " . fbytes($day_user_sum_out); ?></td></tr>
+<tr class='data'><td><?php echo WEB_public_month_traffic; ?></td><td><?php echo fbytes($month_user_sum_in) . " / " . fbytes($month_user_sum_out); ?></td></tr>
+</table>
 
 <?php
-
-####### day
-$sSQL = "SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM User_stats WHERE `timestamp`>='".$date1."' AND `timestamp`<'".$date2."' AND auth_id='".$id."'";
-$day_auth_itog = get_record_sql($db_link,$sSQL);
-
-$day_auth_sum_in=0;
-$day_auth_sum_in=0;
-
-if (!empty($day_auth_itog)) {
-    if (empty($day_auth_itog['tin'])) { $day_auth_itog['tin']=0; }
-    if (empty($day_auth_itog['tout'])) { $day_auth_itog['tout']=0; }
-    $day_auth_sum_in=$day_auth_itog['tin'];
-    $day_auth_sum_out=$day_auth_itog['tout'];
-    }
-
-$day_user_sum_in=0;
-$day_user_sum_out=0;
-
-$auth_list = get_records_sql($db_link,"SELECT id FROM User_auth WHERE user_id='".$user_id."' AND deleted=0");
-
-if (!empty($auth_list)) {
-    foreach ($auth_list as $row) {
-        $auth_itog2 = get_record_sql($db_link,"SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM User_stats WHERE `timestamp`>='".$date1."' AND `timestamp`<'".$date2."' AND auth_id='".$row['id']."'");
-        if (!empty($auth_itog2)) { 
-                if (empty($auth_itog2['tin'])) { $auth_itog2['tin']=0; }
-                if (empty($auth_itog2['tout'])) { $auth_itog2['tout']=0; }
-                $day_user_sum_in+=$auth_itog2['tin'];
-                $day_user_sum_out+=$auth_itog2['tout'];
-                }
-        }
-    }
-
-#### month
-$sSQL = "SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM User_stats WHERE `timestamp`>='".$date1m."' AND `timestamp`<'".$date2m."' AND auth_id='".$id."'";
-$month_auth_itog = get_record_sql($db_link,$sSQL);
-
-$month_auth_sum_in=0;
-$month_auth_sum_in=0;
-
-if (!empty($month_auth_itog)) {
-    if (empty($month_auth_itog['tin'])) { $month_auth_itog['tin']=0; }
-    if (empty($month_auth_itog['tout'])) { $month_auth_itog['tout']=0; }
-    $month_auth_sum_in=$month_auth_itog['tin'];
-    $month_auth_sum_out=$month_auth_itog['tout'];
-    }
-
-$month_user_sum_in=0;
-$month_user_sum_out=0;
-
-if (!empty($auth_list)) {
-    foreach ($auth_list as $row) {
-        $auth_itog2 = get_record_sql($db_link,"SELECT SUM(byte_in) as tin, SUM(byte_out) as tout FROM User_stats WHERE `timestamp`>='".$date1m."' AND `timestamp`<'".$date2m."' AND auth_id='".$row['id']."'");
-        if (!empty($auth_itog2)) {
-                if (empty($auth_itog2['tin'])) { $auth_itog2['tin']=0; }
-                if (empty($auth_itog2['tout'])) { $auth_itog2['tout']=0; }
-                $month_user_sum_in+=$auth_itog2['tin'];
-                $month_user_sum_out+=$auth_itog2['tout'];
-                }
-        }
-    }
-
-#### print
-print "<tr class='data'><td><b>".WEB_traffic_stats." ".WEB_cell_ip."</b></td><td>$auth_ip</td></tr>\n";
-print "<tr class='data'><td>".WEB_public_day_traffic."</td><td>" . fbytes($day_auth_sum_in)." / ".fbytes($day_auth_sum_out). "</td></tr>\n";
-print "<tr class='data'><td>".WEB_public_month_traffic."</td><td>" . fbytes($month_auth_sum_in)." / ".fbytes($month_auth_sum_out). "</td></tr>\n";
-print "<tr class='data'><td><b>".WEB_traffic_stats." ".WEB_cell_login."</b></td><td>".$user['login']."</td></tr>\n";
-print "<tr class='data'><td>".WEB_public_day_traffic."</td><td>" . fbytes($day_user_sum_in)." / ".fbytes($day_user_sum_out). "</td></tr>\n";
-print "<tr class='data'><td>".WEB_public_month_traffic."</td><td>" . fbytes($month_user_sum_in)." / ".fbytes($month_user_sum_out). "</td></tr>\n";
-print "</table>\n";
-
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
 ?>
