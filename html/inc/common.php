@@ -4227,68 +4227,82 @@ function print_row_at_pages($name, $value)
     print "</select>\n";
 }
 
-function print_navigation($url, $page, $displayed, $count_records, $total)
+function print_navigation($base_url, $page, $displayed, $count_records, $total)
 {
     if ($total <= 1) {
-        print "<div align=left class=records >";
-        print "| Total records: $count_records";
-        print "</div>";
+        echo "<div align=left class=records>";
+        echo "| Total records: $count_records";
+        echo "</div>";
         return;
     }
-    $v_char = "?";
-    if (preg_match('/\.php\?/', $url)) {
-        $v_char = "&";
+
+    // Копируем текущие GET-параметры
+    $params = $_GET;
+
+    // Убираем page, чтобы не дублировать
+    unset($params['page']);
+
+    // Формируем строку запроса без page
+    $query_string = http_build_query($params);
+
+    // Определяем разделитель
+    $separator = parse_url($base_url, PHP_URL_QUERY) ? '&' : '?';
+    if ($query_string) {
+        $url_with_params = $base_url . $separator . $query_string;
+    } else {
+        $url_with_params = $base_url;
     }
-    //две назад
-    print "<div align=left class=records >";
-    if (($page - 2) > 0) :
-        $pagetwoleft = "<a class='first_page_link' href=" . $url . $v_char . "page=" . ($page - 2) . ">" . ($page - 2) . "</a>  ";
-    else :
-        $pagetwoleft = null;
-    endif;
 
-    //одна назад
-    if (($page - 1) > 0) :
-        $pageoneleft = "<a class='first_page_link' href=" . $url . $v_char . "page=" . ($page - 1) . ">" . ($page - 1) . "</a>  ";
-        $pagetemp = ($page - 1);
-    else :
-        $pageoneleft = null;
-        $pagetemp = null;
-    endif;
+    // Вспомогательная функция для генерации ссылки
+    $make_link = function($p) use ($url_with_params, $separator) {
+        $page_param = 'page=' . (int)$p;
+        if (parse_url($url_with_params, PHP_URL_QUERY)) {
+            return $url_with_params . '&' . $page_param;
+        } else {
+            return $url_with_params . '?' . $page_param;
+        }
+    };
 
-    //две вперед
-    if (($page + 2) <= $total) :
-        $pagetworight = "  <a class='first_page_link' href=" . $url . $v_char . "page=" . ($page + 2) . ">" . ($page + 2) . "</a>";
-    else :
-        $pagetworight = null;
-    endif;
+    // Две назад
+    $pagetwoleft = ($page - 2 > 0)
+        ? "<a class='first_page_link' href='" . htmlspecialchars($make_link($page - 2)) . "'>" . ($page - 2) . "</a>  "
+        : '';
 
-    //одна вперед
-    if (($page + 1) <= $total) :
-        $pageoneright = "  <a class='first_page_link' href=" . $url . $v_char . "page=" . ($page + 1) . ">" . ($page + 1) . "</a>";
-        $pagetemp2 = ($page + 1);
-    else :
-        $pageoneright = null;
-        $pagetemp2 = null;
-    endif;
+    // Одна назад
+    $pageoneleft = ($page - 1 > 0)
+        ? "<a class='first_page_link' href='" . htmlspecialchars($make_link($page - 1)) . "'>" . ($page - 1) . "</a>  "
+        : '';
+    $pagetemp = ($page - 1 > 0) ? $page - 1 : null;
 
-    // в начало
-    if ($page != 1 && $pagetemp != 1 && $pagetemp != 2) :
-        $pagerevp = "<a href=" . $url . $v_char . "page=1 class='first_page_link' title='В начало'><<</a> ";
-    else :
-        $pagerevp = null;
-    endif;
+    // Две вперёд
+    $pagetworight = ($page + 2 <= $total)
+        ? "  <a class='first_page_link' href='" . htmlspecialchars($make_link($page + 2)) . "'>" . ($page + 2) . "</a>"
+        : '';
 
-    //в конец (последняя)
-    if ($page != $total && $pagetemp2 != ($total - 1) && $pagetemp2 != $total) :
-        $nextp = " ...  <a href=" . $url . $v_char . "page=" . $total . " class='first_page_link'>$total</a>";
-    else :
-        $nextp = null;
-    endif;
+    // Одна вперёд
+    $pageoneright = ($page + 1 <= $total)
+        ? "  <a class='first_page_link' href='" . htmlspecialchars($make_link($page + 1)) . "'>" . ($page + 1) . "</a>"
+        : '';
+    $pagetemp2 = ($page + 1 <= $total) ? $page + 1 : null;
 
-    print $pagerevp . $pagetwoleft . $pageoneleft . '<span class="num_page_not_link"><b>' . $page . '</b></span>' . $pageoneright . $pagetworight . $nextp;
-    print " | Total records: $count_records";
-    print "</div>";
+    // В начало
+    $pagerevp = '';
+    if ($page != 1 && $pagetemp != 1 && $pagetemp != 2) {
+        $pagerevp = "<a href='" . htmlspecialchars($make_link(1)) . "' class='first_page_link' title='В начало'><<</a> ";
+    }
+
+    // В конец
+    $nextp = '';
+    if ($page != $total && $pagetemp2 != ($total - 1) && $pagetemp2 != $total) {
+        $nextp = " ...  <a href='" . htmlspecialchars($make_link($total)) . "' class='first_page_link'>$total</a>";
+    }
+
+    echo "<div align=left class=records>";
+    echo $pagerevp . $pagetwoleft . $pageoneleft;
+    echo '<span class="num_page_not_link"><b>' . (int)$page . '</b></span>';
+    echo $pageoneright . $pagetworight . $nextp;
+    echo " | Total records: " . (int)$count_records;
+    echo "</div>";
 }
 
 function get_option($db, $option_id)

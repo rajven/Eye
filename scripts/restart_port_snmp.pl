@@ -54,9 +54,20 @@ my $auth_name = $auth_rec->{dns_name};
 my $auth_ident = $HOST_IP;
 if ($auth_name) { $auth_ident = $auth_name."[".$HOST_IP."]"; }
 
-my $d_sql="SELECT D.id, D.ip, D.device_name, D.vendor_id, D.device_model_id, DP.port, DP.snmp_index  FROM devices AS D, device_ports AS DP, connections AS C WHERE D.snmp_version>0 and D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id=$auth_id AND DP.uplink=0";
+my $d_sql = "
+    SELECT
+        D.id, D.ip, D.device_name, D.vendor_id, D.device_model_id,
+        DP.port, DP.snmp_index
+    FROM devices D
+    INNER JOIN device_ports DP ON D.id = DP.device_id
+    INNER JOIN connections C   ON DP.id = C.port_id
+    WHERE
+        D.snmp_version > 0
+        AND C.auth_id = ?
+        AND DP.uplink = 0
+";
 
-my $dev_port = get_record_sql($dbh,$d_sql);
+my $dev_port = get_record_sql($dbh, $d_sql, $auth_id);
 
 if (!$dev_port) { db_log_error($dbh,"Connection for $HOST_IP not found! Bye."); exit; }
 
