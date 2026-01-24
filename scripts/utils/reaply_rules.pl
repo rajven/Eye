@@ -36,7 +36,7 @@ my $group_id = $ARGV[0];
 
 exit if (!$group_id);
 
-my $group = get_record_sql($dbh,"SELECT * FROM ou WHERE id=$group_id");
+my $group = get_record_sql($dbh,"SELECT * FROM ou WHERE id=?",$group_id);
 
 print "Analyzed rules for group id: $group_id name: $group->{ou_name}\n";
 

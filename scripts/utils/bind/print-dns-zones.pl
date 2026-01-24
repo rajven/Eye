@@ -51,7 +51,18 @@ my $named_conf=$named_root.'/etc/bind/named.dynamic';
 
 my %zones;
 
-my $sSQL="SELECT id,ou_id,ip,dns_name,dhcp_hostname,dns_ptr_only FROM user_auth WHERE deleted=0 AND ip>'' AND (dns_name>'' OR dhcp_hostname>'') AND dns_name NOT LIKE '%.' ORDER by ip_int;";
+my $sSQL = "
+    SELECT id, ou_id, ip, dns_name, dhcp_hostname, dns_ptr_only
+    FROM user_auth
+    WHERE deleted = 0
+      AND ip IS NOT NULL
+      AND (
+            (dns_name IS NOT NULL AND dns_name != '' AND dns_name NOT LIKE '%.')
+            OR
+            (dhcp_hostname IS NOT NULL AND dhcp_hostname != '')
+          )
+    ORDER BY ip_int
+";
 my @authlist_ref = get_records_sql($dbh,$sSQL);
 foreach my $row (@authlist_ref) {
 next if (!$row);
@@ -77,7 +88,7 @@ next if (!$office_networks->match_string($ip));
 my $default_name=$dns_name;
 $zones{$domain_name}{A}{$default_name}=$ip;
 
-my @dns_aliases=get_records_sql($dbh,"SELECT * FROM user_auth_alias WHERE auth_id=$row->{id} AND alias>'' AND alias NOT LIKE '%.' ORDER BY alias");
+my @dns_aliases = get_records_sql( $dbh, "SELECT * FROM user_auth_alias WHERE auth_id = ? AND alias IS NOT NULL AND alias != '' AND alias NOT LIKE '%.' ORDER BY alias", $row->{id});
 foreach my $alias (@dns_aliases) {
         my $dns_alias = trim($alias->{alias});
 #        $dns_alias =~s/$domain_name//i;
