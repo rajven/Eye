@@ -1080,23 +1080,35 @@ function print_subnet_select_office($db, $subnet_name, $subnet_value)
 function print_subnet_select_office_splitted($db, $subnet_name, $subnet_value)
 {
     echo "<select id=\"" . htmlspecialchars($subnet_name) . "\" name=\"" . htmlspecialchars($subnet_name) . "\">\n";
-    $t_subnet = get_records_sql($db, "SELECT id, subnet, ip_int_start, ip_int_stop FROM subnets WHERE office = 1 ORDER BY ip_int_start");
-    print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
     
+    $t_subnet = get_records_sql($db, "SELECT id, subnet, ip_int_start, ip_int_stop FROM subnets WHERE office = 1 ORDER BY ip_int_start");
+    
+    print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
+
     foreach ($t_subnet as $row) {
         // Основная подсеть
         print_select_item(htmlspecialchars($row['subnet']), $row['subnet'], $subnet_value);
-        
-        // Разбивка на /24
+
         $cidr = cidrToRange($row['subnet']);
-        $f_start_ip = $row['ip_int_start'];
-        $f_stop_ip = $row['ip_int_stop'];
         
-        if (!empty($cidr[2][1]) && $cidr[2][1] < 24) {
+        // $cidr[2] — это маска (например, 20)
+        if (!empty($cidr[2]) && $cidr[2] < 24) {
+            $f_start_ip = $row['ip_int_start'];
+            $f_stop_ip = $row['ip_int_stop'];
+
+            // Выравниваем начало до границы /24
+            $f_start_ip = floor($f_start_ip / 256) * 256;
+
             while ($f_start_ip <= $f_stop_ip) {
+                $next_block_end = $f_start_ip + 255;
+                if ($next_block_end > $f_stop_ip) {
+                    break;
+                }
+
                 $ip_24 = long2ip($f_start_ip) . "/24";
                 $display = "&nbsp;&nbsp;-&nbsp;" . htmlspecialchars($ip_24);
                 print_select_item($display, $ip_24, $subnet_value);
+
                 $f_start_ip += 256;
             }
         }

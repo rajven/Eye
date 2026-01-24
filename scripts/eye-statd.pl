@@ -192,7 +192,7 @@ sub refresh_config {
         $user_stats{$row->{ip}}{out}       = 0;
         $user_stats{$row->{ip}}{pkt_in}    = 0;
         $user_stats{$row->{ip}}{pkt_out}   = 0;
-        $user_stats{$row->{ip}}{last_found}= time();
+        $user_stats{$row->{ip}}{last_found}= 0;
     }
     log_verbose("Found " . $save_traf_count . " active ip-addresses with full save traffic log");
 
@@ -863,11 +863,9 @@ log_debug("The user statistics calculation started");
 
 # update database
 foreach my $user_ip (keys %user_stats) {
-    next if (!exists $user_stats{$user_ip});
+    next if (!exists $user_stats{$user_ip} || !$user_stats{$user_ip}{last_found});
     my $user_ip_aton=StrToIp($user_ip);
     my $auth_id = $user_stats{$user_ip}{auth_id};
-
-    if (!$user_stats{$user_ip}{last_found}) { $user_stats{$user_ip}{last_found} = time(); }
 
     #last flow for user
     my ($sec,$min,$hour,$day,$month,$year) = (localtime($user_stats{$user_ip}{last_found}))[0,1,2,3,4,5];

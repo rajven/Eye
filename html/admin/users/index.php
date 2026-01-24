@@ -92,7 +92,7 @@ if ($msg_error) {
         <tr><td><input type=checkbox class="putField" name="e_queue_id" value='1'></td><td align=left><?php print WEB_cell_shaper."</td><td align=right>";print_queue_select($db_link, 'a_queue_id', 0); ?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_day_q" value='1'></td><td align=left><?php print WEB_cell_perday."</td><td align=right>"; ?><input type="text" name="a_day_q" value="0" size=5></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_month_q" value='1'></td><td align=left><?php print WEB_cell_permonth."</td><td align=right>"; ?><input type="text" name="a_month_q" value="0" size=5></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_new_ou" value='1'></td><td align=left><?php print WEB_cell_ou."</td><td align=right>";print_ou_select($db_link, 'a_new_ou', $rou); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_new_ou" value='1'></td><td align=left><?php print WEB_cell_ou."</td><td align=right>";print_ou_set($db_link, 'a_new_ou', 0); ?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_bind_mac" value='1'></td><td align=left><?php print WEB_user_bind_mac."</td><td align=right>";print_qa_select('a_bind_mac', 1);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_bind_ip" value='1'></td><td align=left><?php print WEB_user_bind_ip."</td><td align=right>";print_qa_select('a_bind_ip', 1);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_create_netdev" value='1'></td><td align=left><?php print WEB_user_create_netdev."</td><td align=right>";print_qa_select('a_create_netdev', 1);?></td></tr>
