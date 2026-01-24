@@ -81,7 +81,7 @@ foreach ($users as $row) {
         //если первая запись не выводилась - выводим на печать
         if (!isset($printed[$f_id])) {
             //считаем сколько у нас дублей
-            $dSQL = "SELECT  U.id, U.ip, U.mac, U.arp_found FROM user_auth U WHERE $cidr_filter AND U.deleted=0 AND U.mac=?";
+            $dSQL = "SELECT  U.id, U.ip, U.mac, U.arp_found FROM user_auth U WHERE U.deleted=0 AND U.mac=? $cidr_filter";
             $params[]= $f_mac;
             $doubles = get_records_sql($db_link,$dSQL, $params);
             $f_count = count($doubles);
