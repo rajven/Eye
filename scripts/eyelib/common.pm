@@ -1297,8 +1297,9 @@ sub resurrection_auth {
     my $new_record = {
         last_found   => $timestamp,
         arp_found    => $timestamp,
-        client_id    => $client_id // undef,
     };
+
+    if ($client_id) { $new_record->{client_id} = $client_id; }
 
     # Если нашли — обновляем
     if ($record && $record->{user_id}) {
@@ -1772,7 +1773,7 @@ sub process_dhcp_request {
         ts            => $timestamp,
         last_time     => time(),
         circuit_id    => $circuit_id,
-        client_id     => $client_id,
+        client_id     => $client_id if ($client_id);
         remote_id     => $remote_id,
         hotspot       => is_hotspot($db, $ip),
     };
