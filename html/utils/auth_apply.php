@@ -6,6 +6,8 @@ if (!defined("CONFIG")) die("Not defined");
 
 $page_url = null;
 
+$all_ok = true;
+
 if (getPOST("ApplyForAll", $page_url)) {
 
     // Получаем массив ID авторизаций
@@ -26,7 +28,6 @@ if (getPOST("ApplyForAll", $page_url)) {
     $n_link = (int)getPOST("n_link", $page_url, 0);
     $n_handler = getPOST("n_handler", $page_url, '');
 
-    $all_ok = true;
 
     foreach ($auth_id as $val) {
         $id = (int)$val;
@@ -99,7 +100,7 @@ if (getPOST("ApplyForAll", $page_url)) {
                 if ($a_bind_mac) {
                     $user_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id = ? AND rule_type = 2", [(int)$cur_auth['user_id']]);
                     $mac_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = 2", [$cur_auth['mac']]);
-                    
+
                     if (!$user_rule && !$mac_rule) {
                         $new_rule = [
                             'user_id' => (int)$cur_auth['user_id'],
@@ -124,7 +125,7 @@ if (getPOST("ApplyForAll", $page_url)) {
                 if ($a_bind_ip) {
                     $user_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE user_id = ? AND rule_type = 1", [(int)$cur_auth['user_id']]);
                     $ip_rule = get_record_sql($db_link, "SELECT * FROM auth_rules WHERE rule = ? AND rule_type = 1", [$cur_auth['ip']]);
-                    
+
                     if (!$user_rule && !$ip_rule) {
                         $new_rule = [
                             'user_id' => (int)$cur_auth['user_id'],
@@ -143,11 +144,9 @@ if (getPOST("ApplyForAll", $page_url)) {
             }
         }
     }
-
-    if ($all_ok) {
-        print "Success!";
-    } else {
-        print "Fail!";
-    }
 }
+
+$message = $all_ok ? "Success!" : "Fail!";
+print "<div style='padding:20px; font-size:18px; background:#e9f7ef; border:1px solid #2ecc71;'>$message</div>";
+
 ?>

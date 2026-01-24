@@ -9,9 +9,10 @@ $page_url = null;
 $remove_action = getPOST('RemoveDevice', null, null);
 $f_deleted     = getPOST('f_deleted', null, null);
 
+$all_ok = true;
+
 if ($remove_action !== null && $f_deleted !== '') {
     $dev_ids = getPOST('fid', null, []);
-    $all_ok = true;
 
     foreach ($dev_ids as $val) {
         $id = (int)$val;
@@ -23,7 +24,9 @@ if ($remove_action !== null && $f_deleted !== '') {
         }
     }
 
-    echo $all_ok ? 'Success!' : 'Fail!';
 }
+
+$message = $all_ok ? "Success!" : "Fail!";
+print "<div style='padding:20px; font-size:18px; background:#e9f7ef; border:1px solid #2ecc71;'>$message</div>";
 
 ?>

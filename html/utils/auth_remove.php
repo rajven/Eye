@@ -9,9 +9,10 @@ $page_url = null;
 $remove_action = getPOST('RemoveAuth', $page_url, null);
 $f_deleted     = getPOST('f_deleted', $page_url, null);
 
+$all_ok = true;
+
 if ($remove_action !== null && $f_deleted !== '') {
     $auth_id = getPOST('fid', $page_url, []);
-    $all_ok = true;
 
     foreach ($auth_id as $val) {
         $id = (int)$val;
@@ -22,8 +23,9 @@ if ($remove_action !== null && $f_deleted !== '') {
             }
         }
     }
-
-    echo $all_ok ? 'Success!' : 'Fail!';
 }
+
+$message = $all_ok ? "Success!" : "Fail!";
+print "<div style='padding:20px; font-size:18px; background:#e9f7ef; border:1px solid #2ecc71;'>$message</div>";
 
 ?>

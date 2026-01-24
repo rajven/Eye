@@ -96,9 +96,24 @@ $ip_list_filter = $ou_filter.$cidr_filter.$enabled_filter.$ip_list_type_filter.$
 print_ip_submenu($page_url);
 
 ?>
+
+<script>
+function blockForm(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    // Меняем текст кнопки отправки
+    const submitBtn = form.querySelector('input[type="submit"], button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.value = '<?php print WEB_msg_processing; ?>';
+        submitBtn.textContent = '<?php print WEB_msg_processing; ?>';
+    }
+}
+</script>
+
 <div id="cont">
 <br>
-<form name="filter" action="index.php" method="post">
+<form id="filter" name="filter" action="index.php" method="post">
 <input type="hidden" name="ip-filter" value="<?php print $ip_list_filter; ?>">
 <input type="hidden" name="ip-sort" value="<?php print $sort_table.".".$sort_field." ".$order; ?>">
 <table>
@@ -145,7 +160,7 @@ print_ip_submenu($page_url);
 <div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modal" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
  <div class="remodalBorder">
   <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
-      <form id="formAuthApply">
+      <form id="formAuthApply" name="formAuthApply" onsubmit="blockForm('formAuthApply');">
         <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
@@ -169,7 +184,7 @@ print_ip_submenu($page_url);
 <div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modalDel" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
  <div class="remodalBorder">
   <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
-    <form id="formAuthDel">
+    <form id="formAuthDel" name="formAuthDel" onsubmit="blockForm('formAuthDel');">
         <h2 id="modal1Title"><?php print WEB_msg_delete_selected; ?></h2>
         <input type="hidden" name="RemoveAuth" value="MassChange">
         <?php print_qa_select('f_deleted', 0);?><br><br>
@@ -182,7 +197,7 @@ print_ip_submenu($page_url);
 <div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modalExport" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
  <div class="remodalBorder">
   <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
-    <form id="formAuthExport">
+    <form id="formAuthExport" name="formAuthExport" onsubmit="blockForm('formAuthExport');">
         <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ExportAuth" value="MassChange">
         <?php print WEB_msg_export_selected."&nbsp"; print_qa_select('a_selected', 1);?>
@@ -350,7 +365,6 @@ document.getElementById('dynamic_enabled').addEventListener('change', function(e
   const buttonApply = document.getElementById('btn_filter');
   buttonApply.click();
 });
-
 
 </script>
 

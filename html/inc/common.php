@@ -1884,43 +1884,61 @@ function print_dhcp_option_set($db, $qa_name)
 function print_dhcp_acl_list($db, $qa_name, $value = '')
 {
     $dhcp_acl = get_records_sql($db,
-        "SELECT DISTINCT dhcp_acl FROM user_auth 
+        "SELECT DISTINCT dhcp_acl FROM user_auth
          WHERE dhcp_acl IS NOT NULL AND dhcp_acl != '' AND deleted = 0"
     );
-    
+
+    // Всегда добавляем 'hotspot-free'
+    $acl_values = ['hotspot-free'];
+
     if (!empty($dhcp_acl)) {
-        echo "<input list=\"dhcp_acl\" id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"" . htmlspecialchars($value) . "\" />";
-        echo "<datalist id=\"dhcp_acl\">";
-        echo "<option value=\"\">";
-        
         foreach ($dhcp_acl as $acl) {
-            echo "<option value=\"" . htmlspecialchars($acl['dhcp_acl']) . "\">";
+            $val = trim($acl['dhcp_acl']);
+            if ($val !== '' && $val !== 'hotspot-free') {
+                $acl_values[] = $val;
+            }
         }
-        echo "</datalist>";
-    } else {
-        echo "<input type=\"text\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"\" size=\"10\" />";
     }
+
+    echo "<input list=\"dhcp_acl\" id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"" . htmlspecialchars($value) . "\" />";
+    echo "<datalist id=\"dhcp_acl\">";
+    echo "<option value=\"\">";
+
+    foreach ($acl_values as $acl) {
+        echo "<option value=\"" . htmlspecialchars($acl) . "\">";
+    }
+
+    echo "</datalist>";
 }
 
 function print_dhcp_option_set_list($db, $qa_name, $value = '')
 {
     $dhcp_option_sets = get_records_sql($db,
-        "SELECT DISTINCT dhcp_option_set FROM user_auth 
+        "SELECT DISTINCT dhcp_option_set FROM user_auth
          WHERE dhcp_option_set IS NOT NULL AND dhcp_option_set != '' AND deleted = 0"
     );
-    
+
+    // Всегда включаем 'hotspot-free'
+    $option_values = ['hotspot-free'];
+
     if (!empty($dhcp_option_sets)) {
-        echo "<input list=\"dhcp_option_set\" id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"" . htmlspecialchars($value) . "\" />";
-        echo "<datalist id=\"dhcp_option_set\">";
-        echo "<option value=\"\">";
-        
-        foreach ($dhcp_option_sets as $dhcp_option_set) {
-            echo "<option value=\"" . htmlspecialchars($dhcp_option_set['dhcp_option_set']) . "\">";
+        foreach ($dhcp_option_sets as $row) {
+            $val = trim($row['dhcp_option_set']);
+            if ($val !== '' && $val !== 'hotspot-free') {
+                $option_values[] = $val;
+            }
         }
-        echo "</datalist>";
-    } else {
-        echo "<input type=\"text\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"\" size=\"10\" />";
     }
+
+    echo "<input list=\"dhcp_option_set\" id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"" . htmlspecialchars($value) . "\" />";
+    echo "<datalist id=\"dhcp_option_set\">";
+    echo "<option value=\"\">"; 
+
+    foreach ($option_values as $opt) {
+        echo "<option value=\"" . htmlspecialchars($opt) . "\">";
+    }
+
+    echo "</datalist>";
 }
 
 function print_enabled_select($qa_name, $qa_value)

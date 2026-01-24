@@ -6,6 +6,8 @@ if (!defined("CONFIG")) die("Not defined");
 
 $page_url = null;
 
+$all_ok = true;
+
 if (getPOST("ApplyForAll", $page_url)) {
 
     // === Безопасное получение и приведение параметров через getPOST ===
@@ -26,7 +28,6 @@ if (getPOST("ApplyForAll", $page_url)) {
     $a_dhcp_acl = trim(getPOST("a_dhcp_acl", $page_url, ''));
     $a_dhcp_option_set = trim(getPOST("a_dhcp_option_set", $page_url, ''));
 
-    $all_ok = true;
 
     foreach ($auth_id as $user_id_raw) {
         $user_id = (int)$user_id_raw;
@@ -191,10 +192,9 @@ if (getPOST("ApplyForAll", $page_url)) {
         }
     }
 
-    if ($all_ok) {
-        print "Success!";
-    } else {
-        print "Fail!";
-    }
 }
+
+$message = $all_ok ? "Success!" : "Fail!";
+print "<div style='padding:20px; font-size:18px; background:#e9f7ef; border:1px solid #2ecc71;'>$message</div>";
+
 ?>

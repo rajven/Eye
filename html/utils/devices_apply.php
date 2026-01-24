@@ -6,6 +6,8 @@ if (!defined("CONFIG")) die("Not defined");
 
 $page_url = null;
 
+$all_ok = true;
+
 if (getPOST("ApplyForAll", $page_url) !== null) {
 
     $dev_id = getPOST("fid", $page_url, []);
@@ -17,7 +19,6 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
     $a_ro_community = trim(getPOST("a_ro_community", $page_url, 'public'));
     $a_rw_community = trim(getPOST("a_rw_community", $page_url, 'private'));
 
-    $all_ok = true;
 
     foreach ($dev_id as $val) {
         $id = (int)$val;
@@ -55,7 +56,9 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
         }
     }
 
-    echo $all_ok ? "Success!" : "Fail!";
 }
+
+$message = $all_ok ? "Success!" : "Fail!";
+print "<div style='padding:20px; font-size:18px; background:#e9f7ef; border:1px solid #2ecc71;'>$message</div>";
 
 ?>

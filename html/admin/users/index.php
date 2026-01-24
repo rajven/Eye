@@ -65,6 +65,20 @@ if ($msg_error) {
     }
 ?>
 
+<script>
+function blockForm(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    // Меняем текст кнопки отправки
+    const submitBtn = form.querySelector('input[type="submit"], button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.value = '<?php print WEB_msg_processing; ?>';
+        submitBtn.textContent = '<?php print WEB_msg_processing; ?>';
+    }
+}
+</script>
+
 <form id="filter" name="filter" action="index.php" method="post">
 <div>
 <b><?php print WEB_cell_ou; ?> - </b>
@@ -83,7 +97,7 @@ if ($msg_error) {
 <div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modal" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
  <div class="remodalBorder">
   <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
-      <form id="formUserApply">
+      <form id="formUserApply" onsubmit="blockForm('formUserApply');">
         <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
@@ -107,7 +121,7 @@ if ($msg_error) {
 <div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modalDel" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
  <div class="remodalBorder">
   <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
-    <form id="formUserDel">
+    <form id="formUserDel" onsubmit="blockForm('formUserDel');">
         <h2 id="modal1Title"><?php print WEB_msg_delete_selected; ?></h2>
         <input type="hidden" name="RemoveUser" value="MassChange">
         <?php print_qa_select('f_deleted', 0);?><br><br>

@@ -49,6 +49,7 @@ define("WEB_msg_login_hint","Please enter login");
 define("WEB_msg_password_hint","Please enter your password");
 define("WEB_msg_delete_selected","Delete selected?");
 define("WEB_msg_export_selected","Export only selected?");
+define("WEB_msg_processing","Processing...");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");
