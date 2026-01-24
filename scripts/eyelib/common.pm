@@ -1773,7 +1773,7 @@ sub process_dhcp_request {
         ts            => $timestamp,
         last_time     => time(),
         circuit_id    => $circuit_id,
-        client_id     => $client_id if ($client_id);
+        client_id     => $client_id,
         remote_id     => $remote_id,
         hotspot       => is_hotspot($db, $ip),
     };
