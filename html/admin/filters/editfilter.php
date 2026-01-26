@@ -42,7 +42,7 @@ if (isset($filter['filter_type']) and $filter['filter_type'] == 0) {
     print "</tr>";
     print "<tr>";
     print "<td align=left><input type=text name=f_name value='".$filter['name']."'></td>";
-    print "<td colspan=2><input type=text name=f_description value='".$filter['description']."'></td>";
+    print "<td colspan=2><input type=text name=f_description value='".$filter['description']."' class='full-width'></td>";
     print "<td><input type=submit name=editfilter value='".WEB_btn_save."'></td>";
     print "</tr>";
     print "<tr>";

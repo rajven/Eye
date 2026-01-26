@@ -210,15 +210,15 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             print "<td class='data' colspan=2>";
             print_device_model_select($db_link, 'f_device_model_id', $device['device_model_id']);
             print "</td>\n";
-            print "<td class='data' ><input type='text' name='f_firmware' value='" . $device['firmware'] . "'></td>\n";
-            print "<td class='data' ><input type='text' name='f_sn' value='" . $device['sn'] . "'></td>\n";
+            print "<td class='data' ><input type='text' name='f_firmware' value='" . $device['firmware'] . "' class='full-width'></td>\n";
+            print "<td class='data' ><input type='text' name='f_sn' value='" . $device['sn'] . "' class='full-width'></td>\n";
             print "</tr>\n";
             print "<tr><td colspan=2>" . WEB_location_name . "</td><td colspan=2>" . WEB_cell_description . "</td>";
             print "</tr><tr>";
             print "<td class='data'>";
             print_building_select($db_link, 'f_building_id', $device['building_id']);
             print "</td>\n";
-            print "<td class='data' colspan=3><input type='text' size=50 name='f_description' value='" . $device['description'] . "'></td>\n";
+            print "<td class='data' colspan=3><input type='text' size=50 name='f_description' value='" . $device['description'] . "' class='full-width'></td>\n";
             print "</tr>";
 
             //print gateway settings

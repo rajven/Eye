@@ -9,7 +9,8 @@ define("WEB_pkts","Pkt");
 define("WEB_log","Лог");
 define("WEB_deleted","Удалён");
 define("WEB_status","Состояние");
-define ("WEB_unknown","В списках не значится");
+define("WEB_unknown","В списках не значится");
+define("WEB_changed_time","Последняя правка");
 
 define("WEB_page_speed","Страница сгенерирована за ");
 define("WEB_rows_at_page","Строк");

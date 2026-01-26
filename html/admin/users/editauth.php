@@ -137,11 +137,11 @@ if (getPOST("editauth") !== null && !$old_auth_info['deleted']) {
         $new['dhcp_option_set']   = trim(getPOST("f_dhcp_option_set", null, ''));
         $new['dynamic']           = (int)(getPOST("f_dynamic", null, 0));
         if ($new['dynamic']) {
-            $new['end_life'] = trim(getPOST("f_end_life", null, ''));
+            $new['end_life'] = trim(getPOST("f_end_life"));
         }
 
         // Настройки по OU
-        if (get_const('default_user_ou_id') == $parent_ou_id || get_const('default_hotspot_ou_id') == $parent_ou_id) {
+        if (is_system_ou($db_link, $parent_ou_id)) {
             $new += [
                 'nagios_handler'    => '',
                 'enabled'           => 0,
@@ -167,6 +167,10 @@ if (getPOST("editauth") !== null && !$old_auth_info['deleted']) {
                 'filter_group_id'   => (int)getPOST("f_group_id", null, 0)
             ];
         }
+
+        if ($new['day_quota']>0) {
+            if ($new['month_quota'] <= $new['day_quota']) { $new['month_quota'] = $new['day_quota'] * 31; }
+            }
 
         if ($new['nagios'] == 0) {
             $new['nagios_status'] = 'UP';
@@ -327,200 +331,200 @@ if (empty($auth_info['end_life']) || is_empty_datetime($auth_info['end_life'])) 
     $auth_info['end_life'] = $now->format('Y-m-d H:i:s');
     }
 
+$is_system_ou = is_system_ou($db_link, $parent_ou_id);
+$disabled_attr = $is_system_ou ? 'disabled' : '';
+
 ?>
 
-
 <div id="cont">
-    <?php
-    if (!empty($_SESSION[$page_url]['msg'])) {
-        print '<div id="msg">' . $_SESSION[$page_url]['msg'] . '</div>';
-        unset($_SESSION[$page_url]['msg']);
-    }
-    print "<b>" . WEB_user_title . "&nbsp<a href=/admin/users/edituser.php?id=" . $auth_info['user_id'] . ">" . $parent_name . "</a> </b>";
+    <?php if (!empty($_SESSION[$page_url]['msg'])): ?>
+        <div id="msg"><?php echo $_SESSION[$page_url]['msg']; unset($_SESSION[$page_url]['msg']); ?></div>
+    <?php endif; ?>
 
+    <b><?php echo WEB_user_title; ?>&nbsp;
+        <a href="/admin/users/edituser.php?id=<?php echo $auth_info['user_id']; ?>">
+            <?php echo $parent_name; ?>
+        </a>
+    </b>
+
+    <?php
     $alias_link = '';
-    if (!empty($auth_info['dns_name']) and !$auth_info['dns_ptr_only']) { $alias_link="/admin/users/edit_alias.php?id=".$id; }
-    if (empty($auth_info['created_by'])) { $auth_info['created_by'] = '-'; }
-    $f_dns_ptr = '';
-    if ($auth_info['dns_ptr_only']) { $f_dns_ptr = 'checked'; }
+    if (!empty($auth_info['dns_name']) && !$auth_info['dns_ptr_only']) {
+        $alias_link = "/admin/users/edit_alias.php?id=" . $id;
+    }
+    if (empty($auth_info['created_by'])) {
+        $auth_info['created_by'] = '-';
+    }
+    $f_dns_ptr = $auth_info['dns_ptr_only'] ? 'checked' : '';
     ?>
 
     <form name="def" action="editauth.php?id=<?php echo $id; ?>" method="post">
-        <input type="hidden" name="id" value=<?php echo $id; ?>>
+        <input type="hidden" name="id" value="<?php echo $id; ?>">
+
         <table class="data">
+            <!-- 1. СЕТЕВЫЕ ДАННЫЕ -->
             <tr>
-                <td width=230><?php print WEB_cell_dns_name . " &nbsp | &nbsp "; print_url(WEB_cell_aliases, $alias_link); ?></td>
-                <td width=200><?php print WEB_cell_description; ?></td>
-                <td width=70><?php print WEB_cell_enabled; ?></td>
-                <td><?php print WEB_cell_traf; ?></td>
+                <td><?php echo WEB_cell_ip; ?></td>
+                <td><?php echo WEB_cell_mac; ?></td>
+                <td><?php echo WEB_cell_description; ?></td>
                 <td></td>
+                <td><?php echo WEB_cell_traf; ?></td>
             </tr>
             <tr>
-                <td style="white-space: nowrap;"><input type="text" name="f_dns_name" size="14"  value="<?php echo $auth_info['dns_name']; ?>" pattern="^([a-zA-Z0-9-]{1,63})(\.[a-zA-Z0-9-]{1,63})*\.?$">
-                    <input type="checkbox" id="f_dns_ptr" name="f_dns_ptr" value="1" <?php echo $f_dns_ptr; ?>> &nbsp <?php print WEB_cell_ptr_only; ?>
+                <td><input type="text" name="f_ip" value="<?php echo htmlspecialchars($auth_info['ip']); ?>" pattern="^(\d{1,3}\.){3}\d{1,3}$" class='full-width'></td>
+                <td><input type="text" name="f_mac" value="<?php echo htmlspecialchars($auth_info['mac']); ?>" pattern="^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$" class='full-width'></td>
+                <td colspan=2><input type="text" name="f_description" value="<?php echo htmlspecialchars($auth_info['description']); ?>" class='full-width'></td>
+                <td><?php print_qa_select('f_save_traf', $auth_info['save_traf'],$is_system_ou); ?></td>
+            </tr>
+
+            <!-- 2. ДОСТУП И ОГРАНИЧЕНИЯ -->
+            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
+            <tr>
+                <td><?php echo WEB_cell_enabled; ?></td>
+                <td><?php echo WEB_cell_blocked; ?></td>
+                <td><?php echo WEB_cell_filter; ?></td>
+                <td><?php echo WEB_cell_shaper; ?></td>
+                <td><?php echo WEB_cell_perday; ?> / <?php echo WEB_cell_permonth; ?></td>
+            </tr>
+            <tr>
+                <td><?php print_qa_select('f_enabled', $auth_info['enabled'], $is_system_ou); ?></td>
+                <td><?php print_qa_select('f_blocked', $auth_info['blocked'], $is_system_ou); ?></td>
+                <td><?php print_filter_group_select($db_link, 'f_group_id', $auth_info['filter_group_id'], $is_system_ou); ?></td>
+                <td><?php print_queue_select($db_link, 'f_queue_id', $auth_info['queue_id'],$is_system_ou); ?></td>
+                <td>
+                    <input type="text" name="f_day_q" value="<?php echo $auth_info['day_quota']; ?>" size="5" <?php print $disabled_attr; ?> > /
+                    <input type="text" name="f_month_q" value="<?php echo $auth_info['month_quota']; ?>" size="5" <?php print $disabled_attr; ?> >
                 </td>
-                <td><input type="text" name="f_description" value="<?php echo $auth_info['description']; ?>"></td>
-                <td><?php print_qa_select('f_enabled', $auth_info['enabled']); ?></td>
-                <td><?php print_qa_select('f_save_traf', $auth_info['save_traf']); ?></td>
+            </tr>
+
+            <!-- 3. DHCP -->
+            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
+            <tr>
+                <td><?php echo WEB_cell_dns_name; ?> &nbsp;|&nbsp; <?php print_url(WEB_cell_aliases, $alias_link); ?></td>
+                <td><?php echo WEB_cell_dhcp; ?></td>
+                <td><?php echo WEB_cell_acl; ?></td>
+                <td><?php echo WEB_cell_option_set; ?></td>
                 <td></td>
             </tr>
             <tr>
-                <td><?php print WEB_cell_ip; ?></td>
-                <td><?php print WEB_cell_mac; ?></td>
-                <td><?php print WEB_cell_dhcp; ?></td>
-                <td><?php print WEB_cell_acl; ?></td>
-                <td><?php print WEB_cell_option_set; ?></td>
-                <td></td>
-            <tr>
-                <td><input type="text" name="f_ip" value="<?php echo $auth_info['ip']; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])[\.ю]){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"></td>
-                <td><input type="text" name="f_mac" value="<?php echo $auth_info['mac']; ?>" pattern="^(([0-9A-Fa-f]{2}[\.\:\-]){5}[0-9A-Fa-f]{2}|([0-9a-fA-F]{4}[\.\-][0-9a-fA-F]{4}[\.\-][0-9a-fA-F]{4})|[0-9A-Fa-f]{12})$"></td>
-                <td><?php print_qa_select('f_dhcp', $auth_info['dhcp']); ?></td>
-                <td><?php print_dhcp_acl_list($db_link,"f_acl",$auth_info['dhcp_acl']); ?></td>
-                <td><?php print_dhcp_option_set_list($db_link,"f_dhcp_option_set",$auth_info['dhcp_option_set']); ?></td>
-            </tr>
-            <tr>
-                <td><?php print WEB_cell_filter; ?></td>
-                <td><?php print WEB_cell_shaper; ?></td>
-                <td><?php print WEB_cell_blocked; ?></td>
-                <td><?php print WEB_cell_perday; ?></td>
-                <td><?php print WEB_cell_permonth; ?></td>
-            </tr>
-            <tr>
-                <td><?php print_filter_group_select($db_link, 'f_group_id', $auth_info['filter_group_id']); ?> </td>
-                <td><?php print_queue_select($db_link, 'f_queue_id', $auth_info['queue_id']); ?> </td>
-                <td><?php print_qa_select('f_blocked', $auth_info['blocked']); ?></td>
-                <td><input type="text" name="f_day_q" value="<?php echo $auth_info['day_quota']; ?>" size=5></td>
-                <td><input type="text" name="f_month_q" value="<?php echo $auth_info['month_quota']; ?>" size=5></td>
-            </tr>
-            <tr>
-                <td><?php print WEB_cell_nagios_handler; ?></td>
-                <td width=200>
-                    <?php
-                    if (!empty($auth_info['wikiname'])) {
-                        $wiki_url = rtrim(get_option($db_link, 60), '/');
-                        if (preg_match('/127.0.0.1/', $wiki_url)) {
-                            print WEB_cell_wikiname;
-                        } else {
-                            $wiki_web = rtrim(get_option($db_link, 63), '/');
-                            $wiki_web = ltrim($wiki_web, '/');
-                            $wiki_link = $wiki_url . '/' . $wiki_web . '/' . $auth_info['wikiname'];
-                            print_url(WEB_cell_wikiname, $wiki_link);
-                        }
-                    } else {
-                        print WEB_cell_wikiname;
-                    }
-                    $dev_id = get_device_by_auth($db_link, $auth_info['user_id']);
-                    if (isset($dev_id)) {
-                        print "&nbsp|&nbsp";
-                        print_url('Device', '/admin/devices/editdevice.php?id=' . $dev_id);
-                    }
-                    ?>
+                <td style="white-space: nowrap;">
+                    <input type="text" name="f_dns_name" size="14" value="<?php echo htmlspecialchars($auth_info['dns_name']); ?>" pattern="^([a-zA-Z0-9-]{1,63})(\.[a-zA-Z0-9-]{1,63})*\.?$"  <?php echo $disabled_attr; ?> class='full-width'>
+                    <br>
+                    <label>
+                        <input type="checkbox" id="f_dns_ptr" name="f_dns_ptr" value="1" <?php echo $f_dns_ptr; echo " {$disabled_attr}"; ?>>
+                        <?php echo WEB_cell_ptr_only; ?>
+                    </label>
                 </td>
-                <td><?php if (empty($device) or (!empty($device) and $device['device_type'] > 2)) {
-                        print WEB_cell_nagios;
-                    } ?></td>
-                <td><?php if (empty($device) or (!empty($device) and $device['device_type'] > 2)) {
-                        print WEB_cell_link;
-                    } ?></td>
+                <td><?php print_qa_select('f_dhcp', $auth_info['dhcp'], $is_system_ou); ?></td>
+                <td><?php print_dhcp_acl_list($db_link, "f_acl", $auth_info['dhcp_acl'], $is_system_ou); ?></td>
+                <td><?php print_dhcp_option_set_list($db_link, "f_dhcp_option_set", $auth_info['dhcp_option_set'],$is_system_ou); ?></td>
+                <td></td>
+            </tr>
+
+            <!-- 4. МОНИТОРИНГ -->
+            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
             <tr>
-                <td><input type="text" name="f_handler" value="<?php echo $auth_info['nagios_handler']; ?>"></td>
-                <td><input type="text" name="f_wiki" value="<?php echo $auth_info['wikiname']; ?>"></td>
-                <td><?php if (empty($device) or (!empty($device) and $device['device_type'] > 2)) {
-                        print_qa_select('f_nagios', $auth_info['nagios']);
-                    } ?>
-                </td>
-                <td><?php if (empty($device) or (!empty($device) and $device['device_type'] > 2)) {
-                        print_qa_select('f_link', $auth_info['link_check']);
-                    } ?>
-                </td>
+                <td width="200"><?php echo WEB_cell_wikiname; ?></td>
+                <td><?php if (empty($device) || (!empty($device) && $device['device_type'] > 2)) echo WEB_cell_nagios; ?></td>
+                <td><?php if (empty($device) || (!empty($device) && $device['device_type'] > 2)) echo WEB_cell_link; ?></td>
+                <td><?php echo WEB_cell_nagios_handler; ?></td>
                 <td></td>
             </tr>
             <tr>
-                <td><?php print WEB_cell_temporary; ?></td>
-                <?php if ($auth_info['dynamic']) { print "<td>"; } else { print "<td>"; } ?>
-                <div style="color: #7B1FA2;">
-                <?php print WEB_cell_end_life; ?>
-                </div>
+                <td><input type="text" name="f_wiki" value="<?php echo htmlspecialchars($auth_info['wikiname']); ?>" <?php print $disabled_attr; ?> class='full-width'></td>
+                <td><?php if (empty($device) || (!empty($device) && $device['device_type'] > 2)) print_qa_select('f_nagios', $auth_info['nagios'],$is_system_ou); ?></td>
+                <td><?php if (empty($device) || (!empty($device) && $device['device_type'] > 2)) print_qa_select('f_link', $auth_info['link_check'],$is_system_ou); ?></td>
+                <td colspan=2><input type="text" name="f_handler" value="<?php echo htmlspecialchars($auth_info['nagios_handler']); ?>" <?php print $disabled_attr; ?> class='full-width'></td>
+            </tr>
+
+            <!-- 5. ТИП ЗАПИСИ -->
+            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
+            <tr>
+                <td><?php echo WEB_cell_temporary; ?></td>
+                <td colspan="4">
+                    <?php print_qa_select('f_dynamic', $auth_info['dynamic']); ?>
+                    <span id="end-life-container" style="<?php echo !$auth_info['dynamic'] ? 'display:none;' : ''; ?>">
+                        &nbsp;—&nbsp;
+                        <input type="datetime-local"
+                               id="f_end_life"
+                               name="f_end_life"
+                               min="<?php echo $created->format('Y-m-d\TH:i:s'); ?>"
+                               value="<?php echo htmlspecialchars($auth_info['end_life'] ?? ''); ?>"
+                               step="1">
+                    </span>
                 </td>
-                <td></td>
-                <td></td>
-                <td></td>
             </tr>
+
+            <!-- КНОПКИ -->
+            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
             <tr>
-                <td><?php print_qa_select('f_dynamic',$auth_info['dynamic']); ?></td>
-                <td><input type="datetime-local" id="f_end_life" name="f_end_life" min="<?php print $created->format('Y-m-d H:i:s'); ?>" value="<?php print $auth_info['end_life']; ?>" 
-                <?php if (!$auth_info['dynamic']) { print "disabled"; } ?>
-                step=1 ></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td colspan=3><input type="submit" name="moveauth" value=<?php print WEB_btn_move; ?>>
-                <?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?></td>
-                <?php
-                if ($auth_info['deleted']) {
-                    print "<td ><font color=red>" . WEB_deleted . ": " . $auth_info['changed_time'] . "</font></td>";
-                    print "<td align=right><input type=\"submit\" name=\"recovery\" value='" . WEB_btn_recover . "'></td>";
-                } else {
-                    print "<td ></td>";
-                    print "<td align=right><input type=\"submit\" name=\"editauth\" value='" . WEB_btn_save . "'></td>";
-                }
-                ?>
+                <td colspan="3">
+                    <input type="submit" name="moveauth" value="<?php echo WEB_btn_move; ?>">
+                    <?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?>
+                </td>
+                <?php if ($auth_info['deleted']): ?>
+                    <td><font color="red"><?php echo WEB_deleted . ": " . $auth_info['changed_time']; ?></font></td>
+                    <td align="right"><input type="submit" name="recovery" value="<?php echo WEB_btn_recover; ?>"></td>
+                <?php else: ?>
+                    <td></td>
+                    <td align="right"><input type="submit" name="editauth" value="<?php echo WEB_btn_save; ?>"></td>
+                <?php endif; ?>
             </tr>
         </table>
-        <table class="data">
+
+        <!-- ИНФОРМАЦИЯ О ЗАПИСИ -->
+        <table class="data" style="margin-top: 20px;">
+            <caption style="caption-side: top; font-weight: bold; margin-bottom: 5px;"><?php echo WEB_status; ?></caption>
             <tr>
-                <td class="data" colspan=2><?php echo WEB_status . ":"; ?></td>
-                <td align=right ><a href=/admin/logs/authlog.php?auth_id=<?php print $id; ?>><?php print WEB_log; ?></a></td>
-                <td align=right ><?php print_url(WEB_report_by_day, "/admin/reports/authday.php?id=$id"); ?></td>
+                <td width="150"><?php echo WEB_cell_created_by; ?>:</td>
+                <td width="200"><?php echo $auth_info['created_by']; ?></td>
+                <td align="right"><a href="/admin/logs/authlog.php?auth_id=<?php echo $id; ?>"><?php echo WEB_log; ?></a></td>
+                <td align="right"><?php print_url(WEB_report_by_day, "/admin/reports/authday.php?id=$id"); ?></td>
             </tr>
             <tr>
-                <td ><?php echo WEB_cell_created_by . ":"; ?></td>
-                <td class="data" ></td>
-                <td class="data" colspan=2 align=right><?php echo $auth_info['created_by']; ?></td>
+                <td><?php echo WEB_cell_created; ?>:</td>
+                <td><?php echo $auth_info['ts']; ?></td>
+                <td><?php echo WEB_cell_connection; ?>:</td>
+                <td><?php echo get_connection($db_link, $id); ?></td>
             </tr>
             <tr>
-                <td><?php print WEB_cell_created; ?></td>
-                <td class="data" align=right><?php print $auth_info['ts']; ?></td>
-                <td><?php print WEB_cell_connection . ": "; ?></td>
-                <td class="data" align=right><?php print get_connection($db_link, $id) ; ?></td>
+                <td><?php echo WEB_cell_dhcp_hostname; ?>:</td>
+                <td><?php echo $auth_info['dhcp_hostname']; ?></td>
+                <td>Dhcp event:</td>
+                <td><?php echo $dhcp_str; ?></td>
             </tr>
             <tr>
-                <td ><?php print WEB_cell_dhcp_hostname.":"; ?></td>
-                <td class="data"><?php print $auth_info['dhcp_hostname']; ?></td>
-                <td ><?php print "Dhcp event: "; ?></td>
-                <td class="data" align=right><?php print $dhcp_str; ?></td>
+                <td><?php echo WEB_cell_arp_found; ?>:</td>
+                <td><?php echo $auth_info['arp_found']; ?></td>
+                <td><?php echo WEB_cell_mac_found; ?>:</td>
+                <td><?php echo $auth_info['mac_found']; ?></td>
             </tr>
             <tr>
-                <td ><?php print WEB_cell_arp_found . ": "; ?></td>
-                <td class="data" align=right><?php print $auth_info['arp_found'] ; ?></td>
-                <td ><?php print WEB_cell_mac_found . ": "; ?></td>
-                <td class="data" align=right><?php print $auth_info['mac_found'] ; ?></td>
-            </tr>
-            <tr>
+                <td><?php echo WEB_changed_time; ?>:</td>
+                <td><?php echo $auth_info['changed_time']; ?></td>
+                <td></td>
+                <td></td>
             </tr>
         </table>
-        <?php
-        if ($msg_error) {
-            print "<div id='msg'><b>$msg_error</b></div><br>\n";
-        }
-        ?>
 
-
-</form>
-<br>
-
+        <?php if ($msg_error): ?>
+            <div id="msg"><b><?php echo $msg_error; ?></b></div>
+        <?php endif; ?>
+    </form>
 
 <script>
-document.getElementById('f_dynamic').addEventListener('change', function(event) {
-  const selectValue = this.value;
-  const inputField = document.getElementById('f_end_life');
-  if (selectValue === '1') {
-    inputField.disabled = false;
-  } else {
-    inputField.disabled = true;
-  }
+document.addEventListener('DOMContentLoaded', function() {
+    const dynamicField = document.querySelector('[name="f_dynamic"]');
+    const endLifeContainer = document.getElementById('end-life-container');
+    if (dynamicField && endLifeContainer) {
+        function toggleEndLife() {
+            const isActive = dynamicField.type === 'checkbox' 
+                ? dynamicField.checked 
+                : dynamicField.value == '1';
+            endLifeContainer.style.display = isActive ? '' : 'none';
+        }
+        dynamicField.addEventListener('change', toggleEndLife);
+    }
 });
 </script>
 

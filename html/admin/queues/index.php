@@ -62,47 +62,48 @@ unset($_POST);
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 ?>
 <div id="cont">
-<b><?php echo WEB_list_queues; ?></b> <br>
-<form name="def" action="index.php" method="post">
+    <b><?php echo WEB_list_queues; ?></b> <br>
 
-<!-- ЕДИНАЯ КНОПКА СОХРАНЕНИЯ -->
-<div style="margin-top: 10px; text-align: right;">
-    <input type="submit" name="save" value="<?php echo WEB_btn_save; ?>">
-    <input type="submit" 
-           onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" 
-           name="remove" 
-           value="<?php echo WEB_btn_delete; ?>">
-</div>
+    <form name="def" action="index.php" method="post">
+        <table class="data">
+            <tr align="center">
+                <td>
+                    <input type="checkbox" onClick="checkAll(this.checked);">
+                </td>
+                <td><b>Id</b></td>
+                <td><b><?php echo WEB_cell_name; ?></b></td>
+                <td><b>Download</b></td>
+                <td><b>Upload</b></td>
+            </tr>
+            <?php
+            $t_queue = get_records_sql($db_link, "SELECT * FROM queue_list ORDER BY id");
+            foreach ($t_queue as $row) {
+                print "<tr align=center>\n";
+                print "<td class=\"data\" style='padding:0'><input type=\"checkbox\" name=\"f_id[]\" value=\"{$row['id']}\"></td>\n";
+                print "<td class=\"data\"><input type=\"hidden\" name=\"r_id[]\" value=\"{$row['id']}\">{$row['id']}</td>\n";
+                print "<td class=\"data\"><input type=\"text\" class=\"full-width\" name=\"f_queue_name[]\" value=\"" . htmlspecialchars($row['queue_name']) . "\"></td>\n";
+                print "<td class=\"data\"><input type=\"text\" name=\"f_down[]\" value=\"{$row['download']}\"></td>\n";
+                print "<td class=\"data\"><input type=\"text\" name=\"f_up[]\" value=\"{$row['upload']}\"></td>\n";
+                print "</tr>\n";
+            }
+            ?>
+        </table>
 
-<table class="data">
-<tr align="center">
-    <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
-    <td><b>Id</b></td>
-    <td><b><?php echo WEB_cell_name; ?></b></td>
-    <td><b>Download</b></td>
-    <td><b>Upload</b></td>
-</tr>
-<?php
-$t_queue = get_records_sql($db_link, "SELECT * FROM queue_list ORDER BY id");
-foreach ($t_queue as $row) {
-    print "<tr align=center>\n";
-    print "<td class=\"data\" style='padding:0'><input type=\"checkbox\" name=\"f_id[]\" value=\"{$row['id']}\"></td>\n";
-    print "<td class=\"data\"><input type=\"hidden\" name=\"r_id[]\" value=\"{$row['id']}\">{$row['id']}</td>\n";
-    print "<td class=\"data\"><input type=\"text\" name=\"f_queue_name[]\" value=\"" . htmlspecialchars($row['queue_name']) . "\"></td>\n";
-    print "<td class=\"data\"><input type=\"text\" name=\"f_down[]\" value=\"{$row['download']}\"></td>\n";
-    print "<td class=\"data\"><input type=\"text\" name=\"f_up[]\" value=\"{$row['upload']}\"></td>\n";
-    print "</tr>\n";
-}
-?>
-</table>
+        <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <input type="submit" name="save" value="<?php echo WEB_btn_save; ?>">
+                <input type="submit"
+                       onclick="return confirm('<?php echo WEB_msg_delete; ?>?')"
+                       name="remove"
+                       value="<?php echo WEB_btn_delete; ?>">
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="text" name="new_queue" value="New_queue" style="width: 120px;">
+                <input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
+            </div>
+        </div>
+    </form>
 
-
-<div style="margin-top: 15px;">
-    <input type="text" name="new_queue" value="New_queue">
-    <input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
-</div>
-
-</form>
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
 ?>

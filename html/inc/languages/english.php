@@ -9,7 +9,8 @@ define("WEB_pkts","Pkt");
 define("WEB_log","Log");
 define("WEB_deleted","Deleted");
 define("WEB_status","Status");
-define ("WEB_unknown","No data available");
+define("WEB_unknown","No data available");
+define("WEB_changed_time","Last changed");
 
 define("WEB_page_speed","Page generated for ");
 define("WEB_rows_at_page","Lines");

@@ -132,7 +132,7 @@ print_control_submenu($page_url);
                 <td></td>
                 <td><b><?php echo WEB_network_subnet; ?></b></td>
                 <td class="data">
-                    <input type="text" name="s_subnet" value="<?php echo $subnet_info['subnet']; ?>" size="18">
+                    <input type="text" name="s_subnet" value="<?php echo $subnet_info['subnet']; ?>" size="18" class='full-width'>
                 </td>
                 <td>
                     <button name="s_save" value="save"><?php echo WEB_btn_save; ?></button>
@@ -143,7 +143,7 @@ print_control_submenu($page_url);
                 <td></td>
                 <td><b><?php echo WEB_cell_description; ?></b></td>
                 <td colspan="2" class="data">
-                    <input type="text" name="s_description" value="<?php echo $subnet_info['description']; ?>">
+                    <input type="text" name="s_description" value="<?php echo $subnet_info['description']; ?>" class='full-width'>
                 </td>
             </tr>
             

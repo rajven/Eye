@@ -1419,9 +1419,10 @@ function print_device_model_select($db, $device_model_name, $device_model_value)
     echo "</select>\n";
 }
 
-function print_filter_group_select($db, $group_name, $group_value)
+function print_filter_group_select($db, $group_name, $group_value, $disabled = 0)
 {
-    echo "<select id=\"" . htmlspecialchars($group_name) . "\" name=\"" . htmlspecialchars($group_name) . "\">\n";
+    $disabled_attr = $disabled ? 'disabled' : '';
+    echo "<select id=\"" . htmlspecialchars($group_name) . "\" name=\"" . htmlspecialchars($group_name) . "\" {$disabled_attr}>\n";
     $t_group = get_records_sql($db, "SELECT id, group_name FROM group_list ORDER BY group_name");
     
     foreach ($t_group as $row) {
@@ -1654,9 +1655,10 @@ function get_gw_subnets($db, $device_id)
     return trim($result);
 }
 
-function print_queue_select($db, $queue_name, $queue_value)
-{   
-    echo "<select id=\"" . htmlspecialchars($queue_name) . "\" name=\"" . htmlspecialchars($queue_name) . "\">\n";
+function print_queue_select($db, $queue_name, $queue_value, $disabled = 0)
+{
+    $disabled_attr = $disabled ? 'disabled' : '';
+    echo "<select id=\"" . htmlspecialchars($queue_name) . "\" name=\"" . htmlspecialchars($queue_name) . "\" {$disabled_attr}>\n";
     $t_queue = get_records_sql($db, "SELECT id, queue_name FROM queue_list ORDER BY queue_name");
     
     foreach ($t_queue as $row) {
@@ -1724,9 +1726,10 @@ function get_int($qa_value = 0)
     return $qa_value;
 }
 
-function print_qa_select($qa_name, $qa_value = 0)
+function print_qa_select($qa_name, $qa_value = 0, $disabled = 0)
 {
-    print "<select name=\"$qa_name\" id=\"$qa_name\">\n";
+    $disabled_attr = $disabled ? 'disabled' : '';
+    print "<select name=\"$qa_name\" id=\"$qa_name\" {$disabled_attr}>\n";
     if (empty($qa_value)) {
         $qa_value = 0;
     } else {
@@ -1860,15 +1863,16 @@ function print_dhcp_acl($db, $qa_name)
     }
 }
     
-function print_dhcp_option_set($db, $qa_name)
-{   
+function print_dhcp_option_set($db, $qa_name, $disabled = 0)
+{
+    $disabled_attr = $disabled ? 'disabled' : '';
     $dhcp_option_sets = get_records_sql($db,
         "SELECT DISTINCT dhcp_option_set FROM user_auth 
          WHERE dhcp_option_set IS NOT NULL AND dhcp_option_set != '' AND deleted = 0"
     );
     
     if (!empty($dhcp_option_sets)) {
-        echo "<select name=\"" . htmlspecialchars($qa_name) . "\">\n";
+        echo "<select name=\"" . htmlspecialchars($qa_name) . "\" {$disabled_attr}>\n";
         print_select_simple(WEB_select_item_no, '');
         
         foreach ($dhcp_option_sets as $dhcp_option_set) {
@@ -1881,8 +1885,10 @@ function print_dhcp_option_set($db, $qa_name)
     }
 }
 
-function print_dhcp_acl_list($db, $qa_name, $value = '')
+function print_dhcp_acl_list($db, $qa_name, $value = '', $disabled = 0)
 {
+    $disabled_attr = $disabled ? 'disabled' : '';
+
     $dhcp_acl = get_records_sql($db,
         "SELECT DISTINCT dhcp_acl FROM user_auth
          WHERE dhcp_acl IS NOT NULL AND dhcp_acl != '' AND deleted = 0"
@@ -1900,7 +1906,7 @@ function print_dhcp_acl_list($db, $qa_name, $value = '')
         }
     }
 
-    echo "<input list=\"dhcp_acl\" id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"" . htmlspecialchars($value) . "\" />";
+    echo "<input list=\"dhcp_acl\" id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"" . htmlspecialchars($value) . "\" {$disabled_attr}/>";
     echo "<datalist id=\"dhcp_acl\">";
     echo "<option value=\"\">";
 
@@ -1911,8 +1917,9 @@ function print_dhcp_acl_list($db, $qa_name, $value = '')
     echo "</datalist>";
 }
 
-function print_dhcp_option_set_list($db, $qa_name, $value = '')
+function print_dhcp_option_set_list($db, $qa_name, $value = '', $disabled = 0)
 {
+    $disabled_attr = $disabled ? 'disabled' : '';
     $dhcp_option_sets = get_records_sql($db,
         "SELECT DISTINCT dhcp_option_set FROM user_auth
          WHERE dhcp_option_set IS NOT NULL AND dhcp_option_set != '' AND deleted = 0"
@@ -1930,7 +1937,7 @@ function print_dhcp_option_set_list($db, $qa_name, $value = '')
         }
     }
 
-    echo "<input list=\"dhcp_option_set\" id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"" . htmlspecialchars($value) . "\" />";
+    echo "<input list=\"dhcp_option_set\" id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"" . htmlspecialchars($value) . "\" {$disabled_attr}/>";
     echo "<datalist id=\"dhcp_option_set\">";
     echo "<option value=\"\">"; 
 
@@ -2011,23 +2018,23 @@ function print_ip_type_select($qa_name, $qa_value)
     print "</select>\n";
 }
 
-function print_vendor_select($db, $qa_name, $qa_value)
-{   
-    echo "<select id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" style=\"width: 100%\">\n";
+function print_vendor_select($db, $qa_name, $qa_value, $disabled = 0)
+{
+    $disabled_attr = $disabled ? 'disabled' : '';
+    echo "<select id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" style=\"width: 100%\" {$disabled_attr}>\n";
     $vendors = get_records_sql($db, "SELECT id, name FROM vendors ORDER BY name");
     print_select_item(WEB_select_item_all, 0, $qa_value);
-    
     foreach ($vendors as $row) {
         print_select_item(htmlspecialchars($row['name']), $row['id'], $qa_value);
     }
     echo "</select>\n";
 }
 
-function print_vendor_set($db, $qa_name, $qa_value)
+function print_vendor_set($db, $qa_name, $qa_value, $disabled = 0)
 {
-    echo "<select id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" style=\"width: 100%\">\n";
+    $disabled_attr = $disabled ? 'disabled' : '';
+    echo "<select id=\"" . htmlspecialchars($qa_name) . "\" name=\"" . htmlspecialchars($qa_name) . "\" style=\"width: 100%\" {$disabled_attr}>\n";
     $vendors = get_records_sql($db, "SELECT id, name FROM vendors ORDER BY name");
-    
     foreach ($vendors as $row) {
         print_select_item(htmlspecialchars($row['name']), $row['id'], $qa_value);
     }
