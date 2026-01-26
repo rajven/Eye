@@ -998,71 +998,113 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
 
     $changed_msg = prepareAuditMessage($db, $table, $old_record, $valid_record, $rec_id, 'update');
 
-    if ($table === "user_auth" and $dns_changed) {
-        if (!empty($old_record['dns_name']) and !empty($old_record['ip']) and !$old_record['dns_ptr_only'] and !preg_match('/\.$/', $old_record['dns_name'])) {
+    // Если изменялась запись в таблице user_auth и поле dns_name было обновлено
+    if ($table === "user_auth" && $dns_changed) {
+        // --- УДАЛЕНИЕ СТАРЫХ DNS-ЗАПИСЕЙ (если они существовали) ---
+
+        // Удаляем A-запись, если:
+        // - у старой записи был указан dns_name и IP,
+        // - запись не была только PTR (т.е. dns_ptr_only = 0),
+        // - имя не заканчивается на точку (не FQDN в готовом виде)
+        if (!empty($old_record['dns_name']) && !empty($old_record['ip']) && !$old_record['dns_ptr_only'] && !preg_match('/\.$/', $old_record['dns_name'])) {
             $del_dns['name_type'] = 'A';
             $del_dns['name'] = $old_record['dns_name'];
             $del_dns['value'] = $old_record['ip'];
             $del_dns['operation_type'] = 'del';
-            if (!empty($rec_id)) {
-                $del_dns['auth_id'] = $rec_id;
-            }
+            if (!empty($rec_id)) { $del_dns['auth_id'] = $rec_id; }
             insert_record($db, 'dns_queue', $del_dns);
         }
-        if (!empty($old_record['dns_name']) and !empty($old_record['ip']) and $old_record['dns_ptr_only'] and !preg_match('/\.$/', $old_record['dns_name'])) {
+        // Удаляем PTR-запись, если:
+        // - у старой записи был указан dns_name и IP,
+        // - запись была ТОЛЬКО PTR (dns_ptr_only = 1),
+        // - имя не заканчивается на точку
+        if (!empty($old_record['dns_name']) && !empty($old_record['ip']) && $old_record['dns_ptr_only'] && !preg_match('/\.$/', $old_record['dns_name'])) {
             $del_dns['name_type'] = 'PTR';
             $del_dns['name'] = $old_record['dns_name'];
             $del_dns['value'] = $old_record['ip'];
             $del_dns['operation_type'] = 'del';
-            if (!empty($rec_id)) {
-                $del_dns['auth_id'] = $rec_id;
-            }
+            if (!empty($rec_id)) { $del_dns['auth_id'] = $rec_id; }
             insert_record($db, 'dns_queue', $del_dns);
         }
 
-        if (!empty($valid_record['dns_name']) and !empty($valid_record['ip']) and !$valid_record['dns_ptr_only'] and !preg_match('/\.$/', $valid_record['dns_name'])) {
-            $new_dns['name_type'] = 'A';
-            $new_dns['name'] = $valid_record['dns_name'];
-            $new_dns['value'] = $valid_record['ip'];
-            $new_dns['operation_type'] = 'add';
-            if (!empty($rec_id)) {
-                $new_dns['auth_id'] = $rec_id;
-            }
+        // --- ДОБАВЛЕНИЕ НОВЫХ DNS-ЗАПИСЕЙ (если они заданы в обновлённой записи) ---
+
+        // Формируем полную новую запись: берём значения из $valid_record, если они есть,
+        // иначе — используем старые значения из $old_record
+        $full_new_record = array_merge($old_record, $valid_record);
+
+        // Добавляем A-запись, если:
+        // - указаны dns_name и IP,
+        // - запись НЕ только PTR (dns_ptr_only = 0),
+        // - имя не заканчивается на точку
+        if (!empty($full_new_record['dns_name']) && !empty($full_new_record['ip']) && empty($full_new_record['dns_ptr_only']) && !preg_match('/\.$/', $full_new_record['dns_name'])) {
+            $new_dns = [
+                'name_type' => 'A',
+                'name' => $full_new_record['dns_name'],
+                'value' => $full_new_record['ip'],
+                'operation_type' => 'add'
+            ];
+            if (!empty($rec_id)) { $new_dns['auth_id'] = $rec_id; }
+//            error_log("DNS ADD: A record for " . $full_new_record['dns_name']);
             insert_record($db, 'dns_queue', $new_dns);
         }
-        if (!empty($valid_record['dns_name']) and !empty($valid_record['ip']) and $valid_record['dns_ptr_only'] and !preg_match('/\.$/', $valid_record['dns_name'])) {
-            $new_dns['name_type'] = 'PTR';
-            $new_dns['name'] = $valid_record['dns_name'];
-            $new_dns['value'] = $valid_record['ip'];
-            $new_dns['operation_type'] = 'add';
+
+        // Добавляем PTR-запись, если:
+        // - указаны dns_name и IP,
+        // - запись помечена как ТОЛЬКО PTR (dns_ptr_only = 1),
+        // - имя не заканчивается на точку
+        if (!empty($full_new_record['dns_name']) && !empty($full_new_record['ip']) && !empty($full_new_record['dns_ptr_only']) && !preg_match('/\.$/', $full_new_record['dns_name'])) {
+            $new_dns = [
+                'name_type' => 'PTR',
+                'name' => $full_new_record['dns_name'],
+                'value' => $full_new_record['ip'],
+                'operation_type' => 'add'
+            ];
             if (!empty($rec_id)) {
                 $new_dns['auth_id'] = $rec_id;
             }
+//            error_log("DNS ADD: PTR record for " . $full_new_record['dns_name']);
             insert_record($db, 'dns_queue', $new_dns);
         }
     }
 
-    if ($table === "user_auth_alias" and $dns_changed) {
-        $auth_id = NULL;
-        if ($old_record['auth_id']) {
-            $auth_id = $old_record['auth_id'];
-        }
-        if (!empty($old_record['alias']) and !preg_match('/\.$/', $old_record['alias'])) {
+    // Если изменялась запись в таблице user_auth_alias и поле alias (DNS-псевдоним) было обновлено
+    if ($table === "user_auth_alias" && $dns_changed) {
+
+        // Определяем auth_id: берём из старой записи (при удалении/обновлении),
+        // так как новая запись может не содержать его (например, при INSERT — old_record пуст)
+        $auth_id = null;
+        if (!empty($old_record['auth_id'])) { $auth_id = $old_record['auth_id']; }
+
+        // --- УДАЛЕНИЕ СТАРОГО CNAME (если он существовал) ---
+        // Удаляем CNAME-запись, если:
+        // - у старой записи был указан alias,
+        // - имя не заканчивается на точку (не является готовым FQDN)
+        if (!empty($old_record['alias']) && !preg_match('/\.$/', $old_record['alias'])) {
             $del_dns['name_type'] = 'CNAME';
             $del_dns['name'] = $old_record['alias'];
             $del_dns['operation_type'] = 'del';
+            // Привязываем к основной записи DNS через auth_id
             if (!empty($auth_id)) {
                 $del_dns['auth_id'] = $auth_id;
+                // Получаем целевое DNS-имя (A-запись), на которое должен указывать CNAME
                 $del_dns['value'] = get_dns_name($db, $auth_id);
             }
             insert_record($db, 'dns_queue', $del_dns);
         }
-        if (!empty($valid_record['alias'])  and !preg_match('/\.$/', $valid_record['alias'])) {
+
+        // --- ДОБАВЛЕНИЕ НОВОГО CNAME (если он задан) ---
+        // Добавляем CNAME-запись, если:
+        // - в новой записи указан alias,
+        // - имя не заканчивается на точку
+        if (!empty($valid_record['alias']) && !preg_match('/\.$/', $valid_record['alias'])) {
             $new_dns['name_type'] = 'CNAME';
             $new_dns['name'] = $valid_record['alias'];
             $new_dns['operation_type'] = 'add';
+            // Привязываем к той же основной записи (auth_id из старой записи — актуален и для новой)
             if (!empty($auth_id)) {
                 $new_dns['auth_id'] = $auth_id;
+                // Целевое DNS-имя (A-запись) остаётся тем же
                 $new_dns['value'] = get_dns_name($db, $auth_id);
             }
             insert_record($db, 'dns_queue', $new_dns);
