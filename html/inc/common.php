@@ -1925,13 +1925,10 @@ function print_dhcp_option_set_list($db, $qa_name, $value = '', $disabled = 0)
          WHERE dhcp_option_set IS NOT NULL AND dhcp_option_set != '' AND deleted = 0"
     );
 
-    // Всегда включаем 'hotspot-free'
-    $option_values = ['hotspot-free'];
-
     if (!empty($dhcp_option_sets)) {
         foreach ($dhcp_option_sets as $row) {
             $val = trim($row['dhcp_option_set']);
-            if ($val !== '' && $val !== 'hotspot-free') {
+            if ($val !== '') {
                 $option_values[] = $val;
             }
         }
