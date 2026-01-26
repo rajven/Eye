@@ -416,160 +416,199 @@ sub set_changed {
 #---------------------------------------------------------------------------------------------------------------
 
 sub update_dns_record {
-my ($hdb, $auth_id) = @_;
-return unless $config_ref{enable_dns_updates};
-return unless defined $auth_id;
+    my ($hdb, $auth_id) = @_;
 
-# Валидация: auth_id должен быть положительным целым числом
-return unless $auth_id =~ /^\d+$/ && $auth_id > 0;
+    # === 1. Базовые проверки ===
+    return unless $config_ref{enable_dns_updates};
+    return unless defined $auth_id;
 
-if (!$hdb || !$hdb->ping) { $hdb = init_db(); }
-return unless $hdb;
+    # Валидация: auth_id должен быть положительным целым числом
+    return unless $auth_id =~ /^\d+$/ && $auth_id > 0;
 
-# Получаем настройки
-my $ad_zone = get_option($hdb, 33);
-my $ad_dns  = get_option($hdb, 3);
-my $enable_ad_dns_update = ($ad_zone && $ad_dns && $config_ref{enable_dns_updates});
+    # Переподключение к БД при необходимости
+    if (!$hdb || !$hdb->ping) {
+        $hdb = init_db(); 
+    }
+    return unless $hdb;
 
-log_debug("Auth id: $auth_id");
-log_debug("enable_ad_dns_update: " . ($enable_ad_dns_update ? '1' : '0'));
-log_debug("DNS update flags - zone: $ad_zone, dns: $ad_dns, enable_ad_dns_update: " . ($enable_ad_dns_update ? '1' : '0'));
+    # === 2. Получение настроек DNS ===
+    my $ad_zone = get_option($hdb, 33);      # DNS-зона (например, 'example.com')
+    my $ad_dns  = get_option($hdb, 3);       # DNS-сервер
+    my $enable_ad_dns_update = ($ad_zone && $ad_dns && $config_ref{enable_dns_updates});
 
-# Получаем задачи из очереди
-my @dns_queue = get_records_sql(
+    log_debug("Auth id: $auth_id");
+    log_debug("enable_ad_dns_update: " . ($enable_ad_dns_update ? '1' : '0'));
+    log_debug("DNS update flags - zone: $ad_zone, dns: $ad_dns, enable_ad_dns_update: " . ($enable_ad_dns_update ? '1' : '0'));
+
+    # === 3. Получение задач из очереди DNS ===
+    # Используем != '' вместо > '' для совместимости
+    my @dns_queue = get_records_sql(
         $hdb,
-        "SELECT * FROM dns_queue WHERE auth_id = ? AND value > '' AND value NOT LIKE '%.' ORDER BY id ASC",
+        "SELECT * FROM dns_queue 
+         WHERE auth_id = ? 
+           AND value != '' 
+           AND value NOT LIKE '%.' 
+         ORDER BY id ASC",
         $auth_id
     );
+    return unless @dns_queue;
 
-return unless @dns_queue;
+    # === 4. Обработка каждой DNS-команды ===
+    foreach my $dns_cmd (@dns_queue) {
+        my $fqdn = '';
+        my $fqdn_ip = '';
+        my $fqdn_parent = '';
+        my $static_exists = 0;
+        my $static_ref = '';
+        my $static_ok = 0;
 
-foreach my $dns_cmd (@dns_queue) {
+        eval {
+            # === Обработка CNAME записей ===
+            if (lc($dns_cmd->{name_type}) eq 'cname') {
+                # Пропускаем домены с завершающей точкой (уже FQDN)
+                if ($dns_cmd->{name} =~ /\.$/ || $dns_cmd->{value} =~ /\.$/) { 
+                    next; 
+                }
 
-my $fqdn = '';
-my $fqdn_ip = '';
-my $fqdn_parent = '';
-my $static_exists = 0;
-my $static_ref = '';
-my $static_ok = 0;
+                $fqdn = lc($dns_cmd->{name});
+                $fqdn =~ s/\.$ad_zone$//i;  # Убираем зону из имени
+                $fqdn .= ".$ad_zone";        # Добавляем зону для FQDN
 
-eval {
+                if ($dns_cmd->{value}) {
+                    $fqdn_parent = lc($dns_cmd->{value});
+                    $fqdn_parent =~ s/\.$ad_zone$//i;
+                    $fqdn_parent .= ".$ad_zone";
+                }
 
-if ($dns_cmd->{name_type}=~/^cname$/i) {
-    #skip update unknown domain
-    if ($dns_cmd->{name} =~/\.$/ or $dns_cmd->{value} =~/\.$/) { next; }
-
-    $fqdn=lc($dns_cmd->{name});
-    $fqdn=~s/\.$ad_zone$//i;
-#    $fqdn=~s/\.$//;
-    if ($dns_cmd->{value}) {
-        $fqdn_parent=lc($dns_cmd->{value});
-        $fqdn_parent=~s/\.$ad_zone$//i;
-#        $fqdn_parent=~s/\.$//;
-        }
-
-    $fqdn = $fqdn.".".$ad_zone;
-    $fqdn_parent = $fqdn_parent.".".$ad_zone;
-
-    #remove cname
-    if ($dns_cmd->{operation_type} eq 'del') {
-        delete_dns_cname($fqdn_parent,$fqdn,$ad_zone,$ad_dns,$hdb);
-        }
-    #create cname
-    if ($dns_cmd->{operation_type} eq 'add') {
-        create_dns_cname($fqdn_parent,$fqdn,$ad_zone,$ad_dns,$hdb);
-        }
-    }
-
-if ($dns_cmd->{name_type}=~/^a$/i) {
-    #skip update unknown domain
-    if ($dns_cmd->{name} =~/\.$/ or $dns_cmd->{value} =~/\.$/) { next; }
-    $fqdn=lc($dns_cmd->{name});
-    $fqdn=~s/\.$ad_zone$//i;
-#    $fqdn=~s/\.$//;
-    if (!$dns_cmd->{value}) { next; }
-    $fqdn_ip=lc($dns_cmd->{value});
-    $fqdn = $fqdn.".".$ad_zone;
-    #dns update disabled?
-    my $maybe_update_dns=( $enable_ad_dns_update and $office_networks->match_string($fqdn_ip) );
-    if (!$maybe_update_dns) {
-        db_log_info($hdb,"FOUND Auth_id: $auth_id. DNS update disabled.");
-        next;
-        }
-    #get aliases
-    my @aliases = get_records_sql($hdb, "SELECT * FROM user_auth_alias WHERE auth_id = ?", $auth_id);
-    #remove A & PTR
-    if ($dns_cmd->{operation_type} eq 'del') {
-        #remove aliases
-        if (@aliases and scalar @aliases) {
-                foreach my $alias (@aliases) {
-                    delete_dns_cname($fqdn,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
-                    delete_dns_hostname($fqdn,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
+                # Удаление CNAME
+                if ($dns_cmd->{operation_type} eq 'del') {
+                    delete_dns_cname($fqdn_parent, $fqdn, $ad_zone, $ad_dns, $hdb);
+                }
+                # Создание CNAME  
+                elsif ($dns_cmd->{operation_type} eq 'add') {
+                    create_dns_cname($fqdn_parent, $fqdn, $ad_zone, $ad_dns, $hdb);
                 }
             }
-        #remove main record
-        delete_dns_hostname($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
-        delete_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
-        }
-    #create A & PTR
-    if ($dns_cmd->{operation_type} eq 'add') {
-        my @dns_record=ResolveNames($fqdn,$dns_server);
-        $static_exists = (scalar @dns_record>0);
-        if ($static_exists) {
-            $static_ref = join(' ',@dns_record);
-            foreach my $dns_a (@dns_record) {
-                if ($dns_a=~/^$fqdn_ip$/) { $static_ok = 1; }
+
+            # === Обработка A-записей ===
+            elsif (lc($dns_cmd->{name_type}) eq 'a') {
+                # Пропускаем уже FQDN-имена
+                if ($dns_cmd->{name} =~ /\.$/ || $dns_cmd->{value} =~ /\.$/) { 
+                    next; 
                 }
-            db_log_debug($hdb,"Dns record for static record $fqdn: $static_ref");
-            }
-        #skip update if already exists
-        if ($static_ok) {
-            db_log_debug($hdb,"Static record for $fqdn [$static_ok] correct.");
-            next;
-            }
-        #create record
-        create_dns_hostname($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
-        create_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
-        #create aliases
-        if (@aliases and scalar @aliases) {
-                foreach my $alias (@aliases) {
-                    create_dns_cname($fqdn,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
+                
+                $fqdn = lc($dns_cmd->{name});
+                $fqdn =~ s/\.$ad_zone$//i;
+                $fqdn .= ".$ad_zone";
+
+                # Проверка IP-адреса
+                if (!$dns_cmd->{value}) { 
+                    next; 
+                }
+                $fqdn_ip = lc($dns_cmd->{value});
+
+                # Проверка: разрешено ли обновление DNS для этой сети?
+                my $maybe_update_dns = ($enable_ad_dns_update && $office_networks->match_string($fqdn_ip));
+                if (!$maybe_update_dns) {
+                    db_log_info($hdb, "FOUND Auth_id: $auth_id. DNS update disabled.");
+                    next;
+                }
+
+                # Получение алиасов для текущего auth_id
+                my @aliases = get_records_sql(
+                    $hdb, 
+                    "SELECT alias, description FROM user_auth_alias WHERE auth_id = ?", 
+                    $auth_id
+                );
+
+                # Удаление A/PTR записей
+                if ($dns_cmd->{operation_type} eq 'del') {
+                    # Удаляем алиасы (CNAME и A-записи)
+                    for my $alias (@aliases) {
+                        if ($alias->{alias} && $alias->{alias} ne '') {
+                            delete_dns_cname($fqdn, $alias->{alias}, $ad_zone, $ad_dns, $hdb);
+                            delete_dns_hostname($fqdn, $alias->{alias}, $ad_zone, $ad_dns, $hdb);
+                        }
+                    }
+                    # Удаляем основные записи
+                    delete_dns_hostname($fqdn, $fqdn_ip, $ad_zone, $ad_dns, $hdb);
+                    delete_dns_ptr($fqdn, $fqdn_ip, $ad_zone, $ad_dns, $hdb);
+                }
+                # Создание A/PTR записей
+                elsif ($dns_cmd->{operation_type} eq 'add') {
+                    # Проверяем существующие DNS-записи
+                    my @dns_record = ResolveNames($fqdn, $dns_server);
+                    $static_exists = (@dns_record > 0);
+                    
+                    if ($static_exists) {
+                        $static_ref = join(' ', @dns_record);
+                        # Проверяем, совпадает ли IP
+                        for my $dns_a (@dns_record) {
+                            if ($dns_a eq $fqdn_ip) { 
+                                $static_ok = 1; 
+                                last;
+                            }
+                        }
+                        db_log_debug($hdb, "Dns record for static record $fqdn: $static_ref");
+                    }
+
+                    # Пропускаем, если запись уже корректна
+                    if ($static_ok) {
+                        db_log_debug($hdb, "Static record for $fqdn [$fqdn_ip] correct.");
+                        next;
+                    }
+
+                    # Создаём основные записи
+                    create_dns_hostname($fqdn, $fqdn_ip, $ad_zone, $ad_dns, $hdb);
+                    create_dns_ptr($fqdn, $fqdn_ip, $ad_zone, $ad_dns, $hdb);
+
+                    # Создаём алиасы
+                    for my $alias (@aliases) {
+                        if ($alias->{alias} && $alias->{alias} ne '') {
+                            create_dns_cname($fqdn, $alias->{alias}, $ad_zone, $ad_dns, $hdb);
+                        }
+                    }
                 }
             }
+
+            # === Обработка PTR записей ===
+            elsif (lc($dns_cmd->{name_type}) eq 'ptr') {
+                $fqdn = lc($dns_cmd->{name});
+                $fqdn =~ s/\.$ad_zone$//i;
+                $fqdn .= ".$ad_zone";
+
+                if (!$dns_cmd->{value}) { 
+                    next; 
+                }
+                $fqdn_ip = lc($dns_cmd->{value});
+
+                # Пропускаем FQDN
+                if ($fqdn =~ /\.$/) { 
+                    next; 
+                }
+
+                # Проверка разрешения обновления
+                my $maybe_update_dns = ($enable_ad_dns_update && $office_networks->match_string($fqdn_ip));
+                if (!$maybe_update_dns) {
+                    db_log_info($hdb, "FOUND Auth_id: $auth_id. DNS update disabled.");
+                    next;
+                }
+
+                # Удаление PTR
+                if ($dns_cmd->{operation_type} eq 'del') {
+                    delete_dns_ptr($fqdn, $fqdn_ip, $ad_zone, $ad_dns, $hdb);
+                }
+                # Создание PTR
+                elsif ($dns_cmd->{operation_type} eq 'add') {
+                    create_dns_ptr($fqdn, $fqdn_ip, $ad_zone, $ad_dns, $hdb);
+                }
+            }
+        };
+
+        if ($@) {
+            log_error("Error processing DNS command for auth_id=$auth_id: $@");
         }
     }
-#PTR
-if ($dns_cmd->{name_type}=~/^ptr$/i) {
-    $fqdn=lc($dns_cmd->{name});
-    $fqdn=~s/\.$ad_zone$//i;
-#    $fqdn=~s/\.$//;
-    if (!$dns_cmd->{value}) { next; }
-    $fqdn_ip=lc($dns_cmd->{value});
-    #skip update unknown domain
-    if ($fqdn =~/\.$/) { next; }
-    $fqdn = $fqdn.".".$ad_zone;
-    #dns update disabled?
-    my $maybe_update_dns=( $enable_ad_dns_update and $office_networks->match_string($fqdn_ip) );
-    if (!$maybe_update_dns) {
-        db_log_info($hdb,"FOUND Auth_id: $auth_id. DNS update disabled.");
-        next;
-        }
-    #remove A & PTR
-    if ($dns_cmd->{operation_type} eq 'del') {
-        #remove main record
-        delete_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
-        }
-    #create A & PTR
-    if ($dns_cmd->{operation_type} eq 'add') {
-        #create record
-        create_dns_ptr($fqdn,$fqdn_ip,$ad_zone,$ad_dns,$hdb);
-        }
-    }
-
-};
-if ($@) { log_error("Error dns commands: $@"); }
-}
-
 }
 
 #---------------------------------------------------------------------------------------------------------------
