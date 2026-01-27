@@ -15,7 +15,7 @@ no warnings 'utf8';
 use strict;
 use English;
 use FindBin '$Bin';
-use lib "$Bin/";
+use lib "/opt/Eye/scripts";
 use Data::Dumper;
 use eyelib::config;
 use File::Find;
@@ -37,16 +37,22 @@ my $api_key  = $config_ref{api_key}  || die "Ошибка: не настроен
 my $api_login = $config_ref{api_login} || die "Ошибка: не настроен параметр api_login в конфигурации\n";
 
 # Базовые параметры аутентификации для всех запросов
-my $auth_params = "api_key=" . uri_escape($api_key) . "&login=" . uri_escape($api_login);
+my $auth_params = "api_key=" . uri_escape($api_key) . "&api_login=" . uri_escape($api_login);
 
 # Инициализация HTTP-клиента
 my $ua = LWP::UserAgent->new(
     timeout => 30,
-    agent   => 'WikiSync/1.0'
+    agent   => 'EyeWikiSync/1.0'
 );
 
+my $api_request_url = $api_base."?".$auth_params;
+
+my $option_filter = encode_json({ option_id => '61' });
+
 # === Получение пути к вики из таблицы config (id=61) ===
-my $config_record = api_call('GET', "$api_base?get_table_record&table=config&id=61&$auth_params");
+my $api_request = $api_request_url."&get=table_record&table=config&filter=".uri_escape($option_filter);
+
+my $config_record = api_call('GET', $api_request);
 if (!$config_record || $config_record->{error}) {
     die "Ошибка: не удалось получить путь к вики из таблицы config (id=61)\n";
 }
@@ -90,7 +96,7 @@ foreach my $fname (sort keys %content) {
     next unless $ip && is_valid_ipv4($ip);
 
     # Получение записи из БД через API
-    my $auth = api_call('GET', "$api_base/user_auth.php?get=user_auth&ip=" . uri_escape($ip) . "&$auth_params");
+    my $auth = api_call('GET', $api_request_url. "&get=user_auth&ip=" . uri_escape($ip));
     if (!$auth || $auth->{error}) {
         print "Запись не найдена для IP $ip (файл: $fname)\n";
         next;
@@ -98,20 +104,19 @@ foreach my $fname (sort keys %content) {
 
     # Обновление поля WikiName через метод обновления user_auth
     my $update_data = {
-        wiki_name => $fname  # Используем нижний регистр как принято в БД
+        wikiname => $fname
     };
 
     my $json_data = encode_json($update_data);
-    my $update_url = "$api_base/user_auth.php?send=update_user_auth&id=$auth->{id}&$auth_params";
-    
+    my $update_url = $api_request_url. "&send=update_user_auth&id=$auth->{id}";
     my $update_req = HTTP::Request->new(POST => $update_url);
     $update_req->header('Content-Type' => 'application/json');
     $update_req->content($json_data);
-    
+
     my $update_res = $ua->request($update_req);
-    
+
     if ($update_res->is_success) {
-        my $result = decode_json(decode_utf8($update_res->decoded_content));
+        my $result = decode_json($update_res->decoded_content);
         if (!$result->{error}) {
             print "Обновлено: id=$auth->{id} IP=$ip => WikiName=$fname\n";
             $updated++;
@@ -132,3 +137,26 @@ print "Ошибок: $errors\n";
 print "Синхронизация завершена.\n";
 
 exit 0;
+
+sub api_call {
+    my ($method, $url) = @_;
+    my $req = HTTP::Request->new($method => $url);
+    my $res = $ua->request($req);
+    return undef unless $res->is_success;
+    return decode_json($res->decoded_content);
+}
+
+sub wanted {
+    my $filename = $File::Find::name;
+    my $dev_name = basename($filename);
+    if ($dev_name =~ /\.txt$/ && $dev_name =~ /^(Device|Switch|Ups|Sensor|Gateway|Router|Server|Bras)/) {
+        $dev_name =~ s/\.txt$//;
+        $content{$dev_name} = $filename;
+    }
+    return;
+}
+
+sub is_valid_ipv4 {
+    my ($ip) = @_;
+    return $ip =~ /^([0-9]{1,3}\.){3}[0-9]{1,3}$/ && !grep { $_ > 255 } split(/\./, $ip);
+}
