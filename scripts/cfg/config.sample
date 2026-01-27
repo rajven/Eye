@@ -44,4 +44,4 @@ encryption_iv=0123456789012345
 
 #api_base=http://127.0.0.1/api.php
 #api_key=<USER_KEY>
-#api_loign=<USER_LOGIN>
+#api_login=<USER_LOGIN>
