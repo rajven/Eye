@@ -515,11 +515,12 @@ sub prepare_audit_message {
         $op_label = ucfirst($operation);
     }
 
-    my $message = sprintf("[%s] %s (%s) in table `%s`:\n",
+    my $message = sprintf("[%s] %s (%s) in table `%s` by %s:\n\n",
         $op_label,
         ucfirst($table),
         $summary_label,
-        $table
+        $table,
+        $MY_NAME
     );
 
     for my $field (sort keys %resolved_changes) {

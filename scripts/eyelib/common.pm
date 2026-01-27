@@ -626,7 +626,7 @@ sub is_ad_computer {
     # Проверка домена (если указан)
     if (defined $ad_zone && $ad_zone ne '' && $computer_name =~ /\./) {
         if ($computer_name !~ /\Q$ad_zone\E$/i) {
-            db_log_verbose($hdb, "The domain of the computer $computer_name does not match the domain of the organization $ad_zone. Skip update.");
+            db_log_warning($hdb, "The domain of the computer $computer_name does not match the domain of the organization $ad_zone. Skip update.");
             return 0;
         }
     }
@@ -637,7 +637,7 @@ sub is_ad_computer {
 
     # Валидация NetBIOS-имени
     if (!$netbios_name || $netbios_name !~ /^[a-zA-Z0-9][a-zA-Z0-9_\-\$]{0,14}$/) {
-        db_log_verbose($hdb, "Invalid computer name format: '$computer_name'");
+        db_log_info($hdb, "Invalid computer name format: '$computer_name'");
         return 0;
     }
 
@@ -651,7 +651,7 @@ sub is_ad_computer {
     my %name_found = do_exec_ref("/usr/bin/getent passwd $safe_name");
 
     if (!$name_found{output} || $name_found{status} ne 0) {
-        db_log_verbose($hdb, "The computer " . uc($ad_computer_name) . " was not found in the domain $ad_zone. Skip update.");
+        db_log_info($hdb, "The computer " . uc($ad_computer_name) . " was not found in the domain $ad_zone. Skip update.");
         return 0;
     }
 
@@ -697,7 +697,7 @@ $enable_ad_dns_update. ", network dns-update enabled: ".$subnets_dhcp->{$dhcp_re
 my $maybe_update_dns=($enable_ad_dns_update and $subnets_dhcp->{$dhcp_record->{network}->{subnet}}->{dhcp_update_hostname} and 
 (is_ad_computer($hdb,$dhcp_record->{hostname_utf8}) and ($dhcp_record->{type}=~/add/i or $dhcp_record->{type}=~/old/i)));
 if (!$maybe_update_dns) {
-    db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id}. DNS update don't needed.");
+    db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id}. DNS update don't needed for this host/subnet/domain.");
     return 0;
     }
 
@@ -718,7 +718,7 @@ if ($fqdn!~/\.$ad_zone$/i) {
     $fqdn=lc($fqdn.'.'.$ad_zone);
     }
 
-db_log_debug($hdb,"FOUND Auth_id: $auth_record->{id} dns_name: $fqdn_static dhcp_hostname: $fqdn");
+db_log_debug($hdb,"DNS :: FOUND Auth_id: $auth_record->{id} dns_name from systemd: $fqdn_static dhcp_hostname from request: $fqdn");
 
 #check exists static dns name
 my $static_exists = 0;
@@ -750,14 +750,13 @@ if ($fqdn ne '') {
             }
     }
 
-db_log_debug($hdb,"Dns record for static record $fqdn_static: $static_ok");
-db_log_debug($hdb,"Dns record for dhcp-hostname $fqdn: $dynamic_ok");
+db_log_debug($hdb,"Dns record for static record $fqdn_static: $static_ok :: for dhcp-hostname $fqdn: $dynamic_ok");
 
 if ($fqdn_static ne '') {
     if (!$static_ok) {
-        db_log_info($hdb,"Static record mismatch! Expected $fqdn_static => $dhcp_record->{ip}, recivied: $static_ref");
+        db_log_info($hdb,"DNS :: Static record mismatch! Expected $fqdn_static => $dhcp_record->{ip}, recivied: $static_ref");
         if (!$static_exists) {
-                db_log_info($hdb,"Static dns hostname defined but not found. Create it ($fqdn_static => $dhcp_record->{ip})!");
+                db_log_info($hdb,"DNS :: Static dns hostname defined but not found. Create it ($fqdn_static => $dhcp_record->{ip})!");
                 create_dns_hostname($fqdn_static,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
                 }
         } else {
@@ -765,10 +764,10 @@ if ($fqdn_static ne '') {
 	}
     }
 
-if ($fqdn ne '' and $dynamic_ok ne '') { db_log_debug($hdb,"Dynamic record for $fqdn [$dynamic_ok] correct. No changes required."); }
+if ($fqdn ne '' and $dynamic_ok ne '') { db_log_debug($hdb,"DNS :: Dynamic record for $fqdn [$dynamic_ok] correct. No changes required."); }
 
 if ($fqdn ne '' and !$dynamic_ok) {
-    log_error("Dynamic record mismatch! Expected: $fqdn => $dhcp_record->{ip}, recivied: $dynamic_ref. Checking the status.");
+    log_error("DNS :: Dynamic record mismatch! Expected: $fqdn => $dhcp_record->{ip}, recivied: $dynamic_ref. Checking the status.");
     #check exists hostname
     my $another_hostname_exists = 0;
     my @conditions;
@@ -799,12 +798,12 @@ if ($fqdn ne '' and !$dynamic_ok) {
     if (!$another_hostname_exists) {
             if ($fqdn_static and $fqdn_static ne '') {
                     if ($fqdn_static!~/$fqdn/) {
-                        db_log_info($hdb,"Hostname from dhcp request $fqdn differs from static dns hostname $fqdn_static. Ignore dynamic binding!");
+                        db_log_info($hdb,"DNS :: Hostname from dhcp request $fqdn differs from static dns hostname $fqdn_static. Ignore dynamic binding!");
 #                        delete_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
 #                        create_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
                         }
                     } else {
-        	    db_log_info($hdb,"Rewrite aliases if exists for $fqdn => $dhcp_record->{ip}");
+        	    db_log_info($hdb,"DNS :: Rewrite aliases if exists for $fqdn => $dhcp_record->{ip}");
                     #get and remove aliases
                     my @aliases = get_records_sql($hdb, "SELECT * FROM user_auth_alias WHERE auth_id = ?", $auth_record->{id});
                     if (@aliases and scalar @aliases) {
@@ -812,7 +811,7 @@ if ($fqdn ne '' and !$dynamic_ok) {
                                 delete_dns_cname($fqdn_static,$alias->{alias},$ad_zone,$ad_dns,$hdb) if ($alias->{alias});
                             }
                         }
-        	    db_log_info($hdb,"Static dns hostname not defined. Create dns record by dhcp request. $fqdn => $dhcp_record->{ip}");
+        	    db_log_info($hdb,"DNS :: Static dns hostname not defined. Create dns record by dhcp request. $fqdn => $dhcp_record->{ip}");
         	    create_dns_hostname($fqdn,$dhcp_record->{ip},$ad_zone,$ad_dns,$hdb);
                     if (@aliases and scalar @aliases) {
                             foreach my $alias (@aliases) {
@@ -821,7 +820,7 @@ if ($fqdn ne '' and !$dynamic_ok) {
                         }
         	    }
 	    } else {
-            db_log_error($hdb,"Found another record with some hostname id: $name_record->{id} ip: $name_record->{ip} hostname: $name_record->{dns_name}. Skip update.");
+            db_log_error($hdb,"DNS :: Found another record with some hostname id: $name_record->{id} ip: $name_record->{ip} hostname: $name_record->{dns_name}. Skip update.");
             }
     }
 #end update dns block
@@ -1321,6 +1320,7 @@ sub resurrection_auth {
     my $auth_ident = "Found new ip-address: $ip";
     $auth_ident .= " [$mac]" if $mac;
     $auth_ident .= " :: $hostname" if $hostname;
+    $auth_ident .= " :: client-id = $client_id" if $client_id;
 
     my $ip_aton = $ip_record->{ip_aton};
     return 0 unless defined $ip_aton;
@@ -1822,7 +1822,7 @@ sub process_dhcp_request {
 
     # Если запись не найдена и тип 'del' — выходим
     if (!$auth_record && $type eq 'del') {
-        db_log_info($db, "Auth recrod for ip: $ip mac: $mac not found. Dhcp request type: $type");
+        db_log_info($db, "Auth recrod for ip: $ip mac: $mac not found. Dhcp request type: $type. Skip processing.");
         return;
     }
 
@@ -1834,7 +1834,7 @@ sub process_dhcp_request {
             return;
         }
         $auth_record = get_record_sql($db, "SELECT * FROM user_auth WHERE id = ?", $res_id);
-        db_log_info($db, "Check for new auth. Found id: $res_id", $res_id);
+        db_log_info($db, "Created new auth. auth id: $res_id", $res_id);
     }
 
     if (!$auth_record || !$auth_record->{id}) {
@@ -1858,7 +1858,7 @@ sub process_dhcp_request {
             arp_found     => $dhcp_event_time,
             created_by    => 'dhcp',
         };
-        db_log_verbose($db, "Add lease by dhcp event for dynamic clients id: $auth_id ip: $ip", $auth_id);
+        log_info("Add lease by dhcp event for client id: $auth_id ip: $ip mac: $mac");
         update_record($db, 'user_auth', $auth_rec, 'id = ?', $auth_id);
     }
 
@@ -1870,26 +1870,25 @@ sub process_dhcp_request {
             created_by  => 'dhcp',
             arp_found   => $dhcp_event_time,
         };
-        db_log_verbose($db, "Update lease by dhcp event for dynamic clients id: $auth_id ip: $ip", $auth_id);
+        log_info("Update lease by dhcp event for client id: $auth_id ip: $ip mac: $mac");
         update_record($db, 'user_auth', $auth_rec, 'id = ?', $auth_id);
     }
 
     # --- Обработка DEL ---
     if ($type eq 'del' && $auth_id) {
         if ($auth_record->{dhcp_time} =~ /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/) {
-            my $d_time = mktime($6, $5, $4, $3, $2 - 1, $1 - 1900);
-            if (time() - $d_time > 60 && (is_dynamic_ou($db, $auth_ou_id) || is_default_ou($db, $auth_ou_id))) {
-                db_log_info($db, "Remove user ip record by dhcp release event for dynamic clients id: $auth_id ip: $ip", $auth_id);
-                my $auth_rec = {
+            log_info("Release dhcp event for client id: $auth_id ip: $ip mac: $mac");
+            my $auth_rec = {
                     dhcp_action => $type,
                     dhcp_time   => $dhcp_event_time,
                 };
-                update_record($db, 'user_auth', $auth_rec, 'id = ?', $auth_id);
-
+            update_record($db, 'user_auth', $auth_rec, 'id = ?', $auth_id);
+            my $d_time = mktime($6, $5, $4, $3, $2 - 1, $1 - 1900);
+            if (time() - $d_time > 60 && (is_dynamic_ou($db, $auth_ou_id) || is_default_ou($db, $auth_ou_id))) {
                 # Удаляем запись, если она из динамического или дефолтного пула
                 if (is_default_ou($db, $auth_ou_id) || (is_dynamic_ou($db, $auth_ou_id) && $auth_record->{dynamic})) {
+                    db_log_info($db, "Remove user ip record by dhcp release event for dynamic clients id: $auth_id ip: $ip mac: $mac", $auth_id);
                     delete_user_auth($db, $auth_id);
-
                     # Проверяем, остались ли другие записи у пользователя
                     my $u_count = get_record_sql($db,
                         "SELECT COUNT(*) AS cnt FROM user_auth WHERE deleted = 0 AND user_id = ?",

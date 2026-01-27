@@ -152,7 +152,7 @@ sub run {
                 next unless $logline;
                 chomp($logline);
 
-                log_verbose("Log line received: $logline");
+                log_info("Log line received: $logline");
 
                 # Remove non-printable characters (keep letters, digits, punctuation, whitespace)
                 $logline =~ s/[^\p{L}\p{N}\p{P}\p{Z}]//g;
@@ -179,7 +179,7 @@ sub run {
                 # Skip lines without valid event type
                 next unless $dhcp_event{'type'} && $dhcp_event{'type'} =~ /^(old|add|del)$/i;
 
-                log_debug("Processing DHCP event: type='$dhcp_event{'type'}', MAC='$dhcp_event{'mac'}', IP='$dhcp_event{'ip'}'");
+                log_info("Processing event: type='$dhcp_event{'type'}', MAC='$dhcp_event{'mac'}', IP='$dhcp_event{'ip'}', NAME='$dhcp_event{'hostname'}', client-id='$dhcp_event{'client_id'}', circuit_id='$dhcp_event{'decoded_circuit_id'}', remote_id='$dhcp_event{'$decoded_remote_id'}'");
 
                 # Suppress duplicate events within $mute_time window
                 if (exists $leases{$dhcp_event{'ip'}} && $leases{$dhcp_event{'ip'}}{type} eq $dhcp_event{'type'} && (time() - $leases{$dhcp_event{'ip'}}{last_time} <= $mute_time)) {
@@ -228,7 +228,7 @@ sub run {
                             $dhcp_event{'circuit_id'} = $dhcp_event{'decoded_circuit_id'};
                             $dhcp_record->{circuit_id} = $dhcp_event{'circuit_id'};
                             $dhcp_record->{remote_id} = $dhcp_event{'remote_id'};
-                            log_debug("Switch found via decoded_remote_id: " . $switch->{device_name});
+                            log_info("Switch found via decoded_remote_id: " . $switch->{device_name});
                         }
                     }
 
@@ -246,7 +246,7 @@ sub run {
                             $dhcp_event{'remote_id'} = $t_remote_id;
                             $dhcp_record->{circuit_id} = $dhcp_event{'circuit_id'};
                             $dhcp_record->{remote_id} = $dhcp_event{'remote_id'};
-                            log_debug("Switch found via remote_id: " . $switch->{device_name});
+                            log_info("Switch found via remote_id: " . $switch->{device_name});
                         }
                     }
 
@@ -260,7 +260,7 @@ sub run {
                                          "AND D.device_name LIKE ?";
                             $switch = get_record_sql($hdb, $devSQL, $id_words[0] . '%');
                             if ($switch) {
-                                log_debug("Switch found by name: " . $switch->{device_name});
+                                log_info("Switch found by name: " . $switch->{device_name});
                             }
                         }
                     }
@@ -286,7 +286,7 @@ sub run {
 
                     # === LOG IF NO SWITCH MATCH FOUND ===
                     unless ($switch) {
-                        log_warning("No matching switch found for DHCP event: IP=$dhcp_event{'ip'}, MAC=$dhcp_event{'mac'}, remote_id='$dhcp_event{'remote_id'}', circuit_id='$dhcp_event{'circuit_id'}'");
+                        log_info("No matching switch found for DHCP event: IP=$dhcp_event{'ip'}, MAC=$dhcp_event{'mac'}, remote_id='$dhcp_event{'remote_id'}', circuit_id='$dhcp_event{'circuit_id'}'");
                     }
 
                     # === PORT IDENTIFICATION ===
@@ -319,7 +319,7 @@ sub run {
                             if ($hex_port && $hex_port =~ /^[0-9a-fA-F]{2}$/) {
                                 my $t_port = hex($hex_port);
                                 $switch_port = $device_ports_h{$t_port} if exists $device_ports_h{$t_port};
-                                log_debug("Port identified via hex: $t_port") if $switch_port;
+                                log_info("Port identified via hex: $t_port") if $switch_port;
                             }
                         }
 
@@ -340,12 +340,10 @@ sub run {
                             }
                         } else {
                             db_log_verbose($hdb, "DHCP $dhcp_event{'type'}: IP=$dhcp_event{'ip'}, MAC=$dhcp_event{'mac'} " . $switch->{device_name} . " (port not identified)");
-                            log_warning("Failed to identify port for IP=$dhcp_event{'ip'} on switch=" . $switch->{device_name});
+                            log_info("Failed to identify port for IP=$dhcp_event{'ip'} on switch=" . $switch->{device_name});
                         }
                     }
-
-                    log_debug("Switch identified: " . ($switch ? $switch->{device_name} : "NONE"));
-                    log_debug("Port identified: " . ($switch_port ? $switch_port->{ifname} : "NONE"));
+                    log_verbose("Identified Switch: " . ($switch ? $switch->{device_name} : "NONE") . " Port : " . ($switch_port ? $switch_port->{ifname} : "NONE"));
                 }
             } # end while log reading
 
