@@ -5,17 +5,39 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
 login($db_link);
 
 // Получаем параметры через безопасные функции
-$action_get  = getParam('get');
-$action_send = getParam('send');
+$action_get  = getParam('get', null, null);
+$action_send = getParam('send', null, null);
 $ip          = getParam('ip', null, null, FILTER_VALIDATE_IP, ['flags' => FILTER_FLAG_IPV4]);
-$mac_raw     = getParam('mac');
+$mac_raw     = getParam('mac', null, null);
 $rec_id      = getParam('id', null, null, FILTER_VALIDATE_INT);
-$f_subnet    = getParam('subnet');
+$f_subnet    = getParam('subnet', null, null);
+
+// Преобразуем IP в BIGINT
+$ip_aton = null;
+if (!empty($ip)) {
+        $ip_aton = sprintf('%u', ip2long($ip));
+    }
 
 // Новые параметры для универсальных методов
-$table       = getParam('table');
-$filter      = getParam('filter'); // JSON-строка для кастомного фильтра
-$update_data = getParam('data'); // JSON-данные для обновления
+$table       = getParam('table', null, null);
+$filter      = getParam('filter', null, null); // JSON-строка для кастомного фильтра
+
+$update_data = null;
+$content_type = isset($_SERVER['CONTENT_TYPE']) ? $_SERVER['CONTENT_TYPE'] : '';
+if (stripos($content_type, 'application/json') !== false) {
+    $raw_input = file_get_contents('php://input');
+    if ($raw_input) {
+        $json_data = json_decode($raw_input, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            $update_data = $raw_input; // Передаём как строку для дальнейшей обработки
+        }
+    }
+}
+
+// Если не получили из тела запроса, пытаемся получить из параметров
+if ($update_data === null) {
+    $update_data = getParam('data', null, null);
+}
 
 // Параметры пагинации
 $limit_param = getParam('limit', null, null, FILTER_VALIDATE_INT);
@@ -35,8 +57,8 @@ if (!empty($action_get))  { $action = 'get_' . $action_get; }
 if (!empty($action_send)) { $action = 'send_' . $action_send; }
 
 // Дополнительные параметры для send_dhcp
-$dhcp_hostname = getParam('hostname', '');
-$dhcp_action   = getParam('action', 1, FILTER_VALIDATE_INT);
+$dhcp_hostname = getParam('hostname', null, '');
+$dhcp_action   = getParam('action', null, 1, FILTER_VALIDATE_INT);
 
 // === Список разрешённых таблиц ===
 $allowed_tables = [
@@ -99,7 +121,8 @@ function safe_get_records($db, $table, $filter = null, $limit = 1000, $offset = 
         $sql .= " OFFSET " . (int)$offset;
     }
     
-    return get_records_sql($db, $sql, $params);
+    $result = get_records_sql($db, $sql, $params);
+    return $result;
 }
 
 // === Безопасное получение одной записи ===
@@ -115,27 +138,29 @@ function safe_get_record($db, $table, $id) {
     }
     
     $pk_field = 'id'; // Все таблицы используют 'id' как первичный ключ
-    return get_record_sql($db, "SELECT * FROM $table WHERE $pk_field = ?", [(int)$id]);
+    $result = get_record_sql($db, "SELECT * FROM $table WHERE $pk_field = ?", [(int)$id]);
+    error_log("SELECT * FROM $table WHERE $pk_field = $id ::". $result);
+    return $result;
 }
 
 if (!empty($action)) {
 
-    // Преобразуем IP в BIGINT (если валиден)
-    $ip_aton = null;
-    if (!empty($ip)) { 
-        $ip_aton = sprintf('%u', ip2long($ip)); 
-    }
 
     // === УНИВЕРСАЛЬНЫЙ МЕТОД: get_table_record ===
-    if ($action === 'get_table_record' && !empty($table) && $rec_id > 0) {
-        $result = safe_get_record($db_link, $table, $rec_id);
-        
+    if ($action === 'get_table_record' && !empty($table)) {
+        if ($rec_id>0) {
+            $result = safe_get_record($db_link, $table, $rec_id);
+            } elseif (!empty($filter)) {
+            $result_arr = safe_get_records($db_link, $table, $filter, 1);
+            if (!empty($result_arr)) { $result = $result_arr[0]; }
+            } else {
+            do_exit();
+            }
         if (isset($result['error'])) {
             http_response_code(400);
             echo json_encode($result);
             do_exit();
         }
-        
         if ($result) {
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
@@ -214,16 +239,16 @@ if (!empty($action)) {
     // === ОБНОВЛЕНИЕ USER_AUTH ===
     if ($action === 'send_update_user_auth' && $rec_id > 0 && !empty($update_data)) {
         $data = json_decode($update_data, true);
-        
+
         if (!is_array($data)) {
             http_response_code(400);
             echo json_encode(['error' => 'Invalid data format']);
             do_exit();
         }
-        
+
         // Разрешённые поля для обновления
-        $allowed_fields = ['mac', 'ip', 'ip_int', 'wiki_name', 'description', 'dns_name'];
-        
+        $allowed_fields = ['mac', 'ip', 'ip_int', 'wikiname', 'description', 'dns_name'];
+
         $update_fields = [];
         foreach ($data as $key => $value) {
             $db_key = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $key)); // WikiName -> wiki_name
@@ -239,11 +264,11 @@ if (!empty($action)) {
         }
         
         if (update_record($db_link, 'user_auth', 'id = ?', $update_fields, [$rec_id])) {
-            LOG_VERBOSE($db_link, "API: User_auth $rec_id updated via API");
+            LOG_VERBOSE($db_link, "API: User_auth $rec_id updated via API", $rec_id);
             http_response_code(200);
             echo json_encode(['status' => 'updated', 'id' => $rec_id]);
         } else {
-            LOG_ERROR($db_link, "API: Failed to update user_auth $rec_id");
+            LOG_ERROR($db_link, "API: Failed to update user_auth $rec_id", $rec_id);
             http_response_code(500);
             echo json_encode(['error' => 'Update failed']);
         }
@@ -296,7 +321,7 @@ if (!empty($action)) {
         LOG_VERBOSE($db_link, "API: Get User record with id: $rec_id");
         
         if ($rec_id > 0) {
-            $user = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$rec_id]);
+            $user = get_record_sql($db_link, "SELECT * FROM user_list WHERE deleted = 0 AND id = ?", [$rec_id]);
             if ($user) {
                 $auth_records = get_records_sql($db_link, 
                     "SELECT * FROM user_auth WHERE deleted = 0 AND user_id = ? ORDER BY id LIMIT 100", 

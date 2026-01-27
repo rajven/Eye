@@ -1649,7 +1649,7 @@ if ($table eq 'user_auth') {
             my $dns_rec_name = $old_record->{dns_name};
             if ($record->{'dns_name'}) { $dns_rec_name = $record->{'dns_name'}; }
             if ($record->{'ip'}) { $dns_rec_ip = $record->{'ip'}; }
-            if ($dns_rec_name and $dns_rec_ip and !$record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+            if ($dns_rec_name and $dns_rec_ip and !$record->{'dns_ptr_only'} and $dns_rec_name !~ /\.$/) {
                 $new_dns->{'name_type'}='A';
                 $new_dns->{'name'}=$dns_rec_name;
                 $new_dns->{'value'}=$dns_rec_ip;
@@ -1657,7 +1657,7 @@ if ($table eq 'user_auth') {
                 if ($rec_id) { $new_dns->{'auth_id'}=$rec_id; }
                 insert_record($db,'dns_queue',$new_dns);
                 }
-            if ($dns_rec_name and $dns_rec_ip and $record->{'dns_ptr_only'} and $record->{'dns_name'}!~/\.$/) {
+            if ($dns_rec_name and $dns_rec_ip and $record->{'dns_ptr_only'} and $dns_rec_name !~ /\.$/) {
                 $new_dns->{'name_type'}='PTR';
                 $new_dns->{'name'}=$dns_rec_name;
                 $new_dns->{'value'}=$dns_rec_ip;
