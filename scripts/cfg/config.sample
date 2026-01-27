@@ -41,3 +41,7 @@ nagios_event_socket=/var/spool/nagios4/hoststate.socket
 #crypt config - 8/16/24 char and equal length
 encryption_key=!!!CHANGE_ME!!!!
 encryption_iv=0123456789012345
+
+#api_base=http://127.0.0.1/api.php
+#api_key=<USER_KEY>
+#api_loign=<USER_LOGIN>

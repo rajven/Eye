@@ -170,6 +170,10 @@ $config_ref{nagios_event_socket}=$Config->{_}->{nagios_event_socket} || '/var/sp
 $config_ref{encryption_key}=$Config->{_}->{encryption_key} || '!!!CHANGE_ME!!!';
 $config_ref{encryption_iv}=$Config->{_}->{encryption_iv} || '123456782345';
 
+$config_ref{api_base}=$Config->{_}->{api_base} || 'http://127.0.0.1/api.php';
+$config_ref{api_login}=$Config->{_}->{api_login} || 'admin';
+$config_ref{api_key}=$Config->{_}->{api_key} || 'c3284d0f94606de1fd2af172aba15bf31';
+
 our $MY_NAME=$FN[-1];
 our $SPID=$config_ref{pid_file};
 

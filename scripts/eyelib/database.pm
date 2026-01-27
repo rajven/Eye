@@ -80,7 +80,6 @@ init_db
 do_sql
 _execute_param
 do_sql_param
-get_option_safe
 get_count_records
 get_id_record
 get_records_sql
