@@ -16,7 +16,6 @@ use strict;
 use English;
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
-use Data::Dumper;
 use eyelib::config;
 use File::Find;
 use File::Basename;
@@ -47,7 +46,8 @@ my $ua = LWP::UserAgent->new(
 
 my $api_request_url = $api_base."?".$auth_params;
 
-my $option_filter = encode_json({ option_id => '61' });  # ОСТАВЛЕН КАК ЕСТЬ!
+# берём по коду параметра, а не id записи!
+my $option_filter = encode_json({ option_id => '61' });
 
 # === Получение пути к вики из таблицы config (id=61) ===
 my $api_request = $api_request_url."&get=table_record&table=config&filter=".uri_escape($option_filter);

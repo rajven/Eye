@@ -98,13 +98,15 @@ foreach my $fname (sort keys %content) {
 
     # Получение записи из user_auth по IP через API
     my $auth_response = api_call($ua, 'GET', $api_request_url. "&get=user_auth&ip=" . uri_escape($ip));
-    if ($auth_response->{error} || !$auth_response->{data}->{wikiname}) {
-        next;
-    }
+    if ($auth_response->{error} || !$auth_response->{data} || !$auth_response->{data}->{wikiname}) {
+	print "Record for ip: $ip not found or WikiName is empty! Err: $auth_response->{error}\n";
+	next;
+	}
+
     my $auth = $auth_response->{data};
 
     # Пропускаем шлюзы
-    next if $auth->{wikiname} =~ /^Gateway/;
+    next if ($auth->{wikiname} =~ /^Gateway/);
 
     print "Found: $auth->{ip} $auth->{mac} ";
 
@@ -115,14 +117,23 @@ foreach my $fname (sort keys %content) {
     eval {
         if ($auth->{wikiname} =~ /^(Switch|Router)/) {
             # Для коммутаторов/маршрутизаторов: получаем данные через цепочку устройств
-            my $device_response = api_call($ua, 'GET', $api_request_url. "&get=table_record&table=devices&filter=" . uri_escape(encode_json({ ip => $ip })));
-            die "Unknown device" unless $device_response->{data};
-            my $device = $device_response->{data};
-            
+	    my $auth_list_response = api_call($ua, 'GET', $api_request_url. "&get=table_list&table=user_auth&filter=" . uri_escape(encode_json({ user_id => $auth->{user_id} })));
+	    die "empty user ip list" unless $auth_list_response->{data} && ref($auth_list_response->{data}) eq 'ARRAY' && @{$auth_list_response->{data}} > 0;
+	    my $IPS=();
+	    my $device;
+	    foreach my $auth_row (@{$auth_list_response->{data}}) {
+		my $dev_ip = $auth_row->{ip};
+                my $device_response = api_call($ua, 'GET', $api_request_url. "&get=table_record&table=devices&filter=" . uri_escape(encode_json({ ip => $dev_ip })));
+	        next if (exists $device_response->{error} || !$device_response->{data});
+    	        $device = $device_response->{data};
+		last;
+	    }
+	    die "this device not found!" unless $device;
+
             # Получаем аплинк-порт
-            my $uplink_ports_response = api_call($ua, 'GET', $api_request_url . "&get=table_list&table=device_ports&filter=" . uri_escape(encode_json({ device_id => $device->{id}, uplink => 1 })));
-            die "Unknown connection" unless $uplink_ports_response->{data} && ref($uplink_ports_response->{data}) eq 'ARRAY' && @{$uplink_ports_response->{data}} > 0;
-            my $parent_connect = $uplink_ports_response->{data}->[0];
+            my $uplink_ports_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=device_ports&filter=" . uri_escape(encode_json({ device_id => $device->{id}, uplink => 1 })));
+            die "Unknown connection" unless $uplink_ports_response->{data};
+            my $parent_connect = $uplink_ports_response->{data};
             
             # Получаем целевой порт
             my $parent_port_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=device_ports&id=" . $parent_connect->{id});
@@ -144,9 +155,9 @@ foreach my $fname (sort keys %content) {
         }
         else {
             # Для других устройств: получаем данные через соединения
-            my $conn_response = api_call($ua, 'GET', $api_request_url . "&get=table_list&table=connections&filter=" . uri_escape(encode_json({ auth_id => $auth->{id} })));
-            die "Unknown connection" unless $conn_response->{data} && ref($conn_response->{data}) eq 'ARRAY' && @{$conn_response->{data}} > 0;
-            my $conn = $conn_response->{data}->[0];
+            my $conn_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=connections&filter=" . uri_escape(encode_json({ auth_id => $auth->{id} })));
+            die "Unknown connection" unless $conn_response->{data};
+            my $conn = $conn_response->{data};
             
             # Получаем порт устройства
             my $device_port_rec_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=device_ports&id=" . $conn->{port_id});
@@ -159,11 +170,11 @@ foreach my $fname (sort keys %content) {
             my $device = $device_response->{data};
             
             # Получаем авторизацию устройства по user_id и IP
-            my $device_auth_list_response = api_call($ua, 'GET', $api_request_url . "&get=table_list&table=user_auth&filter=" . uri_escape(encode_json({ user_id => $device->{user_id}, ip => $device->{ip} })));
-            die "Unknown device auth" unless $device_auth_list_response->{data} && ref($device_auth_list_response->{data}) eq 'ARRAY' && @{$device_auth_list_response->{data}} > 0;
-            my $device_auth = $device_auth_list_response->{data}->[0];
+            my $device_auth_list_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=user_auth&filter=" . uri_escape(encode_json({ user_id => $device->{user_id}, ip => $device->{ip} })));
+            die "Unknown device auth" unless $device_auth_list_response->{data};
+            my $device_auth = $device_auth_list_response->{data};
             die "Device auth has no wikiname" unless $device_auth->{wikiname};
-            
+
             $device_name = $device_auth->{wikiname};
             $device_port = $device_port_rec->{port};
         }
