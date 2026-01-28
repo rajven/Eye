@@ -47,17 +47,17 @@ my $ua = LWP::UserAgent->new(
 
 my $api_request_url = $api_base."?".$auth_params;
 
-my $option_filter = encode_json({ option_id => '61' });
+my $option_filter = encode_json({ option_id => '61' });  # ОСТАВЛЕН КАК ЕСТЬ!
 
 # === Получение пути к вики из таблицы config (id=61) ===
 my $api_request = $api_request_url."&get=table_record&table=config&filter=".uri_escape($option_filter);
 
-my $config_record = api_call('GET', $api_request);
-if (!$config_record || $config_record->{error}) {
-    die "Ошибка: не удалось получить путь к вики из таблицы config (id=61)\n";
+my $config_response = api_call($ua, 'GET', $api_request);
+if ($config_response->{error}) {
+    die "Ошибка: не удалось получить путь к вики из таблицы config (id=61): " . $config_response->{error} . "\n";
 }
 
-my $wiki_path = $config_record->{value};
+my $wiki_path = $config_response->{data}->{value};
 if (!$wiki_path || !-d $wiki_path) {
     die "Ошибка: путь к вики не настроен или директория не существует: $wiki_path\n";
 }
@@ -96,11 +96,13 @@ foreach my $fname (sort keys %content) {
     next unless $ip && is_valid_ipv4($ip);
 
     # Получение записи из БД через API
-    my $auth = api_call('GET', $api_request_url. "&get=user_auth&ip=" . uri_escape($ip));
-    if (!$auth || $auth->{error}) {
-        print "Запись не найдена для IP $ip (файл: $fname)\n";
+    my $auth_response = api_call($ua, 'GET', $api_request_url. "&get=user_auth&ip=" . uri_escape($ip));
+    if ($auth_response->{error}) {
+        print "Запись не найдена для IP $ip (файл: $fname): " . $auth_response->{error} . "\n";
         next;
     }
+
+    my $auth = $auth_response->{data};
 
     # Обновление поля WikiName через метод обновления user_auth
     my $update_data = {
@@ -113,20 +115,14 @@ foreach my $fname (sort keys %content) {
     $update_req->header('Content-Type' => 'application/json');
     $update_req->content($json_data);
 
-    my $update_res = $ua->request($update_req);
-
-    if ($update_res->is_success) {
-        my $result = decode_json($update_res->decoded_content);
-        if (!$result->{error}) {
-            print "Обновлено: id=$auth->{id} IP=$ip => WikiName=$fname\n";
-            $updated++;
-        } else {
-            warn "Ошибка обновления id=$auth->{id}: $result->{error}\n";
-            $errors++;
-        }
-    } else {
-        warn "HTTP ошибка при обновлении id=$auth->{id}: " . $update_res->status_line . "\n";
+    my $update_response = api_call($ua, 'POST', $update_url, $json_data);
+    
+    if ($update_response->{error}) {
+        warn "Ошибка обновления id=$auth->{id}: " . $update_response->{error} . "\n";
         $errors++;
+    } else {
+        print "Обновлено: id=$auth->{id} IP=$ip => WikiName=$fname\n";
+        $updated++;
     }
 }
 
@@ -139,11 +135,25 @@ print "Синхронизация завершена.\n";
 exit 0;
 
 sub api_call {
-    my ($method, $url) = @_;
+    my ($ua, $method, $url, $content) = @_;
     my $req = HTTP::Request->new($method => $url);
+    if ($content) {
+        $req->header('Content-Type' => 'application/json');
+        $req->content($content);
+    }
     my $res = $ua->request($req);
-    return undef unless $res->is_success;
-    return decode_json($res->decoded_content);
+    my $result = {};
+    if (!$res->is_success) {
+        $result->{error} = $res->status_line;
+        return $result;
+    }
+    eval {
+        $result->{data} = decode_json($res->decoded_content);
+    };
+    if ($@) {
+        $result->{error} = "JSON parse error: $@";
+    }
+    return $result;
 }
 
 sub wanted {

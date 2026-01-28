@@ -51,12 +51,12 @@ my $option_filter = encode_json({ option_id => '61' });
 # === Получение пути к вики из таблицы config (id=61) ===
 my $api_request = $api_request_url."&get=table_record&table=config&filter=".uri_escape($option_filter);
 
-my $config_record = api_call('GET', $api_request);
-if (!$config_record || $config_record->{error}) {
-    die "Ошибка: не удалось получить путь к вики из таблицы config (id=61)\n";
+my $config_response = api_call($ua, 'GET', $api_request);
+if ($config_response->{error}) {
+    die "Ошибка: не удалось получить путь к вики из таблицы config (id=61): " . $config_response->{error} . "\n";
 }
 
-my $wiki_path = $config_record->{value};
+my $wiki_path = $config_response->{data}->{value};
 if (!$wiki_path || !-d $wiki_path) {
     die "Ошибка: путь к вики не настроен или директория не существует: $wiki_path\n";
 }
@@ -97,10 +97,11 @@ foreach my $fname (sort keys %content) {
     print "$ip \n";
 
     # Получение записи из user_auth по IP через API
-    my $auth = api_call('GET', $api_request_url. "&get=user_auth&ip=" . uri_escape($ip));
-    if (!$auth || $auth->{error} || !$auth->{wikiname}) {
+    my $auth_response = api_call($ua, 'GET', $api_request_url. "&get=user_auth&ip=" . uri_escape($ip));
+    if ($auth_response->{error} || !$auth_response->{data}->{wikiname}) {
         next;
     }
+    my $auth = $auth_response->{data};
 
     # Пропускаем шлюзы
     next if $auth->{wikiname} =~ /^Gateway/;
@@ -114,44 +115,60 @@ foreach my $fname (sort keys %content) {
     eval {
         if ($auth->{wikiname} =~ /^(Switch|Router)/) {
             # Для коммутаторов/маршрутизаторов: получаем данные через цепочку устройств
-            my $device = api_call('GET', $api_request_url. "&get=table_record&table=devices&filter=" . uri_escape(encode_json({ ip => $ip })));
-            die "Unknown device" unless $device;
+            my $device_response = api_call($ua, 'GET', $api_request_url. "&get=table_record&table=devices&filter=" . uri_escape(encode_json({ ip => $ip })));
+            die "Unknown device" unless $device_response->{data};
+            my $device = $device_response->{data};
+            
             # Получаем аплинк-порт
-            my $uplink_ports = api_call('GET', $api_request_url . "&get=table_record&table=device_ports&filter=" . uri_escape(encode_json({ device_id => $device->{id}, uplink => 1 })));
-            die "Unknown connection" unless $uplink_ports;
-            my $parent_connect = $uplink_ports;
+            my $uplink_ports_response = api_call($ua, 'GET', $api_request_url . "&get=table_list&table=device_ports&filter=" . uri_escape(encode_json({ device_id => $device->{id}, uplink => 1 })));
+            die "Unknown connection" unless $uplink_ports_response->{data} && ref($uplink_ports_response->{data}) eq 'ARRAY' && @{$uplink_ports_response->{data}} > 0;
+            my $parent_connect = $uplink_ports_response->{data}->[0];
+            
             # Получаем целевой порт
-            my $parent_port = api_call('GET', $api_request_url . "&get=table_record&table=device_ports&id=" . $parent_connect->{target_port_id});
-            die "Unknown port connection" unless $parent_port;
+            my $parent_port_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=device_ports&id=" . $parent_connect->{id});
+            die "Unknown port connection" unless $parent_port_response->{data};
+            my $parent_port = $parent_port_response->{data};
+            
             # Получаем родительское устройство
-            my $device_parent = api_call('GET', $api_request_url . "&get=table_record&table=devices&id=" . $parent_port->{device_id});
-            die "Unknown parent device" unless $device_parent;
+            my $device_parent_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=devices&id=" . $parent_port->{device_id});
+            die "Unknown parent device" unless $device_parent_response->{data};
+            my $device_parent = $device_parent_response->{data};
+            
             # Получаем авторизацию родительского устройства
-            my $auth_parent = api_call('GET', $api_request_url . "&get=user_auth&ip=" . uri_escape($device_parent->{ip}));
-            die "Unknown auth for device" unless $auth_parent && $auth_parent->{wikiname};
+            my $auth_parent_response = api_call($ua, 'GET', $api_request_url . "&get=user_auth&ip=" . uri_escape($device_parent->{ip}));
+            die "Unknown auth for device" unless $auth_parent_response->{data} && $auth_parent_response->{data}->{wikiname};
+            my $auth_parent = $auth_parent_response->{data};
+            
             $device_name  = $auth_parent->{wikiname};
             $device_port  = $parent_port->{port};
         }
         else {
             # Для других устройств: получаем данные через соединения
-            my $conn = api_call('GET', $api_request_url . "&get=table_record&table=connections&filter=" . uri_escape(encode_json({ auth_id => $auth->{id} })));
-            die "Unknown connection" unless $conn;
+            my $conn_response = api_call($ua, 'GET', $api_request_url . "&get=table_list&table=connections&filter=" . uri_escape(encode_json({ auth_id => $auth->{id} })));
+            die "Unknown connection" unless $conn_response->{data} && ref($conn_response->{data}) eq 'ARRAY' && @{$conn_response->{data}} > 0;
+            my $conn = $conn_response->{data}->[0];
+            
             # Получаем порт устройства
-            my $device_port_rec = api_call('GET', $api_request_url . "&get=table_record&table=device_ports&id=" . $conn->{port_id});
-            die "Unknown device port" unless $device_port_rec;
+            my $device_port_rec_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=device_ports&id=" . $conn->{port_id});
+            die "Unknown device port" unless $device_port_rec_response->{data};
+            my $device_port_rec = $device_port_rec_response->{data};
+            
             # Получаем устройство
-            my $device = api_call('GET', $api_request_url . "&get=table_record&table=devices&id=" . $device_port_rec->{device_id});
-            die "Unknown device" unless $device && $device->{user_id};
+            my $device_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=devices&id=" . $device_port_rec->{device_id});
+            die "Unknown device" unless $device_response->{data} && $device_response->{data}->{user_id};
+            my $device = $device_response->{data};
+            
             # Получаем авторизацию устройства по user_id и IP
-            my $device_auth_list = api_call('GET', $api_request_url . "&get=table_list&table=user_auth&filter=" . uri_escape(encode_json({ user_id => $device->{user_id}, ip => $device->{ip} })));
-            die "Unknown device auth" unless $device_auth_list && ref($device_auth_list) eq 'ARRAY' && @{$device_auth_list} > 0;
-            my $device_auth = $device_auth_list->[0];
+            my $device_auth_list_response = api_call($ua, 'GET', $api_request_url . "&get=table_list&table=user_auth&filter=" . uri_escape(encode_json({ user_id => $device->{user_id}, ip => $device->{ip} })));
+            die "Unknown device auth" unless $device_auth_list_response->{data} && ref($device_auth_list_response->{data}) eq 'ARRAY' && @{$device_auth_list_response->{data}} > 0;
+            my $device_auth = $device_auth_list_response->{data}->[0];
             die "Device auth has no wikiname" unless $device_auth->{wikiname};
+            
             $device_name = $device_auth->{wikiname};
             $device_port = $device_port_rec->{port};
         }
     };
-    
+
     if ($@) {
         $error_msg = $@;
         chomp($error_msg);
@@ -222,19 +239,27 @@ print "Синхронизация завершена.\n";
 
 exit 0;
 
-# === Вспомогательные функции ===
-
 sub api_call {
-    my ($method, $url) = @_;
+    my ($ua, $method, $url) = @_;
     my $req = HTTP::Request->new($method => $url);
     my $res = $ua->request($req);
-    return undef unless $res->is_success;
-    return decode_json($res->decoded_content);
+    my $result = {};
+    if (!$res->is_success) {
+        $result->{error} = $res->status_line;
+        return $result;
+    }
+    eval {
+        $result->{data} = decode_json($res->decoded_content);
+    };
+    if ($@) {
+        $result->{error} = "JSON parse error: $@";
+    }
+    return $result;
 }
 
 sub is_valid_ipv4 {
     my ($ip) = @_;
-    return $ip =~ /^([0-9]{1,3}\.){3}[0-9]{1,3}$/ && 
+    return $ip =~ /^([0-9]{1,3}\.){3}[0-9]{1,3}$/ &&
            !grep { $_ > 255 } split(/\./, $ip);
 }
 
