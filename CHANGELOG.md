@@ -1,3 +1,37 @@
+# Changelog 3.0.2 - release
+
+- bugfix: Switches were "forgotten" when processing the device macro. Fixed
+- upload bash script for run update wiki *.pl
+- upload plugin for FosWiki
+- log login & ip from $_POST|$_GET or server headers if SESSION is empty
+- API for wiki support
+- changed dhcp log event levels
+- bugfix: fixed create dns records
+- bugfix: fixed double mac in subnet page
+- added blocking of the group operations form at the start of processing
+- bugfix: the subnet selection field has been fixed with the deployment of networks greater than /24
+- fixed page navigation - save all arg's in url
+- bugfix: fixed timestamp update in eye-statd
+- temporary: for dhcp request always update client_id. see...
+- bugfix: we do not update the client_id if it is empty.
+
+# Changelog 3.0.1 - release
+
+- Now the last_found and mac_found fields are updated for all active entries with the same mac when they are found in the device tables. Arp_found is updated only if it is present in the arp table.
+- Removed +ssh-dss from ssh connect options added --changes-only for sync_mikrotik, that applied only to the routers associated with the changed users simplified the log
+- added email notify by subnets
+- event logging has been simplified
+- bugfix: fixed utf-8 error messages
+- bugfix: The update script can now be run from anywhere.
+- added diagnostic messages for upgrade
+- bugfix: fixed an old logging bug - printing a DB hash instead of a message in some cases
+- bugfix: fixed work netflow collector
+- rewrite web for PDO support
+- The installation script added. Its support different types of installation - web only, backend only, full
+- bugfix: fixed clearing of lease records when changing dnsmasq configuration.
+- html: added support for php 8.4
+- PostgreSQL support added
+
 # Changelog 2.9.1 - release
 
 - Added PostgreSQL support (EXPERIMENTAL — DO NOT USE IN PRODUCTION!)
