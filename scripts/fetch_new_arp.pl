@@ -258,7 +258,7 @@ foreach my $unknown (@unknown_list) {
 }
 
 # Fetch all SNMP-enabled devices (switches, routers, etc.) for FDB discovery
-my @device_list = get_records_sql($dbh,"SELECT * FROM devices WHERE deleted = 0 AND (device_type = 2 OR device_type = 0) AND discovery = 1 AND snmp_version > 0");
+my @device_list = get_records_sql($dbh,"SELECT * FROM devices WHERE deleted = 0 AND device_type <= 2 AND discovery = 1 AND snmp_version > 0");
 my @fdb_array = ();
 
 # Initialize parallel manager for FDB (forwarding database) collection
