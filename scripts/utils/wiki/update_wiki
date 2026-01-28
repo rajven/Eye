@@ -1,0 +1,8 @@
+#!/bin/bash
+
+#first - update wikiname in EYE
+/opt/Eye/scripts/utils/wiki/update_eye_wiki.pl >/dev/null
+#second - update connection in Wiki
+/opt/Eye/scripts/utils/wiki/update_wiki_eye.pl >/dev/null
+
+exit 0
