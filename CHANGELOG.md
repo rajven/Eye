@@ -1,6 +1,6 @@
 # Changelog 3.0.2 - release
 
-- bugfix: Switches were "forgotten" when processing the device macro. Fixed
+- bugfix: when processing the mac device table, the switches were "forgotten". Fixed
 - upload bash script for run update wiki *.pl
 - upload plugin for FosWiki
 - log login & ip from $_POST|$_GET or server headers if SESSION is empty

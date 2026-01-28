@@ -345,7 +345,7 @@ install_deps_altlinux() {
         control fping public
     fi
 
-    control ping public
+    control ping public_caps
 }
 
 # Install dependencies for Debian/Ubuntu
