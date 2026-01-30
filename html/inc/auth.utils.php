@@ -422,10 +422,14 @@ function get_client_ip() {
 function IsSilentAuthenticated($db) {
     $auth_ip = get_client_ip();
     $api_key = getParam('api_key', null, null, FILTER_SANITIZE_STRING);
-    $login   = getParam('login', null, null, FILTER_SANITIZE_STRING);
+    $login = getParam('login', null, null, FILTER_SANITIZE_STRING);
+    if ($login === null || $login === '') {
+        $login = getParam('api_login', null, null, FILTER_SANITIZE_STRING);
+    }
     LOG_DEBUG($db, "Silent auth parameters login => {$login} from {$auth_ip}");
     if (empty($login) || empty($api_key) || strlen($api_key) < 20) {
-        LOG_WARNING($db, "Silent auth failed from {$auth_ip} - missing parameters");
+        LOG_WARNING($db, "API: Silent auth failed from {$auth_ip} - missing parameters");
+        LOG_DEBUG($db, "API: not enough parameters | GET: " . json_encode($_GET, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . " | POST: " . json_encode($_POST, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         return false;
     }
 
