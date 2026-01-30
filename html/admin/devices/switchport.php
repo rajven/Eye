@@ -115,7 +115,7 @@ foreach ($ports as $row) {
             $display_tagged = preg_replace($pattern, $replacement, $row['tagged_vlan']);
             $display_vlan.=";T:".$display_tagged; 
             }
-        $ifname= compact_port_name($row['ifName']);
+        $ifname= compact_port_name($row['ifname']);
         $f_cacti_url = get_cacti_graph($device['ip'], $row['snmp_index']);
         if (empty(get_const('torrus_url')) and (empty($f_cacti_url))) {  $snmp_url=$ifname; }
                 else {

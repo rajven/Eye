@@ -400,7 +400,13 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             <!-- 3. DHCP -->
             <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
             <tr>
-                <td><?php echo WEB_cell_dns_name; ?> &nbsp;|&nbsp; <?php print_url(WEB_cell_aliases, $alias_link); ?></td>
+                <td><?php echo WEB_cell_dns_name; ?> &nbsp;|&nbsp; 
+                <?php 
+                if (!empty($alias_link)) {
+                    print_url(WEB_cell_aliases, $alias_link, 'linkButton');
+                    }
+                ?>
+                </td>
                 <td><?php echo WEB_cell_dhcp; ?></td>
                 <td><?php echo WEB_cell_acl; ?></td>
                 <td><?php echo WEB_cell_option_set; ?></td>
@@ -424,7 +430,28 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             <!-- 4. МОНИТОРИНГ -->
             <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
             <tr>
-                <td width="200"><?php echo WEB_cell_wikiname; ?></td>
+                <td width="200">
+                    <?php
+                    if (!empty($auth_info['wikiname'])) {
+                        $wiki_url = rtrim(get_option($db_link, 60), '/');
+                        if (preg_match('/127.0.0.1/', $wiki_url)) {
+                            print WEB_cell_wikiname;
+                        } else {
+                            $wiki_web = rtrim(get_option($db_link, 63), '/');
+                            $wiki_web = ltrim($wiki_web, '/');
+                            $wiki_link = $wiki_url . '/' . $wiki_web . '/' . $auth_info['wikiname'];
+                            print_url(WEB_cell_wikiname, $wiki_link, 'linkButton');
+                        }
+                    } else {
+                        print WEB_cell_wikiname;
+                    }
+                    $dev_id = get_device_by_auth($db_link, $auth_info['user_id']);
+                    if (isset($dev_id)) {
+                        print "&nbsp|&nbsp";
+                        print_url('Device', '/admin/devices/editdevice.php?id=' . $dev_id, 'linkButton');
+                    }
+                    ?>
+                </td>
                 <td><?php if (empty($device) || (!empty($device) && $device['device_type'] > 2)) echo WEB_cell_nagios; ?></td>
                 <td><?php if (empty($device) || (!empty($device) && $device['device_type'] > 2)) echo WEB_cell_link; ?></td>
                 <td><?php echo WEB_cell_nagios_handler; ?></td>

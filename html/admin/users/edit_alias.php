@@ -127,7 +127,13 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 
 <br>
 <form name="def" action="edit_alias.php?id=<?php echo $id; ?>" method="post">
-<b><?php print WEB_user_alias_for."&nbsp"; print_url($auth_info['ip'],"/admin/users/editauth.php?id=$id"); ?></b> <br>
+<b>
+<?php
+print WEB_user_alias_for."&nbsp";
+print_url($auth_info['ip'],"/admin/users/editauth.php?id=$id", 'linkButton');
+?>
+</b>
+<br>
 <table class="data">
 <tr align="center">
     <td><input type="checkbox" onClick="checkAll(this.checked);"></td>

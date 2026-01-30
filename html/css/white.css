@@ -101,3 +101,12 @@ input:disabled, select:disabled {
     color: #888 !important;
     cursor: not-allowed !important;
 }
+
+.linkButton{
+  padding: 1px 5px;
+  background: #ffebcd;
+  border-radius: 15px;
+  box-shadow: 0 0 5px rgba(206, 57, 57, 0.5);
+  color: #fff;
+  text-decoration: none;
+}

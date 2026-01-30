@@ -906,7 +906,7 @@ function allow_update($db, $table, $action = 'update', $field = '')
                 'link_check' => true,
                 'nagios' => true,
                 'nagios_handler' => true,
-                'Wikiname' => true
+                'wikiname' => true
             ],
             'user_list' => [
                 'description' => true,

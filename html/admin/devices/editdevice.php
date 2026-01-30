@@ -223,7 +223,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
 
             //print gateway settings
             if ($device['device_type'] == 2) {
-                print "<tr><td>"; print_url(WEB_device_access_control,"/admin/devices/edit_gw_instances.php?id=$id"); print "</td><td>" . WEB_device_dhcp_server . "</td><td>" . WEB_device_queues_enabled . "</td><td>" . WEB_device_connected_only . "</td></tr>";
+                print "<tr><td>"; print_url(WEB_device_access_control,"/admin/devices/edit_gw_instances.php?id=$id", 'linkButton'); print "</td><td>" . WEB_device_dhcp_server . "</td><td>" . WEB_device_queues_enabled . "</td><td>" . WEB_device_connected_only . "</td></tr>";
                 print "<tr>";
                 print "<td class='data'>";
                 print_qa_select('f_user_acl', $device['user_acl']);
@@ -239,10 +239,10 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 print "</td>\n";
                 print "</tr>\n";
                 print "<tr><td colspan=2>";
-                print_url(WEB_list_l3_interfaces, "/admin/devices/edit_l3int.php?id=$id");
+                print_url(WEB_list_l3_interfaces, "/admin/devices/edit_l3int.php?id=$id",'linkButton');
                 print "</td>";
                 print "<td colspan=2>";
-                print_url(WEB_list_gateway_subnets, "/admin/devices/edit_gw_subnets.php?id=$id");
+                print_url(WEB_list_gateway_subnets, "/admin/devices/edit_gw_subnets.php?id=$id", 'linkButton');
                 print "</td></tr>";
                 print "<tr><td colspan=2 class='data'>";
                 print get_l3_interfaces($db_link, $device['id']);

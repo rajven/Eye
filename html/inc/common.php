@@ -1264,9 +1264,10 @@ function print_submenu_nw($display_name, $page, $current_page, $last)
     }
 }
 
-function print_url($display_name, $page)
+function print_url($display_name, $page, $class = '')
 {
-    print "<a href='" . reencodeurl($page) . "'> $display_name </a>";
+    if (!empty($class)) { $class = "class='{$class}'"; }
+    print "<a $class href='" . reencodeurl($page) . "'> $display_name </a>";
 }
 
 function print_log_submenu($current_page)
