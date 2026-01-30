@@ -633,7 +633,7 @@ function run_sql($db, $query, $params = [])
     }
 
     // Проверка прав доступа
-    if ($table_name && $operation && !allow_update($table_name, $operation)) {
+    if ($table_name && $operation && !allow_update($db, $table_name, $operation)) {
         LOG_DEBUG($db, "Access denied: $query");
         return false;
     }
@@ -822,7 +822,7 @@ function set_changed($db, $id)
     update_record($db, "user_auth", "id=?", $auth, [$id]);
 }
 
-function allow_update($table, $action = 'update', $field = '')
+function allow_update($db, $table, $action = 'update', $field = '')
 {
     // 1. Таблицы с полным доступом (регистронезависимо, но без regex)
     static $full_access_tables = [
@@ -836,12 +836,42 @@ function allow_update($table, $action = 'update', $field = '')
     }
 
     // 2. Получение данных сессии (единая точка)
-    $login = $_SESSION['login'] ?? null;
+
+    // Получаем текущий IP
+    $currentIp = null;
+    if (!empty($_SESSION['ip'])) {
+        $currentIp = filter_var($_SESSION['ip'], FILTER_VALIDATE_IP);
+    }
+    if (!$currentIp && function_exists('get_client_ip')) {
+        $currentIp = filter_var(get_client_ip(), FILTER_VALIDATE_IP);
+    }
+    $currentIp = $currentIp ?: '127.0.0.1';
+
+    // Получаем текущий логин
+    $currentLogin = null;
+    if (!empty($_SESSION['login'])) {
+        $currentLogin = $_SESSION['login'];
+    }
+    if (!$currentLogin) {
+        $currentLogin = getParam('login', null, null) ?: getParam('api_login', null, null);
+    }
+    $currentLogin = htmlspecialchars($currentLogin ?: 'http', ENT_QUOTES, 'UTF-8');
+
+    // Получаем user_id
     $user_id = $_SESSION['user_id'] ?? null;
+    // Получаем права
     $acl = $_SESSION['acl'] ?? null;
 
+    if (empty($user_id) || empty($acl)) {
+        $user_record = get_record_sql($db, "SELECT * FROM customers WHERE login=?", [ $currentLogin ]);
+        if (!empty($user_record)) {
+            $user_id = $user_record['id'];
+            $acl = $user_record['rights'];
+            }
+        }
+
     // Проверка аутентификации
-    if (!$login || !$user_id || !$acl) {
+    if (!$currentLogin || !$user_id || !$acl) {
         return 0;
     }
 
@@ -917,7 +947,7 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
         return;
     }
 
-    if (!allow_update($table, 'update')) {
+    if (!allow_update($db, $table, 'update')) {
         LOG_INFO($db, "Access denied: $table [ $filter ]");
         return 1;
     }
@@ -964,7 +994,7 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
     $valid_record=[];
     foreach ($newvalue as $key => $value) {
 
-        if (!allow_update($table, 'update', $key)) {
+        if (!allow_update($db, $table, 'update', $key)) {
             continue;
         }
 
@@ -1200,7 +1230,7 @@ function update_records($db, $table, $filter, $newvalue, $filter_params = [])
 
 function delete_record($db, $table, $filter, $filter_params = [])
 {
-    if (!allow_update($table, 'del')) {
+    if (!allow_update($db, $table, 'del')) {
         return;
     }
     if (!isset($table)) {
@@ -1315,113 +1345,134 @@ function delete_record($db, $table, $filter, $filter_params = [])
 
 function insert_record($db, $table, $newvalue)
 {
-    if (!allow_update($table, 'add')) {
-        // LOG_WARNING($db, "User does not have write permission");
-        return;
+    // Проверка прав на запись
+    if (!allow_update($db, $table, 'add')) {
+        LOG_DEBUG($db, "User does not have write permission for table '$table'");
+        return false;
     }
+    // Проверка имени таблицы
     if (!isset($table) || empty($table)) {
-        // LOG_WARNING($db, "Create record for unknown table! Skip command.");
-        return;
+        LOG_WARNING($db, "Create record for unknown/empty table! Skip command.");
+        return false;
     }
+    // Проверка данных
     if (empty($newvalue) || !is_array($newvalue)) {
-        // LOG_WARNING($db, "Create record ($table) with empty data! Skip command.");
-        return;
+        LOG_WARNING($db, "Create record for table '$table' with empty or non-array data! Skip command.");
+        return false;
     }
-
     $field_list = [];
     $value_list = [];
     $params = [];
-
+    // Специальная обработка для user_auth
     if ($table === 'user_auth') {
-        $newvalue['changed']=1;
-        if (!empty($newvalue['ou_id']) and !is_system_ou($db,$newvalue['ou_id'])) { $newvalue['dhcp_changed']=1; }
+        $newvalue['changed'] = 1;
+        if (!empty($newvalue['ou_id']) && !is_system_ou($db, $newvalue['ou_id'])) {
+            $newvalue['dhcp_changed'] = 1;
         }
-
+    }
+    // Формирование списков полей и параметров
     foreach ($newvalue as $key => $value) {
+        // Защита от пустых ключей
+        if (empty($key)) {
+            LOG_WARNING($db, "Skipping empty field key in table '$table'");
+            continue;
+        }
         $field_list[] = $key;
         $value_list[] = '?';
         $params[] = $value;
     }
-
+    // Проверка, что есть хотя бы одно поле для вставки
     if (empty($field_list)) {
-        return;
+        LOG_WARNING($db, "No valid fields to insert for table '$table' after processing");
+        return false;
     }
-
     // Формируем SQL
     $field_list_str = implode(',', $field_list);
     $value_list_str = implode(',', $value_list);
     $new_sql = "INSERT INTO $table ($field_list_str) VALUES ($value_list_str)";
-
     LOG_DEBUG($db, "Run sql: $new_sql | params: " . json_encode($params, JSON_UNESCAPED_UNICODE));
-
     try {
         $stmt = $db->prepare($new_sql);
+        if (!$stmt) {
+            $error_info = $db->errorInfo();
+            LOG_ERROR($db, "Failed to prepare INSERT statement for table '$table': " . json_encode($error_info));
+            return false;
+        }
         $sql_result = $stmt->execute($params);
-
         if (!$sql_result) {
-            LOG_ERROR($db, "INSERT Request");
-            return;
+            $error_info = $stmt->errorInfo();
+            LOG_ERROR($db, "INSERT failed for table '$table': SQL: $new_sql | Params: " . json_encode($params) . " | Error: " . json_encode($error_info));
+            return false;
         }
         $last_id = $db->lastInsertId();
-
+        if (!$last_id) {
+            LOG_WARNING($db, "INSERT succeeded but lastInsertId() returned empty for table '$table'");
+        }
+        // Логирование аудита
         if (!preg_match('/session/i', $table)) {
             $changed_msg = prepareAuditMessage($db, $table, [], $newvalue, $last_id, 'insert');
             if (!empty($changed_msg)) {
                 if (!preg_match('/user/i', $table)) {
                     LOG_INFO($db, $changed_msg);
-                    } else {
+                } else {
                     if ($table == 'user_auth' && !empty($newvalue['ip'])) {
                         if (is_hotspot($db, $newvalue['ip'])) {
                             LOG_INFO($db, $changed_msg, $last_id);
-                            } else {
+                        } else {
                             LOG_WARNING($db, $changed_msg, $last_id);
                             $send_alert_create = isNotifyCreate(get_notify_subnet($db, $newvalue['ip']));
-                            if ($send_alert_create) { email(L_WARNING,$changed_msg); }
+                            if ($send_alert_create) {
+                                email(L_WARNING, $changed_msg);
                             }
-                        } else {
-                        LOG_WARNING($db, $changed_msg);
                         }
+                    } else {
+                        LOG_WARNING($db, $changed_msg);
                     }
                 }
             }
-
+        }
+        // Обработка DNS для user_auth_alias
         if ($table === 'user_auth_alias') {
-            //dns
-            if (!empty($newvalue['alias'])  and !preg_match('/\.$/', $newvalue['alias'])) {
+            if (!empty($newvalue['alias']) && !preg_match('/\.$/', $newvalue['alias'])) {
                 $add_dns['name_type'] = 'CNAME';
                 $add_dns['name'] = $newvalue['alias'];
                 $add_dns['value'] = get_dns_name($db, $newvalue['auth_id']);
                 $add_dns['operation_type'] = 'add';
                 $add_dns['auth_id'] = $newvalue['auth_id'];
+                LOG_DEBUG($db, "Queueing DNS CNAME record for alias: " . $newvalue['alias']);
                 insert_record($db, 'dns_queue', $add_dns);
             }
         }
-
+        // Обработка DNS для user_auth
         if ($table === 'user_auth') {
-            //dns - A-record
-            if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and !$newvalue['dns_ptr_only']  and !preg_match('/\.$/', $newvalue['dns_name'])) {
+            // A-record
+            if (!empty($newvalue['dns_name']) && !empty($newvalue['ip']) && !$newvalue['dns_ptr_only'] && !preg_match('/\.$/', $newvalue['dns_name'])) {
                 $add_dns['name_type'] = 'A';
                 $add_dns['name'] = $newvalue['dns_name'];
                 $add_dns['value'] = $newvalue['ip'];
                 $add_dns['operation_type'] = 'add';
                 $add_dns['auth_id'] = $last_id;
+                LOG_DEBUG($db, "Queueing DNS A record: " . $newvalue['dns_name'] . " -> " . $newvalue['ip']);
                 insert_record($db, 'dns_queue', $add_dns);
             }
-            //dns - ptr
-            if (!empty($newvalue['dns_name']) and !empty($newvalue['ip']) and $newvalue['dns_ptr_only'] and !preg_match('/\.$/', $newvalue['dns_name'])) {
+            // PTR record
+            if (!empty($newvalue['dns_name']) && !empty($newvalue['ip']) && $newvalue['dns_ptr_only'] && !preg_match('/\.$/', $newvalue['dns_name'])) {
                 $add_dns['name_type'] = 'PTR';
                 $add_dns['name'] = $newvalue['dns_name'];
                 $add_dns['value'] = $newvalue['ip'];
                 $add_dns['operation_type'] = 'add';
                 $add_dns['auth_id'] = $last_id;
+                LOG_DEBUG($db, "Queueing DNS PTR record: " . $newvalue['dns_name'] . " -> " . $newvalue['ip']);
                 insert_record($db, 'dns_queue', $add_dns);
             }
         }
-
+        LOG_VERBOSE($db, "Successfully inserted record into '$table'. ID: $last_id");
         return $last_id;
-
     } catch (PDOException $e) {
-        LOG_ERROR($db, "SQL error: $new_sql | params: " . json_encode($params) . " | " . $e->getMessage());
+        LOG_ERROR($db, "SQL exception during INSERT into '$table': SQL: $new_sql | Params: " . json_encode($params) . " | Exception: " . $e->getMessage());
+        return false;
+    } catch (Exception $e) {
+        LOG_ERROR($db, "Unexpected exception during INSERT into '$table': " . $e->getMessage());
         return false;
     }
 }

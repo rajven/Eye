@@ -3538,9 +3538,27 @@ function get_first_line($msg)
 
 function email($level = L_WARNING, $msg = '') {
     if (empty($msg)) { return; }
-    // Безопасное получение данных сессии
-    $currentIp = filter_var($_SESSION['ip'] ?? '127.0.0.1', FILTER_VALIDATE_IP) ?: '127.0.0.1';
-    $currentLogin = htmlspecialchars($_SESSION['login'] ?? 'http', ENT_QUOTES, 'UTF-8');
+
+    // Получаем текущий IP
+    $currentIp = null;
+    if (!empty($_SESSION['ip'])) {
+        $currentIp = filter_var($_SESSION['ip'], FILTER_VALIDATE_IP);
+    }
+    if (!$currentIp && function_exists('get_client_ip')) {
+        $currentIp = filter_var(get_client_ip(), FILTER_VALIDATE_IP);
+    }
+    $currentIp = $currentIp ?: '127.0.0.1';
+
+    // Получаем текущий логин
+    $currentLogin = null;
+    if (!empty($_SESSION['login'])) {
+        $currentLogin = $_SESSION['login'];
+    }
+    if (!$currentLogin) {
+        $currentLogin = getParam('login', null, null) ?: getParam('api_login', null, null);
+    }
+    $currentLogin = htmlspecialchars($currentLogin ?: 'http', ENT_QUOTES, 'UTF-8');
+
     // Обработка сообщения
     $subjectPrefix = ($level === L_WARNING) ? "WARN: " : "ERROR: ";
     $subject = $subjectPrefix . htmlspecialchars(get_first_line($msg), ENT_QUOTES, 'UTF-8') . "...";

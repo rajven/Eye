@@ -402,24 +402,57 @@ if (!empty($action)) {
             $action_str = ($faction === 0) ? 'del' : 'add';
 
             LOG_VERBOSE($db_link, "API: external dhcp request for $ip [$mac] $action_str");
-            
+
             if (is_our_network($db_link, $ip)) {
-                insert_record($db_link, "dhcp_queue", [
+                $dhcp_record = [
                     'action' => $action_str,
                     'mac' => $mac,
                     'ip' => $ip,
                     'dhcp_hostname' => $dhcp_hostname
-                ]);
-                http_response_code(201);
-                echo json_encode(['status' => 'queued']);
+                ];
+            
+                $insert_id = insert_record($db_link, "dhcp_queue", $dhcp_record);
+            
+                if ($insert_id !== false && $insert_id > 0) {
+                    LOG_VERBOSE($db_link, "API: DHCP record queued successfully. ID: $insert_id, IP: $ip, MAC: $mac, Action: $action_str");
+                    http_response_code(201);
+                    echo json_encode([
+                        'status' => 'queued',
+                        'id' => (int)$insert_id,
+                        'ip' => $ip,
+                        'mac' => $mac,
+                        'action' => $action_str
+                    ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                } else {
+                    $error_msg = "Failed to insert DHCP record into queue";
+                    LOG_ERROR($db_link, "API: $error_msg. IP: $ip, MAC: $mac, Action: $action_str");
+                    http_response_code(500);
+                    echo json_encode([
+                        'error' => $error_msg,
+                        'ip' => $ip,
+                        'mac' => $mac
+                    ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                }
             } else {
-                LOG_ERROR($db_link, "$ip - wrong network!");
+                $error_msg = "IP not in allowed network";
+                LOG_ERROR($db_link, "API: $error_msg - $ip [$mac]");
                 http_response_code(400);
-                echo json_encode(['error' => 'IP not in allowed network']);
+                echo json_encode([
+                    'error' => $error_msg,
+                    'ip' => $ip
+                ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
             }
         } else {
+            $missing_params = [];
+            if (!$ip) $missing_params[] = 'ip';
+            if (!$mac) $missing_params[] = 'mac';
+            $error_msg = 'Missing required parameters: ' . implode(', ', $missing_params);
+        
+            LOG_WARNING($db_link, "API: send_dhcp called with missing parameters. Missing: " . implode(', ', $missing_params));
             http_response_code(400);
-            echo json_encode(['error' => 'Missing IP or MAC']);
+            echo json_encode([
+                'error' => $error_msg
+            ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         }
         do_exit();
     }
