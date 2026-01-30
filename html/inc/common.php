@@ -1953,6 +1953,7 @@ function print_dhcp_acl_list($db, $qa_name, $value = '', $disabled = 0)
 {
     $disabled_attr = $disabled ? 'disabled' : '';
 
+    $acl_values = [];
     $dhcp_acl = get_records_sql($db,
         "SELECT DISTINCT dhcp_acl FROM user_auth
          WHERE dhcp_acl IS NOT NULL AND dhcp_acl != '' AND deleted = 0"
@@ -1984,6 +1985,7 @@ function print_dhcp_acl_list($db, $qa_name, $value = '', $disabled = 0)
 function print_dhcp_option_set_list($db, $qa_name, $value = '', $disabled = 0)
 {
     $disabled_attr = $disabled ? 'disabled' : '';
+    $option_values = [];
     $dhcp_option_sets = get_records_sql($db,
         "SELECT DISTINCT dhcp_option_set FROM user_auth
          WHERE dhcp_option_set IS NOT NULL AND dhcp_option_set != '' AND deleted = 0"

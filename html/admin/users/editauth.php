@@ -452,15 +452,15 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
                     }
                     ?>
                 </td>
-                <td><?php if (empty($device) || (!empty($device) && $device['device_type'] > 2)) echo WEB_cell_nagios; ?></td>
-                <td><?php if (empty($device) || (!empty($device) && $device['device_type'] > 2)) echo WEB_cell_link; ?></td>
+                <td><?php echo WEB_cell_nagios; ?></td>
+                <td><?php echo WEB_cell_link; ?></td>
                 <td><?php echo WEB_cell_nagios_handler; ?></td>
                 <td></td>
             </tr>
             <tr>
                 <td><input type="text" name="f_wiki" value="<?php echo htmlspecialchars($auth_info['wikiname']); ?>" <?php print $disabled_attr; ?> class='full-width'></td>
-                <td><?php if (empty($device) || (!empty($device) && $device['device_type'] > 2)) print_qa_select('f_nagios', $auth_info['nagios'],$is_system_ou); ?></td>
-                <td><?php if (empty($device) || (!empty($device) && $device['device_type'] > 2)) print_qa_select('f_link', $auth_info['link_check'],$is_system_ou); ?></td>
+                <td><?php print_qa_select('f_nagios', $auth_info['nagios'],$is_system_ou); ?></td>
+                <td><?php print_qa_select('f_link', $auth_info['link_check'],$is_system_ou); ?></td>
                 <td colspan=2><input type="text" name="f_handler" value="<?php echo htmlspecialchars($auth_info['nagios_handler']); ?>" <?php print $disabled_attr; ?> class='full-width'></td>
             </tr>
 

@@ -195,7 +195,7 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
     @perl_patches = ();
 
 #change version
-do_sql($dbh,'UPDATE version SET version="'.$old_releases[$i].'"');
+do_sql($dbh,'UPDATE version SET version=?', $old_releases[$i]);
 }
 
 print "Done!\n";

@@ -358,7 +358,7 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
             <tr>
                 <?php
                 print "<td>";
-                print_url(WEB_user_rule_list, "/admin/users/edit_rules.php?id=$id");
+                print_url(WEB_user_rule_list, "/admin/users/edit_rules.php?id=$id", 'linkButton');
                 print "</td>";
                 $rule_count = get_count_records($db_link, "auth_rules", "user_id=?", [ $id ]);
                 print "<td > Count: " . $rule_count . "</td>";

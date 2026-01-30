@@ -259,7 +259,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 print "<td class='data'>";
                 print_qa_select('f_dhcp', $device['dhcp']);
                 print "<td class='data' colspan=4>";
-                print_url(WEB_list_l3_networks, "/admin/devices/edit_gw_subnets.php?id=$id");
+                print_url(WEB_list_l3_networks, "/admin/devices/edit_gw_subnets.php?id=$id", 'linkButton');
                 print "</tr>\n";
             }
 

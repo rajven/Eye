@@ -139,7 +139,7 @@ function safe_get_record($db, $table, $id) {
     
     $pk_field = 'id'; // Все таблицы используют 'id' как первичный ключ
     $result = get_record_sql($db, "SELECT * FROM $table WHERE $pk_field = ?", [(int)$id]);
-    error_log("SELECT * FROM $table WHERE $pk_field = $id ::". $result);
+#    error_log("SELECT * FROM $table WHERE $pk_field = $id ::". $result);
     return $result;
 }
 
@@ -304,12 +304,12 @@ if (!empty($action)) {
                 header('Content-Type: application/json; charset=utf-8');
                 echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
             } else {
-                LOG_VERBOSE($db_link, "API: Not found.");
+                LOG_VERBOSE($db_link, "API: Record not found.");
                 http_response_code(404);
                 echo json_encode(['error' => 'Not found']);
             }
         } else {
-            LOG_VERBOSE($db_link, "API: not enough parameters");
+            LOG_DEBUG($db_link, "API: not enough parameters | GET: " . json_encode($_GET, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . " | POST: " . json_encode($_POST, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             http_response_code(400);
             echo json_encode(['error' => 'Missing parameters']);
         }
