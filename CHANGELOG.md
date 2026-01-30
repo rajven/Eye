@@ -1,3 +1,12 @@
+# Changelog 3.0.3 - release
+
+- added the api_login key as a synonym for login for authorization via the API
+- bugfix: web - restored wiki link in user auth record 
+- bugfix: web - restored device interfaces name in switch ports
+- bugfix: web - fixed the inability to clear filter fields without logging out.
+- bugfix: Modification/insertion operations via the api did not work, falling out with an error about the lack of rights
+- for AltLinux changed ping access to public_caps
+
 # Changelog 3.0.2 - release
 
 - bugfix: when processing the mac device table, the switches were "forgotten". Fixed

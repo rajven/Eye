@@ -1,6 +1,6 @@
 # Око
 
-Обычный быдло-кодинг, разросшийся за последние 13 лет. Выкладываю сюда - может кого-то сподвигнет сделать что-то своё нормально).
+Обычный быдло-кодинг, разросшийся за последние 18 лет. Выкладываю сюда - может кого-то сподвигнет сделать что-то своё нормально).
 
 ## 📋 Обзор
 
@@ -191,7 +191,7 @@ chown -R eye:eye /opt/Eye
 # Файл: /opt/Eye/docs/patches/sha512.patch
 # Для ALT Linux: /opt/Eye/docs/patches/sha512.alt.patch
 
-# Применение патча при необходимости
+# Можете применить патч или просто заменить модуль
 cp /opt/Eye/docs/patches/USM.pm /usr/share/perl5/Net/SNMP/Security/USM.pm
 ```
 
@@ -374,7 +374,7 @@ perl update-mac-vendors.pl
 * **НЕМЕДЛЕННО смените пароль администратора**
 * Сгенерируйте новый API-ключ
 * Ограничьте доступ с помощью firewall
-* Используйте HTTPS (без принудительного редиректа!)
+* Используйте HTTPS
 * Делайте регулярные обновления и резервные копии
 
 ---
@@ -383,13 +383,24 @@ perl update-mac-vendors.pl
 
 ### Firewall:
 
+Правила с fasttrack надо вылкючить!!!
+
 ```routeros
 /ip firewall filter
+set disabled=yes [ find action =fasttrack-connection ]
+set disabled=yes [ find chain =forward and comment~"established" ]
+add action=drop chain=forward comment="deny unknown ips" out-interface-list=WAN src-address-list=!group_all
 add action=jump chain=forward comment="users set" in-interface-list=WAN jump-target=Users
 add action=jump chain=forward jump-target=Users out-interface-list=WAN
+add action=accept chain=forward comment=related,established connection-state=established,related
+add action=reject chain=forward comment="deny default wan" in-interface-list=WAN reject-with=icmp-network-unreachable
+add action=drop chain=forward out-interface-list=WAN
 ```
 
+
 ### Управление трафиком:
+
+Для внешнего и внутренних интерфейсов надо создать родительсую очередь с вашим каналом в интернет. Имя очререди образовывается из имени интерфейса!
 
 ```routeros
 /queue tree
@@ -403,11 +414,24 @@ add name=download_root_bridge parent=bridge queue=pcq-download-default
 /tool fetch mode=http keep-result=no url="http://<EYE_IP>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=\$leaseActMAC&ip=\$leaseActIP&action=\$leaseBound&hostname=\$lease-hostname"
 ```
 
+С https:
+```routeros
+/tool fetch mode=https keep-result=no url="https://<EYE_URL>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=\$leaseActMAC&ip=\$leaseActIP&action=\$leaseBound&hostname=\$lease-hostname"
+```
+
+
 ### DHCP-скрипт (RouterOS 7):
 
 ```routeros
 /tool fetch url="http://<EYE_IP>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" mode=http keep-result=no
 ```
+
+С https:
+```routeros
+/tool fetch url="https://<EYE_URL>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" mode=https keep-result=no
+```
+
+Имя dhcp-сервера должно быть образовано от имени интерфейса, на котором он работает. Т.е. при работе на интерфейсе bridge => dhcp-bridge
 
 ### NetFlow:
 
