@@ -96,31 +96,34 @@ function capture_print_r($var) {
 }
 
 /**
- * Получает параметр (скаляр или массив) из POST/GET, с опциональной валидацией каждого элемента
+ * Получает параметр только из GET (скаляр или массив)
  */
-function getParam($name, $page_url = null, $default = null, $filter = FILTER_DEFAULT, $options = []) {
-    if (isset($_POST[$name]) && is_array($_POST[$name])) {
-        return $_POST[$name];
-    }
+function getGET($name, $page_url = null, $default = null, $filter = FILTER_DEFAULT, $options = []) {
+    // Обработка массивов
     if (isset($_GET[$name]) && is_array($_GET[$name])) {
         return $_GET[$name];
     }
-    // Если не массив — пробуем как скаляр
-    if ((isset($_POST[$name]) && $_POST[$name]==='') || (isset($_GET[$name]) && $_GET[$name]==='')) {
-        if ($page_url !== null  && isset($_SESSION[$page_url][$name])) {
-            return $_SESSION[$page_url][$name];
-        }
-        return $default;
-    }
 
-    $value = filter_input(INPUT_POST, $name, $filter, $options) ??
-             filter_input(INPUT_GET, $name, $filter, $options);
-    if ($value === false || $value === null) {
+    // Проверяем, был ли параметр вообще передан
+    if (!isset($_GET[$name])) {
+        // Не передан — пробуем сессию
         if ($page_url !== null && isset($_SESSION[$page_url][$name])) {
             return $_SESSION[$page_url][$name];
         }
         return $default;
     }
+
+    // Передан как пустая строка — сразу default
+    if ($_GET[$name] === '') {
+        return $default;
+    }
+
+    // Обычная фильтрация
+    $value = filter_input(INPUT_GET, $name, $filter, $options);
+    if ($value === false || $value === null) {
+        return $default;
+    }
+
     return $value;
 }
 
@@ -128,23 +131,83 @@ function getParam($name, $page_url = null, $default = null, $filter = FILTER_DEF
  * Получает параметр только из POST (скаляр или массив)
  */
 function getPOST($name, $page_url = null, $default = null, $filter = FILTER_DEFAULT, $options = []) {
+    // Обработка массивов
     if (isset($_POST[$name]) && is_array($_POST[$name])) {
         return $_POST[$name];
     }
-    if (isset($_POST[$name]) && $_POST[$name]==='') {
-        if ($page_url !== null  && isset($_SESSION[$page_url][$name])) {
+
+    // Проверяем, был ли параметр вообще передан
+    if (!isset($_POST[$name])) {
+        // Не передан — пробуем сессию
+        if ($page_url !== null && isset($_SESSION[$page_url][$name])) {
             return $_SESSION[$page_url][$name];
         }
         return $default;
     }
+
+    // Передан как пустая строка — сразу default
+    if ($_POST[$name] === '') {
+        return $default;
+    }
+
+    // Обычная фильтрация
     $value = filter_input(INPUT_POST, $name, $filter, $options);
     if ($value === false || $value === null) {
-        if ($page_url !== null  && isset($_SESSION[$page_url][$name])) {
-            return $_SESSION[$page_url][$name];
+        return $default;
+    }
+
+    return $value;
+}
+
+/**
+ * Получает параметр из POST или GET (скаляр или массив)
+ * Приоритет: POST > GET
+ */
+function getParam($name, $page_url = null, $default = null, $filter = FILTER_DEFAULT, $options = []) {
+    // Сначала проверяем POST (массивы)
+    if (isset($_POST[$name]) && is_array($_POST[$name])) {
+        return $_POST[$name];
+    }
+    
+    // Потом GET (массивы)
+    if (isset($_GET[$name]) && is_array($_GET[$name])) {
+        return $_GET[$name];
+    }
+
+    // Проверяем скалярные значения
+    $post_exists = isset($_POST[$name]);
+    $get_exists  = isset($_GET[$name]);
+
+    // Если параметр есть в POST
+    if ($post_exists) {
+        if ($_POST[$name] === '') {
+            return $default;
+        }
+        $value = filter_input(INPUT_POST, $name, $filter, $options);
+        if ($value !== false && $value !== null) {
+            return $value;
         }
         return $default;
     }
-    return $value;
+    
+    // Если параметр есть в GET
+    if ($get_exists) {
+        if ($_GET[$name] === '') {
+            return $default;
+        }
+        $value = filter_input(INPUT_GET, $name, $filter, $options);
+        if ($value !== false && $value !== null) {
+            return $value;
+        }
+        return $default;
+    }
+
+    // Параметр не передан ни в POST, ни в GET — пробуем сессию
+    if ($page_url !== null && isset($_SESSION[$page_url][$name])) {
+        return $_SESSION[$page_url][$name];
+    }
+    
+    return $default;
 }
 
 function intval_or_zero($v): int {
