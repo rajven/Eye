@@ -103,46 +103,73 @@ function get_mac_table($ip, $snmp, $oid, $index_map)
     return $fdb_table;
 }
 
-//get ip interfaces
+// Get IP interfaces with speed
 function getIpAdEntIfIndex($db, $ip, $snmp)
 {
     $result = [];
     if (!isset($ip)) {
         return $result;
     }
-    //oid+ip = index
+
+    // Получаем данные по IP → interface index
     $ip_table = walk_snmp($ip, $snmp, ipAdEntIfIndex);
-    //oid+index=name
+    // Получаем имена интерфейсов
     $int_table = walk_snmp($ip, $snmp, ifDescr);
-    if (isset($ip_table) and gettype($ip_table) == 'array' and count($ip_table) > 0) {
+    // Получаем скорости портов
+    $speed_table = walk_snmp($ip, $snmp, PORT_SPEED_OID);
+
+    if (is_array($ip_table) && !empty($ip_table)) {
         foreach ($ip_table as $key => $value) {
-            if (empty($value)) {
+            if (empty($key) || empty($value)) {
                 continue;
             }
-            if (empty($key)) {
-                continue;
-            }
+
             $key = trim($key);
+            // Извлекаем index интерфейса из значения ipAdEntIfIndex
             $interface_index = intval(trim(str_replace('INTEGER:', '', $value)));
-            if (empty($value)) {
+            if ($interface_index <= 0) {
                 continue;
             }
-            $interface_name = $int_table[ifDescr . '.' . $interface_index];
-            $interface_name = trim(str_replace('STRING:', '', $interface_name));
-            $interface_ip = trim(str_replace(ipAdEntIfIndex . '.', '', $key));
+
+            // Получаем имя интерфейса
+            $int_key = ifDescr . '.' . $interface_index;
+            if (!isset($int_table[$int_key])) {
+                continue;
+            }
+            $interface_name = trim(str_replace('STRING:', '', $int_table[$int_key]));
             if (empty($interface_name)) {
                 continue;
             }
-            $result[$interface_index]['ip'] = $interface_ip;
-            $result[$interface_index]['index'] = $interface_index;
-            $result[$interface_index]['name'] = $interface_name;
-            //type: 0 - local, 1 - WAN
-            $result[$interface_index]['interface_type'] = 1;
-            if (is_our_network($db, $interface_ip)) {
-                $result[$interface_index]['interface_type'] = 0;
+
+            // Получаем IP-адрес из OID ключа
+            $interface_ip = trim(str_replace(ipAdEntIfIndex . '.', '', $key));
+
+            // Определяем тип интерфейса
+            $interface_type = is_our_network($db, $interface_ip) ? 0 : 1;
+
+            // Получаем скорость (если есть)
+            $speed = null;
+            $speed_key = PORT_SPEED_OID . '.' . $interface_index;
+            if (isset($speed_table[$speed_key])) {
+                $speed_raw = $speed_table[$speed_key];
+                if (empty($speed_raw)) {
+                    $speed_raw = 'INT:0';
+                }
+                $speed = parse_snmp_value($speed_raw);
+                if (!empty($speed)) { $speed = intdiv($speed, 1000); }
             }
+
+            // Формируем запись
+            $result[$interface_index] = [
+                'ip'              => $interface_ip,
+                'index'           => $interface_index,
+                'name'            => $interface_name,
+                'interface_type'  => $interface_type,
+                'speed'           => $speed ?? 10000000,
+            ];
         }
     }
+
     return $result;
 }
 

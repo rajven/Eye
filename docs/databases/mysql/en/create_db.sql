@@ -123,7 +123,8 @@ CREATE TABLE `device_l3_interfaces` (
   `device_id` int(11) DEFAULT NULL,
   `snmpin` int(11) DEFAULT NULL,
   `interface_type` int(11) NOT NULL DEFAULT 0,
-  `name` varchar(100) DEFAULT NULL
+  `name` varchar(100) DEFAULT NULL,
+  `bandwidth` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `device_models` (

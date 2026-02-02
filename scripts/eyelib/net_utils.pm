@@ -33,6 +33,8 @@ GetDhcpRange
 GetIpRange
 GetIP
 GetSubNet
+bitrate_to_kbps
+kbps_to_bitrate
 is_ip
 is_ipip_valid
 is_ip_valid
@@ -148,6 +150,43 @@ if ($mask < 32) {
 return \%dhcp;
 }
 
+#--------------------------------------------------------------------------------------------------------
+
+# Преобразует строку вида "10G", "500M", "2k" в килобиты/с (целое число)
+sub bitrate_to_kbps {
+    my ($bitrate_str) = @_;
+    
+    # Проверка корректности формата
+    return 0 unless defined $bitrate_str && $bitrate_str =~ /^(\d+(?:\.\d+)?)\s*([kMG])?$/i;
+    
+    my ($value, $unit) = ($1, uc($2 // 'k'));
+    
+    # Преобразуем в килобиты и округляем до целого
+    if ($unit eq 'G') {
+        return int($value * 1_000_000);
+    } elsif ($unit eq 'M') {
+        return int($value * 1_000);
+    } else {  # 'k' или без единицы
+        return int($value);
+    }
+}
+
+#--------------------------------------------------------------------------------------------------------
+
+# Преобразует килобиты/с в человекочитаемую строку (только целые значения)
+sub kbps_to_bitrate {
+    my ($kbps) = @_;
+    
+    return "0k" unless defined $kbps && $kbps > 0;
+    
+    if ($kbps >= 1_000_000) {
+        return int($kbps / 1_000_000) . "G";
+    } elsif ($kbps >= 1_000) {
+        return int($kbps / 1_000) . "M";
+    } else {
+        return int($kbps) . "k";
+    }
+}
 #--------------------------------------------------------------------------------------------------------
 
 sub GetIpRange {

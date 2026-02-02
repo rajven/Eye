@@ -192,9 +192,15 @@ my %hotspot_exceptions;
 my @lan_int=();
 my @wan_int=();
 
+# настройки испольуземых l3-интерфейсов
+my %l3_interfaces;
+
 my @l3_int = get_records_sql($dbh,'SELECT * FROM device_l3_interfaces WHERE device_id=?',$gate->{'id'});
 foreach my $l3 (@l3_int) {
 $l3->{'name'}=~s/\"//g;
+$l3_interfaces{$l3->{'name'}}{type} = $l3->{'interface_type'};
+$l3_interfaces{$l3->{'name'}}{bandwidth} = 0;
+if ($l3->{'bandwidth'}) { $l3_interfaces{$l3->{'name'}}{bandwidth} = $l3->{'bandwidth'}; }
 if ($l3->{'interface_type'} eq '0') { push(@lan_int,$l3->{'name'}); }
 if ($l3->{'interface_type'} eq '1') { push(@wan_int,$l3->{'name'}); }
 }
@@ -506,8 +512,8 @@ if (@ret_hotspot and scalar(@ret_hotspot)) {
             $actual_hotspot_bindings{$data{'mac-address'}} = $data{description} if (exists $data{description});
             }
     }
-    log_debug("Actual bindings:".Dumper(\%actual_hotspot_bindings));
-    log_debug("Configuration exceptions:".Dumper(\%hotspot_exceptions));
+    log_debug("Hotspot actual bindings:".Dumper(\%actual_hotspot_bindings));
+    log_debug("Hotspot configuration exceptions:".Dumper(\%hotspot_exceptions));
     #update binding
     foreach my $actual_mac (keys %actual_hotspot_bindings) {
         if (!exists $hotspot_exceptions{$actual_mac}) {
@@ -526,13 +532,24 @@ if (@ret_hotspot and scalar(@ret_hotspot)) {
 
 }#end dhcp config
 
+my %users;
+my %lists;
+
+my $group_sql = "SELECT DISTINCT filter_group_id FROM user_auth WHERE deleted = 0 ORDER BY filter_group_id;";
+my @grouplist_ref = get_records_sql($dbh,$group_sql);
+foreach my $row (@grouplist_ref) {
+    $lists{'group_'.$row->{filter_group_id}}=1;
+}
+#full ip list
+$lists{'group_all'}=1;
+
 #access lists config
 if ($gate->{user_acl}) {
 
 db_log_verbose($dbh,$gate_ident."Sync user state at router $router_name [".$router_ip."] started.");
 
 #get userid list
-my $user_auth_sql="SELECT user_auth.ip, user_auth.filter_group_id, user_auth.queue_id, user_auth.id
+my $user_auth_sql="SELECT user_auth.ip, user_auth.filter_group_id, user_auth.id
 FROM user_auth, user_list
 WHERE user_auth.user_id = user_list.id
 AND user_auth.deleted =0
@@ -544,41 +561,18 @@ AND user_auth.ou_id <> ?
 ORDER BY ip_int";
 
 my @authlist_ref = get_records_sql($dbh,$user_auth_sql,$default_hotspot_ou_id);
-my %users;
-my %lists;
-my %found_users;
 
 foreach my $row (@authlist_ref) {
 if ($connected_users_only) { next if (!$connected_users->match_string($row->{ip})); }
 #skip not office ip's
 next if (!$office_networks->match_string($row->{ip}));
-$found_users{$row->{'id'}}=$row->{ip};
 #filter group acl's
 $users{'group_'.$row->{filter_group_id}}->{$row->{ip}}=1;
 $users{'group_all'}->{$row->{ip}}=1;
-$lists{'group_'.$row->{filter_group_id}}=1;
-#queue acl's
-if ($row->{queue_id}) { $users{'queue_'.$row->{queue_id}}->{$row->{ip}}=1; }
 }
 
-log_debug($gate_ident."Users status:".Dumper(\%users));
+log_debug($gate_ident."Users status by ACL:".Dumper(\%users));
 
-#full list
-$lists{'group_all'}=1;
-
-#get queue list
-my @queuelist_ref = get_records_sql($dbh,"SELECT * FROM queue_list");
-
-my %queues;
-foreach my $row (@queuelist_ref) {
-$lists{'queue_'.$row->{id}}=1;
-next if ((!$row->{download}) and !($row->{upload}));
-$queues{'queue_'.$row->{id}}{id}=$row->{id};
-$queues{'queue_'.$row->{id}}{down}=$row->{download};
-$queues{'queue_'.$row->{id}}{up}=$row->{upload};
-}
-
-log_debug($gate_ident."Queues status:".Dumper(\%queues));
 
 my @filter_instances = get_records_sql($dbh,"SELECT * FROM filter_instances");
 
@@ -674,44 +668,6 @@ foreach my $row (@grouplist_ref) {
 
 log_debug($gate_ident."Group filters: ".Dumper(\%group_filters));
 
-my %cur_users;
-
-foreach my $group_name (keys %lists) {
-my @address_lists=netdev_cmd($gate,$t,'/ip firewall address-list print terse without-paging where list='.$group_name,1);
-
-log_debug($gate_ident."Get address lists:".Dumper(\@address_lists));
-
-foreach my $row (@address_lists) {
-    $row=trim($row);
-    next if (!$row);
-    my @address=split(' ',$row);
-    foreach my $row (@address) {
-        if ($row=~/address\=(.*)/i) { $cur_users{$group_name}{$1}=1; }
-        }
-    }
-}
-
-#new-ips
-foreach my $group_name (keys %users) {
-    foreach my $user_ip (keys %{$users{$group_name}}) {
-    if (!exists($cur_users{$group_name}{$user_ip})) {
-        db_log_verbose($dbh,$gate_ident."Add user with ip: $user_ip to access-list $group_name");
-        push(@cmd_list,"/ip firewall address-list add address=".$user_ip." list=".$group_name);
-        }
-    }
-}
-
-#old-ips
-foreach my $group_name (keys %cur_users) {
-    foreach my $user_ip (keys %{$cur_users{$group_name}}) {
-    if (!exists($users{$group_name}{$user_ip})) {
-        db_log_verbose($dbh,$gate_ident."Remove user with ip: $user_ip from access-list $group_name");
-        push(@cmd_list,":foreach i in [/ip firewall address-list find where address=".$user_ip." and list=".$group_name."] do={/ip firewall address-list remove \$i};");
-        }
-    }
-}
-
-timestamp;
 
 #sync firewall rules
 
@@ -736,8 +692,8 @@ foreach my $jump_list (@chain_list) {
     next if (!$jump_list);
     $jump_list=trim($jump_list);
     if ($jump_list=~/jump-target=(\S*)\s+/i) {
-	if ($1) { $cur_chain{$1}++; }
-	}
+        if ($1) { $cur_chain{$1}++; }
+        }
     }
 
 #old chains
@@ -885,15 +841,69 @@ if (!$chain_ok) {
         }
     }
 }
+}#end access lists config
 
 if ($shaper_enabled) {
 
+#get userid list
+my $user_auth_sql="SELECT ip, queue_id, id FROM user_auth WHERE user_auth.deleted =0 AND user_auth.ou_id <> ? ORDER BY ip_int";
+my @authlist_ref = get_records_sql($dbh,$user_auth_sql,$default_hotspot_ou_id);
+
+foreach my $row (@authlist_ref) {
+if ($connected_users_only) { next if (!$connected_users->match_string($row->{ip})); }
+#skip not office ip's
+next if (!$office_networks->match_string($row->{ip}));
+#queue acl's
+if ($row->{queue_id}) { $users{'queue_'.$row->{queue_id}}->{$row->{ip}}=1; }
+}
+
+#get queue list
+my @queuelist_ref = get_records_sql($dbh,"SELECT * FROM queue_list");
+
+my %queues;
+foreach my $row (@queuelist_ref) {
+$lists{'queue_'.$row->{id}}=1;
+next if ((!$row->{download}) and !($row->{upload}));
+$queues{'queue_'.$row->{id}}{id}=$row->{id};
+$queues{'queue_'.$row->{id}}{down}=$row->{download};
+$queues{'queue_'.$row->{id}}{up}=$row->{upload};
+}
+
+log_debug($gate_ident."Queues status:".Dumper(\%queues));
+
 #shapers
+my %get_queue_root=();
 my %get_queue_type=();
 my %get_queue_tree=();
 my %get_filter_mangle=();
 
-my @tmp=netdev_cmd($gate,$t,'/queue type print terse without-paging where name~"pcq_(down|up)load"',1);
+my @tmp=netdev_cmd($gate,$t,'/queue tree print terse without-paging where name~"(down|up)load_root"',1);
+
+log_debug($gate_ident."Get ROOT queues classes: ".Dumper(\@tmp));
+#5   name=upload_root_sfp-sfpplus1-wan parent=sfp-sfpplus1-wan packet-mark= limit-at=0 queue=pcq-upload-default priority=8 max-limit=10G burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1
+#0   name=download_root_vlan0201 parent=vlan0201 packet-mark= limit-at=0 queue=pcq-download-default priority=8 max-limit=2G burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1
+
+foreach my $row (@tmp) {
+next if (!$row);
+$row = trim($row);
+next if ($row!~/^(\d){1,3}/);
+$row=~s/^\d{1,3}\s+//;
+next if (!$row);
+if ($row=~/name=(down|up)load_root_(\S*)\s+/i) {
+    next if (!$2);
+    my $parent_device = $2;
+    $get_queue_root{$parent_device}{name} = $parent_device;
+    if ($row=~/\s+max-limit=(\S*)\s+/) {
+        $get_queue_root{$parent_device}{bandwidth} = bitrate_to_kbps($1);
+        } else { $get_queue_root{$parent_device}{bandwidth} = 0; }
+    }
+}
+
+#log_debug($gate_ident.'GET ROOT:'.Dumper(\%get_queue_root));
+
+@tmp=();
+
+@tmp=netdev_cmd($gate,$t,'/queue type print terse without-paging where name~"pcq_(down|up)load"',1);
 
 log_debug($gate_ident."Get queues: ".Dumper(\@tmp));
 
@@ -924,7 +934,7 @@ if ($row=~/name=pcq_(down|up)load_(\d){1,3}\s+/i) {
 
 @tmp=();
 @tmp=netdev_cmd($gate,$t,'/queue tree print terse without-paging where parent~"(download|upload)_root"',1);
-log_debug($gate_ident."Get root queues: ".Dumper(\@tmp));
+#log_debug($gate_ident."Get user queues: ".Dumper(\@tmp));
 
 #print Dumper(\@tmp);
 # 0 I name=queue_3_out parent=upload_root packet-mark=upload_3 limit-at=0 queue=*2A priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1
@@ -995,6 +1005,7 @@ if ($row=~/new-packet-mark=download_(\d){1,3}_(\S*)\s+/i) {
     }
 }
 
+log_debug($gate_ident."Queues root classes:".Dumper(\%get_queue_root));
 log_debug($gate_ident."Queues type status:".Dumper(\%get_queue_type));
 log_debug($gate_ident."Queues tree status:".Dumper(\%get_queue_tree));
 log_debug($gate_ident."Firewall mangle status:".Dumper(\%get_filter_mangle));
@@ -1003,11 +1014,29 @@ my %queue_type;
 my %queue_tree;
 my %filter_mangle;
 
+#analyze root class
+foreach my $l3_int (keys %l3_interfaces) {
+my $int_type = 'download';
+if ($l3_interfaces{$l3_int}->{type}) { $int_type = 'upload'; }
+#clear unknown root queue
+push(@cmd_list,'/queue tree remove [ find name!~"'.$int_type . '_root_' . $l3_int .'" and parent='.$l3_int.' ]');
+# add root queue if not exists
+if (!exists $get_queue_root{$l3_int}) {
+    push(@cmd_list,'/queue tree add max-limit=' . kbps_to_bitrate($l3_interfaces{$l3_int}->{bandwidth}) . ' name=' . $int_type . '_root_' . $l3_int .' parent=' . $l3_int . ' queue=pcq-' . $int_type . '-default');
+    next;
+    }
+# change bandwidth if differs
+if ($get_queue_root{$l3_int}{bandwidth} ne $l3_interfaces{$l3_int}->{bandwidth}) {
+    push(@cmd_list,'/queue tree set max-limit=' . kbps_to_bitrate($l3_interfaces{$l3_int}->{bandwidth}) . '[ find name='.$int_type . '_root_' . $l3_int . ' ]');
+    next;
+    }
+}
+
 #generate new config
 foreach my $queue_name (keys %queues) {
 my $q_id=$queues{$queue_name}{id};
-my $q_up=$queues{$queue_name}{up}+1;
-my $q_down=$queues{$queue_name}{down}+1;
+my $q_up=$queues{$queue_name}{up};
+my $q_down=$queues{$queue_name}{down};
 
 #queue_types
 $queue_type{$q_id}{up}="name=pcq_upload_".$q_id." kind=pcq pcq-rate=".$q_up."k pcq-limit=500KiB pcq-classifier=src-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s pcq-src-address-mask=32 pcq-dst-address-mask=32 pcq-src-address6-mask=64 pcq-dst-address6-mask=64";
@@ -1089,12 +1118,51 @@ if (!$queue_ok) {
     push(@cmd_list,'/ip firewall mangle add '.$filter_mangle{$q_id}{$int}{down});
     }
 }
-#end shaper
-}
 
 }
 
-}#end access lists config
+}#end shaper
+
+# Analyze actual ACL
+
+my %cur_users;
+
+foreach my $group_name (keys %lists) {
+my @address_lists=netdev_cmd($gate,$t,'/ip firewall address-list print terse without-paging where list='.$group_name,1);
+
+log_debug($gate_ident."Get address lists:".Dumper(\@address_lists));
+
+foreach my $row (@address_lists) {
+    $row=trim($row);
+    next if (!$row);
+    my @address=split(' ',$row);
+    foreach my $row (@address) {
+        if ($row=~/address\=(.*)/i) { $cur_users{$group_name}{$1}=1; }
+        }
+    }
+}
+
+#new-ips
+foreach my $group_name (keys %users) {
+    foreach my $user_ip (keys %{$users{$group_name}}) {
+    if (!exists($cur_users{$group_name}{$user_ip})) {
+        db_log_verbose($dbh,$gate_ident."Add user with ip: $user_ip to access-list $group_name");
+        push(@cmd_list,"/ip firewall address-list add address=".$user_ip." list=".$group_name);
+        }
+    }
+}
+
+#old-ips
+foreach my $group_name (keys %cur_users) {
+    foreach my $user_ip (keys %{$cur_users{$group_name}}) {
+    if (!exists($users{$group_name}{$user_ip})) {
+        db_log_verbose($dbh,$gate_ident."Remove user with ip: $user_ip from access-list $group_name");
+        push(@cmd_list,":foreach i in [/ip firewall address-list find where address=".$user_ip." and list=".$group_name."] do={/ip firewall address-list remove \$i};");
+        }
+    }
+}
+
+timestamp;
 
 if (scalar(@cmd_list)) {
     log_debug($gate_ident."Apply:");

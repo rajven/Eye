@@ -8,7 +8,7 @@ define("ifDescr",".1.3.6.1.2.1.2.2.1.2");
 //ipaddr
 define("ipAdEntIfIndex",".1.3.6.1.2.1.4.20.1.2");
 
-//pports
+//ports
 define("PORT_STATUS_OID",".1.3.6.1.2.1.2.2.1.8");
 define("PORT_ADMIN_STATUS_OID",".1.3.6.1.2.1.2.2.1.7");
 define("PORT_SPEED_OID",".1.3.6.1.2.1.2.2.1.5");

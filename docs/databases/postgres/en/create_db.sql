@@ -157,14 +157,14 @@ COMMENT ON TABLE device_filter_instances IS 'Filter instances assigned to device
 
 -- Device L3 interfaces
 CREATE TABLE device_l3_interfaces (
-id SERIAL PRIMARY KEY,
-device_id INTEGER,
-snmpin INTEGER,
-interface_type SMALLINT NOT NULL DEFAULT 0,
-name VARCHAR(100)
+    id SERIAL PRIMARY KEY,
+    device_id INTEGER,
+    snmpin INTEGER,
+    interface_type SMALLINT NOT NULL DEFAULT 0,
+    name VARCHAR(100),
+    bandwidth INTEGER
 );
 COMMENT ON TABLE device_l3_interfaces IS 'Layer 3 interfaces on devices';
-COMMENT ON COLUMN device_l3_interfaces.interface_type IS 'Interface type: 0=unknown, 1=LAN, 2=WAN, 3=DMZ';
 
 -- Device models
 CREATE TABLE device_models (

@@ -155,16 +155,16 @@ device_id INTEGER
 );
 COMMENT ON TABLE device_filter_instances IS 'Экземпляры фильтров, назначенные устройствам';
 
--- L3 интерфейсы устройств
+-- Device L3 interfaces
 CREATE TABLE device_l3_interfaces (
-id SERIAL PRIMARY KEY,
-device_id INTEGER,
-snmpin INTEGER,
-interface_type SMALLINT NOT NULL DEFAULT 0,
-name VARCHAR(100)
+    id SERIAL PRIMARY KEY,
+    device_id INTEGER,
+    snmpin INTEGER,
+    interface_type SMALLINT NOT NULL DEFAULT 0,
+    name VARCHAR(100),
+    bandwidth INTEGER
 );
 COMMENT ON TABLE device_l3_interfaces IS 'Интерфейсы 3 уровня на устройствах';
-COMMENT ON COLUMN device_l3_interfaces.interface_type IS 'Тип интерфейса: 0=неизвестно, 1=LAN, 2=WAN, 3=DMZ';
 
 -- Модели устройств
 CREATE TABLE device_models (

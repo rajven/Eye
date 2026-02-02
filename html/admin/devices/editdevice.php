@@ -108,6 +108,8 @@ if (getPOST("editdevice") !== null && isset($id)) {
     $new['connected_user_only']   = (int)getPOST("f_connected_user_only", null, 0);
     $new['dhcp']                  = (int)getPOST("f_dhcp", null, 0);
     $new['user_acl']              = (int)getPOST("f_user_acl", null, 0);
+    // если включены шейперы - автоматически включаем фильтры юзеров
+//    if ($new['queue_enabled']) { $new['user_acl'] = 1; }
 
     // Расположение
     $new['building_id']           = (int)getPOST("f_building_id", null, 0);

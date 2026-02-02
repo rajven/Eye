@@ -377,40 +377,122 @@ function get_user_ip()
     return $auth_ip;
 }
 
+/**
+ * Преобразует строку вида "10G", "500M", "2k" в килобиты/с (целое число)
+ * 
+ * @param string $bitrate_str Строка с битрейтом (например: "10G", "500M", "2k")
+ * @return int Количество килобит/с (целое число)
+ */
+function bitrate_to_kbps($bitrate_str) {
+    if (!is_string($bitrate_str)) {
+        return 0;
+    }
+    
+    // Регулярное выражение: число (возможно с десятичной точкой) + необязательная единица
+    if (!preg_match('/^(\d+(?:\.\d+)?)\s*([kMG])?$/i', $bitrate_str, $matches)) {
+        return 0;
+    }
+    
+    $value = (float)$matches[1];
+    $unit = strtoupper($matches[2] ?? 'k');
+    
+    switch ($unit) {
+        case 'G':
+            return (int)($value * 1000000);
+        case 'M':
+            return (int)($value * 1000);
+        case 'K':
+        default:
+            return (int)$value;
+    }
+}
+
+/**
+ * Преобразует килобиты/с в человекочитаемую строку (только целые значения)
+ * 
+ * @param int $kbps Количество килобит/с
+ * @return string Человекочитаемая строка (например: "10G", "500M", "2k")
+ */
+function kbps_to_bitrate($kbps) {
+    if (!is_numeric($kbps) || $kbps <= 0) {
+        return "0k";
+    }
+    
+    $kbps = (int)$kbps;
+    
+    if ($kbps >= 1000000) {
+        return ($kbps / 1000000) . "G";
+    } elseif ($kbps >= 1000) {
+        return ($kbps / 1000) . "M";
+    } else {
+        return $kbps . "k";
+    }
+}
+
+
+/**
+ * Форматирует объём данных (в байтах) в человекочитаемый вид
+ * 
+ * Функция преобразует числовое значение в байтах в строку с единицами измерения,
+ * используя либо двоичную систему (KiB, MiB, GiB...) либо десятичную (kB, MB, GB...),
+ * в зависимости от настройки системы.
+ * 
+ * @param mixed $traff Объём данных в байтах (должен быть положительным числом)
+ * @return string Отформатированная строка (например: "1.5 GiB", "2.3 MB", "0 B")
+ * 
+ * @example
+ * fbytes(1024)        // "1 KiB" (если KB=1024) или "1.024 kB" (если KB=1000)
+ * fbytes(1048576)     // "1 MiB" или "1.049 MB"
+ * fbytes(0)           // "0 B"
+ */
 function fbytes($traff)
 {
+    // Определяем единицы измерения для двоичной системы (IEC 60027-2)
+    // KiB = kibibyte (1024 bytes), MiB = mebibyte (1024^2 bytes), etc.
     $units_IEC = array(
-        "",
-        "Ki",
-        "Mi",
-        "Gi",
-        "Ti"
+        "",      // bytes
+        "Ki",    // kibibytes
+        "Mi",    // mebibytes  
+        "Gi",    // gibibytes
+        "Ti"     // tebibytes
     );
 
+    // Определяем единицы измерения для десятичной системы (SI/metric)
+    // kB = kilobyte (1000 bytes), MB = megabyte (1000^2 bytes), etc.
     $units_metric = array(
-        "",
-        "k",
-        "M",
-        "G",
-        "T"
+        "",      // bytes
+        "k",     // kilobytes
+        "M",     // megabytes
+        "G",     // gigabytes
+        "T"      // terabytes
     );
 
-    if (!empty($traff) and $traff > 0) {
+    // Проверяем, что входное значение корректно (не пустое и положительное)
+    if (!empty($traff) && $traff > 0) {
+        // Определяем базу для расчётов: 1024 (двоичная) или 1000 (десятичная)
+        // get_const('KB') должен возвращать true для двоичной системы (1024)
+        // и false/null для десятичной системы (1000)
         $KB = get_const('KB');
         if ($KB) {
-            $KB = 1024;
+            $KB = 1024;  // Двоичная система (IEC)
         } else {
-            $KB = 1000;
+            $KB = 1000;  // Десятичная система (SI/metric)
         }
-        //IEC
+        // Выбираем соответствующую систему единиц измерения
         if ($KB == 1024) {
-            $index = min(((int) log($traff, $KB)), count($units_IEC) - 1);
+            // Двоичная система (IEC)
+            // Определяем индекс единицы измерения: log_KB(traff)
+            // Ограничиваем индекс максимальным доступным значением
+            $index = min((int)log($traff, $KB), count($units_IEC) - 1);
+            // Форматируем результат: значение + пробел + единица + "B"
             $result = round($traff / pow($KB, $index), 3) . ' ' . $units_IEC[$index] . 'B';
         } else {
-            $index = min(((int) log($traff, $KB)), count($units_metric) - 1);
+            // Десятичная система (SI/metric)
+            $index = min((int)log($traff, $KB), count($units_metric) - 1);
             $result = round($traff / pow($KB, $index), 3) . ' ' . $units_metric[$index] . 'B';
         }
     } else {
+        // Для нулевого или некорректного значения возвращаем "0 B"
         $result = '0 B';
     }
     return $result;
@@ -993,6 +1075,16 @@ function print_add_gw_instances($db, $device_id, $gs_name)
     echo "</select>\n";
 }
 
+function ninety_percent_rounded($number) {
+    if (!is_numeric($number)) {
+        return 0;
+    }
+    
+    $ninety_percent = $number * 0.9;
+    // Округляем до ближайшего десятка
+    return round($ninety_percent / 10) * 10;
+}
+
 function print_add_dev_interface($db, $device_id, $int_list, $int_name)
 {
     echo "&nbsp;<select id=\"" . htmlspecialchars($int_name) . "\" name=\"" . htmlspecialchars($int_name) . "\">\n";
@@ -1021,14 +1113,16 @@ function print_add_dev_interface($db, $device_id, $int_list, $int_name)
         
         // Отображаемое значение (видит пользователь) — экранируем
         $display_str = htmlspecialchars($interface['name']) . '&nbsp;|' . 
-                      htmlspecialchars($interface['ip']) . '|' . 
+                      htmlspecialchars($interface['ip']) . '&nbsp;|' . 
+                      htmlspecialchars(kbps_to_bitrate($interface['speed'])) . '|' .
                       htmlspecialchars($display_value);
         
         // Значение (отправляется на сервер) — НЕ экранируем
         $value = $interface['name'] . ';' . 
                 $interface['index'] . ';' . 
-                $interface['interface_type'];
-        
+                $interface['interface_type'] . ';' .
+                ninety_percent_rounded($interface['speed']);
+
         print_select_item($display_str, $value, 0);
     }
     echo "</select>\n";

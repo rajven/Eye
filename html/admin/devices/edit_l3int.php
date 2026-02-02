@@ -30,7 +30,8 @@ if (getPOST("s_save") !== null) {
     $selected_ids = getPOST("s_id", null, []);      // отмеченные чекбоксы
     $all_ids      = getPOST("n_id", null, []);      // все ID
     $types        = getPOST("s_type", null, []);
-    
+    $bandwidth    = getPOST("s_band",null,[]);
+
     if (!empty($selected_ids) && is_array($selected_ids)) {
         $selected_ids = array_map('intval', $selected_ids);
         $selected_set = array_flip($selected_ids);
@@ -38,11 +39,10 @@ if (getPOST("s_save") !== null) {
         foreach ($all_ids as $i => $id) {
             $id = (int)$id;
             if ($id <= 0 || !isset($selected_set[$id])) continue;
-            
             $new = [
-                'interface_type' => (int)($types[$i] ?? 0)
+                'interface_type' => (int)($types[$i] ?? 0),
+                'bandwidth' => bitrate_to_kbps($bandwidth[$i] ?? '0k')
             ];
-            
             update_record($db_link, "device_l3_interfaces", "id = ?", $new, [$id]);
         }
     }
@@ -62,6 +62,7 @@ if (getPOST("s_create") !== null) {
                 'name'           => preg_replace('/"/', '', trim($parts[0])),
                 'snmpin'         => trim($parts[1]),
                 'interface_type' => (int)trim($parts[2]),
+                'bandwidth'      => (int)trim($parts[3] ?? 0),
                 'device_id'      => $id
             ];
             
@@ -120,6 +121,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
     <td width=30><b>id</b></td>
     <td><b><?php echo WEB_cell_name; ?></b></td>
     <td><b><?php echo WEB_cell_type; ?></b></td>
+    <td><b><?php echo WEB_l3_interface_bandwidth; ?></b></td>
     <td>
         <!-- Кнопки управления справа -->
         <div style="text-align: right; white-space: nowrap;">
@@ -141,6 +143,7 @@ foreach ($t_l3_interface as $row) {
     print "<td class=\"data\">";
     print_qa_l3int_select('s_type[]', $row['interface_type']);
     print "</td>\n";
+    print "<td class=\"data\"><input type='text' style='text-align: center;' name=\"s_band[]\" value='".kbps_to_bitrate($row['bandwidth'])."'></td>\n";
     print "<td class=\"data\"></td>\n";
     print "</tr>\n";
 }
