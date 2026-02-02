@@ -397,16 +397,9 @@ add action=reject chain=forward comment="deny default wan" in-interface-list=WAN
 add action=drop chain=forward out-interface-list=WAN
 ```
 
+### Работа с dhcp-сервером
 
-### Управление трафиком:
-
-Для внешнего и внутренних интерфейсов надо создать родительсую очередь с вашим каналом в интернет. Имя очререди образовывается из имени интерфейса!
-
-```routeros
-/queue tree
-add max-limit=100M name=upload_root_ether1 parent=ether1 queue=pcq-upload-default
-add name=download_root_bridge parent=bridge queue=pcq-download-default
-```
+На события от dhcp-сервера в микротике надо повесить скрипт, который будут сообщать в Eye о аренде/освобождении ip-адресов
 
 ### DHCP-скрипт (RouterOS 6):
 

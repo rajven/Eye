@@ -1,3 +1,6 @@
+# Changelog 3.0.4 - release
+- added automatic configuration of shapers for gateway interfaces
+
 # Changelog 3.0.3 - release
 
 - added the api_login key as a synonym for login for authorization via the API
