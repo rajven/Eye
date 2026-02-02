@@ -1027,7 +1027,7 @@ if (!exists $get_queue_root{$l3_int}) {
     }
 # change bandwidth if differs
 if ($get_queue_root{$l3_int}{bandwidth} ne $l3_interfaces{$l3_int}->{bandwidth}) {
-    push(@cmd_list,'/queue tree set max-limit=' . kbps_to_bitrate($l3_interfaces{$l3_int}->{bandwidth}) . '[ find name='.$int_type . '_root_' . $l3_int . ' ]');
+    push(@cmd_list,'/queue tree set max-limit=' . kbps_to_bitrate($l3_interfaces{$l3_int}->{bandwidth}) . ' [ find name='.$int_type . '_root_' . $l3_int . ' ]');
     next;
     }
 }
