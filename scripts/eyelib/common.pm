@@ -1522,16 +1522,12 @@ sub new_auth {
 
     return 0 unless $new_user_id;
 
-    my $send_alert = isNotifyCreate(get_notify_subnet($db, $ip));
-
-    # Получаем данные пользователя БЕЗОПАСНО
-    my $user_record = get_record_sql($db,
-        "SELECT * FROM user_list WHERE id = ?",
-        $new_user_id
-    );
+    # --- Дополняем данными из user_list и OU ---
+    my $user_record = get_record_sql($db, "SELECT * FROM user_list WHERE id = ?", $new_user_id);
     return 0 unless $user_record;
 
     my $timestamp = GetNowTime();
+
     my $new_record = {
         ip_int           => $ip_aton,
         ip               => $ip,
@@ -1543,8 +1539,21 @@ sub new_auth {
         filter_group_id  => $user_record->{filter_group_id},
         queue_id         => $user_record->{queue_id},
         enabled          => $user_record->{enabled} // 0,
+        description      => $user_record->{description} // '',
     };
-    $new_record->{description} = $user_record->{description} if $user_record->{description};
+
+    my $ou_info = get_record_sql($db, "SELECT * FROM ou WHERE id = ?", $user_record->{ou_id});
+    return 0 unless $ou_info;
+
+    if ($ou_info && $ou_info->{dynamic}) {
+        my $life_duration = $ou_info->{life_duration} // 24;
+        my $hours   = int($life_duration);
+        my $minutes = ($life_duration - $hours) * 60;
+        my $now = DateTime->now(time_zone => 'local');
+        my $end_life = $now->clone->add(hours => $hours, minutes => $minutes);
+        $new_record->{dynamic}   = 1;
+        $new_record->{end_life}  = $end_life->strftime('%Y-%m-%d %H:%M:%S');
+        }
 
     my $cur_auth_id = insert_record($db, 'user_auth', $new_record);
 
