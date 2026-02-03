@@ -198,12 +198,13 @@ function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $n
     }
 
     // === 6. Формируем сообщение ===
-    $op_label = match ($operation) {
-        'insert' => 'Created',
-        'update' => 'Updated',
-        'delete' => 'Deleted',
-        default => ucfirst($operation),
-    };
+    $map = [
+    'insert' => 'Created',
+    'update' => 'Updated',
+    'delete' => 'Deleted',
+    ];
+
+    $op_label = $map[$operation] ?? ucfirst($operation);
 
     $message = sprintf("[%s] %s (%s) in table `%s`:\n", 
         $op_label, 

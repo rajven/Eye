@@ -8,31 +8,27 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/vendorfilter.php");
 if (getPOST("save")) {
     $f_ids = getPOST("f_id", null, []);
     if (!empty($f_ids) && is_array($f_ids)) {
-        // Преобразуем в целые числа
-        $f_ids = array_map('intval', array_filter($f_ids, fn($id) => $id > 0));
-        // Получаем все данные
-        $r_ids       = array_map('intval', getPOST("r_id",       null, []));
-        $f_vendors   = getPOST("f_vendor",   null, []);
-        $f_names     = getPOST("f_name",     null, []);
-        $f_poe_ins   = getPOST("f_poe_in",   null, []);
-        $f_poe_outs  = getPOST("f_poe_out",  null, []);
-        $f_nagios    = getPOST("f_nagios",   null, []);
-        foreach ($f_ids as $save_id) {
-            $idx = array_search($save_id, $r_ids, true);
-            if ($idx === false) continue;
-            $new = [
-                'poe_in'  => !empty($f_poe_ins[$idx])  ? (int)$f_poe_ins[$idx]  : 0,
-                'poe_out' => !empty($f_poe_outs[$idx]) ? (int)$f_poe_outs[$idx] : 0,
-                'nagios_template' => trim($f_nagios[$idx] ?? '')
-            ];
-            // Для кастомных моделей (ID >= 10000)
-            if ($save_id >= 10000) {
-                $new['vendor_id']  = !empty($f_vendors[$idx]) ? (int)$f_vendors[$idx] : 1;
-                $new['model_name'] = trim($f_names[$idx] ?? '');
-            }
+        $f_ids = array_map('intval', getPOST("f_id", null, []));
+        $r_ids = array_map('intval', getPOST("r_id", null, []));
+        $f_vendors  = getPOST("f_vendor", null, []);
+        $f_names    = getPOST("f_name", null, []);
+        $f_poe_ins  = getPOST("f_poe_in", null, []);
+        $f_poe_outs = getPOST("f_poe_out", null, []);
+        $f_nagios   = getPOST("f_nagios", null, []);
 
+        foreach ($f_ids as $save_id) {
+            if (!isset($r_ids[$save_id])) continue; // на всякий случай
+            $new = [
+                'poe_in'  => (int)($f_poe_ins[$save_id]  ?? 0),
+                'poe_out' => (int)($f_poe_outs[$save_id] ?? 0),
+                'nagios_template' => trim($f_nagios[$save_id] ?? '')
+            ];
+            if ($save_id >= 10000) {
+                $new['vendor_id']  = (int)($f_vendors[$save_id] ?? 1);
+                $new['model_name'] = trim($f_names[$save_id] ?? '');
+                }
             update_record($db_link, "device_models", "id = ?", $new, [$save_id]);
-        }
+            }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
@@ -134,23 +130,23 @@ print_control_submenu($page_url);
                 $checkbox_attr = $is_system ? 'disabled title="System model — cannot be edited or deleted"' : '';
                 echo "<tr align=center>\n";
                 echo "<td class=\"data\" style='padding:0'>";
-                echo "<input type=\"checkbox\" name=\"f_id[]\" value=\"{$row['id']}\">";
+                echo "<input type=\"checkbox\" name=\"f_id[{$row['id']}]\" value=\"{$row['id']}\">";
                 echo "</td>\n";
-                echo "<td class=\"data\"><input type=\"hidden\" name=\"r_id[]\" value=\"{$row['id']}\">{$row['id']}</td>\n";
+                echo "<td class=\"data\"><input type=\"hidden\" name=\"r_id[{$row['id']}]\" value=\"{$row['id']}\">{$row['id']}</td>\n";
                 echo "<td class=\"data\" width=150>";
-                print_vendor_set($db_link, 'f_vendor[]', $row['vendor_id'], $is_system);
+                print_vendor_set($db_link, "f_vendor[{$row['id']}]", $row['vendor_id'], $is_system);
                 echo "</td>\n";
                 echo "<td class=\"data\">";
-                echo "<input type=\"text\" name=\"f_name[]\" value=\"" . htmlspecialchars($row['model_name']) . "\" $disabled_attr>";
+                echo "<input type=\"text\" name=\"f_name[{$row['id']}]\" value=\"" . htmlspecialchars($row['model_name']) . "\" $disabled_attr>";
                 echo "</td>\n";
                 echo "<td class=\"data\">";
-                print_qa_select("f_poe_in[]", $row['poe_in']);
+                print_qa_select("f_poe_in[{$row['id']}]", $row['poe_in']);
                 echo "</td>\n";
                 echo "<td class=\"data\">";
-                print_qa_select("f_poe_out[]", $row['poe_out']);
+                print_qa_select("f_poe_out[{$row['id']}]", $row['poe_out']);
                 echo "</td>\n";
                 echo "<td class=\"data\">";
-                echo "<input type=\"text\" name=\"f_nagios[]\" value=\"" . htmlspecialchars($row['nagios_template']) . "\">";
+                echo "<input type=\"text\" name=\"f_nagios[{$row['id']}]\" value=\"" . htmlspecialchars($row['nagios_template']) . "\">";
                 echo "</td>\n";
                 echo "<td class=\"data\"></td>\n";
                 echo "</tr>\n";
