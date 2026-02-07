@@ -95,6 +95,11 @@ function capture_print_r($var) {
     return ob_get_clean();
 }
 
+function needs_decoding($str) {
+    // Проверяем, есть ли хотя бы один %-код, и корректен ли он
+    return preg_match('/%[0-9A-Fa-f]{2}/', $str);
+}
+
 /**
  * Получает параметр только из GET (скаляр или массив)
  */

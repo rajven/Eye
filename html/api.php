@@ -4,6 +4,9 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
 
 login($db_link);
 
+//error_log("GET: " . json_encode($_GET));
+//error_log("POST: " . json_encode($_POST));
+
 // Получаем параметры через безопасные функции
 $action_get  = getParam('get', null, null);
 $action_send = getParam('send', null, null);
@@ -45,6 +48,8 @@ $offset_param = getParam('offset', null, null, FILTER_VALIDATE_INT);
 $limit = ($limit_param !== null && $limit_param > 0) ? min((int)$limit_param, 1000) : 1000;
 $offset = ($offset_param !== null && $offset_param >= 0) ? (int)$offset_param : 0;
 
+if (needs_decoding($f_subnet)) { $f_subnet = rawurldecode($f_subnet); }
+
 // Обработка MAC-адреса
 $mac = '';
 if (!empty($mac_raw) && checkValidMac($mac_raw)) {
@@ -76,6 +81,18 @@ $allowed_tables = [
     'user_list',
     'vendors'
 ];
+
+function log_api_call($action, $params = []) {
+    global $db_link;
+    $log_data = [
+        'action' => $action,
+        'params' => $params,
+        'timestamp' => date('Y-m-d H:i:s'),
+        'remote_addr' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+    ];
+    LOG_DEBUG($db_link, "API CALL: " . json_encode($log_data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+}
 
 function do_exit() {
     exit;
@@ -148,6 +165,15 @@ if (!empty($action)) {
 
     // === УНИВЕРСАЛЬНЫЙ МЕТОД: get_table_record ===
     if ($action === 'get_table_record' && !empty($table)) {
+
+        log_api_call($action, [
+            'table' => $table,
+            'filter' => $filter,
+            'limit' => $limit,
+            'offset' => $offset,
+            'id' => $rec_id
+            ]);
+
         if ($rec_id>0) {
             $result = safe_get_record($db_link, $table, $rec_id);
             } elseif (!empty($filter)) {
@@ -173,6 +199,14 @@ if (!empty($action)) {
 
     // === УНИВЕРСАЛЬНЫЙ МЕТОД: get_table_list ===
     if ($action === 'get_table_list' && !empty($table)) {
+
+        log_api_call($action, [
+            'table' => $table,
+            'filter' => $filter,
+            'limit' => $limit,
+            'offset' => $offset,
+            ]);
+
         $result = safe_get_records($db_link, $table, $filter, $limit, $offset);
         
         if (isset($result['error'])) {
@@ -188,6 +222,12 @@ if (!empty($action)) {
 
     // === ОБНОВЛЕНИЕ USER_LIST ===
     if ($action === 'send_update_user' && $rec_id > 0 && !empty($update_data)) {
+
+        log_api_call($action, [
+            'rec_id' => $rec_id,
+            'update_data' => $update_data,
+            ]);
+
         $data = json_decode($update_data, true);
         
         if (!is_array($data)) {
@@ -238,6 +278,13 @@ if (!empty($action)) {
 
     // === ОБНОВЛЕНИЕ USER_AUTH ===
     if ($action === 'send_update_user_auth' && $rec_id > 0 && !empty($update_data)) {
+
+        log_api_call($action, [
+            'rec_id' => $rec_id,
+            'update_data' => $update_data,
+            ]);
+
+
         $data = json_decode($update_data, true);
 
         if (!is_array($data)) {
@@ -278,7 +325,14 @@ if (!empty($action)) {
     // === get_user_auth ===
     if ($action === 'get_user_auth') {
         LOG_VERBOSE($db_link, "API: Get User Auth record with ip: $ip mac: $mac id: $rec_id");
-        
+
+        log_api_call($action, [
+            'ip' => $ip,
+            'ip_aton' => $ip_aton,
+            'mac' => $mac,
+            'rec_id' => $rec_id,
+            ]);
+
         $result = null;
         $sql = "";
         $params = [];
@@ -319,7 +373,11 @@ if (!empty($action)) {
     // === get_user ===
     if ($action === 'get_user') {
         LOG_VERBOSE($db_link, "API: Get User record with id: $rec_id");
-        
+
+        log_api_call($action, [
+            'rec_id' => $rec_id,
+            ]);
+
         if ($rec_id > 0) {
             $user = get_record_sql($db_link, "SELECT * FROM user_list WHERE deleted = 0 AND id = ?", [$rec_id]);
             if ($user) {
@@ -368,13 +426,18 @@ if (!empty($action)) {
 
     // === get_dhcp_subnet ===
     if ($action === 'get_dhcp_subnet' && !empty($f_subnet)) {
-        // Валидация подсети как IPv4-адреса
-        if (!filter_var($f_subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+
+        log_api_call($action, [
+            'subnet' => $f_subnet,
+            ]);
+
+        $subnet = cidrToRange($f_subnet);
+        if (empty($subnet)) {
             http_response_code(400);
             echo json_encode(['error' => 'Invalid subnet format']);
             do_exit();
-        }
-        
+            }
+
         LOG_VERBOSE($db_link, "API: Get dhcp records for subnet " . $f_subnet);
         $result = get_records_sql($db_link, "
             SELECT 
@@ -395,8 +458,46 @@ if (!empty($action)) {
         do_exit();
     }
 
+    // === get_user_subnet ===
+    if ($action === 'get_user_subnet' && !empty($f_subnet)) {
+        LOG_VERBOSE($db_link, "API: Get ip records for subnet " . $f_subnet);
+
+        log_api_call($action, [
+            'subnet' => $f_subnet,
+            ]);
+
+        $subnet = cidrToRange($f_subnet);
+        if (empty($subnet)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid subnet format']);
+            do_exit();
+            }
+
+        $first_ip = ip2long($subnet[0]);
+        $last_ip = ip2long($subnet[1]);
+
+        $result = get_records_sql($db_link, "
+            SELECT id, ip, ip_int, mac, description, dns_name, dhcp_hostname, ou_id
+            FROM user_auth 
+            WHERE deleted=0 AND ip_int BETWEEN ? AND ? ORDER BY ip_int
+            LIMIT ? OFFSET ?
+        ", [ $first_ip, $last_ip, $limit, $offset]);
+
+        LOG_VERBOSE($db_link, "API: " . count($result) . " records found.");
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($result ?: [], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        do_exit();
+    }
+
     // === send_dhcp ===
     if ($action === 'send_dhcp') {
+
+        log_api_call($action, [
+            'ip' => $ip,
+            'mac' => $mac,
+            'action' => $dhcp_action,
+            ]);
+
         if ($ip && $mac) {
             $faction = $dhcp_action !== null ? (int)$dhcp_action : 1;
             $action_str = ($faction === 0) ? 'del' : 'add';
