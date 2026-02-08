@@ -1,0 +1,39 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1684154872" format="1.1" reprev="2" version="2"}%
+---++ Список упсов
+
+%SEARCH{
+search="lc(DeviceType)='ups' and Disabled=''"
+topic="Ups*"
+type="query"
+multiple="on"
+nosearch="on"
+header="| *Name* | *Расположен* | *Model* | *Description* | *IP* |"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(Place) | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Description) | $formfield(DeviceIP) |"
+}%
+
+---++ Снято/выключено
+
+%SEARCH{
+search="lc(DeviceType)='ups' and Disabled='Yes'"
+topic="Ups*"
+type="query"
+multiple="on"
+nosearch="on"
+header="| *Name* | *Расположен* | *Model* | *Description* | *IP* |"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(Place) | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Description) | $formfield(DeviceIP) |"
+}%
+
+
+---++ Добавить
+
+%INCLUDE{IncludeAddUps}%
+
+---++ Работа
+
+%COMMENT{type="workflow"}%
+
+-- Main.RomanDmitriev - 01 Nov 2020
+
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

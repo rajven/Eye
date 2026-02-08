@@ -1,0 +1,17 @@
+%INCLUDE{IncludeSnmpPort}%
+
+%INCLUDE{IncludeFindAuth}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddService}%
+
+%INCLUDE{IncludeAddCert}%
+
+%INCLUDE{IncludeAddAuth}%
+
+%INCLUDE{IncludeAddAcl}%
+
+%INCLUDE{IncludeAddVlan}%
+
+%INCLUDE{IncludeWorkflow}%

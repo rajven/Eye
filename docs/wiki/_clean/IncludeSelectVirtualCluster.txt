@@ -1,0 +1,6 @@
+,
+Ovirt,
+OpenStack,
+OpenNebula,
+Proxmox,
+VmWare

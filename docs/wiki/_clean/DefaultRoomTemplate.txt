@@ -1,0 +1,15 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1602750423" format="1.1" reprev="2" version="3"}%
+
+---+!! Комната %FORMFIELD{"Name" topic="%BASETOPIC%"}% (%FORMFIELD{"Description" topic="%BASETOPIC%"}%)
+
+%INCLUDE{IncludeHeaderRoom}%
+
+%INCLUDE{IncludeBottomRoom}%
+
+-- %WIKIUSERNAME% - %DATE%
+
+%META:FORM{name="FormRoom"}%
+
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

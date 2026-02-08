@@ -1,0 +1,13 @@
+<div id="container-showstat"></div>
+<script type="text/javascript">
+$(function() {
+  $("#container-showstat").load("%SCRIPTURLPATH{"rest"}%/RenderPlugin/tag",
+  { name: 'SHOWSTAT',
+    host: '%FORMFIELD{"DeviceIP" topic="%BASETOPIC%"}%',
+    topic: '%BASEWEB%.%BASETOPIC%',
+    web: '%BASEWEB%',
+    render: true }
+);
+});
+</script>
+

@@ -1,0 +1,11 @@
+---++ Этажи
+
+%SEARCH{
+"Parent='%BASETOPIC%'"
+topic="Floor*"
+type="query"
+nosearch="on"
+nototal="on"
+header="|*Этаж*|*Description*|"
+format="| [[$topic][$formfield(Name)]] | $formfield(Description) |"
+}%

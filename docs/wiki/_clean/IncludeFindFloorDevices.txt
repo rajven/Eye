@@ -1,0 +1,13 @@
+---++ Список оборудования вне стоек
+
+%SEARCH{
+"(Place=~'%BASETOPIC%' or Parent=~'%BASETOPIC%') and not Rack"
+topic="*"
+excludetopic="Rack*"
+type="query"
+nosearch="on"
+nototal="on"
+header="|*Name*|*Место*|*Model*|*Description*|"
+format="| [[$web.$topic][$formfield(Name)]] | $formfield(Rack) | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Description) |"
+order="formfield(Name)"
+}%

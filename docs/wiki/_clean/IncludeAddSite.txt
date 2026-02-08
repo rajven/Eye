@@ -1,0 +1,10 @@
+<form name="newSite" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
+   * Добавить сайт:
+     <input type="text" name="topic" value="Site" size="40" />
+     <input type="hidden" name="templatetopic" value="DefaultSiteTemplate" />
+     <input type="hidden" name="onlywikiname" value="off" />
+     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
+     <input type="hidden" name="Parent" value="%BASETOPIC%" />
+     <input type="hidden" name="formtemplate" value="FormSite" />
+     <input type="submit" value="Create" />
+</form>

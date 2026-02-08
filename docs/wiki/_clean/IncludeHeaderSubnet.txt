@@ -1,0 +1,23 @@
+---++ Список адресов, по которым есть информация в виках
+
+%SEARCH{
+"DeviceSubnet='%BASETOPIC%'"
+type="query"
+nosearch="on"
+nototal="on"
+pager="on"
+pagesize="25"
+order="formfield(DnsName)"
+header="|*IP   * | *Host* | *Description* |"
+format="| $formfield(DeviceIP) | [[$web.$topic][$formfield(DnsName)]] | $formfield(Description) |"
+}%
+
+---++ Параметры сети %FORMFIELD{"Subnet" topic="%BASETOPIC%"}%
+
+%SHOWSUBNET{Subnet="%FORMFIELD{"Subnet" topic="%BASETOPIC%"}%"}%
+
+---++ Список использованных адресов
+
+%SHOWSUBNETIPS{Subnet="%FORMFIELD{"Subnet" topic="%BASETOPIC%"}%"}%
+
+</script>

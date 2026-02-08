@@ -1,0 +1,9 @@
+<form name="newVlan" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
+   * Добавить vlan:
+     <input type="text" name="topic" value="Vlan0000%BASETOPIC%" size="40" />
+     <input type="hidden" name="templatetopic" value="DefaultVlanTemplate" />
+     <input type="hidden" name="onlywikiname" value="off" />
+     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
+     <input type="hidden" name="formtemplate" value="FormVlan" />
+     <input type="submit" value="Create" />
+</form>

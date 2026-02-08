@@ -1,0 +1,23 @@
+---+!!  %FORMFIELD{"DeviceType" topic="%BASETOPIC%"}%  %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
+
+---+!! Маршрутизатор в сети [[WebHome][Организации]]
+
+%TOC%
+
+%INCLUDE{IncludeHeaderRouter}%
+
+---++ DHCP Relay
+
+---++ Маршрутизация
+
+---++ Политика безопасности
+
+%INCLUDE{IncludeBottomRouter}%
+
+-- %WIKIUSERNAME% - %DATE%
+
+%META:FORM{name="FormNetDevice"}%
+
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

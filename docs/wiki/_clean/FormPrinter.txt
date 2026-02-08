@@ -1,0 +1,38 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1604772215" format="1.1" reprev="1" version="7"}%
+---+ Basic info for network device
+
+This is a topic, used for create network device
+
+---++ Data form definition of server os settings
+
+| *Name*  | *Type* | *Size* | *Values* |
+| Name | text  | 80 | %BASETOPIC% |
+| Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
+| Device Type | select | 1 | %INCLUDE{IncludeSelectDeviceType}% |
+| Share Name | text | 40 | |
+| Dns Name | text  | 80 | |
+| Description | text | 80 | |
+| Vendor | select | 1 | %INCLUDE{IncludeSelectVendor}% |
+| Device Model | text | 80 | |
+| Firmware | text | 100 | |
+| Printing Type | select+values | 1 | лазерный/светодиодный=laser, струйный=inkjet, сублимационный=sublimation, термопринтер=thermal |
+| Color | checkbox | 1 | Yes |
+| MFU | checkbox | 1 | Yes |
+| PaperSize | select | 1 | A4, A3, A3+ |
+| Email Print | checkbox | 1 | Yes |
+| iPrint | checkbox | 1 | Yes |
+| Wi-Fi Direct | checkbox | 1 | Yes |
+| Network | checkbox | 1 | Yes |
+| Wifi | checkbox | 1 | Yes |
+| Community | text | 20 | |
+| SN | text | 80 | |
+| Uplink | text | 20 | |
+| Parent | select | 1 | %INCLUDE{IncludeSelectNetParent}% |
+| Parent Port | text | 20 | |
+| Device Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
+| Device IP | text | 20 | |
+| Mac | text | 20 | |
+| Disabled | checkbox | 1 |  Yes |
+| Deleted | checkbox | 1 |  Yes |
+
+-- Main.RomanDmitriev - 2020/10/12

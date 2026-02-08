@@ -1,0 +1,22 @@
+%INCLUDE{IncludeShowStat}%
+
+---++ Hardware
+
+<div id="container1"></div>
+
+<script type="text/javascript">
+$(function() {
+  $("#container1").load("%SCRIPTURLPATH{"rest"}%/RenderPlugin/tag",
+  { name: 'UpsINFO',
+    param: '%FORMFIELD{"DeviceIP" topic="%BASETOPIC%"}%',
+    community: '%FORMFIELD{"Community" topic="%BASETOPIC%"}%',
+    topic: '%BASEWEB%.%BASETOPIC%',
+    web: '%BASEWEB%',
+    render: true }
+);
+});
+</script>
+
+%INCLUDE{IncludeNetDevCommon}%
+
+%INCLUDE{IncludeFindUpsClient}%

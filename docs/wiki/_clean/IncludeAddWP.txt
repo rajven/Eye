@@ -1,0 +1,9 @@
+<form name="new" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
+   * Добавить профиль WiFi:
+        <input type="text" name="topic" value="WirelessProfile" size="40" />
+        <input type="hidden" name="templatetopic" value="DefaultWirelessProfileTemplate" />
+        <input type="hidden" name="onlywikiname" value="off" />
+        <input type="hidden" name="topicparent" value="" />
+        <input type="hidden" name="formtemplate" value="FormWirelessProfile" />
+        <input type="submit" value="Create" />
+</form>

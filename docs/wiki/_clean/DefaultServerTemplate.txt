@@ -1,0 +1,23 @@
+---+!! Сервер %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
+
+%TOC%
+
+---++ Система
+
+ОС:
+
+%INCLUDE{IncludeHeaderServer}%
+
+---++ Дисковая подсистема
+
+---++ Сеть
+
+%INCLUDE{IncludeBottomServer}%
+
+-- %WIKIUSERNAME% - %DATE%
+
+%META:FORM{name="FormServerOs"}%
+
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

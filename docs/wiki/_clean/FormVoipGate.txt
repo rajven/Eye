@@ -1,0 +1,30 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1604772215" format="1.1" reprev="1" version="7"}%
+---+ Basic info for network device
+
+This is a topic, used for create network device
+
+---++ Data form definition of server os settings
+
+| *Name*  | *Type* | *Size* | *Values* |
+| Name | text  | 80 | %BASETOPIC% |
+| Device Type | select | 1 | %INCLUDE{IncludeSelectDeviceType}% |
+| Place | select | 1 | %INCLUDE{IncludeSelectPlace}% |
+| ATS | select+multi | 2 | %INCLUDE{IncludeSelectATS}% |
+| Phone Number | text | 30 | |
+| Dns Name | text  | 80 | |
+| Description | text | 80 | |
+| Vendor | select | 1 | %INCLUDE{IncludeSelectVendor}% |
+| Device Model | text | 80 | |
+| Firmware | text | 100 | |
+| Community | text | 20 | |
+| SN | text | 80 | |
+| Uplink | text | 20 | |
+| Parent | select | 1 | %INCLUDE{IncludeSelectNetParent}% |
+| Parent Port | text | 20 | |
+| Device Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
+| Device IP | text | 20 | |
+| Mac | text | 20 | |
+| Disabled | checkbox | 1 |  Yes |
+| Deleted | checkbox | 1 |  Yes |
+
+-- Main.RomanDmitriev - 2020/10/12

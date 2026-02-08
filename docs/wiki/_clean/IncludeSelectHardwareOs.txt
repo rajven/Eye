@@ -1,0 +1,1 @@
+, %SEARCH{"\.*" scope="topic" topic="Gateway*,Router*,Vmware*,Server*" nototal="on" nosummary="on" nosearch="on" regex="on" format="$topic" separator=", "}%

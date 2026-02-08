@@ -1,0 +1,10 @@
+<form name="newVoipGate" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
+   * Добавить войп-шлюз:
+     <input type="text" name="topic" value="DeviceVoipGate" size="40" />
+     <input type="hidden" name="templatetopic" value="DefaultVoipGateTemplate" />
+     <input type="hidden" name="onlywikiname" value="off" />
+     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
+     <input type="hidden" name="formtemplate" value="FormVoipGate" />
+     <input type="hidden" name="DeviceType" value="VoipGate" />
+     <input type="submit" value="Create" />
+</form>

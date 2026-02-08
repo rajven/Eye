@@ -1,0 +1,9 @@
+<form name="newBras" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
+   * Добавить BRAS:
+     <input type="text" name="topic" value="Bras" size="40" />
+     <input type="hidden" name="templatetopic" value="DefaultBrasTemplate" />
+     <input type="hidden" name="onlywikiname" value="off" />
+     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
+     <input type="hidden" name="formtemplate" value="FormBras" />
+     <input type="submit" value="Create" />
+</form>

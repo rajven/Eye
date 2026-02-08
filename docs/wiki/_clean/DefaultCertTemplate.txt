@@ -1,0 +1,16 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1604395626" format="1.1" reprev="5" version="4"}%
+
+---+!! Сертификат %FORMFIELD{"DnsName" topic="%BASETOPIC%"}%
+
+%INCLUDE{IncludeWorkflow}%
+
+-- Main.RomanDmitriev - 2020/10/11
+
+%META:FORM{name="FormCertificate"}%
+
+%META:PREFERENCE{name="PERMSET_VIEW" title="PERMSET_VIEW" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="ALLOWTOPICVIEW" title="ALLOWTOPICVIEW" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_VIEW_DETAILS" title="PERMSET_VIEW_DETAILS" type="Local" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

@@ -1,0 +1,23 @@
+---+!! Виртуальная машина %FORMFIELD{"DnsName" topic="%BASETOPIC%"}% на %FORMFIELD{"Name" topic="%FORMFIELD{"ParentHost" topic="%BASETOPIC%"}%"}%
+
+%TOC%
+
+---++ Система
+
+ОС:
+
+%INCLUDE{IncludeHeaderVirtualHost}%
+
+---++ Дисковая подсистема
+
+---++ Сеть
+
+%INCLUDE{IncludeBottomVirtualHost}%
+
+-- %WIKIUSERNAME% - %DATE%
+
+%META:FORM{name="FormVirtual"}%
+
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

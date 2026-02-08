@@ -1,0 +1,12 @@
+%META:TOPICINFO{author="roman" date="1604786685" format="1.1" version="5"}%
+| *Name* | *Type* | *Size* | *Values* |
+| Name | text | 20 | %BASETOPIC% |
+| Wireless SSID | text | 20 | |
+| Vlan | text | 4 | |
+| Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
+| Description | text | 80 | |
+| Wireless PSK | select | 1 | %INCLUDE{IncludeSelectWirelessPSK}% |
+| Disabled | checkbox | 1 |  Yes |
+| Deleted | checkbox | 1 |  Yes |
+
+-- Main.RomanDmitriev - 2020/10/13

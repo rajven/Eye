@@ -1,0 +1,20 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1602794427" format="1.1" reprev="3" version="2"}%
+---++ Список вланов
+
+%SEARCH{
+topic="Vlan*"
+type="query"
+nosearch="on"
+nototal="on"
+header="|*Name*|*Tag*|*Subnet*|*Description*|*Router*|"
+format="| [[$topic][$formfield(VlanName)]] | $formfield(Vlantag) | [[$formfield(Subnet)][$formfield(Subnet)]] | $formfield(Description) | $formfield(Parent) |"
+}%
+
+---++ Работа
+
+%COMMENT{type="workflow"}%
+
+-- Main.RomanDmitriev - 2020/10/10
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

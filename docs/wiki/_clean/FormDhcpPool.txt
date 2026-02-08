@@ -1,0 +1,10 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1602757095" format="1.1" reprev="3" version="3"}%
+---+ Basic info dhcp pool
+
+| *Name*  | *Type* | *Size* | *Values* |
+| Name | text | 40 | %BASETOPIC% |
+| Description | text | 80 | |
+| Parent | select | 1 | %INCLUDE{IncludeSelectNetParent}% |
+| Subnet | select | 1 | %INCLUDE{IncludeSelectSubnet}% |
+
+-- Main.RomanDmitriev - 2020/10/11

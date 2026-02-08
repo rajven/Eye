@@ -1,0 +1,32 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1627890919" format="1.1" reprev="10" version="10"}%
+---+!! Кластер виртуализации
+
+%TOC%
+
+---++ Список Host-серверов в кластере %BASETOPIC%
+
+%SEARCH{
+"lc(DeviceType)='kvmhost' and VirtualCluster='%BASETOPIC%'"
+topic="Server*"
+type="query"
+nosearch="on"
+header="|*Name*|*CPU*|*Memory*|*IP*|*Description*|*Rack*|"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(DeviceCPU) | $formfield(DeviceMemory) | $formfield(DeviceIP) | $formfield(Description) | $formfield(Rack) |"
+}%
+
+---++ Виртуальные сервера в облаке
+
+%SEARCH{
+"lc(DeviceType)~'virtual*' and VirtualCluster='%BASETOPIC%'"
+topic="Server*"
+type="query"
+nosearch="on"
+header="|*ID*|*Name*|*Virtualization*|*CPU Count*|*Memory*|*OS*|*IP*|*Description*|"
+format="| $formfield(VmID) | [[$web.$topic][$formfield(DnsName)]] | $formfield(Device Type) | $formfield(Device CPU) | $formfield(Device Memory) | $formfield(Device OS) | $formfield(Device IP) | $formfield(Description) |"
+}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddVServerCluster}%
+
+%INCLUDE{IncludeWorkflow}%

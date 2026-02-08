@@ -1,0 +1,28 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1626770252" format="1.1" reprev="3" version="2"}%
+%META:TOPICPARENT{name="NetworkCompany"}%
+---+!! Войп-шлюзы
+
+%TOC%
+
+%INCLUDE{IncludeFindVoipGates}%
+
+%INCLUDE{IncludeListStatGates}%
+
+%INCLUDE{IncludeFindVoipGatesDisabled}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddVoipGate}%
+
+---++ Работа
+
+%COMMENT{type="workflow"}%
+
+
+-- Main.RomanDmitriev - 09 Nov 2020
+
+
+%META:PREFERENCE{name="DENYTOPICVIEW" title="DENYTOPICVIEW" type="Set" value="WikiGuest"}%
+%META:PREFERENCE{name="DENYTOPICCHANGE" title="DENYTOPICCHANGE" type="Set" value="WikiGuest"}%
+%META:PREFERENCE{name="PERMSET_VIEW" title="PERMSET_VIEW" type="Local" value="registeredusers"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="registeredusers"}%

@@ -1,0 +1,43 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1684154333" format="1.1" reprev="6" version="6"}%
+---+!! Описание сети организации
+
+---++ Оборудование
+
+   * [[ListGatewaysCompany][Шлюзы и роутеры]]
+   * [[ListSwitchesCompany][Свичи]]
+   * [[WifiCompany][WiFi]]
+   * [[ListOfWlac][Wireless Controllers]]
+
+---++ Используемые подсети организации
+
+   * [[NetworkWanSubnets][Внешние сети]]
+   * [[NetworkLanSubnets][Внутренние сети]]
+   * [[SubnetLook][Подсказка по подсетям]]
+
+---++ Контроль доступа и управление
+
+%INCLUDE{IncludeFindAuthAll}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddVirtCluster}%
+
+%INCLUDE{IncludeAddHardware}%
+%INCLUDE{IncludeAddNetDevice}%
+%INCLUDE{IncludeAddWlc}%
+%INCLUDE{IncludeAddPrinter}%
+%INCLUDE{IncludeAddIPCAM}%
+%INCLUDE{IncludeAddUps}%
+%INCLUDE{IncludeAddAP}%
+%INCLUDE{IncludeAddSubnet}%
+%INCLUDE{IncludeAddPool}%
+
+---++ Работа
+
+%COMMENT{type="workflow"}%
+
+-- Main.RomanDmitriev - 2020/10/10
+
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

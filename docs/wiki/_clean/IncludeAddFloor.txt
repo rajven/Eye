@@ -1,0 +1,9 @@
+<form name="newFloor" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
+   * Добавить этаж:
+     <input type="text" name="topic" value="Floor" size="40" />
+     <input type="hidden" name="templatetopic" value="DefaultFloorTemplate" />
+     <input type="hidden" name="onlywikiname" value="off" />
+     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
+     <input type="hidden" name="formtemplate" value="FormFloor" />
+     <input type="submit" value="Create" />
+</form>

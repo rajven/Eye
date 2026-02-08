@@ -1,0 +1,10 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1602757095" format="1.1" reprev="3" version="3"}%
+---+ Basic info by closet
+
+| *Name*  | *Type* | *Size* | *Values* |
+| Parent | select | 1 | %INCLUDE{IncludeSelectPlace}% |
+| Name | text | 40 | %BASETOPIC% |
+| Description | text | 80 | |
+| UPS | select | 1 | %INCLUDE{IncludeSelectUPS}% |
+
+-- Main.RomanDmitriev - 2020/10/11

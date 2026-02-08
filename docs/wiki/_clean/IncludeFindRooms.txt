@@ -1,0 +1,11 @@
+---++ Список офисов/комнат/серверных
+
+%SEARCH{
+"Parent='%BASETOPIC%' or Floor='%BASETOPIC%'"
+topic="Room*"
+type="query"
+nosearch="on"
+nototal="on"
+header="|*Кабинет*|*Description*|"
+format="| [[$topic][$formfield(Name)]] | $formfield(Description) |"
+}%

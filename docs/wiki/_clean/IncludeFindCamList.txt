@@ -1,0 +1,12 @@
+---++ Список камер на этом регистраторе
+
+%SEARCH{
+"Videoregistrator='%BASETOPIC%'"
+topic="DeviceIPCAM*"
+type="query"
+nosearch="on"
+expandvariables="on"
+header="|*Name*|*Тип*|*Description*|*Disabled*|"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(DeviceType) | $formfield(Description) | $formfield(Disabled) |"
+order="formfield(Name)"
+}%

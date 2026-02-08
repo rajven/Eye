@@ -1,0 +1,28 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1684154332" format="1.1" reprev="4" version="4"}%
+---+!! Свичи организации
+
+---++ Список свичей в виках
+
+%SEARCH{
+"lc(DeviceType)='switch'"
+topic="Switch*"
+type="query"
+nosearch="on"
+nototal="on"
+header="|*Name*|*IP*|*Model*|*Расположение*|*Description*|*POE*|*POE, W*|"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(DeviceIP) | $formfield(Vendor) $formfield(DeviceModel) | $formfield(Place) | $formfield(Description) | $formfield(PoeOut) | $formfield(PoeW) |"
+}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddSwitch}%
+
+---++ Работа
+
+%COMMENT{type="workflow"}%
+
+-- Main.RomanDmitriev - 2020/10/11
+
+%META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="details"}%
+%META:PREFERENCE{name="PERMSET_CHANGE_DETAILS" title="PERMSET_CHANGE_DETAILS" type="Local" value="AdminGroup"}%

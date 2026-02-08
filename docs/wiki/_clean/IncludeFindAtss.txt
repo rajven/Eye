@@ -1,0 +1,10 @@
+---++ Список АТС в работе
+
+%SEARCH{
+"Disabled='' and Deleted=''"
+topic="DeviceATS*"
+type="query"
+nosearch="on"
+header="|*Name*|*Model*|*IP*|*Расположение*|*Включен от*|*Комментарий*|"
+format="| [[$topic][$formfield(Name)]] | $formfield(Vendor) $formfield(DeviceModel) | $formfield(DeviceIP) | $formfield(Place) | $formfield(Parent) [$formfield(ParentPort)] | $formfield(Description) |"
+}%

@@ -1,0 +1,10 @@
+<form name="newAirCond" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
+   * Добавить кондиционер:
+     <input type="text" name="topic" value="DeviceAirCond" size="40" />
+     <input type="hidden" name="templatetopic" value="DefaultAirCondTemplate" />
+     <input type="hidden" name="onlywikiname" value="off" />
+     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
+     <input type="hidden" name="formtemplate" value="FormAirConditioning" />
+     <input type="hidden" name="DeviceType" value="AirConditioning" />
+     <input type="submit" value="Create" />
+</form>

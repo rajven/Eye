@@ -1,0 +1,50 @@
+%META:TOPICINFO{author="roman" comment="reprev" date="1684154274" format="1.1" reprev="5" version="5"}%
+---+ Параметры wifi сети
+
+%SEARCH{
+topic="WirelessController*"
+type="query"
+nosearch="on"
+nototal="on"
+header="|*Name*|*Description*|"
+format="| [[$topic][$formfield(Name)]] | $formfield(Description) |"
+}%
+
+   * Список используемых точек доступа [[ListOfAPCompany][тут]]
+
+---++ Используемые сети
+
+%SEARCH{
+topic="WirelessProfile*"
+type="query"
+nosearch="on"
+nototal="on"
+header="|*SSID*|*Description*|"
+format="| [[$topic][$formfield(Wireless SSID)]] | $formfield(Description) |"
+}%
+
+---++ PSK
+
+%SEARCH{
+topic="AuthWirelessPSK*"
+type="query"
+nosearch="on"
+nototal="on"
+header="Найдены записи:<br>" 
+format="* [[$topic][$pattern([\r\n\-+!]+([^\r\n]*?)[\r\n].*)]] <br>"
+}%
+
+---++ Добавить
+
+%INCLUDE{IncludeAddWlc}%
+
+%INCLUDE{IncludeAddWP}%
+
+---++ Работа
+
+-- Main.RomanDmitriev - 2020/10/13
+
+%META:PREFERENCE{name="DENYTOPICVIEW" title="DENYTOPICVIEW" type="Set" value="WikiGuest"}%
+%META:PREFERENCE{name="DENYTOPICCHANGE" title="DENYTOPICCHANGE" type="Set" value="WikiGuest"}%
+%META:PREFERENCE{name="PERMSET_VIEW" title="PERMSET_VIEW" type="Local" value="registeredusers"}%
+%META:PREFERENCE{name="PERMSET_CHANGE" title="PERMSET_CHANGE" type="Local" value="registeredusers"}%

@@ -1,0 +1,25 @@
+---++ Нагрузка по зданиям, комнатам, стойкам
+
+%SEARCH{
+"UPS=~'%BASETOPIC%'"
+topic="Building*,Room*,Rack*"
+type="query"
+nosearch="on"
+expandvariables="on"
+header="|*Name*|*Тип*|*Description*|"
+format="| [[$web.$topic][$formfield(Name)]] | $formfield(DeviceType) | $formfield(Description) |"
+order="formfield(Name)"
+}%
+
+---++ Нагрузка устройствам
+
+%SEARCH{
+"UPS=~'%BASETOPIC%'"
+topic="Device*,Router*,Switch*,Hardware*"
+type="query"
+nosearch="on"
+expandvariables="on"
+header="|*Name*|*Тип*|*Description*|"
+format="| [[$web.$topic][$formfield(Name)]] | $formfield(DeviceType) | $formfield(Description) |"
+order="formfield(Name)"
+}%

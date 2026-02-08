@@ -1,0 +1,10 @@
+<form name="newSensor" action="%SCRIPTURLPATH%/edit%SCRIPTSUFFIX%/%INTURLENCODE{"%WEB%"}%/">
+   * Добавить датчик:
+     <input type="text" name="topic" value="Sensor" size="40" />
+     <input type="hidden" name="templatetopic" value="DefaultNetdeviceTemplate" />
+     <input type="hidden" name="onlywikiname" value="off" />
+     <input type="hidden" name="topicparent" value="%BASETOPIC%" />
+     <input type="hidden" name="formtemplate" value="FormSensor" />
+     <input type="hidden" name="DeviceType" value="Sensor" />
+     <input type="submit" value="Create" />
+</form>

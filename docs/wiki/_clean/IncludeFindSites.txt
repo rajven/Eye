@@ -1,0 +1,12 @@
+---++ Сайты на этом сервере
+
+%SEARCH{
+"parent.name='%BASETOPIC%' AND Name"
+topic="Site*"
+type="query"
+nosearch="on"
+nototal="on"
+header="|*Site name*|*Aliases*|*IP*|*Backend*|"
+format="| [[$topic][$formfield(DnsName)]] | $formfield(Site alias) | $formfield(Site IP) | $formfield(Backend) |"
+}%
+

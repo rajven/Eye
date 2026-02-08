@@ -1,0 +1,11 @@
+---++ Список телефонов на этом шлюзе
+
+%SEARCH{
+"Disabled='' and VoipGate~'%BASETOPIC%'"
+type="query"
+topic="DevicePhone*"
+nosearch="on"
+header="|*Name*|*Model*|*Number*|*Description*|"
+format="| [[$topic][$formfield(Name)]] | $formfield(Vendor) $formfield(DeviceModel)| $formfield(PhoneNumber) | $formfield(Description) |"
+}%
+
