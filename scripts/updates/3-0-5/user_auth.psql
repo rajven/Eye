@@ -1,0 +1,11 @@
+-- Временная колонка
+ALTER TABLE user_auth ADD COLUMN mac_text VARCHAR(17);
+
+-- Копируем данные
+UPDATE user_auth SET mac_text = mac::TEXT WHERE mac IS NOT NULL;
+
+-- Удаляем старую колонку
+ALTER TABLE user_auth DROP COLUMN mac;
+
+-- Переименовываем
+ALTER TABLE user_auth RENAME COLUMN mac_text TO mac;
