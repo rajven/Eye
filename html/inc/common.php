@@ -3345,7 +3345,8 @@ function resurrection_auth($db, $ip_record)
     $action = $ip_record['type'] ?? '';
     $dhcp_hostname = $ip_record['hostname'] ?? '';
     $hotspot_found = !empty($ip_record['hotspot']);
-    
+    $description = $ip_record['description'] ?? '';
+
     $ip_aton = ip2long($ip);
     if ($ip_aton === false) {
         return null;
@@ -3460,6 +3461,9 @@ function resurrection_auth($db, $ip_record)
             'save_traf' => $save_traf
         ];
         
+	if (!empty($description)) { 
+            $auth['description'] = $description;
+	    }
         if (!empty($dhcp_hostname)) {
             $auth['dhcp_hostname'] = $dhcp_hostname;
         }
@@ -3481,7 +3485,11 @@ function resurrection_auth($db, $ip_record)
             'dhcp_time' => GetNowTimeString(),
             'save_traf' => $save_traf
         ];
-        
+
+	if (!empty($description)) { 
+            $auth['description'] = $description;
+	    }
+
         if (!empty($dhcp_hostname)) {
             $auth['dhcp_hostname'] = $dhcp_hostname;
         }

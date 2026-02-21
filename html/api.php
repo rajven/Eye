@@ -14,6 +14,7 @@ $ip          = getParam('ip', null, null, FILTER_VALIDATE_IP, ['flags' => FILTER
 $mac_raw     = getParam('mac', null, null);
 $rec_id      = getParam('id', null, null, FILTER_VALIDATE_INT);
 $f_subnet    = getParam('subnet', null, null);
+$description = getParam('description', null, null);
 
 // Преобразуем IP в BIGINT
 $ip_aton = null;
@@ -550,6 +551,71 @@ if (!empty($action)) {
             $error_msg = 'Missing required parameters: ' . implode(', ', $missing_params);
         
             LOG_WARNING($db_link, "API: send_dhcp called with missing parameters. Missing: " . implode(', ', $missing_params));
+            http_response_code(400);
+            echo json_encode([
+                'error' => $error_msg
+            ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        }
+        do_exit();
+    }
+
+    // === send_user_ip ===
+    if ($action === 'send_user_ip') {
+
+        log_api_call($action, [
+            'ip' => $ip,
+            'mac' => $mac,
+            'action' => $dhcp_action,
+	    'description' => $description
+            ]);
+
+        if ($ip) {
+            $faction = $dhcp_action !== null ? (int)$dhcp_action : 1;
+            $action_str = ($faction === 0) ? 'del' : 'add';
+
+            LOG_VERBOSE($db_link, "API: external add auth request for $ip [$mac] $action_str");
+
+            if (is_our_network($db_link, $ip)) {
+                $ip_record = [
+                    'action' => $action_str,
+                    'mac' => $mac,
+                    'ip' => $ip,
+		    'description' => $description,
+                    'dhcp_hostname' => $dhcp_hostname
+                ];
+		$auth_id = resurrection_auth($db_link, $ip_record);
+                if ($auth_id !== false && $auth_id > 0) {
+                    http_response_code(201);
+                    echo json_encode([
+                        'status' => 'queued',
+                        'id' => (int)$auth_id,
+                        'ip' => $ip,
+                        'action' => $action_str
+                    ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        	} else {
+                    $error_msg = "Failed to add ip record";
+                    LOG_ERROR($db_link, "API: $error_msg. IP: $ip, MAC: $mac, Action: $action_str");
+                    http_response_code(500);
+                    echo json_encode([
+                        'error' => $error_msg,
+                        'ip' => $ip,
+                        'mac' => $mac
+                    ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                }
+            } else {
+                $error_msg = "IP not in allowed network";
+                LOG_ERROR($db_link, "API: $error_msg - $ip [$mac]");
+                http_response_code(400);
+                echo json_encode([
+                    'error' => $error_msg,
+                    'ip' => $ip
+                ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            }
+        } else {
+            $missing_params = [];
+            if (!$ip) $missing_params[] = 'ip';
+            $error_msg = 'Missing required parameters: ' . implode(', ', $missing_params);
+            LOG_WARNING($db_link, "API: send_auth called with missing parameters. Missing: " . implode(', ', $missing_params));
             http_response_code(400);
             echo json_encode([
                 'error' => $error_msg
