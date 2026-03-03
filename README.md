@@ -397,7 +397,8 @@ add action=drop chain=forward out-interface-list=WAN
 
 ### Работа с dhcp-сервером
 
-На события от dhcp-сервера в микротике надо повесить скрипт, который будут сообщать в Eye о аренде/освобождении ip-адресов
+На события от dhcp-сервера в микротике надо повесить скрипт, который будут сообщать в Eye о аренде/освобождении ip-адресов. Поддерживаются GET и POST запросы. 
+Правильнее всего будет исопльзовать HTTPS & POST.
 
 ### DHCP-скрипт (RouterOS 6):
 
@@ -410,16 +411,19 @@ add action=drop chain=forward out-interface-list=WAN
 /tool fetch mode=https keep-result=no url="https://<EYE_URL>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=\$leaseActMAC&ip=\$leaseActIP&action=\$leaseBound&hostname=\$lease-hostname"
 ```
 
-
 ### DHCP-скрипт (RouterOS 7):
 
 ```routeros
-/tool fetch url="http://<EYE_IP>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" mode=http keep-result=no
+/tool fetch url="http://<EYE_IP>/api.php"  mode=http  http-method=post \
+    http-data="login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" \
+    keep-result=no
 ```
 
 С https:
 ```routeros
-/tool fetch url="https://<EYE_URL>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" mode=https keep-result=no
+/tool fetch url="https://<EYE_DNS_NAME>/api.php"  mode=https  http-method=post \
+    http-data="login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" \
+    keep-result=no
 ```
 
 Имя dhcp-сервера должно быть образовано от имени интерфейса, на котором он работает. Т.е. при работе на интерфейсе bridge => dhcp-bridge
