@@ -60,6 +60,14 @@ if (getPOST("create") !== null) {
 <div id="cont">
 
 <?php
+
+if (isset($_POST['search_str'])) { $f_search_str = trim($_POST['search_str']); }
+if (!isset($f_search_str) and isset($_SESSION[$page_url]['search_str'])) { $f_search_str=$_SESSION[$page_url]['search_str']; }
+if (!isset($f_search_str)) { $f_search_str=''; }
+$_SESSION[$page_url]['search_str']=$f_search_str;
+
+$f_search=replaceSpecialChars($f_search_str);
+
 if ($msg_error) {
     print "<div id='msg'><b>$msg_error</b></div><br>\n";
     }
@@ -80,18 +88,24 @@ function blockForm(formId) {
 </script>
 
 <form id="filter" name="filter" action="index.php" method="post">
-<div>
-<b><?php print WEB_cell_ou; ?> - </b>
-<?php print_ou_select($db_link, 'ou', $rou); print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
-<input id="btn_filter" name="btn_filter" type="submit" value="<?php echo WEB_btn_show; ?>">
-</div>
-<br>
-<div>
-<?php echo WEB_new_user."&nbsp"; ?>
-<input type=text name=newlogin value="Unknown">
-<input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
-</div>
+  <fieldset style="display: flex; align-items: center; gap: 10px; padding: 10px;">
+    <legend><b><?php echo WEB_cell_ou; ?> —</b></legend>
+    <?php print_ou_select($db_link, 'ou', $rou); ?>
+    <span><?php echo WEB_rows_at_page; ?></span>
+    <?php print_row_at_pages('rows', $displayed); ?>
+    <label for="search_str" style="margin: 0;"><?php echo WEB_ips_search; ?>:</label>
+    <input type="text" id="search_str" name="search_str" value="<?php echo $f_search_str; ?>" style="margin: 0;">
+    <input id="btn_filter" name="btn_filter" type="submit" value="<?php echo WEB_btn_show; ?>" style="margin: 0;">
+  </fieldset>
+  <fieldset>
+    <legend><?php echo WEB_new_user; ?></legend>
+    <div>
+      <input type="text" id="newlogin" name="newlogin" value="Unknown" required>
+      <input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
+    </div>
+  </fieldset>
 </form>
+
 <br>
 <a class="mainButton" href="#modal"><?php print WEB_btn_apply_selected; ?></a>
 <div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modal" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
@@ -134,16 +148,27 @@ function blockForm(formId) {
 
 $sort_url = "<a href=/admin/users/index.php?";
 
-// === 1. Базовые условия ===
 $params = [];
-$conditions = ["U.deleted = 0", "U.ou_id = O.id"];
+$conditions = ["U.deleted = 0"];
 
 if ($rou != 0) {
     $conditions[] = "U.ou_id = ?";
     $params[] = (int)$rou;
 }
 
-$whereClause = implode(' AND ', $conditions);
+if (isset($f_search_str) && strlen($f_search_str) > 0) {
+    $search_pattern = '%' . $f_search . '%';
+    $conditions[] = "(login LIKE ? OR description LIKE ?)";
+    $params[] = $search_pattern;
+    $params[] = $search_pattern;
+}
+
+// Защита от пустого WHERE
+if (!empty($conditions)) {
+    $whereClause = ' WHERE ' . implode(' AND ', $conditions);
+} else {
+    $whereClause = '';
+}
 
 // === 2. Безопасная сортировка (БЕЛЫЙ СПИСОК!) ===
 $allowed_sort_fields = ['id', 'login', 'description', 'ou_name', 'enabled', 'day_quota', 'month_quota', 'blocked', 'permanent'];
@@ -153,7 +178,7 @@ $sort_field = in_array($sort_field, $allowed_sort_fields, true) ? $sort_field : 
 $order = in_array(strtoupper($order), $allowed_order, true) ? strtoupper($order) : 'ASC';
 
 // === 3. Подсчёт записей ===
-$countSQL = "SELECT COUNT(*) FROM user_list U JOIN ou O ON U.ou_id = O.id WHERE $whereClause";
+$countSQL = "SELECT COUNT(*) FROM user_list $whereClause";
 $count_records = (int)get_single_field($db_link, $countSQL, $params);
 
 // === 4. Пагинация ===
@@ -170,13 +195,10 @@ $offset = (int)$start;
 $dataParams = array_merge($params, [$limit, $offset]);
 
 $sSQL = "
-    SELECT 
-        U.id, U.login, U.description, O.ou_name, U.enabled, 
-        U.day_quota, U.month_quota, U.blocked, U.permanent
+    SELECT *
     FROM user_list U
-    JOIN ou O ON U.ou_id = O.id
-    WHERE $whereClause
-    ORDER BY U.$sort_field $order
+    $whereClause
+    ORDER BY $sort_field $order
     LIMIT ? OFFSET ?
 ";
 
@@ -227,7 +249,7 @@ foreach ($users as $row) {
     print "<td class=\"$cl\">".$row['description']."</td>\n";
     $rules_count = get_count_records($db_link,"auth_rules","user_id=?", [$row['id']]);
     print "<td class=\"$cl\">".$rules_count."</td>\n";
-    print "<td class=\"$cl\">".$row['ou_name']."</td>\n";
+    print "<td class=\"$cl\">".get_ou($db_link,$row['ou_id'])."</td>\n";
     print "<td class=\"$cl\">".get_qa($row['enabled']) . "</td>\n";
     print "<td class=\"$cl\">".$row['day_quota']."</td>\n";
     print "<td class=\"$cl\">".$row['month_quota']."</td>\n";

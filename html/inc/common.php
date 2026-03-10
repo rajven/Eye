@@ -1143,9 +1143,9 @@ function print_ou_select_recursive($db, $ou_name, $ou_value, $parent_id = null, 
     $params = [];
 
     if ($parent_id === null) {
-        $sql = "SELECT id, parent_id, ou_name FROM ou WHERE (parent_id IS NULL OR parent_id = 0)";
+        $sql = "SELECT id, parent_id, ou_name FROM ou WHERE (parent_id IS NULL OR parent_id = 0) ";
     } else {
-        $sql = "SELECT id, parent_id, ou_name FROM ou WHERE parent_id = ?";
+        $sql = "SELECT id, parent_id, ou_name FROM ou WHERE parent_id = ? ";
         $params[] = (int)$parent_id;
     }
 
@@ -1153,7 +1153,7 @@ function print_ou_select_recursive($db, $ou_name, $ou_value, $parent_id = null, 
         $sql .= " AND id != 0";
     }
 
-    $sql .= " ORDER BY id";
+    $sql .= " ORDER BY ou_name";
 
     $items = get_records_sql($db, $sql, $params);
 
