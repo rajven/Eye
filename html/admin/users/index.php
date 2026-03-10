@@ -149,10 +149,10 @@ function blockForm(formId) {
 $sort_url = "<a href=/admin/users/index.php?";
 
 $params = [];
-$conditions = ["U.deleted = 0"];
+$conditions = ["deleted = 0"];
 
 if ($rou != 0) {
-    $conditions[] = "U.ou_id = ?";
+    $conditions[] = "ou_id = ?";
     $params[] = (int)$rou;
 }
 
@@ -171,7 +171,7 @@ if (!empty($conditions)) {
 }
 
 // === 2. Безопасная сортировка (БЕЛЫЙ СПИСОК!) ===
-$allowed_sort_fields = ['id', 'login', 'description', 'ou_name', 'enabled', 'day_quota', 'month_quota', 'blocked', 'permanent'];
+$allowed_sort_fields = ['id', 'login', 'description' ];
 $allowed_order = ['ASC', 'DESC'];
 
 $sort_field = in_array($sort_field, $allowed_sort_fields, true) ? $sort_field : 'id';
