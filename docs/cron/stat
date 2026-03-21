@@ -3,6 +3,9 @@
 #reconfigure nagios
 #16 * * * * root /opt/Eye/scripts/restart_nagios >/dev/null
 
+#reconfigure iptables/ipset
+#*/5 * * * * root /opt/Eye/scripts/sync_iptables.pl <DEVICE_ID> 2>/dev/null || true
+
 #refresh dnsmasq dhcp server config's
 02 * * * * root /opt/Eye/scripts/update-dnsmasq
 

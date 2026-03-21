@@ -337,7 +337,7 @@ install_deps_altlinux() {
             perl-Crypt-Rijndael perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
             perl-File-Path-Tiny perl-Expect perl-Proc-ProcessTable \
             perl-Text-CSV \
-            perl-DBD-Pg perl-DBD-mysql \
+            perl-DBD-Pg perl-DBD-mysql
     fi
 
     # Дополнительные проверки (например, fping — нужны только бэкенду)
