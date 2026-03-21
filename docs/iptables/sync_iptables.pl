@@ -423,7 +423,7 @@ if ($gate->{user_acl}) {
                         }
             if ($dstport eq '0' and $srcport ne '0') {
                         $src_rule=$src_rule." -m multiport --dports ".trim($srcport);
-                        $dst_rule=$dst_rule." -m multiport --sport ".trim($srcport);
+                        $dst_rule=$dst_rule." -m multiport --sports ".trim($srcport);
                         }
             if ($dstport ne '0' and $srcport eq '0') {
                         $src_rule=$src_rule." -m multiport --sports ".trim($dstport);
