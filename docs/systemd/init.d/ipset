@@ -1,61 +1,69 @@
 #! /bin/bash
-#
-# ipset       Create ipset before start iptables
-#
-# chkconfig: 2345 07 93
-# description: Activates/Deactivates ipset lists
-#
-#
 
-# Source function library.
-. /etc/init.d/functions
+#
+### BEGIN INIT INFO
+# Provides: ipset
+# Required-Start: $local_fs $network $remote_fs $syslog
+# Required-Stop: $local_fs $network $remote_fs $syslog
+# Default-Start:  2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: start and stop the ipset lists
+# Description: start and stop the ipset lists
+### END INIT INFO
 
-if [ ! -f /etc/sysconfig/network ]; then
-    exit 0
+if [ -r "/lib/lsb/init-functions" ]; then
+        . /lib/lsb/init-functions
+else
+        log_success_msg() {
+                echo "$@"
+        }
+        log_warning_msg() {
+                echo "$@" >&2
+        }
+        log_failure_msg() {
+                echo "$@" >&2
+        }
 fi
 
-# Check that networking is up.
-[ "${NETWORKING}" = "no" ] && exit 0
 
 IPSET='/sbin/ipset'
-config_dir='/etc/ipset.d'
+IPSET_DIR='/etc/ipset.d'
 
 # if the ip configuration utility isn't around we can't function.
 [ -x ${IPSET} ] || exit 1
 
-[ ! -e "${config_dir}" ] && mkdir -p "${config_dir}"
-
 stop_ipset() {
-if [ -d "${config_dir}" ] ; then
-        CONFS=`ls ${config_dir}/*.save 2>/dev/null`
-        [ -z "${CONFS}" ] && exit 6
-        for i in $CONFS; do
-            ipset_name=`basename $i .save`
-            echo -n $"Destroy ipset $ipset_name: "
-	    ${IPSET} destroy $ipset_name >/dev/null 2>&1
-            echo
-            done
-        else
-        RETVAL=1
-        fi
+ls -x -1 "${IPSET_DIR}/"*.conf | while read IPSET_FILE; do
+ipset_name=`grep -P "^create\s+(\S+)\s+" "${IPSET_FILE}"  | awk '{ print $2 }' | sed 's/_new//'`
+[ -z "${ipset_name}" ] && continue
+echo -n $"Destroy ${ipset_name} ipset"
+${IPSET} destroy ${ipset_name} >/dev/null 2>&1
+echo
+done
 return 0
 }
 
 start_ipset() {
-[ ! -e "/run/ipstate" ] && ln -s /usr/local/ipstate /run/ipstate
-if [ -d "${config_dir}" ] ; then
-        CONFS=`ls ${config_dir}/*.save 2>/dev/null`
-        [ -z "${CONFS}" ] && exit 6
-        for i in $CONFS; do
-            ipset_name=`basename $i .save`
-	    ${IPSET} destroy $ipset_name >/dev/null 2>&1
-            echo -n $"Loading ipset $ipset_name: "
-	    cat "${config_dir}/${i}" | ${IPSET} restore >/dev/null 2>&1
-            echo
-            done
-        else
-        RETVAL=1
-        fi
+ls -x -1 "${IPSET_DIR}/"*.conf | while read IPSET_FILE; do
+ipset_name=`grep -P "^create\s+(\S+)\s+" "${IPSET_FILE}"  | awk '{ print $2 }' | sed 's/_new//'`
+if [ ! -e "${IPSET_DIR}/${ipset_name}.ipset" ]; then
+    cat "${IPSET_FILE}" | sed 's/_new//' >"${IPSET_DIR}/${ipset_name}.ipset"
+    fi
+echo -n $"Load ${ipset_name} ipset"
+${IPSET} restore -file "${IPSET_DIR}/${ipset_name}.ipset" >/dev/null 2>&1
+echo
+done
+return 0
+}
+
+save_ipset() {
+ls -x -1 "${IPSET_DIR}/"*.conf | while read IPSET_FILE; do
+ipset_name=`grep -P "^create\s+(\S+)\s+" "${IPSET_FILE}"  | awk '{ print $2 }' | sed 's/_new//'`
+[ -z "${ipset_name}" ] && continue
+echo -n $"Save ${ipset_name} ipset"
+${IPSET} save ${ipset_name} -file "${IPSET_DIR}/${ipset_name}.ipset" >/dev/null 2>&1
+echo
+done
 return 0
 }
 
@@ -69,6 +77,10 @@ case "$1" in
         stop_ipset
         RET=$?
         ;;
+  save)
+        save_ipset
+        RET=$?
+        ;;
   restart|reload)
         stop_ipset
         start_ipset
@@ -80,3 +92,4 @@ case "$1" in
 esac
 
 exit ${RET}
+

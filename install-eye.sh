@@ -323,7 +323,7 @@ install_deps_altlinux() {
 
     # === Сетевой бэкенд (если нужен) ===
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
-        apt-get install -y fping
+        apt-get install -y fping iptables ipset
 
         # Общие Perl-модули (независимо от СУБД)
         apt-get install -y perl \
@@ -337,7 +337,7 @@ install_deps_altlinux() {
             perl-Crypt-Rijndael perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
             perl-File-Path-Tiny perl-Expect perl-Proc-ProcessTable \
             perl-Text-CSV \
-            perl-DBD-Pg perl-DBD-mysql
+            perl-DBD-Pg perl-DBD-mysql \
     fi
 
     # Дополнительные проверки (например, fping — нужны только бэкенду)
@@ -383,7 +383,7 @@ install_deps_debian() {
 
     # === Сетевой бэкенд (если нужен) ===
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
-        apt-get install -y fping
+        apt-get install -y fping ipset netfilter-persistent
 
         # Perl и обязательные модули (имена корректны для Ubuntu 24.04)
         apt-get install -y perl \
@@ -400,7 +400,6 @@ install_deps_debian() {
     fi
 
     # === Дополнительно (если нужно) ===
-    # Раскомментируйте, если требуется DNS-сервер
     # apt-get install -y bind9 bind9-utils bind9-host
 }
 
@@ -1578,6 +1577,23 @@ setup_additional_services() {
         cp /opt/Eye/docs/systemd/eye-statd.service /etc/systemd/system/
         $SERVICE_MANAGER enable eye-statd.service
         print_info "eye-statd service (NetFlow) enabled"
+    fi
+
+    # add ipset
+    if [[ -f "/opt/Eye/docs/systemd/init.d/ipset" ]]; then
+        mkdir -p /etc/init.d
+        cp /opt/Eye/docs/systemd/init.d/ipset /etc/init.d
+        if [[ -f "/opt/Eye/docs/systemd/netfilter-persistent.service.d" ]]; then
+           if [[ "$OS_FAMILY" == "alt" ]]; then
+               mkdir -p /etc/systemd/system/iptables.service.d
+               cp /opt/Eye/docs/systemd/netfilter-persistent.service.d/override.conf /etc/systemd/system/iptables.service.d
+               else
+               mkdir -p /etc/systemd/system/netfilter-persistent.service.d
+               cp /opt/Eye/docs/systemd/netfilter-persistent.service.d/override.conf /etc/systemd/system/netfilter-persistent.service.d
+           fi
+        $SERVICE_MANAGER daemon-reload
+        fi
+        print_info "ipset installed"
     fi
 
     # Configure DHCP
