@@ -137,7 +137,6 @@ my $ipset_removed = 0;
 # ============================================================================
 if ($gate->{user_acl}) {
 
-
     log_verbose($gate_ident."Sync user state at router $router_name [".$router_ip."] started.");
     db_log_verbose($dbh,$gate_ident."Sync user state at router $router_name [".$router_ip."] started.");
 
@@ -171,6 +170,7 @@ if ($gate->{user_acl}) {
     log_debug($gate_ident."Users status by ACL:".Dumper(\%users));
 
     my @filter_instances = get_records_sql($dbh,"SELECT * FROM filter_instances");
+    my @filter_ipsets = get_records_sql($dbh,"SELECT * FROM ipset_list");
     my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM filter_list where filter_type=0");
 
     my %filters;
@@ -182,30 +182,42 @@ if ($gate->{user_acl}) {
     my $dyn_filters_index = $dyn_filters_base;
 
     foreach my $row (@filterlist_ref) {
-        if (is_ip($row->{dst})) {
-            $filters{$row->{id}}->{id}=$row->{id};
-            $filters{$row->{id}}->{proto}=$row->{proto};
-            $filters{$row->{id}}->{dst}=$row->{dst};
-            $filters{$row->{id}}->{dstport}=$row->{dstport};
-            $filters{$row->{id}}->{srcport}=$row->{srcport};
-            $filters{$row->{id}}->{dns_dst}=0;
-        } else {
-            my @dns_record=ResolveNames($row->{dst},undef);
-            my $resolved_ips = (scalar @dns_record>0);
-            next if (!$resolved_ips);
-            foreach my $resolved_ip (sort @dns_record) {
-                next if (!$resolved_ip);
-                $filters{$row->{id}}->{dns_dst}=1;
-                $filters{$dyn_filters_index}->{id}=$row->{id};
-                $filters{$dyn_filters_index}->{proto}=$row->{proto};
-                $filters{$dyn_filters_index}->{dst}=$resolved_ip;
-                $filters{$dyn_filters_index}->{dstport}=$row->{dstport};
-                $filters{$dyn_filters_index}->{srcport}=$row->{srcport};
-                $filters{$dyn_filters_index}->{dns_dst}=0;
-                push(@{$dyn_filters{$row->{id}}},$dyn_filters_index);
-                $dyn_filters_index++;
+        if ($row->{ipset_id}>0) {
+                $filters{$row->{id}}->{id}=$row->{id};
+                $filters{$row->{id}}->{proto}=$row->{proto};
+                $filters{$row->{id}}->{dst}=undef;
+                $filters{$row->{id}}->{ipset_id}=$row->{ipset_id};
+                $filters{$row->{id}}->{dstport}=$row->{dstport};
+                $filters{$row->{id}}->{srcport}=$row->{srcport};
+                $filters{$row->{id}}->{dns_dst}=0;
+            } else {
+            if (is_ip($row->{dst})) {
+                $filters{$row->{id}}->{id}=$row->{id};
+                $filters{$row->{id}}->{ipset_id}=undef;
+                $filters{$row->{id}}->{proto}=$row->{proto};
+                $filters{$row->{id}}->{dst}=$row->{dst};
+                $filters{$row->{id}}->{dstport}=$row->{dstport};
+                $filters{$row->{id}}->{srcport}=$row->{srcport};
+                $filters{$row->{id}}->{dns_dst}=0;
+            } else {
+                my @dns_record=ResolveNames($row->{dst},undef);
+                my $resolved_ips = (scalar @dns_record>0);
+                next if (!$resolved_ips);
+                foreach my $resolved_ip (sort @dns_record) {
+                    next if (!$resolved_ip);
+                    $filters{$row->{id}}->{dns_dst}=1;
+                    $filters{$dyn_filters_index}->{id}=$row->{id};
+                    $filters{$dyn_filters_index}->{proto}=$row->{proto};
+                    $filters{$dyn_filters_index}->{dst}=$resolved_ip;
+                    $filters{$dyn_filters_index}->{ipset_id}=undef;
+                    $filters{$dyn_filters_index}->{dstport}=$row->{dstport};
+                    $filters{$dyn_filters_index}->{srcport}=$row->{srcport};
+                    $filters{$dyn_filters_index}->{dns_dst}=0;
+                    push(@{$dyn_filters{$row->{id}}},$dyn_filters_index);
+                    $dyn_filters_index++;
+                    }
+                }
             }
-        }
     }
 
     log_debug($gate_ident."Filters status:". Dumper(\%filters));
@@ -259,7 +271,6 @@ if ($gate->{user_acl}) {
     my %cur_users;
     my %final_ipsets;  # Хранилище для финальных IPset данных
 
-
     # Создаем таблицу ipset если не существует
     log_verbose($gate_ident."Ensure ipset exists: ${IPTABLES_TABLE_NAME}_group_all");
     push(@cmd_ipset_list, "$IPSET_CMD create ${IPTABLES_TABLE_NAME}_group_all hash:net family inet hashsize 1024 maxelem 2655360");
@@ -300,6 +311,55 @@ if ($gate->{user_acl}) {
                 db_log_verbose($dbh, $gate_ident."Remove user with ip: $user_ip from ipset $group_name");
                 push(@cmd_ipset_list, "$IPSET_CMD del $set_name $user_ip");
                 delete $final_ipsets{$group_name}{$user_ip};  # Удаляем из финального хэша
+                $ipset_removed++;
+            }
+        }
+    }
+
+    my %cur_ipset_members;
+    my %ipset_members;
+    my %ipset_list;
+
+    foreach my $ipset_row (@filter_ipsets) {
+        next if (!$ipset_row);
+        $ipset_list->{$ipset_row->{id}} = $ipset_row->{name};
+        my @filter_ipset_members = get_records_sql($dbh,"SELECT * FROM ipset_members WHERE ipset_id=?", $ipset_row->{id});
+        foreach my $ip_row (@filter_ipset_members) { $ipset_members{$ipset_row->{name}}{$ip_row->{ip}} = 1; }
+        log_verbose($gate_ident."Config ipset $ipset_row=>{name} has ".scalar(@address_list)." entries");
+    }
+
+    # filter ipsets
+    foreach my $ipset_row (@filter_ipsets) {
+        next if (!$ipset_row);
+        my $set_name = $IPTABLES_TABLE_NAME . '_' . $ipset_row->{name};
+        log_verbose($gate_ident."Ensure ipset exists: $set_name");
+        push(@cmd_ipset_list, "$IPSET_CMD create $set_name hash:net family inet hashsize 1024 maxelem 2655360");
+        my @address_list = get_ipset_members($set_name);
+        foreach my $ip (@address_list) { $cur_ipset_members{$ipset_row->{name}}{$ip} = 1; }
+        log_verbose($gate_ident."Current ipset $ipset_row=>{name} has ".scalar(@address_list)." entries");
+    }
+
+    # Добавляем новые IP в фильтры
+    foreach my $ipset_name (keys %ipset_members) {
+        my $set_name = $IPTABLES_TABLE_NAME . '_' . $ipset_name;
+        foreach my $ipset_member_ip (keys %{$ipset_members{$ipset_name}}) {
+            if (!exists($cur_ipset_members{$ipset_name}{$ipset_member_ip})) {
+                log_info($gate_ident."ADD ipset entry: $ipset_member_ip -> $ipset_name");
+                db_log_verbose($dbh, $gate_ident."Add user with ip: $ipset_member_ip to ipset $ipset_name");
+                push(@cmd_ipset_list, "$IPSET_CMD add $set_name $ipset_member_ip");
+                $ipset_added++;
+            }
+        }
+    }
+
+    # Удаляем старые IP из фильтров
+    foreach my $ipset_name (keys %cur_ipset_members) {
+        my $set_name = $IPTABLES_TABLE_NAME . '_' . $ipset_name;
+        foreach my $ipset_member_ip (keys %{$cur_ipset_members{$ipset_name}}) {
+            if (!exists($ipset_members{$ipset_name}{$ipset_member_ip})) {
+                log_info($gate_ident."REMOVE ipset entry: $ipset_member_ip <- $ipset_name");
+                db_log_verbose($dbh, $gate_ident."Remove user with ip: $ipset_member_ip from ipset $ipset_name");
+                push(@cmd_ipset_list, "$IPSET_CMD del $set_name $ipset_member_ip");
                 $ipset_removed++;
             }
         }
@@ -401,14 +461,18 @@ if ($gate->{user_acl}) {
             my $src_rule = '-A '.$chain_name;
             my $dst_rule = '-A '.$chain_name;
 
-
-            if ($filters{$filter_id}->{dst} and $filters{$filter_id}->{dst} ne '0/0' and $filters{$filter_id}->{dst} !~ /\/\d{1,2}/) { $filters{$filter_id}->{dst} .='/32'; }
-            my $dst = $filters{$filter_id}->{dst};
-
-            if (defined $dst && $dst ne '' && $dst ne '0/0') {
-                $src_rule .= " -s $dst";
-                $dst_rule .= " -d $dst";
-            }
+            if (defined $filter->{ipset_id} && $filter->{ipset_id}>0 && $ipset_list{$filter->{ipset_id}}) {
+                my $set_name = $IPTABLES_TABLE_NAME . '_' . $ipset_list{$filter->{ipset_id}};
+                $src_rule .= " -m set --match-set $set_name src";
+                $dst_rule .= " -m set --match-set $set_name dst";
+                } else {
+                if ($filters{$filter_id}->{dst} and $filters{$filter_id}->{dst} ne '0/0' and $filters{$filter_id}->{dst} !~ /\/\d{1,2}/) { $filters{$filter_id}->{dst} .='/32'; }
+                my $dst = $filters{$filter_id}->{dst};
+                if (defined $dst && $dst ne '' && $dst ne '0/0') {
+                    $src_rule .= " -s $dst";
+                    $dst_rule .= " -d $dst";
+                    }
+                }
 
             if ($filters{$filter_id}->{proto} and ($filters{$filter_id}->{proto}!~/all/i)) {
                 $src_rule=$src_rule." -p ".$filters{$filter_id}->{proto};
