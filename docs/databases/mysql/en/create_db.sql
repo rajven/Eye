@@ -498,9 +498,7 @@ CREATE TABLE `ipset_members` (
   `ip` VARCHAR(39) NOT NULL COMMENT 'IPv4 or IPv6 address',
   `description` VARCHAR(255) DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY `uniq_ipset_ip` (`ipset_id`, `ip`),
-  CONSTRAINT `fk_ipset_members_ipset` 
-    FOREIGN KEY (`ipset_id`) REFERENCES `ipset_list` (`id`) ON DELETE CASCADE
+  UNIQUE KEY `uniq_ipset_ip` (`ipset_id`, `ip`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE `acl`

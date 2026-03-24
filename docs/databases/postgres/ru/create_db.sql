@@ -639,7 +639,7 @@ CREATE TABLE ipset_list (
 
 CREATE TABLE ipset_members (
     id BIGSERIAL PRIMARY KEY,
-    ipset_id INTEGER NOT NULL REFERENCES ipset_list(id) ON DELETE CASCADE,
+    ipset_id INTEGER NOT NULL,
     ip INET NOT NULL,
     description VARCHAR(255),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -124,7 +124,7 @@ define("WEB_submenu_network_stats","Networks (Statistics)");
 define("WEB_submenu_options","Parameters");
 define("WEB_submenu_customers","Users");
 define("WEB_submenu_filter_list","Filter List");
-define("WEB_submenu_filter_ipset","Ipsets");
+define("WEB_submenu_filter_ipset","Address-list");
 define("WEB_submenu_filter_group","Filter Groups");
 define("WEB_submenu_filter_instances","Filter instances");
 define("WEB_submenu_filter_instance","Filter instance");
@@ -225,6 +225,7 @@ define("WEB_cell_mac_count","Mac count");
 define("WEB_cell_forename","Name");
 define("WEB_cell_flags","Flags");
 define("WEB_cell_created","Created");
+define("WEB_cell_update","Updated");
 define("WEB_cell_created_by","Created by");
 define("WEB_cell_deleted","Deleted");
 define("WEB_cell_gateway","Gateway");
@@ -248,6 +249,18 @@ define("WEB_list_users","List of users");
 define("WEB_list_models","List of device models");
 define("WEB_list_vendors","List of vendors");
 define("WEB_list_queues","List of shapers");
+
+/* ipset */
+define("WEB_error_ipset_name","Invalid ipset name (a-z only, A-Z, 0-9, _, -)");
+define("WEB_error_ip_address","Invalid IP address format: ");
+define("WEB_ipset_edit","IPSet Editing");
+define("WEB_ipset_name_hint","Only a-z, A-Z, 0-9, _, -");
+define("WEB_ipset_massadd","Bulk addition");
+define("WEB_ipset_massadd_hint","Format: <code>IP address [tab] description</code>. Lines with # are ignored.");
+define("WEB_ipset_empty","The list is empty");
+define("WEB_ipset_clear","Clear EVERYTHING");
+define("WEB_ipset_clear_qa","Are you sure? ALL entries will be deleted!");
+define("WEB_record_count","Elements (total: ");
 
 /* button names */
 define("WEB_btn_remove","Delete");
@@ -429,6 +442,10 @@ define("WEB_traffic_source_address","Src ip");
 define("WEB_traffic_proto","Proto");
 define("WEB_traffic_src_port","Src-port");
 define("WEB_traffic_dst_port","Dst-port");
+define("WEB_traffic_dst_subnet","IP address/network");
+define("WEB_traffic_dst_ipset","Address list");
+define("WEB_traffic_select_ipset","Select address list");
+define("WEB_traffic_dst_hint","Specify the IP address or network in the destination field");
 
 /* edit group filters */
 define("WEB_title_group","Group");
