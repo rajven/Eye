@@ -6,19 +6,19 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php")
 if (getPOST("create") !== null) {
     $fname = trim(getPOST("newfilter", null, ''));
     $ftype = (int)getPOST("filter_type", null, 0);
-
+    
     if ($fname !== '') {
         $new_id = insert_record($db_link, "filter_list", [
             'name'         => $fname,
             'filter_type'  => $ftype
         ]);
-
+        
         if ($new_id) {
             header("Location: editfilter.php?id=$new_id");
             exit;
         }
     }
-
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -26,20 +26,20 @@ if (getPOST("create") !== null) {
 // Удаление фильтров
 if (getPOST("remove") !== null) {
     $fid = getPOST("fid", null, []);
-
+    
     if (!empty($fid) && is_array($fid)) {
         foreach ($fid as $val) {
             $val = trim($val);
             if ($val === '') continue;
-
+            
             // Удаляем из связей
             delete_records($db_link, "group_filters", "filter_id = ?", [(int)$val]);
-
+            
             // Удаляем сам фильтр
             delete_record($db_link, "filter_list", "id = ?", [(int)$val]);
         }
     }
-
+    
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -64,69 +64,41 @@ print_filters_submenu($page_url);
                 <td><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove" value="<?php echo WEB_btn_delete; ?>"></td>
             </tr>
             <?php
-            // Запрос с подгрузкой имени IPSet через LEFT JOIN
-            $filters = get_records_sql($db_link, 
-                'SELECT f.*, i.name AS ipset_name 
-                 FROM filter_list f 
-                 LEFT JOIN ipset_list i ON f.ipset_id = i.id 
-                 ORDER BY f.name');
-            
+            $filters = get_records_sql($db_link, 'SELECT * FROM filter_list ORDER BY name');
             foreach ($filters as $row) {
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=" . $row['id'] . "></td>\n";
                 print "<td class=\"data\" ><input type=hidden name=\"id\" value=" . $row['id'] . ">" . $row['id'] . "</td>\n";
-                print "<td class=\"data\" align=left><a href=editfilter.php?id=" . $row['id'] . ">" . htmlspecialchars($row['name']) . "</a></td>\n";
-                
-                // Инициализация пустых полей
-                $row['description'] = $row['description'] ?? '';
-                $row['proto']       = $row['proto'] ?? '';
-                $row['dst']         = $row['dst'] ?? '';
-                $row['dstport']     = $row['dstport'] ?? '';
-                $row['srcport']     = $row['srcport'] ?? '';
-                
+                print "<td class=\"data\" align=left><a href=editfilter.php?id=" . $row['id'] . ">" . $row['name'] . "</a></td>\n";
+                if (empty($row['description'])) {
+                    $row['description'] = '';
+                }
+                if (empty($row['proto'])) {
+                    $row['proto'] = '';
+                }
+                if (empty($row['dst'])) {
+                    $row['dst'] = '';
+                }
+                if (empty($row['dstport'])) {
+                    $row['dstport'] = '';
+                }
+                if (empty($row['srcport'])) {
+                    $row['srcport'] = '';
+                }
                 if ($row['filter_type'] == 0) {
-                    // === Формирование отображения dst / ipset ===
-                    $dst_display = '';
-                    if (!empty($row['ipset_id']) && !empty($row['ipset_name'])) {
-                        // Режим IPSet: показываем имя с ссылкой на редактирование
-                        $dst_display = '<span title="IPSet">' . 
-                            '<a href="editipset.php?id=' . (int)$row['ipset_id'] . '" ' .
-                            'style="color:#06c; text-decoration:none; font-weight:500">' .
-                            '📦 ' . htmlspecialchars($row['ipset_name']) . '</a></span>';
-                    } elseif (!empty($row['dst'])) {
-                        // Режим прямого IP: показываем dst
-                        $dst_display = htmlspecialchars($row['dst']);
-                    } else {
-                        // Пустое значение
-                        $dst_display = '<span style="color:#999">0/0</span>';
-                    }
-                    
                     print "<td class=\"data\">IP фильтр</td>\n";
-                    print "<td class=\"data\">" . htmlspecialchars($row['proto']) . "</td>\n";
-                    print "<td class=\"data\" align=left>" . $dst_display . "</td>\n";
-                    print "<td class=\"data\">" . htmlspecialchars($row['dstport']) . "</td>\n";
-                    print "<td class=\"data\">" . htmlspecialchars($row['srcport']) . "</td>\n";
-                    print "<td class=\"data\">" . htmlspecialchars($row['description']) . "</td>\n";
+                    print "<td class=\"data\">" . $row['proto'] . "</td>\n";
+                    print "<td class=\"data\">" . $row['dst'] . "</td>\n";
+                    print "<td class=\"data\">" . $row['dstport'] . "</td>\n";
+                    print "<td class=\"data\">" . $row['srcport'] . "</td>\n";
+                    print "<td class=\"data\">" . $row['description'] . "</td>\n";
                 } else {
-                    // Name фильтр (упрощённый режим)
-                    $dst_display = '';
-                    if (!empty($row['ipset_id']) && !empty($row['ipset_name'])) {
-                        $dst_display = '<span title="IPSet">' . 
-                            '<a href="editipset.php?id=' . (int)$row['ipset_id'] . '" ' .
-                            'style="color:#06c; text-decoration:none; font-weight:500">' .
-                            '📦 ' . htmlspecialchars($row['ipset_name']) . '</a></span>';
-                    } elseif (!empty($row['dst'])) {
-                        $dst_display = htmlspecialchars($row['dst']);
-                    } else {
-                        $dst_display = '<span style="color:#999">—</span>';
-                    }
-                    
                     print "<td class=\"data\">Name фильтр</td>\n";
                     print "<td class=\"data\"></td>\n";
-                    print "<td class=\"data\" align=left>" . $dst_display . "</td>\n";
+                    print "<td class=\"data\">" . $row['dst'] . "</td>\n";
                     print "<td class=\"data\"></td>\n";
                     print "<td class=\"data\"></td>\n";
-                    print "<td class=\"data\">" . htmlspecialchars($row['description']) . "</td>\n";
+                    print "<td class=\"data\">" . $row['description'] . "</td>\n";
                 }
                 print "<td></td></tr>";
             }

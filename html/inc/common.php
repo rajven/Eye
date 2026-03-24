@@ -1401,6 +1401,7 @@ function print_filters_submenu($current_page)
     print "<div id='submenu'>\n";
     print_submenu_url(WEB_submenu_filter_list, '/admin/filters/index.php', $current_page, 0);
     print_submenu_url(WEB_submenu_filter_group, '/admin/filters/groups.php', $current_page, 0);
+    print_submenu_url(WEB_submenu_filter_ipset, '/admin/filters/ipsets.php', $current_page, 0);
     print_submenu_url(WEB_submenu_filter_instances, '/admin/filters/instances.php', $current_page, 1);
     print "</div>\n";
 }

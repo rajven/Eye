@@ -124,6 +124,7 @@ define("WEB_submenu_network_stats","Networks (Statistics)");
 define("WEB_submenu_options","Parameters");
 define("WEB_submenu_customers","Users");
 define("WEB_submenu_filter_list","Filter List");
+define("WEB_submenu_filter_ipset","Ipsets");
 define("WEB_submenu_filter_group","Filter Groups");
 define("WEB_submenu_filter_instances","Filter instances");
 define("WEB_submenu_filter_instance","Filter instance");
@@ -421,7 +422,7 @@ define("WEB_device_poe_off","Turn off POE");
 
 /* edit filter */
 define("WEB_title_filter","Filter");
-define("Web_filter_type","Filter type");
+define("WEB_filter_type","Filter type");
 define("WEB_traffic_action","Action");
 define("WEB_traffic_dest_address","Dst ip");
 define("WEB_traffic_source_address","Src ip");

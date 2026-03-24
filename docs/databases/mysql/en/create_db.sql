@@ -213,6 +213,7 @@ CREATE TABLE `filter_list` (
   `description` varchar(250) DEFAULT NULL,
   `proto` varchar(10) DEFAULT NULL,
   `dst` text DEFAULT NULL,
+  `ipset_id` INT(11) DEFAULT NULL,
   `dstport` varchar(20) DEFAULT NULL,
   `srcport` varchar(20) DEFAULT NULL,
   `filter_type` int(10) UNSIGNED NOT NULL DEFAULT 0
@@ -483,6 +484,24 @@ CREATE TABLE `worklog` (
   `level` int(11) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci KEY_BLOCK_SIZE=8 ROW_FORMAT=COMPRESSED;
 
+CREATE TABLE `ipset_list` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(64) NOT NULL UNIQUE COMMENT 'ipset name',
+  `description` VARCHAR(255) DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `ipset_members` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `ipset_id` INT NOT NULL,
+  `ip` VARCHAR(39) NOT NULL COMMENT 'IPv4 or IPv6 address',
+  `description` VARCHAR(255) DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uniq_ipset_ip` (`ipset_id`, `ip`),
+  CONSTRAINT `fk_ipset_members_ipset` 
+    FOREIGN KEY (`ipset_id`) REFERENCES `ipset_list` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE `acl`
   ADD PRIMARY KEY (`id`);

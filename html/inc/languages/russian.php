@@ -124,6 +124,7 @@ define("WEB_submenu_network_stats","Сети (Статистика)");
 define("WEB_submenu_options","Параметры");
 define("WEB_submenu_customers","Пользователи");
 define("WEB_submenu_filter_list","Список фильтров");
+define("WEB_submenu_filter_ipset","Группы адресов");
 define("WEB_submenu_filter_instances","Экземпляры фильтрации");
 define("WEB_submenu_filter_instance","Экземпляр фильтрации");
 define("WEB_submenu_filter_group","Группы фильтров");
@@ -189,7 +190,7 @@ define("WEB_cell_mac","MAC");
 define("WEB_cell_clientid","Client-id");
 define("WEB_cell_host_firmware","Прошивка");
 define("WEB_cell_sn","SN");
-define("WEB_cell_description","Комментарий");
+define("WEB_cell_description","Описание");
 define("WEB_cell_wikiname","Wiki Name");
 define("WEB_cell_filter","Фильтр");
 define("WEB_cell_proxy","Proxy");
@@ -224,6 +225,7 @@ define("WEB_cell_mac_count","Mac count");
 define("WEB_cell_forename","Имя");
 define("WEB_cell_flags","Флаги");
 define("WEB_cell_created","Создан");
+define("WEB_cell_update","Обновлено");
 define("WEB_cell_created_by","Источник");
 define("WEB_cell_deleted","Удалён");
 define("WEB_cell_gateway","Шлюз");
@@ -247,6 +249,18 @@ define("WEB_list_users","Список полльзователей");
 define("WEB_list_models","Список моделей устройств");
 define("WEB_list_vendors","Список вендоров");
 define("WEB_list_queues","Список шейперов");
+
+/* ipset */
+define("WEB_error_ipset_name","Недопустимое имя ipset (только a-z, A-Z, 0-9, _, -)");
+define("WEB_error_ip_address","Неверный формат IP-адреса: ");
+define("WEB_ipset_edit","Редактирование IPSet");
+define("WEB_ipset_name_hint","Только a-z, A-Z, 0-9, _, -");
+define("WEB_ipset_massadd","Массовое добавление");
+define("WEB_ipset_massadd_hint","Формат: <code>IP-адрес [табуляция] описание</code>. Строки с # игнорируются.");
+define("WEB_ipset_empty","Список пуст");
+define("WEB_ipset_clear","Очистить ВСЁ");
+define("WEB_ipset_clear_qa","Вы уверены? Будут удалены ВСЕ записи!");
+define("WEB_record_count","Элементы (всего: ");
 
 /* button names */
 define("WEB_btn_remove","Удалить");
@@ -421,13 +435,17 @@ define("WEB_device_poe_off","Выключить POE");
 
 /* edit filter */
 define("WEB_title_filter","Фильтр");
-define("Web_filter_type","Тип фильтра");
+define("WEB_filter_type","Тип фильтра");
 define("WEB_traffic_action","Действие");
 define("WEB_traffic_dest_address","Адрес назначения");
+define("WEB_traffic_dst_subnet","IP-адрес/сеть");
+define("WEB_traffic_dst_ipset","Список адресов");
+define("WEB_traffic_select_ipset","Выберите список адресов");
 define("WEB_traffic_source_address","Адрес источника");
 define("WEB_traffic_proto","Протокол");
 define("WEB_traffic_src_port","Порт источник");
 define("WEB_traffic_dst_port","Порт назначения");
+define("WEB_traffic_dst_hint","Укажите IP-адрес или сеть в поле назначения");
 
 /* edit group filters */
 define("WEB_title_group","Группа");

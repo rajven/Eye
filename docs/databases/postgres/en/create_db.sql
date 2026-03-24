@@ -280,6 +280,7 @@ name VARCHAR(50),
 description VARCHAR(250),
 proto VARCHAR(10),
 dst TEXT,
+ipset_id INTEGER DEFAULT NULL,
 dstport VARCHAR(20),
 srcport VARCHAR(20),
 filter_type SMALLINT NOT NULL DEFAULT 0
@@ -627,7 +628,27 @@ level SMALLINT NOT NULL DEFAULT 1
 COMMENT ON TABLE worklog IS 'System activity and audit log';
 COMMENT ON COLUMN worklog.level IS 'Log level: 1=info, 2=warning, 3=error, 4=debug';
 
--- Indexes (same as in the original schema)
+CREATE TABLE ipset_list (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(64) NOT NULL UNIQUE,
+    description VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE ipset_members (
+    id BIGSERIAL PRIMARY KEY,
+    ipset_id INTEGER NOT NULL REFERENCES ipset_list(id) ON DELETE CASCADE,
+    ip INET NOT NULL,
+    description VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (ipset_id, ip)
+);
+
+-- Indexes
+
+CREATE INDEX idx_ipset_members_ip ON ipset_members USING BTREE (ip inet_ops);
+
 CREATE INDEX idx_devices_ip ON devices(ip);
 CREATE INDEX idx_devices_device_type ON devices(device_type);
 CREATE INDEX idx_devices_active ON devices(active) WHERE active = 1;
