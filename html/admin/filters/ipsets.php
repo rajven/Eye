@@ -22,7 +22,7 @@ if (getPOST("remove") !== null) {
             $val = trim($val);
             if ($val === '') continue;
             delete_records($db_link, "ipset_members", "ipset_id = ?", [$val]);
-            delete_records($db_link, "group_filters", "ipset_id = ?", [$val]);
+            update_records($db_link, "filter_list", "ipset_id = ?", [ 'ipset_id'=>0, 'dst'=>'' ], [$val]);
             delete_records($db_link, "ipset_list", "id = ?", [$val]);
         }
     }
