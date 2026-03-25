@@ -195,38 +195,35 @@ select_database_type() {
 # Настройка параметров подключения к БД (общая для local и remote)
 configure_database_connection() {
     echo ""
+    if [[ "$DB_TYPE" == "postgresql" ]]; then
+        DEFAULT_PORT=5432
+    else
+        DEFAULT_PORT=3306
+    fi
+
     if [[ "$DB_INSTALL" == "local" ]]; then
         echo "Local Database Configuration"
         echo "============================"
         DB_HOST="127.0.0.1"
-        if [[ "$DB_TYPE" == "postgresql" ]]; then
-            DB_PORT="5432"
-        else
-            DB_PORT="3306"
-        fi
+        DB_PORT="$DEFAULT_PORT"
         echo "Database server: $DB_HOST:$DB_PORT (local)"
     else
         echo "Remote Database Configuration"
         echo "============================"
-        read -p "Database server IP address: " DB_HOST
-        read -p "Database port [$([ "$DB_TYPE" == "postgresql" ] && echo "5432" || echo "3306")]: " DB_PORT
-        # Установка порта по умолчанию, если не введён
-        if [[ -z "$DB_PORT" ]]; then
-            if [[ "$DB_TYPE" == "postgresql" ]]; then
-                DB_PORT="5432"
-            else
-                DB_PORT="3306"
-            fi
-        fi
+        read -r -p "Database server IP address: " DB_HOST
+        read -r -p "Database port [$DEFAULT_PORT]: " DB_PORT
+        : "${DB_PORT:=$DEFAULT_PORT}"
     fi
 
-    read -p "Database name [stat]: " DB_NAME
-    read -p "Database username [stat]: " DB_USER
+    read -r -p "Database name [eye]: " DB_NAME
+    read -r -p "Database username [eye]: " DB_USER
+    read -r -p "Database user password [$DEF_PASS]: " DB_PASS
+
     echo ""
 
-    # Установка значений по умолчанию
-    : "${DB_NAME:=stat}"
-    : "${DB_USER:=stat}"
+    : "${DB_NAME:=eye}"
+    : "${DB_USER:=eye}"
+    : "${DB_PASS:=$DEF_PASS}"
 }
 
 # Function for installation type selection
@@ -238,6 +235,14 @@ select_installation_type() {
     echo ""
 
     read -p "Enter selection number [1]: " install_type
+
+    if command -v pwgen >/dev/null 2>&1; then
+        DEF_PASS=$(pwgen -s 16 1)
+    elif command -v openssl >/dev/null 2>&1; then
+        DEF_PASS=$(openssl rand -base64 12)
+    else
+        DEF_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c16)
+    fi
 
     case $install_type in
         1)
@@ -288,8 +293,9 @@ select_installation_type() {
     : "${DB_TYPE:=mysql}"
     : "${DB_INSTALL:=local}"
     : "${DB_HOST:=127.0.0.1}"
-    : "${DB_NAME:=stat}"
-    : "${DB_USER:=stat}"
+    : "${DB_NAME:=eye}"
+    : "${DB_USER:=eye}"
+    : "${DB_PASS:=$DEF_PASS}"
 }
 
 # Install dependencies for ALT Linux
@@ -605,6 +611,86 @@ apply_snmp_patch() {
     return 0
 }
 
+upgrade_source_code() {
+    print_step "Upgrading Eye source code"
+
+    mkdir -p /opt/Eye
+    chown eye:eye /opt/Eye
+    chmod 755 /opt/Eye
+
+    # === Обновление документации ===
+    if [ -d "docs" ]; then
+        print_info "Updating documentation..."
+        mkdir -p /opt/Eye/docs
+        rsync -a docs/ /opt/Eye/docs/
+        chown -R eye:eye /opt/Eye/docs
+    fi
+
+    # === Обновление web-интерфейса ===
+    if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "web" ]]; then
+        print_info "Updating web interface..."
+        mkdir -p /opt/Eye/html/cfg /opt/Eye/html/js
+        if [ -d "html" ]; then
+            rsync -ar --exclude cfg/ html/ /opt/Eye/html/
+        fi
+        download_additional_scripts
+        chown -R eye:eye /opt/Eye/html
+    fi
+
+    # === Обновление backend ===
+    if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
+        print_info "Updating backend scripts..."
+        mkdir -p /opt/Eye/scripts/{cfg,log}
+        rsync -a --exclude cfg/ scripts/  /opt/Eye/scripts/
+        rsync -ar --exclude cfg/ eyelib/   /opt/Eye/eyelib/
+        # Обновляем только если каталог уже установлен
+        [[ -d /opt/Eye/updates ]] && rsync -ar updates/ /opt/Eye/updates/
+        [[ -d /opt/Eye/utils   ]] && rsync -ar utils/   /opt/Eye/utils/
+
+        chmod 750 /opt/Eye/scripts
+        chmod 770 /opt/Eye/scripts/log
+        chown -R eye:eye /opt/Eye/scripts
+
+        declare -a SERVICES
+        SERVICES=(
+            dhcp-log.service
+            dhcp-log-truncate.service
+            eye-statd.service
+            stat-sync.service
+            syslog-stat.service
+        )
+
+        SYSTEMD_CHANGED=0
+        declare -a RESTART_SERVICES
+        RESTART_SERVICES=()
+        for svc in "${SERVICES[@]}"; do
+            SRC="/opt/Eye/docs/systemd/$svc"
+            DST="/etc/systemd/system/$svc"
+            if [[ -f "$SRC" && -f "$DST" ]]; then
+                if ! cmp -s "$SRC" "$DST"; then
+                    print_info "Updating $svc"
+                    cp "$SRC" "$DST"
+                    SYSTEMD_CHANGED=1
+                    RESTART_SERVICES+=("$svc")
+                fi
+            fi
+        done
+        if [[ $SYSTEMD_CHANGED -eq 1 ]]; then
+            systemctl daemon-reload
+            for svc in "${RESTART_SERVICES[@]}"; do
+                if systemctl is-active --quiet "$svc"; then
+                    systemctl restart "$svc"
+                fi
+            done
+        fi
+    fi
+
+    # === Патч SNMP ===
+    if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
+        apply_snmp_patch
+    fi
+}
+
 # Download and copy source code
 install_source_code() {
     print_step "Installing Eye source code"
@@ -643,12 +729,10 @@ install_source_code() {
         chmod 750 /opt/Eye/scripts
         chmod 770 /opt/Eye/scripts/log
         chown -R eye:eye /opt/Eye/scripts
-
         if [[ -f "/opt/Eye/docs/systemd/stat-sync.service" ]]; then
             cp /opt/Eye/docs/systemd/stat-sync.service /etc/systemd/system/
             systemctl enable stat-sync.service
         fi
-
     fi
 
     # Применяем патч (только если установлен бэкенд, т.к. касается SNMP в Perl)
@@ -763,9 +847,6 @@ setup_mysql() {
         fi
         return 0
     fi
-
-    # Generate password for db user
-    DB_PASS=$(pwgen 16 1)
 
     # === Проверка: существует ли база данных? ===
     if mysql $MYSQL_OPT -sN -e "SHOW DATABASES;" | grep -q "^${DB_NAME}$"; then
@@ -905,13 +986,6 @@ local   all             postgres                                peer\
         print_warn "  sudo -u postgres createdb -O $DB_USER $DB_NAME"
         print_warn "  sudo -u postgres psql -d $DB_NAME -f $SQL_DATA_FILE"
         return 0
-    fi
-
-    # Генерация пароля для пользователя БД
-    if command -v pwgen &> /dev/null; then
-        DB_PASS=$(pwgen 16 1)
-    else
-        DB_PASS=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c16)
     fi
 
     # Определяем локаль на основе языка
@@ -1711,6 +1785,9 @@ eye_install() {
 
     # Инициализация глобальных переменных
     DB_PASS=""
+    DB_USER=""
+    DB_NAME="eye_db"
+    DB_HOST="127.0.0.1"
     DB_TYPE="mysql"
     EYE_LANG="russian"
     EYE_LANG_SHORT="ru"
@@ -1842,11 +1919,12 @@ eye_upgrade() {
 
     update_system
     install_packages
-    install_source_code
+    upgrade_source_code
 
-    /opt/Eye/scripts/updates/upgrade.pl
-
-    import_mac_database
+    if [ -f /opt/Eye/scripts/updates/upgrade.pl ]; then
+        perl /opt/Eye/scripts/updates/upgrade.pl
+        import_mac_database
+        fi
 
     start_eye
 
