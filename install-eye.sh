@@ -642,10 +642,10 @@ upgrade_source_code() {
         print_info "Updating backend scripts..."
         mkdir -p /opt/Eye/scripts/{cfg,log}
         rsync -a --exclude cfg/ scripts/  /opt/Eye/scripts/
-        rsync -ar --exclude cfg/ eyelib/   /opt/Eye/eyelib/
+        rsync -ar --exclude scripts/eyelib/   /opt/Eye/scripts/eyelib/
         # Обновляем только если каталог уже установлен
-        [[ -d /opt/Eye/updates ]] && rsync -ar updates/ /opt/Eye/updates/
-        [[ -d /opt/Eye/utils   ]] && rsync -ar utils/   /opt/Eye/utils/
+        [[ -d /opt/Eye/scripts/updates ]] && rsync -ar scripts/updates/ /opt/Eye/scripts/updates/
+        [[ -d /opt/Eye/scripts/utils   ]] && rsync -ar scripts/utils/   /opt/Eye/scripts/utils/
 
         chmod 750 /opt/Eye/scripts
         chmod 770 /opt/Eye/scripts/log
