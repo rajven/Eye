@@ -575,8 +575,8 @@ log_debug($gate_ident."Users status by ACL:".Dumper(\%users));
 
 
 my @filter_instances = get_records_sql($dbh,"SELECT * FROM filter_instances");
-
-my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM filter_list where filter_type=0");
+my @filter_ipsets = get_records_sql($dbh,"SELECT * FROM ipset_list");
+my @filterlist_ref = get_records_sql($dbh,"SELECT * FROM filter_list WHERE filter_type=0");
 
 my %filters;
 my %dyn_filters;
@@ -588,36 +588,42 @@ my $dyn_filters_base = $max_filter_id+1000;
 my $dyn_filters_index = $dyn_filters_base;
 
 foreach my $row (@filterlist_ref) {
-    #if dst - ip address
-    if (is_ip($row->{dst})) {
-        $filters{$row->{id}}->{id}=$row->{id};
-        $filters{$row->{id}}->{proto}=$row->{proto};
-        $filters{$row->{id}}->{dst}=$row->{dst};
-        $filters{$row->{id}}->{dstport}=$row->{dstport};
-        $filters{$row->{id}}->{srcport}=$row->{srcport};
-        #set false for dns dst flag
-        $filters{$row->{id}}->{dns_dst}=0;
-        } else {
-        #if dst not ip - check dns record
-        my @dns_record=ResolveNames($row->{dst},undef);
-        my $resolved_ips = (scalar @dns_record>0);
-        next if (!$resolved_ips);
-        foreach my $resolved_ip (sort @dns_record) {
-                next if (!$resolved_ip);
-                #enable dns dst filters
-                $filters{$row->{id}}->{dns_dst}=1;
-                #add dynamic dns filter
-                $filters{$dyn_filters_index}->{id}=$row->{id};
-                $filters{$dyn_filters_index}->{proto}=$row->{proto};
-                $filters{$dyn_filters_index}->{dst}=$resolved_ip;
-                $filters{$dyn_filters_index}->{dstport}=$row->{dstport};
-                $filters{$dyn_filters_index}->{srcport}=$row->{srcport};
-                $filters{$dyn_filters_index}->{dns_dst}=0;
-                #save new filter dns id for original filter id
-                push(@{$dyn_filters{$row->{id}}},$dyn_filters_index);
-                $dyn_filters_index++;
+    if ($row->{ipset_id} && $row->{ipset_id}>0) {
+                $filters{$row->{id}}->{id}=$row->{id};
+                $filters{$row->{id}}->{proto}=$row->{proto};
+                $filters{$row->{id}}->{dst}=undef;
+                $filters{$row->{id}}->{ipset_id}=$row->{ipset_id};
+                $filters{$row->{id}}->{dstport}=$row->{dstport};
+                $filters{$row->{id}}->{srcport}=$row->{srcport};
+                $filters{$row->{id}}->{dns_dst}=0;
+            } else {
+            if (is_ip($row->{dst})) {
+                $filters{$row->{id}}->{id}=$row->{id};
+                $filters{$row->{id}}->{ipset_id}=undef;
+                $filters{$row->{id}}->{proto}=$row->{proto};
+                $filters{$row->{id}}->{dst}=$row->{dst};
+                $filters{$row->{id}}->{dstport}=$row->{dstport};
+                $filters{$row->{id}}->{srcport}=$row->{srcport};
+                $filters{$row->{id}}->{dns_dst}=0;
+            } else {
+                my @dns_record=ResolveNames($row->{dst},undef);
+                my $resolved_ips = (scalar @dns_record>0);
+                next if (!$resolved_ips);
+                foreach my $resolved_ip (sort @dns_record) {
+                    next if (!$resolved_ip);
+                    $filters{$row->{id}}->{dns_dst}=1;
+                    $filters{$dyn_filters_index}->{id}=$row->{id};
+                    $filters{$dyn_filters_index}->{proto}=$row->{proto};
+                    $filters{$dyn_filters_index}->{dst}=$resolved_ip;
+                    $filters{$dyn_filters_index}->{ipset_id}=undef;
+                    $filters{$dyn_filters_index}->{dstport}=$row->{dstport};
+                    $filters{$dyn_filters_index}->{srcport}=$row->{srcport};
+                    $filters{$dyn_filters_index}->{dns_dst}=0;
+                    push(@{$dyn_filters{$row->{id}}},$dyn_filters_index);
+                    $dyn_filters_index++;
+                    }
+                }
             }
-        }
 }
 
 log_debug($gate_ident."Filters status:". Dumper(\%filters));
@@ -638,14 +644,11 @@ my $index = 0;
 my $cur_group;
 
 foreach my $row (@grouplist_ref) {
-
     if (!$cur_group) { $cur_group = $row->{group_id}; }
-
     if ($cur_group != $row->{group_id}) {
         $index = 0;
         $cur_group = $row->{group_id};
         }
-
     #if dst dns filter not found
     if (!$filters{$row->{filter_id}}->{dns_dst}) {
         $group_filters{'group_'.$row->{group_id}}->{$index}->{filter_id}=$row->{filter_id};
@@ -668,6 +671,50 @@ foreach my $row (@grouplist_ref) {
 
 log_debug($gate_ident."Group filters: ".Dumper(\%group_filters));
 
+my %cur_ipset_members;
+my %ipset_members;
+my %ipset_list;
+
+foreach my $ipset_row (@filter_ipsets) {
+    next if (!$ipset_row);
+    $ipset_list{$ipset_row->{id}} = $ipset_row->{name};
+    my @filter_ipset_members = get_records_sql($dbh,"SELECT * FROM ipset_members WHERE ipset_id=?", $ipset_row->{id});
+    foreach my $ip_row (@filter_ipset_members) { $ipset_members{$ipset_row->{name}}{$ip_row->{ip}} = 1; }
+    log_verbose($gate_ident."Config ipset $ipset_row->{name} has ".scalar(@filter_ipset_members)." entries");
+}
+
+foreach my $ipset_row (@filter_ipsets) {
+    my @address_lists=netdev_cmd($gate,$t,'/ip firewall address-list print terse without-paging where list='.$ipset_row->{name},1);
+    log_debug($gate_ident."Get address lists $ipset_row->{name}:".Dumper(\@address_lists));
+    foreach my $row (@address_lists) {
+        $row=trim($row);
+        next if (!$row);
+        my @address=split(' ',$row);
+        foreach my $row (@address) {
+            if ($row=~/address\=(.*)/i) { $cur_ipset_members{$ipset_row->{name}}{$1}=1; }
+            }
+        }
+    }
+
+#new-ips
+foreach my $ipset_name (keys %ipset_members) {
+        foreach my $user_ip (keys %{$ipset_members{$ipset_name}}) {
+        if (!exists($cur_ipset_members{$ipset_name}{$user_ip})) {
+            db_log_verbose($dbh,$gate_ident."Add user with ip: $user_ip to access-list $ipset_name");
+            push(@cmd_list,"/ip firewall address-list add address=".$user_ip." list=".$ipset_name);
+            }
+        }
+    }
+
+#old-ips
+foreach my $ipset_name (keys %cur_ipset_members) {
+        foreach my $user_ip (keys %{$cur_ipset_members{$ipset_name}}) {
+        if (!exists($ipset_members{$ipset_name}{$user_ip})) {
+            db_log_verbose($dbh,$gate_ident."Remove user with ip: $user_ip from access-list $ipset_name");
+            push(@cmd_list,":foreach i in [/ip firewall address-list find where address=".$user_ip." and list=".$ipset_name."] do={/ip firewall address-list remove \$i};");
+            }
+        }
+    }
 
 #sync firewall rules
 
@@ -720,21 +767,13 @@ foreach my $group_name (keys %group_filters) {
 
 my %chain_rules;
 foreach my $group_name (sort keys %group_filters) {
-
 next if (!$group_name);
-
 next if (!exists($group_filters{$group_name}));
-
 my %group_filter = %{$group_filters{$group_name}};
-
 foreach my $filter_index (sort keys %group_filter) {
-
     my $filter = $group_filter{$filter_index};
-
     my $filter_id=$filter->{filter_id};
-
     next if (!$filters{$filter_id});
-
     next if ($filters{$filter_id}->{dns_dst});
 
     my $src_rule='chain='.$group_name;
@@ -753,9 +792,15 @@ foreach my $filter_index (sort keys %group_filter) {
         $dst_rule=$dst_rule." protocol=".$filters{$filter_id}->{proto};
         }
 
-    if ($filters{$filter_id}->{dst} and $filters{$filter_id}->{dst} ne '0/0') {
-        $src_rule=$src_rule." src-address=".trim($filters{$filter_id}->{dst});
-        $dst_rule=$dst_rule." dst-address=".trim($filters{$filter_id}->{dst});
+   if (defined $filters{$filter_id}->{ipset_id} && $filters{$filter_id}->{ipset_id}>0 && $ipset_list{$filters{$filter_id}->{ipset_id}}) {
+        $src_rule .= " dst-address-list=".$ipset_list{$filters{$filter_id}->{ipset_id}};
+        $dst_rule .= " src-address-list=".$ipset_list{$filters{$filter_id}->{ipset_id}};
+        } else {
+        my $dst = $filters{$filter_id}->{dst};
+        if (defined $dst && $dst ne '' && $dst ne '0/0') {
+            $src_rule=$src_rule." src-address=".trim($dst);
+            $dst_rule=$dst_rule." dst-address=".trim($dst);
+            }
         }
 
     #dstport and srcport

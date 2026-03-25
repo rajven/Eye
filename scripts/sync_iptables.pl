@@ -182,7 +182,7 @@ if ($gate->{user_acl}) {
     my $dyn_filters_index = $dyn_filters_base;
 
     foreach my $row (@filterlist_ref) {
-        if ($row->{ipset_id}>0) {
+        if ($row->{ipset_id} && $row->{ipset_id}>0) {
                 $filters{$row->{id}}->{id}=$row->{id};
                 $filters{$row->{id}}->{proto}=$row->{proto};
                 $filters{$row->{id}}->{dst}=undef;
@@ -273,12 +273,12 @@ if ($gate->{user_acl}) {
 
     # Создаем таблицу ipset если не существует
     log_verbose($gate_ident."Ensure ipset exists: ${IPTABLES_TABLE_NAME}_group_all");
-    push(@cmd_ipset_list, "$IPSET_CMD create ${IPTABLES_TABLE_NAME}_group_all hash:net family inet hashsize 1024 maxelem 2655360");
+    push(@cmd_ipset_list, "$IPSET_CMD create ${IPTABLES_TABLE_NAME}_group_all hash:net family inet hashsize 1024 maxelem 2655360 2>/dev/null || true");
 #    log_debug(Dumper(\%lists));
     foreach my $group_name (keys %lists) {
         my $set_name = $IPTABLES_TABLE_NAME . '_' . $group_name;
         log_verbose($gate_ident."Ensure ipset exists: $set_name");
-        push(@cmd_ipset_list, "$IPSET_CMD create $set_name hash:net family inet hashsize 1024 maxelem 2655360");
+        push(@cmd_ipset_list, "$IPSET_CMD create $set_name hash:net family inet hashsize 1024 maxelem 2655360 2>/dev/null || true");
 
         my @address_list = get_ipset_members($set_name);
         foreach my $ip (@address_list) {
@@ -296,7 +296,6 @@ if ($gate->{user_acl}) {
                 log_info($gate_ident."ADD ipset entry: $user_ip -> $group_name");
                 db_log_verbose($dbh, $gate_ident."Add user with ip: $user_ip to ipset $group_name");
                 push(@cmd_ipset_list, "$IPSET_CMD add $set_name $user_ip");
-                $final_ipsets{$group_name}{$user_ip} = 1;  # Добавляем в финальный хэш
                 $ipset_added++;
             }
         }
@@ -310,7 +309,6 @@ if ($gate->{user_acl}) {
                 log_info($gate_ident."REMOVE ipset entry: $user_ip <- $group_name");
                 db_log_verbose($dbh, $gate_ident."Remove user with ip: $user_ip from ipset $group_name");
                 push(@cmd_ipset_list, "$IPSET_CMD del $set_name $user_ip");
-                delete $final_ipsets{$group_name}{$user_ip};  # Удаляем из финального хэша
                 $ipset_removed++;
             }
         }
@@ -322,10 +320,13 @@ if ($gate->{user_acl}) {
 
     foreach my $ipset_row (@filter_ipsets) {
         next if (!$ipset_row);
-        $ipset_list->{$ipset_row->{id}} = $ipset_row->{name};
+        $ipset_list{$ipset_row->{id}} = $ipset_row->{name};
         my @filter_ipset_members = get_records_sql($dbh,"SELECT * FROM ipset_members WHERE ipset_id=?", $ipset_row->{id});
-        foreach my $ip_row (@filter_ipset_members) { $ipset_members{$ipset_row->{name}}{$ip_row->{ip}} = 1; }
-        log_verbose($gate_ident."Config ipset $ipset_row=>{name} has ".scalar(@address_list)." entries");
+        foreach my $ip_row (@filter_ipset_members) { 
+            $ipset_members{$ipset_row->{name}}{$ip_row->{ip}} = 1;
+            $final_ipsets{$ipset_row->{name}}{$ip_row->{ip}} = 1;  # Сохраняем в финальный хэш
+            }
+        log_verbose($gate_ident."Config ipset $ipset_row=>{name} has ".scalar(@filter_ipset_members)." entries");
     }
 
     # filter ipsets
@@ -333,7 +334,7 @@ if ($gate->{user_acl}) {
         next if (!$ipset_row);
         my $set_name = $IPTABLES_TABLE_NAME . '_' . $ipset_row->{name};
         log_verbose($gate_ident."Ensure ipset exists: $set_name");
-        push(@cmd_ipset_list, "$IPSET_CMD create $set_name hash:net family inet hashsize 1024 maxelem 2655360");
+        push(@cmd_ipset_list, "$IPSET_CMD create $set_name hash:net family inet hashsize 1024 maxelem 2655360 2>/dev/null || true");
         my @address_list = get_ipset_members($set_name);
         foreach my $ip (@address_list) { $cur_ipset_members{$ipset_row->{name}}{$ip} = 1; }
         log_verbose($gate_ident."Current ipset $ipset_row=>{name} has ".scalar(@address_list)." entries");
@@ -461,8 +462,13 @@ if ($gate->{user_acl}) {
             my $src_rule = '-A '.$chain_name;
             my $dst_rule = '-A '.$chain_name;
 
-            if (defined $filter->{ipset_id} && $filter->{ipset_id}>0 && $ipset_list{$filter->{ipset_id}}) {
-                my $set_name = $IPTABLES_TABLE_NAME . '_' . $ipset_list{$filter->{ipset_id}};
+            if ($filters{$filter_id}->{proto} and ($filters{$filter_id}->{proto}!~/all/i)) {
+                $src_rule=$src_rule." -p ".$filters{$filter_id}->{proto};
+                $dst_rule=$dst_rule." -p ".$filters{$filter_id}->{proto};
+                }
+
+            if (defined $filters{$filter_id}->{ipset_id} && $filters{$filter_id}->{ipset_id}>0 && $ipset_list{$filters{$filter_id}->{ipset_id}}) {
+                my $set_name = $IPTABLES_TABLE_NAME . '_' . $ipset_list{$filters{$filter_id}->{ipset_id}};
                 $src_rule .= " -m set --match-set $set_name src";
                 $dst_rule .= " -m set --match-set $set_name dst";
                 } else {
@@ -472,11 +478,6 @@ if ($gate->{user_acl}) {
                     $src_rule .= " -s $dst";
                     $dst_rule .= " -d $dst";
                     }
-                }
-
-            if ($filters{$filter_id}->{proto} and ($filters{$filter_id}->{proto}!~/all/i)) {
-                $src_rule=$src_rule." -p ".$filters{$filter_id}->{proto};
-                $dst_rule=$dst_rule." -p ".$filters{$filter_id}->{proto};
                 }
 
             if ($dstport ne '0' and $srcport ne '0') {
