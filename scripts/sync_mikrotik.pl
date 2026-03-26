@@ -32,6 +32,16 @@ use Parallel::ForkManager;
 use Net::DNS;
 use Getopt::Long;
 
+# Helper для парсинга вывода Mikrotik
+my $parse_mikrotik_line = sub {
+        my $line = shift;
+        return undef unless defined $line;
+        $line = trim($line);
+        return undef unless $line =~ /^\s*\d/;
+        $line =~ s/^\s*\d+\s+//;
+        return $line;
+};
+
 #$debug = 1;
 
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
@@ -243,9 +253,9 @@ foreach my $int (@lan_int) { #interface loop
     my @int_addr=netdev_cmd($gate,$t,'/ip address print terse without-paging where interface='.$int,1);
     log_debug($gate_ident."Get interfaces: ".Dumper(\@int_addr));
     my $found_subnet;
-    foreach my $int_str(@int_addr) {
-        $int_str=trim($int_str);
-        next if (!$int_str);
+    foreach my $row (@int_addr) {
+        my $int_str = $parse_mikrotik_line->($row);
+        next unless $int_str;
         if ($int_str=~/\s+address=(\S*)\s+/i) {
                 my $gate_interface=$1;
                 if ($gate_interface) {
@@ -841,7 +851,7 @@ my $chain_ok=1;
 foreach (my $f_index=0; $f_index<scalar(@get_filter); $f_index++) {
     my $filter_str=trim($get_filter[$f_index]);
     next if (!$filter_str);
-    next if ($filter_str!~/^(\d){1,3}/);
+    next if ($filter_str!~/^(\d{1,3})/);
     $filter_str=~s/[^[:ascii:]]//g;
     $filter_str=~s/^\d{1,3}\s+//;
     $filter_str=trim($filter_str);
@@ -888,285 +898,388 @@ if (!$chain_ok) {
 }
 }#end access lists config
 
+SHAPER: {
 if ($shaper_enabled) {
+    log_info($gate_ident . "Starting Shaper synchronization...");
 
-#get userid list
-my $user_auth_sql="SELECT ip, queue_id, id FROM user_auth WHERE user_auth.deleted =0 AND user_auth.ou_id <> ? ORDER BY ip_int";
-my @authlist_ref = get_records_sql($dbh,$user_auth_sql,$default_hotspot_ou_id);
-
-foreach my $row (@authlist_ref) {
-if ($connected_users_only) { next if (!$connected_users->match_string($row->{ip})); }
-#skip not office ip's
-next if (!$office_networks->match_string($row->{ip}));
-#queue acl's
-if ($row->{queue_id}) { $users{'queue_'.$row->{queue_id}}->{$row->{ip}}=1; }
-}
-
-#get queue list
-my @queuelist_ref = get_records_sql($dbh,"SELECT * FROM queue_list");
-
-my %queues;
-foreach my $row (@queuelist_ref) {
-$lists{'queue_'.$row->{id}}=1;
-next if ((!$row->{download}) and !($row->{upload}));
-$queues{'queue_'.$row->{id}}{id}=$row->{id};
-$queues{'queue_'.$row->{id}}{down}=$row->{download};
-$queues{'queue_'.$row->{id}}{up}=$row->{upload};
-}
-
-log_debug($gate_ident."Queues status:".Dumper(\%queues));
-
-#shapers
-my %get_queue_root=();
-my %get_queue_type=();
-my %get_queue_tree=();
-my %get_filter_mangle=();
-
-my @tmp=netdev_cmd($gate,$t,'/queue tree print terse without-paging where name~"(down|up)load_root"',1);
-
-log_debug($gate_ident."Get ROOT queues classes: ".Dumper(\@tmp));
-#5   name=upload_root_sfp-sfpplus1-wan parent=sfp-sfpplus1-wan packet-mark= limit-at=0 queue=pcq-upload-default priority=8 max-limit=10G burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1
-#0   name=download_root_vlan0201 parent=vlan0201 packet-mark= limit-at=0 queue=pcq-download-default priority=8 max-limit=2G burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1
-
-foreach my $row (@tmp) {
-next if (!$row);
-$row = trim($row);
-next if ($row!~/^(\d){1,3}/);
-$row=~s/^\d{1,3}\s+//;
-next if (!$row);
-if ($row=~/name=(down|up)load_root_(\S*)\s+/i) {
-    next if (!$2);
-    my $parent_device = $2;
-    $get_queue_root{$parent_device}{name} = $parent_device;
-    if ($row=~/\s+max-limit=(\S*)\s+/) {
-        $get_queue_root{$parent_device}{bandwidth} = bitrate_to_kbps($1);
-        } else { $get_queue_root{$parent_device}{bandwidth} = 0; }
-    }
-}
-
-#log_debug($gate_ident.'GET ROOT:'.Dumper(\%get_queue_root));
-
-@tmp=();
-
-@tmp=netdev_cmd($gate,$t,'/queue type print terse without-paging where name~"pcq_(down|up)load"',1);
-
-log_debug($gate_ident."Get queues: ".Dumper(\@tmp));
-
-# 0   name=pcq_upload_3 kind=pcq pcq-rate=102401k pcq-limit=500KiB pcq-classifier=src-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s
-#pcq-src-address-mask=32 pcq-dst-address-mask=32 pcq-src-address6-mask=64 pcq-dst-address6-mask=64
-foreach my $row (@tmp) {
-next if (!$row);
-$row = trim($row);
-next if ($row!~/^(\d){1,3}/);
-$row=~s/^\d{1,3}\s+//;
-next if (!$row);
-if ($row=~/name=pcq_(down|up)load_(\d){1,3}\s+/i) {
-    next if (!$1);
-    next if (!$2);
-    my $direct = $1;
-    my $index = $2;
-    $get_queue_type{$index}{$direct}=$row;
-    if ($row=~/pcq-rate=(\S*)\s+\S/i) {
-            my $rate = $1;
-            if ($rate=~/k$/i) { $rate =~s/k$//i; }
-            $get_queue_type{$index}{$direct."-rate"}=$rate;
+    # --- 1. Получение списка пользователей (Auth List) ---
+    my %users;
+    eval {
+        my $user_auth_sql = "SELECT ip, queue_id, id FROM user_auth WHERE user_auth.deleted = 0 AND user_auth.ou_id <> ? ORDER BY ip_int";
+        my @authlist_ref = get_records_sql($dbh, $user_auth_sql, $default_hotspot_ou_id);
+        
+        foreach my $row (@authlist_ref) {
+            next if (!$row->{ip});
+            if ($connected_users_only) { 
+                next if (!$connected_users->match_string($row->{ip})); 
             }
-    if ($row=~/pcq-classifier=(\S*)\s+\S/i) { $get_queue_type{$index}{$direct."-classifier"}=$1; }
-    if ($row=~/pcq-src-address-mask=(\S*)\s+\S/i) { $get_queue_type{$index}{$direct."-src-address-mask"}=$1; }
-    if ($row=~/pcq-dst-address-mask=(\S*)\s+\S/i) { $get_queue_type{$index}{$direct."-dst-address-mask"}=$1; }
-    }
-}
-
-@tmp=();
-@tmp=netdev_cmd($gate,$t,'/queue tree print terse without-paging where parent~"(download|upload)_root"',1);
-#log_debug($gate_ident."Get user queues: ".Dumper(\@tmp));
-
-#print Dumper(\@tmp);
-# 0 I name=queue_3_out parent=upload_root packet-mark=upload_3 limit-at=0 queue=*2A priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1
-# 5 I name=queue_3_vlan2_in parent=download_root_vlan2 packet-mark=download_3_vlan2 limit-at=0 queue=*2B priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1
-foreach my $row (@tmp) {
-next if (!$row);
-$row = trim($row);
-next if ($row!~/^(\d)/);
-$row=~s/^(\d*)\s+//;
-next if (!$row);
-if ($row=~/queue=pcq_(down|up)load_(\d){1,3}/i) {
-    if ($row=~/name=queue_(\d){1,3}_(\S*)_out\s+/i) {
-        next if (!$1);
-        next if (!$2);
-        my $index = $1;
-        my $int_name = $2;
-        $get_queue_tree{$index}{$int_name}{up}=$row;
-        if ($row=~/parent=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'up-parent'}=$1; }
-        if ($row=~/packet-mark=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'up-mark'}=$1; }
-        if ($row=~/queue=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'up-queue'}=$1; }
+            next if (!$office_networks->match_string($row->{ip}));
+            
+            if ($row->{queue_id}) { 
+                $users{'queue_' . $row->{queue_id}}->{$row->{ip}} = 1; 
+            }
         }
-    if ($row=~/name=queue_(\d){1,3}_(\S*)_in\s+/i) {
-        next if (!$1);
-        next if (!$2);
-        my $index = $1;
-        my $int_name = $2;
-        $get_queue_tree{$index}{$int_name}{down}=$row;
-        if ($row=~/parent=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'down-parent'}=$1; }
-        if ($row=~/packet-mark=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'down-mark'}=$1; }
-        if ($row=~/queue=(\S*)\s+\S/i) { $get_queue_tree{$index}{$int_name}{'down-queue'}=$1; }
+        log_debug($gate_ident . "Loaded " . scalar(keys %users) . " user IP groups.");
+    };
+    if ($@) {
+        log_error($gate_ident . "Failed to fetch user auth list: $@");
+        last SHAPER;
+    }
+
+    # --- 2. Получение списка очередей из БД (Desired State) ---
+    my %queues;
+    my %lists;
+    eval {
+        my @queuelist_ref = get_records_sql($dbh, "SELECT * FROM queue_list");
+        foreach my $row (@queuelist_ref) {
+            next if (!$row->{id});
+            $lists{'queue_' . $row->{id}} = 1;
+            next if ((!$row->{download}) and !($row->{upload}));
+            
+            $queues{'queue_' . $row->{id}}{id}      = $row->{id};
+            $queues{'queue_' . $row->{id}}{down}    = $row->{download};
+            $queues{'queue_' . $row->{id}}{up}      = $row->{upload};
         }
+        log_debug($gate_ident . "Loaded " . scalar(keys %queues) . " queue definitions from DB.");
+    };
+    if ($@) {
+        log_error($gate_ident . "Failed to fetch queue list from DB: $@");
+        last SHAPER;
     }
+
+    log_debug($gate_ident . "Queues desired status:" . Dumper(\%queues));
+
+    # --- 3. Получение текущего состояния с роутера (Current State) ---
+    my (%get_queue_root, %get_queue_type, %get_queue_tree, %get_filter_mangle);
+    
+
+    eval {
+        # 3.1 Root Queues
+        my @tmp = netdev_cmd($gate, $t, '/queue tree print terse without-paging where name~"(down|up)load_root"', 1);
+        foreach my $row (@tmp) {
+            my $clean = $parse_mikrotik_line->($row);
+            next unless $clean;
+            if ($clean =~ /name=(down|up)load_root_(\S*)\s+/i) {
+                my $parent_device = $2;
+                $get_queue_root{$parent_device}{name} = $parent_device;
+                if ($clean =~ /\s+max-limit=(\S*)\s+/) {
+                    $get_queue_root{$parent_device}{bandwidth} = bitrate_to_kbps($1);
+                } else { 
+                    $get_queue_root{$parent_device}{bandwidth} = 0; 
+                }
+            }
+        }
+
+        # 3.2 Queue Types (PCQ)
+        @tmp = netdev_cmd($gate, $t, '/queue type print terse without-paging where name~"pcq_(down|up)load"', 1);
+        foreach my $row (@tmp) {
+            my $clean = $parse_mikrotik_line->($row);
+            next unless $clean;
+            if ($clean =~ /name=pcq_(down|up)load_(\d{1,3})\s+/i) {
+                my $direct = $1;
+                my $index = $2;
+                $get_queue_type{$index}{$direct} = $clean;
+                
+                if ($clean =~ /pcq-rate=(\S*)\s+/) {
+                    my $rate = bitrate_to_kbps($1);
+                    $get_queue_type{$index}{$direct . "-rate"} = $rate;
+                }
+                if ($clean =~ /pcq-classifier=(\S*)\s+/) { 
+                    $get_queue_type{$index}{$direct . "-classifier"} = $1; 
+                }
+            }
+        }
+
+        # 3.3 Queue Tree (User queues)
+        @tmp = netdev_cmd($gate, $t, '/queue tree print terse without-paging where parent~"(download|upload)_root"', 1);
+        foreach my $row (@tmp) {
+            my $clean = $parse_mikrotik_line->($row);
+            next unless $clean;
+            # Upload
+            if ($clean =~ /name=queue_(\d{1,3})_(\S*)_out\s+/i) {
+                my $index = $1;
+                my $int_name = $2;
+                $get_queue_tree{$index}{$int_name}{up} = $clean;
+                $get_queue_tree{$index}{$int_name}{'up-parent'}  = $1 if $clean =~ /parent=(\S*)\s+/;
+                $get_queue_tree{$index}{$int_name}{'up-mark'}    = $1 if $clean =~ /packet-mark=(\S*)\s+/;
+                $get_queue_tree{$index}{$int_name}{'up-queue'}   = $1 if $clean =~ /queue=(\S*)\s+/;
+            }
+            # Download
+            if ($clean =~ /name=queue_(\d{1,3})_(\S*)_in\s+/i) {
+                my $index = $1;
+                my $int_name = $2;
+                $get_queue_tree{$index}{$int_name}{down} = $clean;
+                $get_queue_tree{$index}{$int_name}{'down-parent'}  = $1 if $clean =~ /parent=(\S*)\s+/;
+                $get_queue_tree{$index}{$int_name}{'down-mark'}    = $1 if $clean =~ /packet-mark=(\S*)\s+/;
+                $get_queue_tree{$index}{$int_name}{'down-queue'}   = $1 if $clean =~ /queue=(\S*)\s+/;
+            }
+        }
+
+        # 3.4 Firewall Mangle
+        @tmp = netdev_cmd($gate, $t, '/ip firewall mangle print terse without-paging where action=mark-packet and new-packet-mark~"(upload|download)_[0-9]{1,3}"', 1);
+        foreach my $row (@tmp) {
+            my $clean = $parse_mikrotik_line->($row);
+            next unless $clean;
+            
+            if ($clean =~ /new-packet-mark=upload_(\d{1,3})_(\S*)\s+/i) {
+                my $index = $1;
+                my $int_name = $2;
+                $get_filter_mangle{$index}{$int_name}{up} = $clean;
+                $get_filter_mangle{$index}{$int_name}{'up-list'} = $1 if $clean =~ /src-address-list=(\S*)\s+/;
+                $get_filter_mangle{$index}{$int_name}{'up-dev'}  = $1 if $clean =~ /out-interface=(\S*)\s+/;
+                $get_filter_mangle{$index}{$int_name}{'up-mark'} = $1 if $clean =~ /new-packet-mark=(\S*)\s+/;
+            }
+            if ($clean =~ /new-packet-mark=download_(\d{1,3})_(\S*)\s+/i) {
+                my $index = $1;
+                my $int_name = $2;
+                $get_filter_mangle{$index}{$int_name}{down} = $clean;
+                $get_filter_mangle{$index}{$int_name}{'down-list'} = $1 if $clean =~ /dst-address-list=(\S*)\s+/;
+                $get_filter_mangle{$index}{$int_name}{'down-dev'}  = $1 if $clean =~ /out-interface=(\S*)\s+/;
+                $get_filter_mangle{$index}{$int_name}{'down-mark'} = $1 if $clean =~ /new-packet-mark=(\S*)\s+/;
+            }
+        }
+
+        log_debug($gate_ident . "Status of the shapers on the router has been received.");
+    };
+    if ($@) {
+        log_error($gate_ident . "Failed to get current router state: $@");
+        last SHAPER;
+    }
+
+    # --- 4. Генерация команд синхронизации ---
+    my @cmd_list;
+    
+    eval {
+        # 4.1 Анализ и коррекция Root классов
+        foreach my $l3_int (keys %l3_interfaces) {
+            my $int_type = ($l3_interfaces{$l3_int}->{type}) ? 'upload' : 'download';
+            my $root_name = "${int_type}_root_${l3_int}";
+            my $desired_bw = $l3_interfaces{$l3_int}->{bandwidth};
+            
+            # Очистка мусорных рут-очередей на этом интерфейсе
+            push(@cmd_list, "/queue tree remove [ find name!~\"${int_type}_root_${l3_int}\" and parent=${l3_int} ]");
+
+            if (!exists $get_queue_root{$l3_int}) {
+                log_info($gate_ident . "[CHANGE] Root queue '$root_name' missing. Creating with limit ${desired_bw}kbps.");
+                push(@cmd_list, "/queue tree add max-limit=" . kbps_to_bitrate($desired_bw) . " name=$root_name parent=$l3_int queue=pcq-${int_type}-default");
+                next;
+            }
+
+            my $current_bw = $get_queue_root{$l3_int}{bandwidth} || 0;
+            if ($current_bw != $desired_bw) {
+                log_info($gate_ident . "[CHANGE] Root queue '$root_name' bandwidth mismatch. Current: ${current_bw}, Desired: ${desired_bw}. Updating.");
+                push(@cmd_list, "/queue tree set max-limit=" . kbps_to_bitrate($desired_bw) . " [ find name=$root_name ]");
+            }
+        }
+
+        # 4.2 Генерация конфигурации очередей (Types, Tree, Mangle)
+        foreach my $queue_name (keys %queues) {
+            my $q_id = $queues{$queue_name}{id};
+            my $q_up = $queues{$queue_name}{up};
+            my $q_down = $queues{$queue_name}{down};
+
+            # --- Queue Types ---
+            my $type_up_str = "name=pcq_upload_${q_id} kind=pcq pcq-rate=${q_up}k pcq-limit=500KiB pcq-classifier=src-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s pcq-src-address-mask=32 pcq-dst-address-mask=32 pcq-src-address6-mask=64 pcq-dst-address6-mask=64";
+            my $type_down_str = "name=pcq_download_${q_id} kind=pcq pcq-rate=${q_down}k pcq-limit=500KiB pcq-classifier=dst-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s pcq-src-address-mask=32 pcq-dst-address-mask=32 pcq-src-address6-mask=64 pcq-dst-address6-mask=64";
+
+            # Check UP Type
+            my $need_update_up = 0;
+            if (!$get_queue_type{$q_id}{up}) { 
+                $need_update_up = 1; 
+                log_info($gate_ident . "[CHANGE] Queue Type 'pcq_upload_${q_id}' missing.");
+            } else {
+                my $curr_rate = $get_queue_type{$q_id}{'up-rate'} || 0;
+                my $curr_class = $get_queue_type{$q_id}{'up-classifier'} || '';
+                if (abs($q_up - $curr_rate) > 50) {
+                    $need_update_up = 1;
+                    log_info($gate_ident . "[CHANGE] Queue Type 'pcq_upload_${q_id}' rate mismatch: ${curr_rate} vs ${q_up}.");
+                } elsif ($curr_class !~ /src-address/i) {
+                    $need_update_up = 1;
+                    log_info($gate_ident . "[CHANGE] Queue Type 'pcq_upload_${q_id}' classifier mismatch.");
+                }
+            }
+
+            if ($need_update_up) {
+                # Формируем понятное сообщение о причине изменения
+                my $action_msg = !$get_queue_type{$q_id}{up} 
+                    ? "Creating missing queue type" 
+                    : "Updating queue type parameters (rate/classifier mismatch)";
+
+                log_info($gate_ident . "[CHANGE] Queue Type 'pcq_upload_${q_id}': $action_msg.");
+                log_debug($gate_ident . "  -> New config: $type_up_str");
+
+                # Команда удаления старых экземпляров (если есть мусорные дубликаты)
+                push(@cmd_list, ":foreach i in [/queue type find where name=\"pcq_upload_${q_id}\"] do={/queue type remove \$i};");
+                
+                # Команда добавления новой конфигурации
+                push(@cmd_list, "/queue type add $type_up_str");
+            }
+
+            # Check DOWN Type
+            my $need_update_down = 0;
+            if (!$get_queue_type{$q_id}{down}) { 
+                $need_update_down = 1; 
+                log_info($gate_ident . "[CHANGE] Queue Type 'pcq_download_${q_id}' missing.");
+            } else {
+                my $curr_rate = $get_queue_type{$q_id}{'down-rate'} || 0;
+                my $curr_class = $get_queue_type{$q_id}{'down-classifier'} || '';
+                if (abs($q_down - $curr_rate) > 50) {
+                    $need_update_down = 1;
+                    log_info($gate_ident . "[CHANGE] Queue Type 'pcq_download_${q_id}' rate mismatch: ${curr_rate} vs ${q_down}.");
+                } elsif ($curr_class !~ /dst-address/i) {
+                    $need_update_down = 1;
+                    log_info($gate_ident . "[CHANGE] Queue Type 'pcq_download_${q_id}' classifier mismatch.");
+                }
+            }
+
+            if ($need_update_down) {
+                # Определяем причину изменения для лога
+                my $action_msg = !$get_queue_type{$q_id}{down} 
+                    ? "Creating missing queue type" 
+                    : "Updating queue type parameters (rate/classifier mismatch)";
+                
+                log_info($gate_ident . "[CHANGE] Queue Type 'pcq_download_${q_id}': $action_msg.");
+                log_debug($gate_ident . "  -> New config: $type_down_str");
+
+                # Удаляем старые/некорректные записи
+                push(@cmd_list, ":foreach i in [/queue type find where name=\"pcq_download_${q_id}\"] do={/queue type remove \$i};");
+                
+                # Добавляем новую конфигурацию
+                push(@cmd_list, "/queue type add $type_down_str");
+            }
+
+            # --- Upload Queue Tree & Mangle (per WAN interface) ---
+            foreach my $int (@wan_int) {
+                next unless $int;
+                my $q_name = "queue_${q_id}_${int}_out";
+                my $p_mark = "upload_${q_id}_${int}";
+                my $p_list = "queue_${q_id}";
+                
+                my $tree_up_str = "name=${q_name} parent=upload_root_${int} packet-mark=${p_mark} limit-at=0 queue=pcq_upload_${q_id} priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1";
+                my $mangle_up_str = "chain=forward action=mark-packet new-packet-mark=${p_mark} passthrough=yes src-address-list=${p_list} out-interface=${int} log=no log-prefix=\"\"";
+
+                # Check Tree UP
+                my $fix_tree_up = 0;
+                if (!$get_queue_tree{$q_id}{$int}{up}) {
+                    $fix_tree_up = 1;
+                    log_info($gate_ident . "[CHANGE] Queue Tree '$q_name' missing.");
+                } else {
+                    $fix_tree_up = 1 if ($get_queue_tree{$q_id}{$int}{'up-parent'} ne "upload_root_${int}");
+                    $fix_tree_up = 1 if ($get_queue_tree{$q_id}{$int}{'up-mark'} ne $p_mark);
+                    $fix_tree_up = 1 if ($get_queue_tree{$q_id}{$int}{'up-queue'} ne "pcq_upload_${q_id}");
+                    log_info($gate_ident . "[CHANGE] Queue Tree '$q_name' parameters mismatch.") if $fix_tree_up;
+                }
+
+                if ($fix_tree_up) {
+                    # Определяем причину изменения для лога
+                    my $action_msg = !$get_queue_tree{$q_id}{$int}{up} 
+                        ? "Creating missing queue tree rule" 
+                        : "Updating queue tree parameters (parent/mark/queue mismatch)";
+                    
+                    log_info($gate_ident . "[CHANGE] Queue Tree '${q_name}': $action_msg.");
+                    log_debug($gate_ident . "  -> New config: $tree_up_str");
+
+                    # Удаляем старые/некорректные правила
+                    push(@cmd_list, ":foreach i in [/queue tree find where name=\"${q_name}\"] do={/queue tree remove \$i};");
+                    
+                    # Добавляем новое правило
+                    push(@cmd_list, "/queue tree add $tree_up_str");
+                }
+
+                # Check Mangle UP
+                my $fix_mangle_up = 0;
+                if (!$get_filter_mangle{$q_id}{$int}{up}) {
+                    $fix_mangle_up = 1;
+                    log_info($gate_ident . "[CHANGE] Mangle rule for '$p_mark' missing.");
+                } else {
+                    $fix_mangle_up = 1 if ($get_filter_mangle{$q_id}{$int}{'up-mark'} ne $p_mark);
+                    $fix_mangle_up = 1 if ($get_filter_mangle{$q_id}{$int}{'up-list'} ne $p_list);
+                    $fix_mangle_up = 1 if ($get_filter_mangle{$q_id}{$int}{'up-dev'} ne $int);
+                    log_info($gate_ident . "[CHANGE] Mangle rule for '$p_mark' parameters mismatch.") if $fix_mangle_up;
+                }
+
+                if ($fix_mangle_up) {
+                    # Определяем причину изменения для лога
+                    my $action_msg = !$get_filter_mangle{$q_id}{$int}{up} 
+                        ? "Creating missing mangle rule" 
+                        : "Updating mangle rule parameters (mark/list/interface mismatch)";
+                    
+                    log_info($gate_ident . "[CHANGE] Mangle Rule '${p_mark}': $action_msg.");
+                    log_debug($gate_ident . "  -> New config: $mangle_up_str");
+
+                    # Удаляем старые/некорректные правила
+                    # Примечание: используем точное совпадение new-packet-mark=, так как имя метки уникально
+                    push(@cmd_list, ":foreach i in [/ip firewall mangle find where action=mark-packet and new-packet-mark=\"${p_mark}\"] do={/ip firewall mangle remove \$i};");
+                    
+                    # Добавляем новое правило
+                    push(@cmd_list, "/ip firewall mangle add $mangle_up_str");
+                }
+            }
+
+            # --- Download Queue Tree & Mangle (per LAN interface) ---
+            foreach my $int (@lan_int) {
+                next unless $int;
+                my $q_name = "queue_${q_id}_${int}_in";
+                my $p_mark = "download_${q_id}_${int}";
+                my $p_list = "queue_${q_id}";
+
+                my $tree_down_str = "name=${q_name} parent=download_root_${int} packet-mark=${p_mark} limit-at=0 queue=pcq_download_${q_id} priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1";
+                my $mangle_down_str = "chain=forward action=mark-packet new-packet-mark=${p_mark} passthrough=yes dst-address-list=${p_list} out-interface=${int} in-interface-list=WAN log=no log-prefix=\"\"";
+
+                # Check Tree DOWN
+                my $fix_tree_down = 0;
+                if (!$get_queue_tree{$q_id}{$int}{down}) {
+                    $fix_tree_down = 1;
+                    log_info($gate_ident . "[CHANGE] Queue Tree '$q_name' missing.");
+                } else {
+                    $fix_tree_down = 1 if ($get_queue_tree{$q_id}{$int}{'down-parent'} ne "download_root_${int}");
+                    $fix_tree_down = 1 if ($get_queue_tree{$q_id}{$int}{'down-mark'} ne $p_mark);
+                    $fix_tree_down = 1 if ($get_queue_tree{$q_id}{$int}{'down-queue'} ne "pcq_download_${q_id}");
+                    log_info($gate_ident . "[CHANGE] Queue Tree '$q_name' parameters mismatch.") if $fix_tree_down;
+                }
+
+                if ($fix_tree_down) {
+                    push(@cmd_list, ":foreach i in [/queue tree find where name=\"${q_name}\"] do={/queue tree remove \$i};");
+                    push(@cmd_list, "/queue tree add $tree_down_str");
+                }
+
+                # Check Mangle DOWN
+                my $fix_mangle_down = 0;
+                if (!$get_filter_mangle{$q_id}{$int}{down}) {
+                    $fix_mangle_down = 1;
+                    log_info($gate_ident . "[CHANGE] Mangle rule for '$p_mark' missing.");
+                } else {
+                    $fix_mangle_down = 1 if ($get_filter_mangle{$q_id}{$int}{'down-mark'} ne $p_mark);
+                    $fix_mangle_down = 1 if ($get_filter_mangle{$q_id}{$int}{'down-list'} ne $p_list);
+                    $fix_mangle_down = 1 if ($get_filter_mangle{$q_id}{$int}{'down-dev'} ne $int); 
+                    log_info($gate_ident . "[CHANGE] Mangle rule for '$p_mark' parameters mismatch.") if $fix_mangle_down;
+                }
+
+                if ($fix_mangle_down) {
+                    # Определяем причину изменения для лога
+                    my $action_msg = !$get_filter_mangle{$q_id}{$int}{down} 
+                        ? "Creating missing mangle rule" 
+                        : "Updating mangle rule parameters (mark/list/interface mismatch)";
+                    
+                    log_info($gate_ident . "[CHANGE] Mangle Rule '${p_mark}': $action_msg.");
+                    log_debug($gate_ident . "  -> New config: $mangle_down_str");
+
+                    # Удаляем старые/некорректные правила
+                    # Используем точное совпадение new-packet-mark, так как имя метки уникально
+                    push(@cmd_list, ":foreach i in [/ip firewall mangle find where action=mark-packet and new-packet-mark=\"${p_mark}\"] do={/ip firewall mangle remove \$i};");
+                    
+                    # Добавляем новое правило
+                    push(@cmd_list, "/ip firewall mangle add $mangle_down_str");
+                }
+
+            }
+        }
+    };
+    if ($@) {
+        log_error($gate_ident . "Error during command generation logic: $@");
+    }
+} # end shaper_enabled
 }
-
-@tmp=();
-
-@tmp=netdev_cmd($gate,$t,'/ip firewall mangle print terse without-paging where action=mark-packet and new-packet-mark~"(upload|download)_[0-9]{1,3}"',1);
-log_debug($gate_ident."Get firewall mangle rules for queues:".Dumper(\@tmp));
-
-# 0    chain=forward action=mark-packet new-packet-mark=upload_0 passthrough=yes src-address-list=queue_0 out-interface=sfp-sfpplus1-wan log=no log-prefix=""
-# 0    chain=forward action=mark-packet new-packet-mark=download_3_vlan2 passthrough=yes dst-address-list=queue_3 out-interface=vlan2 in-interface-list=WAN log=no log-prefix=""
-
-foreach my $row (@tmp) {
-next if (!$row);
-$row = trim($row);
-next if ($row!~/^(\d){1,3}/);
-$row=~s/^\d{1,3}\s+//;
-next if (!$row);
-if ($row=~/new-packet-mark=upload_(\d){1,3}_(\S*)\s+/i) {
-    next if (!$1);
-    next if (!$2);
-    my $index = $1;
-    my $int_name = $2;
-    $get_filter_mangle{$index}{$int_name}{up}=$row;
-    if ($row=~/src-address-list=(\S*)\s+\S/i) { $get_filter_mangle{$index}{$int_name}{'up-list'}=$1; }
-    if ($row=~/out-interface=(\S*)\s+\S/i) { $get_filter_mangle{$index}{$int_name}{'up-dev'}=$1; }
-    if ($row=~/new-packet-mark=(\S*)\s+\S/i) { $get_filter_mangle{$index}{$int_name}{'up-mark'}=$1; }
-    }
-if ($row=~/new-packet-mark=download_(\d){1,3}_(\S*)\s+/i) {
-    next if (!$1);
-    next if (!$2);
-    my $index = $1;
-    my $int_name = $2;
-    $get_filter_mangle{$index}{$int_name}{down}=$row;
-    if ($row=~/dst-address-list=(\S*)\s+\S/i) { $get_filter_mangle{$index}{$int_name}{'down-list'}=$1; }
-    if ($row=~/new-packet-mark=(\S*)\s+\S/i) { $get_filter_mangle{$index}{$int_name}{'down-mark'}=$1; }
-    if ($row=~/out-interface=(\S*)\s+\S/i) { $get_filter_mangle{$index}{$int_name}{'down-dev'}=$1; }
-    }
-}
-
-log_debug($gate_ident."Queues root classes:".Dumper(\%get_queue_root));
-log_debug($gate_ident."Queues type status:".Dumper(\%get_queue_type));
-log_debug($gate_ident."Queues tree status:".Dumper(\%get_queue_tree));
-log_debug($gate_ident."Firewall mangle status:".Dumper(\%get_filter_mangle));
-
-my %queue_type;
-my %queue_tree;
-my %filter_mangle;
-
-#analyze root class
-foreach my $l3_int (keys %l3_interfaces) {
-my $int_type = 'download';
-if ($l3_interfaces{$l3_int}->{type}) { $int_type = 'upload'; }
-#clear unknown root queue
-push(@cmd_list,'/queue tree remove [ find name!~"'.$int_type . '_root_' . $l3_int .'" and parent='.$l3_int.' ]');
-# add root queue if not exists
-if (!exists $get_queue_root{$l3_int}) {
-    push(@cmd_list,'/queue tree add max-limit=' . kbps_to_bitrate($l3_interfaces{$l3_int}->{bandwidth}) . ' name=' . $int_type . '_root_' . $l3_int .' parent=' . $l3_int . ' queue=pcq-' . $int_type . '-default');
-    next;
-    }
-# change bandwidth if differs
-if ($get_queue_root{$l3_int}{bandwidth} ne $l3_interfaces{$l3_int}->{bandwidth}) {
-    push(@cmd_list,'/queue tree set max-limit=' . kbps_to_bitrate($l3_interfaces{$l3_int}->{bandwidth}) . ' [ find name='.$int_type . '_root_' . $l3_int . ' ]');
-    next;
-    }
-}
-
-#generate new config
-foreach my $queue_name (keys %queues) {
-my $q_id=$queues{$queue_name}{id};
-my $q_up=$queues{$queue_name}{up};
-my $q_down=$queues{$queue_name}{down};
-
-#queue_types
-$queue_type{$q_id}{up}="name=pcq_upload_".$q_id." kind=pcq pcq-rate=".$q_up."k pcq-limit=500KiB pcq-classifier=src-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s pcq-src-address-mask=32 pcq-dst-address-mask=32 pcq-src-address6-mask=64 pcq-dst-address6-mask=64";
-$queue_type{$q_id}{down}="name=pcq_download_".$q_id." kind=pcq pcq-rate=".$q_down."k pcq-limit=500KiB pcq-classifier=dst-address pcq-total-limit=2000KiB pcq-burst-rate=0 pcq-burst-threshold=0 pcq-burst-time=10s pcq-src-address-mask=32 pcq-dst-address-mask=32 pcq-src-address6-mask=64 pcq-dst-address6-mask=64";
-
-my $queue_ok=1;
-if (!$get_queue_type{$q_id}{up}) { $queue_ok=0; }
-if ($queue_ok and abs($q_up - bitrate_to_kbps($get_queue_type{$q_id}{'up-rate'}))>10) { $queue_ok=0; }
-if ($queue_ok and $get_queue_type{$q_id}{'up-classifier'}!~/src-address/i)  { $queue_ok=0; }
-
-if (!$queue_ok) {
-    push(@cmd_list,':foreach i in [/queue type find where name~"pcq_upload_'.$q_id.'" ] do={/queue type remove $i};');
-    push(@cmd_list,'/queue type add '.$queue_type{$q_id}{up});
-    }
-
-$queue_ok=1;
-if (!$get_queue_type{$q_id}{down}) { $queue_ok=0; }
-if ($queue_ok and abs($q_up - bitrate_to_kbps($get_queue_type{$q_id}{'down-rate'}))>10) { $queue_ok=0; }
-if ($queue_ok and $get_queue_type{$q_id}{'down-classifier'}!~/dst-address/i)  { $queue_ok=0; }
-
-if (!$queue_ok) {
-    push(@cmd_list,':foreach i in [/queue type find where name~"pcq_download_'.$q_id.'" ] do={/queue type remove $i};');
-    push(@cmd_list,'/queue type add '.$queue_type{$q_id}{down});
-    }
-
-#upload queue
-foreach my $int (@wan_int) {
-$queue_tree{$q_id}{$int}{up}="name=queue_".$q_id."_".$int."_out parent=upload_root_".$int." packet-mark=upload_".$q_id."_".$int." limit-at=0 queue=pcq_upload_".$q_id." priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1";
-$filter_mangle{$q_id}{$int}{up}="chain=forward action=mark-packet new-packet-mark=upload_".$q_id."_".$int." passthrough=yes src-address-list=queue_".$q_id." out-interface=".$int." log=no log-prefix=\"\"";
-
-$queue_ok=1;
-if (!$get_queue_tree{$q_id}{$int}{up}) { $queue_ok=0; }
-if ($queue_ok and ($get_queue_tree{$q_id}{$int}{'up-parent'} ne "upload_root_".$int)) { $queue_ok=0;}
-if ($queue_ok and ($get_queue_tree{$q_id}{$int}{'up-mark'} ne "upload_".$q_id."_".$int)) { $queue_ok=0; }
-if ($queue_ok and ($get_queue_tree{$q_id}{$int}{'up-queue'} ne "pcq_upload_".$q_id)) { $queue_ok=0; }
-
-if (!$queue_ok) {
-    push(@cmd_list,':foreach i in [/queue tree find where name~"queue_'.$q_id."_".$int."_out".'" ] do={/queue tree remove $i};');
-    push(@cmd_list,'/queue tree add '.$queue_tree{$q_id}{$int}{up});
-    }
-
-$queue_ok=1;
-if (!$get_filter_mangle{$q_id}{$int}{up}) { $queue_ok=0; }
-if ($queue_ok and ($get_filter_mangle{$q_id}{$int}{'up-mark'} ne "upload_".$q_id."_".$int)) { $queue_ok=0; }
-if ($queue_ok and ($get_filter_mangle{$q_id}{$int}{'up-list'} ne "queue_".$q_id)) { $queue_ok=0; }
-if ($queue_ok and ($get_filter_mangle{$q_id}{$int}{'up-dev'} ne $int)) { $queue_ok=0; }
-
-if (!$queue_ok) {
-    push(@cmd_list,':foreach i in [/ip firewall mangle find where action=mark-packet and new-packet-mark~"upload_'.$q_id."_".$int.'" ] do={/ip firewall mangle remove $i};');
-    push(@cmd_list,'/ip firewall mangle add '.$filter_mangle{$q_id}{$int}{up});
-    }
-}
-
-#download
-foreach my $int (@lan_int) {
-next if (!$int);
-$queue_tree{$q_id}{$int}{down}="name=queue_".$q_id."_".$int."_in parent=download_root_".$int." packet-mark=download_".$q_id."_".$int." limit-at=0 queue=pcq_download_".$q_id." priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1";
-$filter_mangle{$q_id}{$int}{down}="chain=forward action=mark-packet new-packet-mark=download_".$q_id."_".$int." passthrough=yes dst-address-list=queue_".$q_id." out-interface=".$int." in-interface-list=WAN log=no log-prefix=\"\"";
-
-$queue_ok=1;
-if (!$get_queue_tree{$q_id}{$int}{down}) { $queue_ok=0; }
-if ($queue_ok and ($get_queue_tree{$q_id}{$int}{'down-parent'} ne "download_root_".$int)) { $queue_ok=0; }
-if ($queue_ok and ($get_queue_tree{$q_id}{$int}{'down-mark'} ne "download_".$q_id."_".$int)) { $queue_ok=0; }
-if ($queue_ok and ($get_queue_tree{$q_id}{$int}{'down-queue'} ne "pcq_download_".$q_id)) { $queue_ok=0; }
-
-if (!$queue_ok) {
-    push(@cmd_list,':foreach i in [/queue tree find where name~"queue_'.$q_id."_".$int."_in".'" ] do={/queue tree remove $i};');
-    push(@cmd_list,'/queue tree add '.$queue_tree{$q_id}{$int}{down});
-    }
-
-$queue_ok=1;
-if (!$get_filter_mangle{$q_id}{$int}{down}) { $queue_ok=0; }
-if ($queue_ok and ($get_filter_mangle{$q_id}{$int}{'down-mark'} ne "download_".$q_id."_".$int)) { $queue_ok=0; }
-if ($queue_ok and ($get_filter_mangle{$q_id}{$int}{'down-list'} ne "queue_".$q_id)) { $queue_ok=0; }
-if ($queue_ok and ($get_filter_mangle{$q_id}{$int}{'down-dev'} ne $int)) { $queue_ok=0; }
-
-if (!$queue_ok) {
-    push(@cmd_list,':foreach i in [/ip firewall mangle find where action=mark-packet and new-packet-mark~"download_'.$q_id."_".$int.'" ] do={/ip firewall mangle remove $i};');
-    push(@cmd_list,'/ip firewall mangle add '.$filter_mangle{$q_id}{$int}{down});
-    }
-}
-
-}
-
-}#end shaper
 
 # Analyze actual ACL
 
