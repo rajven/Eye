@@ -1089,7 +1089,7 @@ $queue_type{$q_id}{down}="name=pcq_download_".$q_id." kind=pcq pcq-rate=".$q_dow
 
 my $queue_ok=1;
 if (!$get_queue_type{$q_id}{up}) { $queue_ok=0; }
-if ($queue_ok and abs($q_up - $get_queue_type{$q_id}{'up-rate'})>10) { $queue_ok=0; }
+if ($queue_ok and abs($q_up - bitrate_to_kbps($get_queue_type{$q_id}{'up-rate'}))>10) { $queue_ok=0; }
 if ($queue_ok and $get_queue_type{$q_id}{'up-classifier'}!~/src-address/i)  { $queue_ok=0; }
 
 if (!$queue_ok) {
@@ -1099,7 +1099,7 @@ if (!$queue_ok) {
 
 $queue_ok=1;
 if (!$get_queue_type{$q_id}{down}) { $queue_ok=0; }
-if ($queue_ok and abs($q_up - $get_queue_type{$q_id}{'down-rate'})>10) { $queue_ok=0; }
+if ($queue_ok and abs($q_up - bitrate_to_kbps($get_queue_type{$q_id}{'down-rate'}))>10) { $queue_ok=0; }
 if ($queue_ok and $get_queue_type{$q_id}{'down-classifier'}!~/dst-address/i)  { $queue_ok=0; }
 
 if (!$queue_ok) {
