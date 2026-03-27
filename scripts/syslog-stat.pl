@@ -32,7 +32,7 @@ use Proc::Daemon;
 use Cwd;
 
 
-my $pf = '/run/eye/syslog-stat.pid';
+my $pf = '/run/eye-syslog/syslog-stat.pid';
 my $socket_path='/run/syslog-ng.socket';
 
 my $daemon = Proc::Daemon->new(

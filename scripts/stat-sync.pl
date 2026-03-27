@@ -30,7 +30,7 @@ use DateTime;
 
 my $mute_time=300;
 
-my $pf = '/run/eye/stat-sync.pid';
+my $pf = '/run/eye-sync/stat-sync.pid';
 
 my $daemon = Proc::Daemon->new(
         pid_file => $pf,

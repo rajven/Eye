@@ -31,7 +31,7 @@ use IO::Socket;
 my $proc_name = $MY_NAME;
 $proc_name =~ s/\.[^.]+$//;
 
-my $pid_file = '/run/eye/'.$proc_name;
+my $pid_file = '/run/eye-statd/'.$proc_name;
 
 my @router_ref = ();
 my @interfaces = ();

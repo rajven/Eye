@@ -7,11 +7,11 @@ Requires=dhcp-log-truncate.service
 Type=forking
 User=eye
 Group=eye
-RuntimeDirectory=eye
+RuntimeDirectory=eye-dhcp
 RuntimeDirectoryMode=0700
 RuntimeDirectoryPreserve=yes
 ExecStart=/opt/Eye/scripts/dhcp-log.pl --start
-PIDFile=/run/eye/dhcp-log.pid
+PIDFile=/run/eye-dhcp/dhcp-log.pid
 RestartSec=30
 Restart=on-failure
 

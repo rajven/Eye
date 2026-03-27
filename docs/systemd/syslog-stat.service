@@ -8,10 +8,10 @@ Type=forking
 User=eye
 Group=eye
 ExecStart=/opt/Eye/scripts/syslog-stat.pl --start
-RuntimeDirectory=eye
+RuntimeDirectory=eye-syslog
 RuntimeDirectoryMode=0700
 RuntimeDirectoryPreserve=yes
-PIDFile=/run/eye/syslog-stat.pid
+PIDFile=/run/eye-syslog/syslog-stat.pid
 RestartSec=30
 Restart=on-failure
 
