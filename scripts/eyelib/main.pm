@@ -14,6 +14,7 @@ use lib "/opt/Eye/scripts";
 use base 'Exporter';
 use vars qw(@EXPORT @ISA);
 use eyelib::config;
+use eyelib::logconfig;
 use Socket;
 use POSIX;
 use IO::Select;
@@ -29,16 +30,7 @@ isNotifyUpdate
 isNotifyDelete
 isNotifyNone
 hasNotifyFlag
-log_file
 write_to_file
-wrlog
-log_session
-log_warning
-log_info
-log_debug
-log_error
-log_verbose
-log_die
 in_array
 timestamp
 do_exec
@@ -129,41 +121,6 @@ sub hasNotifyFlag {
 
 #---------------------------------------------------------------------------------------------------------
 
-sub log_file {
-    return if (!$_[0]);
-    return if (!$_[1]);
-    return if (!$_[2]);
-    
-    # Вместо die - предупреждение и возврат
-    unless (open (LG,">>$_[0]")) {
-        # Пишем в stderr как последнее средство
-        print STDERR "WARNING: Cannot open log file $_[0]: $!\n";
-        return;
-    }
-    
-    my ($sec,$min,$hour,$mday,$mon,$year) = (localtime())[0,1,2,3,4,5];
-    $mon += 1; $year += 1900;
-    my @msg = split("\n",$_[2]);
-    
-    foreach my $row (@msg) {
-        next if (!$row);
-        printf LG "%04d%02d%02d-%02d%02d%02d %s [%d] %s\n",$year,$mon,$mday,$hour,$min,$sec,$_[1],$$,$row;
-    }
-    
-    close (LG);
-    
-    if ($< ==0) {
-        my $uid = getpwnam $log_owner_user;
-        my $gid = getgrnam $log_owner_user;
-        if (!$gid) { $gid=getgrnam "root"; }
-        if (!$uid) { $uid=getpwnam "root"; }
-        chown $uid, $gid, $_[0];
-        chmod oct("0660"), $_[0];
-    }
-}
-
-#---------------------------------------------------------------------------------------------------------
-
 sub write_to_file {
 return if (!$_[0]);
 return if (!$_[1]);
@@ -192,56 +149,6 @@ if (ref($cmd) eq 'ARRAY') {
 	}
     }
 close (LG);
-}
-
-#---------------------------------------------------------------------------------------------------------
-
-sub wrlog {
-my $level = shift;
-my $string = shift;
-my $PRN_LEVEL = 'INFO:';
-if ($level == $W_INFO)  { log_info($string); }
-if ($level == $W_ERROR) { $PRN_LEVEL = 'ERROR:'; log_error($string); }
-if ($level == $W_DEBUG) { $PRN_LEVEL = 'DEBUG'; log_debug($string); }
-my @msg = split("\n",$string);
-foreach my $row (@msg) {
-    next if (!$row);
-    print $PRN_LEVEL.' '.$row."\n";
-    }
-}
-
-#---------------------------------------------------------------------------------------------------------
-
-sub log_session { log_file($LOG_COMMON,"SESSION:",$_[0]) if ($log_enable); }
-
-#---------------------------------------------------------------------------------------------------------
-
-sub log_info { log_file($LOG_COMMON,"INFO:",$_[0]) if ($log_enable); }
-
-#---------------------------------------------------------------------------------------------------------
-
-sub log_verbose { log_file($LOG_COMMON,"VERBOSE:",$_[0]) if ($log_enable); }
-
-#---------------------------------------------------------------------------------------------------------
-
-sub log_warning { log_file($LOG_COMMON,"WARN:",$_[0]) if ($log_enable); }
-
-#---------------------------------------------------------------------------------------------------------
-
-sub log_debug { log_file($LOG_DEBUG,"DEBUG:",$_[0]) if $debug; }
-
-#---------------------------------------------------------------------------------------------------------
-
-sub log_error { log_file($LOG_ERR,"ERROR:",$_[0]) if ($log_enable); }
-
-#---------------------------------------------------------------------------------------------------------
-
-sub log_die {
-wrlog($W_ERROR,$_[0]);
-my $worktime = time()-$BASETIME;
-log_info("Script work $worktime sec.");
-#sendEmail("$HOSTNAME - $MY_NAME die! ","Process: $MY_NAME aborted with error:\n$_[0]");
-die ($_[0]);
 }
 
 #---------------------------------------------------------------------------------------------------------
@@ -912,13 +819,6 @@ sub htmlspecialchars {
 }
 
 #---------------------------------------------------------------------------------
-
-#log_file($LOG_COMMON,"INFO:","----------------------------------------------------------------------------------------");
-#log_file($LOG_COMMON,"INFO:","Run script $0. Pid: $$ Pid file: $SPID.pid");
-#log_file($LOG_COMMON,"INFO:","User uid: $< Effective uid: $>");
-#log_file($LOG_COMMON,"INFO:","Status:");
-#log_file($LOG_COMMON,"INFO:","Logging enabled: $log_enable");
-#log_file($LOG_COMMON,"INFO:","Logging debug: $debug");
 
 1;
 }

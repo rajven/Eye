@@ -25,6 +25,7 @@ use Net::Ping;
 use eyelib::config;
 use eyelib::main;
 use eyelib::nagios;
+use eyelib::logconfig;
 use eyelib::snmp;
 use eyelib::database;
 use eyelib::common;

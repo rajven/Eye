@@ -22,6 +22,7 @@ use eyelib::main;
 use eyelib::database;
 use eyelib::common;
 use eyelib::net_utils;
+use eyelib::logconfig;
 use strict;
 use Getopt::Long;
 use Proc::Daemon;

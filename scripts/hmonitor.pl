@@ -20,6 +20,7 @@ use eyelib::config;
 use eyelib::database;
 use eyelib::common;
 use eyelib::main;
+use eyelib::logconfig;
 use eyelib::nagios;
 use Data::Dumper;
 use Time::Local;

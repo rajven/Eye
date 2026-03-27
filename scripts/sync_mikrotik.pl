@@ -22,6 +22,7 @@ use eyelib::config;
 use eyelib::main;
 use eyelib::cmd;
 use Net::Patricia;
+use eyelib::logconfig;
 use Date::Parse;
 use eyelib::net_utils;
 use eyelib::database;

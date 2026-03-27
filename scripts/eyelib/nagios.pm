@@ -14,6 +14,7 @@ use eyelib::main;
 use eyelib::database;
 use eyelib::common;
 use eyelib::snmp;
+use eyelib::logconfig;
 use Time::Local;
 use Data::Dumper;
 

@@ -15,42 +15,62 @@ use vars qw(@EXPORT @ISA);
 use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
+use eyelib::logconfig;
 use Net::SNMP;
 
 @ISA = qw(Exporter);
 @EXPORT = qw(
-snmp_set_int
 snmp_get_request
+snmp_set_int
 get_arp_table
-get_fdb_table
+snmp_ping
+get_ifmib_index_table
 get_mac_table
+get_fdb_table
 get_vlan_at_port
 get_switch_vlans
 get_snmp_ifindex
-get_ifmib_index_table
 getIpAdEntIfIndex
 get_interfaces
 get_router_state
 snmp_get_req
 snmp_get_oid
 snmp_walk_oid
+oid_base_match
+snmp_oid_compare
 table_callback
+init_snmp
+setCommunity
+
 $ifAlias
 $ifName
 $ifDescr
 $ifIndex
 $ifIndex_map
+$ipAdEntIfIndex
 $arp_oid
 $ipNetToMediaPhysAddress
-$ipAdEntIfIndex
 $fdb_table_oid
 $fdb_table_oid2
-$cisco_vlan_oid
 $dot1qPortVlanEntry
-$fdb_table;
+$cisco_vlan_oid
+$sysUpTimeInstance
+$ifPortStatus
+$ifPortAdminStatus
+$bgp_prefixes
+$bgp_aslist
+$hrDeviceDescr
+$hrProcessorLoad
+$hrMemorySize
+$hrStorageIndex
+$hrStorageType
+$hrStorageDescr
+$hrStorageAllocationUnits
+$hrStorageSize
+$hrStorageUsed
+$fdb_table
 $snmp_timeout
-setCommunity
-init_snmp
+
 );
 
 
@@ -77,7 +97,20 @@ our $dot1qPortVlanEntry ='.1.3.6.1.2.1.17.7.1.4.5.1.1';
 #CISCO-ES-STACK-MIB::
 our $cisco_vlan_oid='.1.3.6.1.4.1.9.9.46.1.3.1.1.2';
 
-our $fdb_table;
+our $sysUpTimeInstance = '1.3.6.1.2.1.1.3.0';
+our $ifPortStatus      = '1.3.6.1.2.1.2.2.1.8';
+our $ifPortAdminStatus = '1.3.6.1.2.1.2.2.1.7';
+our $bgp_prefixes      = '1.3.6.1.4.1.9.9.187.1.2.4.1.1';
+our $bgp_aslist        = '1.3.6.1.2.1.15.3.1.9';
+our $hrDeviceDescr     = '1.3.6.1.2.1.25.3.2.1.3';
+our $hrProcessorLoad   = '1.3.6.1.2.1.25.3.3.1.2';
+our $hrMemorySize      = '1.3.6.1.2.1.25.2.2.0';
+our $hrStorageIndex    = '1.3.6.1.2.1.25.2.3.1.1';
+our $hrStorageType     = '1.3.6.1.2.1.25.2.3.1.2';
+our $hrStorageDescr    = '1.3.6.1.2.1.25.2.3.1.3';
+our $hrStorageAllocationUnits = '1.3.6.1.2.1.25.2.3.1.4';
+our $hrStorageSize     = '1.3.6.1.2.1.25.2.3.1.5';
+our $hrStorageUsed     = '1.3.6.1.2.1.25.2.3.1.6';
 
 our $snmp_timeout = 15;
 
@@ -161,6 +194,37 @@ sub get_arp_table {
     return $arp;
 }
 
+#---------------------------------------------------------------------------------
+
+sub snmp_ping {
+    my ($host,$snmp) = @_;
+
+    my @test_oids = (
+        '.1.3.6.1.2.1.1.1.0',  # model
+        '.1.3.6.1.2.1.1.3.0',  # uptime
+        '.1.3.6.1.2.1.1.5.0',  # name
+    );
+
+    my $result;
+    my $old_sig_alarm = $SIG{ALRM};
+
+    $SIG{ALRM} = sub { die "Timeout 5 sec reached.\n" };
+    alarm($WAIT_TIME // 5);
+
+    eval {
+        foreach my $oid (@test_oids) {
+            $result = snmp_get_request($host,$oid,$snmp);
+            last if defined $result;
+        }
+    };
+    my $eval_error = $@;
+
+    alarm(0);
+    $SIG{ALRM} = $old_sig_alarm;
+
+    return (defined $result && !$eval_error) ? 1 : 0;
+}
+
 #-------------------------------------------------------------------------------------
 
 sub get_ifmib_index_table {
@@ -215,8 +279,6 @@ return $ifmib_map;
 sub get_mac_table {
     my ($host,$snmp,$oid,$index_map) = @_;
     my $fdb;
-    #need for callback
-    $fdb_table=$oid;
     my $fdb_table1 = snmp_get_oid($host,$snmp,$oid);
     if (!$fdb_table1) { $fdb_table1=snmp_walk_oid($host,$snmp,$oid,undef); }
     if ($fdb_table1) {
@@ -430,130 +492,214 @@ return $table;
 #-------------------------------------------------------------------------------------
 
 sub snmp_walk_oid {
+    my ($host, $snmp, $oid, $opt) = @_;
+    $opt ||= {};
 
-my $host = shift;
-my $snmp = shift;
-my $oid = shift;
-my $rw = 'ro';
-
-### open SNMP session
-my ($session, $error);
-
-if ($snmp->{version} <= 2) {
-        ($session, $error) = Net::SNMP->session(
-		-hostname  => $host,
-		-community => $snmp->{'ro-community'} ,
-		-version   => $snmp->{version},
-		-port      => $snmp->{port},
-		-timeout   => $snmp->{timeout},
-		-nonblocking => 1,
-		-translate   => [-octetstring => 0],
-		);
-	} else {
-	($session, $error) = Net::SNMP->session(
-		-hostname     => $host,
-		-version      => 'snmpv3',
-		-username     => $snmp->{$rw.'-user'},
-		-authprotocol => $snmp->{'auth-proto'},
-		-privprotocol => $snmp->{'priv-proto'},
-		-authpassword => $snmp->{$rw.'-password'},
-		-privpassword => $snmp->{$rw.'-password'},
-		-port         => $snmp->{port},
-		-timeout      => $snmp->{timeout},
-		-nonblocking  => 1,
-		-translate    => [-octetstring => 0],
-		);
-	}
-
-return if (!defined($session) or !$session);
-
-my %table; # Hash to store the results
-
-my $result = $session->get_bulk_request(
-      -varbindlist    => [ $oid ],
-      -callback       => [ \&table_callback, \%table ],
-      -maxrepetitions => 10,
-   );
-
-snmp_dispatcher();
-$session->close();
-
-return \%table;
+    my $nonblocking = $opt->{nonblocking} // 1;
+    log_debug("Starting SNMP walk on $host, OID: $oid, nonblocking=" . ($nonblocking ? 1 : 0)) if defined &log_debug;
+    my $session = init_snmp($host, $snmp, 'ro', $nonblocking);
+    unless ($session) {
+        log_debug("Failed to initialize SNMP session for $host") if defined &log_debug;
+        return;
+    }
+    my %table;
+    if ($nonblocking) {
+        # Async walk через callback
+        log_debug("Sending first get_bulk_request for OID $oid") if defined &log_debug;
+        my $result = $session->get_bulk_request(
+            -varbindlist    => [$oid],
+            -callback       => [\&table_callback, \%table, $oid, undef],
+            -maxrepetitions => 10,
+        );
+        unless (defined $result) {
+            log_debug("SNMP request error ($host): " . $session->error) if defined &log_debug;
+            $session->close();
+            return;
+        }
+        # Запускаем dispatcher для обработки async запросов
+        eval {
+            log_debug("Starting snmp_dispatcher for $host") if defined &log_debug;
+            snmp_dispatcher();
+        };
+        if ($@) {
+            log_debug("SNMP dispatcher exception ($host): $@") if defined &log_debug;
+            $session->close();
+            return;
+        }
+    }
+    else {
+        # Blocking walk через get_next
+        log_debug("Starting blocking SNMP walk for OID $oid") if defined &log_debug;
+        my $current_oid = $oid;
+        while (1) {
+            my $result = $session->get_next_request(-varbindlist => [$current_oid]);
+            unless (defined $result) {
+                log_debug("SNMP request error ($host): " . $session->error) if defined &log_debug;
+                last;
+            }
+            my $list = $session->var_bind_list();
+            last unless defined $list;
+            my $stop = 0;
+            for my $k (keys %$list) {
+                unless (oid_base_match($oid, $k)) {
+                    log_debug("OID $k outside root $oid, stopping walk") if defined &log_debug;
+                    $stop = 1;
+                    last;
+                }
+                $table{$k} = $list->{$k};
+                log_debug("Stored OID $k = $list->{$k}") if defined &log_debug;
+                $current_oid = $k;
+            }
+            last if $stop;
+        }
+    }
+    if ($session->error) {
+        log_debug("SNMP runtime error ($host): " . $session->error) if defined &log_debug;
+    }
+    $session->close();
+    log_debug("SNMP walk finished on $host, total OIDs collected: " . scalar keys %table) if defined &log_debug;
+    return \%table;
 }
 
 #-------------------------------------------------------------------------------------
 
-sub table_callback  {
-my ($session, $table) = @_;
-my $list = $session->var_bind_list();
-
-if (!defined $list) {
-    printf "ERROR: %s\n", $session->error();
-    return;
-    }
-
-my @names = $session->var_bind_names();
-my $next  = undef;
-
-while (@names) {
-    $next = shift @names;
-    if (!oid_base_match($fdb_table, $next)) { return; }
-    $table->{$next} = $list->{$next};
-    }
-
-my $result = $session->get_bulk_request( -varbindlist    => [ $next ], -maxrepetitions => 10);
-
-if (!defined $result) {
-     printf "ERROR: %s.\n", $session->error();
-    }
-return;
+# проверка что OID начинается с root
+sub oid_base_match {
+    my ($base, $oid) = @_;
+    return defined($oid) && defined($base) && index($oid, $base) == 0;
 }
 
+#-------------------------------------------------------------------------------------
+
+sub snmp_oid_compare {
+    my ($oid1, $oid2) = @_;
+
+    return 0  if !defined $oid1 && !defined $oid2;
+    return 1  if !defined $oid2;
+    return -1 if !defined $oid1;
+
+    # Удаляем ведущую точку для единообразия
+    $oid1 =~ s/^\.//;
+    $oid2 =~ s/^\.//;
+
+    my @a = split /\./, $oid1;
+    my @b = split /\./, $oid2;
+    my $len = @a < @b ? @a : @b;
+
+    # Сравниваем покомпонентно как числа
+    for (my $i = 0; $i < $len; $i++) {
+        return -1 if $a[$i] < $b[$i];
+        return 1  if $a[$i] > $b[$i];
+    }
+
+    # Если префиксы равны, сравниваем длину
+    return @a <=> @b;
+}
+
+#-------------------------------------------------------------------------------------
+
+sub table_callback {
+    my ($session, $table, $root_oid, $last_oid) = @_;
+
+    my $list = $session->var_bind_list();
+
+    unless (defined $list) {
+        log_debug("SNMP error: " . $session->error) if defined &log_debug;
+        log_debug("Exiting callback: undefined var_bind_list") if defined &log_debug;
+        return;
+    }
+
+    my @names = sort { snmp_oid_compare($a, $b) } $session->var_bind_names();
+    unless (@names) {
+        log_debug("No OIDs returned in this callback") if defined &log_debug;
+        return;
+    }
+
+    my $next;
+    while (@names) {
+        $next = shift @names;
+        # Вышли за пределы таблицы
+        unless (oid_base_match($root_oid, $next)) {
+            log_debug("OID $next outside of root $root_oid. Exiting callback.") if defined &log_debug;
+            return;
+        }
+        # Защита от OID not increasing
+        if (defined $last_oid && snmp_oid_compare($next, $last_oid) <= 0) {
+            log_debug("OID not increasing: $next <= $last_oid. Exiting callback.") if defined &log_debug;
+            return;
+        }
+        my $value = $list->{$next};
+        # endOfMibView
+        unless (defined $value) {
+            log_debug("endOfMibView reached at OID $next. Exiting callback.") if defined &log_debug;
+            return;
+        }
+        $table->{$next} = $value;
+        log_debug("Stored OID $next = $value") if defined &log_debug;
+        $last_oid = $next;
+    }
+
+    # Запрос следующего блока
+    my $result = $session->get_bulk_request(
+        -varbindlist    => [$next],
+        -maxrepetitions => 10,
+        -callback       => [\&table_callback, $table, $root_oid, $last_oid],
+    );
+    unless (defined $result) {
+        log_debug("SNMP get_bulk_request failed for OID $next: " . $session->error) if defined &log_debug;
+    }
+    else {
+        log_debug("Scheduled next get_bulk_request starting from OID $next") if defined &log_debug;
+    }
+}
 
 #-------------------------------------------------------------------------------------
 
 sub init_snmp {
+    my ($host, $snmp, $rw, $nonblocking) = @_;
+    return unless defined $host && $host ne '';
 
-    my ($host,$snmp,$rw) = @_;
+    $rw ||= 'ro';
 
-    return if (!$host);
+    my $community = ($rw eq 'rw')
+        ? $snmp->{'rw-community'}
+        : $snmp->{'ro-community'};
 
-    my $community = $snmp->{'ro-community'};
-    if (!$rw) { $rw = 'ro' }
-	    else {
-	    $rw = 'rw';
-	    $community = $snmp->{'rw-community'};
-	    }
+    my %opts = (
+        -hostname  => $host,
+        -port      => $snmp->{port} // 161,
+        -timeout   => $snmp->{timeout} // 2,
+        -translate => [-octetstring => 0],
+    );
 
-    ### open SNMP session
+    $opts{-nonblocking} = 1 if $nonblocking;
+
     my ($session, $error);
 
-    if ($snmp->{version} <=2) {
+    if (($snmp->{version} // 2) <= 2) {
         ($session, $error) = Net::SNMP->session(
-		-hostname  => $host,
-		-community => $community ,
-		-version   => $snmp->{'version'},
-		-port      => $snmp->{port},
-		-timeout   => $snmp->{timeout},
-		);
-	} else {
-	($session, $error) = Net::SNMP->session(
-		-hostname     => $host,
-		-version      => 'snmpv3',
-		-username     => $snmp->{$rw.'-user'},
-		-authprotocol => $snmp->{'auth-proto'},
-		-privprotocol => $snmp->{'priv-proto'},
-		-authpassword => $snmp->{$rw.'-password'},
-		-privpassword => $snmp->{$rw.'-password'},
-		-port         => $snmp->{port},
-		-timeout      => $snmp->{timeout},
-		);
-	}
-    if ($error) {
-        log_debug("SNMP init-request status for $host:");
-        log_debug(Dumper($error));
-        }
-    return if (!defined($session) or !$session);
+            %opts,
+            -community => $community,
+            -version   => $snmp->{version} // 2,
+        );
+    }
+    else {
+        ($session, $error) = Net::SNMP->session(
+            %opts,
+            -version      => 'snmpv3',
+            -username     => $snmp->{$rw . '-user'},
+            -authprotocol => $snmp->{'auth-proto'},
+            -privprotocol => $snmp->{'priv-proto'},
+            -authpassword => $snmp->{$rw . '-password'},
+            -privpassword => $snmp->{$rw . '-password'},
+        );
+    }
+
+    if (!defined $session) {
+        log_debug("SNMP init failed for $host: $error") if defined &log_debug;
+        return;
+    }
+
     return $session;
 }
 

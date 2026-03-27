@@ -23,6 +23,7 @@ use Date::Parse;
 use Socket;
 use eyelib::config;
 use eyelib::main;
+use eyelib::logconfig;
 use eyelib::net_utils;
 use eyelib::snmp;
 use eyelib::database;
@@ -156,6 +157,7 @@ foreach my $router (@router_ref) {
     my $tmp_dbh = init_db();
     if (apply_device_lock($tmp_dbh, $router->{id})) {
         $arp_table = get_arp_table($router_ip, $router->{snmp});
+        log_debug("ARP TABLE at router: $router_ip".Dumper($arp_table));
         unset_lock_discovery($tmp_dbh, $router->{id});
     }
     $tmp_dbh->disconnect;
@@ -300,6 +302,7 @@ foreach my $device (@device_list) {
     if (apply_device_lock($tmp_dbh, $device->{id})) {
         my $fdb = get_fdb_table($device->{ip}, $device->{snmp});
         unset_lock_discovery($tmp_dbh, $device->{id});
+        log_debug("MAC TABLE at device: $device->{ip}".Dumper($fdb));
         $result->{id} = $device->{id};
         $result->{fdb} = $fdb;
     }

@@ -20,9 +20,6 @@ package eyelib::database;
 #}
 #$db->{AutoCommit} = 1;
 
-use warnings FATAL => 'all';
-use feature ':5.20';
-
 use utf8;
 use open ":encoding(utf8)";
 use strict;
@@ -35,6 +32,7 @@ use eyelib::config;
 use eyelib::main;
 use Net::Patricia;
 use eyelib::net_utils;
+use eyelib::logconfig;
 use Data::Dumper;
 use DateTime;
 use POSIX qw(mktime ctime strftime);
@@ -98,12 +96,6 @@ clean_variables
 build_db_schema
 
 $add_rules
-$L_WARNING
-$L_INFO
-$L_DEBUG
-$L_ERROR
-$L_VERBOSE
-
 %db_schema
 );
 
@@ -113,12 +105,6 @@ BEGIN
 #---------------------------------------------------------------------------------------------------------------
 
 our $add_rules;
-
-our $L_ERROR = 0;
-our $L_WARNING = 1;
-our $L_INFO = 2;
-our $L_VERBOSE = 3;
-our $L_DEBUG = 255;
 
 our %acl_fields = (
     'ip' => '1',
@@ -1068,78 +1054,49 @@ sub reconnect_db {
 #---------------------------------------------------------------------------------------------------------------
 
 sub write_db_log {
-my $db=shift;
-my $msg=shift;
-my $level = shift || $L_VERBOSE;
-my $auth_id = shift || 0;
-return if (!$db);
-return if (!$msg);
-$msg=~s/[\'\"]//g;
-my $db_log = 0;
-
-# Переподключение
-unless (reconnect_db(\$db)) {
-log_error("No database connection available");
-$db_log = 0;
+    my ($db, $msg, $level, $auth_id) = @_;
+    $level //= $L_VERBOSE;
+    $auth_id //= 0;
+    return unless $log_enable && $msg && $db;
+    return unless $log_level >= $level;
+    my $method = {
+        $L_ERROR   => 'error',
+        $L_WARNING => 'warn',
+        $L_INFO    => 'info',
+        $L_VERBOSE => 'info',
+        $L_DEBUG   => 'debug',
+    }->{$level} || 'info';
+    if ($level == $L_DEBUG) {
+            return unless $debug;
+            log_debug($msg);
+        } else {
+            for my $line (split /\n/, $msg) {
+            next unless length $line;
+            get_logger()->$method($line);
+            }
+        }
+    eval {
+        reconnect_db(\$db) if defined &reconnect_db;
+        return unless $db && $db->ping;
+        do_sql($db,
+            'INSERT INTO worklog (customer, message, level, auth_id, ip) VALUES (?, ?, ?, ?, ?)',
+            $MY_NAME // 'unknown',
+            $msg,
+            $level,
+            $auth_id // 0,
+            $config_ref{self_ip} // '0.0.0.0'
+        );
+    };
+    warn "write_db_log failed: $@" if $@ && $debug;
 }
 
-if ($level eq $L_ERROR and $log_level >= $L_ERROR) { log_error($msg); $db_log = 1; }
-if ($level eq $L_WARNING and $log_level >= $L_WARNING) { log_warning($msg); $db_log = 1; }
-if ($level eq $L_INFO and $log_level >= $L_INFO) { log_info($msg); $db_log = 1; }
-if ($level eq $L_VERBOSE and $log_level >= $L_VERBOSE) { log_verbose($msg); $db_log = 1; }
-if ($level eq $L_DEBUG and $log_level >= $L_DEBUG) { log_debug($msg); return; }
-
-if ($db_log) {
-#my $new_id = do_sql($dbh, 'INSERT INTO user_list (login) VALUES (?)', 'Ivan');
-do_sql($db,'INSERT INTO worklog(customer,message,level,auth_id,ip) VALUES( ?, ?, ?, ?, ?)',$MY_NAME,$msg,$level,$auth_id,$config_ref{self_ip});
-}
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
+sub db_log_error   { write_db_log($_[0], $_[1], $L_ERROR,   $_[2]); }
+sub db_log_info    { write_db_log($_[0], $_[1], $L_INFO,    $_[2]); }
+sub db_log_verbose { write_db_log($_[0], $_[1], $L_VERBOSE, $_[2]); }
+sub db_log_warning { write_db_log($_[0], $_[1], $L_WARNING, $_[2]); }
 sub db_log_debug {
-my $db = shift;
-my $msg = shift;
-my $id = shift;
-if ($debug) { log_debug($msg); }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub db_log_error {
-my $db = shift;
-my $msg = shift;
-if ($log_level >= $L_ERROR) {
-sendEmail("ERROR! ".get_first_line($msg),$msg,1);
-write_db_log($db,$msg,$L_ERROR);
-}
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub db_log_info {
-my $db = shift;
-my $msg = shift;
-my $id = shift;
-if ($log_level >= $L_INFO) { write_db_log($db,$msg,$L_INFO,$id); }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub db_log_verbose {
-my $db = shift;
-my $msg = shift;
-my $id = shift;
-if ($log_level >= $L_VERBOSE) { write_db_log($db,$msg,$L_VERBOSE,$id); }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub db_log_warning {
-my $db = shift;
-my $msg = shift;
-my $id = shift;
-if ($log_level >= $L_WARNING) { write_db_log($db,$msg,$L_WARNING,$id); }
+    return unless $debug;
+    log_debug($_[1]);
 }
 
 #---------------------------------------------------------------------------------------------------------------
@@ -1943,7 +1900,7 @@ $debug=get_option($db,34);
 
 #log level
 $log_level = get_option($db,53);
-if ($debug) { $log_level = 255; }
+if ($debug) { $log_level = $L_DEBUG; }
 
 #urgent sync access
 $urgent_sync=get_option($db,50);
@@ -2010,6 +1967,7 @@ foreach my $net (@subnets) {
     push(@all_network_list,$net->{subnet});
     $all_networks->add_string($net->{subnet},$net);
     }
+set_log_level($log_level);
 }
 
 #---------------------------------------------------------------------------------------------------------------

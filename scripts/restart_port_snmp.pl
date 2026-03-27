@@ -18,6 +18,7 @@ use FileHandle;
 use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
+use eyelib::logconfig;
 use eyelib::net_utils;
 use eyelib::database;
 use eyelib::common;

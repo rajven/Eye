@@ -15,10 +15,11 @@ no warnings 'utf8';
 use FindBin '$Bin';
 use lib "$Bin/";
 use Data::Dumper;
-use Rstat::config;
-use Rstat::main;
-use Rstat::database;
-use Rstat::net_utils;
+use eyelib::config;
+use eyelib::main;
+use eyelib::logconfig;
+use eyelib::database;
+use eyelib::net_utils;
 use strict;
 use warnings;
 

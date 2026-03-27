@@ -18,6 +18,7 @@ use Data::Dumper;
 use Socket;
 use eyelib::config;
 use eyelib::main;
+use eyelib::logconfig;
 use eyelib::database;
 use eyelib::common;
 

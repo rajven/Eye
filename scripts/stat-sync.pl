@@ -19,6 +19,7 @@ use eyelib::config;
 use eyelib::main;
 use eyelib::database;
 use eyelib::common;
+use eyelib::logconfig;
 use eyelib::net_utils;
 use strict;
 use Getopt::Long;

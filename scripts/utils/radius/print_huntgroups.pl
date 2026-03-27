@@ -18,6 +18,7 @@ use Socket;
 use eyelib::config;
 use eyelib::main;
 use eyelib::net_utils;
+use eyelib::logconfig;
 use eyelib::database;
 use eyelib::common;
 

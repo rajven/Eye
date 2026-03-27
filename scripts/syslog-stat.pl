@@ -21,6 +21,7 @@ use eyelib::config;
 use eyelib::main;
 use eyelib::database;
 use eyelib::common;
+use eyelib::logconfig;
 use Data::Dumper;
 use DBI;
 use Time::Local;

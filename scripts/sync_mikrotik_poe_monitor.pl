@@ -23,6 +23,7 @@ use Net::Patricia;
 use Date::Parse;
 use eyelib::net_utils;
 use eyelib::database;
+use eyelib::logconfig;
 use eyelib::common;
 use DBI;
 use utf8;

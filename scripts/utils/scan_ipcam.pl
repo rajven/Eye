@@ -24,6 +24,7 @@ use Net::SNMP qw(ticks_to_time TRANSLATE_NONE);
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
+use eyelib::logconfig;
 use eyelib::common;
 use Fcntl qw(:flock);
 

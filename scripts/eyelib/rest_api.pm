@@ -17,6 +17,7 @@ use HTTP::Request;
 use LWP;
 use URI::Encode;
 use eyelib::main;
+use eyelib::logconfig;
 use Data::Dumper;
 use IO::Socket::SSL;
 use JSON;

@@ -18,6 +18,7 @@ use Net::Patricia;
 use eyelib::net_utils;
 use Data::Dumper;
 use eyelib::database;
+use eyelib::logconfig;
 use DateTime;
 use DateTime::Format::Strptime;
 use POSIX qw(mktime ctime strftime);

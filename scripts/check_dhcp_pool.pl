@@ -25,6 +25,7 @@ use eyelib::main;
 use eyelib::database;
 use eyelib::common;
 use eyelib::net_utils;
+use eyelib::logconfig;
 use File::Basename;
 use File::Path;
 

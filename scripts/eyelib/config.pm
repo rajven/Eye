@@ -27,93 +27,104 @@ use constant {
 use constant NOTIFY_ALL => NOTIFY_CREATE | NOTIFY_UPDATE | NOTIFY_DELETE; # 0111
 
 @ISA = qw(Exporter);
+
 @EXPORT = qw(
-$HOME_DIR
-@FN
-$MY_NAME
-$SPID
-$LOG_DIR
-$LOG_COMMON
-$LOG
-$LOG_ERR
-$LOG_DEBUG
-$DHCPD_CONF
-$BEGIN_STR
-$END_STR
-$WARN_MSG
-$WAIT_TIME
-$MIN_SLEEP
-$MAX_SLEEP
+$add_unknown_user
 $admin_email
-$sender_email
-$send_email
-$HOSTNAME
-$debug
-$log_enable
-$log_level
-$W_INFO
-$W_ERROR
-$W_DEBUG
+$all_networks
+$BEGIN_STR
+$connections_history
+$cpu_count
+$dbh
 $DBHOST
 $DBNAME
-$DBUSER
 $DBPASS
-$domain_auth
-$winexe
-$fping
-$log_owner_user
-$log_owner_group
-$use_smsd
-$smsaero_wait
-$smsd_group
-$smsd_user
+$DBUSER
+$debug
+$default_hotspot_ou_id
+$default_user_ou_id
 $def_timeout
-$parallel_process_count
-$save_detail
-$add_unknown_user
-$router_ip
-$dns_server
-$dhcp_server
-$snmp_default_version
-$snmp_default_community
-$KB
-$office_networks
-$hotspot_networks
-$all_networks
-@office_network_list
-@hotspot_network_list
-@all_network_list
+$DHCPD_CONF
 $dhcp_pool
+$dhcp_server
+$dns_server
+$domain_auth
+$domain_name
+$END_STR
+$fping
+$free_networks
 $history
 $history_dhcp
-$router_login
-$router_password
-$router_port
-$org_name
-$domain_name
-$connections_history
-$dbh
-$urgent_sync
-$default_user_ou_id
-$default_hotspot_ou_id
-$ignore_hotspot_dhcp_log
-$ignore_update_dhcp_event
-$update_hostname_from_dhcp
-@subnets
-%subnets_ref
 $history_log_day
 $history_syslog_day
 $history_trafstat_day
-$free_networks
-$vpn_networks
-@free_network_list
-@vpn_network_list
-%config_ref
-%switch_auth
+$HOME_DIR
+$HOSTNAME
+$hotspot_networks
+$KB
 $last_refresh_config
+$L_DEBUG
+$L_ERROR
+$L_INFO
+$LOG_DIR
+$log_enable
+$LOG_FILE
+$log_file_mode
+$log_level
+$log_owner_group
+$log_owner_user
+$L_VERBOSE
+$L_WARNING
+$MAX_SLEEP
+$MIN_SLEEP
+$MY_NAME
+$office_networks
+$org_name
+$parallel_process_count
+$router_ip
+$router_login
+$router_password
+$router_port
+$save_detail
+$send_email
+$sender_email
+$snmp_default_community
+$snmp_default_version
+$SPID
 $tftp_dir
 $tftp_server
-$cpu_count
+$urgent_sync
+$vpn_networks;
+$WAIT_TIME
+$WARN_MSG
+
+$W_DEBUG
+$W_ERROR
+$W_WARN
+$W_INFO
+
+$winexe
+%config_ref
+@FN
+@all_network_list
+@free_network_list
+@hotspot_network_list
+@office_network_list
+@vpn_network_list
+@subnets
+%switch_auth
+$ignore_hotspot_dhcp_log
+$ignore_update_dhcp_event
+$update_hostname_from_dhcp
+
+$office_networks
+$free_networks
+$vpn_networks
+$hotspot_networks
+$all_networks
+
+%subnets_ref
+
 NOTIFY_NONE
 NOTIFY_CREATE
 NOTIFY_UPDATE
@@ -179,11 +190,7 @@ our $SPID=$config_ref{pid_file};
 
 #iptables log
 our $LOG_DIR            = $config_ref{log_dir};
-our $LOG_COMMON         = "$LOG_DIR/$FN[-1].log";
-
-our $LOG                = $LOG_COMMON;
-our $LOG_ERR            = $LOG_COMMON;
-our $LOG_DEBUG          = $LOG_COMMON;
+our $LOG_FILE           = "$LOG_DIR/$FN[-1].log";
 
 our $DHCPD_CONF         = $Config->{_}->{dhcpd_conf} || "/etc/dnsmasq.d";
 
@@ -205,16 +212,21 @@ my $HOSTNAME1=`hostname`;
 chomp($HOSTNAME1);
 our $HOSTNAME=$HOSTNAME1;
 
-### debug
-our $debug=0;
+our $debug      = 0;        # Включить отладочные сообщения
+our $log_enable = 1;        # Глобальный выключатель логов
+our $log_level  = 2;        # Порог: 0=ERROR, 1=WARNING, 2=INFO, 3=VERBOSE, 255=DEBUG
 
-our $log_enable = 1;
+# === Константы (для обратной совместимости) ===
+our $W_ERROR = 0;
+our $W_WARN  = 1;
+our $W_INFO  = 2;
+our $W_DEBUG = 255;
 
-our $log_level = 2;
-
-our $W_INFO = 0;
-our $W_ERROR = 1;
-our $W_DEBUG = 2;
+our $L_ERROR   = 0;
+our $L_WARNING = 1;
+our $L_INFO    = 2;
+our $L_VERBOSE = 3;
+our $L_DEBUG   = 255;
 
 our $DBHOST 		= $config_ref{DBHOST};
 our $DBNAME 		= $config_ref{DBNAME};
@@ -233,6 +245,7 @@ our $history_trafstat_day;
 
 our $log_owner_user	= $config_ref{log_owner_user};
 our $log_owner_group	= $config_ref{log_owner_group};
+our $log_file_mode      = '0660';
 
 ################################################################
 
@@ -276,6 +289,18 @@ our $dbh;
 our $urgent_sync = 0;
 our $tftp_dir=$Config->{_}->{tftp_dir} || '/var/lib/tftpboot';
 our $tftp_server=$Config->{_}->{tftp_server} || '';
+
+our $ignore_hotspot_dhcp_log;
+our $ignore_update_dhcp_event;
+our $update_hostname_from_dhcp;
+
+our $office_networks;
+our $free_networks;
+our $vpn_networks;
+our $hotspot_networks;
+our $all_networks;
+
+our %subnets_ref;
 
 our $last_refresh_config = time();
 

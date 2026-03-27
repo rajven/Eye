@@ -16,6 +16,7 @@ use FileHandle;
 use POSIX;
 use eyelib::config;
 use eyelib::main;
+use eyelib::logconfig;
 use Net::Ping;
 use Net::Patricia;
 use NetAddr::IP;

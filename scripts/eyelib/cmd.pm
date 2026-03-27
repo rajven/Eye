@@ -15,6 +15,7 @@ use vars qw(@EXPORT @ISA);
 use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
+use eyelib::logconfig;
 use Net::Telnet;
 use Net::OpenSSH;
 use Expect;

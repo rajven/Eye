@@ -16,6 +16,7 @@ use Date::Parse;
 use eyelib::config;
 use eyelib::database;
 use eyelib::common;
+use eyelib::logconfig;
 
 ##### unknown mac clean ############
 

@@ -21,6 +21,7 @@ use eyelib::config;
 use eyelib::database;
 use eyelib::common;
 use eyelib::net_utils;
+use eyelib::logconfig;
 use eyelib::main;
 use DateTime;
 use Fcntl qw(:flock);
@@ -31,31 +32,6 @@ flock(SELF, LOCK_EX | LOCK_NB) or exit 1;
 
 # Number of days to retain debug-level log entries
 my $debug_history = 3;
-
-# List of database tables eligible for optimization
-#my @db_tables = (
-#    'connections',
-#    'device_l3_interfaces',
-#    'device_ports',
-#    'user_list',
-#    'user_auth',
-#    'unknown_mac',
-#    'user_stats',
-#    'user_stats_full',
-#    'dhcp_log',
-#    'worklog',
-#    'remote_syslog',
-#    'traffic_detail',
-#);
-
-
-# Optimization flag (disabled by default)
-#my $optimize = 0;
-
-# Enable table optimization if "optimize" is passed as the first argument
-#if ($ARGV[0] =~ /optimize/i) {
-#    $optimize = 1;
-#}
 
 db_log_info($dbh, 'Garbage collection started.');
 

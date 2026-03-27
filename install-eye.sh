@@ -342,7 +342,7 @@ install_deps_altlinux() {
             perl-Net-OpenSSH perl-File-Tail perl-Tie-File \
             perl-Crypt-Rijndael perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
             perl-File-Path-Tiny perl-Expect perl-Proc-ProcessTable \
-            perl-Text-CSV \
+            perl-Text-CSV perl-Log-Log4perl \
             perl-DBD-Pg perl-DBD-mysql
     fi
 
@@ -402,7 +402,7 @@ install_deps_debian() {
             libcrypt-rijndael-perl libcrypt-cbc-perl libcryptx-perl \
             libcrypt-des-perl libfile-path-tiny-perl libexpect-perl \
             libtext-csv-perl \
-            libdbd-pg-perl libdbd-mysql-perl
+            libdbd-pg-perl libdbd-mysql-perl liblog-log4perl-perl
     fi
 
     # === Дополнительно (если нужно) ===
@@ -622,7 +622,7 @@ upgrade_source_code() {
     if [ -d "docs" ]; then
         print_info "Updating documentation..."
         mkdir -p /opt/Eye/docs
-        rsync -a docs/ /opt/Eye/docs/
+        rsync -ar docs/ /opt/Eye/docs/
         chown -R eye:eye /opt/Eye/docs
     fi
 
@@ -642,7 +642,7 @@ upgrade_source_code() {
         print_info "Updating backend scripts..."
         mkdir -p /opt/Eye/scripts/{cfg,log}
         rsync -a --exclude cfg/ scripts/  /opt/Eye/scripts/
-        rsync -ar --exclude scripts/eyelib/   /opt/Eye/scripts/eyelib/
+        rsync -ar scripts/eyelib/   /opt/Eye/scripts/eyelib/
         # Обновляем только если каталог уже установлен
         [[ -d /opt/Eye/scripts/updates ]] && rsync -ar scripts/updates/ /opt/Eye/scripts/updates/
         [[ -d /opt/Eye/scripts/utils   ]] && rsync -ar scripts/utils/   /opt/Eye/scripts/utils/

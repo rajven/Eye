@@ -15,10 +15,10 @@ use strict;
 use Time::Local;
 use FileHandle;
 use Data::Dumper;
-use Rstat::config;
-use Rstat::main;
-use Rstat::database;
-use Rstat::net_utils;
+use eyelib::config;
+use eyelib::main;
+use eyelib::database;
+use eyelib::net_utils;
 use DBI;
 
 $debug=0;
