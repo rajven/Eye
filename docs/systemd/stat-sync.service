@@ -3,11 +3,10 @@ Description=Urgent sync access changes from Eye
 After=network.target mariadb.service
 
 [Service]
-Type=forking
+Type=simple
 User=eye
 Group=eye
-ExecStart=/opt/Eye/scripts/stat-sync.pl --start
-PIDFile=/run/eye-sync/stat-sync.pid
+ExecStart=/opt/Eye/scripts/stat-sync.pl
 RuntimeDirectory=eye-sync
 RuntimeDirectoryMode=0700
 RuntimeDirectoryPreserve=yes

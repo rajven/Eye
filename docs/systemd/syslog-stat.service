@@ -4,14 +4,13 @@ After=network.target mariadb.service syslog-ng.service
 PartOf=syslog-ng.service
 
 [Service]
-Type=forking
+Type=simple
 User=eye
 Group=eye
-ExecStart=/opt/Eye/scripts/syslog-stat.pl --start
+ExecStart=/opt/Eye/scripts/syslog-stat.pl
 RuntimeDirectory=eye-syslog
 RuntimeDirectoryMode=0700
 RuntimeDirectoryPreserve=yes
-PIDFile=/run/eye-syslog/syslog-stat.pid
 RestartSec=30
 Restart=on-failure
 

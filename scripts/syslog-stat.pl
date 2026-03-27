@@ -26,73 +26,12 @@ use Data::Dumper;
 use DBI;
 use Time::Local;
 use Date::Parse;
-use Getopt::Long;
 use IO::Socket::UNIX qw( SOCK_STREAM );
-use Proc::Daemon;
 use Cwd;
 
+wrlog($W_INFO,"Starting...");
 
-my $pf = '/run/eye-syslog/syslog-stat.pid';
-my $socket_path='/run/syslog-ng.socket';
-
-my $daemon = Proc::Daemon->new(
-        pid_file => $pf,
-        work_dir => $HOME_DIR
-);
-
-# are you running?  Returns 0 if not.
-my $pid = $daemon->Status($pf);
-
-my $daemonize = 1;
-
-GetOptions(
-    'daemon!' => \$daemonize,
-    "help"    => \&usage,
-    "reload"  => \&reload,
-    "restart" => \&restart,
-    "start"   => \&run,
-    "status"  => \&status,
-    "stop"    => \&stop
-) or &usage;
-
-exit(0);
-
-sub stop {
-        if ($pid) {
-                print "Stopping pid $pid...";
-                if ($daemon->Kill_Daemon($pf)) {
-                        print "Successfully stopped.\n";
-                } else {
-                        print "Could not find $pid.  Was it running?\n";
-                }
-         } else {
-                print "Not running, nothing to stop.\n";
-         }
-}
-
-sub status {
-        if ($pid) {
-                print "Running with pid $pid.\n";
-        } else {
-                print "Not running.\n";
-        }
-}
-
-sub run {
-if (!$pid) {
-    print "Starting...";
-    if ($daemonize) {
-        # when Init happens, everything under it runs in the child process.
-        # this is important when dealing with file handles, due to the fact
-        # Proc::Daemon shuts down all open file handles when Init happens.
-        # Keep this in mind when laying out your program, particularly if
-        # you use filehandles.
-        $daemon->Init;
-        }
-    setpriority(0,0,19);
-
-$SPID=~s/\.pl$/\.pid/;
-write_to_file($SPID,$$);
+setpriority(0,0,19);
 
 my %trash_patterns = (
     'Receive illegal destination ip packet 255.0.0.0 ,drop it' =>'1',
@@ -174,7 +113,7 @@ eval {
         foreach my $pattern (keys %warning_patterns) {
             next if (!$pattern);
             if ($message=~/$pattern/i) {
-                log_info("Warning pattern $pattern found! Send email.",1);
+                wrlog($W_INFO,"Warning pattern $pattern found! Send email.",1);
                 sendEmail("Syslog warning for $hostname [".$host_ip."]!",$host_ip." ".$message);
                 last;
                 }
@@ -183,23 +122,8 @@ eval {
 
     close(SYSLOG);
     };
-if ($@) { log_error("Exception found: $@"); sleep(60); }
-}
-    } else {
-        print "Already Running with pid $pid\n";
-    }
+if ($@) { wrlog($W_ERROR,"Exception found: $@"); sleep(60); }
 }
 
-sub usage {
-    print "usage: syslog-monitord.pl (start|stop|status|restart)\n";
-    exit(0);
-}
-
-sub reload {
-    print "reload process not implemented.\n";
-}
-
-sub restart {
-    stop;
-    run;
-}
+wrlog($W_INFO,"Process stopped.");
+exit 0;

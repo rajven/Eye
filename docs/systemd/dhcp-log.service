@@ -4,14 +4,13 @@ After=network.target mariadb.service dnsmasq.service dhcpd.service dhcp-log-trun
 Requires=dhcp-log-truncate.service
 
 [Service]
-Type=forking
+Type=simple
 User=eye
 Group=eye
 RuntimeDirectory=eye-dhcp
 RuntimeDirectoryMode=0700
 RuntimeDirectoryPreserve=yes
-ExecStart=/opt/Eye/scripts/dhcp-log.pl --start
-PIDFile=/run/eye-dhcp/dhcp-log.pid
+ExecStart=/opt/Eye/scripts/dhcp-log.pl
 RestartSec=30
 Restart=on-failure
 

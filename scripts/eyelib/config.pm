@@ -31,7 +31,6 @@ use constant NOTIFY_ALL => NOTIFY_CREATE | NOTIFY_UPDATE | NOTIFY_DELETE; # 0111
 @EXPORT = qw(
 $add_unknown_user
 $admin_email
-$all_networks
 $BEGIN_STR
 $connections_history
 $cpu_count
@@ -52,7 +51,6 @@ $domain_auth
 $domain_name
 $END_STR
 $fping
-$free_networks
 $history
 $history_dhcp
 $history_log_day
@@ -60,7 +58,6 @@ $history_syslog_day
 $history_trafstat_day
 $HOME_DIR
 $HOSTNAME
-$hotspot_networks
 $KB
 $last_refresh_config
 $L_DEBUG
@@ -78,7 +75,6 @@ $L_WARNING
 $MAX_SLEEP
 $MIN_SLEEP
 $MY_NAME
-$office_networks
 $org_name
 $parallel_process_count
 $router_ip
@@ -94,7 +90,6 @@ $SPID
 $tftp_dir
 $tftp_server
 $urgent_sync
-$vpn_networks;
 $WAIT_TIME
 $WARN_MSG
 
@@ -264,14 +259,9 @@ our $dhcp_server;
 our $snmp_default_version;
 our $snmp_default_community;
 our $KB;
-our $office_networks;
-our $hotspot_networks;
-our $all_networks;
 our @office_network_list;
 our @hotspot_network_list;
 our @all_network_list;
-our $free_networks;
-our $vpn_networks;
 our @free_network_list;
 our @vpn_network_list;
 our $dhcp_pool;

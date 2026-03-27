@@ -24,8 +24,6 @@ use eyelib::common;
 use eyelib::net_utils;
 use eyelib::logconfig;
 use strict;
-use Getopt::Long;
-use Proc::Daemon;
 use POSIX;
 use Net::Netmask;
 use Text::Iconv;
@@ -46,91 +44,16 @@ setpriority(0, 0, 19);
 my $mute_time = 300;            # Time (in seconds) to suppress duplicate DHCP events
 my $log_file = '/var/log/dhcp.log';
 
-# Determine process name and PID file
-my $proc_name = $MY_NAME;
-$proc_name =~ s/\.[^.]+$//;
-my $pid_file = '/run/eye-dhcp/' . $proc_name;
-my $pf = $pid_file . '.pid';
+wrlog($W_INFO,"Starting main DHCP log processing loop...");
 
-# Daemon setup
-my $daemon = Proc::Daemon->new(
-    pid_file => $pf,
-    work_dir => $HOME_DIR
-);
+setpriority(0, 0, 19);  # Ensure priority is set in child process
 
-# Check if process is already running
-my $pid = $daemon->Status($pf);
+# Converter for legacy cp866-encoded logs
+my $converter = Text::Iconv->new("cp866", "utf8");
 
-my $daemonize = 1;  # Default: run in background
-
-# === COMMAND-LINE ARGUMENT HANDLING ===
-
-GetOptions(
-    'daemon!' => \$daemonize,
-    "help"    => \&usage,
-    "reload"  => \&reload,
-    "restart" => \&restart,
-    "start"   => \&run,
-    "status"  => \&status,
-    "stop"    => \&stop
-) or &usage;
-
-exit(0);
-
-# === DAEMON CONTROL FUNCTIONS ===
-
-sub stop {
-    log_info("Stop requested...");
-    if ($pid) {
-        print "Stopping pid $pid...";
-        if ($daemon->Kill_Daemon($pf)) {
-            print "Successfully stopped.\n";
-            log_info("Daemon stopped successfully (PID $pid).");
-        } else {
-            print "Could not find $pid. Was it running?\n";
-            log_warning("Failed to stop process PID $pid — possibly already terminated.");
-        }
-    } else {
-        print "Not running, nothing to stop.\n";
-        log_info("Daemon is not running — nothing to stop.");
-    }
-}
-
-sub status {
-    if ($pid) {
-        print "Running with pid $pid.\n";
-        log_info("Status: daemon is running (PID $pid).");
-    } else {
-        print "Not running.\n";
-        log_info("Status: daemon is not running.");
-    }
-}
-
-sub run {
-    log_info("Starting main DHCP log processing loop...");
-
-    if ($pid) {
-        print "Already Running with pid $pid\n";
-        log_warning("Attempt to start already running daemon (PID $pid).");
-        return;
-    }
-
-    print "Starting...\n";
-    log_info("Initializing daemon...");
-
-    if ($daemonize) {
-        $daemon->Init;
-        log_debug("Daemon initialized in background mode.");
-    }
-
-    setpriority(0, 0, 19);  # Ensure priority is set in child process
-
-    # Converter for legacy cp866-encoded logs
-    my $converter = Text::Iconv->new("cp866", "utf8");
-
-    # Main infinite log-processing loop
-    while (1) {
-        eval {
+# Main infinite log-processing loop
+while (1) {
+    eval {
             log_debug("Starting new DHCP log processing cycle.");
 
             my %leases;  # cache to suppress duplicates
@@ -147,13 +70,13 @@ sub run {
                 ignore_nonexistent => 1
             ) || die "$log_file not found!";
 
-            log_info("Beginning to read logs from $log_file...");
+            wrlog($W_INFO,"Beginning to read logs from $log_file...");
 
             while (my $logline = $dhcp_log->read) {
                 next unless $logline;
                 chomp($logline);
 
-                log_info("Log line received: $logline");
+                wrlog($W_INFO,"Log line received: $logline");
 
                 # Remove non-printable characters (keep letters, digits, punctuation, whitespace)
                 $logline =~ s/[^\p{L}\p{N}\p{P}\p{Z}]//g;
@@ -180,7 +103,7 @@ sub run {
                 # Skip lines without valid event type
                 next unless $dhcp_event{'type'} && $dhcp_event{'type'} =~ /^(old|add|del)$/i;
 
-                log_info("Processing event: type='$dhcp_event{'type'}', MAC='$dhcp_event{'mac'}', IP='$dhcp_event{'ip'}', NAME='$dhcp_event{'hostname'}', client-id='$dhcp_event{'client_id'}', circuit_id='$dhcp_event{'decoded_circuit_id'}', remote_id='$dhcp_event{'$decoded_remote_id'}'");
+                wrlog($W_INFO,"Processing event: type='$dhcp_event{'type'}', MAC='$dhcp_event{'mac'}', IP='$dhcp_event{'ip'}', NAME='$dhcp_event{'hostname'}', client-id='$dhcp_event{'client_id'}', circuit_id='$dhcp_event{'decoded_circuit_id'}', remote_id='$dhcp_event{'$decoded_remote_id'}'");
 
                 # Suppress duplicate events within $mute_time window
                 if (exists $leases{$dhcp_event{'ip'}} && $leases{$dhcp_event{'ip'}}{type} eq $dhcp_event{'type'} && (time() - $leases{$dhcp_event{'ip'}}{last_time} <= $mute_time)) {
@@ -229,7 +152,7 @@ sub run {
                             $dhcp_event{'circuit_id'} = $dhcp_event{'decoded_circuit_id'};
                             $dhcp_record->{circuit_id} = $dhcp_event{'circuit_id'};
                             $dhcp_record->{remote_id} = $dhcp_event{'remote_id'};
-                            log_info("Switch found via decoded_remote_id: " . $switch->{device_name});
+                            wrlog($W_INFO,"Switch found via decoded_remote_id: " . $switch->{device_name});
                         }
                     }
 
@@ -247,7 +170,7 @@ sub run {
                             $dhcp_event{'remote_id'} = $t_remote_id;
                             $dhcp_record->{circuit_id} = $dhcp_event{'circuit_id'};
                             $dhcp_record->{remote_id} = $dhcp_event{'remote_id'};
-                            log_info("Switch found via remote_id: " . $switch->{device_name});
+                            wrlog($W_INFO,"Switch found via remote_id: " . $switch->{device_name});
                         }
                     }
 
@@ -261,7 +184,7 @@ sub run {
                                          "AND D.device_name LIKE ?";
                             $switch = get_record_sql($hdb, $devSQL, $id_words[0] . '%');
                             if ($switch) {
-                                log_info("Switch found by name: " . $switch->{device_name});
+                                wrlog($W_INFO,"Switch found by name: " . $switch->{device_name});
                             }
                         }
                     }
@@ -287,7 +210,7 @@ sub run {
 
                     # === LOG IF NO SWITCH MATCH FOUND ===
                     unless ($switch) {
-                        log_info("No matching switch found for DHCP event: IP=$dhcp_event{'ip'}, MAC=$dhcp_event{'mac'}, remote_id='$dhcp_event{'remote_id'}', circuit_id='$dhcp_event{'circuit_id'}'");
+                        wrlog($W_INFO,"No matching switch found for DHCP event: IP=$dhcp_event{'ip'}, MAC=$dhcp_event{'mac'}, remote_id='$dhcp_event{'remote_id'}', circuit_id='$dhcp_event{'circuit_id'}'");
                     }
 
                     # === PORT IDENTIFICATION ===
@@ -320,7 +243,7 @@ sub run {
                             if ($hex_port && $hex_port =~ /^[0-9a-fA-F]{2}$/) {
                                 my $t_port = hex($hex_port);
                                 $switch_port = $device_ports_h{$t_port} if exists $device_ports_h{$t_port};
-                                log_info("Port identified via hex: $t_port") if $switch_port;
+                                wrlog($W_INFO,"Port identified via hex: $t_port") if $switch_port;
                             }
                         }
 
@@ -341,7 +264,7 @@ sub run {
                             }
                         } else {
                             db_log_verbose($hdb, "DHCP $dhcp_event{'type'}: IP=$dhcp_event{'ip'}, MAC=$dhcp_event{'mac'} " . $switch->{device_name} . " (port not identified)");
-                            log_info("Failed to identify port for IP=$dhcp_event{'ip'} on switch=" . $switch->{device_name});
+                            wrlog($W_INFO,"Failed to identify port for IP=$dhcp_event{'ip'} on switch=" . $switch->{device_name});
                         }
                     }
                     log_verbose("Identified Switch: " . ($switch ? $switch->{device_name} : "NONE") . " Port : " . ($switch_port ? $switch_port->{ifname} : "NONE"));
@@ -352,27 +275,11 @@ sub run {
 
         # Exception handling
         if ($@) {
-            log_error("Critical error in main loop: $@");
-            sleep(60);  # pause before retry
-        }
-    } # end while(1)
-}
+            wrlog($W_ERROR,"Critical error in main loop: $@");
+            sleep(60);
+    }
+} # end while(1)
 
-# === HELPER FUNCTIONS ===
+wrlog($W_INFO,"Process stopped.");
 
-sub usage {
-    print "usage: $MY_NAME (start|stop|status|restart)\n";
-    exit(0);
-}
-
-sub reload {
-    print "reload process not implemented.\n";
-    log_warning("Command 'reload' is not supported.");
-}
-
-sub restart {
-    log_info("Restart requested...");
-    stop();
-    sleep(2);
-    run();
-}
+exit;
