@@ -254,9 +254,9 @@ foreach my $int (@lan_int) { #interface loop
     my @int_addr=netdev_cmd($gate,$t,'/ip address print terse without-paging where interface='.$int,1);
     log_debug($gate_ident."Get interfaces: ".Dumper(\@int_addr));
     my $found_subnet;
-    foreach my $row (@int_addr) {
-        my $int_str = $parse_mikrotik_line->($row);
-        next unless $int_str;
+    foreach my $int_str (@int_addr) {
+        $int_str=trim($int_str);
+        next if (!$int_str);
         if ($int_str=~/\s+address=(\S*)\s+/i) {
                 my $gate_interface=$1;
                 if ($gate_interface) {
