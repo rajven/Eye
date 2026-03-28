@@ -401,8 +401,8 @@ install_deps_debian() {
             libnet-openssh-perl libfile-tail-perl libdatetime-format-strptime-perl \
             libcrypt-rijndael-perl libcrypt-cbc-perl libcryptx-perl \
             libcrypt-des-perl libfile-path-tiny-perl libexpect-perl \
-            libtext-csv-perl \
-            libdbd-pg-perl libdbd-mysql-perl liblog-log4perl-perl
+            libtext-csv-perl liblog-log4perl-perl \
+            libdbd-pg-perl libdbd-mysql-perl
     fi
 
     # === Дополнительно (если нужно) ===
