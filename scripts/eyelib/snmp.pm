@@ -594,37 +594,31 @@ sub table_callback {
     while (@names) {
         $next = shift @names;
         $next = _normalize_oid($next);
-
         # Выход за пределы таблицы
         unless (oid_base_match($root_oid, $next)) {
             log_debug("OID $next outside of root $root_oid. Exiting.");
             return;
         }
-
         my $value = $list->{$next};
         unless (defined $value) {
             log_debug("endOfMibView at $next. Exiting.");
             return;
         }
-
         # Пропускаем дубликаты ВНУТРИ этого пакета
         if ($seen_in_batch->{$next}) {
             log_debug("Duplicate in batch: $next. Skipping.");
             next;
         }
         $seen_in_batch->{$next} = 1;
-
         # Пропускаем если УЖЕ есть в таблице (из предыдущих пакетов)
         if (exists $table->{$next}) {
             log_debug("Already in table: $next. Skipping.");
             next;
         }
-
         # Сохраняем
         $table->{$next} = $value;
         $processed_count++;
         log_debug("Stored OID $next = $value");
-
         # Обновляем last_oid для следующего запроса (максимальный из обработанных)
         if (!defined $last_oid || snmp_oid_compare($next, $last_oid) > 0) {
             $last_oid = $next;
@@ -658,25 +652,20 @@ sub oid_base_match {
 
 sub snmp_oid_compare {
     my ($oid1, $oid2) = @_;
-
     return 0  if !defined $oid1 && !defined $oid2;
     return 1  if !defined $oid2;
     return -1 if !defined $oid1;
-
     # Удаляем ведущую точку для единообразия
     $oid1 =~ s/^\.//;
     $oid2 =~ s/^\.//;
-
     my @a = split /\./, $oid1;
     my @b = split /\./, $oid2;
     my $len = @a < @b ? @a : @b;
-
     # Сравниваем покомпонентно как числа
     for (my $i = 0; $i < $len; $i++) {
         return -1 if $a[$i] < $b[$i];
         return 1  if $a[$i] > $b[$i];
     }
-
     # Если префиксы равны, сравниваем длину
     return @a <=> @b;
 }
