@@ -829,57 +829,64 @@ if ($fqdn ne '' and !$dynamic_ok) {
 
 #------------------------------------------------------------------------------------------------------------
 
-
 sub apply_device_lock {
     my $db = shift;
     my $device_id = shift;
     my $iteration = shift || 0;
     $iteration++;
-    if ($iteration > 2) { return 0; }
-
-    my $dev = get_record_sql($db, "SELECT discovery_locked, locked_timestamp FROM devices WHERE id = ?", $device_id);
-
-    if (!$dev) { return 0; }
-
-    if (!$dev->{'discovery_locked'}) {
-        return set_lock_discovery($db, $device_id);
+    log_debug("apply_device_lock: device=$device_id, iteration=$iteration");
+    if ($iteration > 2) {
+        log_debug("device_lock: max iterations reached");
+        return 0;
     }
-
-    my $ts_str = $dev->{'locked_timestamp'};
-
-    # Если locked_timestamp NULL или пустой — устанавливаем блокировку
-    if (!defined $ts_str || $ts_str eq '' || $ts_str eq '0000-00-00 00:00:00') {
-        return set_lock_discovery($db, $device_id);
-    }
-
-    # Удаляем микросекунды (PostgreSQL) для совместимости с форматом
-    $ts_str =~ s/\.\d+$//;
-
-    # Парсим строку в DateTime
-    my $parser = DateTime::Format::Strptime->new(
-        pattern   => '%Y-%m-%d %H:%M:%S',
-        on_error  => 'croak',
+    my $dev = get_record_sql($db, 
+        "SELECT discovery_locked, locked_timestamp FROM devices WHERE id = ?",
+        $device_id
     );
-
+    if (!$dev) {
+        log_debug("device_lock: device $device_id not found in DB");
+        return 0;
+    }
+    log_debug("device_lock: current state: locked=$dev->{discovery_locked}, ts=$dev->{locked_timestamp}");
+    # Если не заблокировано — ставим лок
+    if (!$dev->{'discovery_locked'}) {
+        log_debug("device_lock: device not locked, acquiring");
+        my $res = set_lock_discovery($db, $device_id);
+        log_debug("device_lock: set_lock_discovery returned=$res");
+        return $res;
+    }
+    my $ts_str = $dev->{'locked_timestamp'};
+    # Пустой таймстамп
+    if (!defined $ts_str || $ts_str eq '' || $ts_str eq '0000-00-00 00:00:00') {
+        log_debug("device_lock: empty timestamp, reacquiring");
+        return set_lock_discovery($db, $device_id);
+    }
+    # Парсинг
+    $ts_str =~ s/\.\d+$//;
+    my $parser = DateTime::Format::Strptime->new(
+        pattern => '%Y-%m-%d %H:%M:%S',
+        time_zone => 'local',
+        on_error => 'croak',
+    );
     my $dt;
-    eval {
-        $dt = $parser->parse_datetime($ts_str);
-    };
-
+    eval { $dt = $parser->parse_datetime($ts_str); };
     if ($@ || !$dt) {
-        # Ошибка парсинга — считаем блокировку недействительной
+        log_debug("device_lock: parse failed for '$ts_str': $@");
         return set_lock_discovery($db, $device_id);
     }
-
-    # Получаем Unix timestamp
     my $u_locked_timestamp = $dt->epoch;
-
-    # Ждём окончания блокировки (30 секунд)
-    my $wait_time = ($u_locked_timestamp + 30) - time();
+    my $now = time();
+    my $wait_time = ($u_locked_timestamp + 30) - $now;
+    log_debug("device_lock: locked_epoch=$u_locked_timestamp, now=$now, wait_time=$wait_time");
+    # Лок просрочен
     if ($wait_time <= 0) {
-        return set_lock_discovery($db, $device_id);
+        log_debug("device_lock: lock EXPIRED, attempting to reacquire");
+        my $res = set_lock_discovery($db, $device_id);
+        log_debug("apply_device_lock: reacquire result=$res");
+        return $res;
     }
-
+    # Ждём
+    log_debug("device_lock: sleeping $wait_time seconds");
     sleep($wait_time);
     return apply_device_lock($db, $device_id, $iteration);
 }
@@ -889,11 +896,14 @@ sub apply_device_lock {
 sub set_lock_discovery {
     my $db = shift;
     my $device_id = shift;
+    my $now = GetNowTime();
+    log_debug("set_lock_discovery: device=$device_id, timestamp=$now");
     my $new;
     $new->{'discovery_locked'} = 1;
-    $new->{'locked_timestamp'} = GetNowTime();
-    if (update_record($db,'devices',$new,'id=?', $device_id)) { return 1; }
-    return 0;
+    $new->{'locked_timestamp'} = $now;
+    my $result = update_record($db, 'devices', $new, 'id=?', $device_id);
+    log_debug("set_lock_discovery: update_record returned=$result");
+    return $result ? 1 : 0;
 }
 
 #------------------------------------------------------------------------------------------------------------
@@ -904,8 +914,8 @@ sub unset_lock_discovery {
     my $new;
     $new->{'discovery_locked'} = 0;
     $new->{'locked_timestamp'} = GetNowTime();
-    if (update_record($db,'devices',$new,'id=?',$device_id)) { return 1; }
-    return 0;
+    update_record($db,'devices',$new,'id=?',$device_id);
+    return 1;
 }
 
 #------------------------------------------------------------------------------------------------------------

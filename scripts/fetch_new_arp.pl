@@ -147,17 +147,17 @@ DATA_LOOP:
 foreach my $router (@router_ref) {
     my $router_ip = $router->{ip};
     setCommunity($router);
-    if (!HostIsLive($router_ip)) {
-        log_info("Host id: $router->{id} name: $router->{device_name} ip: $router_ip is down! Skip.");
+    if (!(HostIsLive($router_ip) && snmp_ping($router_ip, $router->{snmp}))) {
+        log_info("Host id: $router->{id} name: $router->{device_name} ip: $router_ip is down or not snmp access! Skip.");
         next;
     }
     $pm_arp->start() and next DATA_LOOP;
 
     my $arp_table;
     my $tmp_dbh = init_db();
-    if (apply_device_lock($tmp_dbh, $router->{id})) {
+    if (apply_device_lock($tmp_dbh, $router->{id},0)) {
         $arp_table = get_arp_table($router_ip, $router->{snmp});
-        log_debug("ARP TABLE at router: $router_ip".Dumper($arp_table));
+        log_debug("ARP table for $router_ip: ".Dumper($arp_table));
         unset_lock_discovery($tmp_dbh, $router->{id});
     }
     $tmp_dbh->disconnect;
@@ -185,6 +185,8 @@ foreach my $row (@authlist_ref) {
     $ip_list{$row->{id}}->{ip}   = $row->{ip};
     $ip_list{$row->{id}}->{mac}  = mac_splitted($row->{mac}) || '';
 }
+
+log_debug("Found ARP tables: ".Dumper(\@arp_array));
 
 # Process all collected ARP tables
 foreach my $arp_table (@arp_array) {
@@ -284,14 +286,8 @@ $dbh->disconnect;
 FDB_LOOP:
 foreach my $device (@device_list) {
     setCommunity($device);
-    if (!HostIsLive($device->{ip})) {
-        log_info("Host id: $device->{id} name: $device->{device_name} ip: $device->{ip} is down! Skip.");
-        next;
-    }
-
-    my $int_list = get_snmp_ifindex($device->{ip}, $device->{snmp});
-    if (!$int_list) {
-        log_info("Host id: $device->{id} name: $device->{device_name} ip: $device->{ip} interfaces not found by SNMP request! Skip.");
+    if (!(HostIsLive($device->{ip}) && snmp_ping($device->{ip}, $device->{snmp}))) {
+        log_info("Host id: $device->{id} name: $device->{device_name} ip: $device->{ip} is down or not snmp access! Skip.");
         next;
     }
 
@@ -299,10 +295,10 @@ foreach my $device (@device_list) {
 
     my $result;
     my $tmp_dbh = init_db();
-    if (apply_device_lock($tmp_dbh, $device->{id})) {
+    if (apply_device_lock($tmp_dbh, $device->{id},0)) {
         my $fdb = get_fdb_table($device->{ip}, $device->{snmp});
+        log_debug("MAC table for device $device->{ip}: ".Dumper($fdb));
         unset_lock_discovery($tmp_dbh, $device->{id});
-        log_debug("MAC TABLE at device: $device->{ip}".Dumper($fdb));
         $result->{id} = $device->{id};
         $result->{fdb} = $fdb;
     }
@@ -505,6 +501,8 @@ foreach my $mac (keys %mac_history) {
     $history_rec->{auth_id}   = $h_auth_id;
     insert_record($dbh, 'mac_history', $history_rec);
 }
+
+log_info("Work finished.");
 
 $dbh->disconnect;
 exit 0;
