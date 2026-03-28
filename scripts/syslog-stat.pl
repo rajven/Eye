@@ -29,6 +29,8 @@ use Date::Parse;
 use IO::Socket::UNIX qw( SOCK_STREAM );
 use Cwd;
 
+my $socket_path='/run/syslog-ng.socket';
+
 wrlog($W_INFO,"Starting...");
 
 setpriority(0,0,19);
