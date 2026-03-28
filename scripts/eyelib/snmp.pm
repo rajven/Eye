@@ -572,171 +572,78 @@ sub snmp_walk_oid {
 
 sub table_callback {
     my ($session, $table, $root_oid, $last_oid) = @_;
+
     my $list = $session->var_bind_list();
     unless (defined $list) {
         log_debug("SNMP error: " . $session->error);
         return;
     }
-    my @names = sort { snmp_oid_compare($a, $b) } $session->var_bind_names();
+
+    my @names = $session->var_bind_names();
     unless (@names) {
         log_debug("No OIDs returned in this callback");
         return;
     }
-    my $next;
-    while (@names) {
-        $next = shift @names;
-        unless (oid_base_match($root_oid, $next)) {
-            log_debug("OID $next outside of root $root_oid. Exiting callback.");
-            return;
-        }
-        if (defined $last_oid && snmp_oid_compare($next, $last_oid) <= 0) {
-            log_debug("OID not increasing: $next <= $last_oid. Skipping.");
-            return;
-        }
-        my $value = $list->{$next};
-        # endOfMibView — конец таблицы, останавливаем
-        unless (defined $value) {
-            log_debug("endOfMibView reached at OID $next. Exiting callback.");
-            return;
-        }
-        $table->{$next} = $value;
-        log_debug("Stored OID $next = $value");
-        $last_oid = $next;
-    }
-    return unless defined $next;
-    # Запрос следующего блока — продолжаем с последнего полученного OID
-    my $result = $session->get_bulk_request(
-        -varbindlist    => [$next],
-        -maxrepetitions => 10,
-        -callback       => [\&table_callback, $table, $root_oid, $last_oid],
-    );
-    unless (defined $result) {
-        log_debug("SNMP get_bulk_request failed for OID $next: " . $session->error);
-    }
-    else {
-        log_debug("Scheduled next get_bulk_request starting from OID $next");
-    }
-}
 
-#-------------------------------------------------------------------------------------
-
-sub table_callback {
-    my ($session, $table, $root_oid, $last_oid, $increment_failures) = @_;
-    $increment_failures //= 0;  # ← Счётчик неудачных инкрементов
-    
-    my $list = $session->var_bind_list();
-    unless (defined $list) {
-        log_debug("SNMP error: " . $session->error) if defined &log_debug;
-        return;
-    }
-    
-    my @names = sort { snmp_oid_compare($a, $b) } $session->var_bind_names();
-    unless (@names) {
-        log_debug("No OIDs returned in this callback") if defined &log_debug;
-        return;
-    }
-    
-    # Нормализуем root_oid
     $root_oid = _normalize_oid($root_oid);
-    
+
     my $next;
     my $processed_count = 0;
-    my $non_increasing_count = 0;
-    my $batch_size = scalar(@names);
-    
+    my $seen_in_batch = {};  # ← Дубликаты ВНУТРИ одного ответа
+
     while (@names) {
         $next = shift @names;
         $next = _normalize_oid($next);
-        
+
         # Выход за пределы таблицы
         unless (oid_base_match($root_oid, $next)) {
-            log_debug("OID $next outside of root $root_oid. Exiting callback.") if defined &log_debug;
+            log_debug("OID $next outside of root $root_oid. Exiting.");
             return;
         }
-        
+
         my $value = $list->{$next};
-        
-        # endOfMibView
         unless (defined $value) {
-            log_debug("endOfMibView reached at OID $next. Exiting callback.") if defined &log_debug;
+            log_debug("endOfMibView at $next. Exiting.");
             return;
         }
-        
-        # ❗️ OID not increasing — пробуем инкрементировать
-        if (defined $last_oid && snmp_oid_compare($next, $last_oid) <= 0) {
-            log_debug("OID not increasing: $next <= $last_oid") if defined &log_debug;
-            $non_increasing_count++;
-            
-            # ❗️ Инкрементируем last_oid и пропускаем этот
-            my $incremented = _increment_oid($last_oid);
-            log_debug("Incremented OID: $last_oid → $incremented") if defined &log_debug;
-            $next = $incremented;
-            $increment_failures++;
-            
-            # ❗️ Защита: если слишком много инкрементов подряд — стоп
-            if ($increment_failures >= 10) {
-                log_debug("Too many increment failures ($increment_failures). Stopping to avoid loop.") if defined &log_debug;
-                return;
-            }
-        } else {
-            # Сброс счётчика если OID нормальный
-            $increment_failures = 0;
-        }
-        
-        # Проверка на дубликат
-        if (exists $table->{$next}) {
-            log_debug("Duplicate OID: $next. Skipping.") if defined &log_debug;
+
+        # Пропускаем дубликаты ВНУТРИ этого пакета
+        if ($seen_in_batch->{$next}) {
+            log_debug("Duplicate in batch: $next. Skipping.");
             next;
         }
-        
+        $seen_in_batch->{$next} = 1;
+
+        # Пропускаем если УЖЕ есть в таблице (из предыдущих пакетов)
+        if (exists $table->{$next}) {
+            log_debug("Already in table: $next. Skipping.");
+            next;
+        }
+
+        # Сохраняем
         $table->{$next} = $value;
         $processed_count++;
-        log_debug("Stored OID $next = $value") if defined &log_debug;
-        $last_oid = $next;
+        log_debug("Stored OID $next = $value");
+
+        # Обновляем last_oid для следующего запроса (максимальный из обработанных)
+        if (!defined $last_oid || snmp_oid_compare($next, $last_oid) > 0) {
+            $last_oid = $next;
+        }
     }
-    
-    # Защита от зацикливания
-    if ($non_increasing_count >= $batch_size && $processed_count == 0) {
-        log_debug("All OIDs in batch are non-increasing. Stopping to avoid loop.") if defined &log_debug;
-        return;
-    }
-    
+
     return unless $processed_count > 0;
     return unless defined $next;
-    
-    # Запрос следующего блока
+
+    # Следующий запрос — от последнего "максимального" OID
     my $result = $session->get_bulk_request(
-        -varbindlist    => [$next],
+        -varbindlist    => [$last_oid],
         -maxrepetitions => 10,
-        -callback       => [\&table_callback, $table, $root_oid, $last_oid, $increment_failures],
+        -callback       => [\&table_callback, $table, $root_oid, $last_oid],
     );
-    
+
     unless (defined $result) {
-        log_debug("SNMP get_bulk_request failed for OID $next: " . $session->error) if defined &log_debug;
+        log_debug("get_bulk_request failed: " . $session->error);
     }
-    else {
-        log_debug("Scheduled next get_bulk_request starting from OID $next") if defined &log_debug;
-    }
-}
-
-#-------------------------------------------------------------------------------------
-
-sub _increment_oid {
-    my ($oid) = @_;
-    return undef unless defined $oid;
-    # Нормализуем
-    $oid =~ s/^\s+|\s+$//g;
-    $oid =~ s/^\././;
-    $oid =~ s/\.{2,}/./g;
-    # Разбиваем на компоненты
-    my @parts = split /\./, $oid;
-    # Убираем пустые элементы (от ведущей точки)
-    @parts = grep { length $_ > 0 } @parts;
-    return undef unless @parts;
-    # Инкрементируем последнюю компоненту
-    $parts[-1]++;
-    # Собираем обратно
-    return '.' . join('.', @parts);
 }
 
 #-------------------------------------------------------------------------------------
