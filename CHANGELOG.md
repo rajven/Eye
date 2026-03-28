@@ -1,3 +1,29 @@
+# Changelog 3.1.0 - release
+- bugfix: fixed "OID not increasing"
+- bugfix: fixed the installation of locks for polling equipment
+- Type for some systemd services changed to simple
+- The log has been rewritten to Log::Log4perl.
+- Optimized the survey for snmp
+- rewrited shaper block im sync_mikrotik script
+- bugfix: fixed a shaper processing error for bands above 50M
+- bugfix: fixed the update mode. now those files and services that are available in a working system are being updated.
+- added support address-list for mikrotik provisiong
+- added support ipset filters for iptables script
+- added address-list for ip group filtering
+- restored work with Iptables
+- bugfix: fixed search ip-doubles
+- added search for user list
+
+# Changelog 3.0.5 - release
+- the mac MACADDR field type has been changed to mac VARCHAR(17) for postgres (to maintain compatibility of data processing with mysql)
+- The send_user_ip function has been added to the API, which allows you to create an ip record with a comment, a mac, and a hostname.
+- Added empty foswiki web
+- uploaded last plugin for foswiki
+- added get_user_subnet for api
+- bugfix: fixed editing of device models with the vendor's filter installed. 
+- bugfix: restored support php 7
+- bugfix: When creating a user from netflow, the dynamic group parameters were ignored.
+
 # Changelog 3.0.4 - release
 - added automatic configuration of shapers for gateway interfaces
 
