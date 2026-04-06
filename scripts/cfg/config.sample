@@ -11,15 +11,11 @@ admin_email=admin@example.com
 from_addr=admin@example.com
 
 #database - change it!!!
-DBSERVER=localhost
+DBHOST=localhost
 DBTYPE=db_type
 DBUSER=db_user
 DBNAME=db_name
 DBPASS=db_password
-
-#login for windows AD
-#domain_auth=EXAMPLE\roman%password
-#winexe=/usr/bin/winexe
 
 #fping
 fping=/sbin/fping
@@ -28,10 +24,8 @@ fping=/sbin/fping
 MYSQL=/usr/bin/mysql
 
 #log file owners
-#user=nagios
-#group=nagios
-user=www-data
-group=www-data
+user=eye
+group=eye
 
 #nagios settings
 nagios_dir=/etc/nagios4
@@ -41,7 +35,3 @@ nagios_event_socket=/var/spool/nagios4/hoststate.socket
 #crypt config - 8/16/24 char and equal length
 encryption_key=!!!CHANGE_ME!!!!
 encryption_iv=0123456789012345
-
-#api_base=http://127.0.0.1/api.php
-#api_key=<USER_KEY>
-#api_login=<USER_LOGIN>

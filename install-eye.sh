@@ -641,18 +641,17 @@ upgrade_source_code() {
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
         print_info "Updating backend scripts..."
         mkdir -p /opt/Eye/scripts/{cfg,log}
-        rsync -a --exclude cfg/ scripts/  /opt/Eye/scripts/
-        rsync -ar scripts/eyelib/   /opt/Eye/scripts/eyelib/
+        rsync -lpt scripts/ /opt/Eye/scripts/
+        rsync -a scripts/eyelib/   /opt/Eye/scripts/eyelib/
         # Обновляем только если каталог уже установлен
-        [[ -d /opt/Eye/scripts/updates ]] && rsync -ar scripts/updates/ /opt/Eye/scripts/updates/
-        [[ -d /opt/Eye/scripts/utils   ]] && rsync -ar scripts/utils/   /opt/Eye/scripts/utils/
+        [[ -d /opt/Eye/scripts/updates ]] && rsync -a scripts/updates/ /opt/Eye/scripts/updates/
+        [[ -d /opt/Eye/scripts/utils   ]] && rsync -a scripts/utils/   /opt/Eye/scripts/utils/
 
         chmod 750 /opt/Eye/scripts
         chmod 770 /opt/Eye/scripts/log
         chown -R eye:eye /opt/Eye/scripts
 
-        declare -a SERVICES
-        SERVICES=(
+        declare -a SERVICES=(
             dhcp-log.service
             dhcp-log-truncate.service
             eye-statd.service
@@ -661,20 +660,32 @@ upgrade_source_code() {
         )
 
         SYSTEMD_CHANGED=0
-        declare -a RESTART_SERVICES
-        RESTART_SERVICES=()
+        declare -a RESTART_SERVICES=()
+
         for svc in "${SERVICES[@]}"; do
+
+            if ! systemctl is-enabled --quiet "$svc" 2>/dev/null; then
+                print_info "SKIP $svc: not enabled/installed in systemd"
+                continue
+            fi
+
             SRC="/opt/Eye/docs/systemd/$svc"
+            [[ -f "$SRC" ]] || { print_info "SKIP $svc: source file missing"; continue; }
+
             DST="/etc/systemd/system/$svc"
-            if [[ -f "$SRC" && -f "$DST" ]]; then
-                if ! cmp -s "$SRC" "$DST"; then
-                    print_info "Updating $svc"
-                    cp "$SRC" "$DST"
-                    SYSTEMD_CHANGED=1
-                    RESTART_SERVICES+=("$svc")
-                fi
+
+            if [[ ! -f "$DST" ]] || ! cmp -s "$SRC" "$DST"; then
+                print_info "Updating $svc"
+                cp -f "$SRC" "$DST"
+                chmod 644 "$DST"
+                SYSTEMD_CHANGED=1
+                RESTART_SERVICES+=("$svc")
+                print_info "COPIED $SRC -> $DST"
+            else
+                print_info "SKIP $svc: file identical"
             fi
         done
+
         if [[ $SYSTEMD_CHANGED -eq 1 ]]; then
             systemctl daemon-reload
             for svc in "${RESTART_SERVICES[@]}"; do
