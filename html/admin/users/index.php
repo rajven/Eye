@@ -100,7 +100,7 @@ function blockForm(formId) {
   <fieldset>
     <legend><?php echo WEB_new_user; ?></legend>
     <div>
-      <input type="text" id="newlogin" name="newlogin" value="Unknown" required>
+      <input type="text" id="newlogin" name="newlogin" value="Unknown">
       <input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
     </div>
   </fieldset>

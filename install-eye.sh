@@ -631,7 +631,7 @@ upgrade_source_code() {
         print_info "Updating web interface..."
         mkdir -p /opt/Eye/html/cfg /opt/Eye/html/js
         if [ -d "html" ]; then
-            rsync -ar --exclude cfg/ html/ /opt/Eye/html/
+            rsync -a --exclude cfg/ html/ /opt/Eye/html/
         fi
         download_additional_scripts
         chown -R eye:eye /opt/Eye/html
@@ -641,9 +641,9 @@ upgrade_source_code() {
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
         print_info "Updating backend scripts..."
         mkdir -p /opt/Eye/scripts/{cfg,log}
-        rsync -lpt scripts/ /opt/Eye/scripts/
+        rsync -a --exclude='*/' scripts/ /opt/Eye/scripts/
         rsync -a scripts/eyelib/   /opt/Eye/scripts/eyelib/
-        # Обновляем только если каталог уже установлен
+        # Обновляем только если каталог установлен
         [[ -d /opt/Eye/scripts/updates ]] && rsync -a scripts/updates/ /opt/Eye/scripts/updates/
         [[ -d /opt/Eye/scripts/utils   ]] && rsync -a scripts/utils/   /opt/Eye/scripts/utils/
 
@@ -652,28 +652,22 @@ upgrade_source_code() {
         chown -R eye:eye /opt/Eye/scripts
 
         declare -a SERVICES=(
-            dhcp-log.service
-            dhcp-log-truncate.service
-            eye-statd.service
-            stat-sync.service
-            syslog-stat.service
+            dhcp-log
+            dhcp-log-truncate
+            eye-statd
+            stat-sync
+            syslog-stat
         )
 
         SYSTEMD_CHANGED=0
         declare -a RESTART_SERVICES=()
-
         for svc in "${SERVICES[@]}"; do
-
-            if ! systemctl is-enabled --quiet "$svc" 2>/dev/null; then
-                print_info "SKIP $svc: not enabled/installed in systemd"
+            if ! service_exists "$svc"; then
                 continue
             fi
-
-            SRC="/opt/Eye/docs/systemd/$svc"
+            SRC="/opt/Eye/docs/systemd/$svc.service"
             [[ -f "$SRC" ]] || { print_info "SKIP $svc: source file missing"; continue; }
-
-            DST="/etc/systemd/system/$svc"
-
+            DST="/etc/systemd/system/$svc.service"
             if [[ ! -f "$DST" ]] || ! cmp -s "$SRC" "$DST"; then
                 print_info "Updating $svc"
                 cp -f "$SRC" "$DST"
@@ -689,9 +683,7 @@ upgrade_source_code() {
         if [[ $SYSTEMD_CHANGED -eq 1 ]]; then
             systemctl daemon-reload
             for svc in "${RESTART_SERVICES[@]}"; do
-                if systemctl is-active --quiet "$svc"; then
-                    systemctl restart "$svc"
-                fi
+                systemctl restart "$svc"
             done
         fi
     fi

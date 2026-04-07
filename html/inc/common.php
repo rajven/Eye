@@ -5147,5 +5147,3 @@ $config["init"] = 1;
 
 clean_dns_cache($db_link);
 //clean_unreferensed_rules($db_link);
-
-$config["debug"] = 1;
