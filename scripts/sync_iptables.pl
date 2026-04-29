@@ -61,6 +61,11 @@ my $gate = get_record_sql($dbh, 'SELECT * FROM devices WHERE id=?', $router_id )
 
 exit 100 if (!$gate);
 
+our %PROTO_NUMS;
+my $proto_loaded = 0;
+
+_load_protocols();
+
 my $gate_ident = $gate->{device_name}." [$gate->{ip}]:: ";
 
 my @cmd_list=();
@@ -706,18 +711,21 @@ sub compare_iptables_rules {
     return 0 if !defined $r1;
     return 0 if !defined $r2;
 
-    # Нормализация: правило -> отсортированный массив "флаг=значение"
     my $normalize = sub {
-        my $rule = shift;
+        my ($rule) = @_;
         my @parts;
-        # Режем строго перед флагами, не ломая значения с пробелами/дефисами
+        # Режем строго перед флагами (-x или --xx). Аргументы остаются в том же блоке.
         for my $block (grep { $_ } split(/\s+(?=-(?:-)?[a-z])/i, $rule)) {
             $block =~ s/^\s+|\s+$//g;
             $block = lc($block);
             if ($block =~ /^(!?\s*-[\w-]+)\s*(.*)/) {
                 my ($flag, $val) = ($1, $2);
-                $flag =~ s/\s+//g;   # ! -s -> !-s
-                $val  =~ s/\s+/ /g;  # схлопываем пробелы внутри значения
+                $flag =~ s/\s+//g;   # ! -p -> !-p
+                $val  =~ s/\s+/ /g;  # схлопываем внутренние пробелы
+                # Обработка -p: имя -> число, если найдено в /etc/protocols
+                if ($flag eq '-p' || $flag eq '!-p') {
+                    $val = $PROTO_NUMS{$val} if exists $PROTO_NUMS{$val};
+                }
                 push @parts, "$flag=$val";
             }
         }
@@ -727,6 +735,18 @@ sub compare_iptables_rules {
     my @n1 = $normalize->($r1);
     my @n2 = $normalize->($r2);
 
-    # Длина массивов должна совпадать + посимвольное равенство отсортированных списков
+    # Длина массивов + посимвольное равенство отсортированных списков
     return @n1 == @n2 && join(' ', @n1) eq join(' ', @n2);
+}
+
+sub _load_protocols {
+    return if $proto_loaded;
+    open my $fh, '<', '/etc/protocols' or return;
+    while (<$fh>) {
+        chomp; s/#.*//; s/^\s+|\s+$//g; next unless length;
+        my @p = split(/\s+/); next if @p < 2;
+        # Мапим официальное имя и все алиасы (регистронезависимо) на число
+        $PROTO_NUMS{lc($_)} = $p[1] for @p;
+    }
+    close $fh; $proto_loaded = 1;
 }
