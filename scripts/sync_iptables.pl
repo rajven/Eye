@@ -531,14 +531,16 @@ if ($gate->{user_acl}) {
             # Проверка текущих правил
             for (my $f_index=0; $f_index<scalar(@cur_filter); $f_index++) {
                 my $filter_str = trim($cur_filter[$f_index]);
-                if (!$chain_rules{$group_name}[$f_index] or $filter_str !~ /$chain_rules{$group_name}[$f_index]/i) {
+                my $expected = $chain_rules{$group_name}[$f_index];
+                my $rules_ok = compare_iptables_rules($expected, $filter_str);
+                if (!$rules_ok) {
                     log_error($gate_ident."Check chain $chain_name error! Rule mismatch at position $f_index");
-                    log_verbose($gate_ident."Expected: $chain_rules{$group_name}[$f_index]");
+                    log_verbose($gate_ident."Expected: $expected");
                     log_verbose($gate_ident."Current: $filter_str");
                     $chain_ok = 0;
                     last;
+                    }
                 }
-            }
         }
 
         if (!$chain_ok) {
@@ -696,4 +698,35 @@ sub save_ipsets_to_files {
         }
     }
     log_verbose($gate_ident."Saved $files_saved ipset configuration files");
+}
+
+sub compare_iptables_rules {
+    my ($r1, $r2) = @_;
+    return 1 if $r1 eq $r2;
+    return 0 if !defined $r1;
+    return 0 if !defined $r2;
+
+    # Нормализация: правило -> отсортированный массив "флаг=значение"
+    my $normalize = sub {
+        my $rule = shift;
+        my @parts;
+        # Режем строго перед флагами, не ломая значения с пробелами/дефисами
+        for my $block (grep { $_ } split(/\s+(?=-(?:-)?[a-z])/i, $rule)) {
+            $block =~ s/^\s+|\s+$//g;
+            $block = lc($block);
+            if ($block =~ /^(!?\s*-[\w-]+)\s*(.*)/) {
+                my ($flag, $val) = ($1, $2);
+                $flag =~ s/\s+//g;   # ! -s -> !-s
+                $val  =~ s/\s+/ /g;  # схлопываем пробелы внутри значения
+                push @parts, "$flag=$val";
+            }
+        }
+        return sort @parts;
+    };
+
+    my @n1 = $normalize->($r1);
+    my @n2 = $normalize->($r2);
+
+    # Длина массивов должна совпадать + посимвольное равенство отсортированных списков
+    return @n1 == @n2 && join(' ', @n1) eq join(' ', @n2);
 }
