@@ -1588,6 +1588,23 @@ delete_records($db, "gateway_subnets","device_id=?",[$id]);
 return $changes;
 }
 
+function delete_group($db,$id = NULL)
+{
+if (empty($id)) { return; }
+if ($id<1) { return; }
+$hotspot_ou = get_const('default_hotspot_ou_id');
+$dhcp_ou = get_const('default_user_ou_id');
+if ($id = $dhcp_ou or $id = $hotspot_ou) { return; }
+// Обнуляем привязки в user_list
+update_records($db, "user_list", "ou_id = ?", ['ou_id' => $dhcp_ou ], [$id]);
+// Обнуляем привязки в user_auth
+update_records($db, "user_auth", "ou_id = ?", ['ou_id' => $dhcp_ou ], [$id]);
+// Удаляем правила авторизации
+delete_records($db, "auth_rules", "ou_id = ?", [$id]);
+// Удаляем сам OU
+delete_record($db, "ou", "id = ?", [$id]);
+}
+
 function record_to_txt($db, $table, $id) {
     $record = get_record_sql($db, 'SELECT * FROM ' . $table . ' WHERE id =?', [ $id ]);
     return hash_to_text($record);

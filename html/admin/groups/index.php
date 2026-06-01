@@ -5,19 +5,10 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 // Удаление OU
 if (getPOST("remove") !== null) {
     $fid = getPOST("f_id", null, []);
-    
     if (!empty($fid) && is_array($fid)) {
         foreach ($fid as $val) {
             $val = (int)$val;
-            if ($val <= 0) continue;
-            // Обнуляем привязки в user_list
-            update_records($db_link, "user_list", "ou_id = ?", ['ou_id' => 0], [$val]);
-            // Обнуляем привязки в user_auth
-            update_records($db_link, "user_auth", "ou_id = ?", ['ou_id' => 0], [$val]);
-            // Удаляем правила авторизации
-            delete_records($db_link, "auth_rules", "ou_id = ?", [$val]);
-            // Удаляем сам OU
-            delete_record($db_link, "ou", "id = ?", [$val]);
+            delete_group($db_link,$val);
         }
     }
     header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -60,6 +51,8 @@ foreach ($t_ou as $row) {
     $flag='';
     if ($row['default_users'] == 1) { $flag='D'; }
     if ($row['default_hotspot'] == 1) { $flag='H'; }
+    $rules_count = get_record_sql($db_link, "SELECT COUNT(id) as cnt FROM auth_rules WHERE ou_id=?", [$row['id']]);
+    if (!empty($rules_count) && $rules_count['cnt']>0) { $flag .='['.$rules_count['cnt'].']'; }
     print "<td class=\"data\">$flag</td>\n";
     print "<td class=\"data\">"; print_url($row['ou_name'],"/admin/groups/edit_group.php?id=".$row['id']); print "</td>\n";
     print_yes_no($row['dynamic'],'custom','data');

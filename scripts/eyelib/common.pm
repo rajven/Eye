@@ -313,7 +313,7 @@ sub get_new_user_id {
             my $rule_clean = mac_simplify($r->{rule});
             # Защита от битых регулярок
             eval {
-                if ($mac =~ /\Q$rule_clean\E/i) {  # \Q...\E — экранируем спецсимволы!
+                if ($mac =~ /^$rule_clean/i) {
                     $result->{user_id} = $r->{user_id};
                     return $result;
                 }
@@ -332,7 +332,7 @@ sub get_new_user_id {
         foreach my $r (@rules) {
             next unless defined $r->{rule};
             eval {
-                if ($hostname =~ /$r->{rule}/i) {
+                if ($hostname =~ /^$r->{rule}/i) {
                     $result->{user_id} = $r->{user_id};
                     return $result;
                 }
@@ -368,7 +368,7 @@ sub get_new_user_id {
             next unless defined $r->{rule};
             my $rule_clean = mac_simplify($r->{rule});
             eval {
-                if ($mac =~ /\Q$rule_clean\E/i) {
+                if ($mac =~ /^$rule_clean/i) {
                     $result->{ou_id} = $r->{ou_id};
                     return $result;
                 }
@@ -387,7 +387,7 @@ sub get_new_user_id {
         foreach my $r (@rules) {
             next unless defined $r->{rule};
             eval {
-                if ($hostname =~ /$r->{rule}/i) {
+                if ($hostname =~ /^$r->{rule}/i) {
                     $result->{ou_id} = $r->{ou_id};
                     return $result;
                 }

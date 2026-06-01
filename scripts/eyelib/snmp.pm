@@ -50,6 +50,7 @@ $ifIndex_map
 $ipAdEntIfIndex
 $arp_oid
 $ipNetToMediaPhysAddress
+$ipNetToMediaType
 $fdb_table_oid
 $fdb_table_oid2
 $dot1qPortVlanEntry
@@ -88,6 +89,12 @@ our $ipAdEntIfIndex ='.1.3.6.1.2.1.4.20.1.2';
 our $arp_oid      ='.1.3.6.1.2.1.3.1.1.2';
 #RFC1213::ipNetToMediaPhysAddress
 our $ipNetToMediaPhysAddress = '.1.3.6.1.2.1.4.22.1.2';
+our $ipNetToMediaType = '.1.3.6.1.2.1.4.22.1.4';
+#.1.3.6.1.2.1.4.22.1.4.3263.10.160.0.137 = INTEGER: invalid(2)
+#.1.3.6.1.2.1.4.22.1.4.3263.10.160.0.138 = INTEGER: dynamic(3)
+#.1.3.6.1.2.1.4.22.1.3.3263.10.160.0.151 = IpAddress: 10.160.0.151
+#.1.3.6.1.2.1.4.22.1.3.3263.10.160.0.152 = IpAddress: 10.160.0.152
+
 #RFC1493::dot1dTpFdbTable
 our $fdb_table_oid ='.1.3.6.1.2.1.17.4.3.1.2';
 #Q-BRIDGE-MIB::dot1qTpFdbPort
@@ -159,35 +166,55 @@ sub get_arp_table {
     my $arp;
     my $arp_table1 = $session->get_table($arp_oid);
     my $arp_table2 = $session->get_table($ipNetToMediaPhysAddress);
+    my $arp_status = $session->get_table($ipNetToMediaType);
     $session->close();
+
+    my %ip_status;
+    if ($arp_status) {
+            foreach my $row (keys(%$arp_status)) {
+                $row=trim($row);
+                my $ip;
+                if ($row=~/\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/) { $ip=$1.".".$2.".".$3.".".$4; }
+                next if (!$ip);
+                $ip_status{$ip} = $arp_status->{$row};
+                }
+            }
 
     if ($arp_table1) {
         foreach my $row (keys(%$arp_table1)) {
-        my ($mac_h) = unpack("H*",$arp_table1->{$row});
-        next if (!$mac_h or $mac_h eq '000000000000' or $mac_h eq 'ffffffffffff');
-        my $mac;
-        if (length($mac_h)==12) { $mac=lc $mac_h; }
-        next if (!$mac);
-        $row=trim($row);
-        my $ip;
-        if ($row=~/\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/) { $ip=$1.".".$2.".".$3.".".$4; }
-        next if (!$ip);
-        $arp->{$ip}=$mac;
+            my ($mac_h) = unpack("H*",$arp_table1->{$row});
+            next if (!$mac_h or $mac_h eq '000000000000' or $mac_h eq 'ffffffffffff');
+            my $mac;
+            if (length($mac_h)==12) { $mac=lc $mac_h; }
+            next if (!$mac);
+            $row=trim($row);
+            my $ip;
+            if ($row=~/\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/) { $ip=$1.".".$2.".".$3.".".$4; }
+            next if (!$ip);
+            if (exists $ip_status{$ip}) {
+                if ($ip_status{$ip} >2) { $arp->{$ip}=$mac; }
+                } else {
+                $arp->{$ip}=$mac;
+                }
         };
     }
 
     if ($arp_table2) {
         foreach my $row (keys(%$arp_table2)) {
-        my ($mac_h) = unpack("H*",$arp_table2->{$row});
-        next if (!$mac_h or $mac_h eq '000000000000' or $mac_h eq 'ffffffffffff');
-        my $mac;
-        if (length($mac_h)==12) { $mac=lc $mac_h; }
-        next if (!$mac);
-        $row=trim($row);
-        my $ip;
-        if ($row=~/\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/) { $ip=$1.".".$2.".".$3.".".$4; }
-        next if (!$ip);
-        $arp->{$ip}=$mac;
+            my ($mac_h) = unpack("H*",$arp_table2->{$row});
+            next if (!$mac_h or $mac_h eq '000000000000' or $mac_h eq 'ffffffffffff');
+            my $mac;
+            if (length($mac_h)==12) { $mac=lc $mac_h; }
+            next if (!$mac);
+            $row=trim($row);
+            my $ip;
+            if ($row=~/\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/) { $ip=$1.".".$2.".".$3.".".$4; }
+            next if (!$ip);
+            if (exists $ip_status{$ip}) {
+                if ($ip_status{$ip} > 2) { $arp->{$ip}=$mac; }
+                } else {
+                $arp->{$ip}=$mac;
+                }
         };
     }
 

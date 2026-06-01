@@ -56,96 +56,83 @@ print_ip_submenu($page_url);
     <td align=Center><?php print WEB_cell_last_found; ?></td>
     <td align=right><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="removeauth" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
+
 <?php
-$sSQL = "SELECT U.id, U.ip, U.mac, U.arp_found, S.subnet as net FROM user_auth U, subnets S WHERE (U.mac IS NOT NULL AND U.mac<>'') 
-AND (U.ip_int BETWEEN S.ip_int_start AND S.ip_int_stop) $cidr_filter AND S.office=1 AND U.deleted=0 ORDER BY net,mac,arp_found";
-$users = get_records_sql($db_link,$sSQL, $params);
+$sSQL = "SELECT U.*, S.subnet as net FROM user_auth U, subnets S 
+WHERE (U.mac IS NOT NULL AND U.mac<>'') AND (U.ip_int BETWEEN S.ip_int_start AND S.ip_int_stop) $cidr_filter AND S.office=1 AND U.deleted=0 
+ORDER BY net,mac,arp_found,id";
+$auth_list = get_records_sql($db_link,$sSQL, $params);
 $f_subnet=NULL;
 $f_mac=NULL;
 $f_id=NULL;
-$printed = NULL;
 $f_index = 0;
 $f_count = 0;
-foreach ($users as $row) {
+foreach ($auth_list as $row) {
+    if (empty($row['mac'])) { continue; }
+    if (empty($row['net'])) { continue; }
     //инициализируем перебор по первой записи
-    if (empty($f_subnet)) { 
-        //сохраняем для обработки
-        $f_subnet = $row['net'];
-        $f_mac=$row['mac'];
-        $f_id=$row['id'];
-        $f_index=0;
-        continue;
+    if (empty($f_subnet)) {
+        $d_params = $params;
+        //считаем сколько у нас дублей
+        $dSQL = "SELECT U.*, S.subnet as net FROM user_auth U, subnets S WHERE S.office=1 AND U.deleted=0  AND (U.ip_int BETWEEN S.ip_int_start AND S.ip_int_stop) $cidr_filter AND U.mac=? AND S.subnet=?";
+        $d_params[]= $row['mac'];
+        $d_params[]= $row['net'];
+        $doubles = get_records_sql($db_link,$dSQL, $d_params);
+        $f_count = count($doubles);
+        if ($f_count > 1) {
+            //сохраняем для обработки
+            $f_subnet = $row['net'];
+            $f_mac=$row['mac'];
+            $f_id=$row['id'];
+            $f_index = 0;
+            } else { continue; }
         }
     //начинаем перебор - проверяем 
     if ($row['net'] === $f_subnet and $row['mac']===$f_mac) {
-        //если первая запись не выводилась - выводим на печать
-        $d_params = $params;
-        if (!isset($printed[$f_id])) {
-            //считаем сколько у нас дублей
-            $dSQL = "SELECT  U.id, U.ip, U.mac, U.arp_found FROM user_auth U WHERE U.deleted=0 AND U.mac=? $cidr_filter";
-            $d_params[]= $f_mac;
-            $doubles = get_records_sql($db_link,$dSQL, $d_params);
-            $f_count = count($doubles);
-
             $f_index++;
-            $user = get_record_sql($db_link,"SELECT * FROM user_auth WHERE id=?", [$f_id]);
-            if (empty($user['arp_found']) || is_empty_datetime($user['arp_found'])) { $user['arp_found'] = ''; }
-            if (empty($user['ts']) || is_empty_datetime($user['ts'])) { $user['ts'] = ''; }
-            if (empty($user['changed_time']) || is_empty_datetime($user['changed_time'])) { $user['changed_time'] = ''; }
+            if (empty($row['arp_found']) || is_empty_datetime($row['arp_found'])) { $row['arp_found'] = ''; }
+            if (empty($row['ts']) || is_empty_datetime($row['ts'])) { $row['ts'] = ''; }
+            if (empty($row['changed_time']) || is_empty_datetime($row['changed_time'])) { $row['changed_time'] = ''; }
             print "<tr align=center>\n";
             $cl = "data";
-            print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_auth_id[] value=".$user["id"];
-            if ($f_index != $f_count) { print " checked"; }
+            print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_auth_id[] value=".$row["id"];
+            if ($f_index >1) {
+                $checked = true;
+                $mac_simplified = mac_simplify($row['mac']);
+                $mac_rules = get_records_sql($db_link, "SELECT * FROM auth_rules WHERE rule_type = 2 AND LENGTH(rule) > 0 AND user_id = ?", [ $row['user_id'] ]);
+                foreach ($mac_rules as $rule_row) {
+                    if (!empty($rule_row['rule'])) {
+                        $pattern = '/^' . preg_quote(mac_simplify($rule_row['rule']), '/') . '/';
+                        if (preg_match($pattern, $mac_simplified)) { $checked = false; break; }
+                        }
+                }
+                if ($checked) { print " checked"; }
+                }
             print "></td>\n";
-            print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . get_login($db_link,$user['user_id']) . "</a></td>\n";
-            print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
-            print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
-            if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
-                print "<td class=\"$cl\" >".$user['description']." [" . $user['dhcp_hostname'] . "]</td>\n";
+            print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$row['user_id'].">" . get_login($db_link,$row['user_id']) . "</a></td>\n";
+            print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$row['id'].">" . $row['ip'] . "</a></td>\n";
+            print "<td class=\"$cl\" >" . expand_mac($db_link,$row['mac']) . "</td>\n";
+            if (isset($row['dhcp_hostname']) and strlen($row['dhcp_hostname']) > 0) {
+                print "<td class=\"$cl\" >".$row['description']." [" . $row['dhcp_hostname'] . "]</td>\n";
                 } else {
-                print "<td class=\"$cl\" >".$user['description']."</td>\n";
+                print "<td class=\"$cl\" >".$row['description']."</td>\n";
                 }
-            print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
-            print "<td class=\"$cl\" >".$user['ts']."</td>\n";
-            print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
+            print "<td class=\"$cl\" >".$row['dns_name']."</td>\n";
+            print "<td class=\"$cl\" >".$row['ts']."</td>\n";
+            print "<td class=\"$cl\" >".$row['last_found']."</td>\n";
+            print "<td class=\"$cl\" ></td>\n";
             print "</tr>\n";
-            $printed[$f_id] = 1;
-            }
-        //проверяем текущую запись
-        if (!isset($printed[$row['id']])) {
-            $f_index++;
-            $user = get_record_sql($db_link,"SELECT * FROM user_auth WHERE id=?", [$row['id']]);
-            if (empty($user['arp_found']) || is_empty_datetime($user['arp_found'])) { $user['arp_found'] = ''; }
-            if (empty($user['ts']) || is_empty_datetime($user['ts'])) { $user['ts'] = ''; }
-            if (empty($user['changed_time']) || is_empty_datetime($user['changed_time'])) { $user['changed_time'] = ''; }
-            print "<tr align=center>\n";
-            $cl = "data";
-            print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_auth_id[] value=".$user["id"];
-            if ($f_index != $f_count) { print " checked"; }
-            print " ></td>\n";
-            print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . get_login($db_link,$user['user_id']) . "</a></td>\n";
-            print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
-            print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
-            if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
-                print "<td class=\"$cl\" >".$user['description']." [" . $user['dhcp_hostname'] . "]</td>\n";
-                } else {
-                print "<td class=\"$cl\" >".$user['description']."</td>\n";
-                }
-            print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
-            print "<td class=\"$cl\" >".$user['ts']."</td>\n";
-            print "<td class=\"$cl\" >".$user['last_found']."</td>\n";
-            print "</tr>\n";
-            $printed[$row['id']] = 1;
-            }
         } else {
-        $f_subnet = $row['net'];
-        $f_mac = $row['mac'];
-        $f_id = $row['id'];
-        $f_index = 0;
+            $f_subnet = NULL;
+            $f_mac = NULL;
+            $f_id = NULL;
+            $f_index = 0;
+            $f_count = 0; 
         }
     }
 print "</table>\n";
 ?>
+
 </form>
 <br>
 <?php

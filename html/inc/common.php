@@ -1607,31 +1607,21 @@ function print_building_select($db, $building_name, $building_value)
     echo "</select>\n";
 }
 
-function print_devmodels_select($db, $devmodel_name, $devmodel_value, $dev_filter = 'device_type<=2')
+function print_devmodels_select($db, $devmodel_name, $devmodel_value, $dev_filter = 'device_type<=2', $vendor_id = NULL)
 {
-    // Валидация фильтра для предотвращения SQL-инъекций
-    $allowed_filters = [
-        'device_type<=2',
-        'device_type=2',
-        'device_type=1',
-        'device_type=0'
-    ];
-    
-    if (!in_array($dev_filter, $allowed_filters)) {
-        $dev_filter = 'device_type<=2';
-    }
-    
+
     echo "<select id=\"" . htmlspecialchars($devmodel_name) . "\" name=\"" . htmlspecialchars($devmodel_name) . "\">\n";
     print_select_item(WEB_select_item_all, -1, $devmodel_value);
-    
-    $t_devmodel = get_records_sql($db,
-        "SELECT M.id, V.name, M.model_name 
+
+    $vendor_filter = "";
+    if (!empty($vendor_id)) { $vendor_filter = " AND vendor_id = $vendor_id";  }
+    $mSQL = "SELECT M.id, V.name, M.model_name 
          FROM device_models M, vendors V 
          WHERE M.vendor_id = V.id 
-           AND M.id IN (SELECT device_model_id FROM devices WHERE $dev_filter) 
-         ORDER BY V.name, M.model_name"
-    );
-    
+           AND M.id IN (SELECT device_model_id FROM devices WHERE $dev_filter $vendor_filter)";
+
+    $t_devmodel = get_records_sql($db, $mSQL . " ORDER BY V.name, M.model_name" );
+
     if (!empty($t_devmodel)) {
         foreach ($t_devmodel as $row) {
             $display = htmlspecialchars($row['name']) . " " . htmlspecialchars($row['model_name']);
@@ -1643,32 +1633,15 @@ function print_devmodels_select($db, $devmodel_name, $devmodel_value, $dev_filte
 
 function print_devtypes_select($db, $devtype_name, $devtype_value, $mode)
 {
-    // Валидация режима для предотвращения SQL-инъекций
-    $allowed_modes = [
-        '',
-        'device_class = 1',
-        'device_class = 2',
-        'device_class <= 2',
-        'id IN (0,1,2)',
-        'id > 0'
-        // Добавьте другие допустимые значения по необходимости
-    ];
-    
-    if (!in_array($mode, $allowed_modes)) {
-        $mode = '';
-    }
-    
     echo "<select id=\"" . htmlspecialchars($devtype_name) . "\" name=\"" . htmlspecialchars($devtype_name) . "\">\n";
     print_select_item(WEB_select_item_all, -1, $devtype_value);
-    
+
     $filter = '';
     if (!empty($mode)) {
         $filter = "WHERE $mode";
     }
-    
     $lang_column = 'name_' . HTML_LANG;
     $t_devtype = get_records_sql($db, "SELECT id, $lang_column FROM device_types $filter ORDER BY $lang_column");
-    
     if (!empty($t_devtype)) {
         foreach ($t_devtype as $row) {
             print_select_item(htmlspecialchars($row[$lang_column]), $row['id'], $devtype_value);
@@ -4671,7 +4644,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
         );
         foreach ($mac_rules as $row) {
             if (!empty($row['rule'])) {
-                $pattern = '/' . preg_quote(mac_simplify($row['rule']), '/') . '/';
+                $pattern = '/^' . preg_quote(mac_simplify($row['rule']), '/') . '/';
                 if (preg_match($pattern, $mac_simplified)) {
                     $result['user_id'] = (int)$row['user_id'];
                     return $result;
@@ -4724,7 +4697,7 @@ function get_new_user_id($db, $ip, $mac, $hostname)
         );
         foreach ($mac_rules as $row) {
             if (!empty($row['rule'])) {
-                $pattern = '/' . preg_quote(mac_simplify($row['rule']), '/') . '/';
+                $pattern = '/^' . preg_quote(mac_simplify($row['rule']), '/') . '/';
                 if (preg_match($pattern, $mac_simplified)) {
                     $result['ou_id'] = (int)$row['ou_id'];
                     return $result;
@@ -5147,3 +5120,5 @@ $config["init"] = 1;
 
 clean_dns_cache($db_link);
 //clean_unreferensed_rules($db_link);
+
+$config["debug"] = 1;
