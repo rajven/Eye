@@ -57,7 +57,7 @@ if ($rule_target>0) {
     }
 
 $type_filter='';
-if ($rule_type>0) { $type_filter = ' AND type=?'; $params[]=$rule_type; }
+if ($rule_type>0) { $type_filter = ' AND rule_type=?'; $params[]=$rule_type; }
 
 $rule_filter='';
 if (!empty($f_rule)) { $rule_filter = ' AND rule LIKE ?'; $params[]=$f_rule.'%'; }
