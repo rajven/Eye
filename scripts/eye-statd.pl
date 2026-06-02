@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+
 use utf8;
 use warnings;
 use Encode;
@@ -166,6 +167,10 @@ sub refresh_config {
     %wan_dev = ();
     %lan_dev = ();
     foreach my $row (@interfaces) {
+        next if (!$row);
+        next if (!exists $row->{device_id});
+        next if (!exists $row->{snmpin});
+        next if (!$row->{device_id} or !$row->{snmpin});
         if ($row->{interface_type}) {
             $wan_dev{$row->{device_id}}{$row->{snmpin}} = 1;
         } else {

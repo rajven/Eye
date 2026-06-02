@@ -103,7 +103,13 @@ while (1) {
                 # Skip lines without valid event type
                 next unless $dhcp_event{'type'} && $dhcp_event{'type'} =~ /^(old|add|del)$/i;
 
-                wrlog($W_INFO,"Processing event: type='$dhcp_event{'type'}', MAC='$dhcp_event{'mac'}', IP='$dhcp_event{'ip'}', NAME='$dhcp_event{'hostname'}', client-id='$dhcp_event{'client_id'}', circuit_id='$dhcp_event{'decoded_circuit_id'}', remote_id='$dhcp_event{'$decoded_remote_id'}'");
+                wrlog($W_INFO, "Processing event: type=" . ($dhcp_event{'type'} // 'N/A') .
+                    ", MAC=" . ($dhcp_event{'mac'} // 'N/A') .
+                    ", IP=" . ($dhcp_event{'ip'} // 'N/A') .
+                    ", NAME=" . ($dhcp_event{'hostname'} // 'N/A') .
+                    ", client-id=" . ($dhcp_event{'client_id'} // 'N/A') .
+                    ", circuit_id=" . ($dhcp_event{'decoded_circuit_id'} // 'N/A') .
+                    ", remote_id=" . ($dhcp_event{'decoded_remote_id'} // 'N/A'));
 
                 # Suppress duplicate events within $mute_time window
                 if (exists $leases{$dhcp_event{'ip'}} && $leases{$dhcp_event{'ip'}}{type} eq $dhcp_event{'type'} && (time() - $leases{$dhcp_event{'ip'}}{last_time} <= $mute_time)) {
