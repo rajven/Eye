@@ -171,6 +171,8 @@ if (scalar(@auth_list)>0) {
         my $login = get_record_sql($dbh,"SELECT * FROM user_list WHERE id=?",$auth->{'user_id'});
 
         $devices{$device_id}{user_login} = $login->{login};
+        $devices{$device_id}{login}=$auth_device->{login} // '';
+        $devices{$device_id}{password}=$auth_device->{password} // '';
         $devices{$device_id}{user_description} = $login->{description};
         $devices{$device_id}{ou_id} = 0;
 	if ($login and $login->{ou_id} and $ou{$login->{ou_id}}->{nagios_dir}) { $devices{$device_id}{ou_id} = $login->{ou_id}; }

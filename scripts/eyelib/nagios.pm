@@ -112,6 +112,7 @@ sub read_host_template {
             next if (!$row);
             # Заменяем параметры, неизвестные оставляем как есть
             $row =~ s/%(\w+)%/exists $replace{$1} ? $replace{$1} : "%$1%"/eg;
+            $row =~ s/!+$//;
             push(@{$result->{template}}, $row);
             if ($row =~ /\bservice_description\s+(.+)$/i) {  $result->{services}->{$1} = 1; }
         }
