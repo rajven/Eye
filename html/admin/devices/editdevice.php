@@ -292,7 +292,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 print "<td class='data'></td></tr>";
             }
 
-            if ($device['snmp_version'] == 3) {
+            if ($device['device_type'] <= 2 && $device['snmp_version'] == 3) {
                 //snmp settings
                 print "<tr><td>" . WEB_snmp_version . "</td><td>" . WEB_snmp_v3_auth_proto . "</td><td>" . WEB_snmp_v3_priv_proto . "</td><td></td></tr>";
                 print "<tr><td class='data'>";
@@ -313,11 +313,17 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 print "<td class='data'><input type='text' name='f_snmp3_user_rw' value=" . $device['snmp3_user_rw'] . "></td>\n";
                 print "<td class='data'><input type='text' name='f_snmp3_user_rw_password' minlength='8' value=" . $device['snmp3_user_rw_password'] . "></td>\n";
                 print "</tr>\n";
-            } else {
-                print "<tr><td>" . WEB_snmp_version . "</td><td></td><td></td><td></td></tr>";
+            }
+
+            if ($device['device_type'] > 2) {
+                //cli access settings
+                print "<tr><td>" . WEB_snmp_version . "</td><td>" . WEB_cell_login . "</td><td>" . WEB_cell_password . "</td><td></td></tr>";
                 print "<tr><td class='data'>";
                 print_snmp_select('f_snmp_version', $device['snmp_version']);
-                print "</td><td class='data' colspan=3></td>\n";
+                print "</td>";
+                print "<td class='data'><input type='text' name='f_login' value=" . $device['login'] . "></td>\n";
+                print "<td class='data'><input type='text' name='f_password' value='********'></td>\n";
+                print "<td class='data'></td></tr>";
                 print "</tr>";
                 if ($device['snmp_version'] > 0) {
                     print "<tr><td>" . WEB_snmp_community_ro . "</td><td>" . WEB_snmp_community_rw . "</td><td></td><td></td></tr>";

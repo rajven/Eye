@@ -159,6 +159,8 @@ if (scalar(@auth_list)>0) {
         my $auth_device = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=?",$auth->{'user_id'});
 	next if ($auth_device and $auth_device->{device_type}<=2);
 
+        $auth_device->{password}=decrypt_string($auth_device->{password}) if ($auth_device->{password});
+
 	#snmp parameters
 	setCommunity($auth_device);
         $devices{$device_id}{snmp}=$auth_device->{snmp} if ($auth_device->{snmp});
@@ -167,7 +169,7 @@ if (scalar(@auth_list)>0) {
 
         #get user
         my $login = get_record_sql($dbh,"SELECT * FROM user_list WHERE id=?",$auth->{'user_id'});
-    
+
         $devices{$device_id}{user_login} = $login->{login};
         $devices{$device_id}{user_description} = $login->{description};
         $devices{$device_id}{ou_id} = 0;

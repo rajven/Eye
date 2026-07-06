@@ -79,36 +79,47 @@ nagios_send_command($cmd);
 #---------------------------------------------------------------------------------
 
 sub read_host_template {
-my $device = shift;
-my $template_file = shift;
-my $result;
+    my $device = shift;
+    my $template_file = shift;
+    my $result;
 
-if (!exists $device->{parent_snmp} and !$device->{snmp}) { setCommunity($device); }
-if (exists $device->{parent_snmp} and !$device->{snmp}) { $device->{snmp} = $device->{parent_snmp}; }
+    if (!exists $device->{parent_snmp} and !$device->{snmp}) { setCommunity($device); }
+    if (exists $device->{parent_snmp} and !$device->{snmp}) { $device->{snmp} = $device->{parent_snmp}; }
 
-my @custom_cfg=();
-if (-e $template_file) { @custom_cfg = read_file($template_file); } else { return; }
-if (@custom_cfg and scalar(@custom_cfg)) {
-    foreach my $row (@custom_cfg) {
-	next if (!$row);
-        $row=~s/\%HOSTNAME\%/$device->{name}/;
-        $row=~s/\%HOST\%/$device->{name}/;
-	$row=~s/\%HOSTIP\%/$device->{ip}/;
-	$row=~s/\%HOST_IP\%/$device->{ip}/;
-	$row=~s/\%COMMUNITY\%/$device->{snmp}->{'ro-community'}/ if ($device->{snmp}->{'ro-community'});
-	$row=~s/\%RW_COMMUNITY\%/$device->{snmp}->{'rw-community'}/ if ($device->{snmp}->{'rw-community'});
-	$row=~s/\%SNMP_VERSION\%/$device->{snmp}->{'version'}/ if ($device->{snmp}->{'version'});
-	$row=~s/\%SNMP_V3_AUTH\%/$device->{snmp}->{'auth-proto'}/ if ($device->{snmp}->{'auth-proto'});
-	$row=~s/\%SNMP_V3_PRIV\%/$device->{snmp}->{'priv-proto'}/ if ($device->{snmp}->{'priv-proto'});
-	$row=~s/\%SNMP_V3_RO_PASSWORD\%/$device->{snmp}->{'ro-password'}/ if ($device->{snmp}->{'ro-password'});
-	$row=~s/\%SNMP_V3_RW_PASSWORD\%/$device->{snmp}->{'rw-password'}/ if ($device->{snmp}->{'rw-password'});
-	$row=~s/\%MODEL\%/$device->{device_model}->{model_name}/ if ($device->{device_model}->{model_name});
-        push(@{$result->{template}},$row);
-	if ($row=~/\s+service_description\s+(.*)$/i) { $result->{services}->{$1}=1; }
-	}
+    # Подготавливаем все значения для замены, отсутствующие заменяем на пустую строку
+    my %replace = (
+        'HOSTNAME'    => $device->{name} // '',
+        'HOST'        => $device->{name} // '',
+        'HOSTIP'      => $device->{ip} // '',
+        'HOST_IP'     => $device->{ip} // '',
+        'COMMUNITY'   => $device->{snmp}->{'ro-community'} // '',
+        'RW_COMMUNITY'=> $device->{snmp}->{'rw-community'} // '',
+        'SNMP_VERSION'=> $device->{snmp}->{'version'} // '',
+        'SNMP_V3_AUTH'=> $device->{snmp}->{'auth-proto'} // '',
+        'SNMP_V3_PRIV'=> $device->{snmp}->{'priv-proto'} // '',
+        'SNMP_V3_RO_PASSWORD' => $device->{snmp}->{'ro-password'} // '',
+        'SNMP_V3_RW_PASSWORD' => $device->{snmp}->{'rw-password'} // '',
+        'MODEL'       => $device->{device_model}->{model_name} // '',
+        'LOGIN'       => $device->{login} // '',
+        'PASSWORD'    => $device->{password} // '',
+    );
+
+    my @custom_cfg = ();
+    if (-e $template_file) { @custom_cfg = read_file($template_file); } else { return; }
+
+    if (@custom_cfg) {
+        foreach my $row (@custom_cfg) {
+            next if (!$row);
+            # Заменяем параметры, неизвестные оставляем как есть
+            $row =~ s/%(\w+)%/exists $replace{$1} ? $replace{$1} : "%$1%"/eg;
+            push(@{$result->{template}}, $row);
+            if ($row =~ /\bservice_description\s+(.+)$/i) {  $result->{services}->{$1} = 1; }
+        }
     }
-return $result;
+    return $result;
 }
+
+#---------------------------------------------------------------------------------
 
 sub print_single_host {
 my $device = shift;
