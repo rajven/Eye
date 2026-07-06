@@ -978,8 +978,11 @@ function cidrToRange($cidr)
     return $range;
 }
 
-function crypt_string($simple_string)
+function crypt_string($simple_string = '')
 {
+    if ($simple_string === '') {
+        return '';
+    }
     // Storin gthe cipher method
     $ciphering = "aes-128-cbc";
     // Using OpenSSl Encryption method

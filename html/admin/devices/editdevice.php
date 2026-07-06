@@ -117,9 +117,7 @@ if (getPOST("editdevice") !== null && isset($id)) {
     // Доступ
     $new['login']                 = trim(getPOST("f_login", null, ''));
     $f_password                   = getPOST("f_password", null, '');
-    if ($f_password !== '' && !preg_match('/^\*+$/', $f_password)) {
-        $new['password'] = crypt_string($f_password);
-    }
+    if (!preg_match('/^\*+$/', $f_password)) { $new['password'] = crypt_string($f_password); }
 
     $new['protocol']              = (int)getPOST("f_protocol", null, 0);
     $new['control_port']          = (int)getPOST("f_control_port", null, 0);
