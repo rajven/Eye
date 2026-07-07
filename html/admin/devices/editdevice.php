@@ -313,6 +313,22 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 print "</tr>\n";
             }
 
+            if ($device['device_type'] <=2 && $device['snmp_version'] <3) {
+                print "<tr><td>" . WEB_snmp_version . "</td><td colspan=3></td></tr>";
+                print "<tr><td class='data'>";
+                print_snmp_select('f_snmp_version', $device['snmp_version']);
+                print "</td><td class='data' colspan=3></td></tr>";
+                if ($device['snmp_version'] > 0) {
+                    print "<tr><td>" . WEB_snmp_community_ro . "</td><td>" . WEB_snmp_community_rw . "</td><td></td><td></td></tr>";
+                    print "<tr>\n";
+                    print "<td class='data'><input type='text' name='f_community' value=" . $device['community'] . "></td>\n";
+                    print "<td class='data'><input type='text' name='f_rw_community' value=" . $device['rw_community'] . "></td>\n";
+                    print "<td class='data' colspan=2></td>";
+                    print "</tr>";
+                }
+            }
+
+            // passive devices
             if ($device['device_type'] > 2) {
                 //cli access settings
                 print "<tr><td>" . WEB_snmp_version . "</td><td>" . WEB_cell_login . "</td><td>" . WEB_cell_password . "</td><td></td></tr>";
@@ -321,10 +337,10 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 print "</td>";
                 print "<td class='data'><input type='text' name='f_login' value=" . $device['login'] . "></td>\n";
                 print "<td class='data'><input type='text' name='f_password' value='********'></td>\n";
-                print "<td class='data'></td></tr>";
+                print "<td class='data'></td>";
                 print "</tr>";
                 if ($device['snmp_version'] > 0) {
-                    print "<tr><td>" . WEB_snmp_community_ro . "</td><td>" . WEB_snmp_community_rw . "</td><td></td><td></td></tr>";
+                    print "<tr><td>" . WEB_snmp_community_ro . "</td><td>" . WEB_snmp_community_rw . "</td><td colspan=2></td></tr>";
                     print "<tr>\n";
                     print "<td class='data'><input type='text' name='f_community' value=" . $device['community'] . "></td>\n";
                     print "<td class='data'><input type='text' name='f_rw_community' value=" . $device['rw_community'] . "></td>\n";
