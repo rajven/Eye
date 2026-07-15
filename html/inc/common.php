@@ -521,24 +521,22 @@ function fpkts($packets)
     return $result;
 }
 
-function checkValidIp($cidr)
-{
-    if (!is_string($cidr) || empty(trim($cidr))) {
-        return false;
+function checkValidIp($ip) {
+    // Проверка IPv4
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        return true;
     }
-
-    $cidr = trim($cidr);
-
-    // Проверяем IPv4 CIDR
-    if (preg_match('/^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/', $cidr)) {
-        return validateIPv4CIDR($cidr);
+    // Проверка IPv4 с маской (CIDR)
+    if (preg_match('/^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/', $ip)) {
+        $parts = explode('/', $ip);
+        if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            return true;
+        }
     }
-
-    // Проверяем IPv6 CIDR
-    if (preg_match('/^([0-9a-fA-F:]+)+(\/\d{1,3})?$/i', $cidr)) {
-        return validateIPv6CIDR($cidr);
+    // Проверка IPv6
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        return true;
     }
-
     return false;
 }
 
@@ -576,14 +574,28 @@ function validateIPv6CIDR($cidr)
            && $netmask >= 0 && $netmask <= 128;
 }
 
-function normalizeIpAddress($input) {
-    // Заменяем все возможные варианты "ю" на стандартные точки
-    $normalized = str_replace(
-        ['ю', 'Ю', '>'], // Кириллические и латинские варианты
-        '.', 
-        strtolower(trim($input))
-    );
-    if (!checkValidIp($normalized)) { return ''; }
+function normalizeIpAddress($value) {
+    // Приводим к строке и удаляем лишние пробелы
+    $value = trim((string)$value);
+    // Проверяем наличие символов 'ю', 'Ю' или '>' в строке
+    $hasRussianYuOrGreater = preg_match('/[юЮ>]/', $value);
+    // Начинаем нормализацию
+    $normalized = $value;
+    if ($hasRussianYuOrGreater) {
+        // ШАГ 1: Находим ПОСЛЕДНЮЮ точку в исходной строке
+        $lastDotPos = strrpos($normalized, '.');
+        // Если точка найдена - заменяем её на слеш
+        if ($lastDotPos !== false) {
+            $normalized[$lastDotPos] = '/';
+        }
+        // ШАГ 2: Заменяем 'ю', 'Ю' и '>' на точки (.)
+        $normalized = str_replace(['ю', 'Ю', '>'], '.', $normalized);
+    }
+    // ШАГ 3: Заменяем 'ж' и 'Ж' на двоеточие (всегда)
+    $normalized = str_replace(['ж', 'Ж'], ':', $normalized);
+    if (!checkValidIp($normalized)) {
+        return '';
+    }
     return $normalized;
 }
 

@@ -27,23 +27,18 @@ if (getPOST("save_ipset") !== null) {
 
 // ==================== ДОБАВЛЕНИЕ ОДНОГО ЭЛЕМЕНТА ====================
 if (getPOST("add_member") !== null) {
-    $ip          = trim(getPOST("f_ip", null, ''));
+    $ip          = normalizeIpAddress(getPOST("f_ip", null, ''));
     $description = trim(getPOST("f_member_desc", null, ''));
-    
-    if ($ip !== '') {
-        // Валидация IP (IPv4 или IPv6)
-        if (filter_var($ip, FILTER_VALIDATE_IP)) {
-            $new = [
+    if (!empty($ip)) {
+        $new = [
                 'ipset_id'    => $id,
                 'ip'          => $ip,
                 'description' => $description
             ];
-            // insert_record автоматически обработает дубликат благодаря UNIQUE ключу
-            @insert_record($db_link, "ipset_members", $new);
+        @insert_record($db_link, "ipset_members", $new);
         } else {
             $error = WEB_error_ip_address . htmlspecialchars($ip);
         }
-    }
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -56,13 +51,12 @@ if (getPOST("add_members_bulk") !== null) {
         foreach ($lines as $line) {
             $line = trim($line);
             if ($line === '' || strpos($line, '#') === 0) continue;
-            
-            // Парсинг: "ip [description]"
+
             $parts = preg_split('/\s{2,}|\t/', $line, 2);
-            $ip = trim($parts[0]);
+            $ip =  normalizeIpAddress($parts[0]);
             $desc = isset($parts[1]) ? trim($parts[1]) : '';
-            
-            if (filter_var($ip, FILTER_VALIDATE_IP)) {
+
+            if (!empty($ip)) {
                 @insert_record($db_link, "ipset_members", [
                     'ipset_id'    => $id,
                     'ip'          => $ip,
@@ -177,10 +171,10 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
             <tr>
                 <td><?php echo WEB_msg_IP; ?>:</td>
                 <td>
-                    <input type="text" name="f_ip" size="35" 
-                           placeholder="192.168.1.1 or 2001:db8::1" 
-                           pattern="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$"
-                           required>
+                <input type="text" name="f_ip" size="35"
+                    placeholder="192.168.1.1, 192.168.1.0/24"
+                    pattern="^[0-9\.юЮ>жЖ:\/]+$"
+                    required>
                 </td>
                 <td><?php echo WEB_cell_description; ?>:</td>
                 <td><input type="text" name="f_member_desc" size="30" maxlength="255"></td>
