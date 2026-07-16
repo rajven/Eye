@@ -1,4 +1,4 @@
-# Changelog 3-1-2
+# Changelog 3-1-3 - release
 - changed: When updating the backend, only new versions of files are installed, and the entire backend is not copied.
 - bugfix: Removed unnecessary quotas in email notifications from the web
 - bugfix: Fixed the entry of ip addresses into the ipset address group
@@ -7,6 +7,8 @@
 - added empty password for device
 - Added login and password for all devices. Added support to nagios templates.
 - bugfix: fixed the handling of uninitialized variables in dhcp-log & eye-statd
+
+# Changelog 3-1-2
 - html: fixed the display of auto-assignment rules in the general list by rule type
 - bugfix: Records with other|invalid statuses are excluded from arp processing html: Optimized the search for records with the same mac in subnets
 - Added verification by protocol code, not by name.
