@@ -3723,7 +3723,7 @@ function email($level = L_WARNING, $msg = '') {
 
     // Обработка сообщения
     $subjectPrefix = ($level === L_WARNING) ? "WARN: " : "ERROR: ";
-    $subject = $subjectPrefix . htmlspecialchars(get_first_line($msg), ENT_QUOTES, 'UTF-8') . "...";
+    $subject = $subjectPrefix . get_first_line($msg) . "...";
     $messageType = ($level === L_WARNING) ? 'WARNING' : 'ERROR';
     // Формирование HTML-сообщения с экранированием
     $safeMsg = nl2br(htmlspecialchars($msg, ENT_QUOTES, 'UTF-8'));
