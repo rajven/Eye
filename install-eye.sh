@@ -41,6 +41,14 @@ service_exists() {
     systemctl cat "$1.service" >/dev/null 2>&1
 }
 
+service_enabled() {
+    systemctl is-enabled --quiet "$1.service"
+}
+
+service_active() {
+    systemctl is-active --quiet "$1.service"
+}
+
 safe_start_service() {
     local svc="$1"
     if service_exists "$svc"; then
@@ -641,7 +649,7 @@ upgrade_source_code() {
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
         print_info "Updating backend scripts..."
         mkdir -p /opt/Eye/scripts/{cfg,log}
-        rsync -a --exclude='*/' scripts/ /opt/Eye/scripts/
+        rsync -a --existing --exclude='*/' scripts/ /opt/Eye/scripts/
         rsync -a scripts/eyelib/   /opt/Eye/scripts/eyelib/
         # Обновляем только если каталог установлен
         [[ -d /opt/Eye/scripts/updates ]] && rsync -a scripts/updates/ /opt/Eye/scripts/updates/
@@ -673,7 +681,9 @@ upgrade_source_code() {
                 cp -f "$SRC" "$DST"
                 chmod 644 "$DST"
                 SYSTEMD_CHANGED=1
-                RESTART_SERVICES+=("$svc")
+                if service_enabled "$svc"; then
+                    RESTART_SERVICES+=("$svc")
+                    fi
                 print_info "COPIED $SRC -> $DST"
             else
                 print_info "SKIP $svc: file identical"
@@ -683,7 +693,8 @@ upgrade_source_code() {
         if [[ $SYSTEMD_CHANGED -eq 1 ]]; then
             systemctl daemon-reload
             for svc in "${RESTART_SERVICES[@]}"; do
-                systemctl restart "$svc"
+                systemctl stop "$svc"
+                systemctl start "$svc"
             done
         fi
     fi
