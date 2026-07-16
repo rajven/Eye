@@ -1,3 +1,21 @@
+# Changelog 3-1-2
+- changed: When updating the backend, only new versions of files are installed, and the entire backend is not copied.
+- bugfix: Removed unnecessary quotas in email notifications from the web
+- bugfix: Fixed the entry of ip addresses into the ipset address group
+- bugfix: restored snmp settings for netdevices
+- clear empty params for nagios template
+- added empty password for device
+- Added login and password for all devices. Added support to nagios templates.
+- bugfix: fixed the handling of uninitialized variables in dhcp-log & eye-statd
+- html: fixed the display of auto-assignment rules in the general list by rule type
+- bugfix: Records with other|invalid statuses are excluded from arp processing html: Optimized the search for records with the same mac in subnets
+- Added verification by protocol code, not by name.
+- Fixed the comparison of iptables filters. Now the order of the elements is ignored.
+- removed hardcoded debug from web, small fixes in upgrade sub
+
+# Changelog 3-1-1
+- updated the ipset startup script the name of the DB server variable in the initial backend config has been changed to DBHOST fixed the update procedure - only installed components are updated, not the entire backend.
+
 # Changelog 3.1.0 - release
 - bugfix: fixed "OID not increasing"
 - bugfix: fixed the installation of locks for polling equipment
