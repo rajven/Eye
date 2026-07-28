@@ -1,188 +1,272 @@
-#!/usr/bin/perl 
+#!/usr/bin/perl -CS
 
 #
 # Copyright (C) Roman Dmitiriev, rnd@rajven.ru
 #
 
 use utf8;
+use open ":encoding(utf8)";
+use strict;
 use warnings;
-use Encode;
-use open qw(:std :encoding(UTF-8));
-no warnings 'utf8';
-
 use English;
-use base;
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
-use strict;
 use Time::Local;
 use FileHandle;
 use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
-use eyelib::logconfig;
 use eyelib::net_utils;
 use eyelib::database;
-use eyelib::common;
 use eyelib::snmp;
 use eyelib::cmd;
 use Net::SNMP qw(:snmp);
 use Fcntl qw(:flock);
 
-open(SELF,"<",$0) or die "Cannot open $0 - $!";
-flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
+# Блокировка от повторного запуска
+open(my $self_fh, "<", $0) or die "Cannot open $0 - $!";
+flock($self_fh, LOCK_EX|LOCK_NB) or exit 1;
 
-my @auth_list = get_records_sql($dbh,"SELECT A.id,A.user_id,A.ip,A.mac,A.dns_name,A.description,A.dhcp_hostname,A.wikiname,K.login,K.ou_id FROM user_auth as A, user_list as K WHERE K.id=A.user_id AND A.deleted=0 ORDER BY A.id");
+my @all_devices = get_records_sql($dbh, "SELECT * FROM devices");
+my %devices_by_user_id;
+foreach my $dev (@all_devices) {
+    $devices_by_user_id{$dev->{user_id}} = $dev;
+}
+
+# ==============================================================================
+# Обработка пользователей (user_auth)
+# ==============================================================================
+my @auth_list = get_records_sql($dbh, "
+    SELECT A.id, A.user_id, A.ip, A.mac, A.dns_name, A.description,
+           A.dhcp_hostname, A.WikiName, K.login, K.ou_id
+    FROM user_auth AS A
+    INNER JOIN user_list AS K ON K.id = A.user_id
+    WHERE A.deleted = 0
+    ORDER BY A.id
+");
 
 my %auth_ref;
 foreach my $auth (@auth_list) {
-$auth_ref{$auth->{id}}{id}=$auth->{id};
-$auth_ref{$auth->{id}}{ou_id}=$auth->{ou_id};
-$auth_ref{$auth->{id}}{ip}=$auth->{ip};
-$auth_ref{$auth->{id}}{mac}=$auth->{mac};
-$auth_ref{$auth->{id}}{dns_name}=$auth->{dns_name};
-$auth_ref{$auth->{id}}{description}=$auth->{description};
-$auth_ref{$auth->{id}}{dhcp_hostname}=$auth->{dhcp_hostname};
-$auth_ref{$auth->{id}}{wikiname}=$auth->{wikiname};
-$auth_ref{$auth->{id}}{login}=$auth->{login};
-my $a_netdev = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id = ".$auth->{user_id});
-$auth_ref{$auth->{id}}{device}=$a_netdev;
-if ($auth->{dns_name}) { $auth_ref{$auth->{id}}{description} = $auth->{dns_name}; }
-if (!$auth_ref{$auth->{id}}{description} and $auth->{wikiname}) { $auth_ref{$auth->{id}}{description} = $auth->{wikiname}; }
-if (!$auth_ref{$auth->{id}}{description} and $auth->{description}) { $auth_ref{$auth->{id}}{description} = translit($auth->{description}); }
-if (!$auth_ref{$auth->{id}}{description}) { $auth_ref{$auth->{id}}{description} = $auth->{ip}; }
-$auth_ref{$auth->{id}}{description}=~s/\./-/g;
-$auth_ref{$auth->{id}}{description}=~s/\(/_/g;
-$auth_ref{$auth->{id}}{description}=~s/\)/_/g;
+    my $id = $auth->{id};
+
+    $auth_ref{$id} = {
+        id            => $id,
+        ou_id         => $auth->{ou_id},
+        ip            => $auth->{ip},
+        mac           => $auth->{mac},
+        dns_name      => $auth->{dns_name},
+        description   => $auth->{description},
+        dhcp_hostname => $auth->{dhcp_hostname},
+        WikiName      => $auth->{WikiName},
+        login         => $auth->{login},
+        device        => $devices_by_user_id{$auth->{user_id}},
+    };
+
+    # Логика формирования описания (fallback)
+    if ($auth->{dns_name}) {
+        $auth_ref{$id}{description} = $auth->{dns_name};
+    } elsif (!$auth_ref{$id}{description} && $auth->{WikiName}) {
+        $auth_ref{$id}{description} = $auth->{WikiName};
+    } elsif (!$auth_ref{$id}{description} && $auth->{description}) {
+        $auth_ref{$id}{description} = $auth->{description};
+    } elsif (!$auth_ref{$id}{description}) {
+        $auth_ref{$id}{description} = $auth->{ip};
+    }
+
 }
 
+# ==============================================================================
+# Обработка портов устройств (device_ports)
+# ==============================================================================
 my %port_info;
 
-my $d_sql="SELECT DP.id, D.ip, D.device_name, D.device_model_id, DP.port, DP.snmp_index, DP.description, DP.target_port_id, D.vendor_id, D.device_type
-FROM devices AS D, device_ports AS DP
-WHERE D.id = DP.device_id AND (D.device_type <=1) AND D.deleted=0
-ORDER BY D.device_name,DP.port";
+# device_type <= 1: предполагаем, что 0=Switch, 1=Router
+my $d_sql = "
+    SELECT DP.id, D.ip, D.device_name, D.device_model_id, DP.port,
+           DP.snmp_index, DP.description, DP.target_port_id,
+           D.vendor_id, D.device_type
+    FROM devices AS D
+    INNER JOIN device_ports AS DP ON D.id = DP.device_id
+    WHERE D.device_type <= 1
+      AND D.deleted = 0
+    ORDER BY D.device_name, DP.port
+";
 
-my @port_list = get_records_sql($dbh,$d_sql);
+my @port_list = get_records_sql($dbh, $d_sql);
 
 foreach my $port (@port_list) {
-$port_info{$port->{id}}{id}=$port->{id};
-$port_info{$port->{id}}{device_name}=lc($port->{device_name});
-$port_info{$port->{id}}{ip}=$port->{ip};
-$port_info{$port->{id}}{device_model_id}=$port->{device_model_id};
-$port_info{$port->{id}}{port}=$port->{port};
-$port_info{$port->{id}}{snmp_index}=$port->{snmp_index};
-$port_info{$port->{id}}{description}=$port->{description};
-$port_info{$port->{id}}{target_port_id}=$port->{target_port_id};
-$port_info{$port->{id}}{vendor_id}=$port->{vendor_id};
-$port_info{$port->{id}}{device_type}=$port->{device_type};
+    my $pid = $port->{id};
+    $port_info{$pid} = {
+        id              => $pid,
+        device_name     => lc($port->{device_name}),
+        ip              => $port->{ip},
+        device_model_id => $port->{device_model_id},
+        port            => $port->{port},
+        snmp_index      => $port->{snmp_index},
+        description     => $port->{description},
+        target_port_id  => $port->{target_port_id},
+        vendor_id       => $port->{vendor_id},
+        device_type     => $port->{device_type},
+    };
 }
 
+# ==============================================================================
+# Обработка подключений (connections)
+# ==============================================================================
 my %conn_info;
 
-$d_sql="SELECT C.id, C.port_id, C.auth_id FROM connections AS C, user_auth as A WHERE A.id=C.auth_id AND A.deleted=0 ORDER BY C.id";
-my @conn_list = get_records_sql($dbh,$d_sql);
+$d_sql = "
+    SELECT C.id, C.port_id, C.auth_id
+    FROM connections AS C
+    INNER JOIN user_auth AS A ON A.id = C.auth_id
+    WHERE A.deleted = 0
+    ORDER BY C.id
+";
+my @conn_list = get_records_sql($dbh, $d_sql);
 
 foreach my $conn (@conn_list) {
-$conn_info{$conn->{id}}{id}=$conn->{id};
-$conn_info{$conn->{id}}{port_id}=$conn->{port_id};
-if ($conn->{auth_id}) {
-    $conn_info{$conn->{id}}{auth_id}=$conn->{auth_id};
-    $conn_info{$conn->{id}}{description}=$auth_ref{$conn->{auth_id}}->{description};
-    $conn_info{$conn->{id}}{ou_id}=$auth_ref{$conn->{auth_id}}->{ou_id};
+    my $cid = $conn->{id};
+    $conn_info{$cid} = {
+        id      => $cid,
+        port_id => $conn->{port_id},
+    };
+
+    if (my $aid = $conn->{auth_id}) {
+        $conn_info{$cid}{auth_id}     = $aid;
+        $conn_info{$cid}{description} = $auth_ref{$aid}{description};
+        $conn_info{$cid}{ou_id}       = $auth_ref{$aid}{ou_id};
+        $conn_info{$cid}{device}      = $auth_ref{$aid}{device};
     }
 }
-
-
+# Назначаем описания портам на основе подключений
 foreach my $conn_id (keys %conn_info) {
-if (exists $port_info{$conn_info{$conn_id}{port_id}}{count}) {
-    $port_info{$conn_info{$conn_id}{port_id}}{count}++;
-    #ou: Switches, Routers, WiFi AP
-    if ($conn_info{$conn_id}{device} and $conn_info{$conn_id}{description}) {
-        if ($conn_info{$conn_id}{device}{device_name}) {
-            $port_info{$conn_info{$conn_id}{port_id}}{description} = $conn_info{$conn_id}{device}{device_name};
+    my $pid = $conn_info{$conn_id}{port_id};
+    next unless exists $port_info{$pid};
+
+    if (!$port_info{$pid}{description} && exists $port_info{$pid}{count}) {
+        # Приоритет: если подключено сетевое устройство (Switch/Router/AP), берем его имя
+        if ($conn_info{$conn_id}{device} && $conn_info{$conn_id}{description}) {
+            if ($conn_info{$conn_id}{device}{device_name}) {
+                $port_info{$pid}{description} = $conn_info{$conn_id}{device}{device_name};
             } else {
-            $port_info{$conn_info{$conn_id}{port_id}}{description} = $conn_info{$conn_id}{description};
+                $port_info{$pid}{description} = $conn_info{$conn_id}{description};
             }
         }
-    next;
-    } else { $port_info{$conn_info{$conn_id}{port_id}}{count}=1; }
-
-if (!exists $port_info{$conn_info{$conn_id}{port_id}}{description} and $conn_info{$conn_id}{description}) {
-    $port_info{$conn_info{$conn_id}{port_id}}{description} = $conn_info{$conn_id}{description};
+        next;
     }
 }
 
+# ==============================================================================
+# Формирование финального хеша устройств и портов для прошивки
+# ==============================================================================
 my %devices;
 
 foreach my $port_id (keys %port_info) {
-if ($port_info{$port_id}{target_port_id}) {
-    $port_info{$port_id}{description}=$port_info{$port_info{$port_id}{target_port_id}}{device_name}." [".$port_info{$port_info{$port_id}{target_port_id}}{port}.']';
+    if (my $target_id = $port_info{$port_id}{target_port_id}) {
+        if (exists $port_info{$target_id}) {
+            my $t_dev  = $port_info{$target_id}{device_name} // 'Unknown';
+            my $t_port = $port_info{$target_id}{port}        // '?';
+            $port_info{$port_id}{description} = "$t_dev [$t_port]";
+        }
     }
-if (!$port_info{$port_id}{description} and $port_info{$port_id}{description}) { $port_info{$port_id}{description}=translit($port_info{$port_id}{description}); }
-$devices{$port_info{$port_id}{device_name}}{ports}{$port_info{$port_id}{port}}{description}=$port_info{$port_id}{description};
-$devices{$port_info{$port_id}{device_name}}{ports}{$port_info{$port_id}{port}}{snmp_index}=$port_info{$port_id}{snmp_index};
-$devices{$port_info{$port_id}{device_name}}{device_name}=$port_info{$port_id}{device_name};
-$devices{$port_info{$port_id}{device_name}}{ip}=$port_info{$port_id}{ip};
-$devices{$port_info{$port_id}{device_name}}{device_model_id}=$port_info{$port_id}{device_model_id};
-$devices{$port_info{$port_id}{device_name}}{vendor_id}=$port_info{$port_id}{vendor_id};
-$devices{$port_info{$port_id}{device_name}}{device_type}=$port_info{$port_id}{device_type};
+
+    if (defined $port_info{$port_id}{description}) {
+        $port_info{$port_id}{description} = $port_info{$port_id}{description};
+    }
+
+    my $dev_name = $port_info{$port_id}{device_name};
+    my $port_num = $port_info{$port_id}{port};
+
+    $devices{$dev_name}{ports}{$port_num}{description} = $port_info{$port_id}{description};
+    $devices{$dev_name}{ports}{$port_num}{snmp_index}  = $port_info{$port_id}{snmp_index};
+    $devices{$dev_name}{device_name}                   = $dev_name;
+    $devices{$dev_name}{ip}                            = $port_info{$port_id}{ip};
+    $devices{$dev_name}{device_model_id}               = $port_info{$port_id}{device_model_id};
+    $devices{$dev_name}{vendor_id}                     = $port_info{$port_id}{vendor_id};
+    $devices{$dev_name}{device_type}                   = $port_info{$port_id}{device_type};
 }
 
-
-#$Net::OpenSSH::debug=-1;
+# ==============================================================================
+# Применение описаний на устройства по SNMP
+# ==============================================================================
 
 foreach my $device_name (sort keys %devices) {
-my $device = $devices{$device_name};
+    my $device = $devices{$device_name};
 
-#skip unknown vendor
-next if (!$switch_auth{$device->{vendor_id}});
+    # skip unknown vendor
+    next if (!$switch_auth{$device->{vendor_id}});
 
+    my $ip = $device->{ip};
 
-my $ip = $device->{ip};
+    my $safe_ip = $dbh->quote($ip);
+    my $netdev = get_record_sql($dbh, "SELECT * FROM devices WHERE ip = $safe_ip");
 
-my $netdev = get_record_sql($dbh,"SELECT * FROM devices WHERE ip='".$ip."'");
+    next if (!$netdev);
 
-next if (!$netdev);
+    print "Device: $device_name IP: $ip ";
 
-print "Device: $device_name IP: $ip ";
+    if (!HostIsLive($ip)) {
+        print "... Down! Skip.\n";
+        next;
+    }
 
-if (!HostIsLive($ip)) { print "... Down! Skip.\n"; next; }
+    print "... Programming:\n";
 
-print "... Programming:\n";
+    setCommunity($netdev);
 
-setCommunity($netdev);
+    eval {
+        # get interface names
+        my $int = get_interfaces($ip, $netdev->{snmp}, 0);
 
-eval {
-#get interface names
-my $int = get_interfaces($ip,$netdev->{snmp},0);
+        $netdev = netdev_set_auth($netdev);
 
-$netdev = netdev_set_auth($netdev);
+        $device->{login}           = $netdev->{login};
+        $device->{password}        = $netdev->{password};
+        $device->{enable_password} = '';
+        $device->{proto}           = $netdev->{proto};
+        $device->{port}            = $netdev->{port};
 
-$device->{login}= $netdev->{login};
-$device->{password}= $netdev->{password};
-$device->{enable_password}='';
-$device->{proto} = $netdev->{proto};
-$device->{port} = $netdev->{port};
+        my $session = netdev_login($device);
 
-my $session = netdev_login($device);
+        if ($session) {
+            netdev_set_hostname($session, $device);
+            foreach my $port (sort { $a <=> $b } keys %{$device->{ports}}) {
+                next if (!$device->{ports}{$port}{description});
 
-if ($session) {
-    netdev_set_hostname($session,$device);
-    foreach my $port (sort  { $a <=> $b } keys %{$device->{ports}}) {
-        my $descr = $device->{ports}{$port}{description};
-        next if ($descr =~ /^-port-$/);
-        next if ($descr =~ /^\s+\[\]$/);
-        my $index = $device->{ports}{$port}{snmp_index};
-        print "Port: $port index: $index Descr: $descr\n";
-        netdev_set_port_descr($session,$device,$int->{$index}->{name},$port,$descr);
+                my $descr = translit($device->{ports}{$port}{description});
+
+                # Очистка описания от спецсимволов
+                $descr =~ s/\./-/g;
+                $descr =~ s/\(/_/g;
+                $descr =~ s/\)/_/g;
+
+                next if (!$descr);
+                next if ($descr =~ /^-port-$/);
+
+                my $index = $device->{ports}{$port}{snmp_index};
+
+                if (!defined $index || !exists $int->{$index}) {
+                    print "  Port: $port index: " . ($index // 'undef') . " -> Skipped (No SNMP data)\n";
+                    next;
+                }
+
+                my $if_name = $int->{$index}->{name};
+                print "  Port: $port index: $index Descr: $descr\n";
+
+                netdev_set_port_descr($session, $device, $if_name, $port, $descr);
+            }
+            netdev_wr_mem($session, $device);
+        } else {
+            print "Login error!\n";
+            next;
         }
-    netdev_wr_mem($session,$device);
-    } else { print "Login error!\n"; next; }
-};
-if ($@) { print "Error! Apply failed!\n"; next; }
+    };
+    if ($@) {
+        print "Error! Apply failed: $@\n";
+        next;
+    }
 
-print "Programming finished.\n";
+    print "Programming finished.\n";
 }
 
-exit;
+exit 0;
