@@ -97,16 +97,17 @@ my @port_list = get_records_sql($dbh, $d_sql);
 foreach my $port (@port_list) {
     my $pid = $port->{id};
     $port_info{$pid} = {
-        id              => $pid,
-        device_name     => lc($port->{device_name}),
-        ip              => $port->{ip},
-        device_model_id => $port->{device_model_id},
-        port            => $port->{port},
-        snmp_index      => $port->{snmp_index},
-        description     => $port->{description},
-        target_port_id  => $port->{target_port_id},
-        vendor_id       => $port->{vendor_id},
-        device_type     => $port->{device_type},
+        id               => $pid,
+        device_name      => lc($port->{device_name}),
+        ip               => $port->{ip},
+        device_model_id  => $port->{device_model_id},
+        port             => $port->{port},
+        snmp_index       => $port->{snmp_index},
+        description      => $port->{description},
+        port_description => $port->{description},
+        target_port_id   => $port->{target_port_id},
+        vendor_id        => $port->{vendor_id},
+        device_type      => $port->{device_type},
     };
 }
 
@@ -138,22 +139,40 @@ foreach my $conn (@conn_list) {
         $conn_info{$cid}{device}      = $auth_ref{$aid}{device};
     }
 }
-# Назначаем описания портам на основе подключений
+
+# Приоритет именования портов по типу устройств
+my %device_priority = (
+    0 => 1,  # Router
+    1 => 2,  # Switch
+    2 => 3,  # Gateway
+    4 => 4,  # WiFi Access Point
+    3 => 5,  # Server
+    5 => 6,  # Network device
+);
+
+# Назначаем описания портам на основе подключений устройств
 foreach my $conn_id (keys %conn_info) {
     my $pid = $conn_info{$conn_id}{port_id};
     next unless exists $port_info{$pid};
-
-    if (!$port_info{$pid}{description} && exists $port_info{$pid}{count}) {
-        # Приоритет: если подключено сетевое устройство (Switch/Router/AP), берем его имя
-        if ($conn_info{$conn_id}{device} && $conn_info{$conn_id}{description}) {
-            if ($conn_info{$conn_id}{device}{device_name}) {
-                $port_info{$pid}{description} = $conn_info{$conn_id}{device}{device_name};
-            } else {
-                $port_info{$pid}{description} = $conn_info{$conn_id}{description};
-            }
+    if ($conn_info{$conn_id}{device} && defined $conn_info{$conn_id}{device}{device_type}) {
+        my $current_device_type = $conn_info{$conn_id}{device}{device_type};
+        my $current_device_name = $conn_info{$conn_id}{device}{device_name} || '';
+        my $current_priority = $device_priority{$current_device_type};
+        # Если описание порта еще не назначено или новое устройство имеет более высокий приоритет (меньшее число)
+        if (!defined $port_info{$pid}{priority} || $current_priority < $port_info{$pid}{priority}) {
+            $port_info{$pid}{priority} = $current_priority;
+            $port_info{$pid}{device_type} = $current_device_type;
+            $port_info{$pid}{description} = $current_device_name;
         }
-        next;
     }
+}
+
+# Назначаем описания портам на основе подключений ip-адресов
+foreach my $conn_id (keys %conn_info) {
+    my $pid = $conn_info{$conn_id}{port_id};
+    next unless exists $port_info{$pid};
+    next if ($port_info{$pid}{description});
+    $port_info{$pid}{description} = $conn_info{$conn_id}{description};
 }
 
 # ==============================================================================
@@ -169,13 +188,22 @@ foreach my $port_id (keys %port_info) {
             $port_info{$port_id}{description} = "$t_dev [$t_port]";
         }
     }
-
-    if (defined $port_info{$port_id}{description}) {
-        $port_info{$port_id}{description} = $port_info{$port_id}{description};
-    }
+    next if (!$port_info{$port_id});
 
     my $dev_name = $port_info{$port_id}{device_name};
     my $port_num = $port_info{$port_id}{port};
+
+    # Переопредеям описаниме по описанию порта свича
+    if ($port_info{$port_id}{port_description}) { $port_info{$port_id}{description} = $port_info{$port_id}{port_description}; }
+
+    # транслитерация
+    $port_info{$port_id}{description} = translit($port_info{$port_id}{description}) // '';
+    # Оставить только латиницу, цифры и базовые символы
+    $port_info{$port_id}{description} =~ s/[^a-zA-Z0-9\s\.\,\-\_]//g;
+    # Схлопнуть множественные пробелы
+    $port_info{$port_id}{description} =~ s/\s+/ /g;
+    # Убрать пробелы по краям
+    $port_info{$port_id}{description} =~ s/^\s+|\s+$//g;
 
     $devices{$dev_name}{ports}{$port_num}{description} = $port_info{$port_id}{description};
     $devices{$dev_name}{ports}{$port_num}{snmp_index}  = $port_info{$port_id}{snmp_index};
@@ -233,7 +261,7 @@ foreach my $device_name (sort keys %devices) {
             foreach my $port (sort { $a <=> $b } keys %{$device->{ports}}) {
                 next if (!$device->{ports}{$port}{description});
 
-                my $descr = translit($device->{ports}{$port}{description});
+                my $descr =$device->{ports}{$port}{description};
 
                 # Очистка описания от спецсимволов
                 $descr =~ s/\./-/g;

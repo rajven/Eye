@@ -660,7 +660,7 @@ return (@result);
 
 sub translit {
 my $textline=shift;
-return if (!$textline);
+return '' if (!$textline);
 $textline =~ s/А/A/g;		$textline =~ s/а/a/g;
 $textline =~ s/Б/B/g;		$textline =~ s/б/b/g;
 $textline =~ s/В/V/g;		$textline =~ s/в/v/g;
