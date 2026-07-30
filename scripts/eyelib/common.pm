@@ -41,7 +41,6 @@ delete_user_auth
 find_mac_in_subnet
 get_default_ou
 get_device_by_ip
-get_dns_name
 get_dynamic_ou
 get_ip_subnet
 get_new_user_id
@@ -87,25 +86,6 @@ sub unbind_ports {
         # Обнуляем ссылку С этого порта (куда он ссылался)
         do_sql($db, "UPDATE device_ports SET target_port_id = 0 WHERE id = ?", $row->{id});
     }
-}
-
-#---------------------------------------------------------------------------------------------------------------
-
-sub get_dns_name {
-    my ($db, $id) = @_;
-    return unless $db && defined $id;
-
-    return unless $id =~ /^\d+$/ && $id > 0;
-
-    my $auth_record = get_record_sql(
-        $db,
-        "SELECT dns_name FROM user_auth WHERE deleted = 0 AND id = ?",
-        $id
-    );
-
-    return $auth_record && $auth_record->{dns_name}
-        ? $auth_record->{dns_name}
-        : undef;
 }
 
 #---------------------------------------------------------------------------------------------------------------

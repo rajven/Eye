@@ -44,6 +44,7 @@ use Text::CSV;
 our @ISA = qw(Exporter);
 
 our @EXPORT = qw(
+get_dns_name
 update_records
 get_office_subnet
 get_notify_subnet
@@ -136,6 +137,25 @@ our %dns_fields = (
 );
 
 our %db_schema;
+
+#---------------------------------------------------------------------------------------------------------------
+
+sub get_dns_name {
+    my ($db, $id) = @_;
+    return unless $db && defined $id;
+
+    return unless $id =~ /^\d+$/ && $id > 0;
+
+    my $auth_record = get_record_sql(
+        $db,
+        "SELECT dns_name FROM user_auth WHERE deleted = 0 AND id = ?",
+        $id
+    );
+
+    return $auth_record && $auth_record->{dns_name}
+        ? $auth_record->{dns_name}
+        : undef;
+}
 
 #---------------------------------------------------------------------------------------------------------------
 

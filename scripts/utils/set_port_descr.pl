@@ -14,6 +14,7 @@ use lib "/opt/Eye/scripts";
 use Time::Local;
 use FileHandle;
 use Data::Dumper;
+use POSIX qw(strftime);
 use eyelib::config;
 use eyelib::main;
 use eyelib::net_utils;
@@ -37,8 +38,7 @@ foreach my $dev (@all_devices) {
 # Обработка пользователей (user_auth)
 # ==============================================================================
 my @auth_list = get_records_sql($dbh, "
-    SELECT A.id, A.user_id, A.ip, A.mac, A.dns_name, A.description,
-           A.dhcp_hostname, A.WikiName, K.login, K.ou_id
+    SELECT A.id, A.user_id, A.ip, A.dns_name, A.description, A.dhcp_hostname, A.WikiName, K.login
     FROM user_auth AS A
     INNER JOIN user_list AS K ON K.id = A.user_id
     WHERE A.deleted = 0
@@ -51,14 +51,12 @@ foreach my $auth (@auth_list) {
 
     $auth_ref{$id} = {
         id            => $id,
-        ou_id         => $auth->{ou_id},
-        ip            => $auth->{ip},
-        mac           => $auth->{mac},
-        dns_name      => $auth->{dns_name},
-        description   => $auth->{description},
-        dhcp_hostname => $auth->{dhcp_hostname},
-        WikiName      => $auth->{WikiName},
-        login         => $auth->{login},
+        ip            => $auth->{ip} // '',
+        dns_name      => $auth->{dns_name} // '',
+        description   => $auth->{description} // '',
+        dhcp_hostname => $auth->{dhcp_hostname} // '',
+        WikiName      => $auth->{WikiName} // '',
+        login         => $auth->{login} // '',
         device        => $devices_by_user_id{$auth->{user_id}},
     };
 
@@ -67,8 +65,8 @@ foreach my $auth (@auth_list) {
         $auth_ref{$id}{description} = $auth->{dns_name};
     } elsif (!$auth_ref{$id}{description} && $auth->{WikiName}) {
         $auth_ref{$id}{description} = $auth->{WikiName};
-    } elsif (!$auth_ref{$id}{description} && $auth->{description}) {
-        $auth_ref{$id}{description} = $auth->{description};
+    } elsif (!$auth_ref{$id}{description} && $auth->{ip} && $auth->{description}) {
+        $auth_ref{$id}{description} = $auth->{ip}. ': '. $auth->{description};
     } elsif (!$auth_ref{$id}{description}) {
         $auth_ref{$id}{description} = $auth->{ip};
     }
@@ -80,10 +78,9 @@ foreach my $auth (@auth_list) {
 # ==============================================================================
 my %port_info;
 
-# device_type <= 1: предполагаем, что 0=Switch, 1=Router
 my $d_sql = "
-    SELECT DP.id, D.ip, D.device_name, D.device_model_id, DP.port,
-           DP.snmp_index, DP.description, DP.target_port_id,
+    SELECT DP.id, D.ip, D.device_name, D.device_model_id, DP.port, 
+           DP.snmp_index, DP.description, DP.target_port_id, 
            D.vendor_id, D.device_type
     FROM devices AS D
     INNER JOIN device_ports AS DP ON D.id = DP.device_id
@@ -111,16 +108,38 @@ foreach my $port (@port_list) {
     };
 }
 
+my $two_weeks_ago = strftime("%Y-%m-%d %H:%M:%S", localtime(time - 14 * 86400));
+
+# Число актуальных соединений по портам
+my $port_conn_count_sql = "
+    SELECT dp.id AS port_id, COUNT(c.id) AS connection_count
+    FROM device_ports dp
+    LEFT JOIN connections c 
+        ON dp.id = c.port_id 
+        AND c.last_found >= ?
+    GROUP BY dp.id
+    ORDER BY dp.id;
+";
+
+my @port_conn_count = get_records_sql($dbh, $port_conn_count_sql, $two_weeks_ago);
+
+foreach my $port (@port_conn_count) {
+    my $pid = $port->{port_id};
+    next if (!$port_info{$pid});
+    $port_info{$pid}{conn_count} = $port->{connection_count};
+}
+
+
 # ==============================================================================
 # Обработка подключений (connections)
 # ==============================================================================
 my %conn_info;
 
 $d_sql = "
-    SELECT C.id, C.port_id, C.auth_id
+    SELECT C.id, C.port_id, C.auth_id 
     FROM connections AS C
-    INNER JOIN user_auth AS A ON A.id = C.auth_id
-    WHERE A.deleted = 0
+    INNER JOIN user_auth AS A ON A.id = C.auth_id 
+    WHERE A.deleted = 0 
     ORDER BY C.id
 ";
 my @conn_list = get_records_sql($dbh, $d_sql);
@@ -135,7 +154,6 @@ foreach my $conn (@conn_list) {
     if (my $aid = $conn->{auth_id}) {
         $conn_info{$cid}{auth_id}     = $aid;
         $conn_info{$cid}{description} = $auth_ref{$aid}{description};
-        $conn_info{$cid}{ou_id}       = $auth_ref{$aid}{ou_id};
         $conn_info{$cid}{device}      = $auth_ref{$aid}{device};
     }
 }
@@ -156,7 +174,8 @@ foreach my $conn_id (keys %conn_info) {
     next unless exists $port_info{$pid};
     if ($conn_info{$conn_id}{device} && defined $conn_info{$conn_id}{device}{device_type}) {
         my $current_device_type = $conn_info{$conn_id}{device}{device_type};
-        my $current_device_name = $conn_info{$conn_id}{device}{device_name} || '';
+        my $current_device_name = $conn_info{$conn_id}{device}{device_name} || $conn_info{$conn_id}{device}{ip};
+        if ($current_device_name=~ /^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$|^[0-9A-Fa-f]{12}$|^[0-9A-Fa-f]{4}\.[0-9A-Fa-f]{4}\.[0-9A-Fa-f]{4}$/) {  $current_device_name =  $conn_info{$conn_id}{device}{ip}; }
         my $current_priority = $device_priority{$current_device_type};
         # Если описание порта еще не назначено или новое устройство имеет более высокий приоритет (меньшее число)
         if (!defined $port_info{$pid}{priority} || $current_priority < $port_info{$pid}{priority}) {
@@ -181,6 +200,18 @@ foreach my $conn_id (keys %conn_info) {
 my %devices;
 
 foreach my $port_id (keys %port_info) {
+    next if (!$port_info{$port_id});
+
+    my $dev_name = $port_info{$port_id}{device_name};
+    my $port_num = $port_info{$port_id}{port};
+
+    # Если нет актуальных соединений
+    if (!$port_info{$port_id}{conn_count}) { $port_info{$port_id}{description} = ''; }
+
+    # Переопределяем описание по описанию порта свича
+    if ($port_info{$port_id}{port_description}) { $port_info{$port_id}{description} = $port_info{$port_id}{port_description}; }
+
+    # Описание порта по соединениям свичей/роутеров
     if (my $target_id = $port_info{$port_id}{target_port_id}) {
         if (exists $port_info{$target_id}) {
             my $t_dev  = $port_info{$target_id}{device_name} // 'Unknown';
@@ -188,24 +219,21 @@ foreach my $port_id (keys %port_info) {
             $port_info{$port_id}{description} = "$t_dev [$t_port]";
         }
     }
-    next if (!$port_info{$port_id});
-
-    my $dev_name = $port_info{$port_id}{device_name};
-    my $port_num = $port_info{$port_id}{port};
-
-    # Переопредеям описаниме по описанию порта свича
-    if ($port_info{$port_id}{port_description}) { $port_info{$port_id}{description} = $port_info{$port_id}{port_description}; }
 
     # транслитерация
     $port_info{$port_id}{description} = translit($port_info{$port_id}{description}) // '';
+    # Меняем неоднозначные символы
+    $port_info{$port_id}{description} =~ s/\./-/g;
+    $port_info{$port_id}{description} =~ s/\(/_/g;
+    $port_info{$port_id}{description} =~ s/\)/_/g;
     # Оставить только латиницу, цифры и базовые символы
-    $port_info{$port_id}{description} =~ s/[^a-zA-Z0-9\s\.\,\-\_]//g;
+    $port_info{$port_id}{description} =~ s/[^a-zA-Z0-9\s\.\,\-\_\[\]\=\:]//g;
     # Схлопнуть множественные пробелы
     $port_info{$port_id}{description} =~ s/\s+/ /g;
     # Убрать пробелы по краям
     $port_info{$port_id}{description} =~ s/^\s+|\s+$//g;
 
-    $devices{$dev_name}{ports}{$port_num}{description} = $port_info{$port_id}{description};
+    $devices{$dev_name}{ports}{$port_num}{description} = $port_info{$port_id}{description} // '';
     $devices{$dev_name}{ports}{$port_num}{snmp_index}  = $port_info{$port_id}{snmp_index};
     $devices{$dev_name}{device_name}                   = $dev_name;
     $devices{$dev_name}{ip}                            = $port_info{$port_id}{ip};
@@ -235,7 +263,7 @@ foreach my $device_name (sort keys %devices) {
 
     if (!HostIsLive($ip)) {
         print "... Down! Skip.\n";
-        next;
+        next; 
     }
 
     print "... Programming:\n";
@@ -262,14 +290,6 @@ foreach my $device_name (sort keys %devices) {
                 next if (!$device->{ports}{$port}{description});
 
                 my $descr =$device->{ports}{$port}{description};
-
-                # Очистка описания от спецсимволов
-                $descr =~ s/\./-/g;
-                $descr =~ s/\(/_/g;
-                $descr =~ s/\)/_/g;
-
-                next if (!$descr);
-                next if ($descr =~ /^-port-$/);
 
                 my $index = $device->{ports}{$port}{snmp_index};
 

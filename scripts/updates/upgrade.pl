@@ -57,6 +57,13 @@ if ($eye_release eq $config_ref{version}) { print "Already updated!\n"; exit; }
 
 print 'Current version: '.$config_ref{version}.' upgrade to: '.$eye_release."\n";
 
+do_sql($dbh,"DELETE FROM config WHERE option_id=68");
+
+my $maintance;
+$maintance->{'option_id'} = 68;
+$maintance->{'value'} = 1;
+insert_record($dbh,"config",$maintance);
+
 #1 - mysql
 #0 - pgsql
 my $db_type = ($config_ref{DBTYPE} eq 'mysql');
@@ -198,6 +205,8 @@ for (my $i=$old_version_index; $i < scalar @old_releases; $i++) {
 #change version
 do_sql($dbh,'UPDATE version SET version=?', $old_releases[$i]);
 }
+
+do_sql($dbh,"DELETE FROM config WHERE option_id=68");
 
 print "Done!\n";
 
