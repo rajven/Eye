@@ -4,6 +4,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
 
 login($db_link);
 
+
 //error_log("GET: " . json_encode($_GET));
 //error_log("POST: " . json_encode($_POST));
 
@@ -82,6 +83,18 @@ $allowed_tables = [
     'user_list',
     'vendors'
 ];
+
+function send_json_response($data, $http_code = 200) {
+    http_response_code($http_code);
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    } catch (JsonException $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Internal JSON encoding error']);
+    }
+    do_exit();
+}
 
 function log_api_call($action, $params = []) {
     global $db_link;
@@ -622,6 +635,104 @@ if (!empty($action)) {
             ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         }
         do_exit();
+    }
+
+    // === ПОЛУЧЕНИЕ СТАТИСТИКИ ПОДСЕТЕЙ (для Zabbix / мониторинга) ===
+    if ($action === 'get_subnet_stats') {
+        LOG_VERBOSE($db_link, "API: Get subnet statistics");
+
+        // Параметры: порог "зомби" в днях (по умолчанию 30) и опциональный фильтр по конкретной подсети
+        $zombi_days = getParam('zombi_days', null, 30, FILTER_VALIDATE_INT);
+        if ($zombi_days === null || $zombi_days < 0) {
+            $zombi_days = 30;
+        }
+        $target_subnet = getParam('subnet', null, null);
+
+        // Один оптимизированный запрос вместо множества get_count_records в цикле
+        $sql = "
+            SELECT 
+                s.id,
+                s.subnet,
+                s.description,
+                (s.ip_int_stop - s.ip_int_start - 3) AS all_ips,
+                (COALESCE(s.dhcp_stop, s.ip_int_stop) - COALESCE(s.dhcp_start, s.ip_int_start) + 1) AS dhcp_pool,
+                COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop THEN 1 END) AS used_all,
+                COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN COALESCE(s.dhcp_start, s.ip_int_start) AND COALESCE(s.dhcp_stop, s.ip_int_stop) THEN 1 END) AS used_dhcp,
+                COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop AND ua.last_found <= DATE_SUB(NOW(), INTERVAL ? DAY) THEN 1 END) AS zombi_all,
+                COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN COALESCE(s.dhcp_start, s.ip_int_start) AND COALESCE(s.dhcp_stop, s.ip_int_stop) AND ua.last_found <= DATE_SUB(NOW(), INTERVAL ? DAY) THEN 1 END) AS zombi_dhcp
+            FROM subnets s
+            LEFT JOIN user_auth ua ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
+            WHERE s.office = 1
+        ";
+        
+        $params = [$zombi_days, $zombi_days];
+
+        if (!empty($target_subnet)) {
+            $sql .= " AND s.subnet = ?";
+            $params[] = $target_subnet;
+        }
+
+        $sql .= "
+            GROUP BY s.id, s.subnet, s.description, s.ip_int_start, s.ip_int_stop, s.dhcp_start, s.dhcp_stop
+            ORDER BY s.ip_int_start
+        ";
+
+        $raw_stats = get_records_sql($db_link, $sql, $params);
+
+        $result = [];
+        foreach ($raw_stats as $row) {
+            $all_ips = (int)$row['all_ips'];
+            $used_all = (int)$row['used_all'];
+            $free_all = $all_ips - $used_all;
+
+            $dhcp_pool = (int)$row['dhcp_pool'];
+            $used_dhcp = (int)$row['used_dhcp'];
+            $free_dhcp = $dhcp_pool - $used_dhcp;
+
+            $free_static = $free_all - $free_dhcp;
+
+            $zombi_all = (int)$row['zombi_all'];
+            $zombi_dhcp = (int)$row['zombi_dhcp'];
+
+            $percent_all = ($all_ips > 0) ? round(($used_all / $all_ips) * 100, 2) : 0.0;
+            $percent_dhcp = ($dhcp_pool > 0) ? round(($used_dhcp / $dhcp_pool) * 100, 2) : 0.0;
+
+            // Цветовая маркировка (статусы) для триггеров Zabbix или фронтенда
+            $status_all = 'ok';
+            if ($percent_all >= 95) {
+                $status_all = 'error';
+            } elseif ($percent_all >= 85) {
+                $status_all = 'warn';
+            }
+
+            $status_dhcp = 'ok';
+            if ($percent_dhcp >= 95) {
+                $status_dhcp = 'error';
+            } elseif ($percent_dhcp >= 85) {
+                $status_dhcp = 'warn';
+            }
+
+            $result[] = [
+                'subnet' => $row['subnet'],
+                'description' => $row['description'] ?? '',
+                'all_ips' => $all_ips,
+                'used_all' => $used_all,
+                'free_all' => $free_all,
+                'percent_all' => $percent_all,
+                'status_all' => $status_all,      // 'ok', 'warn', 'error'
+                'dhcp_pool' => $dhcp_pool,
+                'used_dhcp' => $used_dhcp,
+                'free_dhcp' => $free_dhcp,
+                'percent_dhcp' => $percent_dhcp,
+                'status_dhcp' => $status_dhcp,    // 'ok', 'warn', 'error'
+                'free_static' => $free_static,
+                'zombi_all' => $zombi_all,
+                'zombi_dhcp' => $zombi_dhcp,
+                'zombi_days_threshold' => $zombi_days
+            ];
+        }
+
+        send_json_response($result, 200);
     }
 
 } else {

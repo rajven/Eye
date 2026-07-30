@@ -1,0 +1,344 @@
+zabbix_export:
+  version: '7.4'
+  template_groups:
+    - uuid: 86cdfa2a266c4e37abf08662ab404fa6
+      name: Templates/Applications
+  templates:
+    - uuid: ec16d81e755e4562a35d32a3533ffbf0
+      template: 'Eye template'
+      name: 'Eye template'
+      groups:
+        - name: Templates/Applications
+      items:
+        - uuid: da97b807159b4e35938cba3bc0fe6bbd
+          name: 'Get EYE subnets status'
+          type: HTTP_AGENT
+          key: eye.http.subnets.status
+          delay: 15m
+          value_type: TEXT
+          url: '{$EYE.PROTO}://{$EYE.HOST}/api.php'
+          query_fields:
+            - name: api_login
+              value: '{$EYE.LOGIN}'
+            - name: api_key
+              value: '{$EYE.API_KEY}'
+            - name: get
+              value: subnet_stats
+            - name: zombi_days
+              value: '30'
+          follow_redirects: 'NO'
+          tags:
+            - tag: component
+              value: network
+      discovery_rules:
+        - uuid: 74dfe59a916349d2aea7da73a8e3b963
+          name: 'Subnets discovery'
+          type: DEPENDENT
+          key: eye.lld.subnets
+          item_prototypes:
+            - uuid: 9c14b0efe7b641b385e30975c76e6508
+              name: 'Subnet {#SUBNET}: Total IPs'
+              type: DEPENDENT
+              key: 'eye.subnet.all_ips[{#SUBNET}]'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[{#IDX}].all_ips'
+              master_item:
+                key: eye.http.subnets.status
+              tags:
+                - tag: subnet
+                  value: '{#SUBNET}'
+            - uuid: e5ab1376b3594231a485f6369490a6cb
+              name: 'Subnet {#SUBNET}: DHCP pool size'
+              type: DEPENDENT
+              key: 'eye.subnet.dhcp_pool[{#SUBNET}]'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[{#IDX}].dhcp_pool'
+              master_item:
+                key: eye.http.subnets.status
+              tags:
+                - tag: subnet
+                  value: '{#SUBNET}'
+            - uuid: 26a1605e6f7944b48e0e06e79d6eba49
+              name: 'Subnet {#SUBNET}: Free IPs (all)'
+              type: DEPENDENT
+              key: 'eye.subnet.free_all[{#SUBNET}]'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[{#IDX}].free_all'
+              master_item:
+                key: eye.http.subnets.status
+              tags:
+                - tag: subnet
+                  value: '{#SUBNET}'
+            - uuid: 400e80d077fb4c2e8f2e53a708220aeb
+              name: 'Subnet {#SUBNET}: Free DHCP'
+              type: DEPENDENT
+              key: 'eye.subnet.free_dhcp[{#SUBNET}]'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[{#IDX}].free_dhcp'
+              master_item:
+                key: eye.http.subnets.status
+              tags:
+                - tag: subnet
+                  value: '{#SUBNET}'
+            - uuid: 9c77d32cb24a440186d214995d329f9b
+              name: 'Subnet {#SUBNET}: Free static IPs'
+              type: DEPENDENT
+              key: 'eye.subnet.free_static[{#SUBNET}]'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[{#IDX}].free_static'
+              master_item:
+                key: eye.http.subnets.status
+              tags:
+                - tag: subnet
+                  value: '{#SUBNET}'
+            - uuid: b02f9b85263747349b555d328b5a808e
+              name: 'Subnet {#SUBNET}: Usage % (all)'
+              type: DEPENDENT
+              key: 'eye.subnet.percent_all[{#SUBNET}]'
+              value_type: FLOAT
+              units: '%'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[{#IDX}].percent_all'
+              master_item:
+                key: eye.http.subnets.status
+              tags:
+                - tag: subnet
+                  value: '{#SUBNET}'
+              trigger_prototypes:
+                - uuid: bcb17cbb4ecd45f68f716f86a14a9a01
+                  expression: 'last(/Eye template/eye.subnet.percent_all[{#SUBNET}])>={$EYE.IPS.CRITICAL}'
+                  name: 'Subnet {#SUBNET} ({#DESCRIPTION}): IP pool exhausted (Critical, {ITEM.LASTVALUE1})'
+                  priority: HIGH
+                  description: 'Использовано более 95% IP-адресов. Свободно почти не осталось.'
+                - uuid: 7732ee84f3f546c6922fe2d46bba08cf
+                  expression: 'last(/Eye template/eye.subnet.percent_all[{#SUBNET}])>={$EYE.IPS.WARNING} and last(/Eye template/eye.subnet.percent_all[{#SUBNET}])<{$EYE.IPS.CRITICAL}'
+                  name: 'Subnet {#SUBNET} ({#DESCRIPTION}): IP usage is high (Warning, {ITEM.LASTVALUE1})'
+                  priority: WARNING
+                  description: 'Использовано 85-95% всех IP-адресов подсети.'
+            - uuid: 8ad6f24973c24715a78056f866b69ebc
+              name: 'Subnet {#SUBNET}: DHCP usage %'
+              type: DEPENDENT
+              key: 'eye.subnet.percent_dhcp[{#SUBNET}]'
+              value_type: FLOAT
+              units: '%'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[{#IDX}].percent_dhcp'
+              master_item:
+                key: eye.http.subnets.status
+              tags:
+                - tag: subnet
+                  value: '{#SUBNET}'
+              trigger_prototypes:
+                - uuid: 2ed45247493240c28be957dfccfee9a0
+                  expression: 'last(/Eye template/eye.subnet.percent_dhcp[{#SUBNET}])>={$EYE.IPS.CRITICAL}'
+                  name: 'Subnet {#SUBNET} ({#DESCRIPTION}): DHCP pool exhausted (Critical, {ITEM.LASTVALUE1})'
+                  priority: HIGH
+                  description: 'DHCP-пул практически исчерпан. Новые клиенты могут не получить адрес.'
+                - uuid: 0cf4d92614984e3dac5f2bd8abb938e1
+                  expression: 'last(/Eye template/eye.subnet.percent_dhcp[{#SUBNET}])>={$EYE.IPS.WARNING} and last(/Eye template/eye.subnet.percent_dhcp[{#SUBNET}])<{$EYE.IPS.CRITICAL}'
+                  name: 'Subnet {#SUBNET} ({#DESCRIPTION}): DHCP pool usage is high (Warning, {ITEM.LASTVALUE1})'
+                  priority: WARNING
+                  description: 'Использовано 85-95% DHCP-пула.'
+            - uuid: f12ec4194dab4bf6b2b2b6dee0f439e0
+              name: 'Subnet {#SUBNET}: Status (all)'
+              type: DEPENDENT
+              key: 'eye.subnet.status_all[{#SUBNET}]'
+              value_type: TEXT
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[{#IDX}].status_all'
+              master_item:
+                key: eye.http.subnets.status
+              tags:
+                - tag: subnet
+                  value: '{#SUBNET}'
+              trigger_prototypes:
+                - uuid: 33730439e17444c89fedde75e0d92102
+                  expression: 'last(/Eye template/eye.subnet.status_all[{#SUBNET}])="error"'
+                  name: 'Subnet {#SUBNET} ({#DESCRIPTION}): API reports ERROR status for IP usage'
+                  priority: AVERAGE
+                  description: 'API вернул статус "error" для использования IP-адресов.'
+            - uuid: bdd48a96f203417497cf68d79441365c
+              name: 'Subnet {#SUBNET}: DHCP status'
+              type: DEPENDENT
+              key: 'eye.subnet.status_dhcp[{#SUBNET}]'
+              value_type: TEXT
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[{#IDX}].status_dhcp'
+              master_item:
+                key: eye.http.subnets.status
+              tags:
+                - tag: subnet
+                  value: '{#SUBNET}'
+              trigger_prototypes:
+                - uuid: 446daa014ece4db7834f9c25d6ff8f9b
+                  expression: 'last(/Eye template/eye.subnet.status_dhcp[{#SUBNET}])="error"'
+                  name: 'Subnet {#SUBNET} ({#DESCRIPTION}): API reports ERROR status for DHCP'
+                  priority: AVERAGE
+                  description: 'API вернул статус "error" для использования DHCP-пула.'
+            - uuid: debc11af24e343169ffef5998c3b8bca
+              name: 'Subnet {#SUBNET}: Used IPs (all)'
+              type: DEPENDENT
+              key: 'eye.subnet.used_all[{#SUBNET}]'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[{#IDX}].used_all'
+              master_item:
+                key: eye.http.subnets.status
+              tags:
+                - tag: subnet
+                  value: '{#SUBNET}'
+            - uuid: 24bcf04ab54e4ac7a15aeb675575fd21
+              name: 'Subnet {#SUBNET}: Used DHCP'
+              type: DEPENDENT
+              key: 'eye.subnet.used_dhcp[{#SUBNET}]'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[{#IDX}].used_dhcp'
+              master_item:
+                key: eye.http.subnets.status
+              tags:
+                - tag: subnet
+                  value: '{#SUBNET}'
+            - uuid: 700760d4db0c43ffba9f4d6930182e10
+              name: 'Subnet {#SUBNET}: Zombie IPs (all)'
+              type: DEPENDENT
+              key: 'eye.subnet.zombi_all[{#SUBNET}]'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[{#IDX}].zombi_all'
+              master_item:
+                key: eye.http.subnets.status
+              tags:
+                - tag: subnet
+                  value: '{#SUBNET}'
+            - uuid: de1e697b7a9c4105a9de5d6817cab008
+              name: 'Subnet {#SUBNET}: Zombie DHCP'
+              type: DEPENDENT
+              key: 'eye.subnet.zombi_dhcp[{#SUBNET}]'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[{#IDX}].zombi_dhcp'
+              master_item:
+                key: eye.http.subnets.status
+              tags:
+                - tag: subnet
+                  value: '{#SUBNET}'
+          trigger_prototypes:
+            - uuid: fe5d7e3b25e44727a356950858e0104f
+              expression: 'last(/Eye template/eye.subnet.zombi_all[{#SUBNET}]) / last(/Eye template/eye.subnet.all_ips[{#SUBNET}]) * 100 > {$EYE.ZOMBI.PERCENT}'
+              name: 'Subnet {#SUBNET} ({#DESCRIPTION}): High percentage of zombie IPs ({ITEM.LASTVALUE1}%)'
+              priority: WARNING
+              description: 'Обнаружено более {$EYE.ZOMBI.PERCENT}% "зомби"-адресов (не активных более 30 дней). Рекомендуется очистка.'
+          graph_prototypes:
+            - uuid: 569917f3495942159c69ecc141c92842
+              name: 'Subnet {#SUBNET}: Free IPs'
+              yaxismax: '0'
+              graph_items:
+                - color: 1A7C11
+                  calc_fnc: ALL
+                  item:
+                    host: 'Eye template'
+                    key: 'eye.subnet.free_dhcp[{#SUBNET}]'
+                - sortorder: '1'
+                  color: '274482'
+                  calc_fnc: ALL
+                  item:
+                    host: 'Eye template'
+                    key: 'eye.subnet.free_all[{#SUBNET}]'
+                - sortorder: '2'
+                  color: FFBF00
+                  calc_fnc: ALL
+                  item:
+                    host: 'Eye template'
+                    key: 'eye.subnet.free_static[{#SUBNET}]'
+            - uuid: d4ad472ba9a049d6aec79096a5f63c77
+              name: 'Subnet {#SUBNET}: Status'
+              yaxismax: '0'
+              graph_items:
+                - color: 1A7C11
+                  calc_fnc: ALL
+                  item:
+                    host: 'Eye template'
+                    key: 'eye.subnet.percent_dhcp[{#SUBNET}]'
+                - sortorder: '1'
+                  color: '274482'
+                  calc_fnc: ALL
+                  item:
+                    host: 'Eye template'
+                    key: 'eye.subnet.percent_all[{#SUBNET}]'
+            - uuid: 8c6d6c1471c74a4f80c1d3d062912e83
+              name: 'Subnet {#SUBNET}: Used IPs'
+              graph_items:
+                - color: FFBF00
+                  calc_fnc: ALL
+                  item:
+                    host: 'Eye template'
+                    key: 'eye.subnet.used_dhcp[{#SUBNET}]'
+                - sortorder: '1'
+                  color: 2774A4
+                  calc_fnc: ALL
+                  item:
+                    host: 'Eye template'
+                    key: 'eye.subnet.used_all[{#SUBNET}]'
+                - sortorder: '2'
+                  color: A54F10
+                  calc_fnc: ALL
+                  item:
+                    host: 'Eye template'
+                    key: 'eye.subnet.zombi_dhcp[{#SUBNET}]'
+                - sortorder: '3'
+                  color: FC6EA3
+                  calc_fnc: ALL
+                  item:
+                    host: 'Eye template'
+                    key: 'eye.subnet.zombi_all[{#SUBNET}]'
+          master_item:
+            key: eye.http.subnets.status
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  try {
+                      var data = JSON.parse(value);
+                      if (!Array.isArray(data)) return JSON.stringify({data:[]});
+                      var result = [];
+                      for (var i = 0; i < data.length; i++) {
+                          result.push({
+                              "{#SUBNET}":      data[i].subnet,
+                              "{#DESCRIPTION}": data[i].description || '',
+                              "{#IDX}":         i
+                          });
+                      }
+                      return JSON.stringify({data: result});
+                  } catch(e) {
+                      return JSON.stringify({data:[]});
+                  }
+      macros:
+        - macro: '{$EYE.IPS.CRITICAL}'
+          value: '95'
+        - macro: '{$EYE.IPS.WARNING}'
+          value: '85'
+        - macro: '{$EYE.ZOMBI.PERCENT}'
+          value: '10'

@@ -73,17 +73,20 @@ COMMENT ON COLUMN config_options.uniq IS 'Option is unique (single value)';
 
 -- Network connections
 CREATE TABLE connections (
-id BIGSERIAL PRIMARY KEY,
-device_id BIGINT NOT NULL,
-port_id BIGINT NOT NULL,
-auth_id BIGINT NOT NULL,
-last_found TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id BIGSERIAL PRIMARY KEY,
+    device_id BIGINT NOT NULL,
+    port_id BIGINT NOT NULL,
+    auth_id BIGINT NOT NULL,
+    last_found TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
 COMMENT ON TABLE connections IS 'Current network connections (MAC-IP-device-port)';
 COMMENT ON COLUMN connections.device_id IS 'Network device ID';
 COMMENT ON COLUMN connections.port_id IS 'Device port ID';
 COMMENT ON COLUMN connections.auth_id IS 'User authentication ID';
 COMMENT ON COLUMN connections.last_found IS 'Last connection activity time';
+COMMENT ON COLUMN connections.created_at IS 'Record creation time';
 
 -- System users
 CREATE TABLE customers (

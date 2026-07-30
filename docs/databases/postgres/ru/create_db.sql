@@ -77,13 +77,15 @@ id BIGSERIAL PRIMARY KEY,
 device_id BIGINT NOT NULL,
 port_id BIGINT NOT NULL,
 auth_id BIGINT NOT NULL,
-last_found TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+last_found TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 COMMENT ON TABLE connections IS 'Текущие сетевые соединения (MAC-IP-устройство-порт)';
 COMMENT ON COLUMN connections.device_id IS 'ID сетевого устройства';
 COMMENT ON COLUMN connections.port_id IS 'ID порта устройства';
 COMMENT ON COLUMN connections.auth_id IS 'ID авторизации пользователя';
 COMMENT ON COLUMN connections.last_found IS 'Время последней активности соединения';
+COMMENT ON COLUMN connections.created_at IS 'Время создания записи';
 
 -- Пользователи системы
 CREATE TABLE customers (

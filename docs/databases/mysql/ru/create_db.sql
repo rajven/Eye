@@ -58,7 +58,8 @@ CREATE TABLE `connections` (
   `device_id` bigint(20) UNSIGNED NOT NULL,
   `port_id` bigint(20) UNSIGNED NOT NULL,
   `auth_id` bigint(20) UNSIGNED NOT NULL,
-  `last_found` datetime NOT NULL DEFAULT current_timestamp()
+  `last_found` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `customers` (
