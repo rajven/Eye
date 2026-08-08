@@ -1,3 +1,6 @@
+# Changelog 3-1-5 - release
+- Due to the uncertain future of the old SystemV initialization system, ipset support has been reconfigured to run as a regular bash script.
+
 # Changelog 3-1-4 - release
 - changed: A record creation time stamp field has been added to the connections.
 - changed: Added the function of current statistics on ip addresses for subnets - get=subnet_stats, additionally you can ask for a specific subnet subnet=192.168.0.0/24

@@ -659,6 +659,25 @@ upgrade_source_code() {
         chmod 770 /opt/Eye/scripts/log
         chown -R eye:eye /opt/Eye/scripts
 
+        # configure ipset
+        if [[ -f "/opt/Eye/docs/ipset/ipset-utils.sh" ]]; then
+            # remove old ipset-utils
+            [ -e /etc/init.d/ipset ] && rm -f /etc/init.d/ipset
+            mkdir -p /usr/local/bin
+            cp /opt/Eye/docs/ipset/ipset-utils.sh /usr/local/bin/
+            if [[ -f "/opt/Eye/docs/systemd/netfilter-persistent.service.d" ]]; then
+               if [[ "$OS_FAMILY" == "alt" ]]; then
+                   mkdir -p /etc/systemd/system/iptables.service.d
+                   cp /opt/Eye/docs/systemd/netfilter-persistent.service.d/override.conf /etc/systemd/system/iptables.service.d
+                   else
+                   mkdir -p /etc/systemd/system/netfilter-persistent.service.d
+                   cp /opt/Eye/docs/systemd/netfilter-persistent.service.d/override.conf /etc/systemd/system/netfilter-persistent.service.d
+               fi
+            $SERVICE_MANAGER daemon-reload
+            fi
+            print_info "ipset installed"
+        fi
+
         declare -a SERVICES=(
             dhcp-log
             dhcp-log-truncate
@@ -1668,9 +1687,11 @@ setup_additional_services() {
     fi
 
     # add ipset
-    if [[ -f "/opt/Eye/docs/systemd/init.d/ipset" ]]; then
-        mkdir -p /etc/init.d
-        cp /opt/Eye/docs/systemd/init.d/ipset /etc/init.d
+    if [[ -f "/opt/Eye/docs/ipset/ipset-utils.sh" ]]; then
+        # remove old ipset-utils
+        [ -e /etc/init.d/ipset ] && rm -f /etc/init.d/ipset
+        mkdir -p /usr/local/bin
+        cp /opt/Eye/docs/ipset/ipset-utils.sh /usr/local/bin/
         if [[ -f "/opt/Eye/docs/systemd/netfilter-persistent.service.d" ]]; then
            if [[ "$OS_FAMILY" == "alt" ]]; then
                mkdir -p /etc/systemd/system/iptables.service.d
