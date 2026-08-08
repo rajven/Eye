@@ -319,6 +319,29 @@ if (!function_exists('mb_ucfirst')) {
     }
 }
 
+function get_user_acl()
+{
+    // Получаем текущий логин
+    $currentLogin = null;
+    if (!empty($_SESSION['login'])) {
+        $currentLogin = $_SESSION['login'];
+    }
+    // Получаем user_id
+    $user_id = $_SESSION['user_id'] ?? null;
+    // Получаем права
+    $acl = $_SESSION['acl'] ?? null;
+
+    // Приведение ACL к целому числу
+    $user_level = (int)$acl;
+
+    // Проверка аутентификации
+    if (!$currentLogin || !$user_id || !$user_level) {
+        return 0;
+    }
+
+    return $user_level;
+}
+
 function print_datetime($datetime) {
 if (is_empty_datetime($datetime)) { print "-"; } else { print $datetime; }
 }

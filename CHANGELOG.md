@@ -1,5 +1,6 @@
 # Changelog 3-1-5 - release
 - Due to the uncertain future of the old SystemV initialization system, ipset support has been reconfigured to run as a regular bash script.
+- bugfix: Only administrators are allowed to view project users.
 
 # Changelog 3-1-4 - release
 - changed: A record creation time stamp field has been added to the connections.

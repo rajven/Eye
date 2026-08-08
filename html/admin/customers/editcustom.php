@@ -5,6 +5,12 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/idfilter.php");
 
 $msg_error = "";
 
+// разрешаем только Администраторам
+if (get_user_acl() <> 1) {
+    header("Location: /admin");
+    exit;
+    }
+
 $customer=get_record($db_link,'customers',"id=?", [$id]);
 
 if (getPOST("edituser") !== null) {
