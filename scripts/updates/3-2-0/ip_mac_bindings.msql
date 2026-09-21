@@ -1,0 +1,12 @@
+CREATE TABLE `ip_mac_bindings` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `ip` VARCHAR(39) NOT NULL COMMENT 'IPv4 or IPv6 address',
+  `mac` VARCHAR(17) NOT NULL COMMENT 'MAC address in format XX:XX:XX:XX:XX:XX',
+  `description` VARCHAR(255) DEFAULT NULL COMMENT 'Optional description',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_ip_mac` (`ip`, `mac`),
+  KEY `idx_ip` (`ip`),
+  KEY `idx_mac` (`mac`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

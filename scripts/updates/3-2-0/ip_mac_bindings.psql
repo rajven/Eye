@@ -1,0 +1,12 @@
+CREATE TABLE ip_mac_bindings (
+  id BIGSERIAL PRIMARY KEY,
+  ip VARCHAR(39) NOT NULL,
+  mac VARCHAR(17) NOT NULL,
+  description VARCHAR(255),
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX uniq_ip_mac ON ip_mac_bindings(ip, mac);
+CREATE INDEX idx_ip ON ip_mac_bindings(ip);
+CREATE INDEX idx_mac ON ip_mac_bindings(mac);
