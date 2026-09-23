@@ -41,7 +41,54 @@ $|=1;
 
 if (IsNotRun($SPID)) { Add_PID($SPID); }  else { die "Warning!!! $SPID already running!\n"; }
 
-my $router_id    = $ARGV[0];
+my $router_id;
+
+if (!$ARGV[0]) {
+    my @local_ips;
+    if (open(my $fh, "-|", "ip -4 -o addr show 2>/dev/null")) {
+        while (my $line = <$fh>) {
+            # inet 192.168.1.34/24 brd 192.168.1.255 scope global ens18
+            if ($line =~ /inet\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?:\/\d+)?(?:\s|$)/) {
+                push @local_ips, $1 if $1 ne '127.0.0.1';
+                }
+            }
+        close $fh;
+        } else {
+        log_die("Не удалось получить список адресов");
+        }
+    # Убираем возможные дубликаты адресов
+    my %seen;
+    @local_ips = grep { !$seen{$_}++ } @local_ips;
+    log_die("На машине не найдено ни одного IPv4 адреса") unless @local_ips;
+    log_verbose("Найденные локальные IP: " . join(", ", @local_ips));
+    my $placeholders = join(',', ('?') x scalar(@local_ips));
+    my $sql = qq{
+    SELECT d.id AS device_id, d.device_type, d.device_name, ua.ip AS auth_ip 
+    FROM devices d 
+    INNER JOIN user_auth ua ON d.user_id = ua.user_id 
+    WHERE ua.ip IS NOT NULL 
+      AND ua.ip != '' 
+      AND ua.deleted = 0 
+      AND d.deleted = 0 
+      AND d.device_type IN (0, 2)
+      AND ua.ip IN ($placeholders)
+    };
+    my @records = get_records_sql($dbh, $sql, @local_ips);
+    if (@records) {
+        log_verbose("Найдено совпадений: " . scalar(@records));
+        foreach my $row (@records) {
+            log_verbose("ID устройства : ". $row->{device_id}. "Имя устройства: ". $row->{device_name} ."Совпавший IP  : ". $row->{auth_ip});
+            $router_id = $row->{device_id};
+            last;
+            }
+        } else {
+        log_die("Устройства с такими IP-адресами в базе не найдены.");
+        }
+    } else { $router_id = $ARGV[0]; }
+
+if (!$router_id) {
+        log_die("Маршрутизатор неизвестен.");
+    }
 
 # ============================================================================
 # КОНСТАНТЫ ДЛЯ IPTABLES/IPSET
@@ -680,7 +727,7 @@ sub save_ipsets_to_files {
     my $files_saved = 0;
     foreach my $group_name (sort keys %$ipsets_ref) {
         my $set_name = $IPTABLES_TABLE_NAME . '_' . $group_name;
-        my $filename = $IPSET_SAVE_DIR . '/' . $group_name . $IPSET_SAVE_EXTENSION;
+        my $filename = $IPSET_SAVE_DIR . '/' . $set_name . $IPSET_SAVE_EXTENSION;
         my $fh = FileHandle->new();
         if ($fh->open(">$filename")) {
             # Заголовок файла с метаинформацией
