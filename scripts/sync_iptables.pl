@@ -77,7 +77,7 @@ if (!$ARGV[0]) {
     if (@records) {
         log_verbose("Найдено совпадений: " . scalar(@records));
         foreach my $row (@records) {
-            log_verbose("ID устройства : ". $row->{device_id}. "Имя устройства: ". $row->{device_name} ."Совпавший IP  : ". $row->{auth_ip});
+            log_verbose("ID устройства : ". $row->{device_id}. " Имя устройства: ". $row->{device_name} ." Совпавший IP  : ". $row->{auth_ip});
             $router_id = $row->{device_id};
             last;
             }
