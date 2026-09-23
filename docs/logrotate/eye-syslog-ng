@@ -1,0 +1,20 @@
+/var/log/remote/messages.log {
+        daily
+        rotate 7
+        missingok
+        notifempty
+        compress
+        copytruncate
+        delaycompress
+}
+
+/var/log/remote/*/messages.log
+{
+        daily
+        rotate 7
+        missingok
+        notifempty
+        compress
+        copytruncate
+        delaycompress
+}

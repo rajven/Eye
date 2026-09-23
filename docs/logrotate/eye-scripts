@@ -1,15 +1,10 @@
 /opt/Eye/scripts/log/*.log {
+        su eye eye
+        daily
         rotate 7
         missingok
         notifempty
         compress
         copytruncate
-}
-
-/var/log/remote/messages.log {
-    rotate 7
-    missingok
-    notifempty
-    compress
-    copytruncate
+        delaycompress
 }

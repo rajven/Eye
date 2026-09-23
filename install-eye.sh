@@ -1437,27 +1437,84 @@ setup_apache_php() {
 }
 
 # Configure cron and logrotate
+_install_cron() {
+    local src="$1"
+    local name="$2"
+
+    # 2 = нечего устанавливать (источник отсутствует)
+    [[ ! -f "$src" ]] && return 2
+
+    if cp -f "$src" "/etc/cron.d/$name"; then
+        chown root:root "/etc/cron.d/$name"
+        chmod 644 "/etc/cron.d/$name"
+        print_info "Cron job added: /etc/cron.d/$name"
+        return 0
+    else
+        print_error "Failed to add cron job: /etc/cron.d/$name"
+        return 1
+    fi
+}
+
+_install_logrotate() {
+    local src="$1"
+    local name="$2"
+
+    # 2 = нечего устанавливать (источник отсутствует)
+    [[ ! -f "$src" ]] && return 2
+
+    if cp -f "$src" "/etc/logrotate.d/$name"; then
+        chown root:root "/etc/logrotate.d/$name"
+        chmod 644 "/etc/logrotate.d/$name"
+        print_info "Logrotate config added: /etc/logrotate.d/$name"
+        return 0
+    else
+        print_error "Failed to add logrotate config: /etc/logrotate.d/$name"
+        return 1
+    fi
+}
+
 setup_cron_logrotate() {
     print_step "Configuring cron and logrotate"
 
-    # Cron
-    if [[ -f "/opt/Eye/docs/cron/stat" ]]; then
-        cp /opt/Eye/docs/cron/stat /etc/cron.d/eye
-        chmod 644 /etc/cron.d/eye
-        print_info "Cron job added: /etc/cron.d/eye"
+    local _dir
+    for _dir in /etc/cron.d /etc/logrotate.d; do
+        if [[ ! -d "$_dir" ]]; then
+            mkdir -p "$_dir"
+            chown root:root "$_dir"
+            chmod 755 "$_dir"
+        fi
+    done
+
+    local cron_added=0
+
+    # Cron by user
+    _install_cron "/opt/Eye/docs/cron/eye" "eye" && cron_added=1
+
+    # Cron by root
+    _install_cron "/opt/Eye/docs/cron/eye-root" "eye-root" && cron_added=1
+
+    # Logrotate - dnsmasq
+    if [[ -f /etc/dnsmasq.conf ]]; then
+        _install_logrotate "/opt/Eye/docs/logrotate/eye-dnsmasq" "eye-dnsmasq"
     fi
 
-    # Logrotate
-    if [ -f /etc/dnsmasq.conf ] && [ -f "/opt/Eye/docs/logrotate/dnsmasq" ]; then
-	cp /opt/Eye/docs/logrotate/dnsmasq /etc/logrotate.d/dnsmasq-eye
+    # Logrotate - syslog-ng
+    if [[ -f /etc/syslog-ng/conf.d/eye.conf ]]; then
+        _install_logrotate "/opt/Eye/docs/logrotate/eye-syslog-ng" "eye-syslog-ng"
     fi
 
-    if [ -e /opt/Eye/scripts ] && [ -f "/opt/Eye/docs/logrotate/scripts" ]; then
-	cp /opt/Eye/docs/logrotate/scripts /etc/logrotate.d/eye-scripts
+    # Logrotate - eye scripts
+    if [[ -d /opt/Eye/scripts ]]; then
+        _install_logrotate "/opt/Eye/docs/logrotate/eye-scripts" "eye-scripts"
     fi
 
     print_info "Cron and logrotate configuration completed"
-    print_warn "Edit /etc/cron.d/eye to enable required scripts"
+
+    if (( cron_added )); then
+        print_warn "Edit /etc/cron.d/eye to enable required scripts"
+    fi
+
+    return 0
 }
 
 # Configure DHCP server (dnsmasq)
@@ -1867,14 +1924,14 @@ eye_install() {
         setup_apache_php
     fi
 
-    # Cron и logrotate — только если есть бэкенд (там — фоновые задачи и логи)
-    if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
-        setup_cron_logrotate
-    fi
-
     # Доп. сервисы (dnsmasq, syslog-ng и т.п.) — только для бэкенда
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
         setup_additional_services
+    fi
+
+    # Cron и logrotate — только если есть бэкенд (там — фоновые задачи и логи)
+    if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
+        setup_cron_logrotate
     fi
 
     # Импорт MAC-базы — только если есть бэкенд (он её использует)
