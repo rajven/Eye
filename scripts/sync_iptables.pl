@@ -36,47 +36,78 @@ use File::Path qw(make_path);
 # РАЗРЕШЕНИЕ ПРОТОКОЛОВ ДЛЯ IPTABLES
 # ============================================================================
 
-# Маппинг: MikroTik имя -> iptables имя (или номер, если iptables не знает строкового имени)
+# Маппинг: MikroTik имя -> iptables имя
 my %mt_to_iptables = (
-    'icmp'         => 'icmp',        # 1
-    'igmp'         => 'igmp',        # 2
-    'ggp'          => 'ggp',         # 3
-    'st'           => 'st',          # 5
-    'tcp'          => 'tcp',         # 6
-    'egp'          => 'egp',         # 8
-    'pup'          => 'pup',         # 12
-    'udp'          => 'udp',         # 17
-    'hmp'          => 'hmp',         # 20
-    'rdp'          => 'rdp',         # 27
-    'iso-tp4'      => 'iso-tp4',     # 29
-    'dccp'         => 'dccp',        # 33
-    'xtp'          => 'xtp',         # 36
-    'ddp'          => 'ddp',         # 37
-    'idpr-cmtp'    => 'idpr-cmtp',   # 38
-    'ipencap'      => 'ipencap',     # 4
-    'ipip'         => 'ipip',        # 94
-    'ipv6-encap'   => 'ipv6',        # 41 - в iptables это "ipv6"
-    'rsvp'         => 'rsvp',        # 46
-    'gre'          => 'gre',         # 47
-    'ipsec-esp'    => 'esp',         # 50 - ВАЖНО: в iptables это "esp", а не "ipsec-esp"
-    'ipsec-ah'     => 'ah',          # 51 - ВАЖНО: в iptables это "ah", а не "ipsec-ah"
-    'rspf'         => 'rspf',        # 73
-    'vmtp'         => 'vmtp',        # 81
-    'ospf'         => 'ospf',        # 89
-    'etherip'      => 'etherip',     # 97
-    'encap'        => 'encap',       # 98
-    'pim'          => 'pim',         # 103
-    'vrrp'         => 'vrrp',        # 112
-    'l2tp'         => 'l2tp',        # 115
-    'sctp'         => 'sctp',        # 132
-    'udp-lite'     => 'udplite',     # 136 - ВАЖНО: в iptables это "udplite" (без дефиса)
+    'icmp'         => 'icmp',
+    'igmp'         => 'igmp',
+    'ggp'          => 'ggp',
+    'st'           => 'st',
+    'tcp'          => 'tcp',
+    'egp'          => 'egp',
+    'pup'          => 'pup',
+    'udp'          => 'udp',
+    'hmp'          => 'hmp',
+    'rdp'          => 'rdp',
+    'iso-tp4'      => 'iso-tp4',
+    'dccp'         => 'dccp',
+    'xtp'          => 'xtp',
+    'ddp'          => 'ddp',
+    'idpr-cmtp'    => 'idpr-cmtp',
+    'ipencap'      => 'ipencap',
+    'ipip'         => 'ipip',
+    'ipv6-encap'   => 'ipv6',
+    'rsvp'         => 'rsvp',
+    'gre'          => 'gre',
+    'ipsec-esp'    => 'esp',
+    'ipsec-ah'     => 'ah',
+    'rspf'         => 'rspf',
+    'vmtp'         => 'vmtp',
+    'ospf'         => 'ospf',
+    'etherip'      => 'etherip',
+    'encap'        => 'encap',
+    'pim'          => 'pim',
+    'vrrp'         => 'vrrp',
+    'l2tp'         => 'l2tp',
+    'sctp'         => 'sctp',
+    'udp-lite'     => 'udplite',
 );
 
-# Обратный маппинг для быстрой проверки (имя -> 1)
-my %iptables_known_names;
-$iptables_known_names{$_} = 1 for values %mt_to_iptables;
+# Fallback-таблица: iptables имя -> номер (используется, если /etc/protocols неполный)
+my %fallback_proto_nums = (
+    'icmp'       => 1,
+    'igmp'       => 2,
+    'ggp'        => 3,
+    'ipencap'    => 4,
+    'st'         => 5,
+    'tcp'        => 6,
+    'egp'        => 8,
+    'pup'        => 12,
+    'udp'        => 17,
+    'hmp'        => 20,
+    'rdp'        => 27,
+    'iso-tp4'    => 29,
+    'dccp'       => 33,
+    'xtp'        => 36,
+    'ddp'        => 37,
+    'idpr-cmtp'  => 38,
+    'ipv6'       => 41,
+    'rsvp'       => 46,
+    'gre'        => 47,
+    'esp'        => 50,
+    'ah'         => 51,
+    'rspf'       => 73,
+    'vmtp'       => 81,
+    'ospf'       => 89,
+    'ipip'       => 94,
+    'etherip'    => 97,
+    'encap'      => 98,
+    'pim'        => 103,
+    'vrrp'       => 112,
+    'l2tp'       => 115,
+    'sctp'       => 132,
+    'udplite'    => 136,
+);
 
-# Хэш для /etc/protocols
 our %PROTO_NUMS;
 my $proto_loaded = 0;
 
@@ -102,40 +133,53 @@ sub _load_protocols {
 sub resolve_proto_for_iptables {
     my $proto = shift;
     return undef unless defined $proto && $proto ne '';
-    return undef if $proto =~ /^all$/i;   # для "all" не передаём -p вообще
-    
+    return undef if $proto =~ /^all$/i;
+
     my $proto_lc = lc($proto);
-    
-    # --- Случай 1: Число ---
+
+    # Если уже число — возвращаем как есть
     if ($proto =~ /^\d+$/) {
-        # iptables отлично принимает номера протоколов
         return $proto;
     }
-    
-    # --- Случай 2: Строка ---
-    
-    # 2a. Это имя MikroTik? Конвертируем в iptables-имя
+
+    _load_protocols();
+
+    # Если это имя MikroTik — конвертируем в iptables-имя, потом в число
     if (exists $mt_to_iptables{$proto_lc}) {
         my $ipt_name = $mt_to_iptables{$proto_lc};
-        log_debug("Proto resolved (MikroTik->iptables): '$proto' -> '$ipt_name'");
+        # Пытаемся найти в /etc/protocols
+        if (exists $PROTO_NUMS{$ipt_name}) {
+            my $num = $PROTO_NUMS{$ipt_name};
+            log_debug("Proto resolved (MikroTik->num): '$proto' -> '$ipt_name' -> $num");
+            return $num;
+        }
+        # Проверяем fallback-таблицу
+        if (exists $fallback_proto_nums{$ipt_name}) {
+            my $num = $fallback_proto_nums{$ipt_name};
+            log_debug("Proto resolved (MikroTik->fallback): '$proto' -> '$ipt_name' -> $num");
+            return $num;
+        }
+        # Нигде не нашли — возвращаем имя
+        log_warning("Proto '$proto' (MikroTik: '$ipt_name') not found anywhere, using name");
         return $ipt_name;
     }
-    
-    # 2b. Это уже валидное iptables-имя (есть в /etc/protocols)?
-    _load_protocols();
+
+    # Если это уже iptables-имя — пытаемся конвертировать в число
     if (exists $PROTO_NUMS{$proto_lc}) {
-        log_debug("Proto '$proto' is a valid iptables/Linux protocol name");
-        return $proto_lc;
+        my $num = $PROTO_NUMS{$proto_lc};
+        log_debug("Proto '$proto' resolved to number: $num");
+        return $num;
     }
-    
-    # 2c. Может, это уже валидное iptables-имя из нашего списка?
-    if (exists $iptables_known_names{$proto_lc}) {
-        log_debug("Proto '$proto' is a known iptables protocol name");
-        return $proto_lc;
+
+    # Проверяем fallback-таблицу
+    if (exists $fallback_proto_nums{$proto_lc}) {
+        my $num = $fallback_proto_nums{$proto_lc};
+        log_debug("Proto '$proto' resolved via fallback: $num");
+        return $num;
     }
-    
-    # 2d. Неизвестная строка - вернём как есть (iptables попробует использовать как есть)
-    log_warning("Proto '$proto' not found in MikroTik map or /etc/protocols, passing as-is");
+
+    # Ничего не нашли — возвращаем как есть
+    log_warning("Proto '$proto' not found anywhere, passing as-is");
     return $proto_lc;
 }
 
@@ -171,13 +215,13 @@ if (!$ARGV[0]) {
     log_verbose("Найденные локальные IP: " . join(", ", @local_ips));
     my $placeholders = join(',', ('?') x scalar(@local_ips));
     my $sql = qq{
-    SELECT d.id AS device_id, d.device_type, d.device_name, ua.ip AS auth_ip 
-    FROM devices d 
-    INNER JOIN user_auth ua ON d.user_id = ua.user_id 
-    WHERE ua.ip IS NOT NULL 
-      AND ua.ip != '' 
-      AND ua.deleted = 0 
-      AND d.deleted = 0 
+    SELECT d.id AS device_id, d.device_type, d.device_name, ua.ip AS auth_ip
+    FROM devices d
+    INNER JOIN user_auth ua ON d.user_id = ua.user_id
+    WHERE ua.ip IS NOT NULL
+      AND ua.ip != ''
+      AND ua.deleted = 0
+      AND d.deleted = 0
       AND d.device_type IN (0, 2)
       AND ua.ip IN ($placeholders)
     };
@@ -215,11 +259,6 @@ my $IPSET_SAVE_EXTENSION = '.conf';
 my $gate = get_record_sql($dbh, 'SELECT * FROM devices WHERE id=?', $router_id );
 
 exit 100 if (!$gate);
-
-our %PROTO_NUMS;
-my $proto_loaded = 0;
-
-_load_protocols();
 
 my $gate_ident = $gate->{device_name}." [$gate->{ip}]:: ";
 
@@ -483,7 +522,7 @@ if ($gate->{user_acl}) {
         next if (!$ipset_row);
         $ipset_list{$ipset_row->{id}} = $ipset_row->{name};
         my @filter_ipset_members = get_records_sql($dbh,"SELECT * FROM ipset_members WHERE ipset_id=?", $ipset_row->{id});
-        foreach my $ip_row (@filter_ipset_members) { 
+        foreach my $ip_row (@filter_ipset_members) {
             $ipset_members{$ipset_row->{name}}{$ip_row->{ip}} = 1;
             $final_ipsets{$ipset_row->{name}}{$ip_row->{ip}} = 1;  # Сохраняем в финальный хэш
             }
@@ -870,17 +909,24 @@ sub compare_iptables_rules {
     my $normalize = sub {
         my ($rule) = @_;
         my @parts;
-        # Режем строго перед флагами (-x или --xx). Аргументы остаются в том же блоке.
         for my $block (grep { $_ } split(/\s+(?=-(?:-)?[a-z])/i, $rule)) {
             $block =~ s/^\s+|\s+$//g;
             $block = lc($block);
             if ($block =~ /^(!?\s*-[\w-]+)\s*(.*)/) {
                 my ($flag, $val) = ($1, $2);
-                $flag =~ s/\s+//g;   # ! -p -> !-p
-                $val  =~ s/\s+/ /g;  # схлопываем внутренние пробелы
-                # Обработка -p: имя -> число, если найдено в /etc/protocols
+                $flag =~ s/\s+//g;
+                $val  =~ s/\s+/ /g;
+                # Нормализация протокола: ВСЕГДА приводим к числу
                 if ($flag eq '-p' || $flag eq '!-p') {
-                    $val = $PROTO_NUMS{$val} if exists $PROTO_NUMS{$val};
+                    if ($val =~ /^\d+$/) {
+                        # Уже число — оставляем
+                    } elsif (exists $PROTO_NUMS{$val}) {
+                        # Нашли в /etc/protocols
+                        $val = $PROTO_NUMS{$val};
+                    } elsif (exists $fallback_proto_nums{$val}) {
+                        # Нашли в fallback-таблице
+                        $val = $fallback_proto_nums{$val};
+                    }
                 }
                 push @parts, "$flag=$val";
             }
@@ -891,6 +937,5 @@ sub compare_iptables_rules {
     my @n1 = $normalize->($r1);
     my @n2 = $normalize->($r2);
 
-    # Длина массивов + посимвольное равенство отсортированных списков
     return @n1 == @n2 && join(' ', @n1) eq join(' ', @n2);
 }
