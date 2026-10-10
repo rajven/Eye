@@ -33,6 +33,7 @@ use Parallel::ForkManager;
 use Net::DNS;
 use Getopt::Long;
 
+
 # Helper для парсинга вывода Mikrotik
 my $parse_mikrotik_line = sub {
         my $line = shift;
@@ -42,6 +43,104 @@ my $parse_mikrotik_line = sub {
         $line =~ s/^\s*\d+\s+//;
         return $line;
 };
+
+# Маппинг номеров IANA в строковые названия MikroTik
+my %proto_map = (
+    1   => 'icmp',
+    2   => 'igmp',
+    3   => 'ggp',
+    5   => 'st',
+    6   => 'tcp',
+    8   => 'egp',
+    12  => 'pup',
+    17  => 'udp',
+    20  => 'hmp',
+    27  => 'rdp',
+    29  => 'iso-tp4',
+    33  => 'dccp',
+    36  => 'xtp',
+    37  => 'ddp',
+    38  => 'idpr-cmtp',
+    40  => 'ipip',
+    41  => 'ipv6-encap',
+    46  => 'rsvp',
+    47  => 'gre',
+    50  => 'ipsec-esp',
+    51  => 'ipsec-ah',
+    73  => 'rspf',
+    81  => 'vmtp',
+    89  => 'ospf',
+    97  => 'etherip',
+    98  => 'encap',
+    103 => 'pim',
+    112 => 'vrrp',
+    115 => 'l2tp',
+    132 => 'sctp',
+    136 => 'udp-lite',
+);
+
+# Обратный маппинг: имя MikroTik -> номер
+my %mt_proto_reverse;
+$mt_proto_reverse{$_} = 1 for values %proto_map;
+
+our %PROTO_NUMS;
+my $proto_loaded = 0;
+
+sub _load_protocols {
+    return if $proto_loaded;
+    open my $fh, '<', '/etc/protocols' or do {
+        log_warning("Cannot open /etc/protocols: $!");
+        return;
+    };
+    while (<$fh>) {
+        chomp;
+        s/#.*//;
+        s/^\s+|\s+$//g;
+        next unless length;
+        my @p = split(/\s+/);
+        next if @p < 2;
+        # Мапим официальное имя и все алиасы (регистронезависимо) на число
+        $PROTO_NUMS{lc($_)} = $p[1] for @p;
+    }
+    close $fh;
+    $proto_loaded = 1;
+}
+
+sub resolve_proto {
+    my $proto = shift;
+    return undef unless defined $proto && $proto ne '';
+    return 'all' if $proto =~ /^all$/i;
+    # --- Случай 1: Число ---
+    if ($proto =~ /^\d+$/) {
+        if (exists $proto_map{$proto}) {
+            log_debug("Proto number $proto resolved to '$proto_map{$proto}'");
+            return $proto_map{$proto};
+        }
+        log_warning("Proto number $proto not found in MikroTik map, passing as-is");
+        return $proto;
+    }
+    # --- Случай 2: Строка ---
+    my $proto_lc = lc($proto);
+    # 2a. Может, это уже валидное имя MikroTik?
+    if (exists $mt_proto_reverse{$proto_lc}) {
+        return $proto_lc;
+    }
+    # 2b. Ищем номер через /etc/protocols
+    _load_protocols();
+    if (exists $PROTO_NUMS{$proto_lc}) {
+        my $num = $PROTO_NUMS{$proto_lc};
+        if (exists $proto_map{$num}) {
+            log_debug("Proto string '$proto' resolved: name->num($num)->MT('$proto_map{$num}')");
+            return $proto_map{$num};
+        }
+        # Номер есть, но в MikroTik-таблице нет такого протокола
+        log_warning("Proto '$proto' has number $num in /etc/protocols, but no MikroTik name. Using number.");
+        return $num;
+    }
+    # 2c. Ничего не нашли - возвращаем как есть (lowercase)
+    log_warning("Proto '$proto' not found in /etc/protocols, passing as-is (lowercase)");
+    return $proto_lc;
+}
 
 #$debug = 1;
 
@@ -800,7 +899,7 @@ foreach my $group_name (sort keys %group_filters) {
 next if (!$group_name);
 next if (!exists($group_filters{$group_name}));
 my %group_filter = %{$group_filters{$group_name}};
-foreach my $filter_index (sort keys %group_filter) {
+foreach my $filter_index (sort { $a <=> $b } keys %group_filter) {
     my $filter = $group_filter{$filter_index};
     my $filter_id=$filter->{filter_id};
     next if (!$filters{$filter_id});
@@ -817,9 +916,10 @@ foreach my $filter_index (sort keys %group_filter) {
         $dst_rule=$dst_rule." action=reject";
         }
 
-    if ($filters{$filter_id}->{proto} and ($filters{$filter_id}->{proto}!~/all/i)) {
-        $src_rule=$src_rule." protocol=".$filters{$filter_id}->{proto};
-        $dst_rule=$dst_rule." protocol=".$filters{$filter_id}->{proto};
+    my $resolved_proto = resolve_proto($filters{$filter_id}->{proto});
+    if (defined $resolved_proto && $resolved_proto !~ /^all$/i) {
+        $src_rule = $src_rule . " protocol=" . $resolved_proto;
+        $dst_rule = $dst_rule . " protocol=" . $resolved_proto;
         }
 
    if (defined $filters{$filter_id}->{ipset_id} && $filters{$filter_id}->{ipset_id}>0 && $ipset_list{$filters{$filter_id}->{ipset_id}}) {

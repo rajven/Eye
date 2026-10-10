@@ -32,6 +32,114 @@ use Fcntl qw(:flock);
 use Net::DNS;
 use File::Path qw(make_path);
 
+# ============================================================================
+# РАЗРЕШЕНИЕ ПРОТОКОЛОВ ДЛЯ IPTABLES
+# ============================================================================
+
+# Маппинг: MikroTik имя -> iptables имя (или номер, если iptables не знает строкового имени)
+my %mt_to_iptables = (
+    'icmp'         => 'icmp',        # 1
+    'igmp'         => 'igmp',        # 2
+    'ggp'          => 'ggp',         # 3
+    'st'           => 'st',          # 5
+    'tcp'          => 'tcp',         # 6
+    'egp'          => 'egp',         # 8
+    'pup'          => 'pup',         # 12
+    'udp'          => 'udp',         # 17
+    'hmp'          => 'hmp',         # 20
+    'rdp'          => 'rdp',         # 27
+    'iso-tp4'      => 'iso-tp4',     # 29
+    'dccp'         => 'dccp',        # 33
+    'xtp'          => 'xtp',         # 36
+    'ddp'          => 'ddp',         # 37
+    'idpr-cmtp'    => 'idpr-cmtp',   # 38
+    'ipencap'      => 'ipencap',     # 4
+    'ipip'         => 'ipip',        # 94
+    'ipv6-encap'   => 'ipv6',        # 41 - в iptables это "ipv6"
+    'rsvp'         => 'rsvp',        # 46
+    'gre'          => 'gre',         # 47
+    'ipsec-esp'    => 'esp',         # 50 - ВАЖНО: в iptables это "esp", а не "ipsec-esp"
+    'ipsec-ah'     => 'ah',          # 51 - ВАЖНО: в iptables это "ah", а не "ipsec-ah"
+    'rspf'         => 'rspf',        # 73
+    'vmtp'         => 'vmtp',        # 81
+    'ospf'         => 'ospf',        # 89
+    'etherip'      => 'etherip',     # 97
+    'encap'        => 'encap',       # 98
+    'pim'          => 'pim',         # 103
+    'vrrp'         => 'vrrp',        # 112
+    'l2tp'         => 'l2tp',        # 115
+    'sctp'         => 'sctp',        # 132
+    'udp-lite'     => 'udplite',     # 136 - ВАЖНО: в iptables это "udplite" (без дефиса)
+);
+
+# Обратный маппинг для быстрой проверки (имя -> 1)
+my %iptables_known_names;
+$iptables_known_names{$_} = 1 for values %mt_to_iptables;
+
+# Хэш для /etc/protocols
+our %PROTO_NUMS;
+my $proto_loaded = 0;
+
+sub _load_protocols {
+    return if $proto_loaded;
+    open my $fh, '<', '/etc/protocols' or do {
+        log_warning("Cannot open /etc/protocols: $!");
+        return;
+    };
+    while (<$fh>) {
+        chomp;
+        s/#.*//;
+        s/^\s+|\s+$//g;
+        next unless length;
+        my @p = split(/\s+/);
+        next if @p < 2;
+        $PROTO_NUMS{lc($_)} = $p[1] for @p;
+    }
+    close $fh;
+    $proto_loaded = 1;
+}
+
+sub resolve_proto_for_iptables {
+    my $proto = shift;
+    return undef unless defined $proto && $proto ne '';
+    return undef if $proto =~ /^all$/i;   # для "all" не передаём -p вообще
+    
+    my $proto_lc = lc($proto);
+    
+    # --- Случай 1: Число ---
+    if ($proto =~ /^\d+$/) {
+        # iptables отлично принимает номера протоколов
+        return $proto;
+    }
+    
+    # --- Случай 2: Строка ---
+    
+    # 2a. Это имя MikroTik? Конвертируем в iptables-имя
+    if (exists $mt_to_iptables{$proto_lc}) {
+        my $ipt_name = $mt_to_iptables{$proto_lc};
+        log_debug("Proto resolved (MikroTik->iptables): '$proto' -> '$ipt_name'");
+        return $ipt_name;
+    }
+    
+    # 2b. Это уже валидное iptables-имя (есть в /etc/protocols)?
+    _load_protocols();
+    if (exists $PROTO_NUMS{$proto_lc}) {
+        log_debug("Proto '$proto' is a valid iptables/Linux protocol name");
+        return $proto_lc;
+    }
+    
+    # 2c. Может, это уже валидное iptables-имя из нашего списка?
+    if (exists $iptables_known_names{$proto_lc}) {
+        log_debug("Proto '$proto' is a known iptables protocol name");
+        return $proto_lc;
+    }
+    
+    # 2d. Неизвестная строка - вернём как есть (iptables попробует использовать как есть)
+    log_warning("Proto '$proto' not found in MikroTik map or /etc/protocols, passing as-is");
+    return $proto_lc;
+}
+
+
 #$debug = 1;
 
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
@@ -496,7 +604,7 @@ if ($gate->{user_acl}) {
         my %group_filter = %{$group_filters{$group_name}};
         my $group_rules_count = 0;
 
-        foreach my $filter_index (sort keys %group_filter) {
+        foreach my $filter_index (sort { $a <=> $b } keys %group_filter) {
             my $filter = $group_filter{$filter_index};
             my $filter_id=$filter->{filter_id};
 
@@ -515,9 +623,10 @@ if ($gate->{user_acl}) {
             my $src_rule = '-A '.$chain_name;
             my $dst_rule = '-A '.$chain_name;
 
-            if ($filters{$filter_id}->{proto} and ($filters{$filter_id}->{proto}!~/all/i)) {
-                $src_rule=$src_rule." -p ".$filters{$filter_id}->{proto};
-                $dst_rule=$dst_rule." -p ".$filters{$filter_id}->{proto};
+            my $resolved_proto = resolve_proto_for_iptables($filters{$filter_id}->{proto});
+            if (defined $resolved_proto) {
+                $src_rule = $src_rule . " -p " . $resolved_proto;
+                $dst_rule = $dst_rule . " -p " . $resolved_proto;
                 }
 
             if (defined $filters{$filter_id}->{ipset_id} && $filters{$filter_id}->{ipset_id}>0 && $ipset_list{$filters{$filter_id}->{ipset_id}}) {
@@ -784,16 +893,4 @@ sub compare_iptables_rules {
 
     # Длина массивов + посимвольное равенство отсортированных списков
     return @n1 == @n2 && join(' ', @n1) eq join(' ', @n2);
-}
-
-sub _load_protocols {
-    return if $proto_loaded;
-    open my $fh, '<', '/etc/protocols' or return;
-    while (<$fh>) {
-        chomp; s/#.*//; s/^\s+|\s+$//g; next unless length;
-        my @p = split(/\s+/); next if @p < 2;
-        # Мапим официальное имя и все алиасы (регистронезависимо) на число
-        $PROTO_NUMS{lc($_)} = $p[1] for @p;
-    }
-    close $fh; $proto_loaded = 1;
 }
