@@ -200,6 +200,9 @@ my $connected_users = new Net::Patricia;
 my %connected_nets_hash;
 #исключения из авторизации хот-спота
 my %hotspot_exceptions;
+#пользователи хотспота
+my %hotspot_users_by_mac;
+my %hotspot_users_by_ip;
 my @lan_int=();
 my @wan_int=();
 
@@ -226,6 +229,9 @@ if (@gw_subnets and scalar @gw_subnets) {
             }
     }
 }
+
+# hotspot status
+my @ret_hotspot = netdev_cmd($gate,$t,'/ip hotspot print terse where disabled=no',1);
 
 #dhcp config
 if ($gate->{dhcp}) {
@@ -344,13 +350,26 @@ $leases{$lease->{ip}}{id}=$lease->{id};
 $leases{$lease->{ip}}{dns_name}=$lease->{dns_name};
 if ($lease->{description}) { $leases{$lease->{ip}}{description}=translit($lease->{description}); }
 $leases{$lease->{ip}}{mac}=uc(mac_splitted($lease->{mac}));
+my $hotspot_user_subnet = $hotspot_networks->match_string($lease->{ip});
 if ($lease->{dhcp_acl}) {
-    $leases{$lease->{ip}}{acl}=trim($lease->{dhcp_acl});
-    $leases{$lease->{ip}}{acl}=~s/;/,/g;
-    if ($leases{$lease->{ip}}{acl}=~/hotspot\-free/) {
-        $hotspot_exceptions{$leases{$lease->{ip}}{mac}}=$leases{$lease->{ip}}{mac};
-        $hotspot_exceptions{$leases{$lease->{ip}}{mac}}=$leases{$lease->{ip}}{description} if ($leases{$lease->{ip}}{description});
-        }
+    $leases{$lease->{ip}}{acl} = trim($lease->{dhcp_acl});
+    $leases{$lease->{ip}}{acl} =~ s/;/,/g;
+    }
+my $hotspot_binding=($lease->{dhcp_acl} && $leases{$lease->{ip}}{acl}=~/hotspot\-free/);
+if ($hotspot_binding) {
+    $hotspot_exceptions{$leases{$lease->{ip}}{mac}}=$leases{$lease->{ip}}{mac};
+    $hotspot_exceptions{$leases{$lease->{ip}}{mac}}=$leases{$lease->{ip}}{description} if ($leases{$lease->{ip}}{description});
+    }
+if ($hotspot_user_subnet && $leases{$lease->{ip}}{mac} && !$hotspot_binding) {
+    # hotspot users by mac
+    $hotspot_users_by_mac{$leases{$lease->{ip}}{mac}}{id}=$lease->{id};
+    $hotspot_users_by_mac{$leases{$lease->{ip}}{mac}}{ip}=$lease->{ip};
+    $hotspot_users_by_mac{$leases{$lease->{ip}}{mac}}{mac}=$leases{$lease->{ip}}{mac};
+    $hotspot_users_by_mac{$leases{$lease->{ip}}{mac}}{comment}=$leases{$lease->{ip}}{description} // '';
+    $hotspot_users_by_mac{$leases{$lease->{ip}}{mac}}{queue_id}=$lease->{queue_id};
+    $hotspot_users_by_mac{$leases{$lease->{ip}}{mac}}{filter_group_id}=$lease->{filter_group_id};
+    # hotspot users by ip
+    $hotspot_users_by_ip{$lease->{ip}}=$leases{$lease->{ip}}{mac};
     }
 if ($lease->{dhcp_option_set}) {
     $leases{$lease->{ip}}{dhcp_option_set}=trim($lease->{dhcp_option_set});
@@ -503,8 +522,7 @@ if (!(!$leases{$ip}{dhcp_option_set} and !$active_leases{$ip}{dhcp_option_set}) 
 
 }#end interface dhcp loop
 
-#check hotspot
-my @ret_hotspot = netdev_cmd($gate,$t,'/ip hotspot print terse where disabled=no',1);
+#check hotspot exceptions
 #if hotspot found - apply exception
 if (@ret_hotspot and scalar(@ret_hotspot)) {
     #hotspot exceptions
@@ -574,16 +592,17 @@ ORDER BY ip_int";
 my @authlist_ref = get_records_sql($dbh,$user_auth_sql,$default_hotspot_ou_id);
 
 foreach my $row (@authlist_ref) {
-if ($connected_users_only) { next if (!$connected_users->match_string($row->{ip})); }
-#skip not office ip's
-next if (!$office_networks->match_string($row->{ip}));
-#filter group acl's
-$users{'group_'.$row->{filter_group_id}}->{$row->{ip}}=1;
-$users{'group_all'}->{$row->{ip}}=1;
+    if ($connected_users_only) { next if (!$connected_users->match_string($row->{ip})); }
+    #skip not office ip's
+    next if (!$office_networks->match_string($row->{ip}));
+    #skip hotspot users
+    next if ($hotspot_users_by_ip{$row->{ip}});
+    #filter group acl's
+    $users{'group_'.$row->{filter_group_id}}->{$row->{ip}}=1;
+    $users{'group_all'}->{$row->{ip}}=1;
 }
 
 log_debug($gate_ident."Users status by ACL:".Dumper(\%users));
-
 
 my @filter_instances = get_records_sql($dbh,"SELECT * FROM filter_instances");
 my @filter_ipsets = get_records_sql($dbh,"SELECT * FROM ipset_list");
@@ -908,16 +927,16 @@ if ($shaper_enabled) {
     eval {
         my $user_auth_sql = "SELECT ip, queue_id, id FROM user_auth WHERE user_auth.deleted = 0 AND user_auth.ou_id <> ? ORDER BY ip_int";
         my @authlist_ref = get_records_sql($dbh, $user_auth_sql, $default_hotspot_ou_id);
-        
+
         foreach my $row (@authlist_ref) {
             next if (!$row->{ip});
-            if ($connected_users_only) { 
-                next if (!$connected_users->match_string($row->{ip})); 
+            if ($connected_users_only) {
+                next if (!$connected_users->match_string($row->{ip}));
             }
             next if (!$office_networks->match_string($row->{ip}));
-            
-            if ($row->{queue_id}) { 
-                $users{'queue_' . $row->{queue_id}}->{$row->{ip}} = 1; 
+
+            if ($row->{queue_id}) {
+                $users{'queue_' . $row->{queue_id}}->{$row->{ip}} = 1;
             }
         }
         log_debug($gate_ident . "Loaded " . scalar(keys %users) . " user IP groups.");
@@ -936,7 +955,7 @@ if ($shaper_enabled) {
             next if (!$row->{id});
             $lists{'queue_' . $row->{id}} = 1;
             next if ((!$row->{download}) and !($row->{upload}));
-            
+
             $queues{'queue_' . $row->{id}}{id}      = $row->{id};
             $queues{'queue_' . $row->{id}}{down}    = $row->{download};
             $queues{'queue_' . $row->{id}}{up}      = $row->{upload};
@@ -952,7 +971,7 @@ if ($shaper_enabled) {
 
     # --- 3. Получение текущего состояния с роутера (Current State) ---
     my (%get_queue_root, %get_queue_type, %get_queue_tree, %get_filter_mangle);
-    
+
 
     eval {
         # 3.1 Root Queues
@@ -965,8 +984,8 @@ if ($shaper_enabled) {
                 $get_queue_root{$parent_device}{name} = $parent_device;
                 if ($clean =~ /\s+max-limit=(\S*)\s+/) {
                     $get_queue_root{$parent_device}{bandwidth} = bitrate_to_kbps($1);
-                } else { 
-                    $get_queue_root{$parent_device}{bandwidth} = 0; 
+                } else {
+                    $get_queue_root{$parent_device}{bandwidth} = 0;
                 }
             }
         }
@@ -980,13 +999,13 @@ if ($shaper_enabled) {
                 my $direct = $1;
                 my $index = $2;
                 $get_queue_type{$index}{$direct} = $clean;
-                
+
                 if ($clean =~ /pcq-rate=(\S*)\s+/) {
                     my $rate = bitrate_to_kbps($1);
                     $get_queue_type{$index}{$direct . "-rate"} = $rate;
                 }
-                if ($clean =~ /pcq-classifier=(\S*)\s+/) { 
-                    $get_queue_type{$index}{$direct . "-classifier"} = $1; 
+                if ($clean =~ /pcq-classifier=(\S*)\s+/) {
+                    $get_queue_type{$index}{$direct . "-classifier"} = $1;
                 }
             }
         }
@@ -1021,7 +1040,7 @@ if ($shaper_enabled) {
         foreach my $row (@tmp) {
             my $clean = $parse_mikrotik_line->($row);
             next unless $clean;
-            
+
             if ($clean =~ /new-packet-mark=upload_(\d{1,3})_(\S*)\s+/i) {
                 my $index = $1;
                 my $int_name = $2;
@@ -1048,15 +1067,14 @@ if ($shaper_enabled) {
     }
 
     # --- 4. Генерация команд синхронизации ---
-    my @cmd_list;
-    
+
     eval {
         # 4.1 Анализ и коррекция Root классов
         foreach my $l3_int (keys %l3_interfaces) {
             my $int_type = ($l3_interfaces{$l3_int}->{type}) ? 'upload' : 'download';
             my $root_name = "${int_type}_root_${l3_int}";
             my $desired_bw = $l3_interfaces{$l3_int}->{bandwidth};
-            
+
             # Очистка мусорных рут-очередей на этом интерфейсе
             push(@cmd_list, "/queue tree remove [ find name!~\"${int_type}_root_${l3_int}\" and parent=${l3_int} ]");
 
@@ -1085,8 +1103,8 @@ if ($shaper_enabled) {
 
             # Check UP Type
             my $need_update_up = 0;
-            if (!$get_queue_type{$q_id}{up}) { 
-                $need_update_up = 1; 
+            if (!$get_queue_type{$q_id}{up}) {
+                $need_update_up = 1;
                 log_info($gate_ident . "[CHANGE] Queue Type 'pcq_upload_${q_id}' missing.");
             } else {
                 my $curr_rate = $get_queue_type{$q_id}{'up-rate'} || 0;
@@ -1102,8 +1120,8 @@ if ($shaper_enabled) {
 
             if ($need_update_up) {
                 # Формируем понятное сообщение о причине изменения
-                my $action_msg = !$get_queue_type{$q_id}{up} 
-                    ? "Creating missing queue type" 
+                my $action_msg = !$get_queue_type{$q_id}{up}
+                    ? "Creating missing queue type"
                     : "Updating queue type parameters (rate/classifier mismatch)";
 
                 log_info($gate_ident . "[CHANGE] Queue Type 'pcq_upload_${q_id}': $action_msg.");
@@ -1111,15 +1129,15 @@ if ($shaper_enabled) {
 
                 # Команда удаления старых экземпляров (если есть мусорные дубликаты)
                 push(@cmd_list, ":foreach i in [/queue type find where name=\"pcq_upload_${q_id}\"] do={/queue type remove \$i};");
-                
+
                 # Команда добавления новой конфигурации
                 push(@cmd_list, "/queue type add $type_up_str");
             }
 
             # Check DOWN Type
             my $need_update_down = 0;
-            if (!$get_queue_type{$q_id}{down}) { 
-                $need_update_down = 1; 
+            if (!$get_queue_type{$q_id}{down}) {
+                $need_update_down = 1;
                 log_info($gate_ident . "[CHANGE] Queue Type 'pcq_download_${q_id}' missing.");
             } else {
                 my $curr_rate = $get_queue_type{$q_id}{'down-rate'} || 0;
@@ -1135,16 +1153,16 @@ if ($shaper_enabled) {
 
             if ($need_update_down) {
                 # Определяем причину изменения для лога
-                my $action_msg = !$get_queue_type{$q_id}{down} 
-                    ? "Creating missing queue type" 
+                my $action_msg = !$get_queue_type{$q_id}{down}
+                    ? "Creating missing queue type"
                     : "Updating queue type parameters (rate/classifier mismatch)";
-                
+
                 log_info($gate_ident . "[CHANGE] Queue Type 'pcq_download_${q_id}': $action_msg.");
                 log_debug($gate_ident . "  -> New config: $type_down_str");
 
                 # Удаляем старые/некорректные записи
                 push(@cmd_list, ":foreach i in [/queue type find where name=\"pcq_download_${q_id}\"] do={/queue type remove \$i};");
-                
+
                 # Добавляем новую конфигурацию
                 push(@cmd_list, "/queue type add $type_down_str");
             }
@@ -1155,7 +1173,7 @@ if ($shaper_enabled) {
                 my $q_name = "queue_${q_id}_${int}_out";
                 my $p_mark = "upload_${q_id}_${int}";
                 my $p_list = "queue_${q_id}";
-                
+
                 my $tree_up_str = "name=${q_name} parent=upload_root_${int} packet-mark=${p_mark} limit-at=0 queue=pcq_upload_${q_id} priority=8 max-limit=0 burst-limit=0 burst-threshold=0 burst-time=0s bucket-size=0.1";
                 my $mangle_up_str = "chain=forward action=mark-packet new-packet-mark=${p_mark} passthrough=yes src-address-list=${p_list} out-interface=${int} log=no log-prefix=\"\"";
 
@@ -1173,16 +1191,16 @@ if ($shaper_enabled) {
 
                 if ($fix_tree_up) {
                     # Определяем причину изменения для лога
-                    my $action_msg = !$get_queue_tree{$q_id}{$int}{up} 
-                        ? "Creating missing queue tree rule" 
+                    my $action_msg = !$get_queue_tree{$q_id}{$int}{up}
+                        ? "Creating missing queue tree rule"
                         : "Updating queue tree parameters (parent/mark/queue mismatch)";
-                    
+
                     log_info($gate_ident . "[CHANGE] Queue Tree '${q_name}': $action_msg.");
                     log_debug($gate_ident . "  -> New config: $tree_up_str");
 
                     # Удаляем старые/некорректные правила
                     push(@cmd_list, ":foreach i in [/queue tree find where name=\"${q_name}\"] do={/queue tree remove \$i};");
-                    
+
                     # Добавляем новое правило
                     push(@cmd_list, "/queue tree add $tree_up_str");
                 }
@@ -1201,17 +1219,17 @@ if ($shaper_enabled) {
 
                 if ($fix_mangle_up) {
                     # Определяем причину изменения для лога
-                    my $action_msg = !$get_filter_mangle{$q_id}{$int}{up} 
-                        ? "Creating missing mangle rule" 
+                    my $action_msg = !$get_filter_mangle{$q_id}{$int}{up}
+                        ? "Creating missing mangle rule"
                         : "Updating mangle rule parameters (mark/list/interface mismatch)";
-                    
+
                     log_info($gate_ident . "[CHANGE] Mangle Rule '${p_mark}': $action_msg.");
                     log_debug($gate_ident . "  -> New config: $mangle_up_str");
 
                     # Удаляем старые/некорректные правила
                     # Примечание: используем точное совпадение new-packet-mark=, так как имя метки уникально
                     push(@cmd_list, ":foreach i in [/ip firewall mangle find where action=mark-packet and new-packet-mark=\"${p_mark}\"] do={/ip firewall mangle remove \$i};");
-                    
+
                     # Добавляем новое правило
                     push(@cmd_list, "/ip firewall mangle add $mangle_up_str");
                 }
@@ -1252,23 +1270,23 @@ if ($shaper_enabled) {
                 } else {
                     $fix_mangle_down = 1 if ($get_filter_mangle{$q_id}{$int}{'down-mark'} ne $p_mark);
                     $fix_mangle_down = 1 if ($get_filter_mangle{$q_id}{$int}{'down-list'} ne $p_list);
-                    $fix_mangle_down = 1 if ($get_filter_mangle{$q_id}{$int}{'down-dev'} ne $int); 
+                    $fix_mangle_down = 1 if ($get_filter_mangle{$q_id}{$int}{'down-dev'} ne $int);
                     log_info($gate_ident . "[CHANGE] Mangle rule for '$p_mark' parameters mismatch.") if $fix_mangle_down;
                 }
 
                 if ($fix_mangle_down) {
                     # Определяем причину изменения для лога
-                    my $action_msg = !$get_filter_mangle{$q_id}{$int}{down} 
-                        ? "Creating missing mangle rule" 
+                    my $action_msg = !$get_filter_mangle{$q_id}{$int}{down}
+                        ? "Creating missing mangle rule"
                         : "Updating mangle rule parameters (mark/list/interface mismatch)";
-                    
+
                     log_info($gate_ident . "[CHANGE] Mangle Rule '${p_mark}': $action_msg.");
                     log_debug($gate_ident . "  -> New config: $mangle_down_str");
 
                     # Удаляем старые/некорректные правила
                     # Используем точное совпадение new-packet-mark, так как имя метки уникально
                     push(@cmd_list, ":foreach i in [/ip firewall mangle find where action=mark-packet and new-packet-mark=\"${p_mark}\"] do={/ip firewall mangle remove \$i};");
-                    
+
                     # Добавляем новое правило
                     push(@cmd_list, "/ip firewall mangle add $mangle_down_str");
                 }
@@ -1317,6 +1335,171 @@ foreach my $group_name (keys %cur_users) {
     if (!exists($users{$group_name}{$user_ip})) {
         db_log_verbose($dbh,$gate_ident."Remove user with ip: $user_ip from access-list $group_name");
         push(@cmd_list,":foreach i in [/ip firewall address-list find where address=".$user_ip." and list=".$group_name."] do={/ip firewall address-list remove \$i};");
+        }
+    }
+}
+
+timestamp;
+
+# --- Hotspot Users and Profiles Sync ---
+if (@ret_hotspot and scalar(@ret_hotspot)) {
+    log_info($gate_ident . "Starting Hotspot Users synchronization...");
+
+    my %queue_names;
+    my @qr = get_records_sql($dbh, "SELECT * FROM queue_list");
+    foreach my $q (@qr) {
+        $queue_names{$q->{id}}{queue_name} = translit($q->{queue_name}) // "q_$q->{id}";
+        # Clean names for Mikrotik (remove spaces, special chars)
+        $queue_names{$q->{id}}{queue_name} =~ s/[^a-zA-Z0-9_\-]/_/g;
+        $queue_names{$q->{id}}{download} = kbps_to_bitrate(bitrate_to_kbps($q->{download})) // "0k";
+        $queue_names{$q->{id}}{upload} = kbps_to_bitrate(bitrate_to_kbps($q->{upload})) // "0k";
+        if ($queue_names{$q->{id}}{upload} eq '0k' or $queue_names{$q->{id}}{download} eq '0k' ) {
+            $queue_names{$q->{id}}{rate} = 'none';
+        } else {
+            $queue_names{$q->{id}}{rate} = $queue_names{$q->{id}}{download}. "/". $queue_names{$q->{id}}{upload};
+        }
+    }
+
+    my %required_profiles;
+    my %required_users;
+
+    foreach my $mac (keys %hotspot_users_by_mac) {
+        my $user = $hotspot_users_by_mac{$mac};
+
+        my $filter_name = "group_".$user->{filter_group_id};
+        my $queue_name = ($user->{queue_id} && exists $queue_names{$user->{queue_id}} && $queue_names{$user->{queue_id}}{queue_name}) 
+                         ? $queue_names{$user->{queue_id}}{queue_name} : "none";
+
+        my $profile_name = "eye_${filter_name}_${queue_name}";
+        
+        # Безопасное получение rate (защита от undef)
+        $required_profiles{$profile_name}{rate} = ($user->{queue_id} && exists $queue_names{$user->{queue_id}}) 
+                                                  ? $queue_names{$user->{queue_id}}{rate} : 'none';
+        # Имя цепочки фаервола для incoming-filter
+        $required_profiles{$profile_name}{acl} = $filter_name;
+
+        my $user_id = $user->{id};
+        my $comment = $user->{comment} // '';
+        $comment =~ s/"/\\"/g;
+
+        $required_users{$mac} = {
+            profile => $profile_name,
+            name    => $user_id,
+            comment => $comment,
+            ip      => $user->{ip}
+        };
+    }
+
+    # 1. Get current profiles and users from router
+    my @ret_profiles = netdev_cmd($gate, $t, '/ip hotspot user profile print terse without-paging where name~"^eye_"', 1);
+    my %actual_profiles;
+    foreach my $row (@ret_profiles) {
+        my $clean = $parse_mikrotik_line->($row);
+        next unless $clean;
+        my %data;
+        while ($clean =~/\b(\S+?)=([^\s=]+(?:\s(?!\S+=)[^\s=]+)*)/g) {
+            my ($key, $value) = ($1, $2);
+            $value =~ s/^"//; $value =~ s/"$//;
+            $data{$key} = $value;
+        }
+        $actual_profiles{$data{name}} = \%data if exists $data{name};
+    }
+
+    my @ret_users = netdev_cmd($gate, $t, '/ip hotspot user print terse without-paging where profile~"^eye_"', 1);
+    my %actual_users;
+    foreach my $row (@ret_users) {
+        my $clean = $parse_mikrotik_line->($row);
+        next unless $clean;
+        my %data;
+        while ($clean =~/\b(\S+?)=([^\s=]+(?:\s(?!\S+=)[^\s=]+)*)/g) {
+            my ($key, $value) = ($1, $2);
+            $value =~ s/^"//; $value =~ s/"$//;
+            $data{$key} = $value;
+        }
+        $actual_users{uc($data{'mac-address'})} = \%data if exists $data{'mac-address'};
+    }
+
+    # 2. Create or update profiles
+    foreach my $prof (keys %required_profiles) {
+        my $req_rate = $required_profiles{$prof}->{rate} // 'none';
+        my $req_acl = $required_profiles{$prof}->{acl} // 'none';
+
+        my $norm_req_rate = ($req_rate eq 'none' || $req_rate eq '') ? 'none' : $req_rate;
+        my $norm_req_acl = ($req_acl eq 'none' || $req_acl eq '') ? 'none' : $req_acl;
+
+        if (!exists $actual_profiles{$prof}) {
+            log_info($gate_ident . "[CHANGE] Creating hotspot profile: $prof");
+            my $profile_add_cmd = "/ip hotspot user profile add name=$prof session-timeout=1h idle-timeout=none keepalive-timeout=2m status-autorefresh=1m shared-users=1 add-mac-cookie=yes mac-cookie-timeout=1h transparent-proxy=no ";
+            if ($norm_req_rate ne 'none') { $profile_add_cmd .= " rate-limit=$norm_req_rate"; }
+            if ($norm_req_acl ne 'none') { $profile_add_cmd .= " incoming-filter=$norm_req_acl"; }
+            push(@cmd_list, $profile_add_cmd);
+        } else {
+            my $curr = $actual_profiles{$prof};
+            my $curr_rate = $curr->{'rate-limit'} // 'none';
+            my $curr_acl = $curr->{'incoming-filter'} // 'none';
+            
+            my $norm_curr_rate = ($curr_rate eq 'none' || $curr_rate eq '' || !defined $curr_rate) ? 'none' : $curr_rate;
+            my $norm_curr_acl = ($curr_acl eq 'none' || $curr_acl eq '' || !defined $curr_acl) ? 'none' : $curr_acl;
+
+            my $needs_update = 0;
+            if ($norm_req_rate ne $norm_curr_rate) {
+                log_info($gate_ident . "[CHANGE] Profile $prof rate-limit mismatch: current '$norm_curr_rate', required '$norm_req_rate'");
+                $needs_update = 1;
+            }
+            if ($norm_req_acl ne $norm_curr_acl) {
+                log_info($gate_ident . "[CHANGE] Profile $prof incoming-filter mismatch: current '$norm_curr_acl', required '$norm_req_acl'");
+                $needs_update = 1;
+            }
+
+            if ($needs_update) {
+                my $set_cmd = "/ip hotspot user profile set [find name=$prof]";
+                if ($norm_req_rate ne 'none') { $set_cmd .= " rate-limit=$norm_req_rate"; } 
+                else { $set_cmd .= " rate-limit=\"\""; }
+
+                if ($norm_req_acl ne 'none') { $set_cmd .= " incoming-filter=$norm_req_acl"; } 
+                else { $set_cmd .= " incoming-filter=\"\""; }
+
+                push(@cmd_list, $set_cmd);
+            }
+        }
+    }
+
+    # 3. Sync users
+    foreach my $mac (keys %required_users) {
+        my $req = $required_users{$mac};
+        my $uc_mac = uc($mac);
+
+        if (!exists $actual_users{$uc_mac}) {
+            log_info($gate_ident . "[CHANGE] Adding hotspot user for MAC: $uc_mac");
+            push(@cmd_list, "/ip hotspot user add name=$req->{name} password=$uc_mac mac-address=$uc_mac profile=$req->{profile} comment=\"$req->{comment}\"");
+        } else {
+            my $curr = $actual_users{$uc_mac};
+            my $needs_update = 0;
+            $needs_update = 1 if (($curr->{profile} // '') ne $req->{profile});
+            $needs_update = 1 if (($curr->{name} // '') ne "$req->{name}");
+            $needs_update = 1 if (($curr->{comment} // '') ne $req->{comment});
+
+            if ($needs_update) {
+                log_info($gate_ident . "[CHANGE] Updating hotspot user for MAC: $uc_mac (Profile/Name/Comment mismatch)");
+                push(@cmd_list, ":foreach i in [/ip hotspot user find where mac-address=$uc_mac and profile~\"^eye_\"] do={/ip hotspot user remove \$i};");
+                push(@cmd_list, "/ip hotspot user add name=$req->{name} password=$uc_mac mac-address=$uc_mac profile=$req->{profile} comment=\"$req->{comment}\"");
+            }
+        }
+    }
+
+    # 4. Remove extra users
+    foreach my $mac (keys %actual_users) {
+        if (!exists $required_users{$mac}) {
+            log_info($gate_ident . "[CHANGE] Removing extra hotspot user for MAC: $mac");
+            push(@cmd_list, ":foreach i in [/ip hotspot user find where mac-address=$mac and profile~\"^eye_\"] do={/ip hotspot user remove \$i};");
+        }
+    }
+
+    # 5. Remove extra profiles
+    foreach my $prof (keys %actual_profiles) {
+        if (!exists $required_profiles{$prof}) {
+            log_info($gate_ident . "[CHANGE] Removing extra hotspot profile: $prof");
+            push(@cmd_list, "/ip hotspot user profile remove [find name=$prof]");
         }
     }
 }
