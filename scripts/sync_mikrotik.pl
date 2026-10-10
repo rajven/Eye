@@ -1384,8 +1384,8 @@ if (@ret_hotspot and scalar(@ret_hotspot)) {
 
         $required_users{$mac} = {
             profile => $profile_name,
-            name    => $user_id,
-            comment => $comment,
+            name    => $mac,
+            comment => "id: $user_id " . $comment,
             ip      => $user->{ip}
         };
     }
