@@ -301,7 +301,7 @@ my %connected_nets_hash;
 my %hotspot_exceptions;
 #пользователи хотспота
 my %hotspot_users_by_mac;
-my %hotspot_users_by_ip;
+
 my @lan_int=();
 my @wan_int=();
 
@@ -449,26 +449,15 @@ $leases{$lease->{ip}}{id}=$lease->{id};
 $leases{$lease->{ip}}{dns_name}=$lease->{dns_name};
 if ($lease->{description}) { $leases{$lease->{ip}}{description}=translit($lease->{description}); }
 $leases{$lease->{ip}}{mac}=uc(mac_splitted($lease->{mac}));
-my $hotspot_user_subnet = $hotspot_networks->match_string($lease->{ip});
 if ($lease->{dhcp_acl}) {
     $leases{$lease->{ip}}{acl} = trim($lease->{dhcp_acl});
     $leases{$lease->{ip}}{acl} =~ s/;/,/g;
     }
-my $hotspot_binding=($lease->{dhcp_acl} && $leases{$lease->{ip}}{acl}=~/hotspot\-free/);
+my $hotspot_user_subnet = $hotspot_networks->match_string($lease->{ip});
+my $hotspot_binding=($hotspot_user_subnet && $lease->{dhcp_acl} && $leases{$lease->{ip}}{acl}=~/hotspot\-free/);
 if ($hotspot_binding) {
     $hotspot_exceptions{$leases{$lease->{ip}}{mac}}=$leases{$lease->{ip}}{mac};
     $hotspot_exceptions{$leases{$lease->{ip}}{mac}}=$leases{$lease->{ip}}{description} if ($leases{$lease->{ip}}{description});
-    }
-if ($hotspot_user_subnet && $leases{$lease->{ip}}{mac} && !$hotspot_binding) {
-    # hotspot users by mac
-    $hotspot_users_by_mac{$leases{$lease->{ip}}{mac}}{id}=$lease->{id};
-    $hotspot_users_by_mac{$leases{$lease->{ip}}{mac}}{ip}=$lease->{ip};
-    $hotspot_users_by_mac{$leases{$lease->{ip}}{mac}}{mac}=$leases{$lease->{ip}}{mac};
-    $hotspot_users_by_mac{$leases{$lease->{ip}}{mac}}{comment}=$leases{$lease->{ip}}{description} // '';
-    $hotspot_users_by_mac{$leases{$lease->{ip}}{mac}}{queue_id}=$lease->{queue_id};
-    $hotspot_users_by_mac{$leases{$lease->{ip}}{mac}}{filter_group_id}=$lease->{filter_group_id};
-    # hotspot users by ip
-    $hotspot_users_by_ip{$lease->{ip}}=$leases{$lease->{ip}}{mac};
     }
 if ($lease->{dhcp_option_set}) {
     $leases{$lease->{ip}}{dhcp_option_set}=trim($lease->{dhcp_option_set});
@@ -677,7 +666,8 @@ if ($gate->{user_acl}) {
 db_log_verbose($dbh,$gate_ident."Sync user state at router $router_name [".$router_ip."] started.");
 
 #get userid list
-my $user_auth_sql="SELECT user_auth.ip, user_auth.filter_group_id, user_auth.id
+my $user_auth_sql="SELECT user_auth.ip, user_auth.filter_group_id, user_auth.id,
+user_auth.mac, user_auth.description, user_auth.queue_id, user_auth.dhcp_acl
 FROM user_auth, user_list
 WHERE user_auth.user_id = user_list.id
 AND user_auth.deleted =0
@@ -695,7 +685,24 @@ foreach my $row (@authlist_ref) {
     #skip not office ip's
     next if (!$office_networks->match_string($row->{ip}));
     #skip hotspot users
-    next if ($hotspot_users_by_ip{$row->{ip}});
+    my $hotspot_user_subnet = $hotspot_networks->match_string($row->{ip});
+    my $hotspot_binding=($row->{dhcp_acl} && $row->{dhcp_acl}=~/hotspot\-free/);
+    if ($hotspot_user_subnet && $row->{mac} && !$hotspot_binding) {
+        # не создаём юзера в хотспоте, если у него нет рабочего фильтра
+        if ($row->{filter_group_id}>0) {
+            # hotspot users by mac
+            my $user_name = uc($row->{mac});
+            $hotspot_users_by_mac{$user_name}{id}=$row->{id};
+            $hotspot_users_by_mac{$user_name}{ip}=$row->{ip};
+            $hotspot_users_by_mac{$user_name}{mac}=$user_name;
+            $hotspot_users_by_mac{$user_name}{queue_id}=$row->{queue_id};
+            $hotspot_users_by_mac{$user_name}{filter_group_id}=$row->{filter_group_id};
+            $hotspot_users_by_mac{$user_name}{comment}=$row->{id};
+            $hotspot_users_by_mac{$user_name}{comment}=translit($row->{description}) if ($row->{description});
+            }
+        # не добавляем клиента хотспота в общий список фильтрации
+        next;
+        }
     #filter group acl's
     $users{'group_'.$row->{filter_group_id}}->{$row->{ip}}=1;
     $users{'group_all'}->{$row->{ip}}=1;
@@ -1465,18 +1472,23 @@ if (@ret_hotspot and scalar(@ret_hotspot)) {
 
     foreach my $mac (keys %hotspot_users_by_mac) {
         my $user = $hotspot_users_by_mac{$mac};
+        # не создаём юзера с фильтром DenyAll
+        next if (!$user->{filter_group_id} || $user->{filter_group_id} < 1);
 
         my $filter_name = "group_".$user->{filter_group_id};
-        my $queue_name = ($user->{queue_id} && exists $queue_names{$user->{queue_id}} && $queue_names{$user->{queue_id}}{queue_name}) 
+        my $queue_name = ($user->{queue_id} && exists $queue_names{$user->{queue_id}} && $queue_names{$user->{queue_id}}{queue_name})
                          ? $queue_names{$user->{queue_id}}{queue_name} : "none";
 
         my $profile_name = "eye_${filter_name}_${queue_name}";
-        
+
         # Безопасное получение rate (защита от undef)
-        $required_profiles{$profile_name}{rate} = ($user->{queue_id} && exists $queue_names{$user->{queue_id}}) 
+        $required_profiles{$profile_name}{rate} = ($user->{queue_id} && exists $queue_names{$user->{queue_id}})
                                                   ? $queue_names{$user->{queue_id}}{rate} : 'none';
         # Имя цепочки фаервола для incoming-filter
         $required_profiles{$profile_name}{acl} = $filter_name;
+        # для фильтра Allow all incoming-filter не настраиваем для минимизации нагрузки на процессор роутера
+        # если фильтрация выключена глобально для роутера - снимаем фильтр в профиле
+        if ($user->{filter_group_id}<=1 || !$gate->{user_acl}) { $required_profiles{$profile_name}{acl}='none'; }
 
         my $user_id = $user->{id};
         my $comment = $user->{comment} // '';
@@ -1531,34 +1543,48 @@ if (@ret_hotspot and scalar(@ret_hotspot)) {
             log_info($gate_ident . "[CHANGE] Creating hotspot profile: $prof");
             my $profile_add_cmd = "/ip hotspot user profile add name=$prof session-timeout=1h idle-timeout=none keepalive-timeout=2m status-autorefresh=1m shared-users=1 add-mac-cookie=yes mac-cookie-timeout=1h transparent-proxy=no ";
             if ($norm_req_rate ne 'none') { $profile_add_cmd .= " rate-limit=$norm_req_rate"; }
-            if ($norm_req_acl ne 'none') { $profile_add_cmd .= " incoming-filter=$norm_req_acl"; }
+            if ($norm_req_acl ne 'none') {
+                $profile_add_cmd .= " incoming-filter=$norm_req_acl";
+                $profile_add_cmd .= " outgoing-filter=$norm_req_acl";
+                }
             push(@cmd_list, $profile_add_cmd);
         } else {
             my $curr = $actual_profiles{$prof};
             my $curr_rate = $curr->{'rate-limit'} // 'none';
-            my $curr_acl = $curr->{'incoming-filter'} // 'none';
-            
+            my $curr_acl_in = $curr->{'incoming-filter'} // 'none';
+            my $curr_acl_out = $curr->{'outgoing-filter'} // 'none';
+
             my $norm_curr_rate = ($curr_rate eq 'none' || $curr_rate eq '' || !defined $curr_rate) ? 'none' : $curr_rate;
-            my $norm_curr_acl = ($curr_acl eq 'none' || $curr_acl eq '' || !defined $curr_acl) ? 'none' : $curr_acl;
+            my $norm_curr_acl_in = ($curr_acl_in eq 'none' || $curr_acl_in eq '' || !defined $curr_acl_in) ? 'none' : $curr_acl_in;
+            my $norm_curr_acl_out = ($curr_acl_out eq 'none' || $curr_acl_out eq '' || !defined $curr_acl_out) ? 'none' : $curr_acl_out;
 
             my $needs_update = 0;
             if ($norm_req_rate ne $norm_curr_rate) {
                 log_info($gate_ident . "[CHANGE] Profile $prof rate-limit mismatch: current '$norm_curr_rate', required '$norm_req_rate'");
                 $needs_update = 1;
             }
-            if ($norm_req_acl ne $norm_curr_acl) {
-                log_info($gate_ident . "[CHANGE] Profile $prof incoming-filter mismatch: current '$norm_curr_acl', required '$norm_req_acl'");
+            if ($norm_req_acl ne $norm_curr_acl_in) {
+                log_info($gate_ident . "[CHANGE] Profile $prof incoming-filter mismatch: current '$norm_curr_acl_in', required '$norm_req_acl'");
+                $needs_update = 1;
+            }
+            if ($norm_req_acl ne $norm_curr_acl_out) {
+                log_info($gate_ident . "[CHANGE] Profile $prof outgoing-filter mismatch: current '$norm_curr_acl_out', required '$norm_req_acl'");
                 $needs_update = 1;
             }
 
             if ($needs_update) {
                 my $set_cmd = "/ip hotspot user profile set [find name=$prof]";
-                if ($norm_req_rate ne 'none') { $set_cmd .= " rate-limit=$norm_req_rate"; } 
+                if ($norm_req_rate ne 'none') { $set_cmd .= " rate-limit=$norm_req_rate"; }
                 else { $set_cmd .= " rate-limit=\"\""; }
 
-                if ($norm_req_acl ne 'none') { $set_cmd .= " incoming-filter=$norm_req_acl"; } 
-                else { $set_cmd .= " incoming-filter=\"\""; }
-
+                if ($norm_req_acl ne 'none') {
+                    $set_cmd .= " incoming-filter=$norm_req_acl";
+                    $set_cmd .= " outgoing-filter=$norm_req_acl";
+                    }
+                else {
+                    $set_cmd .= " incoming-filter=\"\"";
+                    $set_cmd .= " outgoing-filter=\"\"";
+                    }
                 push(@cmd_list, $set_cmd);
             }
         }
@@ -1592,6 +1618,7 @@ if (@ret_hotspot and scalar(@ret_hotspot)) {
         if (!exists $required_users{$mac}) {
             log_info($gate_ident . "[CHANGE] Removing extra hotspot user for MAC: $mac");
             push(@cmd_list, ":foreach i in [/ip hotspot user find where mac-address=$mac and profile~\"^eye_\"] do={/ip hotspot user remove \$i};");
+            push(@cmd_list, ":foreach i in [/ip hotspot active find where mac-address=$mac] do={/ip hotspot active remove \$i};");
         }
     }
 
