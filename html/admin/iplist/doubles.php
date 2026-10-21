@@ -36,7 +36,6 @@ if (!empty($rcidr)) {
 }
 
 print_ip_submenu($page_url);
-
 ?>
 <div id="cont">
 <br>
@@ -58,83 +57,106 @@ print_ip_submenu($page_url);
 </tr>
 
 <?php
+// Самая свежая запись в группе идёт первой:
+// arp_found DESC (NULL в конце), id — только для детерминизма порядка,
+// на выбор "оставляемой" не влияет (равные arp_found = неотличимы).
 $sSQL = "SELECT U.*, S.subnet as net FROM user_auth U, subnets S 
-WHERE (U.mac IS NOT NULL AND U.mac<>'') AND (U.ip_int BETWEEN S.ip_int_start AND S.ip_int_stop) $cidr_filter AND S.office=1 AND U.deleted=0 
-ORDER BY net,mac,arp_found,id";
-$auth_list = get_records_sql($db_link,$sSQL, $params);
-$f_subnet=NULL;
-$f_mac=NULL;
-$f_id=NULL;
-$f_index = 0;
-$f_count = 0;
-foreach ($auth_list as $row) {
-    if (empty($row['mac'])) { continue; }
-    if (empty($row['net'])) { continue; }
-    //инициализируем перебор по первой записи
-    if (empty($f_subnet)) {
-        $d_params = $params;
-        //считаем сколько у нас дублей
-        $dSQL = "SELECT U.*, S.subnet as net FROM user_auth U, subnets S WHERE S.office=1 AND U.deleted=0  AND (U.ip_int BETWEEN S.ip_int_start AND S.ip_int_stop) $cidr_filter AND U.mac=? AND S.subnet=?";
-        $d_params[]= $row['mac'];
-        $d_params[]= $row['net'];
-        $doubles = get_records_sql($db_link,$dSQL, $d_params);
-        $f_count = count($doubles);
-        if ($f_count > 1) {
-            //сохраняем для обработки
-            $f_subnet = $row['net'];
-            $f_mac=$row['mac'];
-            $f_id=$row['id'];
-            $f_index = 0;
-            } else { continue; }
-        }
-    //начинаем перебор - проверяем 
-    if ($row['net'] === $f_subnet and $row['mac']===$f_mac) {
-            $f_index++;
-            if (empty($row['arp_found']) || is_empty_datetime($row['arp_found'])) { $row['arp_found'] = ''; }
-            if (empty($row['ts']) || is_empty_datetime($row['ts'])) { $row['ts'] = ''; }
-            if (empty($row['changed_time']) || is_empty_datetime($row['changed_time'])) { $row['changed_time'] = ''; }
-            print "<tr align=center>\n";
-            $cl = "data";
-            print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_auth_id[] value=".$row["id"];
-            if ($f_index >1) {
-                $checked = true;
-                $mac_simplified = mac_simplify($row['mac']);
-                $mac_rules = get_records_sql($db_link, "SELECT * FROM auth_rules WHERE rule_type = 2 AND LENGTH(rule) > 0 AND user_id = ?", [ $row['user_id'] ]);
-                foreach ($mac_rules as $rule_row) {
-                    if (!empty($rule_row['rule'])) {
-                        $pattern = '/^' . preg_quote(mac_simplify($rule_row['rule']), '/') . '/';
-                        if (preg_match($pattern, $mac_simplified)) { $checked = false; break; }
-                        }
-                }
-                if ($checked) { print " checked"; }
-                }
-            print "></td>\n";
-            print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$row['user_id'].">" . get_login($db_link,$row['user_id']) . "</a></td>\n";
-            print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$row['id'].">" . $row['ip'] . "</a></td>\n";
-            print "<td class=\"$cl\" >" . expand_mac($db_link,$row['mac']) . "</td>\n";
-            if (isset($row['dhcp_hostname']) and strlen($row['dhcp_hostname']) > 0) {
-                print "<td class=\"$cl\" >".$row['description']." [" . $row['dhcp_hostname'] . "]</td>\n";
-                } else {
-                print "<td class=\"$cl\" >".$row['description']."</td>\n";
-                }
-            print "<td class=\"$cl\" >".$row['dns_name']."</td>\n";
-            print "<td class=\"$cl\" >".$row['ts']."</td>\n";
-            print "<td class=\"$cl\" >".$row['last_found']."</td>\n";
-            print "<td class=\"$cl\" ></td>\n";
-            print "</tr>\n";
-        } else {
-            $f_subnet = NULL;
-            $f_mac = NULL;
-            $f_id = NULL;
-            $f_index = 0;
-            $f_count = 0; 
-        }
-    }
-print "</table>\n";
-?>
+WHERE (U.mac IS NOT NULL AND U.mac<>'') 
+  AND (U.ip_int BETWEEN S.ip_int_start AND S.ip_int_stop) 
+  $cidr_filter AND S.office=1 AND U.deleted=0 
+ORDER BY net, mac, arp_found DESC, id";
+$auth_list = get_records_sql($db_link, $sSQL, $params);
 
-</form>
-<br>
-<?php
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
+// Предзагрузка MAC-правил по user_id (чтобы не делать запрос в цикле)
+$rules_by_user = [];
+$user_ids = [];
+foreach ($auth_list as $r) {
+    if (!empty($r['user_id'])) $user_ids[(int)$r['user_id']] = true;
+}
+if (!empty($user_ids)) {
+    $in = implode(',', array_keys($user_ids));
+    $rules = get_records_sql($db_link,
+        "SELECT user_id, rule FROM auth_rules 
+         WHERE rule_type = 2 AND LENGTH(rule) > 0 AND user_id IN ($in)");
+    foreach ($rules as $rr) {
+        $rules_by_user[(int)$rr['user_id']][] = mac_simplify($rr['rule']);
+    }
+}
+
+$cur_subnet = null;
+$cur_mac    = null;
+$cur_count  = 0;   // сколько записей в текущей группе
+$cur_index  = 0;   // порядковый номер внутри группы (1 = самая свежая)
+
+foreach ($auth_list as $row) {
+    if (empty($row['mac']) || empty($row['net'])) continue;
+
+    $key_net = $row['net'];
+    $key_mac = $row['mac'];
+
+    // Новая группа — сбрасываем счётчики
+    if ($cur_subnet !== $key_net || $cur_mac !== $key_mac) {
+        $cur_subnet = $key_net;
+        $cur_mac    = $key_mac;
+        $cur_index  = 0;
+        $cur_count  = 0;
+
+        // Считаем размер группы (один запрос на группу, не на каждую строку)
+        $d_params = $params;
+        $d_params[] = $row['mac'];
+        $d_params[] = $row['net'];
+        $dSQL = "SELECT COUNT(*) AS cnt FROM user_auth U, subnets S 
+                 WHERE S.office=1 AND U.deleted=0 
+                   AND (U.ip_int BETWEEN S.ip_int_start AND S.ip_int_stop) 
+                   $cidr_filter AND U.mac=? AND S.subnet=?";
+        $cnt_row = get_records_sql($db_link, $dSQL, $d_params);
+        $cur_count = (int)($cnt_row[0]['cnt'] ?? 0);
+    }
+
+    $cur_index++;
+
+    // Одиночные записи (не дубли) не показываем
+    if ($cur_count <= 1) continue;
+
+    // Самая свежая (первая по arp_found DESC) — не чекается
+    $is_keep = ($cur_index === 1);
+
+    $arp_found = (empty($row['arp_found']) || is_empty_datetime($row['arp_found'])) ? '' : $row['arp_found'];
+    $ts        = (empty($row['ts'])         || is_empty_datetime($row['ts']))         ? '' : $row['ts'];
+    $changed   = (empty($row['changed_time'])|| is_empty_datetime($row['changed_time']))? '' : $row['changed_time'];
+
+    print "<tr align=center>\n";
+    $cl = "data";
+    print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_auth_id[] value=".$row["id"];
+    if (!$is_keep) {
+        // По умолчанию чекаем; снимаем, если MAC подпадает под разрешающее правило
+        $checked = true;
+        $mac_simplified = mac_simplify($row['mac']);
+        $uid = (int)$row['user_id'];
+        if (!empty($rules_by_user[$uid])) {
+            foreach ($rules_by_user[$uid] as $rule_simpl) {
+                if ($rule_simpl === '') continue;
+                $pattern = '/^' . preg_quote($rule_simpl, '/') . '/';
+                if (preg_match($pattern, $mac_simplified)) { $checked = false; break; }
+            }
+        }
+        if ($checked) print " checked";
+    }
+    print "></td>\n";
+
+    print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$row['user_id'].">" . get_login($db_link,$row['user_id']) . "</a></td>\n";
+    print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$row['id'].">" . $row['ip'] . "</a></td>\n";
+    print "<td class=\"$cl\" >" . expand_mac($db_link,$row['mac']) . "</td>\n";
+    if (isset($row['dhcp_hostname']) and strlen($row['dhcp_hostname']) > 0) {
+        print "<td class=\"$cl\" >".$row['description']." [" . $row['dhcp_hostname'] . "]</td>\n";
+    } else {
+        print "<td class=\"$cl\" >".$row['description']."</td>\n";
+    }
+    print "<td class=\"$cl\" >".$row['dns_name']."</td>\n";
+    print "<td class=\"$cl\" >".$ts."</td>\n";
+    print "<td class=\"$cl\" >".$arp_found."</td>\n";
+    print "<td class=\"$cl\" ></td>\n";
+    print "</tr>\n";
+}
+print "</table>\n";
 ?>
