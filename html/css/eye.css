@@ -168,11 +168,12 @@ a:hover { color: var(--accent-ink); }
 a.ext::after { content: " \2197"; font-size: .9em; font-weight: 400;
   color: color-mix(in srgb, var(--link) 70%, transparent); }
 /* хромо-элементы ссылкой не прикидываются */
-#cont .pager :where(a), #cont :where(a.first_page_link, span.num_page_not_link),
-#cont :where(a.btn, .btn a, a.mainButton, a.delButton, a.exportButton, a.linkButton),
+/* сбрасываем ТОЛЬКО подчёркивание/вес: цвет каждого такого элемента объявлен его
+   собственным правилом, а color: revert вернул бы UA-синий на пагинации */
+#cont .pager :where(a), #cont :where(a.btn, .btn a, a.mainButton, a.delButton, a.exportButton, a.linkButton),
 #cont table.data > tbody > tr:first-child :where(a),
 #cont table.data tr.lblrow :where(a),
-#cont :where(a.ref) { text-decoration: none; font-weight: inherit; color: revert; }
+#cont :where(a.ref) { text-decoration: none; font-weight: inherit; }
 #cont :where(a.ref) { color: var(--accent-ink); }
 #cont :where(a.mainButton, a.delButton, a.exportButton) { color: var(--ink); }
 .tabs :where(a), #navi :where(a) { color: inherit; text-decoration: none; }
@@ -358,7 +359,7 @@ table.data td a { color: var(--link); }
    чтобы состояния не перекрывались подсветкой строки. */
 table.data > tbody > tr > td.warn  { background: var(--st-warn-bg);
                                           background: color-mix(in srgb, var(--st-warn) 20%, var(--surface)); }
-table.data > tbody > tr > td.nb    { background: color-mix(in srgb, var(--st-warn) 26%, var(--surface)); }
+table.data > tbody > tr > td.nb    { background: color-mix(in srgb, var(--st-warn) 35%, var(--surface)); }
 table.data > tbody > tr > td.error { background: var(--st-err-bg);
                                           background: color-mix(in srgb, var(--st-err) 24%, var(--surface)); color: var(--ink); }
 table.data > tbody > tr > td.off   { background: var(--st-off-bg); color: var(--ink-3); }
@@ -492,13 +493,17 @@ legend { font: 600 11px/1 var(--disp); letter-spacing: .1em; text-transform: upp
 .btn, input[type=submit], input[type=button], button, button[type=submit], button[type=button],
 a.mainButton, a.delButton, a.exportButton {
   display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px;
-  font: 500 var(--fs)/1 var(--sans); color: var(--ink); background: var(--surface);
-  border: 1px solid var(--rule-strong); border-radius: var(--r-md); cursor: pointer;
-  box-shadow: none; text-decoration: none; white-space: nowrap;
-  transition: background .12s, border-color .12s, transform .06s;
+  font: 500 var(--fs)/1 var(--sans); color: var(--ink);
+  background: var(--surface-2);
+  background: color-mix(in srgb, var(--ink) 13%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--ink) 34%, var(--surface));
+  border-radius: var(--r-md); cursor: pointer;
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--ink) 12%, transparent);
+  text-decoration: none; white-space: nowrap;
+  transition: background .12s, border-color .12s, box-shadow .12s, transform .06s;
 }
 :is(.btn, input[type=submit], button, a.mainButton, a.delButton, a.exportButton):hover {
-  background: var(--surface-2); border-color: var(--ink-3); color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 13%, var(--surface)); border-color: var(--ink-3); color: var(--ink);
 }
 :is(.btn, input[type=submit], button):active { transform: translateY(1px); }
 :is(.btn, input[type=submit], button):disabled { opacity: .5; cursor: not-allowed; }
@@ -643,13 +648,24 @@ dialog table.data td > select, dialog table.data td > input[list] { margin-left:
   font: 400 12px/1 var(--mono); color: var(--ink-2); border: 1px solid transparent; }
 .pager a:hover { background: var(--surface-2); color: var(--ink); border-color: var(--rule); }
 /* наследие print_navigation()/white.css */
-a.first_page_link, span.num_page_not_link, .pager .here {
-  background: var(--rail) !important; color: #fff !important; border: 0; border-radius: var(--r-sm);
-  padding: 7px 8px; margin: 0 1px; text-decoration: none; }
-a.first_page_link { background: var(--surface) !important; color: var(--ink-2) !important;
-  border: 1px solid var(--rule-strong) !important; }
+/* print_navigation(): переходные страницы — <a class="first_page_link">,
+   ТЕКУЩАЯ — <span class="num_page_not_link"><b>номер</b></span>. Номер жил внутри <b>,
+   поэтому общее правило для <b> в .records перекрашивало цифру в тёмный поверх
+   тёмной плашки — цвет наследуется явно. */
+#cont a.first_page_link, #cont span.num_page_not_link, .pager a, .pager .here {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; height: 26px; padding: 0 7px; margin: 0 1px;
+  border-radius: var(--r-sm); font: 500 12.5px/1 var(--mono);
+  text-decoration: none; font-weight: 500; }
+#cont a.first_page_link, .pager a { color: var(--link); background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--ink) 32%, var(--surface)); }
+#cont a.first_page_link:hover, .pager a:hover { background: var(--sel); }
+#cont a.first_page_link:visited { color: var(--link); }
+#cont span.num_page_not_link, .pager .here,
+#cont span.num_page_not_link b, .pager .here b { color: #fff; background: var(--rail);
+  border: 1px solid var(--rail); text-decoration: none; font-weight: 600; }
 div.records { margin: 6px 0 10px; font-size: 12.5px; color: var(--ink-2); text-align: left; }
-div.records b { font-family: var(--mono); font-weight: 500; color: var(--ink); }
+div.records b { font-family: var(--mono); font-weight: 500; }
 #msg { padding: 10px 12px; margin-bottom: 12px; font: 500 13px/1.4 var(--sans); color: var(--ink);
   background: var(--st-warn-bg); border-left: 2px solid var(--st-warn); border-radius: var(--r-md); }
 #copyright { padding: 0 18px 6px; font-size: 11.5px; color: var(--ink-3); }
@@ -846,5 +862,5 @@ body.eye-public #copyright { margin-top: 14px; padding: 0; text-align: center; }
 }
 #cont table.data tbody tr:has(:is(input[type=submit], button, .btn).pri) > td:first-child::before,
 #cont table.data tr:has(:is(input[type=submit], button, .btn).pri) > td:first-child::before { display: none; }
-/* кнопка «Показать/фильтр» — служебная, акцентом не становится (eye.js её пропускает) */
-#cont form > .filters input[type=submit], #cont form > input#btn_filter { background: var(--surface); }
+/* «Показать» остаётся вторичной: eye.js не делает её акцентной */
+#cont form > .filters input[type=submit], #cont form > input#btn_filter { font-weight: 600; }
