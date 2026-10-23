@@ -67,3 +67,7 @@ foreach ($t_config as $row) {
 ?>
 </table>
 </form>
+
+<?php
+require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/footer.php");
+?>

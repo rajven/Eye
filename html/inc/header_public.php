@@ -25,6 +25,19 @@ $page_url = $page_url_array[0];
     $pub_css = (isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : '') . '/css/' . $pub_style . '.css';
     $pub_ver = is_file($pub_css) ? '?v=' . filemtime($pub_css) : '';
 ?>
+<script>
+/* Тема/плотность применяются до первой отрисовки и не зависят от того,
+   подключил ли страницу footer.php с /js/eye.js (иначе страница на мгновение
+   — а при отсутствии eye.js и вовсе навсегда — остаётся светлой). */
+(function () {
+    try {
+        var d = document.documentElement, t = null, n = null;
+        try { t = localStorage.getItem('eye.theme'); n = localStorage.getItem('eye.dens'); } catch (e) {}
+        if (t === 'light' || t === 'dark') { d.setAttribute('data-eye', t); }
+        if (n === 'normal' || n === 'roomy') { d.setAttribute('data-eye-dens', n); }
+    } catch (e) {}
+})();
+</script>
 <link rel="stylesheet" type="text/css" href="/css/<?php echo $pub_style . '.css' . $pub_ver; ?>">
 <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

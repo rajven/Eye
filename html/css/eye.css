@@ -489,7 +489,7 @@ legend { font: 600 11px/1 var(--disp); letter-spacing: .1em; text-transform: upp
 .lock { font-size: 10px; color: var(--st-warn); border: 1px solid currentColor; border-radius: 3px;
   padding: 0 4px; text-transform: none; letter-spacing: .04em; font-weight: 500; }
 
-.btn, input[type=submit], input[type=button], button[type=submit], button[type=button],
+.btn, input[type=submit], input[type=button], button, button[type=submit], button[type=button],
 a.mainButton, a.delButton, a.exportButton {
   display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px;
   font: 500 var(--fs)/1 var(--sans); color: var(--ink); background: var(--surface);
@@ -502,8 +502,15 @@ a.mainButton, a.delButton, a.exportButton {
 }
 :is(.btn, input[type=submit], button):active { transform: translateY(1px); }
 :is(.btn, input[type=submit], button):disabled { opacity: .5; cursor: not-allowed; }
-input[type=submit], .btn.pri, a.mainButton { background: var(--accent); border-color: var(--accent); color: #231400; }
-input[type=submit]:hover, .btn.pri:hover, a.mainButton:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #231400; }
+/* Одна акцентная кнопка на форму: класс .pri навешивает js/eye.js (или руками).
+   Всё остальное — вторичные действия, они не должны перекрикивать сохранение. */
+.btn.pri, input[type=submit].pri, button.pri { background: var(--accent); border-color: var(--accent); color: #231400; }
+.btn.pri:hover, input[type=submit].pri:hover, button.pri:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #231400; }
+a.mainButton { background: var(--accent); border-color: var(--accent); color: #231400; }
+a.mainButton:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #231400; }
+/* в диалоге единственное действие — всегда главное */
+dialog > form > [type=submit], .dlg-f [type=submit], dialog .btn.pri { background: var(--accent); border-color: var(--accent); color: #231400; }
+dialog > form > [type=submit]:hover, .dlg-f [type=submit]:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #231400; }
 a.delButton, .btn.dan { color: var(--st-err); border-color: var(--st-err); background: transparent; }
 a.delButton:hover, .btn.dan:hover { background: var(--st-err-bg); color: var(--st-err); }
 a.exportButton { color: var(--st-ok); border-color: var(--st-ok); background: transparent; }
@@ -775,3 +782,69 @@ body.eye-login .login p { margin: 0 0 12px; }
 .es-none { color: var(--ink-3); cursor: default; }
 /* чтобы панель не резалась внутри диалога массовых изменений */
 dialog table.data, dialog table.data td, dialog table.data tr { overflow: visible; }
+
+/* ---------- 15. Строки действия: подпись слева, кнопка в правой колонке ----
+   control.php печатает <tr><td align=right>Метка&nbsp<input type=submit>…, т.е.
+   строка не с полями, а с одним действием. */
+#cont table.data td:has(> :is(input[type=submit], input[type=button], button):last-child) {
+  display: flex; align-items: center; gap: 10px; text-align: left;
+}
+#cont table.data td > :is(input[type=submit], input[type=button], button):last-child {
+  margin-left: auto; flex: none; min-width: 136px; justify-content: center;
+}
+/* строка «одна ссылка-действие» (Выключение портов) — в ту же правую колонку;
+   обычным ячейкам со ссылкой внутри строки данных это не касается */
+#cont table.data > tbody > tr > td:first-child:last-child:has(> a:only-child),
+#cont table.data > tr > td:first-child:last-child:has(> a:only-child) { display: flex; align-items: center; }
+#cont table.data > tbody > tr > td:first-child:last-child > a:only-child,
+#cont table.data > tr > td:first-child:last-child > a:only-child {
+  margin-left: auto; min-width: 136px; text-align: right;
+}
+:is(input[type=submit], button).danger, .btn.danger {
+  background: var(--st-err); border-color: var(--st-err); color: #fff;
+}
+:is(input[type=submit], button).danger:hover, .btn.danger:hover {
+  background: color-mix(in srgb, var(--st-err) 85%, #fff);
+  border-color: color-mix(in srgb, var(--st-err) 85%, #fff); color: #fff;
+}
+/* ячейка с кнопкой — не подзаголовок раздела; строка с кнопкой — не шапка колонок */
+#cont table.data > tbody > tr > td:first-child:last-child:has(:is(input, select, textarea, button)),
+#cont table.data > tr > td:first-child:last-child:has(:is(input, select, textarea, button)) {
+  background: transparent; font: inherit; letter-spacing: normal; text-transform: none;
+  color: var(--ink); height: var(--row-h);
+}
+#cont table.data > tbody > tr:first-child > td:has(:is(input[type=submit], button)),
+#cont table.data > tr:first-child > td:has(:is(input[type=submit], button)) {
+  position: static; height: var(--row-h); background: transparent;
+  border-bottom: 1px solid var(--rule); font: inherit; letter-spacing: normal;
+  text-transform: none; color: var(--ink);
+}
+
+/* ---------- 16. Публичная страница блокировки: карточка по центру окна ------ */
+body.eye-public { display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 22px; }
+body.eye-public #title { border: 0; margin: 0 0 12px; padding: 0; font-size: 19px; color: var(--ink); }
+body.eye-public #title::before { display: none; }
+body.eye-public #cont { width: min(640px, 100%); margin: 0; padding: 0; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; }
+body.eye-public #cont > table { width: 100%; }
+body.eye-public #cont table td { padding: 9px 16px; height: auto; border-bottom: 1px solid var(--rule);
+  vertical-align: middle; background: transparent; }
+body.eye-public #cont table tr:last-child td { border-bottom: 0; }
+body.eye-public #cont table td:first-child { width: 46%; color: var(--ink-2); font-weight: 600; }
+body.eye-public #cont table td:first-child b { color: var(--ink); }
+body.eye-public span.bad { display: block; padding: 12px 16px; font-weight: 600;
+  background: var(--st-err-bg); color: var(--st-err); }
+body.eye-public #copyright { margin-top: 14px; padding: 0; text-align: center; }
+
+/* ---------- 17. Строка сохранения ------------------------------------------ */
+.pri { min-width: 136px; justify-content: center; }
+#cont table.data tbody tr:has(:is(input[type=submit], button, .btn).pri) > td,
+#cont table.data tr:has(:is(input[type=submit], button, .btn).pri) > td {
+  background: var(--surface-2); border-top: 1px solid var(--rule-strong);
+  border-bottom: 0; height: 46px;
+}
+#cont table.data tbody tr:has(:is(input[type=submit], button, .btn).pri) > td:first-child::before,
+#cont table.data tr:has(:is(input[type=submit], button, .btn).pri) > td:first-child::before { display: none; }
+/* кнопка «Показать/фильтр» — служебная, акцентом не становится (eye.js её пропускает) */
+#cont form > .filters input[type=submit], #cont form > input#btn_filter { background: var(--surface); }

@@ -643,6 +643,40 @@
     $$('a[onclick*="window.open"]').forEach(function (a) { a.classList.add('ext'); });
   }
 
+
+  /* ---------- 7k. Одна акцентная кнопка на форму ----------------------------
+     «Сохранить» нужно отделять от служебных (Переместить / Обновить / Удалить).
+     В разметке Eye имена кнопок постоянны, поэтому выбираем кандидатов по имени,
+     ранжируем (edit* → save_ipset → save → s_save) и помечаем .pri одного на форму.
+     Явный class="pri" в разметке перекрывает эвристику. Диалоги и кнопку
+     «Показать» не трогаем: у них своя логика акцента. */
+
+  var PRI_RANK = [/^edit/i, /^save_ipset$/, /^save$/, /^s_save$/];
+
+  function markPrimaryActions() {
+    $$('form').forEach(function (f) {
+      if (f.closest('dialog')) return;
+      var found = $$(':is(input[type=submit], button[type=submit], button:not([type]))', f).filter(function (el) {
+        if (el.closest('dialog')) return false;
+        if (el.id === 'btn_filter' || el.name === 'btn_filter') return false;
+        if (el.classList.contains('danger') || el.classList.contains('x')) return false;
+        if (/\[\]$/.test(el.name || '')) return false;          // постночные действия списков
+        var rk = rank(el);
+        return rk > -1;
+      });
+      var explicit = $$('.pri', f).filter(function (el) { return !el.closest('dialog'); });
+      if (explicit.length) return;                                // разметка уже всё решила
+      if (!found.length) return;
+      found.sort(function (a, b) { return rank(a) - rank(b); });
+      found[0].classList.add('pri');
+    });
+    function rank(el) {
+      var n = el.name || '';
+      for (var i = 0; i < PRI_RANK.length; i++) { if (PRI_RANK[i].test(n)) return i; }
+      return -1;
+    }
+  }
+
   /* ---------- старт ------------------------------------------------------- */
 
   // каждый шаг инициализации по отдельности: ошибка в одном не глушит механизм
@@ -656,8 +690,12 @@
   try {
     var savedDens = localStorage.getItem('eye.dens');
     setDens(savedDens || 'compact');
+    /* значение уже применено инлайновым скриптом в inc/header.php — здесь только
+       синхронизируем подписи кнопок с фактическим состоянием */
     var savedTheme = localStorage.getItem('eye.theme');
     if (savedTheme && savedTheme !== 'auto') setTheme(savedTheme);
+    else setTheme(root.getAttribute('data-eye') === 'dark' ? 'dark'
+                : (root.getAttribute('data-eye') === 'light' ? 'light' : 'auto'));
   } catch (e) {}
   safe(wireDialogs, 'dialogs');
   safe(wireActions, 'actions');
@@ -672,6 +710,7 @@
   safe(fixWindowButtons, 'window buttons');
   safe(markListCells, 'list cells');
   safe(markExternalLinks, 'external links');
+  safe(markPrimaryActions, 'primary actions');
   safe(wireFilters, 'filters');
   safe(syncBulk, 'bulk count');
 })();

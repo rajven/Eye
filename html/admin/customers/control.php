@@ -107,7 +107,7 @@ print_control_submenu($page_url);
 <table class="data">
 <?php
         if (get_option($db_link, 68)) {
-            print "<tr><td align=right>".WEB_control_edit_mode."&nbsp<input type=submit name='set_workmode_off' value='".WEB_btn_off."' style='background-color:red'></td></tr>";
+            print "<tr><td align=right>".WEB_control_edit_mode."&nbsp<input type=submit name='set_workmode_off' value='".WEB_btn_off."' class='danger'></td></tr>";
             } else {
             print "<tr><td align=right>".WEB_control_edit_mode."&nbsp<input type=submit name='set_workmode_on' value='".WEB_btn_on."'></td></tr>";
         }

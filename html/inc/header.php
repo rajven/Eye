@@ -67,6 +67,19 @@ $eye_nav = [
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta charset="UTF-8">
 
+<script>
+/* Тема/плотность применяются до первой отрисовки и не зависят от того,
+   подключил ли страницу footer.php с /js/eye.js (иначе страница на мгновение
+   — а при отсутствии eye.js и вовсе навсегда — остаётся светлой). */
+(function () {
+    try {
+        var d = document.documentElement, t = null, n = null;
+        try { t = localStorage.getItem('eye.theme'); n = localStorage.getItem('eye.dens'); } catch (e) {}
+        if (t === 'light' || t === 'dark') { d.setAttribute('data-eye', t); }
+        if (n === 'normal' || n === 'roomy') { d.setAttribute('data-eye-dens', n); }
+    } catch (e) {}
+})();
+</script>
 <link rel="stylesheet" type="text/css" href="/css/<?php echo $eye_style . '.css' . ($eye_css_mtime ? '?v=' . $eye_css_mtime : ''); ?>">
 </head>
 <body data-eye-i18n="<?php echo htmlspecialchars(json_encode([
