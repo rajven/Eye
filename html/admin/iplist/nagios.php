@@ -52,12 +52,11 @@ print_ip_submenu($page_url);
 </table>
 </form>
 
-<a class="mainButton" href="#modal"><?php print WEB_btn_apply_selected; ?></a>
-<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modal" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
- <div class="remodalBorder">
-  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
-      <form id="formAuthApply">
-        <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
+<a class="mainButton" href="#eye-mass"><?php print WEB_btn_apply_selected; ?></a>
+<dialog id="eye-mass" class="eye-dlg">
+  <button type="button" class="x" data-close aria-label="<?php echo WEB_btn_close; ?>">&#10005;</button>
+  <form id="formAuthApply">
+        <h2><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
         <tr><td><input type=checkbox class="putField" name="e_nag_enabled" value='1'></td><td>Nagios&nbsp<?php print_qa_select('n_enabled', 1); ?></td></tr>
@@ -66,8 +65,7 @@ print_ip_submenu($page_url);
         </table>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
-</div>
-</div>
+</dialog>
 
 <?php
 $countSQL="SELECT Count(*) FROM user_auth, user_list WHERE user_auth.user_id = user_list.id AND user_auth.deleted =0 $ip_list_filter";
@@ -165,8 +163,6 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <td class="down"><?php echo WEB_nagios_host_down; ?></td>
 <td class="data"><?php echo WEB_nagios_host_unknown; ?></td>
 </table>
-<script src="/js/remodal/remodal.min.js"></script>
-<script src="/js/remodal-auth.js"></script>
 
 <script>
 document.getElementById('ou').addEventListener('change', function(event) {

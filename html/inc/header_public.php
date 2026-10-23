@@ -19,9 +19,16 @@ $page_url = $page_url_array[0];
 <html>
 <head>
 <title>Панель статистики</title>
-<link rel="stylesheet" type="text/css" href="/css/<?php echo HTML_STYLE.".css"; ?>">
+<?php
+    /* тот же механизм сброса кеша, что и в inc/header.php */
+    $pub_style = HTML_STYLE;
+    $pub_css = (isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : '') . '/css/' . $pub_style . '.css';
+    $pub_ver = is_file($pub_css) ? '?v=' . filemtime($pub_css) : '';
+?>
+<link rel="stylesheet" type="text/css" href="/css/<?php echo $pub_style . '.css' . $pub_ver; ?>">
 <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
-<body>
+<body class="eye-public">
 <div id="title"><?php print get_const('org_name'); ?></div>
 

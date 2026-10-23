@@ -37,21 +37,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
 <html>
     <head>
     <title><?php echo WEB_site_title; ?> login</title>
-    <link rel="stylesheet" type="text/css" href="/css/<?php echo HTML_STYLE.'.css'; ?>">
-    <link rel="stylesheet" type="text/css" href="/login.css" >
-    <meta http-equiv="content-type" content="application/xhtml+xml" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="UTF-8" />
+    <link rel="stylesheet" type="text/css" href="/css/<?php echo HTML_STYLE.'.css'; ?>">
     </head>
-    <body>
+    <body class="eye-login">
 	<div class="login">
 	    <h1><?php echo WEB_msg_login; ?></h1>
+	    <?php /* $error копился в начале файла, но никогда не выводился */ echo $error; ?>
 	    <form action="" method="post">
 		<label for="username">
-		    <i class="fas fa-user"></i>
+		    <span aria-hidden="true">&#128100;</span><span class="vh">Логин</span>
 		</label>
 		<input type="text" name="login" placeholder="<?php echo WEB_msg_username; ?>" id="login" required autofocus>
 		<label for="password">
-		    <i class="fas fa-lock"></i>
+		    <span aria-hidden="true">&#128274;</span><span class="vh">Пароль</span>
 		</label>
 		<input type="password" name="password" placeholder="<?php echo WEB_msg_password; ?>" id="password" required>
                 <input type="hidden" name="redirect_url" value="<?php print htmlspecialchars($redirect_url); ?>">

@@ -91,14 +91,14 @@ print_filters_submenu($page_url);
                         // Режим IPSet: показываем имя с ссылкой на редактирование
                         $dst_display = '<span title="IPSet">' . 
                             '<a href="editipset.php?id=' . (int)$row['ipset_id'] . '" ' .
-                            'style="color:#06c; text-decoration:none; font-weight:500">' .
+                            'class="ref">' .
                             '📦 ' . htmlspecialchars($row['ipset_name']) . '</a></span>';
                     } elseif (!empty($row['dst'])) {
                         // Режим прямого IP: показываем dst
                         $dst_display = htmlspecialchars($row['dst']);
                     } else {
                         // Пустое значение
-                        $dst_display = '<span style="color:#999">0/0</span>';
+                        $dst_display = '<span class="none">0/0</span>';
                     }
                     
                     print "<td class=\"data\">IP фильтр</td>\n";
@@ -113,12 +113,12 @@ print_filters_submenu($page_url);
                     if (!empty($row['ipset_id']) && !empty($row['ipset_name'])) {
                         $dst_display = '<span title="IPSet">' . 
                             '<a href="editipset.php?id=' . (int)$row['ipset_id'] . '" ' .
-                            'style="color:#06c; text-decoration:none; font-weight:500">' .
+                            'class="ref">' .
                             '📦 ' . htmlspecialchars($row['ipset_name']) . '</a></span>';
                     } elseif (!empty($row['dst'])) {
                         $dst_display = htmlspecialchars($row['dst']);
                     } else {
-                        $dst_display = '<span style="color:#999">—</span>';
+                        $dst_display = '<span class="none">—</span>';
                     }
                     
                     print "<td class=\"data\">Name фильтр</td>\n";

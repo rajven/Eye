@@ -927,7 +927,6 @@ download_additional_scripts() {
 
     # Create directories
     mkdir -p /opt/Eye/html/js/jq
-    mkdir -p /opt/Eye/html/js/select2
     mkdir -p /opt/Eye/html/js/jstree
 
     # Download jQuery
@@ -938,18 +937,6 @@ download_additional_scripts() {
         wget -q https://ajax.googleapis.com/ajax/libs/jquery/3.7.0/jquery.min.js \
             -O /opt/Eye/html/js/jq/jquery.min.js || \
             print_error "Failed to download jQuery"
-    fi
-
-    # Download Select2
-    print_info "Downloading Select2..."
-    if wget -q https://github.com/select2/select2/archive/4.0.12.tar.gz -O 4.0.12.tar.gz; then
-        tar -xzf 4.0.12.tar.gz -C /opt/Eye/html/js/select2/ \
-            --strip-components=2 select2-4.0.12/dist 2>/dev/null || \
-            tar -xzf 4.0.12.tar.gz -C /opt/Eye/html/js/select2/ \
-            --strip-components=1 select2-4.0.12/dist 2>/dev/null
-        rm -f 4.0.12.tar.gz
-    else
-        print_warn "Failed to download Select2"
     fi
 
     # Download jsTree

@@ -1,0 +1,36 @@
+/* ======================================================================
+   Eye — тёмная тема как явный выбор: define("HTML_STYLE","eye-dark");
+   Блок токенов ниже — копия секции 3 из eye.css (поддерживать в синхроне).
+   Без правки header.php работает и на старой шаблонной разметке.
+   ====================================================================== */
+@import url("eye.css");
+
+:root {
+
+  --accent-ink: #f0b978;
+  --accent-soft: #2a2013;
+  --bg: #12171e;
+  --surface: #1a212a;
+  --surface-2: #212a35;
+  --rule: #2d3846;
+  --rule-strong: #3b4a5a;
+  --ink: #dbe4ec;
+  --ink-2: #9dabba;
+  --ink-3: #7a8896;
+  --rail: #0d1218;
+  --rail-ink: #9dabba;
+  --rail-rule: #212a35;
+  --rail-hover: #1b232e;
+  --sel: #223145;
+  --focus: #7aa7ff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
+  --st-ok: #4fa877;
+  --st-warn: #d9a54a;
+  --st-err: #d9665c;
+  --st-off: #7f8c99;
+  --st-ok-bg: #14231c;
+  --st-warn-bg: #241d10;
+  --st-err-bg: #261514;
+  --st-off-bg: #1b222b;
+  color-scheme: dark;
+}

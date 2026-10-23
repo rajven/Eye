@@ -545,4 +545,23 @@ define("WEB_NOTIFY_CREATE","Создание");
 define("WEB_NOTIFY_UPDATE","Изменение");
 define("WEB_NOTIFY_DELETE","Удаление");
 
+
+/* --- тема eye: служебные подписи (inc/footer.php, js/eye.js) --- */
+define("WEB_perf_page","Страница сгенерирована за");
+define("WEB_perf_sec","сек");
+define("WEB_perf_memory","Память (пик):");
+define("WEB_perf_used","Изменено:");
+define("WEB_lbl_dense","Плотно");
+define("WEB_lbl_normal","Обычно");
+define("WEB_lbl_roomy","Просторно");
+define("WEB_lbl_theme","Тема: авто");
+define("WEB_lbl_theme_light","Тема: светлая");
+define("WEB_lbl_theme_dark","Тема: тёмная");
+define("WEB_lbl_selected","выбрано");
+define("WEB_lbl_clear","Снять");
+define("WEB_lbl_failed","Не выполнено:");
+define("WEB_msg_filter_hint","Фильтры применяются сразу");
+define("WEB_btn_close","Закрыть");
+define("WEB_lbl_typeahead","Начните вводить для поиска");
+define("WEB_lbl_nomatch","Ничего не найдено");
 ?>

@@ -82,6 +82,8 @@ foreach ($switches as $row) {
 
 print '<div id="frmt" class="tree"></div>';
 print "\n";
+print '<link rel="stylesheet" href="/js/jstree/themes/default/style.min.css">';
+print '<script src="/js/jq/jquery.min.js"></script>';
 print '<script>';
 print "$('#frmt').jstree({";
 print '"themes" : { "theme" : "default", "dots" : false, "icons" : false }, "plugins" : [ "themes", "html_data", "ui", "sort" ],';

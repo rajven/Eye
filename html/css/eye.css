@@ -1,0 +1,722 @@
+/* ==========================================================================
+   Eye — тема оформления "eye"
+   Включается одной строкой в html/cfg/config.php:
+        define("HTML_STYLE","eye");        // светлая/авто по системе
+        define("HTML_STYLE","eye-dark");   // принудительно тёмная
+   Файл рассчитан на СУЩЕСТВУЮЩУЮ разметку страниц (id #navi/#submenu/#cont,
+   table.data, td.warn/td.error/td.off, a.first_page_link и т.д.), поэтому
+   админка меняется целиком, без правок в 63 файлах.
+   ========================================================================== */
+
+/* ---------- 0. Шрифты: локальные woff2, правила вынесены в css/fonts.css ------ */
+@import url("fonts.css");
+
+/* ---------- 1. Токены: светлая ------------------------------------------------
+   Акцент взят из прежней темы: #ed8b0d — цвет #title в css/white.css.         */
+:root {
+  --accent: #ed8b0d;
+  --accent-hover: #f79a22;
+  --accent-ink: #7a4703;
+  --accent-soft: #fdf1e0;
+
+  --bg: #e9edf1;
+  --surface: #fff;
+  --surface-2: #f4f7f9;
+  --rule: #d5dce3;
+  --rule-strong: #bcc6cf;
+  --ink: #171d24;
+  --ink-2: #4a5660;
+  --ink-3: #77848f;
+
+  --rail: #1d2530;
+  --rail-ink: #c3cdd6;
+  --rail-hi: #fff;
+  --rail-rule: #2c3743;
+  --rail-hover: #252f3b;
+
+  --sel: #e8f0f7;
+  --focus: #1f6feb;
+  --shadow: 0 1px 2px rgba(16, 24, 32, .06), 0 8px 24px rgba(16, 24, 32, .06);
+
+  --st-ok: #2f7a4f;
+  --st-warn: #b8791c;
+  --st-err: #a8352f;
+  --st-off: #7c8794;
+  --st-ok-bg: #eef6f0;
+  --st-warn-bg: #fbf3e4;
+  --st-err-bg: #fbeeed;
+  --st-off-bg: #f1f3f5;
+
+  --sans: "IBM Plex Sans", -apple-system, "Segoe UI", "DejaVu Sans", Roboto, "Noto Sans", sans-serif;
+  /* IBM Plex Sans Condensed кириллицы не имеет — подзаголовки делаем Plex 600
+     с трекингом, он уже стоит в правилах меток */
+  --disp: "IBM Plex Sans", var(--sans);
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", Consolas, monospace;
+
+  --row-h: 30px;
+  --pad: 10px;
+  --fs: 13px;
+  --fs-mono: 12.5px;
+  --r-sm: 3px;
+  --r-md: 5px;
+  --r-lg: 8px;
+  --rail-w: 232px;
+  color-scheme: light;
+}
+
+/* ---------- 2. Токены: тёмная (AUTO: держ в синхроне с блоком 3) ---------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-eye="light"]) {
+    --accent-ink: #f0b978;
+    --accent-soft: #2a2013;
+    --bg: #12171e;
+    --surface: #1a212a;
+    --surface-2: #212a35;
+    --rule: #2d3846;
+    --rule-strong: #3b4a5a;
+    --ink: #dbe4ec;
+    --ink-2: #9dabba;
+    --ink-3: #7a8896;
+    --rail: #0d1218;
+    --rail-ink: #9dabba;
+    --rail-rule: #212a35;
+    --rail-hover: #1b232e;
+    --sel: #223145;
+    --focus: #7aa7ff;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
+    --st-ok: #4fa877;
+    --st-warn: #d9a54a;
+    --st-err: #d9665c;
+    --st-off: #7f8c99;
+    --st-ok-bg: #14231c;
+    --st-warn-bg: #241d10;
+    --st-err-bg: #261514;
+    --st-off-bg: #1b222b;
+    color-scheme: dark;
+  }
+}
+
+/* ---------- 3. Токены: тёмная (ЯВНО: HTML_STYLE=eye-dark или переключатель) -- */
+:root[data-eye="dark"] {
+  --accent-ink: #f0b978;
+  --accent-soft: #2a2013;
+  --bg: #12171e;
+  --surface: #1a212a;
+  --surface-2: #212a35;
+  --rule: #2d3846;
+  --rule-strong: #3b4a5a;
+  --ink: #dbe4ec;
+  --ink-2: #9dabba;
+  --ink-3: #7a8896;
+  --rail: #0d1218;
+  --rail-ink: #9dabba;
+  --rail-rule: #212a35;
+  --rail-hover: #1b232e;
+  --sel: #223145;
+  --focus: #7aa7ff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
+  --st-ok: #4fa877;
+  --st-warn: #d9a54a;
+  --st-err: #d9665c;
+  --st-off: #7f8c99;
+  --st-ok-bg: #14231c;
+  --st-warn-bg: #241d10;
+  --st-err-bg: #261514;
+  --st-off-bg: #1b222b;
+  color-scheme: dark;
+}
+
+/* плотность: header.php навесит data-eye-dens на <html>, выбор запоминается */
+:root[data-eye-dens="roomy"] { --row-h: 38px; --pad: 14px; --fs: 14px; --fs-mono: 13px; }
+:root[data-eye-dens="tight"] { --row-h: 25px; --pad: 7px; --fs: 12px; --fs-mono: 11.5px; }
+
+/* ---------- 4. База (заменила глобальный tahoma 12pt из white.css) ---------- */
+* { box-sizing: border-box; }
+html { margin: 0; padding: 0; font-size: var(--fs); }
+body {
+  margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+  font: 400 var(--fs)/1.45 var(--sans); font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+img { border: 0; max-width: 100%; }
+h1, h2, h3 { font-family: var(--disp); font-weight: 600; letter-spacing: .01em; }
+h1 { font-size: 1.45em; } h2 { font-size: 1.15em; } h3 { font-size: 1em; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 14px 0; }
+a { color: inherit; text-decoration: none; }
+a:hover { color: var(--accent-ink); }
+a:active { color: var(--accent); }
+code, kbd, pre { font-family: var(--mono); font-size: .95em; }
+:is(a, button, input, select, summary):focus-visible {
+  outline: 2px solid var(--focus); outline-offset: 1px;
+}
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.mono, .id { font-family: var(--mono); font-size: var(--fs-mono); }
+.mut, .tiny { color: var(--ink-3); }
+.red-text { color: var(--st-err); } .blue-text { color: var(--focus); }
+.green-text { color: var(--st-ok); } .black-text { color: var(--ink); }
+.ts { font-size: 11px; line-height: 1.3; color: var(--ink-3); padding: 0;
+      font-family: var(--mono); }
+p.ts, td p.ts { margin: 1px 0 0; }
+
+/* ---------- 5. Каркас: рельса + шапка + полость -------------- */
+#eye-shell { display: grid; grid-template-columns: var(--rail-w) minmax(0, 1fr); min-height: 100vh; }
+#eye-rail {
+  grid-column: 1; background: var(--rail); color: var(--rail-ink);
+  display: flex; flex-direction: column; padding: 14px 0 10px;
+  position: sticky; top: 0; height: 100vh; overflow: auto;
+}
+#eye-main { grid-column: 2; display: flex; flex-direction: column; min-width: 0; }
+
+#title {
+  padding: 0 16px 14px; display: flex; align-items: baseline; gap: 10px;
+  font: 600 17px/1.1 var(--disp); letter-spacing: .04em; color: #fff;
+  border-bottom: 1px solid var(--rail-rule); margin-bottom: 6px;
+}
+body.eye-public #title {           /* страница блокировки (inc/header_public.php) */
+  padding: 16px 18px 12px; color: var(--ink); border-bottom: 1px solid var(--rule);
+  background: var(--surface); margin-bottom: 0;
+}
+body.eye-public #cont { padding-top: 18px; }
+#title::before {
+  content: ""; width: 20px; height: 20px; border-radius: 50%; flex: none; align-self: center;
+  background: radial-gradient(circle at 50% 50%, currentColor 0 26%, var(--accent) 27% 100%);
+  box-shadow: 0 0 0 3px rgba(237, 139, 13, .18);
+}
+body.eye-public #title::before { background: radial-gradient(circle at 50% 50%, var(--surface) 0 26%, var(--accent) 27% 100%); }
+#subtitle { color: var(--ink-3); font-size: 11px; }
+
+#navi { display: flex; flex-direction: column; gap: 1px; padding: 0 8px; }
+#navi a {
+  display: flex; align-items: center; gap: 9px; padding: 7px 9px;
+  border-radius: var(--r-md); font-size: 13px; color: var(--rail-ink);
+  border-left: 2px solid transparent;
+}
+#navi a:hover { background: var(--rail-hover); color: var(--rail-hi); }
+#navi a.here { background: var(--rail-hover); color: var(--rail-hi); font-weight: 500; border-left-color: var(--accent); }
+#navi b { /* print_submenu_url() помечает текущий пункт через <b> */
+  display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: var(--r-md);
+  background: var(--rail-hover); color: var(--rail-hi); font-weight: 500;
+  border-left: 2px solid var(--accent);
+}
+#navi br { display: none; }          /* разделители "|" убраны: ссылки стали колонкой */
+#navi .sep { display: none; }
+#eye-rail .rail-foot {
+  margin-top: auto; padding: 12px 16px 0; border-top: 1px solid var(--rail-rule);
+  font: 400 11px/1.6 var(--mono); color: var(--ink-3);
+}
+#eye-rail .rail-foot a { color: var(--accent); }
+
+/* верхняя панель страницы: формируется из #submenu/#subsubmenu, которые
+   страницы печатают перед <div id="cont"> */
+/* Эти id страницы используют по-разному: #submenu/#subsubmenu — почти всегда
+   полоса переходов, а #contsubmenu на 14 страницах — обычный контейнер контента
+   (в switchstatus.php внутри форма и таблицы). Поэтому базовое правило —
+   нейтральный блочный контейнер, а «табами» элемент делает js/eye.js
+   (класс .tabs): без JS он остаётся читаемой полосой ссылок. */
+#submenu, #contsubmenu, #subsubmenu {
+  display: block; min-width: 0; padding: 10px 18px 0; font-size: 13px; color: var(--ink-2);
+}
+#submenu.tabs, #subsubmenu.tabs, #contsubmenu.tabs {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 0 0 2px;
+  padding: 0 18px; background: var(--surface); border-bottom: 1px solid var(--rule);
+}
+#subsubmenu.tabs { background: var(--surface-2); font-size: 12px; }
+#submenu.tabs a, #subsubmenu.tabs a, #contsubmenu.tabs a {
+  padding: 9px 12px 8px; color: var(--ink-2); border-bottom: 2px solid transparent; white-space: nowrap;
+}
+#submenu.tabs a:hover, #subsubmenu.tabs a:hover, #contsubmenu.tabs a:hover { color: var(--ink); }
+#submenu.tabs b, #subsubmenu.tabs b, #contsubmenu.tabs b {
+  padding: 9px 12px 8px; color: var(--ink); font-weight: 500; border-bottom: 2px solid var(--accent);
+}
+/* контейнер-«полотло»: те же отступы, что у #cont */
+#contsubmenu:not(.tabs), #subsubmenu:not(.tabs) { padding: 14px 18px 90px; }
+#contsubmenu:not(.tabs) a, #subsubmenu:not(.tabs) a { color: var(--accent-ink); }
+#submenu br, #contsubmenu br, #subsubmenu br { display: none; }
+#navi .sep, .tabs .sep { display: none; }
+#submenu:not(.tabs) .sep, #subsubmenu:not(.tabs) .sep, #contsubmenu:not(.tabs) .sep { color: var(--ink-3); }
+
+/* полость страниц */
+#cont {
+  position: static; flex: 1 1 auto; min-width: 0;
+  padding: 14px 18px 90px; background: transparent;
+}
+
+/* ---------- 6. Таблицы данных ------------------------------------------
+   Страницы печатают <table class="data" cellspacing=1 cellpadding=4>, где
+   шапка — это первая <tr> с <td><b><a>. Стили построенные именно на этом,
+   поэтому разметку менять не обязательно.                                    */
+table { border-collapse: separate; border-spacing: 0; font-size: inherit; }
+table.data, table.info {
+  width: 100%; background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--r-lg); box-shadow: var(--shadow); margin: 0 0 12px;
+}
+table.data > tbody > tr > td, table.info > tbody > tr > td,
+table.data > tr > td, table.info > tr > td {
+  padding: 0 var(--pad); height: var(--row-h); border-bottom: 1px solid var(--rule);
+  background: transparent; color: var(--ink); text-align: left; vertical-align: middle;
+}
+/* шапка: первая строка */
+table.data > tr:first-child > td, table.data > thead > tr > td,
+table.info > tr:first-child > td, table.data tr.lblrow > td {
+  position: sticky; top: 0; z-index: 4; height: 34px;
+  background: var(--surface-2);
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  border-bottom: 1px solid var(--rule-strong);
+  font: 600 11px/1.2 var(--disp); letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink);
+}
+table.data tr.lblrow > td { color: var(--ink-2); border-bottom: 0; padding-top: 9px; height: 24px; }
+table.data tr.lblrow + tr > td { padding-top: 0; }
+table.data > tr:first-child > td b { font-weight: 600; }
+table.data > tr:first-child a, table.data tr.lblrow a { color: inherit; }
+table.data > tr:first-child a:hover, table.data tr.lblrow a:hover { color: var(--accent-ink); }
+/* заголовок таблицы («Состояние записи») — тоже подпись, а не текст данных */
+table.data > caption, table.info > caption {
+  caption-side: top; text-align: left; padding: 9px var(--pad) 7px;
+  font: 600 10.5px/1.2 var(--disp); letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink-2); border-bottom: 1px solid var(--rule);
+}
+/* ячейка-ключ в таблицах «ключ: значение» (editauth.php, отчёты) */
+.cell-key { font-weight: 600; color: var(--ink-3); }
+/* ссылка на связанную сущность (IPSet-ы и т.п.) — была инлайновая #06c */
+a.ref { color: var(--accent-ink); font-weight: 500; text-decoration: none;
+        border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+a.ref:hover { color: var(--accent); }
+/* пустое/незаданное значение: «0/0», «—» — не должно перетягивать на себя взгляд */
+.none { color: var(--ink-3); }
+/* то, о чём надо прочитать вслух: удалено, выключено, заблокировано */
+.bad { color: var(--st-err); }
+td.bad { background: var(--st-err-bg); color: var(--st-err); font-weight: 500; }
+/* подписи-ссылки должны читаться как подписи, а не как ссылки */
+table.data > tr:first-child a { text-decoration: none; border-bottom: 1px solid var(--rule-strong); }
+table.data > tbody > tr:last-child > td, table.data > tr:last-child > td { border-bottom: 0; }
+/* ячейка на всю ширину = подзаголовок раздела, а не данные */
+table.data > tbody > tr > td:first-child:last-child,
+table.data > tr > td:first-child:last-child {
+  background: var(--surface-2);
+  font: 600 10.5px/1.3 var(--disp); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3); height: 26px;
+}
+table.data tbody tr:hover > td, table.data tr:hover > td, tr.tr2 > td { background: var(--sel); }
+/* ссылки в ячейках: подчёркивание только при наведении — таблица не должна быть пёстрой */
+table.data td a { border-bottom: 1px solid transparent; }
+table.data td a:hover { border-bottom-color: var(--accent); color: var(--accent-ink); }
+
+/* состояние строки: лёгкая подложка + линейка у левого края вместо кричащей заливки */
+td.data { background: transparent; }
+td.warn { background: var(--st-warn-bg); }
+td.error { background: var(--st-err-bg); }
+td.off { background: var(--st-off-bg); color: var(--ink-3); }
+td.nb { background: var(--st-warn-bg); }
+/* матрица портов (switchstatus.php): состояние читается заливкой — это тот
+   случай, где заливать ячейку правильно. Первый background — фолбэк для
+   браузеров без color-mix (Firefox <113), второй перекрывает его там, где умеют */
+td.up { background: var(--st-ok-bg);
+        background: color-mix(in srgb, var(--st-ok) 16%, var(--surface)); color: var(--ink); }
+td.down {
+  background: var(--st-off-bg); color: var(--ink-3);
+  background: repeating-linear-gradient(135deg, transparent 0 6px,
+              color-mix(in srgb, var(--st-off) 12%, transparent) 6px 7px);
+}
+td.shutdown {
+  background: var(--st-warn-bg); color: var(--ink-2);
+  background: repeating-linear-gradient(45deg,
+    color-mix(in srgb, var(--st-warn) 16%, var(--surface)) 0 6px,
+    color-mix(in srgb, var(--st-warn) 8%, var(--surface)) 6px 12px);
+}
+/* «нет» в колонках uplink/nagios/skip печатается пустой ячейкой с data_red */
+td.data_red:empty::after { content: "\2014"; color: var(--ink-3); }
+td.data_green:empty::after { content: "\2713"; color: var(--st-ok); }
+td.data_green { color: var(--st-ok); }
+td.data_red { color: var(--st-err); }
+/* счётчик MAC в строке порта — кнопка, а не поле формы */
+table.data button {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 22px;
+  padding: 0 6px; font: 500 12px/1 var(--mono); color: var(--ink-2);
+  background: var(--surface-2); border: 1px solid var(--rule-strong); border-radius: var(--r-sm); cursor: pointer;
+}
+table.data button:hover { color: var(--ink); border-color: var(--ink-3); }
+td.custom { background: var(--accent-soft); }
+td.crc { background: var(--st-err-bg); }
+td.info, table.info { background: var(--accent-soft); }
+td.info { color: var(--accent-ink); }
+td.cell_red { color: var(--st-err); }
+td.data_green { color: var(--st-ok); }
+td.data_red { color: var(--st-err); font-size: 1.3em; }
+table.data tr > td:first-child { position: relative; }
+tr:has(> td.warn) > td:first-child::before,
+tr:has(> td.error) > td:first-child::before,
+tr:has(> td.off) > td:first-child::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+}
+tr:has(> td.warn) > td:first-child::before { background: var(--st-warn); }
+tr:has(> td.error) > td:first-child::before { background: var(--st-err); }
+tr:has(> td.off)  > td:first-child::before { background: var(--st-off); opacity: .5; }
+/* скорость порта */
+td.speed10M { background: var(--st-warn-bg);
+             background: color-mix(in srgb, var(--st-warn) 14%, var(--surface)); color: var(--ink-2); font-family: var(--mono); }
+td.speed100M { background: var(--st-warn-bg);
+              background: color-mix(in srgb, var(--st-warn) 26%, var(--surface)); color: var(--ink); font-family: var(--mono); }
+td.speed1G { background: var(--st-ok-bg);
+            background: color-mix(in srgb, var(--st-ok) 22%, var(--surface)); color: var(--ink); font-family: var(--mono); }
+td.speed10G { background: var(--st-ok-bg);
+             background: color-mix(in srgb, var(--st-ok) 36%, var(--surface)); color: var(--ink); font-family: var(--mono); font-weight: 600; }
+
+/* ---------- 7. Мелкие элементы данных -------------------------------- */
+/* ✓/✗ из get_qa(): читаются как состояние, но не раздувают строку */
+.qa { display: inline-block; min-width: 14px; font-size: 13px; font-weight: 600; line-height: 1; }
+/* подпись в одной ячейке с полем: «IP-адрес: [10.0.0.1]» */
+.cell-lbl { font: 600 10.5px/1.3 var(--disp); letter-spacing: .06em; text-transform: uppercase;
+            color: var(--ink-3); margin-right: 6px; }
+/* заголовки разделов, напечатанные <b> мимо таблиц (edituser.php и др.) */
+#cont > b, #cont > form > b, #cont > br + b {
+  display: inline-block; margin: 4px 0 6px; padding: 3px 10px 3px 0;
+  font: 600 11px/1.2 var(--disp); letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-2); border-bottom: 2px solid var(--accent);
+}
+.qa.yes { color: var(--st-ok); }
+.qa.no { color: var(--st-err); }
+/* страховка: страницы, где get_qa() ещё печатает инлайновый font-size:24px */
+table.data td > span[style*="font-size: 24px"] {
+  font-size: 13px !important; font-weight: 600 !important; }
+td.data_green .qa.yes, .yn.y::before { color: var(--st-ok); }
+.tag, .linkButton {
+  display: inline-block; font-size: 11px; line-height: 1.6; padding: 0 7px;
+  border: 1px solid var(--rule-strong); border-radius: 20px;
+  background: var(--surface-2); color: var(--ink-2); box-shadow: none;
+}
+.linkButton { color: var(--accent-ink); border-color: var(--accent); background: var(--accent-soft); }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; font: 400 11px/1 var(--mono);
+  border: 1px solid var(--rule-strong); border-radius: 20px; padding: 4px 9px; background: var(--surface);
+}
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--st-ok); }
+.chip.no::before { background: var(--st-err); }
+.yn { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
+.yn::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--st-off); }
+.yn.y::before { background: var(--st-ok); } .yn.n::before { background: var(--st-err); }
+.flags { display: inline-flex; gap: 3px; }
+.flags i {
+  font: 500 10px/14px var(--mono); font-style: normal; width: 15px; height: 15px;
+  text-align: center; border-radius: 3px; border: 1px solid var(--rule-strong);
+  color: var(--ink-3); background: var(--surface-2);
+}
+.flags i.on { color: var(--st-ok); border-color: var(--st-ok); background: var(--st-ok-bg); }
+.conn { display: inline-flex; align-items: center; gap: 7px; }
+.ports { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+.ports i { width: 3px; height: 7px; border-radius: 1px; background: var(--rule-strong); }
+.ports i.on { height: 14px; background: var(--st-ok); }
+.ports i.wr { height: 14px; background: var(--st-warn); }
+.gp { border-left: 1px solid var(--rule) !important; }
+.tree { overflow: auto; border: 0; }
+
+/* ---------- 8. Контролы форм ------------------------------------------ */
+:is(input[type=text], input[type=search], input[type=number], input[type=password],
+    input[type=datetime-local], input[type=date], input[type=time], select, textarea) {
+  height: 30px; padding: 0 8px; min-width: 0; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule-strong); border-radius: var(--r-sm); font: 400 var(--fs)/1.3 var(--sans);
+}
+select[name], select { padding-right: 24px; appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2377848f' stroke-width='1.4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 7px center; }
+textarea { height: auto; padding: 6px 8px; line-height: 1.45; }
+:is(input, select, textarea):hover:enabled { border-color: var(--ink-3); }
+:is(input, select, textarea):focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(237, 139, 13, .16); outline: none; }
+input[readonly] { background: var(--surface-2); color: var(--ink-2); border-style: dashed; }
+:is(input, select, textarea):disabled {
+  color: var(--ink-3); cursor: not-allowed; border-style: solid;
+  background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgba(120,135,150,.10) 5px 6px);
+}
+input[type=checkbox], input[type=radio] { width: 15px; height: 15px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+input.putField { width: 15px; height: 15px; padding: 0; background: none; border: none; border-radius: 0; box-shadow: none; }
+.full-width { width: 100%; box-sizing: border-box; }
+.field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; clear: both; margin: 0 0 8px; text-align: left; }
+.field > label, label { float: none; padding: 0; }
+.main { float: none; display: inline-flex; align-items: center; gap: 6px; }
+form { margin: 0 0 10px; }
+fieldset { border: 1px solid var(--rule); border-radius: var(--r-lg); background: var(--surface);
+  margin: 0 0 12px; padding: 12px 14px; }
+legend { font: 600 11px/1 var(--disp); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2);
+  padding: 0 8px; line-height: 20px; border: 1px solid var(--rule); border-radius: 20px; background: var(--surface); }
+.fld { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.fld > label { font: 600 10px/1 var(--disp); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); }
+.fld .sub { font-size: 11px; color: var(--ink-3); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 16px; }
+.sw { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); cursor: pointer; }
+.lock { font-size: 10px; color: var(--st-warn); border: 1px solid currentColor; border-radius: 3px;
+  padding: 0 4px; text-transform: none; letter-spacing: .04em; font-weight: 500; }
+
+.btn, input[type=submit], input[type=button], button[type=submit], button[type=button],
+a.mainButton, a.delButton, a.exportButton {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px;
+  font: 500 var(--fs)/1 var(--sans); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--rule-strong); border-radius: var(--r-md); cursor: pointer;
+  box-shadow: none; text-decoration: none; white-space: nowrap;
+  transition: background .12s, border-color .12s, transform .06s;
+}
+:is(.btn, input[type=submit], button, a.mainButton, a.delButton, a.exportButton):hover {
+  background: var(--surface-2); border-color: var(--ink-3); color: var(--ink);
+}
+:is(.btn, input[type=submit], button):active { transform: translateY(1px); }
+:is(.btn, input[type=submit], button):disabled { opacity: .5; cursor: not-allowed; }
+input[type=submit], .btn.pri, a.mainButton { background: var(--accent); border-color: var(--accent); color: #231400; }
+input[type=submit]:hover, .btn.pri:hover, a.mainButton:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #231400; }
+a.delButton, .btn.dan { color: var(--st-err); border-color: var(--st-err); background: transparent; }
+a.delButton:hover, .btn.dan:hover { background: var(--st-err-bg); color: var(--st-err); }
+a.exportButton { color: var(--st-ok); border-color: var(--st-ok); background: transparent; }
+a.exportButton:hover { background: var(--st-ok-bg); }
+.btn.sm, .dlg-f .btn { height: 26px; padding: 0 9px; font-size: 12px; }
+.savebar { position: sticky; bottom: 0; z-index: 6; display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; margin-top: 12px; background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--r-lg); box-shadow: var(--shadow); }
+.savebar .sp, .tools .sp, .note .sp { margin-left: auto; }
+.dirty { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-3); }
+.dirty::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--rule-strong); }
+.dirty.on { color: var(--accent-ink); } .dirty.on::before { background: var(--accent); }
+
+/* ---------- 9. Полоса фильтров ---------------------------------------
+   Новый класс .filters и совместимость со старыми формами: таблица без
+   class="data" внутри формы на списках — это всегда блок фильтров.        */
+.filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-lg);
+  padding: 8px 4px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.f { display: flex; flex-direction: column; gap: 4px; padding: 2px 12px; min-width: 0; }
+.f + .f { border-left: 1px solid var(--rule); }
+.f > label, .f > .k { font: 600 10px/1 var(--disp); letter-spacing: .11em; text-transform: uppercase;
+  color: var(--ink-3); white-space: nowrap; }
+.f.grow { flex: 1 1 220px; }
+.f.end { margin-left: auto; }
+.q { position: relative; }
+.q input { padding-left: 28px; width: 100%; }
+.q::before { content: "⌕"; position: absolute; left: 9px; bottom: 5px; font-size: 16px; color: var(--ink-3); }
+.q kbd { position: absolute; right: 6px; bottom: 6px; font: 400 10px/1.4 var(--mono); color: var(--ink-3);
+  border: 1px solid var(--rule-strong); border-radius: var(--r-sm); padding: 1px 4px; background: var(--surface-2); }
+.filters .hint { flex: 1 1 100%; order: 9; margin: 2px 0 0; padding: 0 12px; font-size: 11px; color: var(--ink-3); }
+
+#cont > form > table:not(.data):not(.info) {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0; width: auto; margin: 0 0 12px;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-lg);
+  padding: 8px 4px; box-shadow: var(--shadow); }
+#cont > form > table:not(.data):not(.info) > tbody > tr { display: contents; }
+#cont > form > table:not(.data):not(.info) td {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; height: auto; padding: 3px 12px;
+  border: 0; background: transparent; }
+#cont > form > table:not(.data):not(.info) td b {
+  font: 600 10px/1 var(--disp); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3);
+  width: 100%; }
+#cont > form > table:not(.data):not(.info) input[type=submit] { margin-left: 6px; }
+.tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 8px; }
+.tools .cnt { font-size: 12.5px; color: var(--ink-2); }
+.tools .cnt b { font: 500 13px/1 var(--mono); color: var(--ink); }
+
+/* ---------- 10. Диалоги (нативный <dialog>, вместо Remodal) ----------- */
+dialog { border: 1px solid var(--rule-strong); border-radius: var(--r-lg); background: var(--surface);
+  color: var(--ink); padding: 0; width: min(680px, 94vw); max-height: 90vh;
+  box-shadow: 0 24px 60px rgba(6, 10, 16, .42); }
+dialog::backdrop { background: rgba(10, 14, 20, .55); }
+dialog[open] { animation: eye-pop .14s ease-out; }
+@keyframes eye-pop { from { transform: translateY(6px); opacity: .6; } }
+/* на существующих страницах внутри <dialog> лежит сразу <form> с h2/table/submit */
+dialog { position: relative; }
+dialog > form { display: block; margin: 0; padding: 16px 18px; }
+dialog > form > h2:first-child { padding-right: 34px; margin-top: 0; }
+dialog > form > :is(table.data) { margin-top: 4px; }
+dialog > form > [type=submit], dialog > form > .btn { margin-top: 14px; }
+dialog > .x { position: absolute; top: 11px; right: 11px; z-index: 2; width: 28px; height: 28px;
+  border: 0; border-radius: var(--r-md); background: none; color: var(--ink-3);
+  font: 400 15px/1 var(--sans); cursor: pointer; }
+dialog > .x:hover { background: var(--surface-2); color: var(--ink); }
+.dlg-h { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--rule); }
+.dlg-h h2 { margin: 0; font: 600 15px/1.25 var(--disp); }
+.dlg-h .x { margin-left: auto; width: 28px; height: 28px; border: 0; border-radius: var(--r-md);
+  background: none; color: var(--ink-3); font-size: 17px; line-height: 1; cursor: pointer; }
+.dlg-h .x:hover { background: var(--surface-2); color: var(--ink); }
+.dlg-b { padding: 14px 16px; overflow: auto; }
+.dlg-f { display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); background: var(--surface-2); }
+.dlg-f .sp { margin-left: auto; }
+.dlg-i { margin: 0 0 12px; font-size: 12px; color: var(--ink-3); }
+/* таблицы массовых изменений внутри диалога: без бордюров таблицы-карточки */
+dialog table.data { display: block; width: auto; margin: 0; border: 0; border-radius: 0;
+  background: none; box-shadow: none; }
+dialog table.data tr { display: block; }
+dialog table.data td { display: flex; align-items: center; gap: 10px; height: auto; padding: 7px 0;
+  border-bottom: 1px dashed var(--rule); background: transparent; }
+dialog table.data > tbody > tr:first-child > td, dialog table.data > tr:first-child > td {
+  position: static; height: auto; background: none; border-bottom: 1px dashed var(--rule);
+  font: inherit; text-transform: none; letter-spacing: 0; color: var(--ink); }
+dialog table.data td:first-child { justify-content: center; width: 26px; flex: none; }
+dialog table.data td:nth-child(2) { flex: 0 0 200px; font-size: 13px; }
+dialog table.data :is(select, input[type=text]) { width: 100%; }
+dialog table.data tr.off :is(select, input[type=text]) { opacity: .35; pointer-events: none; }
+dialog h2 { margin: 0 0 10px; }
+.mrow { display: grid; grid-template-columns: 26px 200px minmax(0, 1fr); align-items: center; gap: 12px;
+  padding: 7px 0; border-bottom: 1px dashed var(--rule); }
+.mrow.off > :is(select, input) { opacity: .35; pointer-events: none; }
+
+.note { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; margin-bottom: 12px;
+  font-size: 12.5px; border: 1px solid var(--rule); border-radius: var(--r-md); background: var(--surface-2); }
+.note b { font-weight: 600; }
+.note.err { background: var(--st-err-bg); border-color: var(--st-err); }
+.note.warn { background: var(--st-warn-bg); border-color: var(--st-warn); }
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 18px;
+  padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--r-md); }
+.kv > div { display: flex; flex-direction: column; gap: 2px; }
+.kv .k, .kv dt { font: 600 10px/1 var(--disp); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); }
+.kv .v { font-family: var(--mono); font-size: var(--fs-mono); }
+
+/* ---------- 11. Выбор строк, постраничка, прочее ---------------------- */
+.bulk { position: fixed; bottom: 0; left: var(--rail-w); right: 0; z-index: 30; display: flex;
+  align-items: center; gap: 10px; padding: 11px 18px; background: var(--rail); color: #fff;
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, .28); transform: translateY(120%); transition: transform .16s ease; }
+.bulk.show { transform: none; }
+.bulk b { font: 500 13px/1 var(--mono); }
+.bulk .btn, .bulk input[type=submit] { background: #212b36; border-color: #3b4a5a; color: #e6edf3; }
+.bulk .btn:hover { background: #2b3745; }
+.bulk .btn.dan { color: #ffb4ab; border-color: #7a3b36; background: transparent; }
+
+.tools .pager, .pager { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.pager a, .pager span { display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 26px; padding: 0 6px; border-radius: var(--r-sm);
+  font: 400 12px/1 var(--mono); color: var(--ink-2); border: 1px solid transparent; }
+.pager a:hover { background: var(--surface-2); color: var(--ink); border-color: var(--rule); }
+/* наследие print_navigation()/white.css */
+a.first_page_link, span.num_page_not_link, .pager .here {
+  background: var(--rail) !important; color: #fff !important; border: 0; border-radius: var(--r-sm);
+  padding: 7px 8px; margin: 0 1px; text-decoration: none; }
+a.first_page_link { background: var(--surface) !important; color: var(--ink-2) !important;
+  border: 1px solid var(--rule-strong) !important; }
+div.records { margin: 6px 0 10px; font-size: 12.5px; color: var(--ink-2); text-align: left; }
+div.records b { font-family: var(--mono); font-weight: 500; color: var(--ink); }
+#msg { padding: 10px 12px; margin-bottom: 12px; font: 500 13px/1.4 var(--sans); color: var(--ink);
+  background: var(--st-warn-bg); border-left: 2px solid var(--st-warn); border-radius: var(--r-md); }
+#copyright { padding: 0 18px 6px; font-size: 11.5px; color: var(--ink-3); }
+#copyright a { color: var(--accent-ink); }
+div.simple { margin: 12px 0; padding: 12px 14px; background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--r-md); }
+.button_right { position: static; float: right; }
+.performance-info { display: flex; justify-content: flex-end; gap: 14px; margin: 0 18px 18px;
+  padding: 0; border: 0; box-shadow: none; background: none; text-align: right;
+  font: 400 11px/1 var(--mono); color: var(--ink-3); }
+.performance-info strong, .performance-info :is(b) { color: var(--ink-2); font-weight: 500; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; padding: 10px 12px;
+  background: var(--surface); border: 1px dashed var(--rule-strong); border-radius: var(--r-md); }
+.legend .i { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); }
+.legend .sw { width: 14px; height: 14px; border-radius: 2px; background: var(--surface-2);
+  border-left: 2px solid var(--st-off); }
+.legend .sw.ok { border-left-color: var(--st-ok); } .legend .sw.warn { border-left-color: var(--st-warn); }
+.legend .sw.err { border-left-color: var(--st-err); } .legend .sw.off { border-left-color: var(--st-off); opacity: .5; }
+
+/* ---------- 12. Приспособление и печатание ---------------------------- */
+@media (max-width: 1180px) {
+  :root { --rail-w: 60px; }
+  #eye-rail { padding-top: 10px; }
+  #title span, #navi a span, #navi b span, #eye-rail .rail-foot { display: none; }
+  #navi a, #navi b { justify-content: center; padding: 9px 0; }
+}
+@media (max-width: 860px) {
+  #eye-shell { grid-template-columns: minmax(0, 1fr); }
+  #eye-rail { position: static; height: auto; flex-direction: row; align-items: center;
+    overflow-x: auto; padding: 8px; }
+  #navi { flex-direction: row; }
+  #title { border: 0; margin: 0 8px 0 0; padding: 0 8px; }
+  #navi a, #navi b { border-left: 0; border-bottom: 2px solid transparent; }
+  .bulk { left: 0; }
+  .f { flex: 1 1 46%; } .f + .f { border-left: 0; }
+  #submenu, #contsubmenu, #subsubmenu { padding: 0 10px; }
+  #cont { padding: 12px 10px 110px; }
+  .savebar { bottom: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+  table.data > tr:first-child > td { position: static; }
+}
+@media print {
+  #eye-rail, #submenu, #contsubmenu, #subsubmenu, .bulk, .filters, .savebar, .performance-info,
+  #cont > form > table:not(.data):not(.info) { display: none !important; }
+  #eye-shell { display: block; }
+  body { background: #fff; color: #000; }
+  table.data { border: 1px solid #999; box-shadow: none; }
+  table.data > tr:first-child > td { position: static; background: #f0f0f0; }
+}
+
+
+/* ---------- 13. Страница входа (login.php) ------------------------------- */
+body.eye-login { display: grid; place-items: center; min-height: 100vh; padding: 24px; }
+body.eye-login .login {
+  width: min(400px, 100%); margin: 0; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden;
+}
+body.eye-login .login h1 {
+  margin: 0; padding: 16px 20px; text-align: left;
+  font: 600 15px/1.2 var(--disp); letter-spacing: .06em; text-transform: uppercase;
+  background: var(--rail); color: #fff; border-bottom: 0;
+}
+body.eye-login .login form { display: block; padding: 18px 20px 20px; }
+body.eye-login .login form label {
+  width: auto; height: auto; background: none; color: var(--ink-3);
+  justify-content: flex-start; margin-bottom: 6px;
+  font: 600 10px/1 var(--disp); letter-spacing: .11em; text-transform: uppercase;
+}
+body.eye-login .login form input[type=text],
+body.eye-login .login form input[type=password] {
+  width: 100%; height: 34px; margin: 0 0 14px; padding: 0 10px; font-size: 14px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--rule-strong);
+  border-radius: var(--r-sm);
+}
+body.eye-login .login form input[type=text]:focus,
+body.eye-login .login form input[type=password]:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(237, 139, 13, .16); outline: none;
+}
+body.eye-login .login form input[type=submit] {
+  width: 100%; height: 36px; margin: 0; padding: 0; justify-content: center;
+  background: var(--accent); border-color: var(--accent); color: #231400; border-radius: var(--r-md);
+  font-weight: 600;
+}
+body.eye-login .login form input[type=submit]:hover { background: var(--accent-hover); }
+body.eye-login .error {
+  margin: 0 0 12px; padding: 9px 11px; font-size: 12.5px; color: var(--ink);
+  background: var(--st-err-bg); border-left: 2px solid var(--st-err); border-radius: var(--r-sm);
+}
+body.eye-login .login p { margin: 0 0 12px; }
+
+/* ---------- 14. Searchable select (вместо Select2) ----------------------
+     Обёртка над обычным <select class="js-select-single">, который печатают
+     print_*() из inc/common.php. Сам select остаётся в форме (имя и значение
+     не меняются), видимую роль играет кнопка. Логика — в js/eye.js.        */
+.es { position: relative; display: inline-block; min-width: 0; max-width: 100%; }
+.es-native {
+  position: absolute !important; width: 1px; height: 1px; margin: 0; padding: 0;
+  border: 0; opacity: 0; overflow: hidden; pointer-events: none;
+}
+.es-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-width: 150px; max-width: 100%; height: 30px; padding: 0 8px; cursor: pointer;
+  font: 400 var(--fs)/1 var(--sans); text-align: left; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--rule-strong); border-radius: var(--r-sm);
+}
+.es-btn:hover:enabled { border-color: var(--ink-3); }
+.es-btn::after {
+  content: ""; flex: none; width: 0; height: 0; border: 4px solid transparent;
+  border-top-color: var(--ink-3); margin-top: 3px;
+}
+.es.open .es-btn::after { margin-top: -4px; border-top-color: transparent; border-bottom-color: var(--ink-3); }
+.es.open .es-btn { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(237, 139, 13, .16); }
+.es-dis .es-btn { color: var(--ink-3); cursor: not-allowed;
+  background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgba(120, 135, 150, .10) 5px 6px); }
+.es-pop {
+  position: absolute; z-index: 60; top: calc(100% + 4px); left: 0;
+  min-width: 100%; max-width: min(460px, 92vw); padding: 6px;
+  background: var(--surface); border: 1px solid var(--rule-strong);
+  border-radius: var(--r-md); box-shadow: var(--shadow);
+}
+.es-pop[hidden] { display: none; }
+.es-q { width: 100%; margin: 0 0 6px; }
+.es-list { list-style: none; margin: 0; padding: 0; max-height: min(46vh, 320px); overflow: auto; }
+.es-opt { padding: 5px 8px; border-radius: var(--r-sm); font-size: 13px; cursor: pointer; }
+.es-opt.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 500; }
+.es-opt.act { background: var(--sel); box-shadow: inset 0 0 0 1px var(--focus); }
+.es-opt.dis { opacity: .45; cursor: not-allowed; }
+.es-none { color: var(--ink-3); cursor: default; }
+/* чтобы панель не резалась внутри диалога массовых изменений */
+dialog table.data, dialog table.data td, dialog table.data tr { overflow: visible; }

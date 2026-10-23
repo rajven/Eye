@@ -490,7 +490,7 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
                     <?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?>
                 </td>
                 <?php if ($auth_info['deleted']): ?>
-                    <td><font color="red"><?php echo WEB_deleted . ": " . $auth_info['changed_time']; ?></font></td>
+                    <td class="bad"><?php echo WEB_deleted . ": " . $auth_info['changed_time']; ?></td>
                     <td align="right"><input type="submit" name="recovery" value="<?php echo WEB_btn_recover; ?>"></td>
                 <?php else: ?>
                     <td></td>
@@ -501,7 +501,7 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
 
         <!-- ИНФОРМАЦИЯ О ЗАПИСИ -->
         <table class="data" style="margin-top: 20px;">
-            <caption style="caption-side: top; font-weight: bold; margin-bottom: 5px;"><?php echo WEB_status; ?></caption>
+            <caption><?php echo WEB_status; ?></caption>
             <tr>
                 <td width="150"><?php echo WEB_cell_created_by; ?>:</td>
                 <td width="200"><?php echo $auth_info['created_by']; ?></td>
