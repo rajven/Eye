@@ -28,6 +28,165 @@ print_step() {
     echo -e "${BLUE}=== $1 ===${NC}"
 }
 
+# ---------------------------------------------------------------------------
+# Small helpers: private temp dir, backups, random secrets, safe substitution
+# ---------------------------------------------------------------------------
+
+# All temporary files live in a private directory owned by root (0700).
+# Never use fixed file names under /tmp: they can be pre-created as symlinks
+# by a local user (the Eye web interface runs as an unprivileged service user).
+WORKDIR=""
+
+make_workdir() {
+    [[ -n "$WORKDIR" ]] && return 0
+    if ! WORKDIR=$(mktemp -d "${TMPDIR:-/tmp}/eye-install.XXXXXX"); then
+        print_error "Cannot create temporary working directory"
+        exit 1
+    fi
+    chmod 700 "$WORKDIR"
+    return 0
+}
+
+cleanup_workdir() {
+    if [[ -n "$WORKDIR" && -d "$WORKDIR" ]]; then
+        rm -rf "$WORKDIR"
+    fi
+}
+
+# Timestamped backup of a file we are about to modify. An existing backup is
+# never overwritten, so repeated runs still keep the pristine original file.
+backup_file() {
+    local f="$1"
+    [[ -e "$f" ]] || return 1
+
+    local backup stamp i=1
+    stamp=$(date +%Y-%m-%d_%H-%M-%S)
+    backup="${f}.eye-backup.${stamp}"
+    while [[ -e "$backup" ]]; do
+        backup="${f}.eye-backup.${stamp}.${i}"
+        i=$((i + 1))
+    done
+
+    if cp -a "$f" "$backup"; then
+        LAST_BACKUP="$backup"
+        print_info "Backup: $backup"
+        return 0
+    fi
+
+    print_error "Failed to create backup of $f"
+    return 1
+}
+
+# Generate a random secret. Only alphanumeric characters are used on purpose:
+# these values end up in SQL literals, in a PHP config and in a key=value file.
+gen_secret() {
+    local len="${1:-16}"
+    local val=""
+    if command -v pwgen >/dev/null 2>&1; then
+        val=$(pwgen -s "$len" 1)
+    fi
+    if [[ ${#val} -ne $len ]]; then
+        val=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$len")
+    fi
+    printf '%s' "$val"
+}
+
+# Generate a random numeric string (the AES IV has to be exactly 16 digits).
+gen_digits() {
+    local len="${1:-16}"
+    tr -dc '0-9' </dev/urandom | head -c "$len"
+}
+
+# Escape a value for use inside a single quoted SQL string literal.
+# MySQL/MariaDB additionally treats backslash as an escape character unless
+# NO_BACKSLASH_ESCAPES is set, so double it too.
+sql_lit() {
+    local v="${1//\'/\'\'}"
+    printf "'%s'" "$v"
+}
+
+sql_lit_mysql() {
+    local v="${1//\\/\\\\}"
+    v="${v//\'/\'\'}"
+    printf "'%s'" "$v"
+}
+
+# DB names/user names are SQL identifiers: keep them boring or the DDL below
+# (and the pg_hba/grep matchers) becomes unreliable.
+is_valid_db_ident() {
+    [[ "$1" =~ ^[A-Za-z_][A-Za-z0-9_-]{0,62}$ ]]
+}
+
+# Read a mandatory identifier with validation.
+read_db_ident() {
+    local prompt="$1" var_name="$2" default_value="$3" value
+    while true; do
+        read -r -p "$prompt [$default_value]: " value
+        : "${value:=$default_value}"
+        if is_valid_db_ident "$value"; then
+            printf -v "$var_name" '%s' "$value"
+            return 0
+        fi
+        print_error "Invalid value: use letters, digits, '_' or '-' (max 63 chars, not starting with a digit)"
+    done
+}
+
+# Write define("<name>","<value>") into a PHP config file.
+# The new value is passed to perl via %ENV: neither sed nor the shell ever
+# parses it, so '/', '&', '"', '$' and ';' in a password are harmless.
+# Returns 1 (and changes nothing) if the define is not present in the file.
+cfg_set_php() {
+    local file="$1" name="$2" value="$3"
+    CFG_FILE="$file" CFG_NAME="$name" CFG_VALUE="$value" perl -e '
+        require File::Copy;
+        local $/;
+        open(my $in, "<", $ENV{CFG_FILE}) or die "cannot read $ENV{CFG_FILE}: $!\n";
+        my $text = <$in>;
+        close($in);
+        my ($name, $value) = @ENV{qw(CFG_NAME CFG_VALUE)};
+        $value =~ s/[\r\n]+//g;
+        my $escaped = $value;
+        # PHP reads the value out of a double quoted string, so escape the
+        # backslash, the double quote and the dollar sign (interpolation).
+        $escaped =~ s/([\\\"\x24])/\\$1/g;
+        # Текущее значение может содержать уже экранированные \" и \\, поэтому
+        # читаем его как PHP-строку в двойных кавычках: (?:[^"\\]|\\.)*
+        my $hit = ($text =~ s{^([ \t]*define[ \t]*\([ \t]*")\Q$name\E("[ \t]*,[ \t]*")((?:[^"\\]|\\.)*)(")}
+                             {$1 . $name . $2 . $escaped . $4}gem);
+        exit(1) unless $hit;
+        my $tmp = "$ENV{CFG_FILE}.tmp.$$";
+        open(my $out, ">", $tmp) or die "cannot write $tmp: $!\n";
+        print {$out} $text;
+        close($out) or die "write failed: $!\n";
+        File::Copy::move($tmp, $ENV{CFG_FILE}) or die "move failed: $!\n";
+    ' || return 1
+    return 0
+}
+
+# Write "<key>=<value>" into a key=value config file (Perl Config::Tiny format).
+cfg_set_key() {
+    local file="$1" key="$2" value="$3"
+    CFG_FILE="$file" CFG_KEY="$key" CFG_VALUE="$value" perl -e '
+        use Fcntl qw(:flock);
+        local $/;
+        open(my $in, "<", $ENV{CFG_FILE}) or die "cannot read $ENV{CFG_FILE}: $!\n";
+        flock($in, LOCK_EX);
+        my $text = <$in>;
+        close($in);
+        $text = "" unless defined $text;
+        my ($key, $value) = @ENV{qw(CFG_KEY CFG_VALUE)};
+        $value =~ s/[\r\n]+//g;
+        my $hit = ($text =~ s{^([ \t]*\Q$key\E[ \t]*=)[^\n]*}{$1 . $value}gem);
+        exit(1) unless $hit;
+        open(my $out, ">", $ENV{CFG_FILE}) or die "cannot write $ENV{CFG_FILE}: $!\n";
+        flock($out, LOCK_EX);
+        print {$out} $text;
+        close($out) or die "close failed: $!\n";
+    ' || return 1
+    return 0
+}
+
+
 # Check for root privileges
 check_root() {
     if [[ $EUID -ne 0 ]]; then
@@ -43,10 +202,6 @@ service_exists() {
 
 service_enabled() {
     systemctl is-enabled --quiet "$1.service"
-}
-
-service_active() {
-    systemctl is-active --quiet "$1.service"
 }
 
 safe_start_service() {
@@ -79,9 +234,12 @@ stop_eye() {
         safe_stop_service "php${PHP_VERSION}-fpm"
     fi
 
+    # EYE_SERVICES_STOPPED включает аварийное восстановление в on_script_exit.
     for svc in cron eye-statd dhcp-log stat-sync syslog-stat; do
         safe_stop_service "$svc"
     done
+
+    EYE_SERVICES_STOPPED=1
 }
 
 start_eye() {
@@ -95,6 +253,21 @@ start_eye() {
     for svc in cron eye-statd dhcp-log stat-sync syslog-stat; do
         safe_start_service "$svc"
     done
+
+    EYE_SERVICES_STOPPED=0
+}
+
+# Safety net: whatever killed the script (exit 1xx inside the DB setup, an
+# interrupt, a failed step), the services stopped by stop_eye() come back up.
+on_script_exit() {
+    local rc=$?
+
+    if [[ -n "${SERVICE_MANAGER:-}" && "${EYE_SERVICES_STOPPED:-0}" == "1" ]]; then
+        print_warn "The script exited (code $rc) with Eye services stopped - starting them again"
+        start_eye
+    fi
+
+    cleanup_workdir
 }
 
 # Detect distribution and package manager
@@ -223,15 +396,15 @@ configure_database_connection() {
         : "${DB_PORT:=$DEFAULT_PORT}"
     fi
 
-    read -r -p "Database name [eye]: " DB_NAME
-    read -r -p "Database username [eye]: " DB_USER
-    read -r -p "Database user password [$DEF_PASS]: " DB_PASS
+    read_db_ident "Database name" DB_NAME eye
+    read_db_ident "Database username" DB_USER eye
+    read -r -e -p "Database user password [$DEF_PASS]: " DB_PASS || true
+    : "${DB_PASS:=$DEF_PASS}"
+    # A password must not contain newline/CR: both config files are line based
+    DB_PASS=${DB_PASS//[$'\r\n']/}
 
     echo ""
-
-    : "${DB_NAME:=eye}"
-    : "${DB_USER:=eye}"
-    : "${DB_PASS:=$DEF_PASS}"
+    print_warn "The database password is not printed out - see the password file in /root after setup."
 }
 
 # Function for installation type selection
@@ -244,13 +417,10 @@ select_installation_type() {
 
     read -p "Enter selection number [1]: " install_type
 
-    if command -v pwgen >/dev/null 2>&1; then
-        DEF_PASS=$(pwgen -s 16 1)
-    elif command -v openssl >/dev/null 2>&1; then
-        DEF_PASS=$(openssl rand -base64 12)
-    else
-        DEF_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c16)
-    fi
+    # alnum only: base64 passwords can contain '/' and '+', which used to
+    # break the config substitution below ("/" collided with the sed delimiter)
+    make_workdir
+    DEF_PASS=$(gen_secret 16)
 
     case $install_type in
         1)
@@ -423,15 +593,6 @@ update_system() {
     $PACKAGE_MANAGER update -y
 }
 
-upgrade_system() {
-    print_step "Updating system"
-    if [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
-        apt-get dist-upgrade -y
-    else
-        $PACKAGE_MANAGER upgrade -y
-    fi
-}
-
 # Install packages
 install_packages() {
     print_step "Installing packages"
@@ -524,9 +685,8 @@ apply_snmp_patch() {
         return 0
     fi
 
-    # Create backup
-    cp "$USM_PM_FILE" "${USM_PM_FILE}.backup"
-    print_info "Backup created: ${USM_PM_FILE}.backup"
+    # Timestamped backup (never overwrites an existing one)
+    backup_file "$USM_PM_FILE" || return 1
 
     # Try to apply patch file
     local patch_applied=false
@@ -535,7 +695,8 @@ apply_snmp_patch() {
         print_info "Attempting to apply patch from $USM_PATCH_FILE"
 
         # Check if patch can be applied
-        if patch --dry-run -l -p1 -i "$USM_PATCH_FILE" -r /tmp/patch.rej "$USM_PM_FILE" 2>/dev/null; then
+        make_workdir
+        if patch --dry-run -l -p1 -i "$USM_PATCH_FILE" -r "$WORKDIR/patch.rej" "$USM_PM_FILE" 2>/dev/null; then
             # Apply patch
             if patch -l -p1 -i "$USM_PATCH_FILE" "$USM_PM_FILE" 2>/dev/null; then
                 print_info "Patch successfully applied!"
@@ -549,12 +710,13 @@ apply_snmp_patch() {
             # Check differences
             print_info "Checking patch differences..."
             if [[ -f "/opt/Eye/docs/patches/USM.pm" ]]; then
-                diff -u "$USM_PM_FILE" "/opt/Eye/docs/patches/USM.pm" > /tmp/usm.diff 2>/dev/null || true
+                make_workdir
+                diff -u "$USM_PM_FILE" "/opt/Eye/docs/patches/USM.pm" > "$WORKDIR/usm.diff" 2>/dev/null || true
 
-                if [[ -s /tmp/usm.diff ]]; then
+                if [[ -s "$WORKDIR/usm.diff" ]]; then
                     print_warn "Differences found in USM.pm file"
                     echo "Differences:"
-                    head -20 /tmp/usm.diff
+                    head -20 "$WORKDIR/usm.diff"
                     echo "..."
                 fi
             fi
@@ -584,8 +746,8 @@ apply_snmp_patch() {
                     print_info "Patch version: $patch_ver"
                 fi
 
-                # Create additional backup
-                cp "$USM_PM_FILE" "${USM_PM_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+                # Create additional backup before full file replacement
+                backup_file "$USM_PM_FILE"
 
                 # Replace file
                 cp -f "/opt/Eye/docs/patches/USM.pm" "$USM_PM_FILE"
@@ -596,7 +758,7 @@ apply_snmp_patch() {
 
                     # Save replacement info
                     echo "USM.pm file was replaced for SHA512 support" > "${USM_PM_FILE}.replaced"
-                    echo "Original file saved as: ${USM_PM_FILE}.backup" >> "${USM_PM_FILE}.replaced"
+                    echo "Original file saved as: ${LAST_BACKUP:-$USM_PM_FILE.backup}" >> "${USM_PM_FILE}.replaced"
                     echo "Replacement date: $(date)" >> "${USM_PM_FILE}.replaced"
 
                     return 0
@@ -659,24 +821,7 @@ upgrade_source_code() {
         chmod 770 /opt/Eye/scripts/log
         chown -R eye:eye /opt/Eye/scripts
 
-        # configure ipset
-        if [[ -f "/opt/Eye/docs/ipset/ipset-utils.sh" ]]; then
-            # remove old ipset-utils
-            [ -e /etc/init.d/ipset ] && rm -f /etc/init.d/ipset
-            mkdir -p /usr/local/bin
-            cp /opt/Eye/docs/ipset/ipset-utils.sh /usr/local/bin/
-            if [[ -f "/opt/Eye/docs/systemd/netfilter-persistent.service.d" ]]; then
-               if [[ "$OS_FAMILY" == "alt" ]]; then
-                   mkdir -p /etc/systemd/system/iptables.service.d
-                   cp /opt/Eye/docs/systemd/netfilter-persistent.service.d/override.conf /etc/systemd/system/iptables.service.d
-                   else
-                   mkdir -p /etc/systemd/system/netfilter-persistent.service.d
-                   cp /opt/Eye/docs/systemd/netfilter-persistent.service.d/override.conf /etc/systemd/system/netfilter-persistent.service.d
-               fi
-            $SERVICE_MANAGER daemon-reload
-            fi
-            print_info "ipset installed"
-        fi
+        install_ipset_utils
 
         declare -a SERVICES=(
             dhcp-log
@@ -697,6 +842,7 @@ upgrade_source_code() {
             DST="/etc/systemd/system/$svc.service"
             if [[ ! -f "$DST" ]] || ! cmp -s "$SRC" "$DST"; then
                 print_info "Updating $svc"
+                [[ -f "$DST" ]] && backup_file "$DST"
                 cp -f "$SRC" "$DST"
                 chmod 644 "$DST"
                 SYSTEMD_CHANGED=1
@@ -763,7 +909,8 @@ install_source_code() {
         chmod 770 /opt/Eye/scripts/log
         chown -R eye:eye /opt/Eye/scripts
         if [[ -f "/opt/Eye/docs/systemd/stat-sync.service" ]]; then
-            cp /opt/Eye/docs/systemd/stat-sync.service /etc/systemd/system/
+            [[ -f "/etc/systemd/system/stat-sync.service" ]] && backup_file "/etc/systemd/system/stat-sync.service"
+        cp /opt/Eye/docs/systemd/stat-sync.service /etc/systemd/system/
             systemctl enable stat-sync.service
         fi
     fi
@@ -848,15 +995,19 @@ setup_mysql() {
         echo ""
     else
         # Ask for password and create config file
-        read -p "Enter MySQL root user password: " DB_ROOT_PASSWORD
+        read -s -r -p "Enter MySQL root user password: " DB_ROOT_PASSWORD
         echo ""
 
-        # Create temporary config file
-        MYSQL_CNF_FILE="/tmp/mysql_root_eye.cnf"
+        # Temporary config file inside the private (0700) work directory
+        if ! MYSQL_CNF_FILE=$(mktemp "$WORKDIR/mysql_root.XXXXXX"); then
+            print_error "Cannot create temporary MySQL config"
+            return 1
+        fi
         echo "[client]" > "$MYSQL_CNF_FILE"
         echo "user=root" >> "$MYSQL_CNF_FILE"
         echo "password=$DB_ROOT_PASSWORD" >> "$MYSQL_CNF_FILE"
         chmod 600 "$MYSQL_CNF_FILE"
+        unset DB_ROOT_PASSWORD
 
         # Check connection
         if mysql --defaults-extra-file="$MYSQL_CNF_FILE" -e "SELECT 1;" &>/dev/null; then
@@ -928,11 +1079,18 @@ EOF
 
     # Create db user
     print_info "Creating user ${DB_USER}.."
+    # The web interface connects over TCP (PDO dsn host=...), so the account
+    # has to be granted for both 'localhost' (socket) and '127.0.0.1' (TCP):
+    # with skip_name_resolve=ON a 'localhost'-only account cannot log in.
+    DB_PASS_SQL=$(sql_lit_mysql "$DB_PASS")
     mysql $MYSQL_OPT <<EOF
-CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
-GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';
+CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY $DB_PASS_SQL;
+CREATE USER IF NOT EXISTS '$DB_USER'@'127.0.0.1' IDENTIFIED BY $DB_PASS_SQL;
+GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
+GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'127.0.0.1';
 FLUSH PRIVILEGES;
 EOF
+    unset DB_PASS_SQL
 
     if [[ $? -ne 0 ]]; then
         print_error "Error creating user $DB_USER"
@@ -944,12 +1102,20 @@ EOF
 
     print_info "User $DB_USER successfully created"
 
-    # Save password information
-    echo "MySQL $DB_USER user password: $DB_PASS" > /root/eye_mysql_password.txt
-    chmod 600 /root/eye_mysql_password.txt
-
-    print_info "User $DB_USER password: $DB_PASS"
-    print_warn "Password saved in /root/eye_mysql_password.txt"
+    # Save password information (0600, readable only by root)
+    DB_PASS_FILE="/root/eye_mysql_password.txt"
+    if ! [[ -e "$DB_PASS_FILE" ]]; then
+        ( umask 077; : > "$DB_PASS_FILE" )
+    fi
+    chmod 600 "$DB_PASS_FILE"
+    cat > "$DB_PASS_FILE" <<EOF
+Eye database account
+  user:     $DB_USER
+  host:     $DB_HOST:$DB_PORT
+  database: $DB_NAME
+  password: $DB_PASS
+EOF
+    print_warn "Password for '$DB_USER' saved in $DB_PASS_FILE (mode 0600), it is not printed to the screen"
 
     # Clean up temporary file if created
     if [[ -f "$MYSQL_CNF_FILE" ]]; then
@@ -967,7 +1133,14 @@ setup_postgresql() {
 
     # Для ALT Linux
     if [[ "$OS_FAMILY" == "alt" ]]; then
-        echo "root ALL=(ALL:ALL) NOPASSWD: ALL" >/etc/sudoers.d/root
+        # ALT: root needs an explicit NOPASSWD rule to be able to run
+        # "sudo -u postgres psql" without a password prompt, the whole
+        # PostgreSQL setup below relies on it.
+        make_workdir
+        printf '%s\n' "root ALL=(ALL:ALL) NOPASSWD: ALL" > "$WORKDIR/sudoers.root"
+        backup_file /etc/sudoers.d/root 2>/dev/null || true
+        install -m 0440 -o root -g root "$WORKDIR/sudoers.root" /etc/sudoers.d/root
+
         PGDATA="/var/lib/pgsql/data"
 
         if [ -z "$(ls -A $PGDATA 2>/dev/null)" ]; then
@@ -976,8 +1149,8 @@ setup_postgresql() {
             # === ВАЖНО: настраиваем pg_hba.conf для безпарольного доступа ===
             local pg_hba_file="$PGDATA/pg_hba.conf"
             if [[ -f "$pg_hba_file" ]]; then
-                # Делаем резервную копию
-                cp "$pg_hba_file" "${pg_hba_file}.backup"
+                # Резервная копия с меткой времени
+                backup_file "$pg_hba_file"
 
                 # Вставляем правило для пользователя 'postgres' в начало файла
                 # Это разрешит подключение без пароля через Unix-сокет
@@ -1030,9 +1203,12 @@ local   all             postgres                                peer\
 
     print_info "Creating database '$DB_NAME' with locale '$LC_TYPE'..."
 
-    # Set password for stat user
+    # Set password for the Eye role. The statement is fed via stdin so the
+    # password never shows up in the process list of a postgres backend.
     print_info "Setting password for user $DB_USER ..."
-    sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';"
+    sudo -u postgres psql -v ON_ERROR_STOP=1 <<EOSQL
+CREATE USER $DB_USER WITH PASSWORD $(sql_lit "$DB_PASS");
+EOSQL
 
     sudo -u postgres createdb \
       --encoding=UTF8 \
@@ -1103,23 +1279,23 @@ EOF
     if [[ "$OS_FAMILY" == "alt" ]]; then
         local pg_hba_file="/var/lib/pgsql/data/pg_hba.conf"
         if [[ -f "$pg_hba_file" ]]; then
-            # Backup original
-            cp "$pg_hba_file" "${pg_hba_file}.backup"
+            # Timestamped backup of the original
+            backup_file "$pg_hba_file"
             # Add local md5 authentication if not present
             if ! grep -q "local.*$DB_NAME.*md5" "$pg_hba_file"; then
                 echo "local   $DB_NAME            $DB_USER                                    scram-sha-256" >> "$pg_hba_file"
-                print_info "Added MD5 authentication for $DB_USER user in pg_hba.conf"
+                print_info "Added scram-sha-256 authentication for $DB_USER user in pg_hba.conf"
                 fi
             fi
         else
         local pg_hba_file="/etc/postgresql/$(ls /etc/postgresql/ | head -1)/main/pg_hba.conf"
         if [[ -f "$pg_hba_file" ]]; then
-            # Backup original
-            cp "$pg_hba_file" "${pg_hba_file}.backup"
+            # Timestamped backup of the original
+            backup_file "$pg_hba_file"
             # Add local md5 authentication if not present
             if ! grep -q "local.*$DB_NAME.*md5" "$pg_hba_file"; then
                 echo "local   $DB_NAME            $DB_USER                                    scram-sha-256" >> "$pg_hba_file"
-                print_info "Added MD5 authentication for $DB_USER user in pg_hba.conf"
+                print_info "Added scram-sha-256 authentication for $DB_USER user in pg_hba.conf"
                 fi
             fi
         fi
@@ -1127,12 +1303,20 @@ EOF
     # Restart PostgreSQL to apply changes
     $SERVICE_MANAGER restart postgresql
 
-    # Save password information
-    echo "PostgreSQL $DB_USER user password: $DB_PASS" > /root/eye_postgres_password.txt
-    chmod 600 /root/eye_postgres_password.txt
-
-    print_info "User $DB_USER password: $DB_PASS"
-    print_warn "Password saved in /root/eye_postgres_password.txt"
+    # Save password information (0600, readable only by root)
+    DB_PASS_FILE="/root/eye_postgres_password.txt"
+    if ! [[ -e "$DB_PASS_FILE" ]]; then
+        ( umask 077; : > "$DB_PASS_FILE" )
+    fi
+    chmod 600 "$DB_PASS_FILE"
+    cat > "$DB_PASS_FILE" <<EOF
+Eye database account
+  user:     $DB_USER
+  host:     $DB_HOST:$DB_PORT
+  database: $DB_NAME
+  password: $DB_PASS
+EOF
+    print_warn "Password for '$DB_USER' saved in $DB_PASS_FILE (mode 0600), it is not printed to the screen"
 
     return 0
 }
@@ -1186,6 +1370,36 @@ setup_database() {
 }
 
 # Configure configuration files
+
+# Apply a value to a config file, loudly reporting a template that does not
+# contain the expected key. strict=1 (default) aborts, strict=0 only warns -
+# DB_PORT is legitimately absent from the shipped templates.
+cfg_apply_php() {
+    local file="$1" name="$2" value="$3" strict="${4:-1}"
+    if cfg_set_php "$file" "$name" "$value"; then
+        return 0
+    fi
+    if [[ "$strict" == "1" ]]; then
+        print_error "Cannot set $name in $file: define() not found in the template"
+        return 1
+    fi
+    print_warn "Optional key $name is not present in $file - skipped"
+    return 0
+}
+
+cfg_apply_key() {
+    local file="$1" name="$2" value="$3" strict="${4:-1}"
+    if cfg_set_key "$file" "$name" "$value"; then
+        return 0
+    fi
+    if [[ "$strict" == "1" ]]; then
+        print_error "Cannot set $name in $file: key not found in the template"
+        return 1
+    fi
+    print_warn "Optional key $name is not present in $file - skipped"
+    return 0
+}
+
 setup_configs() {
     print_step "Configuring configuration files"
 
@@ -1193,16 +1407,13 @@ setup_configs() {
     print_info "Setting up encryption keys..."
 
     if [[ "$DB_INSTALL" == "local" ]]; then
-        # Для локальной БД — генерируем автоматически
-        if command -v pwgen &> /dev/null; then
-            ENC_PASSWORD=$(pwgen 16 1)
-        else
-            ENC_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c16)
-        fi
-        ENC_VECTOR=$(tr -dc 0-9 </dev/urandom | head -c 16)
+        # Для локальной БД — генерируем автоматически.
+        # Ключ и IV нигде не печатаются: значение попадает в config.php (0660),
+        # в скриптовый config и в /root/eye_*_password.txt.
+        ENC_PASSWORD=$(gen_secret 16)
+        ENC_VECTOR=$(gen_digits 16)
         print_info "Encryption keys generated automatically (local database)."
-        print_info "Password: $ENC_PASSWORD"
-        print_info "Vector: $ENC_VECTOR"
+        print_info "Key: 16 chars in /opt/Eye/html/cfg/config.php, IV: 16 digits (generated from /dev/urandom)"
     else
         # Для удалённой БД — ОБЯЗАТЕЛЬНО запрашиваем у пользователя
         echo ""
@@ -1211,7 +1422,7 @@ setup_configs() {
         echo ""
     
         while [[ -z "$ENC_PASSWORD" ]]; do
-            read -p "Enter ENCRYPTION_KEY (16+ characters): " ENC_PASSWORD
+            read -r -p "Enter ENCRYPTION_KEY (16+ characters): " ENC_PASSWORD
             if [[ ${#ENC_PASSWORD} -lt 16 ]]; then
                 print_warn "Key should be at least 16 characters long."
                 ENC_PASSWORD=""
@@ -1219,7 +1430,7 @@ setup_configs() {
         done
 
         while [[ -z "$ENC_VECTOR" ]]; do
-            read -p "Enter ENCRYPTION_IV (exactly 16 digits): " ENC_VECTOR
+            read -r -p "Enter ENCRYPTION_IV (exactly 16 digits): " ENC_VECTOR
             if [[ ! "$ENC_VECTOR" =~ ^[0-9]{16}$ ]]; then
                 print_warn "IV must consist of exactly 16 digits (0-9)."
                 ENC_VECTOR=""
@@ -1232,23 +1443,36 @@ setup_configs() {
     # === Настройка веб-конфигурации (только если нужен веб) ===
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "web" ]]; then
         if [[ -f "/opt/Eye/html/cfg/config.sample.php" ]]; then
+            # Повторный запуск установщика на рабочей машине не должен
+            # незаметно терять уже отредактированный конфиг.
+            if [[ -f /opt/Eye/html/cfg/config.php ]]; then
+                print_warn "Existing web config.php found - saving a copy before regenerating it"
+                backup_file /opt/Eye/html/cfg/config.php
+            fi
             cp /opt/Eye/html/cfg/config.sample.php /opt/Eye/html/cfg/config.php
 
             # Определяем DB_TYPE для PHP (mysql или pgsql)
             PHP_DB_TYPE="$DB_TYPE"
             [[ "$DB_TYPE" == "postgresql" ]] && PHP_DB_TYPE="pgsql"
 
-            # Подстановка реальных значений
-            sed -i "s/define(\"DB_TYPE\",\"[^\"]*\");/define(\"DB_TYPE\",\"$PHP_DB_TYPE\");/" /opt/Eye/html/cfg/config.php
-            sed -i "s/define(\"DB_HOST\",\"[^\"]*\");/define(\"DB_HOST\",\"$DB_HOST\");/" /opt/Eye/html/cfg/config.php
-            sed -i "s/define(\"DB_PORT\",\"[^\"]*\");/define(\"DB_PORT\",\"$DB_PORT\");/" /opt/Eye/html/cfg/config.php
-            sed -i "s/define(\"DB_NAME\",\"[^\"]*\");/define(\"DB_NAME\",\"$DB_NAME\");/" /opt/Eye/html/cfg/config.php
-            sed -i "s/define(\"DB_USER\",\"[^\"]*\");/define(\"DB_USER\",\"$DB_USER\");/" /opt/Eye/html/cfg/config.php
-            sed -i "s/define(\"DB_PASS\",\"[^\"]*\");/define(\"DB_PASS\",\"$DB_PASS\");/" /opt/Eye/html/cfg/config.php
-
+            # Подстановка реальных значений (perl + %ENV, без sed:
+            # параметры не должны интерпретироваться ни shell, ни sed)
+            cfg_fail=0
+            WEB_CFG=/opt/Eye/html/cfg/config.php
+            cfg_apply_php "$WEB_CFG" DB_TYPE       "$PHP_DB_TYPE" || cfg_fail=1
+            cfg_apply_php "$WEB_CFG" DB_HOST       "$DB_HOST"     || cfg_fail=1
+            cfg_apply_php "$WEB_CFG" DB_PORT       "$DB_PORT"  0  || cfg_fail=1
+            cfg_apply_php "$WEB_CFG" DB_NAME       "$DB_NAME"     || cfg_fail=1
+            cfg_apply_php "$WEB_CFG" DB_USER       "$DB_USER"     || cfg_fail=1
+            cfg_apply_php "$WEB_CFG" DB_PASS       "$DB_PASS"     || cfg_fail=1
             # Ключи шифрования
-            sed -i "s/ENCRYPTION_KEY\",\"[^\"]*\"/ENCRYPTION_KEY\",\"$ENC_PASSWORD\"/" /opt/Eye/html/cfg/config.php
-            sed -i "s/ENCRYPTION_IV\",\"[^\"]*\"/ENCRYPTION_IV\",\"$ENC_VECTOR\"/" /opt/Eye/html/cfg/config.php
+            cfg_apply_php "$WEB_CFG" ENCRYPTION_KEY "$ENC_PASSWORD" || cfg_fail=1
+            cfg_apply_php "$WEB_CFG" ENCRYPTION_IV  "$ENC_VECTOR"   || cfg_fail=1
+
+            if [[ $cfg_fail -ne 0 ]]; then
+                print_error "Web configuration is incomplete - see the errors above"
+                return 1
+            fi
 
             print_info "Web configuration file config.php created"
         else
@@ -1259,23 +1483,29 @@ setup_configs() {
     # === Настройка конфигурации бэкенда (только если нужен бэкенд) ===
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "backend" ]]; then
         if [[ -f "/opt/Eye/scripts/cfg/config.sample" ]]; then
+            if [[ -f /opt/Eye/scripts/cfg/config ]]; then
+                print_warn "Existing backend config found - saving a copy before regenerating it"
+                backup_file /opt/Eye/scripts/cfg/config
+            fi
             cp /opt/Eye/scripts/cfg/config.sample /opt/Eye/scripts/cfg/config
 
-            # Подстановка значений
-            sed -i "s/^DBTYPE=.*/DBTYPE=$DB_TYPE/" /opt/Eye/scripts/cfg/config
-            sed -i "s/DBTYPE=db_type/DBTYPE=$DB_TYPE/" /opt/Eye/scripts/cfg/config
-
-            sed -i "s/^DBHOST=.*/DBHOST=$DB_HOST/" /opt/Eye/scripts/cfg/config
-            sed -i "s/^DBPORT=.*/DBPORT=$DB_PORT/" /opt/Eye/scripts/cfg/config
-            sed -i "s/^DBNAME=.*/DBNAME=$DB_NAME/" /opt/Eye/scripts/cfg/config
-            sed -i "s/^DBUSER=.*/DBUSER=$DB_USER/" /opt/Eye/scripts/cfg/config
-            sed -i "s/^DBPASS=.*/DBPASS=$DB_PASS/" /opt/Eye/scripts/cfg/config
-
+            # Подстановка значений (perl + %ENV, см. комментарий выше)
+            cfg_fail=0
+            BE_CFG=/opt/Eye/scripts/cfg/config
+            cfg_apply_key "$BE_CFG" DBTYPE         "$DB_TYPE"      || cfg_fail=1
+            cfg_apply_key "$BE_CFG" DBHOST         "$DB_HOST"      || cfg_fail=1
+            cfg_apply_key "$BE_CFG" DBPORT         "$DB_PORT"   0  || cfg_fail=1
+            cfg_apply_key "$BE_CFG" DBNAME         "$DB_NAME"      || cfg_fail=1
+            cfg_apply_key "$BE_CFG" DBUSER         "$DB_USER"      || cfg_fail=1
+            cfg_apply_key "$BE_CFG" DBPASS         "$DB_PASS"      || cfg_fail=1
             # Ключи шифрования
-            sed -i "s/^encryption_key=.*/encryption_key=$ENC_PASSWORD/" /opt/Eye/scripts/cfg/config
-            sed -i "s/encryption_key=!!!CHANGE_ME!!!!/encryption_key=$ENC_PASSWORD/" /opt/Eye/scripts/cfg/config
-            sed -i "s/^encryption_iv=.*/encryption_iv=$ENC_VECTOR/" /opt/Eye/scripts/cfg/config
-            sed -i "s/encryption_iv=0123456789012345/encryption_iv=$ENC_VECTOR/" /opt/Eye/scripts/cfg/config
+            cfg_apply_key "$BE_CFG" encryption_key "$ENC_PASSWORD" || cfg_fail=1
+            cfg_apply_key "$BE_CFG" encryption_iv  "$ENC_VECTOR"   || cfg_fail=1
+
+            if [[ $cfg_fail -ne 0 ]]; then
+                print_error "Backend configuration is incomplete - see the errors above"
+                return 1
+            fi
 
             print_info "Backend configuration file scripts/cfg/config created"
         else
@@ -1322,12 +1552,14 @@ apply_language_settings() {
 
     if [[ "$EYE_LANG" == "russian" ]]; then
         # Установка русского языка
-        sed -i "s/define(\"HTML_LANG\",\"[^\"]*\"\");/define(\"HTML_LANG\",\"russian\");/g" "$CONFIG_PHP"
+        cfg_apply_php "$CONFIG_PHP" HTML_LANG "russian" \
+            || print_warn "HTML_LANG not updated - check $CONFIG_PHP manually"
         sed -i "s/setlocale(LC_ALL, '[^']*');/setlocale(LC_ALL, 'ru_RU.UTF-8');/g" "$CONFIG_PHP"
         print_info "Web interface language set to Russian"
     else
         # Установка английского языка (по умолчанию)
-        sed -i "s/define(\"HTML_LANG\",\"[^\"]*\"\");/define(\"HTML_LANG\",\"english\");/g" "$CONFIG_PHP"
+        cfg_apply_php "$CONFIG_PHP" HTML_LANG "english" \
+            || print_warn "HTML_LANG not updated - check $CONFIG_PHP manually"
         sed -i "s/setlocale(LC_ALL, '[^']*');/setlocale(LC_ALL, 'en_US.UTF-8');/g" "$CONFIG_PHP"
         print_info "Web interface language set to English"
     fi
@@ -1365,7 +1597,8 @@ setup_apache_php() {
         # Create directory if it doesn't exist
         mkdir -p "$APACHE_SITES_DIR"
 
-        # Copy prepared config
+        # Copy prepared config (previous version is kept, timestamped)
+        [[ -f "$DEFAULT_CONF" ]] && backup_file "$DEFAULT_CONF"
         cp "/opt/Eye/docs/apache/000-default.conf" "$DEFAULT_CONF"
 
         # Enable site
@@ -1377,10 +1610,17 @@ setup_apache_php() {
 
     # Configure sudoers
     if [[ -f "/opt/Eye/docs/sudoers.d/www-data" ]]; then
+        make_workdir
         # Use prepared template, substituting correct user
-        sed "s/www-data/eye/g" /opt/Eye/docs/sudoers.d/www-data > /etc/sudoers.d/eye
-        chmod 440 /etc/sudoers.d/eye
-        print_info "Sudoers file created from template"
+        if sed "s/www-data/eye/g" /opt/Eye/docs/sudoers.d/www-data > "$WORKDIR/sudoers.eye" \
+            && visudo -cf "$WORKDIR/sudoers.eye" >/dev/null 2>&1; then
+            backup_file /etc/sudoers.d/eye 2>/dev/null || true
+            install -m 0440 -o root -g root "$WORKDIR/sudoers.eye" /etc/sudoers.d/eye
+            print_info "Sudoers file created from template (validated with visudo)"
+        else
+            print_error "visudo rejected the generated sudoers.d/eye - it was NOT installed"
+            print_warn "Create /etc/sudoers.d/eye manually from docs/sudoers.d/www-data if needed"
+        fi
     fi
 
     # Restart Apache
@@ -1444,6 +1684,7 @@ _install_cron() {
     # 2 = нечего устанавливать (источник отсутствует)
     [[ ! -f "$src" ]] && return 2
 
+    [[ -f "/etc/cron.d/$name" ]] && backup_file "/etc/cron.d/$name"
     if cp -f "$src" "/etc/cron.d/$name"; then
         chown root:root "/etc/cron.d/$name"
         chmod 644 "/etc/cron.d/$name"
@@ -1462,6 +1703,7 @@ _install_logrotate() {
     # 2 = нечего устанавливать (источник отсутствует)
     [[ ! -f "$src" ]] && return 2
 
+    [[ -f "/etc/logrotate.d/$name" ]] && backup_file "/etc/logrotate.d/$name"
     if cp -f "$src" "/etc/logrotate.d/$name"; then
         chown root:root "/etc/logrotate.d/$name"
         chmod 644 "/etc/logrotate.d/$name"
@@ -1533,9 +1775,14 @@ setup_dhcp_server() {
 	apt-get install dnsmasq -y
 	fi
 
-    # Backup configuration
+    # Backup configuration with a timestamp: an already configured production
+    # dnsmasq is replaced below, and a plain ".backup" would be overwritten by
+    # the second run of the installer (i.e. by the already broken config).
     if [[ -f "/etc/dnsmasq.conf" ]]; then
-        cp /etc/dnsmasq.conf /etc/dnsmasq.conf.backup
+        if [[ -s "/etc/dnsmasq.conf" ]] && [[ $(grep -vcE '^\s*(#.*)?$' /etc/dnsmasq.conf) -gt 3 ]]; then
+            print_warn "/etc/dnsmasq.conf already contains configuration - it will be replaced by the Eye template"
+        fi
+        backup_file /etc/dnsmasq.conf || print_error "Cannot backup /etc/dnsmasq.conf"
     fi
 
     # Copy configuration from Eye
@@ -1545,12 +1792,14 @@ setup_dhcp_server() {
 
     # Copy systemd services
     if [[ -f "/opt/Eye/docs/systemd/dhcp-log.service" ]]; then
+        [[ -f "/etc/systemd/system/dhcp-log.service" ]] && backup_file "/etc/systemd/system/dhcp-log.service"
         cp /opt/Eye/docs/systemd/dhcp-log.service /etc/systemd/system/
         mkdir -p /etc/systemd/system/dnsmasq.service.d
         cp -f /opt/Eye/docs/systemd/dnsmasq.service.d/override.conf /etc/systemd/system/dnsmasq.service.d
     fi
 
     if [[ -f "/opt/Eye/docs/systemd/dhcp-log-truncate.service" ]]; then
+        [[ -f "/etc/systemd/system/dhcp-log-truncate.service" ]] && backup_file "/etc/systemd/system/dhcp-log-truncate.service"
         cp /opt/Eye/docs/systemd/dhcp-log-truncate.service /etc/systemd/system/
     fi
 
@@ -1578,10 +1827,12 @@ setup_syslog() {
 	apt-get install syslog-ng syslog-ng-journal -y
 	fi
 
-    # Create backup of main config
+    # Timestamped backup of the main config (used for rollback below)
+    SYSLOGNG_BACKUP=""
     if [[ -f "/etc/syslog-ng/syslog-ng.conf" ]]; then
-        cp /etc/syslog-ng/syslog-ng.conf /etc/syslog-ng/syslog-ng.conf.backup
-        print_info "Backup created: /etc/syslog-ng/syslog-ng.conf.backup"
+        if backup_file /etc/syslog-ng/syslog-ng.conf; then
+            SYSLOGNG_BACKUP="$LAST_BACKUP"
+        fi
     fi
 
     # Copy additional config for Eye
@@ -1627,14 +1878,11 @@ keep_hostname(no);
         if ! grep -q "^options\s*{" /etc/syslog-ng/syslog-ng.conf; then
             # Add options block if it doesn't exist
 
-            if grep -q "^@version:" /etc/syslog-ng/syslog-ng.conf; then
-                # Insert after @version: line
-                sed -i "/^@version:/a\\$syslogng_options" /etc/syslog-ng/syslog-ng.conf
+            if printf '\n%s\n' "$syslogng_options" >> /etc/syslog-ng/syslog-ng.conf; then
+                print_info "Added options block to syslog-ng.conf"
             else
-                # Insert at beginning of file
-                sed -i "1i\\$syslogng_options" /etc/syslog-ng/syslog-ng.conf
+                print_error "Cannot append options block to /etc/syslog-ng/syslog-ng.conf"
             fi
-            print_info "Added options block to syslog-ng.conf"
         else
             # Check for required parameters in existing options block
             local missing_params=()
@@ -1672,6 +1920,7 @@ keep_hostname(no);
 
     # Copy systemd service for Eye log processing
     if [[ -f "/opt/Eye/docs/systemd/syslog-stat.service" ]]; then
+        [[ -f "/etc/systemd/system/syslog-stat.service" ]] && backup_file "/etc/systemd/system/syslog-stat.service"
         cp /opt/Eye/docs/systemd/syslog-stat.service /etc/systemd/system/
         chmod 644 /etc/systemd/system/syslog-stat.service
         print_info "syslog-stat service copied"
@@ -1685,16 +1934,36 @@ keep_hostname(no);
     # Enable and start services
     $SERVICE_MANAGER daemon-reload
 
-    if $SERVICE_MANAGER enable syslog-ng; then
-        print_info "syslog-ng service enabled for autostart"
+    # Проверяем синтаксис ДО перезапуска: с битым конфигом syslog-ng не
+    # поднимется, и сбор логов со всего сетевого оборудования остановится.
+    SYSLOGNG_VALID=1
+    if command -v syslog-ng >/dev/null 2>&1; then
+        if ! syslog-ng --syntax-only >/dev/null 2>&1; then
+            print_error "syslog-ng configuration is INVALID after the changes"
+            if [[ -n "$SYSLOGNG_BACKUP" && -f "$SYSLOGNG_BACKUP" ]]; then
+                cp -a "$SYSLOGNG_BACKUP" /etc/syslog-ng/syslog-ng.conf
+                print_warn "Previous /etc/syslog-ng/syslog-ng.conf restored from $SYSLOGNG_BACKUP"
+            fi
+            SYSLOGNG_VALID=0
+        fi
     else
-        print_warn "Failed to enable syslog-ng for autostart"
+        print_warn "syslog-ng binary not found, cannot verify configuration syntax"
     fi
 
-    if $SERVICE_MANAGER restart syslog-ng; then
-        print_info "syslog-ng service restarted"
+    if (( SYSLOGNG_VALID )); then
+        if $SERVICE_MANAGER enable syslog-ng; then
+            print_info "syslog-ng service enabled for autostart"
+        else
+            print_warn "Failed to enable syslog-ng for autostart"
+        fi
+
+        if $SERVICE_MANAGER restart syslog-ng; then
+            print_info "syslog-ng service restarted"
+        else
+            print_warn "Failed to restart syslog-ng"
+        fi
     else
-        print_warn "Failed to restart syslog-ng"
+        print_warn "syslog-ng was NOT restarted - apply /etc/syslog-ng/conf.d/eye.conf manually"
     fi
 
     if [[ -f "/etc/systemd/system/syslog-stat.service" ]]; then
@@ -1711,8 +1980,8 @@ keep_hostname(no);
         fi
     fi
 
-    # Check syslog-ng configuration
-    if command -v syslog-ng &> /dev/null; then
+    # Final check (skipped when we already rolled the configuration back)
+    if (( SYSLOGNG_VALID )) && command -v syslog-ng &> /dev/null; then
         if syslog-ng --syntax-only; then
             print_info "syslog-ng configuration is valid"
         else
@@ -1722,7 +1991,61 @@ keep_hostname(no);
     fi
 
     print_info "syslog-ng configuration completed"
-    print_info "To receive logs from devices, configure them to send to IP: $(hostname -f)"
+    print_info "To receive logs from devices, configure them to send to IP: $(hostname -f 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}')"
+}
+
+# Install the ipset restore helper and hook it into netfilter-persistent
+# (iptables.service on ALT). Previously the override directory was tested with
+# [[ -f ]], so the systemd drop-in was never installed and ipset lists were
+# not restored after a reboot.
+install_ipset_utils() {
+    local src="/opt/Eye/docs/ipset/ipset-utils.sh"
+    local dropin_src="/opt/Eye/docs/systemd/netfilter-persistent.service.d/override.conf"
+    local unit_dir=""
+
+    if [[ ! -f "$src" ]]; then
+        print_warn "ipset helper $src not found - skipping"
+        return 1
+    fi
+
+    # remove old SysV init script (replaced by the systemd override)
+    if [[ -e /etc/init.d/ipset ]]; then
+        rm -f /etc/init.d/ipset
+    fi
+
+    mkdir -p /usr/local/bin
+    if ! install -m 0755 -o root -g root "$src" /usr/local/bin/; then
+        print_error "Cannot install $src into /usr/local/bin"
+        return 1
+    fi
+
+    if [[ "$OS_FAMILY" == "alt" ]]; then
+        unit_dir="iptables.service.d"
+    else
+        unit_dir="netfilter-persistent.service.d"
+    fi
+
+    if [[ ! -f "$dropin_src" ]]; then
+        print_warn "$dropin_src not found - ipset will NOT be restored at boot"
+        return 1
+    fi
+
+    backup_file "/etc/systemd/system/$unit_dir/override.conf" 2>/dev/null || true
+    mkdir -p "/etc/systemd/system/$unit_dir"
+    if ! install -m 0644 -o root -g root "$dropin_src" "/etc/systemd/system/$unit_dir/override.conf"; then
+        print_error "Cannot install systemd override into $unit_dir"
+        return 1
+    fi
+
+    $SERVICE_MANAGER daemon-reload
+    base_unit="${unit_dir%.service.d}"
+    if service_exists "$base_unit"; then
+        print_info "ipset: helper + override installed for $unit_dir ($base_unit)"
+    else
+        print_warn "ipset helper installed, but unit $base_unit.service is missing -"
+        print_warn "ipset lists will only be restored once it is enabled."
+    fi
+    return 0
 }
 
 # Configure additional services
@@ -1731,6 +2054,7 @@ setup_additional_services() {
 
     # stat-sync service
     if [[ -f "/opt/Eye/docs/systemd/stat-sync.service" ]]; then
+        [[ -f "/etc/systemd/system/stat-sync.service" ]] && backup_file "/etc/systemd/system/stat-sync.service"
         cp /opt/Eye/docs/systemd/stat-sync.service /etc/systemd/system/
         $SERVICE_MANAGER enable stat-sync.service
         print_info "stat-sync service enabled"
@@ -1738,29 +2062,14 @@ setup_additional_services() {
 
     # eye-statd service (NetFlow)
     if [[ -f "/opt/Eye/docs/systemd/eye-statd.service" ]]; then
+        [[ -f "/etc/systemd/system/eye-statd.service" ]] && backup_file "/etc/systemd/system/eye-statd.service"
         cp /opt/Eye/docs/systemd/eye-statd.service /etc/systemd/system/
         $SERVICE_MANAGER enable eye-statd.service
         print_info "eye-statd service (NetFlow) enabled"
     fi
 
     # add ipset
-    if [[ -f "/opt/Eye/docs/ipset/ipset-utils.sh" ]]; then
-        # remove old ipset-utils
-        [ -e /etc/init.d/ipset ] && rm -f /etc/init.d/ipset
-        mkdir -p /usr/local/bin
-        cp /opt/Eye/docs/ipset/ipset-utils.sh /usr/local/bin/
-        if [[ -f "/opt/Eye/docs/systemd/netfilter-persistent.service.d" ]]; then
-           if [[ "$OS_FAMILY" == "alt" ]]; then
-               mkdir -p /etc/systemd/system/iptables.service.d
-               cp /opt/Eye/docs/systemd/netfilter-persistent.service.d/override.conf /etc/systemd/system/iptables.service.d
-               else
-               mkdir -p /etc/systemd/system/netfilter-persistent.service.d
-               cp /opt/Eye/docs/systemd/netfilter-persistent.service.d/override.conf /etc/systemd/system/netfilter-persistent.service.d
-           fi
-        $SERVICE_MANAGER daemon-reload
-        fi
-        print_info "ipset installed"
-    fi
+    install_ipset_utils
 
     # Configure DHCP
     setup_dhcp_server
@@ -1815,16 +2124,16 @@ show_final_instructions() {
         print_info "   PostgreSQL: Edit pg_hba.conf if needed"
         if [[ -f "/root/eye_postgres_password.txt" ]]; then
             echo ""
-            echo "3. PostgreSQL 'stat' user password saved in:"
-            echo "   /root/eye_postgres_password.txt"
+            echo "   PostgreSQL user '$DB_USER' password saved in:"
+            echo "   /root/eye_postgres_password.txt (mode 0600)"
             echo ""
         fi
     else
         echo "   mysql_secure_installation"
         if [[ -f "/root/eye_mysql_password.txt" ]]; then
             echo ""
-            echo "3. MySQL 'stat' user password saved in:"
-            echo "   /root/eye_mysql_password.txt"
+            echo "   MySQL user '$DB_USER' password saved in:"
+            echo "   /root/eye_mysql_password.txt (mode 0600)"
             echo ""
         fi
     fi
@@ -1835,17 +2144,20 @@ show_final_instructions() {
     echo "   /opt/Eye/scripts/cfg/config"
     echo ""
     
-    echo "4. Configure cron jobs:"
+    echo "3. Configure cron jobs:"
     echo "   nano /etc/cron.d/eye"
     echo "   Uncomment required scripts"
     echo ""
-    echo "5. Configure if necessary:"
+    echo "4. Configure if necessary:"
     echo "   - DHCP: /etc/dnsmasq.conf"
     echo "   - NetFlow: configure on network devices"
     echo ""
-    echo "6. WEB INTERFACE ACCESS:"
-    echo "   URL:      http://$(hostname -f)/"
-    echo "   Admin:    http://$(hostname -f)/admin/"
+    echo "5. WEB INTERFACE ACCESS:"
+    # hostname -f is empty on a host without FQDN -> fall back to the IP
+    SRV_NAME=$(hostname -f 2>/dev/null) || SRV_NAME=$(hostname -I 2>/dev/null | awk '{print $1}')
+    : "${SRV_NAME:=<server-address>}"
+    echo "   URL:      http://$SRV_NAME/"
+    echo "   Admin:    http://$SRV_NAME/admin/"
     echo "   Login:    admin"
     echo "   Password: admin"
     echo ""
@@ -1878,7 +2190,7 @@ eye_install() {
     # Инициализация глобальных переменных
     DB_PASS=""
     DB_USER=""
-    DB_NAME="eye_db"
+    DB_NAME="eye"   # совпадает с значением по умолчанию в приглашении
     DB_HOST="127.0.0.1"
     DB_TYPE="mysql"
     EYE_LANG="russian"
@@ -1912,7 +2224,10 @@ eye_install() {
     fi
 
     # Настройка конфигов — всегда (но внутри учитывает INSTALL_TYPE)
-    setup_configs
+    if ! setup_configs; then
+        print_error "Installation aborted: configuration files are incomplete"
+        exit 140
+    fi
 
     # Язык — только если установлен веб
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "web" ]]; then
@@ -1978,7 +2293,7 @@ backup_current_installation() {
         --exclude="scripts/log/*" \
         --exclude="html/log" \
         --exclude="html/log/*" \
-        -C / "opt/Eye" 2>/dev/null
+        -C / "opt/Eye" 2> >(tee "$WORKDIR/backup.log" >&2)
 
     if [[ $? -eq 0 && -f "$BACKUP_FILE" ]]; then
         print_info "✅ Backup completed successfully"
@@ -2000,6 +2315,7 @@ eye_upgrade() {
 
     check_root
     detect_distro
+    make_workdir
 
     stop_eye
 
@@ -2049,19 +2365,6 @@ check_user() {
 check_directory() {
     [ -d "/opt/Eye" ]
     return $?
-}
-
-# Function to check if Eye config files exist
-check_eye_configs() {
-    # Веб-конфиг
-    if [[ -f "/opt/Eye/html/cfg/config.php" ]]; then
-        return 0
-    fi
-    # Бэкенд-конфиг
-    if [[ -f "/opt/Eye/scripts/cfg/config" ]]; then
-        return 0
-    fi
-    return 1
 }
 
 # Handle command line arguments
@@ -2165,6 +2468,11 @@ case "$1" in
     fi
     ;;
 esac
+
+# Temporary files and the restore-on-failure net are active from this point on
+make_workdir
+trap 'on_script_exit' EXIT
+trap 'print_warn "Interrupted by user"; exit 130' INT TERM
 
 echo ""
 echo "Selected mode: $mode"

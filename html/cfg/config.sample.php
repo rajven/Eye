@@ -28,7 +28,7 @@ define("SNMP_retry","1");
 
 #crypt config - CHANGE IT!!!
 define("ENCRYPTION_KEY","!!!CHANGE_ME!!!");
-define("ENCRYPTION_IV","123456782345");
+define("ENCRYPTION_IV","0123456789012345");
 
 #session timeout, sec
 define("SESSION_LIFETIME","86400");
