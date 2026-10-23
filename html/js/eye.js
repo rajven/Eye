@@ -634,6 +634,15 @@
     });
   }
 
+
+  /* ---------- 7j. Ссылки, открывающие окно -------------------------------
+     switchport/switchstatus/mactable зовут window.open() из onclick; таким
+     даём класс .ext — CSS дорисует ↗, чтобы «откроется отдельно» было видно. */
+
+  function markExternalLinks() {
+    $$('a[onclick*="window.open"]').forEach(function (a) { a.classList.add('ext'); });
+  }
+
   /* ---------- старт ------------------------------------------------------- */
 
   // каждый шаг инициализации по отдельности: ошибка в одном не глушит механизм
@@ -662,6 +671,7 @@
   safe(classifyContainers, 'containers');
   safe(fixWindowButtons, 'window buttons');
   safe(markListCells, 'list cells');
+  safe(markExternalLinks, 'external links');
   safe(wireFilters, 'filters');
   safe(syncBulk, 'bulk count');
 })();
