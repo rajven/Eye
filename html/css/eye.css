@@ -231,7 +231,9 @@ body.eye-public #title::before { background: radial-gradient(circle at 50% 50%, 
 /* контейнер-«полотло»: те же отступы, что у #cont */
 #contsubmenu:not(.tabs), #subsubmenu:not(.tabs) { padding: 14px 18px 90px; }
 #contsubmenu:not(.tabs) a, #subsubmenu:not(.tabs) a { color: var(--accent-ink); }
-#submenu br, #contsubmenu br, #subsubmenu br { display: none; }
+/* переносы строки прячем ТОЛЬКО в полосе переходов: #contsubmenu на 14 страницах —
+   обычный контейнер контента, и <br> там разделяет списки внутри ячеек */
+#submenu.tabs br, #subsubmenu.tabs br, #contsubmenu.tabs br { display: none; }
 #navi .sep, .tabs .sep { display: none; }
 #submenu:not(.tabs) .sep, #subsubmenu:not(.tabs) .sep, #contsubmenu:not(.tabs) .sep { color: var(--ink-3); }
 
@@ -298,69 +300,75 @@ table.data > tr > td:first-child:last-child {
   color: var(--ink-3); height: 26px;
 }
 table.data tbody tr:hover > td, table.data tr:hover > td, tr.tr2 > td { background: var(--sel); }
+/* Ячейка-список: несколько значений через <br> (switchstatus/switchport — столбцы
+   «устройства» и «комментарии» сверяются построчно). eye.js раскладывает их на
+   span.ln: по строке на значение, без переноса внутри строки — позиции совпадают. */
+table.data > tbody > tr > td.nl { vertical-align: top; padding-top: 5px; padding-bottom: 5px; }
+table.data td.nl .ln { display: block; white-space: nowrap; line-height: 1.55; }
+table.data td.nl > br { display: none; }
+
 /* ссылки в ячейках: подчёркивание только при наведении — таблица не должна быть пёстрой */
 table.data td a { border-bottom: 1px solid transparent; }
 table.data td a:hover { border-bottom-color: var(--accent); color: var(--accent-ink); }
 
-/* состояние строки: лёгкая подложка + линейка у левого края вместо кричащей заливки */
-td.data { background: transparent; }
-td.warn { background: var(--st-warn-bg); }
-td.error { background: var(--st-err-bg); }
-td.off { background: var(--st-off-bg); color: var(--ink-3); }
-td.nb { background: var(--st-warn-bg); }
-/* матрица портов (switchstatus.php): состояние читается заливкой — это тот
-   случай, где заливать ячейку правильно. Первый background — фолбэк для
-   браузеров без color-mix (Firefox <113), второй перекрывает его там, где умеют */
-td.up { background: var(--st-ok-bg);
-        background: color-mix(in srgb, var(--st-ok) 16%, var(--surface)); color: var(--ink); }
-td.down {
-  background: var(--st-off-bg); color: var(--ink-3);
-  background: repeating-linear-gradient(135deg, transparent 0 6px,
-              color-mix(in srgb, var(--st-off) 12%, transparent) 6px 7px);
-}
-td.shutdown {
-  background: var(--st-warn-bg); color: var(--ink-2);
-  background: repeating-linear-gradient(45deg,
-    color-mix(in srgb, var(--st-warn) 16%, var(--surface)) 0 6px,
-    color-mix(in srgb, var(--st-warn) 8%, var(--surface)) 6px 12px);
-}
-/* «нет» в колонках uplink/nagios/skip печатается пустой ячейкой с data_red */
+/* Состояния ячеек. Важно про специфичность: общее правило
+   `table.data > tbody > tr > td` = (0,1,4), обычные `td.up`/`td.warn` = (0,1,1) — они
+   проигрывали, и заливки не было видно вообще (тем же глушились статусы в списке IP).
+   Поэтому все состояния — с полной цепочкой `table.data > tbody > tr > td.X` (0,2,4)
+   и стоят ПОСЛЕ правила :hover, чтобы подсветка строки их не перекрывала.
+   `table.data > tbody > tr > td` имеет (0,1,4); обычные `td.up`/`td.warn` — (0,1,1),
+   поэтому они проигрывали и заливка не показывалась вообще (это же глушило
+   статусы в списке IP). Все правила состояний ниже — с полной цепочкой
+   `table.data > tbody > tr > td.X` (0,2,4) и идут ПОСЛЕ правила :hover,
+   чтобы состояния не перекрывались подсветкой строки. */
+table.data > tbody > tr > td.warn  { background: var(--st-warn-bg);
+                                          background: color-mix(in srgb, var(--st-warn) 12%, var(--surface)); }
+table.data > tbody > tr > td.nb    { background: color-mix(in srgb, var(--st-warn) 18%, var(--surface)); }
+table.data > tbody > tr > td.error { background: var(--st-err-bg);
+                                          background: color-mix(in srgb, var(--st-err) 12%, var(--surface)); color: var(--ink); }
+table.data > tbody > tr > td.off   { background: var(--st-off-bg); color: var(--ink-3); }
+/* левая линейка строки: состояние читается периферийным зрением, цвет не заливая всю строку */
+table.data tr:has(> td:first-child.warn)  > td:first-child::before { background: var(--st-warn); }
+table.data tr:has(> td:first-child.error) > td:first-child::before { background: var(--st-err); }
+table.data tr:has(> td:first-child.off)   > td:first-child::before { background: var(--st-off); }
+table.data > tbody > tr > td.custom { background: var(--accent-soft); color: var(--accent-ink); }
+td.crc, table.data > tbody > tr > td.crc { background: var(--st-err-bg);
+                                          background: color-mix(in srgb, var(--st-err) 18%, var(--surface)); }
+td.cell_red, table.data > tbody > tr > td.cell_red { color: var(--st-err); background: transparent; }
+td.data_green, table.data > tbody > tr > td.data_green { color: var(--st-ok); }
+td.data_red,   table.data > tbody > tr > td.data_red   { color: var(--st-err); }
 td.data_red:empty::after { content: "\2014"; color: var(--ink-3); }
 td.data_green:empty::after { content: "\2713"; color: var(--st-ok); }
-td.data_green { color: var(--st-ok); }
-td.data_red { color: var(--st-err); }
-/* счётчик MAC в строке порта — кнопка, а не поле формы */
-table.data button {
-  display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 22px;
-  padding: 0 6px; font: 500 12px/1 var(--mono); color: var(--ink-2);
-  background: var(--surface-2); border: 1px solid var(--rule-strong); border-radius: var(--r-sm); cursor: pointer;
+
+/* матрица портов (switchstatus/switchport/portsbyvlan/control-options): здесь
+   заливка ячейки и есть данные, поэтому цвета насыщенные, как в исходной теме */
+table.data > tbody > tr > td.up {
+  background: var(--st-ok-bg);
+  background: color-mix(in srgb, var(--st-ok) 30%, var(--surface));
+  color: var(--ink);
 }
-table.data button:hover { color: var(--ink); border-color: var(--ink-3); }
-td.custom { background: var(--accent-soft); }
-td.crc { background: var(--st-err-bg); }
-td.info, table.info { background: var(--accent-soft); }
-td.info { color: var(--accent-ink); }
-td.cell_red { color: var(--st-err); }
-td.data_green { color: var(--st-ok); }
-td.data_red { color: var(--st-err); font-size: 1.3em; }
-table.data tr > td:first-child { position: relative; }
-tr:has(> td.warn) > td:first-child::before,
-tr:has(> td.error) > td:first-child::before,
-tr:has(> td.off) > td:first-child::before {
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+table.data > tbody > tr > td.down {
+  /* «линка нет» — серая ячейка: пусто, но не слепится с фоном таблицы */
+  background: var(--st-off-bg);
+  background: color-mix(in srgb, var(--st-off) 16%, var(--surface));
+  color: var(--ink-3);
 }
-tr:has(> td.warn) > td:first-child::before { background: var(--st-warn); }
-tr:has(> td.error) > td:first-child::before { background: var(--st-err); }
-tr:has(> td.off)  > td:first-child::before { background: var(--st-off); opacity: .5; }
-/* скорость порта */
-td.speed10M { background: var(--st-warn-bg);
-             background: color-mix(in srgb, var(--st-warn) 14%, var(--surface)); color: var(--ink-2); font-family: var(--mono); }
-td.speed100M { background: var(--st-warn-bg);
-              background: color-mix(in srgb, var(--st-warn) 26%, var(--surface)); color: var(--ink); font-family: var(--mono); }
-td.speed1G { background: var(--st-ok-bg);
-            background: color-mix(in srgb, var(--st-ok) 22%, var(--surface)); color: var(--ink); font-family: var(--mono); }
-td.speed10G { background: var(--st-ok-bg);
-             background: color-mix(in srgb, var(--st-ok) 36%, var(--surface)); color: var(--ink); font-family: var(--mono); font-weight: 600; }
+table.data > tbody > tr > td.shutdown {
+  background: var(--st-warn-bg);
+  background: repeating-linear-gradient(45deg,
+    color-mix(in srgb, var(--st-warn) 34%, var(--surface)) 0 7px,
+    color-mix(in srgb, var(--st-warn) 20%, var(--surface)) 7px 14px);
+  color: var(--accent-ink);
+}
+/* скорость линка — градация зелёного, читается вместе с состоянием */
+table.data > tbody > tr > td.speed10M  { background: color-mix(in srgb, var(--st-warn) 16%, var(--surface)); color: var(--ink-2); font-family: var(--mono); }
+table.data > tbody > tr > td.speed100M { background: color-mix(in srgb, var(--st-warn) 34%, var(--surface)); color: var(--ink); font-family: var(--mono); }
+table.data > tbody > tr > td.speed1G   { background: color-mix(in srgb, var(--st-ok) 32%, var(--surface)); color: var(--ink); font-family: var(--mono); }
+table.data > tbody > tr > td.speed10G  { background: color-mix(in srgb, var(--st-ok) 52%, var(--surface)); color: var(--ink); font-family: var(--mono); font-weight: 600; }
+/* info-таблицы (легенда «Соединение», предупреждения) */
+table.info, td.info, table.data > tbody > tr > td.info {
+  background: var(--accent-soft); color: var(--accent-ink);
+}
 
 /* ---------- 7. Мелкие элементы данных -------------------------------- */
 /* ✓/✗ из get_qa(): читаются как состояние, но не раздувают строку */
@@ -536,23 +544,35 @@ dialog > .x:hover { background: var(--surface-2); color: var(--ink); }
   border-top: 1px solid var(--rule); background: var(--surface-2); }
 .dlg-f .sp { margin-left: auto; }
 .dlg-i { margin: 0 0 12px; font-size: 12px; color: var(--ink-3); }
-/* таблицы массовых изменений внутри диалога: без бордюров таблицы-карточки */
-dialog table.data { display: block; width: auto; margin: 0; border: 0; border-radius: 0;
-  background: none; box-shadow: none; }
-dialog table.data tr { display: block; }
-dialog table.data td { display: flex; align-items: center; gap: 10px; height: auto; padding: 7px 0;
-  border-bottom: 1px dashed var(--rule); background: transparent; }
-dialog table.data > tbody > tr:first-child > td, dialog table.data > tr:first-child > td {
-  position: static; height: auto; background: none; border-bottom: 1px dashed var(--rule);
-  font: inherit; text-transform: none; letter-spacing: 0; color: var(--ink); }
-dialog table.data td:first-child { justify-content: center; width: 26px; flex: none; }
-dialog table.data td:nth-child(2) { flex: 0 0 200px; font-size: 13px; }
-dialog table.data :is(select, input[type=text]) { width: 100%; }
-dialog table.data tr.off :is(select, input[type=text]) { opacity: .35; pointer-events: none; }
+/* Таблицы массовых изменений внутри диалога: <tr><td>чекбокс</td><td>подпись</td>
+   <td>поле</td></tr>. Табличную раскладку НЕ трогаем (display:block/flex сюда
+   нельзя: строка разъедется по ячейкам), убираем только «карточность» table.data
+   и задаем ширины колонок. */
+dialog table.data { width: 100%; margin: 0 0 8px; border: 0; border-radius: 0;
+  background: transparent; box-shadow: none; }
+dialog table.data td { height: 36px; padding: 3px 8px; text-align: left; vertical-align: middle;
+  border: 0; border-bottom: 1px dashed var(--rule); background: transparent; color: var(--ink); }
+dialog table.data tr:last-child td { border-bottom: 0; }
+dialog table.data td:first-child { width: 30px; padding-left: 0; text-align: center; }
+dialog table.data td:nth-child(2) { width: 36%; white-space: nowrap; color: var(--ink-2); }
+dialog table.data td:last-child { text-align: right; }
+dialog table.data tr:hover td { background: transparent; }
+dialog table.data :is(select, input[type=text], input[list]) { max-width: 100%; width: auto; }
+/* снимает поле с ввода, если чекбокс «применить» не отмечен (ставит js/eye.js) */
+dialog table.data td.off, dialog table.data tr.off td { opacity: .45; }
+dialog table.data :is(select, input)[disabled] { cursor: not-allowed; }
 dialog h2 { margin: 0 0 10px; }
-.mrow { display: grid; grid-template-columns: 26px 200px minmax(0, 1fr); align-items: center; gap: 12px;
-  padding: 7px 0; border-bottom: 1px dashed var(--rule); }
-.mrow.off > :is(select, input) { opacity: .35; pointer-events: none; }
+/* legacy-разделители внутри form: в диалогах удаления/экспорта поля
+   разбивались двумя <br> — в табличной вёрстке они только рвут ритм */
+dialog > form > br { display: none; }
+dialog > form > select, dialog > form > input[type=text] { margin-right: 8px; }
+dialog > form > [type=submit] { display: block; margin-top: 14px; }
+/* подпись чекбокса becomes кликабельной (eye.js вешает for) */
+dialog table.data td:nth-child(2) label { display: block; cursor: pointer; }
+dialog table.data td:nth-child(2) label:hover { color: var(--ink); }
+dialog table.data td.off, dialog table.data tr.off td:nth-child(2) { color: var(--ink-3); }
+/* ячейка «Nagios <select>» в два столбца (iplist/nagios.php): подпись и поле в одной */
+dialog table.data td > select, dialog table.data td > input[list] { margin-left: 6px; }
 
 .note { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; margin-bottom: 12px;
   font-size: 12.5px; border: 1px solid var(--rule); border-radius: var(--r-md); background: var(--surface-2); }

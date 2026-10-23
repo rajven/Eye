@@ -207,8 +207,18 @@
     $$('dialog input.putField[type=checkbox]').forEach(function (cb) {
       var row = cb.closest('tr') || cb.closest('.mrow');
       if (!row) return;
+      // подписи в следующей ячейке делаем кликабельными (name/id не трогаем)
+      var lab = row.children ? row.children[1] : null;
+      if (lab && !lab.querySelector('label') && lab.textContent.trim() && !lab.querySelector('input,select')) {
+        if (!cb.id) cb.id = 'eye-' + (cb.name || 'f') + '-' + Math.random().toString(36).slice(2, 7);
+        var txt = lab.firstChild, span = document.createElement('label');
+        span.setAttribute('for', cb.id);
+        span.textContent = txt.textContent;
+        lab.replaceChild(span, txt);
+      }
       var sync = function () {
         row.classList.toggle('off', !cb.checked);
+        if (lab) lab.classList.toggle('off', !cb.checked);
         $$('select, input:not([type=checkbox])', row).forEach(function (f) { f.disabled = !cb.checked; });
       };
       cb.addEventListener('change', sync);
@@ -593,6 +603,37 @@
     });
   }
 
+
+  /* ---------- 7i. Ячейки-списки --------------------------------------------
+     switchstatus/switchport печатают в одной ячейке список устройств через <br>,
+     а в соседней — список комментариев: строки соответствуют друг другу.
+     В узкой колонке браузер начинал переносить строки и соответствие пропадало.
+     Помечаем такие ячейки классом .nl (не переносить + сверху), CSS доделывает. */
+
+  function markListCells() {
+    $$('table.data td').forEach(function (td) {
+      if (td.dataset.eyeList) return;
+      if (td.querySelectorAll('br').length < 2) return;               // 2+ переноса = список
+      if (td.querySelector('input:not([type=hidden]), select, textarea, table')) return;
+      var frag = document.createDocumentFragment(), line = document.createElement('span');
+      line.className = 'ln';
+      Array.prototype.slice.call(td.childNodes).forEach(function (n) {
+        if (n.nodeType === 1 && n.tagName === 'BR') {
+          if (line.childNodes.length) frag.appendChild(line);
+          line = document.createElement('span'); line.className = 'ln';
+        } else {
+          line.appendChild(n.cloneNode(true));
+        }
+      });
+      if (line.childNodes.length) frag.appendChild(line);
+      if (!frag.querySelector || frag.querySelectorAll('.ln').length < 2) return;
+      td.textContent = '';
+      td.appendChild(frag);
+      td.classList.add('nl');
+      td.dataset.eyeList = '1';
+    });
+  }
+
   /* ---------- старт ------------------------------------------------------- */
 
   // каждый шаг инициализации по отдельности: ошибка в одном не глушит механизм
@@ -620,6 +661,7 @@
   safe(markInlineLabels, 'inline labels');
   safe(classifyContainers, 'containers');
   safe(fixWindowButtons, 'window buttons');
+  safe(markListCells, 'list cells');
   safe(wireFilters, 'filters');
   safe(syncBulk, 'bulk count');
 })();
