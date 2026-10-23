@@ -2245,7 +2245,7 @@ function get_yes($qa_value, $text = FALSE)
         if ($qa_value == 1) { return "Да"; }
         return "";
         } else {
-        if ($qa_value == 1) { return '<span style="font-size: 16px; font-weight: bold;">✓</span>'; }
+        if ($qa_value == 1) { return '<span class="qa yes">&#10003;</span>'; }
         return "";
         }
 }
@@ -2864,7 +2864,7 @@ function print_auth_detail($db, $auth_id)
     
     // Добавляем статус удаления
     if ($auth['deleted'] == 1) {
-        $name .= " <font color='red'>DELETED!!!</font>";
+        $name .= ' <span class="bad">DELETED!!!</span>';
     }
     
     $display_name = htmlspecialchars($name);

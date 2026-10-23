@@ -15,7 +15,7 @@
  *       define("HTML_STYLE","eye-dark") — тёмная всегда
  */
 
-$eye_style = defined('HTML_STYLE') ? HTML_STYLE : 'white';
+$eye_style = defined('HTML_STYLE') ? HTML_STYLE : 'eye';
 /* ?v= нужен, чтобы после обновления темы браузер не показывал старый eye.css/eye.js
    из кеша (Cache-Control для этой админки нигде не выставляется).
    Берём mtime файла: кэш сбрасывается сам в момент замены файла. */

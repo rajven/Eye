@@ -27,6 +27,7 @@ if ($remove_action !== null && $f_deleted !== '') {
 }
 
 $message = $all_ok ? "Success!" : "Fail!";
-print "<div style='padding:20px; font-size:18px; background:#e9f7ef; border:1px solid #2ecc71;'>$message</div>";
+/* класс, а не инлайн-стили: раньше блок был зелёным и при Fail! */
+print '<div class="result ' . ($all_ok ? 'ok' : 'err') . '">' . $message . '</div>';
 
 ?>

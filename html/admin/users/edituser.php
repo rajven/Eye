@@ -413,7 +413,7 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
             </tr>
         </table>
 
-        <table class="data" width=120%>
+        <table class="data">
             <tr align=center>
                 <td class="data"><input type="checkbox" onClick="checkAll(this.checked);"></td>
                 <td class="data"><?php print $sort_url . "&sort=ip_int&order=$new_order>" . WEB_cell_ip . "</a>"; ?></td>

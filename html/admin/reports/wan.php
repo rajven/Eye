@@ -87,7 +87,7 @@ function print_gateway_statistics($db, $device_id, $device_name, $date1, $date2)
         $int_in = $int_out = $int_f_in = $int_f_out = 0;
 
         foreach ($int_statistics as $stat) {
-            echo "<tr align=\"center\" class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+            echo "<tr align=\"center\">\n";
             echo "<td class=\"data\">" . htmlspecialchars($stat['dt'], ENT_QUOTES, 'UTF-8') . "</td>\n";
             echo "<td class=\"data\">" . fbytes($stat['byte_in']) . "</td>\n";
             echo "<td class=\"data\">" . fbytes($stat['byte_out']) . "</td>\n";
@@ -101,7 +101,7 @@ function print_gateway_statistics($db, $device_id, $device_name, $date1, $date2)
             $int_f_out += $stat['byte_f_out'];
         }
 
-        echo "<tr align=\"center\" class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+        echo "<tr align=\"center\">\n";
         echo "<td class=\"data\"><b>" . WEB_title_itog . "</b></td>\n";
         echo "<td class=\"data\">" . fbytes($int_in) . "</td>\n";
         echo "<td class=\"data\">" . fbytes($int_out) . "</td>\n";
@@ -115,9 +115,9 @@ function print_gateway_statistics($db, $device_id, $device_name, $date1, $date2)
         $global_int_f_out += $int_f_out;
     }
 
-    echo "<tr align=\"center\" class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    echo "<tr align=\"center\">\n";
     echo "<td class=\"data\" colspan=\"5\"><b>" . WEB_title_itog . "</b></td></tr>\n";
-    echo "<tr align=\"center\" class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    echo "<tr align=\"center\">\n";
     echo "<td class=\"data\"></td>\n";
     echo "<td class=\"data\">" . fbytes($global_int_in) . "</td>\n";
     echo "<td class=\"data\">" . fbytes($global_int_out) . "</td>\n";

@@ -378,7 +378,7 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             </tr>
 
             <!-- 2. ДОСТУП И ОГРАНИЧЕНИЯ -->
-            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
+            <tr class="sep"><td colspan="5"></td></tr>
             <tr>
                 <td><?php echo WEB_cell_enabled; ?></td>
                 <td><?php echo WEB_cell_blocked; ?></td>
@@ -398,7 +398,7 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             </tr>
 
             <!-- 3. DHCP -->
-            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
+            <tr class="sep"><td colspan="5"></td></tr>
             <tr>
                 <td><?php echo WEB_cell_dns_name; ?> &nbsp;|&nbsp; 
                 <?php 
@@ -428,7 +428,7 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             </tr>
 
             <!-- 4. МОНИТОРИНГ -->
-            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
+            <tr class="sep"><td colspan="5"></td></tr>
             <tr>
                 <td width="200">
                     <?php
@@ -465,7 +465,7 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             </tr>
 
             <!-- 5. ТИП ЗАПИСИ -->
-            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
+            <tr class="sep"><td colspan="5"></td></tr>
             <tr>
                 <td><?php echo WEB_cell_temporary; ?></td>
                 <td colspan="4">
@@ -483,7 +483,7 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             </tr>
 
             <!-- КНОПКИ -->
-            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
+            <tr class="sep"><td colspan="5"></td></tr>
             <tr>
                 <td colspan="3">
                     <input type="submit" name="moveauth" value="<?php echo WEB_btn_move; ?>">

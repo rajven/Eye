@@ -122,7 +122,7 @@ $userdata = get_records_sql($db_link, $fsql, $dataParams);
 </tr>
 <?php
 foreach ($userdata as $row) {
-    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center>\n";
     print "<td class=\"data\">" . $row['ts'] . "</td>\n";
     print "<td class=\"data\">" . $gateway_list[$row['router_id']] . "</td>\n";
     $proto_name = getprotobynumber($row['proto']);

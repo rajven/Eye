@@ -104,14 +104,14 @@ $userdata = get_records_sql($db_link, $sSQL, $params);
 $sum_in = 0;
 $sum_out = 0;
 
-print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+print "<tr align=center>\n";
 print "<td class=\"data\" colspan=2>".$auth['description']."</td>\n";
 print "<td class=\"data\" colspan=2><a href=/admin/reports/userdaydetail.php?id=$id&date_start=$date1&date_stop=$date2>TOP 10</a></td>\n";
 print "<td class=\"data\" colspan=2><a href=/admin/reports/userdaydetaillog.php?id=$id&date_start=$date1&date_stop=$date2>".WEB_report_detail."</a></td>\n";
 print "</tr>\n";
 
 foreach ($userdata as $row) {
-    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center>\n";
     print "<td class=\"data\">" . $gateway_list[$row['router_id']] . "</td>\n";
     print "<td class=\"data\">" . $row['thour'] . "</td>\n";
     print "<td class=\"data\">" . fbytes($row['byte_in_sum']) . "</td>\n";
@@ -123,7 +123,7 @@ foreach ($userdata as $row) {
     $sum_out += $row['byte_out_sum'];
 }
 
-print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+print "<tr align=center>\n";
 print "<td class=\"data\"><b>" . WEB_title_itog . "</b></td>\n";
 print "<td class=\"data\"><b> </b></td>\n";
 print "<td class=\"data\"><b>" . fbytes($sum_in) . "</b></td>\n";

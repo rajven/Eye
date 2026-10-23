@@ -72,7 +72,7 @@ $fsql = "
 
 $userdata = get_records_sql($db_link, $fsql, $params);
 foreach ($userdata as $row) {
-    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center>\n";
     $proto_name = getprotobynumber($row['proto']);
     if (!$proto_name) { $proto_name = $row['proto']; }
     print "<td class=\"data\">" . $proto_name . "</td>\n";
@@ -120,7 +120,7 @@ $fsql = "
 
 $userdata = get_records_sql($db_link, $fsql, $params);
 foreach ($userdata as $row) {
-    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center>\n";
     $proto_name = getprotobynumber($row['proto']);
     if (!$proto_name) { $proto_name = $row['proto']; }
     print "<td class=\"data\">" . $proto_name . "</td>\n";

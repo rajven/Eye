@@ -172,15 +172,23 @@
         fetch(cfg.url, { method: 'POST', body: data, credentials: 'same-origin' })
           .then(function (r) {
             if (!r.ok) throw new Error('HTTP ' + r.status);
-            return r.blob();
+            // экспорт — бинарный ответ; остальное — HTML-блок .result
+            return cfg.download ? r.blob().then(function (b) { return { blob: b }; })
+                                : r.text().then(function (s2) { return { html: s2 }; });
           })
-          .then(function (blob) {
-            if (cfg.download) {
+          .then(function (res) {
+            if (cfg.download && res.blob) {
               var a = document.createElement('a');
-              a.href = URL.createObjectURL(blob);
+              a.href = URL.createObjectURL(res.blob);
               a.download = cfg.download;
               document.body.appendChild(a); a.click(); a.remove();
+              if (dlg) dlg.close();
+              refreshList();
+              return;
             }
+            var failed = /class=\"result err\"/.test(res.html || '');
+            if (failed) { toast(res.html, true); undoBlockForm(formId); return; }  // диалог остаётся открытым
+            flashSet(res.html);                                                    // переживёт перезагрузку списка
             if (dlg) dlg.close();
             refreshList();
           })
@@ -677,6 +685,30 @@
     }
   }
 
+
+  /* ---------- 7k. Ответ операции: тост, переживающий перезагрузку ----------
+     Раньше ответ /utils/*.php вставлялся внутрь формы диалога и пропадал при
+     обновлении списка. Теперь: успех → flash + перезагрузка, провал → тост и
+     открытый диалог. */
+  var toastTimer = null;
+  function toast(html, isErr) {
+    var t = document.querySelector('.toast');
+    if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
+    t.innerHTML = html || (isErr ? '<div class="result err">Не выполнено</div>' : '<div class="result ok">Готово</div>');
+    t.classList.toggle('err', !!isErr);
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      if (t.parentNode) t.parentNode.removeChild(t);
+      toastTimer = null;
+    }, isErr ? 9000 : 5000);
+  }
+  function flashSet(html) { try { if (html) sessionStorage.setItem('eye.flash', html); } catch (e) {} }
+  function flashTake() {
+    var h = null;
+    try { h = sessionStorage.getItem('eye.flash'); if (h) sessionStorage.removeItem('eye.flash'); } catch (e) {}
+    return h;
+  }
+
   /* ---------- старт ------------------------------------------------------- */
 
   // каждый шаг инициализации по отдельности: ошибка в одном не глушит механизм
@@ -713,4 +745,6 @@
   safe(markPrimaryActions, 'primary actions');
   safe(wireFilters, 'filters');
   safe(syncBulk, 'bulk count');
+  var flash = flashTake();
+  if (flash) { safe(function () { toast(flash, /class="result err"/.test(flash)); }, 'flash'); }
 })();

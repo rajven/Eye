@@ -1387,6 +1387,79 @@ cfg_apply_key() {
     return 0
 }
 
+# ---------------------------------------------------------------------------
+# Из поставки удалены старая тема (white.css) и её библиотеки: Remodal заменён
+# нативным <dialog>, Select2 — обычными <select> с поиском (js/eye.js).
+#   1) добираем с машины то, чего в исходниках уже нет;
+#   2) переключаем HTML_STYLE в РАБОЧЕМ config.php: при апдейте конфиг не
+#      перезаписывается, и "white" указал бы на несуществующий файл — админка
+#      поднялась бы совсем без стилей.
+# Путь в переменной EYE_HTML — чтобы функцию можно было проверить без root.
+# ---------------------------------------------------------------------------
+retire_legacy_theme() {
+    local EYE_HTML="${EYE_HTML:-/opt/Eye/html}"
+    local cfg="$EYE_HTML/cfg/config.php"
+    local removed=0 f cur
+
+    print_step "Removing retired appearance files"
+
+    local legacy=(
+        "$EYE_HTML/css/white.css"
+        "$EYE_HTML/css/remodal-custom.css"
+        "$EYE_HTML/login.css"
+        "$EYE_HTML/js/remodal"
+        "$EYE_HTML/js/remodal.min.js"
+        "$EYE_HTML/js/remodal-auth.js"
+        "$EYE_HTML/js/remodal-user.js"
+        "$EYE_HTML/js/remodal-devices.js"
+        "$EYE_HTML/js/select-auto.js"
+        "$EYE_HTML/js/select2"
+    )
+    for f in "${legacy[@]}"; do
+        if [[ -e "$f" ]]; then
+            if rm -rf "$f"; then
+                print_info "Removed: $f"
+                removed=$((removed + 1))
+            else
+                print_error "Cannot remove $f"
+            fi
+        fi
+    done
+    if [[ $removed -eq 0 ]]; then
+        print_info "Nothing to remove (already clean)"
+    fi
+    # jQuery не трогаем: его использует jsTree на admin/devices/index-tree.php
+
+    if [[ ! -f "$cfg" ]]; then
+        print_warn "Нет $cfg — тема возьмётся из шаблона config.sample.php"
+        return 0
+    fi
+    if ! grep -qE 'define[[:space:]]*\([[:space:]]*"HTML_STYLE"' "$cfg"; then
+        print_warn "В $cfg нет HTML_STYLE — добавьте: define(\"HTML_STYLE\",\"eye\");"
+        return 0
+    fi
+
+    cur=$(grep -oP 'define\s*\(\s*"HTML_STYLE"\s*,\s*"\K[^"]+' "$cfg" | head -1)
+    case "$cur" in
+        white|"")
+            backup_file "$cfg" || print_warn "Не удалось сделать резервную копию $cfg"
+            if cfg_set_php "$cfg" HTML_STYLE eye; then
+                print_info "HTML_STYLE: \"$cur\" → \"eye\" (white.css из поставки удалён)"
+            else
+                print_error "Не удалось менять HTML_STYLE в $cfg — поправьте вручную: define(\"HTML_STYLE\",\"eye\");"
+                return 1
+            fi
+            ;;
+        eye|eye-dark)
+            print_info "HTML_STYLE уже \"$cur\""
+            ;;
+        *)
+            print_warn "HTML_STYLE=\"$cur\" — своя тема, не трогаем (учтите: white.css из поставки удалён)"
+            ;;
+    esac
+    return 0
+}
+
 setup_configs() {
     print_step "Configuring configuration files"
 
@@ -2210,6 +2283,9 @@ eye_install() {
         setup_database
     fi
 
+    # Старая тема и её файлы больше не нужны
+    retire_legacy_theme
+
     # Настройка конфигов — всегда (но внутри учитывает INSTALL_TYPE)
     if ! setup_configs; then
         print_error "Installation aborted: configuration files are incomplete"
@@ -2314,6 +2390,11 @@ eye_upgrade() {
 
     update_system
     install_packages
+    upgrade_source_code
+
+    # config.php при апдейте не перезаписывается — тему переключаем на месте
+    retire_legacy_theme
+
     upgrade_source_code
 
     if [ -f /opt/Eye/scripts/updates/upgrade.pl ]; then
