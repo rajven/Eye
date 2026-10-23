@@ -1,6 +1,6 @@
 <?php
-/* Закрываем <div id="cont">, который страницы открывают и не закрывают;
-   служебные строки идут уже в #eye-main — во всю ширину полости. */
+/* close the <div id="cont"> that pages open but never close; the footer lines
+   lines below belong to #eye-main and span the full content column. */
 ?>
 </div><!--/#cont-->
 

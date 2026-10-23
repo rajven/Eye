@@ -20,15 +20,15 @@ $page_url = $page_url_array[0];
 <head>
 <title>Панель статистики</title>
 <?php
-    /* тот же механизм сброса кеша, что и в inc/header.php */
+    /* the same cache busting mechanism as in inc/header.php */
     $pub_style = HTML_STYLE;
     $pub_css = (isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : '') . '/css/' . $pub_style . '.css';
     $pub_ver = is_file($pub_css) ? '?v=' . filemtime($pub_css) : '';
 ?>
 <script>
-/* Тема/плотность применяются до первой отрисовки и не зависят от того,
+/* theme and density are applied before the first paint and do not depend
    подключил ли страницу footer.php с /js/eye.js (иначе страница на мгновение
-   — а при отсутствии eye.js и вовсе навсегда — остаётся светлой). */
+   for a moment, or forever when eye.js is never loaded. */
 (function () {
     try {
         var d = document.documentElement, t = null, n = null;

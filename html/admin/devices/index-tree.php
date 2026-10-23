@@ -8,8 +8,8 @@ print_device_submenu($page_url);
 
 <script src="/js/jq/jquery.min.js"></script>
 <script>
-/* Библиотека подгружается асинхронно, поэтому инициализация дерева отложена:
-   печатаемый ниже блок только объявляет window.eyeTreeInit(). */
+/* the library is loaded asynchronously, so the tree initialisation is deferred:
+   the block printed below only assigns window.eyeTreeInit(). */
 window.eyeTreeReady = false;
 window.eyeTreeInit = null;
 $.getScript("/js/jstree/jstree.min.js")

@@ -1,9 +1,8 @@
-/* ======================================================================
-   Eye — тёмная тема как явный выбор: define("HTML_STYLE","eye-dark");
-   Токены синхронны с блоком [data-eye="dark"] в eye.css (поддерживать вместе).
-   ====================================================================== */
+
+
 @import url("eye.css");
 
+/* 1. Tokens: light palette. The accent #ed8b0d is inherited from the old theme (#title colour). */
 :root {
   --accent-ink: #f0b978;
   --accent-soft: #2a2013;

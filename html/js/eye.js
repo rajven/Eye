@@ -1,30 +1,31 @@
-/* =============================================================================
-   Eye — поведение интерфейса (eye.js)
-   Заменяет: remodal.min.js + remodal-auth.js + remodal-user.js +
-             remodal-devices.js + select-auto.js + jQuery-инициализацию Select2
-   и 60 строк однотипных слушателей в admin/iplist/index.php.
+/* ==========================================================================
+   Eye interface behaviour (eye.js)
 
-   NOTHING HERE TOUCHES THE SERVER API: те же формы, те же имена полей, те же
-   /utils/*.php. Изменена только оболочка диалогов (<dialog>) и способ отправки
-   (fetch вместо $.ajax).
+   Replaces remodal.min.js, remodal-auth.js, remodal-user.js, remodal-devices.js,
+   select-auto.js, the jQuery Select2 bootstrap and the duplicated filter
+   listeners that used to live in admin/iplist/index.php.
+
+   The server contracts are unchanged: same forms, same field names, same
+   /utils/*.php endpoints; only the transport moved from $.ajax to fetch().
    ========================================================================== */
 (function () {
   'use strict';
 
   var body = document.body;
-  // подписи приходят из PHP (inc/header.php, data-eye-i18n), здесь — фолбэки
-  var L = { dense: 'Плотно', normal: 'Обычно', roomy: 'Просторно', theme: 'Тема: авто',
-            themeL: 'Тема: светлая', themeD: 'Тема: тёмная', sel: 'выбрано', clear: 'Снять',
-            failed: 'Не выполнено:', busy: 'Обрабатывается…',
-            typeahead: 'Начните вводить для поиска', nomatch: 'Ничего не найдено' };
+  // captions come from PHP (inc/header.php, data-eye-i18n); these are fallbacks
+  // captions come from PHP (inc/header.php, data-eye-i18n); these are neutral fallbacks
+  var L = { dense: 'Compact', normal: 'Normal', roomy: 'Roomy', theme: 'Theme: auto',
+            themeL: 'Theme: light', themeD: 'Theme: dark', sel: 'selected', clear: 'Clear',
+            failed: 'Failed:', busy: 'Working...',
+            typeahead: 'Type to filter', nomatch: 'Nothing found' };
   try { Object.assign(L, JSON.parse(body.getAttribute('data-eye-i18n') || '{}')); } catch (e) {}
 
   var $  = function (sel, root) { return (root || body).querySelector(sel); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
 
-  /* ---------- 1. то, что страницы вызывают инлайном из HTML ---------- */
+  /* 1. Hooks that pages call straight from inline attributes */
 
-  // onclick="checkAll(this.checked)" — выделяет все строки списка
+  // checkAll(this.checked) selects every row of the list
   window.checkAll = function (checked) {
     var form = document.def || $('#def');
     if (!form) return;
@@ -32,7 +33,7 @@
     syncBulk();
   };
 
-  // onsubmit="blockForm('formAuthApply')" — кнопка не давит себя дважды
+  // blockForm('formAuthApply') keeps the button from firing twice
   window.blockForm = function (formId) {
     var form = document.getElementById(formId);
     if (!form) return;
@@ -53,11 +54,11 @@
     });
   };
 
-  /* ---------- 2. тема и плотность --------------------------------------- */
+  /* 2. Theme and density */
 
   var root = document.documentElement;
 
-  // плотность: циклается, значение живёт в localStorage
+  // density cycle, the choice is kept in localStorage
   var DENS = ['compact', 'normal', 'roomy'];
   var DENS_LABEL = { compact: L.dense, normal: L.normal, roomy: L.roomy };
   function setDens(mode) {
@@ -67,7 +68,7 @@
     $$('[data-eye-dens-btn]').forEach(function (b) { b.textContent = DENS_LABEL[mode]; });
   }
 
-  // тема: auto (как в системе) / light / dark — тоже только атрибут
+  // theme: auto (follows the system) / light / dark - an attribute only
   var THEME_LABEL = { auto: L.theme, light: L.themeL, dark: L.themeD };
   function setTheme(mode) {
     if (mode === 'auto') { root.removeAttribute('data-eye'); }
@@ -98,9 +99,7 @@
     if (foot) foot.appendChild(theme);
   }
 
-  /* ---------- 3. диалоги --------------------------------------------------
-     страницы печатают <a class="mainButton" href="#modal"> и <dialog id="modal">
-     без JS ссылка просто уйдёт якорем, с JS — открывает нативный диалог.     */
+  /* 3. Dialogs Pages print <a class="mainButton" href="#modal"> next to <dialog id="modal">: without JS the link is a plain anchor, with JS it opens a native dialog. */
 
   function openDialog(id) {
     var dlg = document.getElementById(id);
@@ -116,7 +115,7 @@
       a.addEventListener('click', function (ev) { if (openDialog(id)) ev.preventDefault(); });
     });
     $$('dialog').forEach(function (dlg) {
-      // кнопка закрытия и клик по затемнению
+      // close button and click on the backdrop
       $$('[data-close]', dlg).forEach(function (b) {
         b.addEventListener('click', function () { dlg.close(); });
       });
@@ -127,7 +126,7 @@
     });
   }
 
-  /* ---------- 4. массовые операции: тех же эндпоинтов, что раньше -------- */
+  /* 4. Mass actions: same endpoints, same field names as before */
 
   var ACTIONS = {
     formAuthApply:    { url: '/utils/auth_apply.php' },
@@ -161,7 +160,7 @@
         ev.preventDefault();
         var cfg = ACTIONS[formId];
         var dlg = form.closest('dialog');
-        var list = document.getElementById('def');           // форма со списком (fid[])
+        var list = document.getElementById('def');           // the list form that carries fid[]
         var data = new FormData();
         if (list) {
           new FormData(list).forEach(function (v, k) { data.append(k, v); });
@@ -172,7 +171,7 @@
         fetch(cfg.url, { method: 'POST', body: data, credentials: 'same-origin' })
           .then(function (r) {
             if (!r.ok) throw new Error('HTTP ' + r.status);
-            // экспорт — бинарный ответ; остальное — HTML-блок .result
+            // export is a binary answer, everything else is a .result HTML block
             return cfg.download ? r.blob().then(function (b) { return { blob: b }; })
                                 : r.text().then(function (s2) { return { html: s2 }; });
           })
@@ -187,8 +186,8 @@
               return;
             }
             var failed = /class=\"result err\"/.test(res.html || '');
-            if (failed) { toast(res.html, true); undoBlockForm(formId); return; }  // диалог остаётся открытым
-            flashSet(res.html);                                                    // переживёт перезагрузку списка
+            if (failed) { toast(res.html, true); undoBlockForm(formId); return; }                // the dialog stays open
+            flashSet(res.html);                                                    // survives the list reload
             if (dlg) dlg.close();
             refreshList();
           })
@@ -200,22 +199,20 @@
     });
   }
 
-  // обновление списка: как и раньше — повторно «показать» с текущим фильтром
+  // refresh the list the same way as before: re-apply the current filter
   function refreshList() {
     var btn = document.getElementById('btn_filter');
     if (btn) { setTimeout(function () { btn.click(); }, 350); return; }
     setTimeout(function () { location.reload(); }, 350);
   }
 
-  /* ---------- 5. чекбокс «применить это поле» в диалогах ------------------
-     тот же паттерн e_<field>/a_<field>, что был в прежних JS-файлах — теперь он
-     ещё и визуально гасит неприменяемые строки.                            */
+  /* 5. The apply-this-field checkboxes in the dialogs Same e_<field>/a_<field> pattern the old JS files used, plus unmarked rows now also look inactive. */
 
   function wireMassFields() {
     $$('dialog input.putField[type=checkbox]').forEach(function (cb) {
       var row = cb.closest('tr') || cb.closest('.mrow');
       if (!row) return;
-      // подписи в следующей ячейке делаем кликабельными (name/id не трогаем)
+      // make the caption in the next cell clickable (form names and ids untouched)
       var lab = row.children ? row.children[1] : null;
       if (lab && !lab.querySelector('label') && lab.textContent.trim() && !lab.querySelector('input,select')) {
         if (!cb.id) cb.id = 'eye-' + (cb.name || 'f') + '-' + Math.random().toString(36).slice(2, 7);
@@ -234,9 +231,7 @@
     });
   }
 
-  /* ---------- 6. плашка «N выбрано» --------------------------------------
-     кнопки берёт у страницы (она их и печати: mainButton/delButton/export),
-     так что второй комплект действий не появляется.                         */
+  /* 6. The "N selected" bar The buttons come from the page itself (mainButton/delButton/exportButton), so no second set of actions ever appears. */
 
   var bar = null;
   function syncBulk() {
@@ -280,7 +275,7 @@
     });
   }
 
-  /* ---------- 7. фильтры: одна делегированная обработка вместо 7 копий ---- */
+  /* 7. Filters: one delegated handler instead of seven copies */
 
   function wireFilters() {
     $$('#cont form').forEach(function (form) {
@@ -291,7 +286,7 @@
         if (t && (t.tagName === 'SELECT')) btn.click();
       });
     });
-    // «/» — фокус в поиск, как в сетевых консолях
+    // "/" focuses the search box, as on network consoles
     document.addEventListener('keydown', function (ev) {
       if (ev.key !== '/' || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
       var q = $('#q, input[name=search_str]');
@@ -299,12 +294,7 @@
     });
   }
 
-  /* ---------- 7b. Searchable select вместо Select2 ------------------------
-     Работает поверх обычных <select class="js-select-single">, которые печатают
-     print_*() в inc/common.php. Нативный select остаётся в форме: имя, значение
-     и отправка не меняются вообще. Без JS — обычный выпадающий список.
-     Классы: .es (обёртка) .es-btn (видимая кнопка) .es-pop (панель) .es-q (фильтр)
-     .es-list/.es-opt (варианты) .es-native (сам select).                        */
+  /* 8. Searchable select, replaces Select2 Wraps the ordinary <select class="js-select-single"> that the print_* helpers emit. The select stays in the form: name, value and submission are unchanged. Without JS it is a plain dropdown. */
 
   var esSeq = 0;
 
@@ -350,15 +340,15 @@
     sel.classList.add('es-native');
     sel.tabIndex = -1;
     sel.setAttribute('aria-hidden', 'true');
-    // обёртка вставляется ровно на место select: родителя читаем ДО переноса узлов,
-    // иначе insertBefore внутрь собственного потомка => DOMException (incorrect node tree)
+    // insert the wrapper exactly where the select was: read parentNode BEFORE moving nodes,
+    // otherwise insertBefore into own descendant raises DOMException (incorrect node tree)
     var host = sel.parentNode;
     if (!host) return;
     host.insertBefore(wrap, sel);
     wrap.appendChild(btn); wrap.appendChild(sel); wrap.appendChild(pop);
 
-    var shown = [];          // текущий отфильтрованный список
-    var act = -1;            // активная строка
+    var shown = [];          // options that pass the filter
+    var act = -1;            // highlighted row
 
     function paint() {
       btn.textContent = esSelectedText(sel) || '—';
@@ -401,7 +391,7 @@
       sel.value = shown[i].v;
       paint();
       close();
-      sel.dispatchEvent(new Event('change', { bubbles: true }));   // авто-фильтры и onchange работают
+      sel.dispatchEvent(new Event('change', { bubbles: true }));   // auto-apply filters and inline onchange keep firing
     }
 
     function open() {
@@ -424,7 +414,7 @@
     function outside(ev) { if (!wrap.contains(ev.target)) close(); }
 
     btn.addEventListener('click', function () { pop.hidden ? open() : close(); });
-    sel.addEventListener('focus', open);              // клик по <label for="…"> тоже приводит сюда
+    sel.addEventListener('focus', open);              // clicking <label for="..."> lands here too
     q.addEventListener('input', rows);
     q.addEventListener('keydown', function (ev) {
       var k = ev.key;
@@ -448,15 +438,11 @@
   }
 
 
-  /* ---------- 7c. Подписи полей в таблицах-формах --------------------------
-     edituser.php / editauth.php и др. печатают пару строк: сначала ячейки с
-     текстом ("Логин", "В день", "Блокировка"), затем строка с полями ввода.
-     CSS не умеет смотреть "в следующую строку", поэтому строка-подпись помечается
-     классом .lblrow — разметку и состав POST это не затрагивает.            */
+  /* 9. Label rows inside form tables edituser.php and editauth.php print a row of captions ("Login", "Per day") followed by a row of inputs. CSS cannot look at the next row, so JS marks the caption row. */
 
   function dataTables() {
-    // table.data + голые <table> внутри полости: их печатают auto_rules.php,
-    // building.php, ipcam.php и фильтры старых страниц
+    // table.data plus the plain tables inside the content column: printed by auto_rules.php,
+    // building.php and the filter tables of the old pages
     var seen = [], out = [];
     $$('table.data, #cont table').forEach(function (tbl) {
       if (seen.indexOf(tbl) > -1) return; seen.push(tbl); out.push(tbl);
@@ -466,12 +452,12 @@
 
   function markLabelRows() {
     dataTables().forEach(function (tbl) {
-      if (tbl.closest('dialog')) return;              // в диалогах другие подписи
-      // в списках данных (чекбоксы выделени) первая строка — шапка колонок, её
-      // делает CSS; в таблицах-формах (edituser/editauth) первая строка — как раз
-      // подписи полей, её помечать надо
-      // признак списка данных — чекбокс/поле с массивным именем (fid[], f_auth_id[],
-      // d_port_index[]); одиночный checkbox «Только PTR» в форме списком не считается
+      if (tbl.closest('dialog')) return;              // dialogs caption their rows differently
+      // in data lists the first row is the column header and CSS handles it;
+      // in form tables (edituser, editauth) the first row really is field captions
+      // captions are exactly what has to be marked here
+      // a data list is recognised by array-style field names (fid[], f_auth_id[],
+      // d_port_index[]); a single checkbox such as PTR-only does not make a list
       var isList = !!tbl.querySelector('[name*="\\[\\]"]');
       var rows = $$(':scope > tbody > tr, :scope > tr', tbl);
       for (var i = 0; i < rows.length - 1; i++) {
@@ -480,8 +466,8 @@
         var textOnly = Array.prototype.every.call(r.children, function (td) {
           return td.children.length === 0 || !hasCtl(td);
         });
-        if (isList && r === rows[0]) continue;               // шапка колонок — не подпись поля
-        // пустая строка (разделитель групп) подписью не считается
+        if (isList && r === rows[0]) continue;               // the column header is not a field caption
+        // an empty separator row is not a caption
         if (!r.textContent.trim()) continue;
         if (textOnly && !hasCtl(r) && hasCtl(next)) r.classList.add('lblrow');
       }
@@ -489,17 +475,14 @@
   }
 
 
-  /* ---------- 7d. Подпись и поле в одной ячейке ----------------------------
-     edituser.php печатает <td>Новый адрес доступа IP:&nbsp<input></td>.
-     Ведущий текст (короткий, обычно с двоеточием) заворачивается в span,
-     чтобы отличаться от значения. Длинный текст считается данными, не подписью. */
+  /* 10. Caption and field in the same cell edituser.php prints <td>New address IP:&nbsp<input></td>. The short leading text becomes a span so it reads as a label; long text is treated as data. */
 
   function labelizeCells() {
     $$('table.data td, #cont table td').forEach(function (td) {
       if (td.dataset.eyeLabeled) return;
-      if (!td.querySelector('input, select, textarea')) return;   // только ячейки с полем
+      if (!td.querySelector('input, select, textarea')) return;   // cells that hold a field only
       var n = td.firstChild;
-      if (!n || n.nodeType !== 3) return;                          // текст должен идти первым
+      if (!n || n.nodeType !== 3) return;                          // text has to come first
       var raw = n.nodeValue, lead = raw.replace(/^\s+/, '').replace(/[\s\u00a0]+$/, '');
       if (!lead || lead.length > 40) return;
       if (lead.indexOf(':') === -1 && lead.length > 24) return;
@@ -517,16 +500,14 @@
     });
   }
 
-  /* ---------- 7e. Ячейки-ключи («Кем создан:», «Создан:») ------------------
-     editauth.php и страницы отчётов печатают <td>Ключ:</td><td>значение</td> —
-     подписи нет в отдельной строке, опознаём по ведущему тексту с двоеточием. */
+  /* 11. Key cells ("Created by:", "Created:") editauth.php and the report pages print <td>key:</td><td>value</td>, so the caption is recognised by its trailing colon. */
 
   function markKeyCells() {
     $$('table.data td, #cont table td').forEach(function (td) {
-      if (td.dataset.eyeKeyed) return;                       // уже оформлена
+      if (td.dataset.eyeKeyed) return;                       // already processed
       if (td.querySelector('input, select, textarea, button, .cell-lbl')) return;
       if (td.children.length > 1) return;
-      if (td.parentElement.children.length === 1) return;   // заголовок раздела: его делает CSS
+      if (td.parentElement.children.length === 1) return;   // one-cell caption row: CSS takes care of it
       var n = td.firstChild;
       if (!n || n.nodeType !== 3) return;
       var raw = n.nodeValue, txt = raw.replace(/[\s\u00a0]+$/, '');
@@ -541,31 +522,29 @@
       }
       td.insertBefore(frag, n);
       td.removeChild(n);
-      td.dataset.eyeKeyed = '1';                             // флаг ставим только при успехе
+      td.dataset.eyeKeyed = '1';                             // flag only when the wrap really happened
     });
   }
 
 
-  /* ---------- 7f. Подпись слева от поля в той же строке --------------------
-     Встречается только в формах (в списках строк с чекбоксами.name таких нет,
-     поэтому признаком формы служит отсутствие input[type=checkbox][name]). */
+  /* 12. A caption to the left of its own field Applies to forms only; data lists are recognised by their array-style checkbox names and are skipped. */
 
   function markInlineLabels() {
     dataTables().forEach(function (tbl) {
       if (tbl.closest('dialog')) return;
-      // списки данных помечаются чекбоксами-массивами (fid[], f_auth_id[]) —
-      // их подписывать нельзя: там текст является данными
+      // data lists are marked by checkbox names ending in [] (fid[], f_auth_id[]);
+      // they are not captions: the text there is data
       if (tbl.querySelector('input[name*="\\[\\]"]')) return;
       $$(':scope > tbody > tr, :scope > tr', tbl).forEach(function (r) {
-        if (r.querySelector('input[type=checkbox]')) return;      // строка с выделением — не форма
+        if (r.querySelector('input[type=checkbox]')) return;      // a row with selection is not a form
         var cells = Array.prototype.slice.call(r.children);
         for (var i = 0; i < cells.length - 1; i++) {
           var td = cells[i], nxt = cells[i + 1];
-          if (td.querySelector('*') || td.dataset.eyeKeyed) continue;   // только чисто текстовая
+          if (td.querySelector('*') || td.dataset.eyeKeyed) continue;   // purely textual cells only
           var txt = td.textContent.trim();
-          if (!txt || txt.length > 40 || /:$/.test(txt)) continue;      // «Ключ:» помечен ранее
-          if (/\d/.test(txt)) continue;                                  // «Count: 1» — данные, не подпись
-          if (!hasField(nxt)) continue;                                  // подпись ведёт к полю ввода
+          if (!txt || txt.length > 40 || /:$/.test(txt)) continue;      // "Key:" cells were marked earlier
+          if (/\d/.test(txt)) continue;                                  // "Count: 1" is data, not a caption
+          if (!hasField(nxt)) continue;                                  // the caption must lead to an input field
           var span = document.createElement('span');
           span.className = 'cell-key';
           span.textContent = txt;
@@ -575,7 +554,7 @@
         }
       });
     });
-    // только настоящее поле: кнопка «-MAC» после «Count: 1» подписью не считается
+    // a real field only: a -MAC button after "Count: 1" is not a caption
     function hasField(td) {
       return !!td && !!td.querySelector('input:not([type=submit]):not([type=button]):not([type=hidden]), select, textarea');
     }
@@ -583,10 +562,7 @@
 
 
 
-  /* ---------- 7g. Полосы переходов vs контейнеры контента ------------------
-     #submenu/#subsubmenu/#contsubmenu используются и как табы, и как обычные
-     контейнеры (на 14 страницах внутри #contsubmenu лежат формы и таблицы).
-     Флекс-раскладку в CSS вешаем только на класс .tabs — его проставляет здесь. */
+  /* 13. Navigation strips versus content containers #submenu and #subsubmenu are usually tab strips, but on 14 pages #contsubmenu is the content container itself (switchstatus.php keeps forms and tables inside it), so eye.css styles only the .tabs class set here. */
 
   function classifyContainers() {
     $$('#submenu, #subsubmenu, #contsubmenu').forEach(function (el) {
@@ -599,11 +575,7 @@
     });
   }
 
-  /* ---------- 7h. Кнопки «открыть окно» внутри таблиц ----------------------
-     <button onclick="window.open(...); return false;">15</button> без type и без
-     name: браузер считает его submit, и клик по счётчику MAC помимо окна
-     отправлял форму списка портов. Чиним тип; кнопки с name не трогаем — это
-     настоящие «Сохранить»/«POE on». */
+  /* 14. "Open a window" buttons inside tables A <button> without type and without name is a submit button, so clicking the MAC counter also posted the port list. Only nameless window.open buttons are retyped; real actions such as Save and POE keep their names. */
 
   function fixWindowButtons() {
     $$('table button:not([type]):not([name])').forEach(function (b) {
@@ -612,16 +584,12 @@
   }
 
 
-  /* ---------- 7i. Ячейки-списки --------------------------------------------
-     switchstatus/switchport печатают в одной ячейке список устройств через <br>,
-     а в соседней — список комментариев: строки соответствуют друг другу.
-     В узкой колонке браузер начинал переносить строки и соответствие пропадало.
-     Помечаем такие ячейки классом .nl (не переносить + сверху), CSS доделывает. */
+  /* 15. List cells switchstatus and switchport print one device per line in a cell and the matching comment in the next one. Narrow columns used to wrap and break that alignment, so each value becomes its own block. */
 
   function markListCells() {
     $$('table.data td').forEach(function (td) {
       if (td.dataset.eyeList) return;
-      if (td.querySelectorAll('br').length < 2) return;               // 2+ переноса = список
+      if (td.querySelectorAll('br').length < 2) return;               // two or more breaks make a list
       if (td.querySelector('input:not([type=hidden]), select, textarea, table')) return;
       var frag = document.createDocumentFragment(), line = document.createElement('span');
       line.className = 'ln';
@@ -643,21 +611,14 @@
   }
 
 
-  /* ---------- 7j. Ссылки, открывающие окно -------------------------------
-     switchport/switchstatus/mactable зовут window.open() из onclick; таким
-     даём класс .ext — CSS дорисует ↗, чтобы «откроется отдельно» было видно. */
+  /* 16. Links that open their own window switchport, switchstatus and mactable call window.open() from onclick; the .ext class lets CSS add the arrow so "opens separately" is visible. */
 
   function markExternalLinks() {
     $$('a[onclick*="window.open"]').forEach(function (a) { a.classList.add('ext'); });
   }
 
 
-  /* ---------- 7k. Одна акцентная кнопка на форму ----------------------------
-     «Сохранить» нужно отделять от служебных (Переместить / Обновить / Удалить).
-     В разметке Eye имена кнопок постоянны, поэтому выбираем кандидатов по имени,
-     ранжируем (edit* → save_ipset → save → s_save) и помечаем .pri одного на форму.
-     Явный class="pri" в разметке перекрывает эвристику. Диалоги и кнопку
-     «Показать» не трогаем: у них своя логика акцента. */
+  /* 17. One accented button per form Save has to stand out from move / refresh / delete. Eye uses stable button names, so candidates are picked by name, ranked (edit* then save_ipset then save then s_save) and one per form is marked .pri. An explicit class="pri" in the markup wins over this heuristic; dialogs and the Show button are skipped, they have their own accent rule. */
 
   var PRI_RANK = [/^edit/i, /^save_ipset$/, /^save$/, /^s_save$/];
 
@@ -668,12 +629,12 @@
         if (el.closest('dialog')) return false;
         if (el.id === 'btn_filter' || el.name === 'btn_filter') return false;
         if (el.classList.contains('danger') || el.classList.contains('x')) return false;
-        if (/\[\]$/.test(el.name || '')) return false;          // постночные действия списков
+        if (/\[\]$/.test(el.name || '')) return false;          // per-row actions of a list
         var rk = rank(el);
         return rk > -1;
       });
       var explicit = $$('.pri', f).filter(function (el) { return !el.closest('dialog'); });
-      if (explicit.length) return;                                // разметка уже всё решила
+      if (explicit.length) return;                                // the markup already decided
       if (!found.length) return;
       found.sort(function (a, b) { return rank(a) - rank(b); });
       found[0].classList.add('pri');
@@ -686,15 +647,12 @@
   }
 
 
-  /* ---------- 7k. Ответ операции: тост, переживающий перезагрузку ----------
-     Раньше ответ /utils/*.php вставлялся внутрь формы диалога и пропадал при
-     обновлении списка. Теперь: успех → flash + перезагрузка, провал → тост и
-     открытый диалог. */
+  /* 18. Operation result: a toast that survives the reload The answer from /utils/*.php used to be injected into the dialog form and lost on refresh. Success: flash plus reload. Failure: toast and the dialog stays open. */
   var toastTimer = null;
   function toast(html, isErr) {
     var t = document.querySelector('.toast');
     if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
-    t.innerHTML = html || (isErr ? '<div class="result err">Не выполнено</div>' : '<div class="result ok">Готово</div>');
+    t.innerHTML = html || (isErr ? '<div class="result err">Failed</div>' : '<div class="result ok">Done</div>');
     t.classList.toggle('err', !!isErr);
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(function () {
@@ -709,10 +667,10 @@
     return h;
   }
 
-  /* ---------- старт ------------------------------------------------------- */
+  /* init */
 
-  // каждый шаг инициализации по отдельности: ошибка в одном не глушит механизм
-  // на остальных страницах (в console.warn — что именно не отработало)
+  // every init step is isolated: one failure must not switch the mechanism off on the remaining pages (the console says which step failed)
+  // on the other pages, console.warn reports what did not run
   function safe(fn, what) {
     try { fn(); }
     catch (e) { if (window.console && console.warn) console.warn('[eye] ' + what + ': ' + e.message); }
@@ -722,8 +680,7 @@
   try {
     var savedDens = localStorage.getItem('eye.dens');
     setDens(savedDens || 'compact');
-    /* значение уже применено инлайновым скриптом в inc/header.php — здесь только
-       синхронизируем подписи кнопок с фактическим состоянием */
+    /* the value was already applied by the inline script in inc/header.php; here the button captions are only synchronised with the actual state */
     var savedTheme = localStorage.getItem('eye.theme');
     if (savedTheme && savedTheme !== 'auto') setTheme(savedTheme);
     else setTheme(root.getAttribute('data-eye') === 'dark' ? 'dark'

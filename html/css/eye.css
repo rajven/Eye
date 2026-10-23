@@ -1,30 +1,36 @@
 /* ==========================================================================
-   Eye — тема оформления "eye"
-   Включается одной строкой в html/cfg/config.php:
-        define("HTML_STYLE","eye");        // светлая/авто по системе
-        define("HTML_STYLE","eye-dark");   // принудительно тёмная
-   Файл рассчитан на СУЩЕСТВУЮЩУЮ разметку страниц (id #navi/#submenu/#cont,
-   table.data, td.warn/td.error/td.off, a.first_page_link и т.д.), поэтому
-   админка меняется целиком, без правок в 63 файлах.
+   Eye "eye" theme.
+
+   Enabled with one line in html/cfg/config.php:
+       define("HTML_STYLE", "eye");        light, follows the OS for dark
+       define("HTML_STYLE", "eye-dark");   always dark
+
+   The selectors target the markup the pages already emit (#navi, #submenu,
+   #cont, table.data, td.warn, td.error, td.off, a.first_page_link and others),
+   so the whole admin restyles without touching 60+ page files.
    ========================================================================== */
 
-/* ---------- 0. Шрифты: локальные woff2, правила вынесены в css/fonts.css ------ */
+
+
+/* 0. Fonts: local woff2, the @font-face rules live in css/fonts.css */
 @import url("fonts.css");
 
-/* ---------- 1. Токены: светлая ------------------------------------------------
-   Акцент взят из прежней темы: #ed8b0d — цвет #title в css/white.css.         */
+/* 1. Tokens: light palette. The accent #ed8b0d is inherited from the old theme (#title colour). */
 :root {
   --accent: #ed8b0d;
   --accent-hover: #f79a22;
   --accent-ink: #7a4703;
   --accent-soft: #fdf1e0;
 
-  --bg: #d7dfe7;                 /* каркас явно темнее карточек */
+/* the shell sits clearly below the cards in brightness */
+  --bg: #d7dfe7;
   --surface: #fff;
   --surface-2: #e8eef4;
   --rule: #bec9d4;
   --rule-strong: #93a3b1;
-  --ink: #0d1319;                 /* данные читаются, а не угадываются */
+
+/* data is read, not guessed */
+  --ink: #0d1319;
   --ink-2: #2b3844;
   --ink-3: #52616d;
 
@@ -35,7 +41,9 @@
   --rail-hover: #252f3b;
 
   --sel: #d5e8fb;
-  --link: #0a4f8c;                  /* IP/логин/порт в таблицах */
+
+/* links to records: IP, login, port */
+  --link: #0a4f8c;
   --focus: #1f6feb;
   --shadow: 0 1px 2px rgba(16, 24, 32, .06), 0 8px 24px rgba(16, 24, 32, .06);
 
@@ -49,8 +57,8 @@
   --st-off-bg: #dde4ea;
 
   --sans: "IBM Plex Sans", -apple-system, "Segoe UI", "DejaVu Sans", Roboto, "Noto Sans", sans-serif;
-  /* IBM Plex Sans Condensed кириллицы не имеет — подзаголовки делаем Plex 600
-     с трекингом, он уже стоит в правилах меток */
+
+/* Plex Sans Condensed has no Cyrillic, captions use Plex 600 with tracking */
   --disp: "IBM Plex Sans", var(--sans);
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", Consolas, monospace;
 
@@ -65,7 +73,7 @@
   color-scheme: light;
 }
 
-/* ---------- 2. Токены: тёмная (AUTO: держ в синхроне с блоком 3) ---------- */
+/* 2. Tokens: dark palette, automatic. Keep in sync with block 3. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-eye="light"]) {
     --accent-ink: #f0b978;
@@ -98,7 +106,7 @@
   }
 }
 
-/* ---------- 3. Токены: тёмная (ЯВНО: HTML_STYLE=eye-dark или переключатель) -- */
+/* 3. Tokens: dark palette, explicit (HTML_STYLE=eye-dark or the in-page toggle). */
 :root[data-eye="dark"] {
   --accent-ink: #f0b978;
   --accent-soft: #2a2013;
@@ -129,11 +137,11 @@
   color-scheme: dark;
 }
 
-/* плотность: header.php навесит data-eye-dens на <html>, выбор запоминается */
+/* Density: header.php / eye.js set data-eye-dens on <html>, the choice is remembered. */
 :root[data-eye-dens="roomy"] { --row-h: 40px; --pad: 14px; --fs: 15px; --fs-mono: 14px; }
 :root[data-eye-dens="tight"] { --row-h: 27px; --pad: 7px; --fs: 12.5px; --fs-mono: 12px; }
 
-/* ---------- 4. База (заменила глобальный tahoma 12pt из white.css) ---------- */
+/* 4. Base styles, replacing the global tahoma 12pt of the old theme. */
 * { box-sizing: border-box; }
 html { margin: 0; padding: 0; font-size: var(--fs); }
 body {
@@ -145,12 +153,13 @@ img { border: 0; max-width: 100%; }
 h1, h2, h3 { font-family: var(--disp); font-weight: 600; letter-spacing: .01em; }
 h1 { font-size: 1.45em; } h2 { font-size: 1.15em; } h3 { font-size: 1em; }
 hr { border: 0; border-top: 1px solid var(--rule); margin: 14px 0; }
+
+/* links are decorated explicitly below, so chrome elements stay clean */
 a { color: inherit; text-decoration: none; }
 a:visited { color: inherit; }
 a:hover { color: var(--accent-ink); }
-/* 14b. Ссылки в содержимом: цвет + подчёркивание работают сразу, без наведения.
-   :where() держит специфичность нулевой, поэтому точечные правила ниже (шапка
-   таблиц, табы, кнопки, постраничка) перебивают её без !important. */
+
+/* links in the content: colour plus underline, visible without hovering. :where() keeps specificity zero so the targeted rules below win without !important. */
 #cont :where(a) {
   color: var(--link); font-weight: 500; text-decoration: underline;
   text-decoration-thickness: 1px; text-underline-offset: 2px;
@@ -159,17 +168,17 @@ a:hover { color: var(--accent-ink); }
 #cont :where(a):hover, #cont :where(a):focus-visible {
   text-decoration-color: currentColor; color: var(--link); }
 #cont :where(a):visited { color: var(--link); }
-/* в плотных ячейках сплошная линия режет глаз — dotted читается как «кликабельно»,
-   но не превращает таблицу в решето */
+
+/* inside dense cells a dotted underline reads as clickable without turning the table into a mesh */
 #cont table.data :where(td) :where(a) {
   text-decoration-style: dotted;
   text-decoration-color: color-mix(in srgb, var(--link) 35%, transparent); }
-/* ссылка, открывающая отдельное окно (порты, MAC-таблица, snmpwalk) */
+
+/* link that opens its own window (ports, MAC table, snmpwalk) */
 a.ext::after { content: " \2197"; font-size: .9em; font-weight: 400;
   color: color-mix(in srgb, var(--link) 70%, transparent); }
-/* хромо-элементы ссылкой не прикидываются */
-/* сбрасываем ТОЛЬКО подчёркивание/вес: цвет каждого такого элемента объявлен его
-   собственным правилом, а color: revert вернул бы UA-синий на пагинации */
+
+/* reset underline and weight only; each element keeps the colour from its own rule */
 #cont .pager :where(a), #cont :where(a.btn, .btn a, a.mainButton, a.delButton, a.exportButton, a.linkButton),
 #cont table.data > tbody > tr:first-child :where(a),
 #cont table.data tr.lblrow :where(a),
@@ -188,11 +197,13 @@ code, kbd, pre { font-family: var(--mono); font-size: .95em; }
 .mut, .tiny { color: var(--ink-3); }
 .red-text { color: var(--st-err); } .blue-text { color: var(--focus); }
 .green-text { color: var(--st-ok); } .black-text { color: var(--ink); }
+
+/* Meta text under a value (timestamps): small and mono, but still readable. */
 .ts { font-size: 11.5px; line-height: 1.35; color: var(--ink-2); padding: 0;
       font-family: var(--mono); }
 p.ts, td p.ts { margin: 1px 0 0; }
 
-/* ---------- 5. Каркас: рельса + шапка + полость -------------- */
+/* 5. Shell: rail, page header band, content column. */
 #eye-shell { display: grid; grid-template-columns: var(--rail-w) minmax(0, 1fr); min-height: 100vh; }
 #eye-rail {
   grid-column: 1; background: var(--rail); color: var(--rail-ink);
@@ -206,7 +217,7 @@ p.ts, td p.ts { margin: 1px 0 0; }
   font: 600 17px/1.1 var(--disp); letter-spacing: .04em; color: #fff;
   border-bottom: 1px solid var(--rail-rule); margin-bottom: 6px;
 }
-body.eye-public #title {           /* страница блокировки (inc/header_public.php) */
+body.eye-public #title {
   padding: 16px 18px 12px; color: var(--ink); border-bottom: 1px solid var(--rule);
   background: var(--surface); margin-bottom: 0;
 }
@@ -227,12 +238,14 @@ body.eye-public #title::before { background: radial-gradient(circle at 50% 50%, 
 }
 #navi a:hover { background: var(--rail-hover); color: var(--rail-hi); }
 #navi a.here { background: var(--rail-hover); color: var(--rail-hi); font-weight: 500; border-left-color: var(--accent); }
-#navi b { /* print_submenu_url() помечает текущий пункт через <b> */
+
+/* print_submenu_url() marks the current entry with <b> */
+#navi b {
   display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: var(--r-md);
   background: var(--rail-hover); color: var(--rail-hi); font-weight: 500;
   border-left: 2px solid var(--accent);
 }
-#navi br { display: none; }          /* разделители "|" убраны: ссылки стали колонкой */
+#navi br { display: none; }
 #navi .sep { display: none; }
 #eye-rail .rail-foot {
   margin-top: auto; padding: 12px 16px 0; border-top: 1px solid var(--rail-rule);
@@ -240,13 +253,7 @@ body.eye-public #title::before { background: radial-gradient(circle at 50% 50%, 
 }
 #eye-rail .rail-foot a { color: var(--accent); }
 
-/* верхняя панель страницы: формируется из #submenu/#subsubmenu, которые
-   страницы печатают перед <div id="cont"> */
-/* Эти id страницы используют по-разному: #submenu/#subsubmenu — почти всегда
-   полоса переходов, а #contsubmenu на 14 страницах — обычный контейнер контента
-   (в switchstatus.php внутри форма и таблицы). Поэтому базовое правило —
-   нейтральный блочный контейнер, а «табами» элемент делает js/eye.js
-   (класс .tabs): без JS он остаётся читаемой полосой ссылок. */
+/* id is used two ways: navigation strip on most pages, plain content container on 14 of them (switchstatus.php holds forms and tables), so the base rule is a neutral block and eye.js adds .tabs where it really is a strip */
 #submenu, #contsubmenu, #subsubmenu {
   display: block; min-width: 0; padding: 10px 18px 0; font-size: 13px; color: var(--ink-2);
 }
@@ -262,25 +269,22 @@ body.eye-public #title::before { background: radial-gradient(circle at 50% 50%, 
 #submenu.tabs b, #subsubmenu.tabs b, #contsubmenu.tabs b {
   padding: 9px 12px 8px; color: var(--ink); font-weight: 500; border-bottom: 2px solid var(--accent);
 }
-/* контейнер-«полотло»: те же отступы, что у #cont */
+
+/* full-height container: same paddings as #cont */
 #contsubmenu:not(.tabs), #subsubmenu:not(.tabs) { padding: 14px 18px 90px; }
 #contsubmenu:not(.tabs) a, #subsubmenu:not(.tabs) a { color: var(--accent-ink); }
-/* переносы строки прячем ТОЛЬКО в полосе переходов: #contsubmenu на 14 страницах —
-   обычный контейнер контента, и <br> там разделяет списки внутри ячеек */
+
+/* line breaks are hidden only inside a navigation strip: elsewhere <br> separates lists inside cells */
 #submenu.tabs br, #subsubmenu.tabs br, #contsubmenu.tabs br { display: none; }
 #navi .sep, .tabs .sep { display: none; }
 #submenu:not(.tabs) .sep, #subsubmenu:not(.tabs) .sep, #contsubmenu:not(.tabs) .sep { color: var(--ink-3); }
 
-/* полость страниц */
 #cont {
   position: static; flex: 1 1 auto; min-width: 0;
   padding: 14px 18px 90px; background: transparent;
 }
 
-/* ---------- 6. Таблицы данных ------------------------------------------
-   Страницы печатают <table class="data" cellspacing=1 cellpadding=4>, где
-   шапка — это первая <tr> с <td><b><a>. Стили построенные именно на этом,
-   поэтому разметку менять не обязательно.                                    */
+/* 6. Data tables. Pages print <table class="data"> whose header is just the first row, so the styles rely on the markup that exists. */
 table { border-collapse: separate; border-spacing: 0; font-size: inherit; }
 table.data, table.info {
   width: 100%; background: var(--surface); border: 1px solid var(--rule);
@@ -291,7 +295,7 @@ table.data > tr > td, table.info > tr > td {
   padding: 0 var(--pad); height: var(--row-h); border-bottom: 1px solid var(--rule);
   background: transparent; color: var(--ink); text-align: left; vertical-align: middle;
 }
-/* шапка: первая строка */
+
 table.data > tbody > tr:first-child > td, table.data > tr:first-child > td,
 table.data > thead > tr:first-child > td, table.info > tbody > tr:first-child > td,
 table.info > tr:first-child > td, table.data tr.lblrow > td {
@@ -308,28 +312,35 @@ table.data > tbody > tr:first-child > td b, table.data > tr:first-child > td b {
 table.data > tbody > tr:first-child a, table.data > tr:first-child a, table.data tr.lblrow a { color: var(--ink); }
 table.data > tbody > tr:first-child a:hover, table.data > tr:first-child a:hover,
 table.data tr.lblrow a:hover { color: var(--link); text-decoration: none; }
-/* заголовок таблицы («Состояние записи») — тоже подпись, а не текст данных */
+
+/* a caption is a label, not data */
 table.data > caption, table.info > caption {
   caption-side: top; text-align: left; padding: 9px var(--pad) 7px;
   font: 600 11px/1.2 var(--disp); letter-spacing: .05em; text-transform: uppercase;
   color: var(--ink); border-bottom: 1px solid var(--rule);
 }
-/* ячейка-ключ в таблицах «ключ: значение» (editauth.php, отчёты) */
+
+/* key cell of key/value tables (editauth.php, reports) */
 .cell-key { font-weight: 600; color: var(--ink-2); }
-/* ссылка на связанную сущность (IPSet-ы и т.п.) — была инлайновая #06c */
+
+/* link to a related object (IPSet): inline #06c used to be hardcoded in PHP */
 a.ref { color: var(--accent-ink); font-weight: 500; text-decoration: none;
         border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }
 a.ref:hover { color: var(--accent); }
-/* пустое/незаданное значение: «0/0», «—» — не должно перетягивать на себя взгляд */
+
+/* unset values must not pull the eye */
 .none { color: var(--ink-3); font-family: var(--mono); }
-/* то, о чём надо прочитать вслух: удалено, выключено, заблокировано */
+
 .bad { color: var(--st-err); }
+
+/* what must be read out loud: deleted, disabled, blocked */
 td.bad { background: var(--st-err-bg); color: var(--st-err); font-weight: 500; }
-/* подписи-ссылки должны читаться как подписи, а не как ссылки */
+
 table.data > tbody > tr:first-child a, table.data > tr:first-child a {
   text-decoration: none; }
 table.data > tbody > tr:last-child > td, table.data > tr:last-child > td { border-bottom: 0; }
-/* ячейка на всю ширину = подзаголовок раздела, а не данные */
+
+/* a full-width cell is a section caption, not data */
 table.data > tbody > tr > td:first-child:last-child,
 table.data > tr > td:first-child:last-child {
   background: var(--surface-2);
@@ -337,33 +348,24 @@ table.data > tr > td:first-child:last-child {
   color: var(--ink-3); height: 26px;
 }
 table.data > tbody > tr:hover > td, table.data > tr:hover > td { background: var(--sel); }
-/* Ячейка-список: несколько значений через <br> (switchstatus/switchport — столбцы
-   «устройства» и «комментарии» сверяются построчно). eye.js раскладывает их на
-   span.ln: по строке на значение, без переноса внутри строки — позиции совпадают. */
+
+/* list cells: values separated by <br>. Port pages compare the device column with the comment column line by line, so eye.js splits them into span.ln blocks, one value per line */
 table.data > tbody > tr > td.nl { vertical-align: top; padding-top: 5px; padding-bottom: 5px; }
 table.data td.nl .ln { display: block; white-space: nowrap; line-height: 1.55; }
 table.data td.nl > br { display: none; }
 
-/* ссылки в ячейках: подчёркивание только при наведении — таблица не должна быть пёстрой */
+/* cell links: underline appears on hover only */
 table.data td a { color: var(--link); }
 
-/* Состояния ячеек. Важно про специфичность: общее правило
-   `table.data > tbody > tr > td` = (0,1,4), обычные `td.up`/`td.warn` = (0,1,1) — они
-   проигрывали, и заливки не было видно вообще (тем же глушились статусы в списке IP).
-   Поэтому все состояния — с полной цепочкой `table.data > tbody > tr > td.X` (0,2,4)
-   и стоят ПОСЛЕ правила :hover, чтобы подсветка строки их не перекрывала.
-   `table.data > tbody > tr > td` имеет (0,1,4); обычные `td.up`/`td.warn` — (0,1,1),
-   поэтому они проигрывали и заливка не показывалась вообще (это же глушило
-   статусы в списке IP). Все правила состояний ниже — с полной цепочкой
-   `table.data > tbody > tr > td.X` (0,2,4) и идут ПОСЛЕ правила :hover,
-   чтобы состояния не перекрывались подсветкой строки. */
+/* cell states. Specificity matters here: a plain td.warn is (0,1,1) and loses to the generic cell rule (0,1,4), which is why state fills used to be invisible. Every state rule uses the full chain (0,2,4) and sits after the :hover rule */
 table.data > tbody > tr > td.warn  { background: var(--st-warn-bg);
                                           background: color-mix(in srgb, var(--st-warn) 20%, var(--surface)); }
 table.data > tbody > tr > td.nb    { background: color-mix(in srgb, var(--st-warn) 26%, var(--surface)); }
 table.data > tbody > tr > td.error { background: var(--st-err-bg);
                                           background: color-mix(in srgb, var(--st-err) 24%, var(--surface)); color: var(--ink); }
 table.data > tbody > tr > td.off   { background: var(--st-off-bg); color: var(--ink-3); }
-/* левая линейка строки: состояние читается периферийным зрением, цвет не заливая всю строку */
+
+/* left edge marker: state readable peripherally without filling the whole row */
 table.data tr:has(> td:first-child.warn)  > td:first-child::before { background: var(--st-warn); }
 table.data tr:has(> td:first-child.error) > td:first-child::before { background: var(--st-err); }
 table.data tr:has(> td:first-child.off)   > td:first-child::before { background: var(--st-off); }
@@ -373,18 +375,21 @@ td.crc, table.data > tbody > tr > td.crc { background: var(--st-err-bg);
 td.cell_red, table.data > tbody > tr > td.cell_red { color: var(--st-err); background: transparent; }
 td.data_green, table.data > tbody > tr > td.data_green { color: var(--st-ok); }
 td.data_red,   table.data > tbody > tr > td.data_red   { color: var(--st-err); }
+
+/* print_td_qa() leaves the cell empty for "no", so the dash is drawn here */
 td.data_red:empty::after { content: "\2014"; color: var(--ink-3); }
 td.data_green:empty::after { content: "\2713"; color: var(--st-ok); }
 
-/* матрица портов (switchstatus/switchport/portsbyvlan/control-options): здесь
-   заливка ячейки и есть данные, поэтому цвета насыщенные, как в исходной теме */
+/* Port matrix. Here the cell fill IS the data, so these are strong, like the original theme. */
 table.data > tbody > tr > td.up {
   background: var(--st-ok-bg);
   background: color-mix(in srgb, var(--st-ok) 38%, var(--surface));
   color: var(--ink);
 }
+
+/* no link: grey cell, empty but not merged into the table background */
 table.data > tbody > tr > td.down {
-  /* «линка нет» — серая ячейка: пусто, но не слепится с фоном таблицы */
+
   background: var(--st-off-bg);
   background: color-mix(in srgb, var(--st-off) 22%, var(--surface));
   color: var(--ink-3);
@@ -396,31 +401,34 @@ table.data > tbody > tr > td.shutdown {
     color-mix(in srgb, var(--st-warn) 28%, var(--surface)) 7px 14px);
   color: var(--accent-ink);
 }
-/* скорость линка — градация зелёного, читается вместе с состоянием */
+
+/* link speed: a green ramp that reads together with the state */
 table.data > tbody > tr > td.speed10M  { background: color-mix(in srgb, var(--st-warn) 22%, var(--surface)); color: var(--ink-2); font-family: var(--mono); }
 table.data > tbody > tr > td.speed100M { background: color-mix(in srgb, var(--st-warn) 42%, var(--surface)); color: var(--ink); font-family: var(--mono); }
 table.data > tbody > tr > td.speed1G   { background: color-mix(in srgb, var(--st-ok) 40%, var(--surface)); color: var(--ink); font-family: var(--mono); }
 table.data > tbody > tr > td.speed10G  { background: color-mix(in srgb, var(--st-ok) 62%, var(--surface)); color: var(--ink); font-family: var(--mono); font-weight: 600; }
-/* info-таблицы (легенда «Соединение», предупреждения) */
+
 table.info, td.info, table.data > tbody > tr > td.info {
   background: var(--accent-soft); color: var(--accent-ink);
 }
 
-/* ---------- 7. Мелкие элементы данных -------------------------------- */
-/* ✓/✗ из get_qa(): читаются как состояние, но не раздувают строку */
+/* get_qa()/get_yes() marks: state carried by colour, not by font size. */
 .qa { display: inline-block; min-width: 14px; font-size: 13px; font-weight: 600; line-height: 1; }
-/* подпись в одной ячейке с полем: «IP-адрес: [10.0.0.1]» */
+
 .cell-lbl { font: 600 10.5px/1.3 var(--disp); letter-spacing: .06em; text-transform: uppercase;
             color: var(--ink-3); margin-right: 6px; }
-/* заголовки разделов, напечатанные <b> мимо таблиц (edituser.php и др.) */
+
 #cont > b, #cont > form > b, #cont > br + b {
   display: inline-block; margin: 4px 0 6px; padding: 3px 10px 3px 0;
   font: 600 11px/1.2 var(--disp); letter-spacing: .09em; text-transform: uppercase;
   color: var(--ink-2); border-bottom: 2px solid var(--accent);
 }
+
+/* marks get their colour from the state they show */
 .qa.yes { color: var(--st-ok); }
 .qa.no { color: var(--st-err); }
-/* страховка: страницы, где get_qa() ещё печатает инлайновый font-size:24px */
+
+/* safety net for pages whose get_qa() still prints an inline font-size */
 table.data td > span[style*="font-size: 24px"] {
   font-size: 13px !important; font-weight: 600 !important; }
 td.data_green .qa.yes, .yn.y::before { color: var(--st-ok); }
@@ -454,7 +462,6 @@ td.data_green .qa.yes, .yn.y::before { color: var(--st-ok); }
 .gp { border-left: 1px solid var(--rule) !important; }
 .tree { overflow: auto; border: 0; }
 
-/* ---------- 8. Контролы форм ------------------------------------------ */
 :is(input[type=text], input[type=search], input[type=number], input[type=password],
     input[type=datetime-local], input[type=date], input[type=time], select, textarea) {
   height: 30px; padding: 0 8px; min-width: 0; background: var(--surface); color: var(--ink);
@@ -490,6 +497,7 @@ legend { font: 600 11px/1 var(--disp); letter-spacing: .1em; text-transform: upp
 .lock { font-size: 10px; color: var(--st-warn); border: 1px solid currentColor; border-radius: 3px;
   padding: 0 4px; text-transform: none; letter-spacing: .04em; font-weight: 500; }
 
+/* 8. Form controls. */
 .btn, input[type=submit], input[type=button], button, button[type=submit], button[type=button],
 a.mainButton, a.delButton, a.exportButton {
   display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px;
@@ -507,13 +515,14 @@ a.mainButton, a.delButton, a.exportButton {
 }
 :is(.btn, input[type=submit], button):active { transform: translateY(1px); }
 :is(.btn, input[type=submit], button):disabled { opacity: .5; cursor: not-allowed; }
-/* Одна акцентная кнопка на форму: класс .pri навешивает js/eye.js (или руками).
-   Всё остальное — вторичные действия, они не должны перекрикивать сохранение. */
+
+/* one accented button per form: eye.js adds .pri, everything else is secondary and must not outshine Save */
 .btn.pri, input[type=submit].pri, button.pri { background: var(--accent); border-color: var(--accent); color: #231400; }
 .btn.pri:hover, input[type=submit].pri:hover, button.pri:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #231400; }
 a.mainButton { background: var(--accent); border-color: var(--accent); color: #231400; }
 a.mainButton:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #231400; }
-/* в диалоге единственное действие — всегда главное */
+
+/* inside a dialog the single action is always the primary one */
 dialog > form > [type=submit], .dlg-f [type=submit], dialog .btn.pri { background: var(--accent); border-color: var(--accent); color: #231400; }
 dialog > form > [type=submit]:hover, .dlg-f [type=submit]:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #231400; }
 a.delButton, .btn.dan { color: var(--st-err); border-color: var(--st-err); background: transparent; }
@@ -521,6 +530,8 @@ a.delButton:hover, .btn.dan:hover { background: var(--st-err-bg); color: var(--s
 a.exportButton { color: var(--st-ok); border-color: var(--st-ok); background: transparent; }
 a.exportButton:hover { background: var(--st-ok-bg); }
 .btn.sm, .dlg-f .btn { height: 26px; padding: 0 9px; font-size: 12px; }
+
+/* sticky save bar for the fieldset-based forms */
 .savebar { position: sticky; bottom: 0; z-index: 6; display: flex; align-items: center; gap: 10px;
   padding: 11px 14px; margin-top: 12px; background: var(--surface); border: 1px solid var(--rule);
   border-radius: var(--r-lg); box-shadow: var(--shadow); }
@@ -529,9 +540,7 @@ a.exportButton:hover { background: var(--st-ok-bg); }
 .dirty::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--rule-strong); }
 .dirty.on { color: var(--accent-ink); } .dirty.on::before { background: var(--accent); }
 
-/* ---------- 9. Полоса фильтров ---------------------------------------
-   Новый класс .filters и совместимость со старыми формами: таблица без
-   class="data" внутри формы на списках — это всегда блок фильтров.        */
+/* 9. Filter strip: the new .filters markup. */
 .filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0;
   background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-lg);
   padding: 8px 4px; margin-bottom: 12px; box-shadow: var(--shadow); }
@@ -548,36 +557,41 @@ a.exportButton:hover { background: var(--st-ok-bg); }
   border: 1px solid var(--rule-strong); border-radius: var(--r-sm); padding: 1px 4px; background: var(--surface-2); }
 .filters .hint { flex: 1 1 100%; order: 9; margin: 2px 0 0; padding: 0 12px; font-size: 11px; color: var(--ink-3); }
 
-/* Полоса фильтров — только у форм, где реально есть кнопка «Показать»:
-   иначе под это правило попадали обычные таблицы (ipcam.php, building.php),
-   и строки «съезжались» из-за display:contents/flex. */
+/* the strip applies only to forms that really have a Show button: ordinary data tables (ipcam.php, building.php) must stay tables */
 #cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) {
-  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0; width: auto; margin: 0 0 12px;
-  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-lg);
-  padding: 8px 4px; box-shadow: var(--shadow); }
-#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) > tbody > tr { display: contents; }
+  width: auto; margin: 0 0 12px; padding: 8px 4px; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--r-lg); box-shadow: var(--shadow); }
 #cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) td {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; height: auto; padding: 3px 12px;
-  border: 0; background: transparent; }
-#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) td b {
-  font: 600 10px/1 var(--disp); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3);
-  width: 100%; }
+  padding: 4px 12px; height: 34px; border: 0; background: transparent;
+  vertical-align: middle; text-align: left; color: var(--ink); }
+
+/* filler cells do not draw extra borders */
+#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) td:empty { display: none; }
+
+/* legacy filter row: caption and control in one cell, keep them on one line */
+#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) td > b:first-child {
+  font: 600 11px/1.2 var(--disp); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3); margin-right: 6px; }
 #cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) input[type=submit] { margin-left: 6px; }
-/* таблица без class="data" вне полосы фильтров — просто таблица без карточки */
+
+/* a class-less table outside the filter strip stays a plain table */
 #cont table:not(.data):not(.info) td { height: var(--row-h); padding: 0 var(--pad); }
 .tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 8px; }
 .tools .cnt { font-size: 12.5px; color: var(--ink-2); }
 .tools .cnt b { font: 500 13px/1 var(--mono); color: var(--ink); }
 
-/* ---------- 10. Диалоги (нативный <dialog>, вместо Remodal) ----------- */
+/* 10. Dialogs: native <dialog>, Remodal is gone. */
 dialog { border: 1px solid var(--rule-strong); border-radius: var(--r-lg); background: var(--surface);
   color: var(--ink); padding: 0; width: min(680px, 94vw); max-height: 90vh;
   box-shadow: 0 24px 60px rgba(6, 10, 16, .42); }
 dialog::backdrop { background: rgba(10, 14, 20, .55); }
 dialog[open] { animation: eye-pop .14s ease-out; }
 @keyframes eye-pop { from { transform: translateY(6px); opacity: .6; } }
-/* на существующих страницах внутри <dialog> лежит сразу <form> с h2/table/submit */
+
+/* anchors the close button */
 dialog { position: relative; }
+
+/* existing pages put a bare form with h2, table and submit directly into the dialog */
 dialog > form { display: block; margin: 0; padding: 16px 18px; }
 dialog > form > h2:first-child { padding-right: 34px; margin-top: 0; }
 dialog > form > :is(table.data) { margin-top: 4px; }
@@ -596,34 +610,36 @@ dialog > .x:hover { background: var(--surface-2); color: var(--ink); }
   border-top: 1px solid var(--rule); background: var(--surface-2); }
 .dlg-f .sp { margin-left: auto; }
 .dlg-i { margin: 0 0 12px; font-size: 12px; color: var(--ink-3); }
-/* Таблицы массовых изменений внутри диалога: <tr><td>чекбокс</td><td>подпись</td>
-   <td>поле</td></tr>. Табличную раскладку НЕ трогаем (display:block/flex сюда
-   нельзя: строка разъедется по ячейкам), убираем только «карточность» table.data
-   и задаем ширины колонок. */
+
+/* mass-change table inside a dialog: table layout stays, only the card look is removed */
 dialog table.data { width: 100%; margin: 0 0 8px; border: 0; border-radius: 0;
   background: transparent; box-shadow: none; }
 dialog table.data td { height: 36px; padding: 3px 8px; text-align: left; vertical-align: middle;
   border: 0; border-bottom: 1px dashed var(--rule); background: transparent; color: var(--ink); }
 dialog table.data tr:last-child td { border-bottom: 0; }
+
+/* checkbox column */
 dialog table.data td:first-child { width: 30px; padding-left: 0; text-align: center; }
 dialog table.data td:nth-child(2) { width: 36%; white-space: nowrap; color: var(--ink-2); }
 dialog table.data td:last-child { text-align: right; }
 dialog table.data tr:hover td { background: transparent; }
 dialog table.data :is(select, input[type=text], input[list]) { max-width: 100%; width: auto; }
-/* снимает поле с ввода, если чекбокс «применить» не отмечен (ставит js/eye.js) */
+
+/* dims the field when the apply checkbox is off */
 dialog table.data td.off, dialog table.data tr.off td { opacity: .45; }
 dialog table.data :is(select, input)[disabled] { cursor: not-allowed; }
 dialog h2 { margin: 0 0 10px; }
-/* legacy-разделители внутри form: в диалогах удаления/экспорта поля
-   разбивались двумя <br> — в табличной вёрстке они только рвут ритм */
+
+/* the delete and export dialogs used two <br> between fields; in a table it only breaks the rhythm */
 dialog > form > br { display: none; }
 dialog > form > select, dialog > form > input[type=text] { margin-right: 8px; }
 dialog > form > [type=submit] { display: block; margin-top: 14px; }
-/* подпись чекбокса becomes кликабельной (eye.js вешает for) */
+
+/* the caption becomes clickable, eye.js sets the for attribute */
 dialog table.data td:nth-child(2) label { display: block; cursor: pointer; }
 dialog table.data td:nth-child(2) label:hover { color: var(--ink); }
 dialog table.data td.off, dialog table.data tr.off td:nth-child(2) { color: var(--ink-3); }
-/* ячейка «Nagios <select>» в два столбца (iplist/nagios.php): подпись и поле в одной */
+
 dialog table.data td > select, dialog table.data td > input[list] { margin-left: 6px; }
 
 .note { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; margin-bottom: 12px;
@@ -637,7 +653,7 @@ dialog table.data td > select, dialog table.data td > input[list] { margin-left:
 .kv .k, .kv dt { font: 600 10px/1 var(--disp); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); }
 .kv .v { font-family: var(--mono); font-size: var(--fs-mono); }
 
-/* ---------- 11. Выбор строк, постраничка, прочее ---------------------- */
+/* 11. Row selection bar, pagination, misc. */
 .bulk { position: fixed; bottom: 0; left: var(--rail-w); right: 0; z-index: 30; display: flex;
   align-items: center; gap: 10px; padding: 11px 18px; background: var(--rail); color: #fff;
   box-shadow: 0 -6px 24px rgba(0, 0, 0, .28); transform: translateY(120%); transition: transform .16s ease; }
@@ -652,11 +668,7 @@ dialog table.data td > select, dialog table.data td > input[list] { margin-left:
   min-width: 26px; height: 26px; padding: 0 6px; border-radius: var(--r-sm);
   font: 400 12px/1 var(--mono); color: var(--ink-2); border: 1px solid transparent; }
 .pager a:hover { background: var(--surface-2); color: var(--ink); border-color: var(--rule); }
-/* наследие print_navigation()/white.css */
-/* print_navigation(): переходные страницы — <a class="first_page_link">,
-   ТЕКУЩАЯ — <span class="num_page_not_link"><b>номер</b></span>. Номер жил внутри <b>,
-   поэтому общее правило для <b> в .records перекрашивало цифру в тёмный поверх
-   тёмной плашки — цвет наследуется явно. */
+
 #cont a.first_page_link, #cont span.num_page_not_link, .pager a, .pager .here {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 28px; height: 26px; padding: 0 7px; margin: 0 1px;
@@ -690,7 +702,7 @@ div.simple { margin: 12px 0; padding: 12px 14px; background: var(--surface); bor
 .legend .sw.ok { border-left-color: var(--st-ok); } .legend .sw.warn { border-left-color: var(--st-warn); }
 .legend .sw.err { border-left-color: var(--st-err); } .legend .sw.off { border-left-color: var(--st-off); opacity: .5; }
 
-/* ---------- 12. Приспособление и печатание ---------------------------- */
+/* 12. Responsive and print. */
 @media (max-width: 1180px) {
   :root { --rail-w: 60px; }
   #eye-rail { padding-top: 10px; }
@@ -714,6 +726,8 @@ div.simple { margin: 12px 0; padding: 12px 14px; background: var(--surface); bor
   * { animation: none !important; transition: none !important; }
   table.data > tbody > tr:first-child > td, table.data > tr:first-child > td { position: static; }
 }
+
+/* printing: navigation chrome away, header row unpinned */
 @media print {
   #eye-rail, #submenu, #contsubmenu, #subsubmenu, .bulk, .filters, .savebar, .performance-info,
   #cont > form > table:not(.data):not(.info) { display: none !important; }
@@ -723,8 +737,7 @@ div.simple { margin: 12px 0; padding: 12px 14px; background: var(--surface); bor
   table.data > tbody > tr:first-child > td, table.data > tr:first-child > td { position: static; background: #eee; }
 }
 
-
-/* ---------- 13. Страница входа (login.php) ------------------------------- */
+/* 13. Login page (login.php). */
 body.eye-login { display: grid; place-items: center; min-height: 100vh; padding: 24px; }
 body.eye-login .login {
   width: min(400px, 100%); margin: 0; background: var(--surface);
@@ -763,15 +776,14 @@ body.eye-login .error {
 }
 body.eye-login .login p { margin: 0 0 12px; }
 
-/* ---------- 14. Searchable select (вместо Select2) ----------------------
-     Обёртка над обычным <select class="js-select-single">, который печатают
-     print_*() из inc/common.php. Сам select остаётся в форме (имя и значение
-     не меняются), видимую роль играет кнопка. Логика — в js/eye.js.        */
+/* 14. Searchable select, replaces Select2. The native select stays in the form, the button is what the user sees. */
 .es { position: relative; display: inline-block; min-width: 0; max-width: 100%; }
 .es-native {
   position: absolute !important; width: 1px; height: 1px; margin: 0; padding: 0;
   border: 0; opacity: 0; overflow: hidden; pointer-events: none;
 }
+
+/* the visible half of the widget; the select itself stays in the form so name and value do not change */
 .es-btn {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   min-width: 150px; max-width: 100%; height: 30px; padding: 0 8px; cursor: pointer;
@@ -801,25 +813,22 @@ body.eye-login .login p { margin: 0 0 12px; }
 .es-opt.act { background: var(--sel); box-shadow: inset 0 0 0 1px var(--focus); }
 .es-opt.dis { opacity: .45; cursor: not-allowed; }
 .es-none { color: var(--ink-3); cursor: default; }
-/* чтобы панель не резалась внутри диалога массовых изменений */
+
+/* keeps the popup from being clipped inside the dialog */
 dialog table.data, dialog table.data td, dialog table.data tr { overflow: visible; }
 
-/* ---------- 15. Строки действия: подпись слева, кнопка в правой колонке ----
-   control.php печатает <tr><td align=right>Метка&nbsp<input type=submit>…, т.е.
-   строка не с полями, а с одним действием. */
-/* flex — только для строк из одной ячейки (control.php: «метка&nbsp;<кнопка>»).
-   Критерий «несколько дочерних элементов» не годится: текстовый узел не считается
-   для :only-child, и кнопка после &nbsp; оставалась бы прижатой к подписи.
-   А в ipcam.php строк из одной ячейки нет — там колонки не перекрываются. */
+/* 15. Action rows: caption on the left, button in the right column (control.php prints one-cell rows). */
 #cont table.data > tbody > tr > td:first-child:last-child:has(> :is(input[type=submit], input[type=button], button):last-child),
 #cont table.data > tr > td:first-child:last-child:has(> :is(input[type=submit], input[type=button], button):last-child) {
   display: inline-flex; align-items: center; gap: 10px; text-align: left; width: 100%;
 }
+
+/* the button is pinned to the same right edge in every row */
 #cont table.data > tbody > tr > td:first-child:last-child > :is(input[type=submit], input[type=button], button):last-child {
   margin-left: auto; flex: none; width: 136px; justify-content: center;
 }
-/* строка «одна ссылка-действие» (Выключение портов) — в ту же правую колонку;
-   обычным ячейкам со ссылкой внутри строки данных это не касается */
+
+/* a lone action link (port control) joins the same column; data cells with links are unaffected */
 #cont table.data > tbody > tr > td:first-child:last-child:has(> a:only-child),
 #cont table.data > tr > td:first-child:last-child:has(> a:only-child) { display: flex; align-items: center; }
 #cont table.data > tbody > tr > td:first-child:last-child > a:only-child,
@@ -833,7 +842,8 @@ dialog table.data, dialog table.data td, dialog table.data tr { overflow: visibl
   background: color-mix(in srgb, var(--st-err) 85%, #fff);
   border-color: color-mix(in srgb, var(--st-err) 85%, #fff); color: #fff;
 }
-/* ячейка с кнопкой — не подзаголовок раздела; строка с кнопкой — не шапка колонок */
+
+/* a cell with a control is not a caption, and a row with a control is not the column header */
 #cont table.data > tbody > tr > td:first-child:last-child:has(:is(input, select, textarea, button)),
 #cont table.data > tr > td:first-child:last-child:has(:is(input, select, textarea, button)) {
   background: transparent; font: inherit; letter-spacing: normal; text-transform: none;
@@ -846,7 +856,7 @@ dialog table.data, dialog table.data td, dialog table.data tr { overflow: visibl
   text-transform: none; color: var(--ink);
 }
 
-/* ---------- 16. Публичная страница блокировки: карточка по центру окна ------ */
+/* 16. Public block page: a card centred in the window. */
 body.eye-public { display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 100vh; padding: 22px; }
 body.eye-public #title { border: 0; margin: 0 0 12px; padding: 0; font-size: 19px; color: var(--ink); }
@@ -863,7 +873,7 @@ body.eye-public span.bad { display: block; padding: 12px 16px; font-weight: 600;
   background: var(--st-err-bg); color: var(--st-err); }
 body.eye-public #copyright { margin-top: 14px; padding: 0; text-align: center; }
 
-/* ---------- 17. Строка сохранения ------------------------------------------ */
+/* 17. The save row is separated from secondary actions. */
 .pri { min-width: 136px; justify-content: center; }
 #cont table.data tbody tr:has(:is(input[type=submit], button, .btn).pri) > td,
 #cont table.data tr:has(:is(input[type=submit], button, .btn).pri) > td {
@@ -872,27 +882,27 @@ body.eye-public #copyright { margin-top: 14px; padding: 0; text-align: center; }
 }
 #cont table.data tbody tr:has(:is(input[type=submit], button, .btn).pri) > td:first-child::before,
 #cont table.data tr:has(:is(input[type=submit], button, .btn).pri) > td:first-child::before { display: none; }
-/* «Показать» остаётся вторичной: eye.js не делает её акцентной */
+
 #cont form > .filters input[type=submit], #cont form > input#btn_filter { font-weight: 600; }
 
-
-/* ---------- 19. Наследие старой вёрстки, поддержанное явно ----------------
-   1) Страницы ещё печатают align="right|center|left" — это presentational-атрибут,
-      и базовое text-align:left из правила ячеек его глушило. Объявляем явно.
-   2) tr.sep — строка-разделитель групп полей (editauth.php), раньше была
-      <tr style="height:10px;background:#f5f5f5">, то есть белой полосой в тёмной теме.
-   3) .empty-cell — «записей нет» (editipset.php), .result/.toast — ответ /utils/*.php. */
+/* 19. Legacy markup kept on purpose: pages still print align attributes, which the base text-align would otherwise swallow. */
 #cont table.data > tbody > tr > td[align="right"], #cont table.data > tr > td[align="right"],
 #cont table.info > tbody > tr > td[align="right"] { text-align: right; }
 #cont table.data > tbody > tr > td[align="center"], #cont table.data > tr > td[align="center"],
 #cont table.data > tbody > tr > td[align="Center"], #cont table.data > tr > td[align="Center"],
 #cont table.info > tbody > tr > td[align="center"] { text-align: center; }
 #cont table.data > tbody > tr > td[align="left"], #cont table.data > tr > td[align="left"] { text-align: left; }
+
+/* field-group separator (editauth.php), which used to be an inline #f5f5f5 band and turned white in dark mode */
 #cont table.data > tbody > tr.sep > td, #cont table.data > tr.sep > td {
   background: transparent; border-bottom: 0; border-top: 1px solid var(--rule); height: 8px;
 }
 #cont table.data > tbody > tr.sep:first-child > td { border-top: 0; }
+
+/* the no-records note in editipset.php */
 #cont table.data td.empty-cell { height: auto; padding: 20px var(--pad); text-align: center; color: var(--ink-3); }
+
+/* 18. Result of a mass operation returned by /utils/*.php. */
 .result { margin: 10px 0; padding: 11px 14px; font: 600 13px/1.3 var(--sans);
   border: 1px solid transparent; border-radius: var(--r-md); }
 .result.ok { background: var(--st-ok-bg); color: color-mix(in srgb, var(--st-ok) 70%, var(--ink));
@@ -905,9 +915,9 @@ body.eye-public #copyright { margin-top: 14px; padding: 0; text-align: center; }
 .toast .result { margin: 0; border: 0; border-radius: var(--r-lg); }
 .toast.err .result { border-left: 3px solid var(--st-err); }
 
-/* размеры searchable-select: common.php печатает на <select> width:100% / width:100px —
-   после обёртки в виджет эти намерения должны сохраниться */
 .es { max-width: 100%; }
+
+/* a widget inherits the width printed on the original select by common.php */
 .es:has(> .es-native[style*="100%"]) { display: block; width: 100%; }
 .es:has(> .es-native[style*="100%"]) .es-btn { width: 100%; }
 .es:has(> .es-native[style*="100px"]) .es-btn { min-width: 100px; }

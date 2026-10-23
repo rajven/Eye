@@ -1382,7 +1382,7 @@ function print_submenu_url($display_name, $page, $current_page, $last)
         print "<a href='" . $new_url . "'> $display_name </a>";
     }
     if (!isset($last) or $last == 0) {
-        print '<span class="sep">|</span>';   /* скрыто в eye.css; видно без стилей */
+        print '<span class="sep">|</span>';   /* hidden by eye.css, visible without styles */
     }
 }
 
@@ -1397,7 +1397,7 @@ function print_submenu_nw($display_name, $page, $current_page, $last)
         print '<a href="" onclick="window.open(\'' . $new_url . "', '_tab').focus(); return false;\">" . $display_name . "</a>";
     }
     if (!isset($last) or $last == 0) {
-        print '<span class="sep">|</span>';   /* скрыто в eye.css; видно без стилей */
+        print '<span class="sep">|</span>';   /* hidden by eye.css, visible without styles */
     }
 }
 

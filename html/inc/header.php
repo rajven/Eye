@@ -1,24 +1,24 @@
 <?php
 /**
- * Шапка страницы Eye.
+ * Page header of the Eye admin.
  *
- * Каркас: <div id="eye-shell"> = рельса (#eye-rail: #title + #navi) и полость
- * (#eye-main: #submenu/#cont печатает сама страница, закрывает footer.php).
- * Имена id/классов сохранены прежними, поэтому 60+ страниц менять не нужно.
+ * Shell: <div id="eye-shell"> = rail (#eye-rail with #title and #navi) plus the
+ * content column (#eye-main; #submenu/#cont are printed by the page itself and
+ * closed by footer.php). The existing id and class names are kept, so the 60+
+ * page files do not have to change.
  *
- * Из шапки убраны: Remodal (диалоги — нативный <dialog>) и Select2
- * (обычные <select>, стилизованы в css/eye.css). jQuery остаётся только
- * на страницах, где нужен jsTree (admin/devices/index-tree.php).
+ * Removed from the header: Remodal (dialogs are native <dialog>) and Select2
+ * (plain <select>, styled by css/eye.css). jQuery is loaded only on the pages
+ * that need jsTree (admin/devices/index-tree.php).
  *
- * Тема: define("HTML_STYLE","eye")      — светлая, тёмная включается сама,
- *                                        если система в тёмном режиме
- *       define("HTML_STYLE","eye-dark") — тёмная всегда
+ * Theme: define("HTML_STYLE","eye")      light, follows the OS in dark mode
+ *        define("HTML_STYLE","eye-dark") always dark
  */
 
 $eye_style = defined('HTML_STYLE') ? HTML_STYLE : 'eye';
-/* ?v= нужен, чтобы после обновления темы браузер не показывал старый eye.css/eye.js
-   из кеша (Cache-Control для этой админки нигде не выставляется).
-   Берём mtime файла: кэш сбрасывается сам в момент замены файла. */
+/* ?v= stops the browser from serving a cached eye.css/eye.js after a theme
+   update: Cache-Control is not configured anywhere for this admin app.
+   the file mtime is used, so replacing a file invalidates its cache. */
 $eye_ver = '';
 $eye_css_path = (isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : '') . '/css/' . $eye_style . '.css';
 $eye_js_path  = (isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : '') . '/js/eye.js';
@@ -33,15 +33,15 @@ if ($eye_js_mtime === '' && isset($config['version'])) {
 $eye_dark  = (substr($eye_style, -5) === '-dark') ? ' data-eye="dark"' : '';
 $eye_lang  = (defined('HTML_LANG') && HTML_LANG === 'english') ? 'en' : 'ru';
 
-/* активный раздел: /admin/<раздел>/... из $page_url (считается в inc/auth.php) */
+/* active section: /admin/<section>/... taken from $page_url (set in inc/auth.php) */
 $eye_path = '';
 if (isset($page_url)) {
     $eye_path = (string) parse_url($page_url, PHP_URL_PATH);
 }
 $eye_sec = preg_match('#^/admin/([a-z0-9_-]+)#', $eye_path, $eye_m) ? $eye_m[1] : '';
 
-/* [подпись, ссылка, раздел пути] — списком, а не словарём: два одинаковых
-   перевода не должны съедать пункт меню */
+/* [label, href, path section] as a list, not as a map: two identical
+   translations must not swallow one menu entry */
 $eye_nav = [
     [WEB_title_reports,   '/admin/reports/index-full.php', 'reports'],
     [WEB_title_groups,    '/admin/groups/',                'groups'],
@@ -68,9 +68,9 @@ $eye_nav = [
 <meta charset="UTF-8">
 
 <script>
-/* Тема/плотность применяются до первой отрисовки и не зависят от того,
-   подключил ли страницу footer.php с /js/eye.js (иначе страница на мгновение
-   — а при отсутствии eye.js и вовсе навсегда — остаётся светлой). */
+/* theme and density are applied before the first paint and do not depend
+   on footer.php loading /js/eye.js; otherwise the page shows the light theme
+   for a moment, or forever when eye.js is never loaded. */
 (function () {
     try {
         var d = document.documentElement, t = null, n = null;

@@ -44,7 +44,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
     <body class="eye-login">
 	<div class="login">
 	    <h1><?php echo WEB_msg_login; ?></h1>
-	    <?php /* $error копился в начале файла, но никогда не выводился */ echo $error; ?>
+	    <?php /* $error was built at the top of the file but never rendered before */ echo $error; ?>
 	    <form action="" method="post">
 		<label for="username">
 		    <span aria-hidden="true">&#128100;</span><span class="vh">Логин</span>
