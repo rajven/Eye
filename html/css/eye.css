@@ -359,7 +359,7 @@ table.data td a { color: var(--link); }
    чтобы состояния не перекрывались подсветкой строки. */
 table.data > tbody > tr > td.warn  { background: var(--st-warn-bg);
                                           background: color-mix(in srgb, var(--st-warn) 20%, var(--surface)); }
-table.data > tbody > tr > td.nb    { background: color-mix(in srgb, var(--st-warn) 35%, var(--surface)); }
+table.data > tbody > tr > td.nb    { background: color-mix(in srgb, var(--st-warn) 26%, var(--surface)); }
 table.data > tbody > tr > td.error { background: var(--st-err-bg);
                                           background: color-mix(in srgb, var(--st-err) 24%, var(--surface)); color: var(--ink); }
 table.data > tbody > tr > td.off   { background: var(--st-off-bg); color: var(--ink-3); }
@@ -548,18 +548,23 @@ a.exportButton:hover { background: var(--st-ok-bg); }
   border: 1px solid var(--rule-strong); border-radius: var(--r-sm); padding: 1px 4px; background: var(--surface-2); }
 .filters .hint { flex: 1 1 100%; order: 9; margin: 2px 0 0; padding: 0 12px; font-size: 11px; color: var(--ink-3); }
 
-#cont > form > table:not(.data):not(.info) {
+/* Полоса фильтров — только у форм, где реально есть кнопка «Показать»:
+   иначе под это правило попадали обычные таблицы (ipcam.php, building.php),
+   и строки «съезжались» из-за display:contents/flex. */
+#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) {
   display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0; width: auto; margin: 0 0 12px;
   background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-lg);
   padding: 8px 4px; box-shadow: var(--shadow); }
-#cont > form > table:not(.data):not(.info) > tbody > tr { display: contents; }
-#cont > form > table:not(.data):not(.info) td {
+#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) > tbody > tr { display: contents; }
+#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) td {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px; height: auto; padding: 3px 12px;
   border: 0; background: transparent; }
-#cont > form > table:not(.data):not(.info) td b {
+#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) td b {
   font: 600 10px/1 var(--disp); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3);
   width: 100%; }
-#cont > form > table:not(.data):not(.info) input[type=submit] { margin-left: 6px; }
+#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) input[type=submit] { margin-left: 6px; }
+/* таблица без class="data" вне полосы фильтров — просто таблица без карточки */
+#cont table:not(.data):not(.info) td { height: var(--row-h); padding: 0 var(--pad); }
 .tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 8px; }
 .tools .cnt { font-size: 12.5px; color: var(--ink-2); }
 .tools .cnt b { font: 500 13px/1 var(--mono); color: var(--ink); }
@@ -802,8 +807,10 @@ dialog table.data, dialog table.data td, dialog table.data tr { overflow: visibl
 /* ---------- 15. Строки действия: подпись слева, кнопка в правой колонке ----
    control.php печатает <tr><td align=right>Метка&nbsp<input type=submit>…, т.е.
    строка не с полями, а с одним действием. */
-#cont table.data td:has(> :is(input[type=submit], input[type=button], button):last-child) {
-  display: flex; align-items: center; gap: 10px; text-align: left;
+/* flex — только когда в ячейке подпись И кнопка: ячейка с одной кнопкой должна
+   оставаться table-cell, иначе соседние колонки перекрываются (ipcam.php) */
+#cont table.data td:has(> :is(input[type=submit], input[type=button], button):last-child):not(:has(> :is(input[type=submit], input[type=button], button):only-child)) {
+  display: inline-flex; align-items: center; gap: 10px; text-align: left; width: 100%;
 }
 #cont table.data td > :is(input[type=submit], input[type=button], button):last-child {
   margin-left: auto; flex: none; min-width: 136px; justify-content: center;

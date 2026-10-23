@@ -83,7 +83,7 @@ foreach ($t_building as $row) {
 }
 ?>
 </table>
-<table>
+<table class="data">
 <tr>
 <td><input type=text name=new_building value="Unknown"></td>
 <td>
