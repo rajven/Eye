@@ -807,13 +807,16 @@ dialog table.data, dialog table.data td, dialog table.data tr { overflow: visibl
 /* ---------- 15. Строки действия: подпись слева, кнопка в правой колонке ----
    control.php печатает <tr><td align=right>Метка&nbsp<input type=submit>…, т.е.
    строка не с полями, а с одним действием. */
-/* flex — только когда в ячейке подпись И кнопка: ячейка с одной кнопкой должна
-   оставаться table-cell, иначе соседние колонки перекрываются (ipcam.php) */
-#cont table.data td:has(> :is(input[type=submit], input[type=button], button):last-child):not(:has(> :is(input[type=submit], input[type=button], button):only-child)) {
+/* flex — только для строк из одной ячейки (control.php: «метка&nbsp;<кнопка>»).
+   Критерий «несколько дочерних элементов» не годится: текстовый узел не считается
+   для :only-child, и кнопка после &nbsp; оставалась бы прижатой к подписи.
+   А в ipcam.php строк из одной ячейки нет — там колонки не перекрываются. */
+#cont table.data > tbody > tr > td:first-child:last-child:has(> :is(input[type=submit], input[type=button], button):last-child),
+#cont table.data > tr > td:first-child:last-child:has(> :is(input[type=submit], input[type=button], button):last-child) {
   display: inline-flex; align-items: center; gap: 10px; text-align: left; width: 100%;
 }
-#cont table.data td > :is(input[type=submit], input[type=button], button):last-child {
-  margin-left: auto; flex: none; min-width: 136px; justify-content: center;
+#cont table.data > tbody > tr > td:first-child:last-child > :is(input[type=submit], input[type=button], button):last-child {
+  margin-left: auto; flex: none; width: 136px; justify-content: center;
 }
 /* строка «одна ссылка-действие» (Выключение портов) — в ту же правую колонку;
    обычным ячейкам со ссылкой внутри строки данных это не касается */
