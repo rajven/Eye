@@ -19,33 +19,34 @@
   --accent-ink: #7a4703;
   --accent-soft: #fdf1e0;
 
-  --bg: #e9edf1;
+  --bg: #d7dfe7;                 /* каркас явно темнее карточек */
   --surface: #fff;
-  --surface-2: #f4f7f9;
-  --rule: #d5dce3;
-  --rule-strong: #bcc6cf;
-  --ink: #171d24;
-  --ink-2: #4a5660;
-  --ink-3: #77848f;
+  --surface-2: #e8eef4;
+  --rule: #bec9d4;
+  --rule-strong: #93a3b1;
+  --ink: #0d1319;                 /* данные читаются, а не угадываются */
+  --ink-2: #2b3844;
+  --ink-3: #52616d;
 
-  --rail: #1d2530;
-  --rail-ink: #c3cdd6;
+  --rail: #1b232d;
+  --rail-ink: #e2eaf1;
   --rail-hi: #fff;
   --rail-rule: #2c3743;
   --rail-hover: #252f3b;
 
-  --sel: #e8f0f7;
+  --sel: #d5e8fb;
+  --link: #0a4f8c;                  /* IP/логин/порт в таблицах */
   --focus: #1f6feb;
   --shadow: 0 1px 2px rgba(16, 24, 32, .06), 0 8px 24px rgba(16, 24, 32, .06);
 
-  --st-ok: #2f7a4f;
-  --st-warn: #b8791c;
-  --st-err: #a8352f;
-  --st-off: #7c8794;
-  --st-ok-bg: #eef6f0;
-  --st-warn-bg: #fbf3e4;
-  --st-err-bg: #fbeeed;
-  --st-off-bg: #f1f3f5;
+  --st-ok: #186b3c;
+  --st-warn: #8a5004;
+  --st-err: #97211a;
+  --st-off: #56636e;
+  --st-ok-bg: #ddefe2;
+  --st-warn-bg: #fbe8ca;
+  --st-err-bg: #fadfd9;
+  --st-off-bg: #dde4ea;
 
   --sans: "IBM Plex Sans", -apple-system, "Segoe UI", "DejaVu Sans", Roboto, "Noto Sans", sans-serif;
   /* IBM Plex Sans Condensed кириллицы не имеет — подзаголовки делаем Plex 600
@@ -53,10 +54,10 @@
   --disp: "IBM Plex Sans", var(--sans);
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", Consolas, monospace;
 
-  --row-h: 30px;
+  --row-h: 33px;
   --pad: 10px;
-  --fs: 13px;
-  --fs-mono: 12.5px;
+  --fs: 14px;
+  --fs-mono: 13px;
   --r-sm: 3px;
   --r-md: 5px;
   --r-lg: 8px;
@@ -69,24 +70,25 @@
   :root:not([data-eye="light"]) {
     --accent-ink: #f0b978;
     --accent-soft: #2a2013;
-    --bg: #12171e;
-    --surface: #1a212a;
-    --surface-2: #212a35;
-    --rule: #2d3846;
-    --rule-strong: #3b4a5a;
-    --ink: #dbe4ec;
-    --ink-2: #9dabba;
-    --ink-3: #7a8896;
+    --bg: #0c1116;
+    --surface: #171f28;
+    --surface-2: #232e3a;
+    --rule: #364554;
+    --rule-strong: #526477;
+    --ink: #f0f5fa;
+    --ink-2: #c6d4e1;
+    --ink-3: #9db0c1;
     --rail: #0d1218;
     --rail-ink: #9dabba;
     --rail-rule: #212a35;
     --rail-hover: #1b232e;
-    --sel: #223145;
-    --focus: #7aa7ff;
+    --sel: #29415f;
+    --focus: #8ab4ff;
+    --link: #7fc0ff;
     --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
-    --st-ok: #4fa877;
-    --st-warn: #d9a54a;
-    --st-err: #d9665c;
+    --st-ok: #63c892;
+    --st-warn: #f0c069;
+    --st-err: #ff8375;
     --st-off: #7f8c99;
     --st-ok-bg: #14231c;
     --st-warn-bg: #241d10;
@@ -100,25 +102,26 @@
 :root[data-eye="dark"] {
   --accent-ink: #f0b978;
   --accent-soft: #2a2013;
-  --bg: #12171e;
-  --surface: #1a212a;
-  --surface-2: #212a35;
-  --rule: #2d3846;
-  --rule-strong: #3b4a5a;
-  --ink: #dbe4ec;
-  --ink-2: #9dabba;
-  --ink-3: #7a8896;
-  --rail: #0d1218;
-  --rail-ink: #9dabba;
+  --bg: #0c1116;
+  --surface: #171f28;
+  --surface-2: #232e3a;
+  --rule: #364554;
+  --rule-strong: #526477;
+  --ink: #f0f5fa;
+  --ink-2: #c6d4e1;
+  --ink-3: #9db0c1;
+  --rail: #070c11;
+  --rail-ink: #dbe7f1;
   --rail-rule: #212a35;
   --rail-hover: #1b232e;
-  --sel: #223145;
-  --focus: #7aa7ff;
+  --sel: #29415f;
+  --focus: #8ab4ff;
+  --link: #7fc0ff;
   --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
-  --st-ok: #4fa877;
-  --st-warn: #d9a54a;
-  --st-err: #d9665c;
-  --st-off: #7f8c99;
+  --st-ok: #63c892;
+  --st-warn: #f0c069;
+  --st-err: #ff8375;
+  --st-off: #8ea1b3;
   --st-ok-bg: #14231c;
   --st-warn-bg: #241d10;
   --st-err-bg: #261514;
@@ -127,8 +130,8 @@
 }
 
 /* плотность: header.php навесит data-eye-dens на <html>, выбор запоминается */
-:root[data-eye-dens="roomy"] { --row-h: 38px; --pad: 14px; --fs: 14px; --fs-mono: 13px; }
-:root[data-eye-dens="tight"] { --row-h: 25px; --pad: 7px; --fs: 12px; --fs-mono: 11.5px; }
+:root[data-eye-dens="roomy"] { --row-h: 40px; --pad: 14px; --fs: 15px; --fs-mono: 14px; }
+:root[data-eye-dens="tight"] { --row-h: 27px; --pad: 7px; --fs: 12.5px; --fs-mono: 12px; }
 
 /* ---------- 4. База (заменила глобальный tahoma 12pt из white.css) ---------- */
 * { box-sizing: border-box; }
@@ -154,7 +157,7 @@ code, kbd, pre { font-family: var(--mono); font-size: .95em; }
 .mut, .tiny { color: var(--ink-3); }
 .red-text { color: var(--st-err); } .blue-text { color: var(--focus); }
 .green-text { color: var(--st-ok); } .black-text { color: var(--ink); }
-.ts { font-size: 11px; line-height: 1.3; color: var(--ink-3); padding: 0;
+.ts { font-size: 11.5px; line-height: 1.35; color: var(--ink-2); padding: 0;
       font-family: var(--mono); }
 p.ts, td p.ts { margin: 1px 0 0; }
 
@@ -258,39 +261,42 @@ table.data > tr > td, table.info > tr > td {
   background: transparent; color: var(--ink); text-align: left; vertical-align: middle;
 }
 /* шапка: первая строка */
-table.data > tr:first-child > td, table.data > thead > tr > td,
+table.data > tbody > tr:first-child > td, table.data > tr:first-child > td,
+table.data > thead > tr:first-child > td, table.info > tbody > tr:first-child > td,
 table.info > tr:first-child > td, table.data tr.lblrow > td {
   position: sticky; top: 0; z-index: 4; height: 34px;
   background: var(--surface-2);
   background: color-mix(in srgb, var(--accent) 6%, var(--surface));
   border-bottom: 1px solid var(--rule-strong);
-  font: 600 11px/1.2 var(--disp); letter-spacing: .07em; text-transform: uppercase;
+  font: 600 12px/1.2 var(--disp); letter-spacing: .04em; text-transform: uppercase;
   color: var(--ink);
 }
 table.data tr.lblrow > td { color: var(--ink-2); border-bottom: 0; padding-top: 9px; height: 24px; }
 table.data tr.lblrow + tr > td { padding-top: 0; }
-table.data > tr:first-child > td b { font-weight: 600; }
-table.data > tr:first-child a, table.data tr.lblrow a { color: inherit; }
-table.data > tr:first-child a:hover, table.data tr.lblrow a:hover { color: var(--accent-ink); }
+table.data > tbody > tr:first-child > td b, table.data > tr:first-child > td b { font-weight: 600; }
+table.data > tbody > tr:first-child a, table.data > tr:first-child a, table.data tr.lblrow a { color: var(--ink); }
+table.data > tbody > tr:first-child a:hover, table.data > tr:first-child a:hover,
+table.data tr.lblrow a:hover { color: var(--link); text-decoration: none; }
 /* заголовок таблицы («Состояние записи») — тоже подпись, а не текст данных */
 table.data > caption, table.info > caption {
   caption-side: top; text-align: left; padding: 9px var(--pad) 7px;
-  font: 600 10.5px/1.2 var(--disp); letter-spacing: .07em; text-transform: uppercase;
-  color: var(--ink-2); border-bottom: 1px solid var(--rule);
+  font: 600 11px/1.2 var(--disp); letter-spacing: .05em; text-transform: uppercase;
+  color: var(--ink); border-bottom: 1px solid var(--rule);
 }
 /* ячейка-ключ в таблицах «ключ: значение» (editauth.php, отчёты) */
-.cell-key { font-weight: 600; color: var(--ink-3); }
+.cell-key { font-weight: 600; color: var(--ink-2); }
 /* ссылка на связанную сущность (IPSet-ы и т.п.) — была инлайновая #06c */
 a.ref { color: var(--accent-ink); font-weight: 500; text-decoration: none;
         border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }
 a.ref:hover { color: var(--accent); }
 /* пустое/незаданное значение: «0/0», «—» — не должно перетягивать на себя взгляд */
-.none { color: var(--ink-3); }
+.none { color: var(--ink-3); font-family: var(--mono); }
 /* то, о чём надо прочитать вслух: удалено, выключено, заблокировано */
 .bad { color: var(--st-err); }
 td.bad { background: var(--st-err-bg); color: var(--st-err); font-weight: 500; }
 /* подписи-ссылки должны читаться как подписи, а не как ссылки */
-table.data > tr:first-child a { text-decoration: none; border-bottom: 1px solid var(--rule-strong); }
+table.data > tbody > tr:first-child a, table.data > tr:first-child a {
+  text-decoration: none; border-bottom: 1px solid var(--rule-strong); }
 table.data > tbody > tr:last-child > td, table.data > tr:last-child > td { border-bottom: 0; }
 /* ячейка на всю ширину = подзаголовок раздела, а не данные */
 table.data > tbody > tr > td:first-child:last-child,
@@ -308,8 +314,8 @@ table.data td.nl .ln { display: block; white-space: nowrap; line-height: 1.55; }
 table.data td.nl > br { display: none; }
 
 /* ссылки в ячейках: подчёркивание только при наведении — таблица не должна быть пёстрой */
-table.data td a { border-bottom: 1px solid transparent; }
-table.data td a:hover { border-bottom-color: var(--accent); color: var(--accent-ink); }
+table.data td a { color: var(--link); font-weight: 500; border-bottom: 1px solid transparent; }
+table.data td a:hover { border-bottom-color: var(--link); color: var(--link); text-decoration: none; }
 
 /* Состояния ячеек. Важно про специфичность: общее правило
    `table.data > tbody > tr > td` = (0,1,4), обычные `td.up`/`td.warn` = (0,1,1) — они
@@ -322,10 +328,10 @@ table.data td a:hover { border-bottom-color: var(--accent); color: var(--accent-
    `table.data > tbody > tr > td.X` (0,2,4) и идут ПОСЛЕ правила :hover,
    чтобы состояния не перекрывались подсветкой строки. */
 table.data > tbody > tr > td.warn  { background: var(--st-warn-bg);
-                                          background: color-mix(in srgb, var(--st-warn) 12%, var(--surface)); }
-table.data > tbody > tr > td.nb    { background: color-mix(in srgb, var(--st-warn) 18%, var(--surface)); }
+                                          background: color-mix(in srgb, var(--st-warn) 20%, var(--surface)); }
+table.data > tbody > tr > td.nb    { background: color-mix(in srgb, var(--st-warn) 26%, var(--surface)); }
 table.data > tbody > tr > td.error { background: var(--st-err-bg);
-                                          background: color-mix(in srgb, var(--st-err) 12%, var(--surface)); color: var(--ink); }
+                                          background: color-mix(in srgb, var(--st-err) 24%, var(--surface)); color: var(--ink); }
 table.data > tbody > tr > td.off   { background: var(--st-off-bg); color: var(--ink-3); }
 /* левая линейка строки: состояние читается периферийным зрением, цвет не заливая всю строку */
 table.data tr:has(> td:first-child.warn)  > td:first-child::before { background: var(--st-warn); }
@@ -333,7 +339,7 @@ table.data tr:has(> td:first-child.error) > td:first-child::before { background:
 table.data tr:has(> td:first-child.off)   > td:first-child::before { background: var(--st-off); }
 table.data > tbody > tr > td.custom { background: var(--accent-soft); color: var(--accent-ink); }
 td.crc, table.data > tbody > tr > td.crc { background: var(--st-err-bg);
-                                          background: color-mix(in srgb, var(--st-err) 18%, var(--surface)); }
+                                          background: color-mix(in srgb, var(--st-err) 24%, var(--surface)); }
 td.cell_red, table.data > tbody > tr > td.cell_red { color: var(--st-err); background: transparent; }
 td.data_green, table.data > tbody > tr > td.data_green { color: var(--st-ok); }
 td.data_red,   table.data > tbody > tr > td.data_red   { color: var(--st-err); }
@@ -344,27 +350,27 @@ td.data_green:empty::after { content: "\2713"; color: var(--st-ok); }
    заливка ячейки и есть данные, поэтому цвета насыщенные, как в исходной теме */
 table.data > tbody > tr > td.up {
   background: var(--st-ok-bg);
-  background: color-mix(in srgb, var(--st-ok) 30%, var(--surface));
+  background: color-mix(in srgb, var(--st-ok) 38%, var(--surface));
   color: var(--ink);
 }
 table.data > tbody > tr > td.down {
   /* «линка нет» — серая ячейка: пусто, но не слепится с фоном таблицы */
   background: var(--st-off-bg);
-  background: color-mix(in srgb, var(--st-off) 16%, var(--surface));
+  background: color-mix(in srgb, var(--st-off) 22%, var(--surface));
   color: var(--ink-3);
 }
 table.data > tbody > tr > td.shutdown {
   background: var(--st-warn-bg);
   background: repeating-linear-gradient(45deg,
-    color-mix(in srgb, var(--st-warn) 34%, var(--surface)) 0 7px,
-    color-mix(in srgb, var(--st-warn) 20%, var(--surface)) 7px 14px);
+    color-mix(in srgb, var(--st-warn) 44%, var(--surface)) 0 7px,
+    color-mix(in srgb, var(--st-warn) 28%, var(--surface)) 7px 14px);
   color: var(--accent-ink);
 }
 /* скорость линка — градация зелёного, читается вместе с состоянием */
-table.data > tbody > tr > td.speed10M  { background: color-mix(in srgb, var(--st-warn) 16%, var(--surface)); color: var(--ink-2); font-family: var(--mono); }
-table.data > tbody > tr > td.speed100M { background: color-mix(in srgb, var(--st-warn) 34%, var(--surface)); color: var(--ink); font-family: var(--mono); }
-table.data > tbody > tr > td.speed1G   { background: color-mix(in srgb, var(--st-ok) 32%, var(--surface)); color: var(--ink); font-family: var(--mono); }
-table.data > tbody > tr > td.speed10G  { background: color-mix(in srgb, var(--st-ok) 52%, var(--surface)); color: var(--ink); font-family: var(--mono); font-weight: 600; }
+table.data > tbody > tr > td.speed10M  { background: color-mix(in srgb, var(--st-warn) 22%, var(--surface)); color: var(--ink-2); font-family: var(--mono); }
+table.data > tbody > tr > td.speed100M { background: color-mix(in srgb, var(--st-warn) 42%, var(--surface)); color: var(--ink); font-family: var(--mono); }
+table.data > tbody > tr > td.speed1G   { background: color-mix(in srgb, var(--st-ok) 40%, var(--surface)); color: var(--ink); font-family: var(--mono); }
+table.data > tbody > tr > td.speed10G  { background: color-mix(in srgb, var(--st-ok) 62%, var(--surface)); color: var(--ink); font-family: var(--mono); font-weight: 600; }
 /* info-таблицы (легенда «Соединение», предупреждения) */
 table.info, td.info, table.data > tbody > tr > td.info {
   background: var(--accent-soft); color: var(--accent-ink);
@@ -490,7 +496,7 @@ a.exportButton:hover { background: var(--st-ok-bg); }
   padding: 8px 4px; margin-bottom: 12px; box-shadow: var(--shadow); }
 .f { display: flex; flex-direction: column; gap: 4px; padding: 2px 12px; min-width: 0; }
 .f + .f { border-left: 1px solid var(--rule); }
-.f > label, .f > .k { font: 600 10px/1 var(--disp); letter-spacing: .11em; text-transform: uppercase;
+.f > label, .f > .k { font: 600 11px/1.15 var(--disp); letter-spacing: .06em; text-transform: uppercase;
   color: var(--ink-3); white-space: nowrap; }
 .f.grow { flex: 1 1 220px; }
 .f.end { margin-left: auto; }
@@ -649,7 +655,7 @@ div.simple { margin: 12px 0; padding: 12px 14px; background: var(--surface); bor
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
-  table.data > tr:first-child > td { position: static; }
+  table.data > tbody > tr:first-child > td, table.data > tr:first-child > td { position: static; }
 }
 @media print {
   #eye-rail, #submenu, #contsubmenu, #subsubmenu, .bulk, .filters, .savebar, .performance-info,
@@ -657,7 +663,7 @@ div.simple { margin: 12px 0; padding: 12px 14px; background: var(--surface); bor
   #eye-shell { display: block; }
   body { background: #fff; color: #000; }
   table.data { border: 1px solid #999; box-shadow: none; }
-  table.data > tr:first-child > td { position: static; background: #f0f0f0; }
+  table.data > tbody > tr:first-child > td, table.data > tr:first-child > td { position: static; background: #eee; }
 }
 
 

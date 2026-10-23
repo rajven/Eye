@@ -1,33 +1,32 @@
 /* ======================================================================
    Eye — тёмная тема как явный выбор: define("HTML_STYLE","eye-dark");
-   Блок токенов ниже — копия секции 3 из eye.css (поддерживать в синхроне).
-   Без правки header.php работает и на старой шаблонной разметке.
+   Токены синхронны с блоком [data-eye="dark"] в eye.css (поддерживать вместе).
    ====================================================================== */
 @import url("eye.css");
 
 :root {
-
   --accent-ink: #f0b978;
   --accent-soft: #2a2013;
-  --bg: #12171e;
-  --surface: #1a212a;
-  --surface-2: #212a35;
-  --rule: #2d3846;
-  --rule-strong: #3b4a5a;
-  --ink: #dbe4ec;
-  --ink-2: #9dabba;
-  --ink-3: #7a8896;
-  --rail: #0d1218;
-  --rail-ink: #9dabba;
+  --bg: #0c1116;
+  --surface: #171f28;
+  --surface-2: #232e3a;
+  --rule: #364554;
+  --rule-strong: #526477;
+  --ink: #f0f5fa;
+  --ink-2: #c6d4e1;
+  --ink-3: #9db0c1;
+  --rail: #070c11;
+  --rail-ink: #dbe7f1;
   --rail-rule: #212a35;
   --rail-hover: #1b232e;
-  --sel: #223145;
-  --focus: #7aa7ff;
+  --sel: #29415f;
+  --focus: #8ab4ff;
+  --link: #7fc0ff;
   --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
-  --st-ok: #4fa877;
-  --st-warn: #d9a54a;
-  --st-err: #d9665c;
-  --st-off: #7f8c99;
+  --st-ok: #63c892;
+  --st-warn: #f0c069;
+  --st-err: #ff8375;
+  --st-off: #8ea1b3;
   --st-ok-bg: #14231c;
   --st-warn-bg: #241d10;
   --st-err-bg: #261514;
