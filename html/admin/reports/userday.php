@@ -67,7 +67,7 @@ foreach ($usersip as $row) {
 
     if ($summ > 0) {
         $ipcount++;
-        print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+        print "<tr align=center>\n";
         print "<td class=\"data\" ><b><a href=/admin/users/editauth.php?id=$fid>$fip</a></b></td>\n";
         print "<td class=\"data\" colspan=2>$fcomm</td>\n";
         print "<td class=\"data\" ><a href=/admin/reports/userdaydetail.php?id=$fid&date_start=$date1&date_stop=$date2>TOP 10</a></td>\n";
@@ -132,7 +132,7 @@ foreach ($usersip as $row) {
         $sum_in = 0;
         $sum_out = 0;
         foreach ($userdata as $userrow) {
-            print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+            print "<tr align=center>\n";
             print "<td class=\"data\"> </td>\n";
             print "<td class=\"data\">" . $gateway_list[$userrow['router_id']] . "</td>\n";
             print "<td class=\"data\">" . $userrow['thour'] . "</td>\n";
@@ -142,7 +142,7 @@ foreach ($usersip as $row) {
             $sum_in += $userrow['byte_in_sum'];
             $sum_out += $userrow['byte_out_sum'];
         }
-        print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+        print "<tr align=center>\n";
         print "<td class=\"data\"><b>" . WEB_title_sum . "</b></td>\n";
         print "<td class=\"data\"><b> </b></td>\n";
         print "<td class=\"data\"><b> </b></td>\n";
@@ -154,7 +154,7 @@ foreach ($usersip as $row) {
     }
 }
 if ($ipcount > 1) {
-    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center>\n";
     print "<td class=\"data\"><b>".WEB_title_itog."</b></td>\n";
     print "<td class=\"data\"><b> </b></td>\n";
     print "<td class=\"data\"><b> </b></td>\n";

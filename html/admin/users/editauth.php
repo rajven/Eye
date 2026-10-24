@@ -378,7 +378,7 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             </tr>
 
             <!-- 2. ДОСТУП И ОГРАНИЧЕНИЯ -->
-            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
+            <tr class="sep"><td colspan="5"></td></tr>
             <tr>
                 <td><?php echo WEB_cell_enabled; ?></td>
                 <td><?php echo WEB_cell_blocked; ?></td>
@@ -398,7 +398,7 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             </tr>
 
             <!-- 3. DHCP -->
-            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
+            <tr class="sep"><td colspan="5"></td></tr>
             <tr>
                 <td><?php echo WEB_cell_dns_name; ?> &nbsp;|&nbsp; 
                 <?php 
@@ -428,7 +428,7 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             </tr>
 
             <!-- 4. МОНИТОРИНГ -->
-            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
+            <tr class="sep"><td colspan="5"></td></tr>
             <tr>
                 <td width="200">
                     <?php
@@ -465,7 +465,7 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             </tr>
 
             <!-- 5. ТИП ЗАПИСИ -->
-            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
+            <tr class="sep"><td colspan="5"></td></tr>
             <tr>
                 <td><?php echo WEB_cell_temporary; ?></td>
                 <td colspan="4">
@@ -483,14 +483,14 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             </tr>
 
             <!-- КНОПКИ -->
-            <tr style="height: 10px; background: #f5f5f5;"><td colspan="5"></td></tr>
+            <tr class="sep"><td colspan="5"></td></tr>
             <tr>
                 <td colspan="3">
                     <input type="submit" name="moveauth" value="<?php echo WEB_btn_move; ?>">
                     <?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?>
                 </td>
                 <?php if ($auth_info['deleted']): ?>
-                    <td><font color="red"><?php echo WEB_deleted . ": " . $auth_info['changed_time']; ?></font></td>
+                    <td class="bad"><?php echo WEB_deleted . ": " . $auth_info['changed_time']; ?></td>
                     <td align="right"><input type="submit" name="recovery" value="<?php echo WEB_btn_recover; ?>"></td>
                 <?php else: ?>
                     <td></td>
@@ -501,7 +501,7 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
 
         <!-- ИНФОРМАЦИЯ О ЗАПИСИ -->
         <table class="data" style="margin-top: 20px;">
-            <caption style="caption-side: top; font-weight: bold; margin-bottom: 5px;"><?php echo WEB_status; ?></caption>
+            <caption><?php echo WEB_status; ?></caption>
             <tr>
                 <td width="150"><?php echo WEB_cell_created_by; ?>:</td>
                 <td width="200"><?php echo $auth_info['created_by']; ?></td>

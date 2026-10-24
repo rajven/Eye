@@ -48,13 +48,14 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 <div id="cont">
 <form name="def" action="ipcam.php" method="post">
 <?php
-print "<table cellspacing=\"0\" cellpadding=\"0\" width=\"500\">";
-print "<tr >\n";
-print "<td align=center colspan=2>".WEB_control_group."</td><td>";
+print "<table class=\"data\">";
+print "<tr>\n";
+print "<td class=\"data\">&nbsp;</td>\n";
+print "<td class=\"data\" align=left>".WEB_control_group."</td>\n";
+print "<td class=\"data\" colspan=2>";
 print_ou_select($db_link, 'f_ou_id', $f_ou_id);
 print "</td>\n";
 print "</tr>\n";
-print "<tr><td colspan=3><br></td></tr>\n";
 $t_config = get_records_sql($db_link, "SELECT * FROM building ORDER BY name");
 foreach ($t_config as $row) {
     print "<tr align=center>\n";
@@ -67,3 +68,7 @@ foreach ($t_config as $row) {
 ?>
 </table>
 </form>
+
+<?php
+require_once ($_SERVER["DOCUMENT_ROOT"]."/inc/footer.php");
+?>

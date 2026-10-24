@@ -288,12 +288,13 @@ sub get_new_user_id {
         my @rules = get_records_sql($db,
             "SELECT rule, user_id FROM auth_rules WHERE rule_type = 2 AND LENGTH(rule) > 0 AND user_id IS NOT NULL"
         );
+        my $mac_clean = mac_simplify($mac); 
         foreach my $r (@rules) {
             next unless defined $r->{rule};
             my $rule_clean = mac_simplify($r->{rule});
             # Защита от битых регулярок
             eval {
-                if ($mac =~ /^$rule_clean/i) {
+                if ($mac_clean =~ /^$rule_clean/i) {
                     $result->{user_id} = $r->{user_id};
                     return $result;
                 }
@@ -344,11 +345,12 @@ sub get_new_user_id {
         my @rules = get_records_sql($db,
             "SELECT rule, ou_id FROM auth_rules WHERE rule_type = 2 AND LENGTH(rule) > 0 AND ou_id IS NOT NULL"
         );
+        my $mac_clean = mac_simplify($mac);
         foreach my $r (@rules) {
             next unless defined $r->{rule};
             my $rule_clean = mac_simplify($r->{rule});
             eval {
-                if ($mac =~ /^$rule_clean/i) {
+                if ($mac_clean =~ /^$rule_clean/i) {
                     $result->{ou_id} = $r->{ou_id};
                     return $result;
                 }

@@ -73,7 +73,7 @@ $iplog = get_records_sql($db_link, $sSQL, $dataParams);
 <?php
 
 foreach ($iplog as $row) {
-    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center>\n";
     print "<td class=\"data\">" . $row['id'] . "</td>\n";
     print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
     print "<td class=\"data\">" . get_datetime_display($row['last_found']) . "</td>\n";

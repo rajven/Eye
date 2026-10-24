@@ -143,18 +143,12 @@ cp /opt/Eye/docs/patches/USM.pm /usr/share/perl5/Net/SNMP/Security/USM.pm
 ```bash
 # Create directories
 mkdir -p /opt/Eye/html/js/jq
-mkdir -p /opt/Eye/html/js/select2
 mkdir -p /opt/Eye/html/js/jstree
 
 # Download jQuery
 wget https://code.jquery.com/jquery-3.7.0.min.js \
 -O /opt/Eye/html/js/jq/jquery.min.js
 
-# Download Select2
-wget https://github.com/select2/select2/archive/4.0.12.tar.gz -O 4.0.12.tar.gz
-tar -xzf 4.0.12.tar.gz -C /opt/Eye/html/js/select2/ \
---strip-components=2 select2-4.0.12/dist
-rm -f 4.0.12.tar.gz
 
 # Download jsTree
 wget https://github.com/vakata/jstree/archive/3.3.12.tar.gz -O jstree.tar.gz

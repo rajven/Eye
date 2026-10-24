@@ -69,12 +69,11 @@ print_device_submenu($page_url);
 </form>
 
 <br>
-<a class="mainButton" href="#modal"><?php print WEB_btn_apply_selected; ?></a>
-<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modal" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
- <div class="remodalBorder">
-  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
-      <form id="formNetDevApply">
-        <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
+<a class="mainButton" href="#eye-mass"><?php print WEB_btn_apply_selected; ?></a>
+<dialog id="eye-mass" class="eye-dlg">
+  <button type="button" class="x" data-close aria-label="<?php echo WEB_btn_close; ?>">&#10005;</button>
+  <form id="formNetDevApply">
+        <h2><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
         <tr><td><input type=checkbox class="putField" name="e_set_type" value='1'></td><td><?php print WEB_cell_type."</td><td>";print_devtype_select($db_link,'a_dev_type',5);?></td></tr>
@@ -86,21 +85,18 @@ print_device_submenu($page_url);
         </table>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
-</div>
-</div>
+</dialog>
 
-<a class="delButton" href="#modalDel"><?php print WEB_btn_delete; ?></a>
-<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modalDel" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
- <div class="remodalBorder">
-  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
-    <form id="formNetDevDel">
-        <h2 id="modal1Title"><?php print WEB_msg_delete_selected; ?></h2>
+<a class="delButton" href="#eye-del"><?php print WEB_btn_delete; ?></a>
+<dialog id="eye-del" class="eye-dlg">
+  <button type="button" class="x" data-close aria-label="<?php echo WEB_btn_close; ?>">&#10005;</button>
+  <form id="formNetDevDel">
+        <h2><?php print WEB_msg_delete_selected; ?></h2>
         <input type="hidden" name="RemoveDevice" value="MassChange">
         <?php print_qa_select('f_deleted', 0);?><br><br>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
-</div>
-</div>
+</dialog>
 
 <?php
 
@@ -160,8 +156,6 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 ?>
 </form>
 
-<script src="/js/remodal/remodal.min.js"></script>
-<script src="/js/remodal-devices.js"></script>
 
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");

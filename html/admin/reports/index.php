@@ -114,7 +114,7 @@ foreach ($traf as $row) {
 
     $u_SQL='SELECT * FROM user_list WHERE id=?';
     $user_record = get_record_sql($db_link,$u_SQL,[$row['user_id']]);
-    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center>\n";
     print "<td align=left class=\"$cl\"><a href=userday.php?id=" . $row['user_id'] . "&date_start=$date1&date_stop=$date2>" . $user_record['login'] . "</a></td>\n";
     print "<td align=left class=\"$cl\">$s_router</td>\n";
     print "<td class=\"$cl\">" . fbytes($row['tin']) . "</td>\n";
@@ -124,7 +124,7 @@ foreach ($traf as $row) {
     print "</tr>\n";
 }
 
-print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+print "<tr align=center>\n";
 print "<td class=\"data\" colspan=2><b>".WEB_title_itog."</b></td>\n";
 print "<td class=\"data\"><b>" . fbytes($total_in) . "</b></td>\n";
 print "<td class=\"data\"><b>" . fbytes($total_out) . "</b></td>\n";

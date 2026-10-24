@@ -121,7 +121,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
 <div id="cont">
     <br><b>✏️ <?php echo WEB_ipset_edit.":&nbsp".htmlspecialchars($ipset['name']); ?></b><br>
     <?php if (!empty($error)): ?>
-        <div style="color:red; margin:10px 0; padding:8px; background:#ffe0e0; border:1px solid #f99;">
+        <div class="note err">
             ⚠️ <?php echo $error; ?>
         </div>
     <?php endif; ?>
@@ -241,7 +241,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
                 else:
                 ?>
                 <tr>
-                    <td colspan="7" align="center" style="color:#666; padding:20px;">
+                    <td colspan="7" align="center" class="empty-cell">
                         ⚪ <?php echo WEB_ipset_empty; ?>
                     </td>
                 </tr>
@@ -253,8 +253,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
     <?php if (!empty($members)): ?>
     <form method="post" action="?id=<?php echo $id; ?>" onsubmit="return confirm('⚠️<?php echo WEB_ipset_clear_qa; ?>')">
         <input type="hidden" name="confirm_clear" value="yes">
-        <input type="submit" name="clear_all" value="<?php echo WEB_ipset_clear; ?>"
-               style="background:#c33; color:white; border:none; padding:8px 16px; cursor:pointer;">
+        <input type="submit" name="clear_all" value="<?php echo WEB_ipset_clear; ?>" class="danger">
     </form>
     <?php endif; ?>
 

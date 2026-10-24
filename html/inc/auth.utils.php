@@ -12,7 +12,7 @@ define('USER_SESSIONS_TABLE', 'user_sessions');
 //set default const values
 if (!defined("SESSION_LIFETIME") || SESSION_LIFETIME < 60) { define("SESSION_LIFETIME", 86400); }
 if (!defined("HTML_LANG")) { define("HTML_LANG","english"); }
-if (!defined("HTML_STYLE")) { define("HTML_STYLE","white"); }
+if (!defined("HTML_STYLE")) { define("HTML_STYLE","eye"); }
 if (!defined("IPCAM_GROUP_ID")) { define("IPCAM_GROUP_ID","5"); }
 if (!defined("SNMP_timeout")) { define("SNMP_timeout","500000"); }
 if (!defined("SNMP_retry")) { define("SNMP_retry","1"); }

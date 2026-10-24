@@ -1,0 +1,34 @@
+
+
+@import url("eye.css");
+
+/* 1. Tokens: light palette. The accent #ed8b0d is inherited from the old theme (#title colour). */
+:root {
+  --accent-ink: #f0b978;
+  --accent-soft: #2a2013;
+  --bg: #0c1116;
+  --surface: #171f28;
+  --surface-2: #232e3a;
+  --rule: #364554;
+  --rule-strong: #526477;
+  --ink: #f0f5fa;
+  --ink-2: #c6d4e1;
+  --ink-3: #9db0c1;
+  --rail: #070c11;
+  --rail-ink: #dbe7f1;
+  --rail-rule: #212a35;
+  --rail-hover: #1b232e;
+  --sel: #29415f;
+  --focus: #8ab4ff;
+  --link: #7fc0ff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
+  --st-ok: #63c892;
+  --st-warn: #f0c069;
+  --st-err: #ff8375;
+  --st-off: #8ea1b3;
+  --st-ok-bg: #14231c;
+  --st-warn-bg: #241d10;
+  --st-err-bg: #261514;
+  --st-off-bg: #1b222b;
+  color-scheme: dark;
+}

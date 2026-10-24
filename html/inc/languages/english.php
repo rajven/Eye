@@ -545,4 +545,23 @@ define("WEB_NOTIFY_CREATE","Create");
 define("WEB_NOTIFY_UPDATE","Change");
 define("WEB_NOTIFY_DELETE","Delete");
 
+
+/* --- eye theme: labels used by inc/footer.php and js/eye.js --- */
+define("WEB_perf_page","Page generated in");
+define("WEB_perf_sec","sec");
+define("WEB_perf_memory","Memory (peak):");
+define("WEB_perf_used","Changed:");
+define("WEB_lbl_dense","Compact");
+define("WEB_lbl_normal","Normal");
+define("WEB_lbl_roomy","Roomy");
+define("WEB_lbl_theme","Theme: auto");
+define("WEB_lbl_theme_light","Theme: light");
+define("WEB_lbl_theme_dark","Theme: dark");
+define("WEB_lbl_selected","selected");
+define("WEB_lbl_clear","Clear");
+define("WEB_lbl_failed","Failed:");
+define("WEB_msg_filter_hint","Filters are applied immediately");
+define("WEB_btn_close","Close");
+define("WEB_lbl_typeahead","Type to search");
+define("WEB_lbl_nomatch","Nothing found");
 ?>

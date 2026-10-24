@@ -11,7 +11,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header_public.php");
 $auth_ip = get_user_ip();
 if (!$auth_ip || !filter_var($auth_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
     print "<div id=\"cont\">";
-    print "<font color=red><b>".WEB_auth_unknown."</b></font>";
+    print "<span class=\"bad\"><b>".WEB_auth_unknown."</b></span>";
     require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
     exit;
 }
@@ -46,7 +46,7 @@ $record = get_record_sql($db_link, $sql, [$ip_long]);
 
 if (!$record) {
     print "<div id=\"cont\">";
-    print "<font color=red><b>".WEB_cell_ip . "&nbsp;" . htmlspecialchars($auth_ip, ENT_QUOTES) . "&nbsp; - " . WEB_unknown . "!</b></font>";
+    print "<span class=\"bad\"><b>".WEB_cell_ip . "&nbsp;" . htmlspecialchars($auth_ip, ENT_QUOTES) . "&nbsp; - " . WEB_unknown . "!</b></span>";
     require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.simple.php");
     exit;
 }
@@ -130,10 +130,10 @@ if ($record['user_enabled'] && !$record['user_blocked']) {
     echo WEB_msg_enabled;
 } else {
     if (!$record['user_enabled']) {
-        echo '<font color="red">' . WEB_msg_disabled . '</font>&nbsp;';
+        echo '<span class="bad">' . WEB_msg_disabled . '</span>&nbsp;';
     }
     if ($record['user_blocked']) {
-        echo '<font color="red">' . WEB_msg_traffic_blocked . '</font>';
+        echo '<span class="bad">' . WEB_msg_traffic_blocked . '</span>';
     }
 }
 ?>
@@ -151,12 +151,12 @@ if ($auth_active) {
 } else {
     // Если пользователь неактивен — IP выключен из-за пользователя
     if (!$user_active) {
-        echo '<font color="red">' . WEB_msg_disabled . '</font>&nbsp;';
+        echo '<span class="bad">' . WEB_msg_disabled . '</span>&nbsp;';
     } elseif (!$record['auth_enabled']) {
-        echo '<font color="red">' . WEB_msg_disabled . '</font>&nbsp;';
+        echo '<span class="bad">' . WEB_msg_disabled . '</span>&nbsp;';
     }
     if ($record['auth_blocked']) {
-        echo '<font color="red">' . WEB_msg_traffic_blocked . '</font>';
+        echo '<span class="bad">' . WEB_msg_traffic_blocked . '</span>';
     }
 }
 ?>

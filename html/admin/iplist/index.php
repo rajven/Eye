@@ -97,71 +97,33 @@ print_ip_submenu($page_url);
 
 ?>
 
-<script>
-function blockForm(formId) {
-    const form = document.getElementById(formId);
-    if (!form) return;
-    // Меняем текст кнопки отправки
-    const submitBtn = form.querySelector('input[type="submit"], button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.value = '<?php print WEB_msg_processing; ?>';
-        submitBtn.textContent = '<?php print WEB_msg_processing; ?>';
-    }
-}
-</script>
-
 <div id="cont">
 <br>
 <form id="filter" name="filter" action="index.php" method="post">
 <input type="hidden" name="ip-filter" value="<?php print $ip_list_filter; ?>">
 <input type="hidden" name="ip-sort" value="<?php print $sort_table.".".$sort_field." ".$order; ?>">
-<table>
-<tr>
-        <td>
-        <b><?php print WEB_cell_ou; ?> - </b><?php print_ou_select($db_link, 'ou', $rou); ?>
-        </td>
-        <td>
-        <b><?php print WEB_network_subnet; ?> - </b><?php print_subnet_select_office_splitted($db_link, 'cidr', $rcidr); ?>
-        </td>
-        <td></td>
-</tr>
-<tr>
-        <td>
-        <b><?php echo WEB_ips_show_by_state; ?> - </b><?php print_enabled_select('enabled', $enabled); ?>
-        </td>
-        <td>
-        <b><?php echo WEB_ips_show_by_ip_type; ?> - </b><?php print_ip_type_select('ip_type', $ip_type); ?>
-        </td>
-        <td></td>
-</tr>
-<tr>
-        <td>
-        <b><?php echo WEB_cell_dhcp; ?> - </b><?php print_yn_select('dhcp_enabled', $dhcp_enabled); ?>
-        </td>
-        <td>
-        <b><?php echo WEB_cell_temporary; ?> - </b><?php print_yn_select('dynamic_enabled', $dynamic_enabled); ?>
-        </td>
-        <td></td>
-</tr>
-<tr>
-        <td colspan=2>
-        <?php echo WEB_ips_search_host; ?>:&nbsp<input type="text" name="search_str" value="<?php echo $f_search_str; ?>"/>
-        </td>
-        <td>
-        <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
-        <input id="btn_filter" name="btn_filter" type="submit" value="<?php echo WEB_btn_show; ?>">
-        </td>
-</tr>
-</table>
+<div class="filters">
+<div class="f"><label for="ou"><?php print WEB_cell_ou; ?></label><?php print_ou_select($db_link, 'ou', $rou); ?></div>
+<div class="f"><label for="cidr"><?php print WEB_network_subnet; ?></label><?php print_subnet_select_office_splitted($db_link, 'cidr', $rcidr); ?></div>
+<div class="f"><label for="enabled"><?php echo WEB_ips_show_by_state; ?></label><?php print_enabled_select('enabled', $enabled); ?></div>
+<div class="f"><label for="ip_type"><?php echo WEB_ips_show_by_ip_type; ?></label><?php print_ip_type_select('ip_type', $ip_type); ?></div>
+<div class="f"><label for="dhcp_enabled"><?php echo WEB_cell_dhcp; ?></label><?php print_yn_select('dhcp_enabled', $dhcp_enabled); ?></div>
+<div class="f"><label for="dynamic_enabled"><?php echo WEB_cell_temporary; ?></label><?php print_yn_select('dynamic_enabled', $dynamic_enabled); ?></div>
+<div class="f grow"><label for="search_str"><?php echo WEB_ips_search_host; ?></label>
+  <span class="q"><input type="search" id="search_str" name="search_str" value="<?php echo htmlspecialchars($f_search_str, ENT_QUOTES); ?>"
+    placeholder="<?php echo WEB_ips_search_host; ?>">
+    <kbd>/</kbd></span></div>
+<div class="f end"><label for="rows"><?php print WEB_rows_at_page; ?></label><?php print_row_at_pages('rows',$displayed); ?></div>
+<p class="hint"><?php echo WEB_msg_filter_hint; ?></p>
+<input id="btn_filter" name="btn_filter" type="submit" value="<?php echo WEB_btn_show; ?>">
+</div>
 </form>
 
-<a class="mainButton" href="#modal"><?php print WEB_btn_apply_selected; ?></a>
-<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modal" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
- <div class="remodalBorder">
-  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
-      <form id="formAuthApply" name="formAuthApply" onsubmit="blockForm('formAuthApply');">
-        <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
+<a class="mainButton" href="#eye-mass"><?php print WEB_btn_apply_selected; ?></a>
+<dialog id="eye-mass" class="eye-dlg">
+  <button type="button" class="x" data-close aria-label="<?php echo WEB_btn_close; ?>">&#10005;</button>
+  <form id="formAuthApply" name="formAuthApply" onsubmit="blockForm('formAuthApply');">
+        <h2><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
         <tr><td><input type=checkbox class="putField" name="e_new_ou" value='1'></td><td align=left><?php print WEB_cell_ou."</td><td align=right>";print_ou_set($db_link, 'a_new_ou', 0); ?></td></tr>
@@ -177,35 +139,30 @@ function blockForm(formId) {
         </table>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
-</div>
-</div>
+</dialog>
 
-<a class="delButton" href="#modalDel"><?php print WEB_btn_delete; ?></a>
-<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modalDel" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
- <div class="remodalBorder">
-  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
-    <form id="formAuthDel" name="formAuthDel" onsubmit="blockForm('formAuthDel');">
-        <h2 id="modal1Title"><?php print WEB_msg_delete_selected; ?></h2>
+<a class="delButton" href="#eye-del"><?php print WEB_btn_delete; ?></a>
+<dialog id="eye-del" class="eye-dlg">
+  <button type="button" class="x" data-close aria-label="<?php echo WEB_btn_close; ?>">&#10005;</button>
+  <form id="formAuthDel" name="formAuthDel" onsubmit="blockForm('formAuthDel');">
+        <h2><?php print WEB_msg_delete_selected; ?></h2>
         <input type="hidden" name="RemoveAuth" value="MassChange">
         <?php print_qa_select('f_deleted', 0);?><br><br>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
-</div>
-</div>
+</dialog>
 
-<a class="exportButton" href="#modalExport"><?php print WEB_btn_export; ?></a>
-<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modalExport" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
- <div class="remodalBorder">
-  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
-    <form id="formAuthExport" name="formAuthExport" onsubmit="blockForm('formAuthExport');">
-        <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
+<a class="exportButton" href="#eye-export"><?php print WEB_btn_export; ?></a>
+<dialog id="eye-export" class="eye-dlg">
+  <button type="button" class="x" data-close aria-label="<?php echo WEB_btn_close; ?>">&#10005;</button>
+  <form id="formAuthExport" name="formAuthExport" onsubmit="blockForm('formAuthExport');">
+        <h2><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ExportAuth" value="MassChange">
         <?php print WEB_msg_export_selected."&nbsp"; print_qa_select('a_selected', 1);?>
         <br><br>
             <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_run; ?>">
     </form>
-</div>
-</div>
+</dialog>
 
 <form id="def" name="def">
 
@@ -326,47 +283,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <td class="off"><?php echo WEB_color_user_disabled; ?></td>
 </table>
 
-<script src="/js/remodal/remodal.min.js"></script>
-<script src="/js/remodal-auth.js"></script>
 
-<script>
-    
-document.getElementById('ou').addEventListener('change', function(event) {
-  const buttonApply = document.getElementById('btn_filter');
-  buttonApply.click();
-});
-
-document.getElementById('cidr').addEventListener('change', function(event) {
-  const buttonApply = document.getElementById('btn_filter');
-  buttonApply.click();
-});
-
-document.getElementById('enabled').addEventListener('change', function(event) {
-  const buttonApply = document.getElementById('btn_filter');
-  buttonApply.click();
-});
-
-document.getElementById('ip_type').addEventListener('change', function(event) {
-  const buttonApply = document.getElementById('btn_filter');
-  buttonApply.click();
-});
-
-document.getElementById('rows').addEventListener('change', function(event) {
-  const buttonApply = document.getElementById('btn_filter');
-  buttonApply.click();
-});
-
-document.getElementById('dhcp_enabled').addEventListener('change', function(event) {
-  const buttonApply = document.getElementById('btn_filter');
-  buttonApply.click();
-});
-
-document.getElementById('dynamic_enabled').addEventListener('change', function(event) {
-  const buttonApply = document.getElementById('btn_filter');
-  buttonApply.click();
-});
-
-</script>
 
 <?php
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");

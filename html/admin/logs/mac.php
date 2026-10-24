@@ -58,7 +58,7 @@ $maclog = get_records_sql($db_link, $sSQL, $dataParams);
 <?php
 
 foreach ($maclog as $row) {
-    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center>\n";
     print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
     print "<td class=\"data\">" . expand_mac($db_link,mac_dotted($row['mac'])) . "</td>\n";
     print "<td class=\"data\">" . get_port($db_link, $row['port_id']) . "</td>\n";

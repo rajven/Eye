@@ -1,0 +1,923 @@
+/* ==========================================================================
+   Eye "eye" theme.
+
+   Enabled with one line in html/cfg/config.php:
+       define("HTML_STYLE", "eye");        light, follows the OS for dark
+       define("HTML_STYLE", "eye-dark");   always dark
+
+   The selectors target the markup the pages already emit (#navi, #submenu,
+   #cont, table.data, td.warn, td.error, td.off, a.first_page_link and others),
+   so the whole admin restyles without touching 60+ page files.
+   ========================================================================== */
+
+
+
+/* 0. Fonts: local woff2, the @font-face rules live in css/fonts.css */
+@import url("fonts.css");
+
+/* 1. Tokens: light palette. The accent #ed8b0d is inherited from the old theme (#title colour). */
+:root {
+  --accent: #ed8b0d;
+  --accent-hover: #f79a22;
+  --accent-ink: #7a4703;
+  --accent-soft: #fdf1e0;
+
+/* the shell sits clearly below the cards in brightness */
+  --bg: #d7dfe7;
+  --surface: #fff;
+  --surface-2: #e8eef4;
+  --rule: #bec9d4;
+  --rule-strong: #93a3b1;
+
+/* data is read, not guessed */
+  --ink: #0d1319;
+  --ink-2: #2b3844;
+  --ink-3: #52616d;
+
+  --rail: #1b232d;
+  --rail-ink: #e2eaf1;
+  --rail-hi: #fff;
+  --rail-rule: #2c3743;
+  --rail-hover: #252f3b;
+
+  --sel: #d5e8fb;
+
+/* links to records: IP, login, port */
+  --link: #0a4f8c;
+  --focus: #1f6feb;
+  --shadow: 0 1px 2px rgba(16, 24, 32, .06), 0 8px 24px rgba(16, 24, 32, .06);
+
+  --st-ok: #186b3c;
+  --st-warn: #8a5004;
+  --st-err: #97211a;
+  --st-off: #56636e;
+  --st-ok-bg: #ddefe2;
+  --st-warn-bg: #fbe8ca;
+  --st-err-bg: #fadfd9;
+  --st-off-bg: #dde4ea;
+
+  --sans: "IBM Plex Sans", -apple-system, "Segoe UI", "DejaVu Sans", Roboto, "Noto Sans", sans-serif;
+
+/* Plex Sans Condensed has no Cyrillic, captions use Plex 600 with tracking */
+  --disp: "IBM Plex Sans", var(--sans);
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", Consolas, monospace;
+
+  --row-h: 33px;
+  --pad: 10px;
+  --fs: 14px;
+  --fs-mono: 13px;
+  --r-sm: 3px;
+  --r-md: 5px;
+  --r-lg: 8px;
+  --rail-w: 232px;
+  color-scheme: light;
+}
+
+/* 2. Tokens: dark palette, automatic. Keep in sync with block 3. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-eye="light"]) {
+    --accent-ink: #f0b978;
+    --accent-soft: #2a2013;
+    --bg: #0c1116;
+    --surface: #171f28;
+    --surface-2: #232e3a;
+    --rule: #364554;
+    --rule-strong: #526477;
+    --ink: #f0f5fa;
+    --ink-2: #c6d4e1;
+    --ink-3: #9db0c1;
+    --rail: #0d1218;
+    --rail-ink: #9dabba;
+    --rail-rule: #212a35;
+    --rail-hover: #1b232e;
+    --sel: #29415f;
+    --focus: #8ab4ff;
+    --link: #7fc0ff;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
+    --st-ok: #63c892;
+    --st-warn: #f0c069;
+    --st-err: #ff8375;
+    --st-off: #7f8c99;
+    --st-ok-bg: #14231c;
+    --st-warn-bg: #241d10;
+    --st-err-bg: #261514;
+    --st-off-bg: #1b222b;
+    color-scheme: dark;
+  }
+}
+
+/* 3. Tokens: dark palette, explicit (HTML_STYLE=eye-dark or the in-page toggle). */
+:root[data-eye="dark"] {
+  --accent-ink: #f0b978;
+  --accent-soft: #2a2013;
+  --bg: #0c1116;
+  --surface: #171f28;
+  --surface-2: #232e3a;
+  --rule: #364554;
+  --rule-strong: #526477;
+  --ink: #f0f5fa;
+  --ink-2: #c6d4e1;
+  --ink-3: #9db0c1;
+  --rail: #070c11;
+  --rail-ink: #dbe7f1;
+  --rail-rule: #212a35;
+  --rail-hover: #1b232e;
+  --sel: #29415f;
+  --focus: #8ab4ff;
+  --link: #7fc0ff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
+  --st-ok: #63c892;
+  --st-warn: #f0c069;
+  --st-err: #ff8375;
+  --st-off: #8ea1b3;
+  --st-ok-bg: #14231c;
+  --st-warn-bg: #241d10;
+  --st-err-bg: #261514;
+  --st-off-bg: #1b222b;
+  color-scheme: dark;
+}
+
+/* Density: header.php / eye.js set data-eye-dens on <html>, the choice is remembered. */
+:root[data-eye-dens="roomy"] { --row-h: 40px; --pad: 14px; --fs: 15px; --fs-mono: 14px; }
+:root[data-eye-dens="tight"] { --row-h: 27px; --pad: 7px; --fs: 12.5px; --fs-mono: 12px; }
+
+/* 4. Base styles, replacing the global tahoma 12pt of the old theme. */
+* { box-sizing: border-box; }
+html { margin: 0; padding: 0; font-size: var(--fs); }
+body {
+  margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+  font: 400 var(--fs)/1.45 var(--sans); font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+img { border: 0; max-width: 100%; }
+h1, h2, h3 { font-family: var(--disp); font-weight: 600; letter-spacing: .01em; }
+h1 { font-size: 1.45em; } h2 { font-size: 1.15em; } h3 { font-size: 1em; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 14px 0; }
+
+/* links are decorated explicitly below, so chrome elements stay clean */
+a { color: inherit; text-decoration: none; }
+a:visited { color: inherit; }
+a:hover { color: var(--accent-ink); }
+
+/* links in the content: colour plus underline, visible without hovering. :where() keeps specificity zero so the targeted rules below win without !important. */
+#cont :where(a) {
+  color: var(--link); font-weight: 500; text-decoration: underline;
+  text-decoration-thickness: 1px; text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--link) 42%, transparent);
+}
+#cont :where(a):hover, #cont :where(a):focus-visible {
+  text-decoration-color: currentColor; color: var(--link); }
+#cont :where(a):visited { color: var(--link); }
+
+/* inside dense cells a dotted underline reads as clickable without turning the table into a mesh */
+#cont table.data :where(td) :where(a) {
+  text-decoration-style: dotted;
+  text-decoration-color: color-mix(in srgb, var(--link) 35%, transparent); }
+
+/* link that opens its own window (ports, MAC table, snmpwalk) */
+a.ext::after { content: " \2197"; font-size: .9em; font-weight: 400;
+  color: color-mix(in srgb, var(--link) 70%, transparent); }
+
+/* reset underline and weight only; each element keeps the colour from its own rule */
+#cont .pager :where(a), #cont :where(a.btn, .btn a, a.mainButton, a.delButton, a.exportButton, a.linkButton),
+#cont table.data > tbody > tr:first-child :where(a),
+#cont table.data tr.lblrow :where(a),
+#cont :where(a.ref) { text-decoration: none; font-weight: inherit; }
+#cont :where(a.ref) { color: var(--accent-ink); }
+#cont :where(a.mainButton, a.delButton, a.exportButton) { color: var(--ink); }
+.tabs :where(a), #navi :where(a) { color: inherit; text-decoration: none; }
+.tabs :where(a):hover, #navi :where(a):hover { color: var(--rail-hi); }
+a:active { color: var(--accent); }
+code, kbd, pre { font-family: var(--mono); font-size: .95em; }
+:is(a, button, input, select, summary):focus-visible {
+  outline: 2px solid var(--focus); outline-offset: 1px;
+}
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.mono, .id { font-family: var(--mono); font-size: var(--fs-mono); }
+.mut, .tiny { color: var(--ink-3); }
+.red-text { color: var(--st-err); } .blue-text { color: var(--focus); }
+.green-text { color: var(--st-ok); } .black-text { color: var(--ink); }
+
+/* Meta text under a value (timestamps): small and mono, but still readable. */
+.ts { font-size: 11.5px; line-height: 1.35; color: var(--ink-2); padding: 0;
+      font-family: var(--mono); }
+p.ts, td p.ts { margin: 1px 0 0; }
+
+/* 5. Shell: rail, page header band, content column. */
+#eye-shell { display: grid; grid-template-columns: var(--rail-w) minmax(0, 1fr); min-height: 100vh; }
+#eye-rail {
+  grid-column: 1; background: var(--rail); color: var(--rail-ink);
+  display: flex; flex-direction: column; padding: 14px 0 10px;
+  position: sticky; top: 0; height: 100vh; overflow: auto;
+}
+#eye-main { grid-column: 2; display: flex; flex-direction: column; min-width: 0; }
+
+#title {
+  padding: 0 16px 14px; display: flex; align-items: baseline; gap: 10px;
+  font: 600 17px/1.1 var(--disp); letter-spacing: .04em; color: #fff;
+  border-bottom: 1px solid var(--rail-rule); margin-bottom: 6px;
+}
+body.eye-public #title {
+  padding: 16px 18px 12px; color: var(--ink); border-bottom: 1px solid var(--rule);
+  background: var(--surface); margin-bottom: 0;
+}
+body.eye-public #cont { padding-top: 18px; }
+#title::before {
+  content: ""; width: 20px; height: 20px; border-radius: 50%; flex: none; align-self: center;
+  background: radial-gradient(circle at 50% 50%, currentColor 0 26%, var(--accent) 27% 100%);
+  box-shadow: 0 0 0 3px rgba(237, 139, 13, .18);
+}
+body.eye-public #title::before { background: radial-gradient(circle at 50% 50%, var(--surface) 0 26%, var(--accent) 27% 100%); }
+#subtitle { color: var(--ink-3); font-size: 11px; }
+
+#navi { display: flex; flex-direction: column; gap: 1px; padding: 0 8px; }
+#navi a {
+  display: flex; align-items: center; gap: 9px; padding: 7px 9px;
+  border-radius: var(--r-md); font-size: 13px; color: var(--rail-ink);
+  border-left: 2px solid transparent;
+}
+#navi a:hover { background: var(--rail-hover); color: var(--rail-hi); }
+#navi a.here { background: var(--rail-hover); color: var(--rail-hi); font-weight: 500; border-left-color: var(--accent); }
+
+/* print_submenu_url() marks the current entry with <b> */
+#navi b {
+  display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: var(--r-md);
+  background: var(--rail-hover); color: var(--rail-hi); font-weight: 500;
+  border-left: 2px solid var(--accent);
+}
+#navi br { display: none; }
+#navi .sep { display: none; }
+#eye-rail .rail-foot {
+  margin-top: auto; padding: 12px 16px 0; border-top: 1px solid var(--rail-rule);
+  font: 400 11px/1.6 var(--mono); color: var(--ink-3);
+}
+#eye-rail .rail-foot a { color: var(--accent); }
+
+/* id is used two ways: navigation strip on most pages, plain content container on 14 of them (switchstatus.php holds forms and tables), so the base rule is a neutral block and eye.js adds .tabs where it really is a strip */
+#submenu, #contsubmenu, #subsubmenu {
+  display: block; min-width: 0; padding: 10px 18px 0; font-size: 13px; color: var(--ink-2);
+}
+#submenu.tabs, #subsubmenu.tabs, #contsubmenu.tabs {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 0 0 2px;
+  padding: 0 18px; background: var(--surface); border-bottom: 1px solid var(--rule);
+}
+#subsubmenu.tabs { background: var(--surface-2); font-size: 12px; }
+#submenu.tabs a, #subsubmenu.tabs a, #contsubmenu.tabs a {
+  padding: 9px 12px 8px; color: var(--ink-2); border-bottom: 2px solid transparent; white-space: nowrap;
+}
+#submenu.tabs a:hover, #subsubmenu.tabs a:hover, #contsubmenu.tabs a:hover { color: var(--ink); }
+#submenu.tabs b, #subsubmenu.tabs b, #contsubmenu.tabs b {
+  padding: 9px 12px 8px; color: var(--ink); font-weight: 500; border-bottom: 2px solid var(--accent);
+}
+
+/* full-height container: same paddings as #cont */
+#contsubmenu:not(.tabs), #subsubmenu:not(.tabs) { padding: 14px 18px 90px; }
+#contsubmenu:not(.tabs) a, #subsubmenu:not(.tabs) a { color: var(--accent-ink); }
+
+/* line breaks are hidden only inside a navigation strip: elsewhere <br> separates lists inside cells */
+#submenu.tabs br, #subsubmenu.tabs br, #contsubmenu.tabs br { display: none; }
+#navi .sep, .tabs .sep { display: none; }
+#submenu:not(.tabs) .sep, #subsubmenu:not(.tabs) .sep, #contsubmenu:not(.tabs) .sep { color: var(--ink-3); }
+
+#cont {
+  position: static; flex: 1 1 auto; min-width: 0;
+  padding: 14px 18px 90px; background: transparent;
+}
+
+/* 6. Data tables. Pages print <table class="data"> whose header is just the first row, so the styles rely on the markup that exists. */
+table { border-collapse: separate; border-spacing: 0; font-size: inherit; }
+table.data, table.info {
+  width: 100%; background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--r-lg); box-shadow: var(--shadow); margin: 0 0 12px;
+}
+table.data > tbody > tr > td, table.info > tbody > tr > td,
+table.data > tr > td, table.info > tr > td {
+  padding: 0 var(--pad); height: var(--row-h); border-bottom: 1px solid var(--rule);
+  background: transparent; color: var(--ink); text-align: left; vertical-align: middle;
+}
+
+table.data > tbody > tr:first-child > td, table.data > tr:first-child > td,
+table.data > thead > tr:first-child > td, table.info > tbody > tr:first-child > td,
+table.info > tr:first-child > td, table.data tr.lblrow > td {
+  position: sticky; top: 0; z-index: 4; height: 34px;
+  background: var(--surface-2);
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  border-bottom: 1px solid var(--rule-strong);
+  font: 600 12px/1.2 var(--disp); letter-spacing: .04em; text-transform: uppercase;
+  color: var(--ink);
+}
+table.data tr.lblrow > td { color: var(--ink-2); border-bottom: 0; padding-top: 9px; height: 24px; }
+table.data tr.lblrow + tr > td { padding-top: 0; }
+table.data > tbody > tr:first-child > td b, table.data > tr:first-child > td b { font-weight: 600; }
+table.data > tbody > tr:first-child a, table.data > tr:first-child a, table.data tr.lblrow a { color: var(--ink); }
+table.data > tbody > tr:first-child a:hover, table.data > tr:first-child a:hover,
+table.data tr.lblrow a:hover { color: var(--link); text-decoration: none; }
+
+/* a caption is a label, not data */
+table.data > caption, table.info > caption {
+  caption-side: top; text-align: left; padding: 9px var(--pad) 7px;
+  font: 600 11px/1.2 var(--disp); letter-spacing: .05em; text-transform: uppercase;
+  color: var(--ink); border-bottom: 1px solid var(--rule);
+}
+
+/* key cell of key/value tables (editauth.php, reports) */
+.cell-key { font-weight: 600; color: var(--ink-2); }
+
+/* link to a related object (IPSet): inline #06c used to be hardcoded in PHP */
+a.ref { color: var(--accent-ink); font-weight: 500; text-decoration: none;
+        border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+a.ref:hover { color: var(--accent); }
+
+/* unset values must not pull the eye */
+.none { color: var(--ink-3); font-family: var(--mono); }
+
+.bad { color: var(--st-err); }
+
+/* what must be read out loud: deleted, disabled, blocked */
+td.bad { background: var(--st-err-bg); color: var(--st-err); font-weight: 500; }
+
+table.data > tbody > tr:first-child a, table.data > tr:first-child a {
+  text-decoration: none; }
+table.data > tbody > tr:last-child > td, table.data > tr:last-child > td { border-bottom: 0; }
+
+/* a full-width cell is a section caption, not data */
+table.data > tbody > tr > td:first-child:last-child,
+table.data > tr > td:first-child:last-child {
+  background: var(--surface-2);
+  font: 600 10.5px/1.3 var(--disp); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3); height: 26px;
+}
+table.data > tbody > tr:hover > td, table.data > tr:hover > td { background: var(--sel); }
+
+/* list cells: values separated by <br>. Port pages compare the device column with the comment column line by line, so eye.js splits them into span.ln blocks, one value per line */
+table.data > tbody > tr > td.nl { vertical-align: top; padding-top: 5px; padding-bottom: 5px; }
+table.data td.nl .ln { display: block; white-space: nowrap; line-height: 1.55; }
+table.data td.nl > br { display: none; }
+
+/* cell links: underline appears on hover only */
+table.data td a { color: var(--link); }
+
+/* cell states. Specificity matters here: a plain td.warn is (0,1,1) and loses to the generic cell rule (0,1,4), which is why state fills used to be invisible. Every state rule uses the full chain (0,2,4) and sits after the :hover rule */
+table.data > tbody > tr > td.warn  { background: var(--st-warn-bg);
+                                          background: color-mix(in srgb, var(--st-warn) 20%, var(--surface)); }
+table.data > tbody > tr > td.nb    { background: color-mix(in srgb, var(--st-warn) 26%, var(--surface)); }
+table.data > tbody > tr > td.error { background: var(--st-err-bg);
+                                          background: color-mix(in srgb, var(--st-err) 24%, var(--surface)); color: var(--ink); }
+table.data > tbody > tr > td.off   { background: var(--st-off-bg); color: var(--ink-3); }
+
+/* left edge marker: state readable peripherally without filling the whole row */
+table.data tr:has(> td:first-child.warn)  > td:first-child::before { background: var(--st-warn); }
+table.data tr:has(> td:first-child.error) > td:first-child::before { background: var(--st-err); }
+table.data tr:has(> td:first-child.off)   > td:first-child::before { background: var(--st-off); }
+table.data > tbody > tr > td.custom { background: var(--accent-soft); color: var(--accent-ink); }
+td.crc, table.data > tbody > tr > td.crc { background: var(--st-err-bg);
+                                          background: color-mix(in srgb, var(--st-err) 24%, var(--surface)); }
+td.cell_red, table.data > tbody > tr > td.cell_red { color: var(--st-err); background: transparent; }
+td.data_green, table.data > tbody > tr > td.data_green { color: var(--st-ok); }
+td.data_red,   table.data > tbody > tr > td.data_red   { color: var(--st-err); }
+
+/* print_td_qa() leaves the cell empty for "no", so the dash is drawn here */
+td.data_red:empty::after { content: "\2014"; color: var(--ink-3); }
+td.data_green:empty::after { content: "\2713"; color: var(--st-ok); }
+
+/* Port matrix. Here the cell fill IS the data, so these are strong, like the original theme. */
+table.data > tbody > tr > td.up {
+  background: var(--st-ok-bg);
+  background: color-mix(in srgb, var(--st-ok) 38%, var(--surface));
+  color: var(--ink);
+}
+
+/* no link: grey cell, empty but not merged into the table background */
+table.data > tbody > tr > td.down {
+
+  background: var(--st-off-bg);
+  background: color-mix(in srgb, var(--st-off) 22%, var(--surface));
+  color: var(--ink-3);
+}
+table.data > tbody > tr > td.shutdown {
+  background: var(--st-warn-bg);
+  background: repeating-linear-gradient(45deg,
+    color-mix(in srgb, var(--st-warn) 44%, var(--surface)) 0 7px,
+    color-mix(in srgb, var(--st-warn) 28%, var(--surface)) 7px 14px);
+  color: var(--accent-ink);
+}
+
+/* link speed: a green ramp that reads together with the state */
+table.data > tbody > tr > td.speed10M  { background: color-mix(in srgb, var(--st-warn) 22%, var(--surface)); color: var(--ink-2); font-family: var(--mono); }
+table.data > tbody > tr > td.speed100M { background: color-mix(in srgb, var(--st-warn) 42%, var(--surface)); color: var(--ink); font-family: var(--mono); }
+table.data > tbody > tr > td.speed1G   { background: color-mix(in srgb, var(--st-ok) 40%, var(--surface)); color: var(--ink); font-family: var(--mono); }
+table.data > tbody > tr > td.speed10G  { background: color-mix(in srgb, var(--st-ok) 62%, var(--surface)); color: var(--ink); font-family: var(--mono); font-weight: 600; }
+
+table.info, td.info, table.data > tbody > tr > td.info {
+  background: var(--accent-soft); color: var(--accent-ink);
+}
+
+/* get_qa()/get_yes() marks: state carried by colour, not by font size. */
+.qa { display: inline-block; min-width: 14px; font-size: 13px; font-weight: 600; line-height: 1; }
+
+.cell-lbl { font: 600 10.5px/1.3 var(--disp); letter-spacing: .06em; text-transform: uppercase;
+            color: var(--ink-3); margin-right: 6px; }
+
+#cont > b, #cont > form > b, #cont > br + b {
+  display: inline-block; margin: 4px 0 6px; padding: 3px 10px 3px 0;
+  font: 600 11px/1.2 var(--disp); letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-2); border-bottom: 2px solid var(--accent);
+}
+
+/* marks get their colour from the state they show */
+.qa.yes { color: var(--st-ok); }
+.qa.no { color: var(--st-err); }
+
+/* safety net for pages whose get_qa() still prints an inline font-size */
+table.data td > span[style*="font-size: 24px"] {
+  font-size: 13px !important; font-weight: 600 !important; }
+td.data_green .qa.yes, .yn.y::before { color: var(--st-ok); }
+.tag, .linkButton {
+  display: inline-block; font-size: 11px; line-height: 1.6; padding: 0 7px;
+  border: 1px solid var(--rule-strong); border-radius: 20px;
+  background: var(--surface-2); color: var(--ink-2); box-shadow: none;
+}
+.linkButton { color: var(--accent-ink); border-color: var(--accent); background: var(--accent-soft); }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; font: 400 11px/1 var(--mono);
+  border: 1px solid var(--rule-strong); border-radius: 20px; padding: 4px 9px; background: var(--surface);
+}
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--st-ok); }
+.chip.no::before { background: var(--st-err); }
+.yn { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
+.yn::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--st-off); }
+.yn.y::before { background: var(--st-ok); } .yn.n::before { background: var(--st-err); }
+.flags { display: inline-flex; gap: 3px; }
+.flags i {
+  font: 500 10px/14px var(--mono); font-style: normal; width: 15px; height: 15px;
+  text-align: center; border-radius: 3px; border: 1px solid var(--rule-strong);
+  color: var(--ink-3); background: var(--surface-2);
+}
+.flags i.on { color: var(--st-ok); border-color: var(--st-ok); background: var(--st-ok-bg); }
+.conn { display: inline-flex; align-items: center; gap: 7px; }
+.ports { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+.ports i { width: 3px; height: 7px; border-radius: 1px; background: var(--rule-strong); }
+.ports i.on { height: 14px; background: var(--st-ok); }
+.ports i.wr { height: 14px; background: var(--st-warn); }
+.gp { border-left: 1px solid var(--rule) !important; }
+.tree { overflow: auto; border: 0; }
+
+:is(input[type=text], input[type=search], input[type=number], input[type=password],
+    input[type=datetime-local], input[type=date], input[type=time], select, textarea) {
+  height: 30px; padding: 0 8px; min-width: 0; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule-strong); border-radius: var(--r-sm); font: 400 var(--fs)/1.3 var(--sans);
+}
+select[name], select { padding-right: 24px; appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2377848f' stroke-width='1.4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 7px center; }
+textarea { height: auto; padding: 6px 8px; line-height: 1.45; }
+:is(input, select, textarea):hover:enabled { border-color: var(--ink-3); }
+:is(input, select, textarea):focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(237, 139, 13, .16); outline: none; }
+input[readonly] { background: var(--surface-2); color: var(--ink-2); border-style: dashed; }
+:is(input, select, textarea):disabled {
+  color: var(--ink-3); cursor: not-allowed; border-style: solid;
+  background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgba(120,135,150,.10) 5px 6px);
+}
+input[type=checkbox], input[type=radio] { width: 15px; height: 15px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+input.putField { width: 15px; height: 15px; padding: 0; background: none; border: none; border-radius: 0; box-shadow: none; }
+.full-width { width: 100%; box-sizing: border-box; }
+.field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; clear: both; margin: 0 0 8px; text-align: left; }
+.field > label, label { float: none; padding: 0; }
+.main { float: none; display: inline-flex; align-items: center; gap: 6px; }
+form { margin: 0 0 10px; }
+fieldset { border: 1px solid var(--rule); border-radius: var(--r-lg); background: var(--surface);
+  margin: 0 0 12px; padding: 12px 14px; }
+legend { font: 600 11px/1 var(--disp); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2);
+  padding: 0 8px; line-height: 20px; border: 1px solid var(--rule); border-radius: 20px; background: var(--surface); }
+.fld { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.fld > label { font: 600 10px/1 var(--disp); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); }
+.fld .sub { font-size: 11px; color: var(--ink-3); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 16px; }
+.sw { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); cursor: pointer; }
+.lock { font-size: 10px; color: var(--st-warn); border: 1px solid currentColor; border-radius: 3px;
+  padding: 0 4px; text-transform: none; letter-spacing: .04em; font-weight: 500; }
+
+/* 8. Form controls. */
+.btn, input[type=submit], input[type=button], button, button[type=submit], button[type=button],
+a.mainButton, a.delButton, a.exportButton {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px;
+  font: 500 var(--fs)/1 var(--sans); color: var(--ink);
+  background: var(--surface-2);
+  background: color-mix(in srgb, var(--ink) 13%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--ink) 34%, var(--surface));
+  border-radius: var(--r-md); cursor: pointer;
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--ink) 12%, transparent);
+  text-decoration: none; white-space: nowrap;
+  transition: background .12s, border-color .12s, box-shadow .12s, transform .06s;
+}
+:is(.btn, input[type=submit], button, a.mainButton, a.delButton, a.exportButton):hover {
+  background: color-mix(in srgb, var(--ink) 13%, var(--surface)); border-color: var(--ink-3); color: var(--ink);
+}
+:is(.btn, input[type=submit], button):active { transform: translateY(1px); }
+:is(.btn, input[type=submit], button):disabled { opacity: .5; cursor: not-allowed; }
+
+/* one accented button per form: eye.js adds .pri, everything else is secondary and must not outshine Save */
+.btn.pri, input[type=submit].pri, button.pri { background: var(--accent); border-color: var(--accent); color: #231400; }
+.btn.pri:hover, input[type=submit].pri:hover, button.pri:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #231400; }
+a.mainButton { background: var(--accent); border-color: var(--accent); color: #231400; }
+a.mainButton:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #231400; }
+
+/* inside a dialog the single action is always the primary one */
+dialog > form > [type=submit], .dlg-f [type=submit], dialog .btn.pri { background: var(--accent); border-color: var(--accent); color: #231400; }
+dialog > form > [type=submit]:hover, .dlg-f [type=submit]:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #231400; }
+a.delButton, .btn.dan { color: var(--st-err); border-color: var(--st-err); background: transparent; }
+a.delButton:hover, .btn.dan:hover { background: var(--st-err-bg); color: var(--st-err); }
+a.exportButton { color: var(--st-ok); border-color: var(--st-ok); background: transparent; }
+a.exportButton:hover { background: var(--st-ok-bg); }
+.btn.sm, .dlg-f .btn { height: 26px; padding: 0 9px; font-size: 12px; }
+
+/* sticky save bar for the fieldset-based forms */
+.savebar { position: sticky; bottom: 0; z-index: 6; display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; margin-top: 12px; background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--r-lg); box-shadow: var(--shadow); }
+.savebar .sp, .tools .sp, .note .sp { margin-left: auto; }
+.dirty { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-3); }
+.dirty::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--rule-strong); }
+.dirty.on { color: var(--accent-ink); } .dirty.on::before { background: var(--accent); }
+
+/* 9. Filter strip: the new .filters markup. */
+.filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-lg);
+  padding: 8px 4px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.f { display: flex; flex-direction: column; gap: 4px; padding: 2px 12px; min-width: 0; }
+.f + .f { border-left: 1px solid var(--rule); }
+.f > label, .f > .k { font: 600 11px/1.15 var(--disp); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3); white-space: nowrap; }
+.f.grow { flex: 1 1 220px; }
+.f.end { margin-left: auto; }
+.q { position: relative; }
+.q input { padding-left: 28px; width: 100%; }
+.q::before { content: "⌕"; position: absolute; left: 9px; bottom: 5px; font-size: 16px; color: var(--ink-3); }
+.q kbd { position: absolute; right: 6px; bottom: 6px; font: 400 10px/1.4 var(--mono); color: var(--ink-3);
+  border: 1px solid var(--rule-strong); border-radius: var(--r-sm); padding: 1px 4px; background: var(--surface-2); }
+.filters .hint { flex: 1 1 100%; order: 9; margin: 2px 0 0; padding: 0 12px; font-size: 11px; color: var(--ink-3); }
+
+/* the strip applies only to forms that really have a Show button: ordinary data tables (ipcam.php, building.php) must stay tables */
+#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) {
+  width: auto; margin: 0 0 12px; padding: 8px 4px; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--r-lg); box-shadow: var(--shadow); }
+#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) td {
+  padding: 4px 12px; height: 34px; border: 0; background: transparent;
+  vertical-align: middle; text-align: left; color: var(--ink); }
+
+/* filler cells do not draw extra borders */
+#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) td:empty { display: none; }
+
+/* legacy filter row: caption and control in one cell, keep them on one line */
+#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) td > b:first-child {
+  font: 600 11px/1.2 var(--disp); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3); margin-right: 6px; }
+#cont form:has(#btn_filter, [name=btn_filter]) > table:not(.data):not(.info) input[type=submit] { margin-left: 6px; }
+
+/* a class-less table outside the filter strip stays a plain table */
+#cont table:not(.data):not(.info) td { height: var(--row-h); padding: 0 var(--pad); }
+.tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 8px; }
+.tools .cnt { font-size: 12.5px; color: var(--ink-2); }
+.tools .cnt b { font: 500 13px/1 var(--mono); color: var(--ink); }
+
+/* 10. Dialogs: native <dialog>, Remodal is gone. */
+dialog { border: 1px solid var(--rule-strong); border-radius: var(--r-lg); background: var(--surface);
+  color: var(--ink); padding: 0; width: min(680px, 94vw); max-height: 90vh;
+  box-shadow: 0 24px 60px rgba(6, 10, 16, .42); }
+dialog::backdrop { background: rgba(10, 14, 20, .55); }
+dialog[open] { animation: eye-pop .14s ease-out; }
+@keyframes eye-pop { from { transform: translateY(6px); opacity: .6; } }
+
+/* anchors the close button */
+dialog { position: relative; }
+
+/* existing pages put a bare form with h2, table and submit directly into the dialog */
+dialog > form { display: block; margin: 0; padding: 16px 18px; }
+dialog > form > h2:first-child { padding-right: 34px; margin-top: 0; }
+dialog > form > :is(table.data) { margin-top: 4px; }
+dialog > form > [type=submit], dialog > form > .btn { margin-top: 14px; }
+dialog > .x { position: absolute; top: 11px; right: 11px; z-index: 2; width: 28px; height: 28px;
+  border: 0; border-radius: var(--r-md); background: none; color: var(--ink-3);
+  font: 400 15px/1 var(--sans); cursor: pointer; }
+dialog > .x:hover { background: var(--surface-2); color: var(--ink); }
+.dlg-h { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--rule); }
+.dlg-h h2 { margin: 0; font: 600 15px/1.25 var(--disp); }
+.dlg-h .x { margin-left: auto; width: 28px; height: 28px; border: 0; border-radius: var(--r-md);
+  background: none; color: var(--ink-3); font-size: 17px; line-height: 1; cursor: pointer; }
+.dlg-h .x:hover { background: var(--surface-2); color: var(--ink); }
+.dlg-b { padding: 14px 16px; overflow: auto; }
+.dlg-f { display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--rule); background: var(--surface-2); }
+.dlg-f .sp { margin-left: auto; }
+.dlg-i { margin: 0 0 12px; font-size: 12px; color: var(--ink-3); }
+
+/* mass-change table inside a dialog: table layout stays, only the card look is removed */
+dialog table.data { width: 100%; margin: 0 0 8px; border: 0; border-radius: 0;
+  background: transparent; box-shadow: none; }
+dialog table.data td { height: 36px; padding: 3px 8px; text-align: left; vertical-align: middle;
+  border: 0; border-bottom: 1px dashed var(--rule); background: transparent; color: var(--ink); }
+dialog table.data tr:last-child td { border-bottom: 0; }
+
+/* checkbox column */
+dialog table.data td:first-child { width: 30px; padding-left: 0; text-align: center; }
+dialog table.data td:nth-child(2) { width: 36%; white-space: nowrap; color: var(--ink-2); }
+dialog table.data td:last-child { text-align: right; }
+dialog table.data tr:hover td { background: transparent; }
+dialog table.data :is(select, input[type=text], input[list]) { max-width: 100%; width: auto; }
+
+/* dims the field when the apply checkbox is off */
+dialog table.data td.off, dialog table.data tr.off td { opacity: .45; }
+dialog table.data :is(select, input)[disabled] { cursor: not-allowed; }
+dialog h2 { margin: 0 0 10px; }
+
+/* the delete and export dialogs used two <br> between fields; in a table it only breaks the rhythm */
+dialog > form > br { display: none; }
+dialog > form > select, dialog > form > input[type=text] { margin-right: 8px; }
+dialog > form > [type=submit] { display: block; margin-top: 14px; }
+
+/* the caption becomes clickable, eye.js sets the for attribute */
+dialog table.data td:nth-child(2) label { display: block; cursor: pointer; }
+dialog table.data td:nth-child(2) label:hover { color: var(--ink); }
+dialog table.data td.off, dialog table.data tr.off td:nth-child(2) { color: var(--ink-3); }
+
+dialog table.data td > select, dialog table.data td > input[list] { margin-left: 6px; }
+
+.note { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; margin-bottom: 12px;
+  font-size: 12.5px; border: 1px solid var(--rule); border-radius: var(--r-md); background: var(--surface-2); }
+.note b { font-weight: 600; }
+.note.err { background: var(--st-err-bg); border-color: var(--st-err); }
+.note.warn { background: var(--st-warn-bg); border-color: var(--st-warn); }
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 18px;
+  padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--r-md); }
+.kv > div { display: flex; flex-direction: column; gap: 2px; }
+.kv .k, .kv dt { font: 600 10px/1 var(--disp); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); }
+.kv .v { font-family: var(--mono); font-size: var(--fs-mono); }
+
+/* 11. Row selection bar, pagination, misc. */
+.bulk { position: fixed; bottom: 0; left: var(--rail-w); right: 0; z-index: 30; display: flex;
+  align-items: center; gap: 10px; padding: 11px 18px; background: var(--rail); color: #fff;
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, .28); transform: translateY(120%); transition: transform .16s ease; }
+.bulk.show { transform: none; }
+.bulk b { font: 500 13px/1 var(--mono); }
+.bulk .btn, .bulk input[type=submit] { background: #212b36; border-color: #3b4a5a; color: #e6edf3; }
+.bulk .btn:hover { background: #2b3745; }
+.bulk .btn.dan { color: #ffb4ab; border-color: #7a3b36; background: transparent; }
+
+.tools .pager, .pager { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.pager a, .pager span { display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 26px; padding: 0 6px; border-radius: var(--r-sm);
+  font: 400 12px/1 var(--mono); color: var(--ink-2); border: 1px solid transparent; }
+.pager a:hover { background: var(--surface-2); color: var(--ink); border-color: var(--rule); }
+
+#cont a.first_page_link, #cont span.num_page_not_link, .pager a, .pager .here {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; height: 26px; padding: 0 7px; margin: 0 1px;
+  border-radius: var(--r-sm); font: 500 12.5px/1 var(--mono);
+  text-decoration: none; font-weight: 500; }
+#cont a.first_page_link, .pager a { color: var(--link); background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--ink) 32%, var(--surface)); }
+#cont a.first_page_link:hover, .pager a:hover { background: var(--sel); }
+#cont a.first_page_link:visited { color: var(--link); }
+#cont span.num_page_not_link, .pager .here,
+#cont span.num_page_not_link b, .pager .here b { color: #fff; background: var(--rail);
+  border: 1px solid var(--rail); text-decoration: none; font-weight: 600; }
+div.records { margin: 6px 0 10px; font-size: 12.5px; color: var(--ink-2); text-align: left; }
+div.records b { font-family: var(--mono); font-weight: 500; }
+#msg { padding: 10px 12px; margin-bottom: 12px; font: 500 13px/1.4 var(--sans); color: var(--ink);
+  background: var(--st-warn-bg); border-left: 2px solid var(--st-warn); border-radius: var(--r-md); }
+#copyright { padding: 0 18px 6px; font-size: 11.5px; color: var(--ink-3); }
+#copyright a { color: var(--accent-ink); }
+div.simple { margin: 12px 0; padding: 12px 14px; background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--r-md); }
+.button_right { position: static; float: right; }
+.performance-info { display: flex; justify-content: flex-end; gap: 14px; margin: 0 18px 18px;
+  padding: 0; border: 0; box-shadow: none; background: none; text-align: right;
+  font: 400 11px/1 var(--mono); color: var(--ink-3); }
+.performance-info strong, .performance-info :is(b) { color: var(--ink-2); font-weight: 500; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; padding: 10px 12px;
+  background: var(--surface); border: 1px dashed var(--rule-strong); border-radius: var(--r-md); }
+.legend .i { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); }
+.legend .sw { width: 14px; height: 14px; border-radius: 2px; background: var(--surface-2);
+  border-left: 2px solid var(--st-off); }
+.legend .sw.ok { border-left-color: var(--st-ok); } .legend .sw.warn { border-left-color: var(--st-warn); }
+.legend .sw.err { border-left-color: var(--st-err); } .legend .sw.off { border-left-color: var(--st-off); opacity: .5; }
+
+/* 12. Responsive and print. */
+@media (max-width: 1180px) {
+  :root { --rail-w: 60px; }
+  #eye-rail { padding-top: 10px; }
+  #title span, #navi a span, #navi b span, #eye-rail .rail-foot { display: none; }
+  #navi a, #navi b { justify-content: center; padding: 9px 0; }
+}
+@media (max-width: 860px) {
+  #eye-shell { grid-template-columns: minmax(0, 1fr); }
+  #eye-rail { position: static; height: auto; flex-direction: row; align-items: center;
+    overflow-x: auto; padding: 8px; }
+  #navi { flex-direction: row; }
+  #title { border: 0; margin: 0 8px 0 0; padding: 0 8px; }
+  #navi a, #navi b { border-left: 0; border-bottom: 2px solid transparent; }
+  .bulk { left: 0; }
+  .f { flex: 1 1 46%; } .f + .f { border-left: 0; }
+  #submenu, #contsubmenu, #subsubmenu { padding: 0 10px; }
+  #cont { padding: 12px 10px 110px; }
+  .savebar { bottom: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+  table.data > tbody > tr:first-child > td, table.data > tr:first-child > td { position: static; }
+}
+
+/* printing: navigation chrome away, header row unpinned */
+@media print {
+  #eye-rail, #submenu, #contsubmenu, #subsubmenu, .bulk, .filters, .savebar, .performance-info,
+  #cont > form > table:not(.data):not(.info) { display: none !important; }
+  #eye-shell { display: block; }
+  body { background: #fff; color: #000; }
+  table.data { border: 1px solid #999; box-shadow: none; }
+  table.data > tbody > tr:first-child > td, table.data > tr:first-child > td { position: static; background: #eee; }
+}
+
+/* 13. Login page (login.php). */
+body.eye-login { display: grid; place-items: center; min-height: 100vh; padding: 24px; }
+body.eye-login .login {
+  width: min(400px, 100%); margin: 0; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden;
+}
+body.eye-login .login h1 {
+  margin: 0; padding: 16px 20px; text-align: left;
+  font: 600 15px/1.2 var(--disp); letter-spacing: .06em; text-transform: uppercase;
+  background: var(--rail); color: #fff; border-bottom: 0;
+}
+body.eye-login .login form { display: block; padding: 18px 20px 20px; }
+body.eye-login .login form label {
+  width: auto; height: auto; background: none; color: var(--ink-3);
+  justify-content: flex-start; margin-bottom: 6px;
+  font: 600 10px/1 var(--disp); letter-spacing: .11em; text-transform: uppercase;
+}
+body.eye-login .login form input[type=text],
+body.eye-login .login form input[type=password] {
+  width: 100%; height: 34px; margin: 0 0 14px; padding: 0 10px; font-size: 14px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--rule-strong);
+  border-radius: var(--r-sm);
+}
+body.eye-login .login form input[type=text]:focus,
+body.eye-login .login form input[type=password]:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(237, 139, 13, .16); outline: none;
+}
+body.eye-login .login form input[type=submit] {
+  width: 100%; height: 36px; margin: 0; padding: 0; justify-content: center;
+  background: var(--accent); border-color: var(--accent); color: #231400; border-radius: var(--r-md);
+  font-weight: 600;
+}
+body.eye-login .login form input[type=submit]:hover { background: var(--accent-hover); }
+body.eye-login .error {
+  margin: 0 0 12px; padding: 9px 11px; font-size: 12.5px; color: var(--ink);
+  background: var(--st-err-bg); border-left: 2px solid var(--st-err); border-radius: var(--r-sm);
+}
+body.eye-login .login p { margin: 0 0 12px; }
+
+/* 14. Searchable select, replaces Select2. The native select stays in the form, the button is what the user sees. */
+.es { position: relative; display: inline-block; min-width: 0; max-width: 100%; }
+.es-native {
+  position: absolute !important; width: 1px; height: 1px; margin: 0; padding: 0;
+  border: 0; opacity: 0; overflow: hidden; pointer-events: none;
+}
+
+/* the visible half of the widget; the select itself stays in the form so name and value do not change */
+.es-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-width: 150px; max-width: 100%; height: 30px; padding: 0 8px; cursor: pointer;
+  font: 400 var(--fs)/1 var(--sans); text-align: left; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--rule-strong); border-radius: var(--r-sm);
+}
+.es-btn:hover:enabled { border-color: var(--ink-3); }
+.es-btn::after {
+  content: ""; flex: none; width: 0; height: 0; border: 4px solid transparent;
+  border-top-color: var(--ink-3); margin-top: 3px;
+}
+.es.open .es-btn::after { margin-top: -4px; border-top-color: transparent; border-bottom-color: var(--ink-3); }
+.es.open .es-btn { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(237, 139, 13, .16); }
+.es-dis .es-btn { color: var(--ink-3); cursor: not-allowed;
+  background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgba(120, 135, 150, .10) 5px 6px); }
+.es-pop {
+  position: absolute; z-index: 60; top: calc(100% + 4px); left: 0;
+  min-width: 100%; max-width: min(460px, 92vw); padding: 6px;
+  background: var(--surface); border: 1px solid var(--rule-strong);
+  border-radius: var(--r-md); box-shadow: var(--shadow);
+}
+.es-pop[hidden] { display: none; }
+.es-q { width: 100%; margin: 0 0 6px; }
+.es-list { list-style: none; margin: 0; padding: 0; max-height: min(46vh, 320px); overflow: auto; }
+.es-opt { padding: 5px 8px; border-radius: var(--r-sm); font-size: 13px; cursor: pointer; }
+.es-opt.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 500; }
+.es-opt.act { background: var(--sel); box-shadow: inset 0 0 0 1px var(--focus); }
+.es-opt.dis { opacity: .45; cursor: not-allowed; }
+.es-none { color: var(--ink-3); cursor: default; }
+
+/* keeps the popup from being clipped inside the dialog */
+dialog table.data, dialog table.data td, dialog table.data tr { overflow: visible; }
+
+/* 15. Action rows: caption on the left, button in the right column (control.php prints one-cell rows). */
+#cont table.data > tbody > tr > td:first-child:last-child:has(> :is(input[type=submit], input[type=button], button):last-child),
+#cont table.data > tr > td:first-child:last-child:has(> :is(input[type=submit], input[type=button], button):last-child) {
+  display: inline-flex; align-items: center; gap: 10px; text-align: left; width: 100%;
+}
+
+/* the button is pinned to the same right edge in every row */
+#cont table.data > tbody > tr > td:first-child:last-child > :is(input[type=submit], input[type=button], button):last-child {
+  margin-left: auto; flex: none; width: 136px; justify-content: center;
+}
+
+/* a lone action link (port control) joins the same column; data cells with links are unaffected */
+#cont table.data > tbody > tr > td:first-child:last-child:has(> a:only-child),
+#cont table.data > tr > td:first-child:last-child:has(> a:only-child) { display: flex; align-items: center; }
+#cont table.data > tbody > tr > td:first-child:last-child > a:only-child,
+#cont table.data > tr > td:first-child:last-child > a:only-child {
+  margin-left: auto; min-width: 136px; text-align: right;
+}
+:is(input[type=submit], button).danger, .btn.danger {
+  background: var(--st-err); border-color: var(--st-err); color: #fff;
+}
+:is(input[type=submit], button).danger:hover, .btn.danger:hover {
+  background: color-mix(in srgb, var(--st-err) 85%, #fff);
+  border-color: color-mix(in srgb, var(--st-err) 85%, #fff); color: #fff;
+}
+
+/* a cell with a control is not a caption, and a row with a control is not the column header */
+#cont table.data > tbody > tr > td:first-child:last-child:has(:is(input, select, textarea, button)),
+#cont table.data > tr > td:first-child:last-child:has(:is(input, select, textarea, button)) {
+  background: transparent; font: inherit; letter-spacing: normal; text-transform: none;
+  color: var(--ink); height: var(--row-h);
+}
+#cont table.data > tbody > tr:first-child > td:has(:is(input[type=submit], button)),
+#cont table.data > tr:first-child > td:has(:is(input[type=submit], button)) {
+  position: static; height: var(--row-h); background: transparent;
+  border-bottom: 1px solid var(--rule); font: inherit; letter-spacing: normal;
+  text-transform: none; color: var(--ink);
+}
+
+/* 16. Public block page: a card centred in the window. */
+body.eye-public { display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 22px; }
+body.eye-public #title { border: 0; margin: 0 0 12px; padding: 0; font-size: 19px; color: var(--ink); }
+body.eye-public #title::before { display: none; }
+body.eye-public #cont { width: min(640px, 100%); margin: 0; padding: 0; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; }
+body.eye-public #cont > table { width: 100%; }
+body.eye-public #cont table td { padding: 9px 16px; height: auto; border-bottom: 1px solid var(--rule);
+  vertical-align: middle; background: transparent; }
+body.eye-public #cont table tr:last-child td { border-bottom: 0; }
+body.eye-public #cont table td:first-child { width: 46%; color: var(--ink-2); font-weight: 600; }
+body.eye-public #cont table td:first-child b { color: var(--ink); }
+body.eye-public span.bad { display: block; padding: 12px 16px; font-weight: 600;
+  background: var(--st-err-bg); color: var(--st-err); }
+body.eye-public #copyright { margin-top: 14px; padding: 0; text-align: center; }
+
+/* 17. The save row is separated from secondary actions. */
+.pri { min-width: 136px; justify-content: center; }
+#cont table.data tbody tr:has(:is(input[type=submit], button, .btn).pri) > td,
+#cont table.data tr:has(:is(input[type=submit], button, .btn).pri) > td {
+  background: var(--surface-2); border-top: 1px solid var(--rule-strong);
+  border-bottom: 0; height: 46px;
+}
+#cont table.data tbody tr:has(:is(input[type=submit], button, .btn).pri) > td:first-child::before,
+#cont table.data tr:has(:is(input[type=submit], button, .btn).pri) > td:first-child::before { display: none; }
+
+#cont form > .filters input[type=submit], #cont form > input#btn_filter { font-weight: 600; }
+
+/* 19. Legacy markup kept on purpose: pages still print align attributes, which the base text-align would otherwise swallow. */
+#cont table.data > tbody > tr > td[align="right"], #cont table.data > tr > td[align="right"],
+#cont table.info > tbody > tr > td[align="right"] { text-align: right; }
+#cont table.data > tbody > tr > td[align="center"], #cont table.data > tr > td[align="center"],
+#cont table.data > tbody > tr > td[align="Center"], #cont table.data > tr > td[align="Center"],
+#cont table.info > tbody > tr > td[align="center"] { text-align: center; }
+#cont table.data > tbody > tr > td[align="left"], #cont table.data > tr > td[align="left"] { text-align: left; }
+
+/* field-group separator (editauth.php), which used to be an inline #f5f5f5 band and turned white in dark mode */
+#cont table.data > tbody > tr.sep > td, #cont table.data > tr.sep > td {
+  background: transparent; border-bottom: 0; border-top: 1px solid var(--rule); height: 8px;
+}
+#cont table.data > tbody > tr.sep:first-child > td { border-top: 0; }
+
+/* the no-records note in editipset.php */
+#cont table.data td.empty-cell { height: auto; padding: 20px var(--pad); text-align: center; color: var(--ink-3); }
+
+/* 18. Result of a mass operation returned by /utils/*.php. */
+.result { margin: 10px 0; padding: 11px 14px; font: 600 13px/1.3 var(--sans);
+  border: 1px solid transparent; border-radius: var(--r-md); }
+.result.ok { background: var(--st-ok-bg); color: color-mix(in srgb, var(--st-ok) 70%, var(--ink));
+  border-color: color-mix(in srgb, var(--st-ok) 45%, transparent); }
+.result.err { background: var(--st-err-bg); color: var(--st-err);
+  border-color: color-mix(in srgb, var(--st-err) 45%, transparent); }
+.toast { position: fixed; right: 16px; bottom: 16px; z-index: 90; max-width: min(560px, 92vw);
+  background: var(--surface); border: 1px solid var(--rule-strong); border-radius: var(--r-lg);
+  box-shadow: var(--shadow); }
+.toast .result { margin: 0; border: 0; border-radius: var(--r-lg); }
+.toast.err .result { border-left: 3px solid var(--st-err); }
+
+.es { max-width: 100%; }
+
+/* a widget inherits the width printed on the original select by common.php */
+.es:has(> .es-native[style*="100%"]) { display: block; width: 100%; }
+.es:has(> .es-native[style*="100%"]) .es-btn { width: 100%; }
+.es:has(> .es-native[style*="100px"]) .es-btn { min-width: 100px; }

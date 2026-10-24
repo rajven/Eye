@@ -82,7 +82,7 @@ print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed);
 </tr>
 <?php
 foreach ($maclog as $row) {
-    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center>\n";
     print "<td class=\"data\">" . $row['device_name'] . "</td>\n";
     print "<td class=\"data\">" . $row['port'] . "</td>\n";
     print "<td class=\"data\"><a href=/admin/logs/mac.php?mac=" . mac_dotted($row['mac']) . ">" . mac_dotted($row['mac']) . "</a></td>\n";

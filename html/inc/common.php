@@ -1382,7 +1382,7 @@ function print_submenu_url($display_name, $page, $current_page, $last)
         print "<a href='" . $new_url . "'> $display_name </a>";
     }
     if (!isset($last) or $last == 0) {
-        print " | ";
+        print '<span class="sep">|</span>';   /* hidden by eye.css, visible without styles */
     }
 }
 
@@ -1397,7 +1397,7 @@ function print_submenu_nw($display_name, $page, $current_page, $last)
         print '<a href="" onclick="window.open(\'' . $new_url . "', '_tab').focus(); return false;\">" . $display_name . "</a>";
     }
     if (!isset($last) or $last == 0) {
-        print " | ";
+        print '<span class="sep">|</span>';   /* hidden by eye.css, visible without styles */
     }
 }
 
@@ -2234,8 +2234,8 @@ function get_qa($qa_value, $text = FALSE)
         if ($qa_value == 1) { return "Да"; }
         return "Нет";
         } else {
-        if ($qa_value == 1) { return '<span style="font-size: 24px; font-weight: bold;">✓</span>'; }
-        return '<span style="font-size: 24px; font-weight: bold;">✗</span>';
+        if ($qa_value == 1) { return '<span class="qa yes">&#10003;</span>'; }
+        return '<span class="qa no">&#10007;</span>';
         }
 }
 
@@ -2245,7 +2245,7 @@ function get_yes($qa_value, $text = FALSE)
         if ($qa_value == 1) { return "Да"; }
         return "";
         } else {
-        if ($qa_value == 1) { return '<span style="font-size: 16px; font-weight: bold;">✓</span>'; }
+        if ($qa_value == 1) { return '<span class="qa yes">&#10003;</span>'; }
         return "";
         }
 }
@@ -2286,17 +2286,19 @@ function print_filter_select($db, $filter_name, $group_id)
     
     if (isset($group_id)) {
         $t_filters = get_records_sql($db,
-            "SELECT id, name FROM filter_list 
+            "SELECT id, name, description FROM filter_list 
              WHERE id NOT IN (SELECT filter_id FROM group_filters WHERE group_id = ?) 
              ORDER BY name",
             [(int)$group_id]
         );
     } else {
-        $t_filters = get_records_sql($db, "SELECT id, name FROM filter_list ORDER BY name");
+        $t_filters = get_records_sql($db, "SELECT id, name, description FROM filter_list ORDER BY name");
     }
     
     foreach ($t_filters as $row) {
-        print_select_item(htmlspecialchars($row['name']), $row['id'], 0);
+        $display_row = $row['name'];
+        if (!empty($row['description'])) { $display_row  = $display_row . ' - '. $row['description']; }
+        print_select_item(htmlspecialchars($display_row), $row['id'], 0);
     }
     echo "</select>\n";
 }
@@ -2864,7 +2866,7 @@ function print_auth_detail($db, $auth_id)
     
     // Добавляем статус удаления
     if ($auth['deleted'] == 1) {
-        $name .= " <font color='red'>DELETED!!!</font>";
+        $name .= ' <span class="bad">DELETED!!!</span>';
     }
     
     $display_name = htmlspecialchars($name);
@@ -4673,16 +4675,17 @@ function get_new_user_id($db, $ip, $mac, $hostname)
             }
         }
     }
-    
+
     // MAC правила (rule_type = 2)
     if (!empty($mac)) {
         $mac_simplified = mac_simplify($mac);
-        $mac_rules = get_records_sql($db, 
-            "SELECT * FROM auth_rules WHERE rule_type = 2 AND LENGTH(rule) > 0 AND user_id IS NOT NULL"
+        $mac_rules = get_records_sql($db,
+            "SELECT rule, user_id FROM auth_rules WHERE rule_type = 2 AND LENGTH(rule) > 0 AND user_id IS NOT NULL"
         );
         foreach ($mac_rules as $row) {
             if (!empty($row['rule'])) {
-                $pattern = '/^' . preg_quote(mac_simplify($row['rule']), '/') . '/';
+                // Добавлен модификатор 'i' в конце для регистронезависимости
+                $pattern = '/^' . preg_quote(mac_simplify($row['rule']), '/') . '/i';
                 if (preg_match($pattern, $mac_simplified)) {
                     $result['user_id'] = (int)$row['user_id'];
                     return $result;
@@ -4693,21 +4696,35 @@ function get_new_user_id($db, $ip, $mac, $hostname)
     
     // Hostname правила (rule_type = 3)
     if (!empty($hostname)) {
-        $hostname_rules = get_records_sql($db, 
-            "SELECT * FROM auth_rules WHERE rule_type = 3 AND LENGTH(rule) > 0 AND user_id IS NOT NULL"
+        $hostname_rules = get_records_sql($db,
+            "SELECT rule, user_id FROM auth_rules WHERE rule_type = 3 AND LENGTH(rule) > 0 AND user_id IS NOT NULL"
         );
         foreach ($hostname_rules as $row) {
-            if (!empty($row['rule'])) {
-                // Добавляем делимитеры к регулярному выражению, если их нет
-                $pattern = $row['rule'];
-                if (@preg_match($pattern, '') === false) {
-                    // Если шаблон некорректен, пропускаем
-                    continue;
+            $rule = trim($row['rule']);
+            if (empty($rule)) continue;
+
+            // Проверяем, является ли правило уже оформленным регулярным выражением
+            $first_char = $rule[0];
+            $last_char = substr($rule, -1);
+            $delimiters = ['/', '#', '~', '|'];
+            
+            $is_regex = in_array($first_char, $delimiters) && ($first_char === $last_char);
+
+            if ($is_regex) {
+                // Это уже регулярка. Добавляем модификатор 'i' (регистронезависимость)
+                $final_pattern = $rule;
+                if (strpos($final_pattern, 'i') === false) {
+                    $final_pattern = substr($final_pattern, 0, -1) . 'i' . substr($final_pattern, -1);
                 }
-                if (preg_match($pattern, $hostname)) {
-                    $result['user_id'] = (int)$row['user_id'];
-                    return $result;
-                }
+            } else {
+                // Это простая строка. 
+                $final_pattern = '/^' . preg_quote($rule, '/') . '/i';
+            }
+
+            // @ подавляет предупреждения, если регулярка в БД всё же синтаксически некорректна
+            if (@preg_match($final_pattern, $hostname)) {
+                $result['user_id'] = (int)$row['user_id'];
+                return $result;
             }
         }
     }
@@ -4726,16 +4743,17 @@ function get_new_user_id($db, $ip, $mac, $hostname)
             }
         }
     }
-    
-    // MAC правила для OU (rule_type = 2)
+
+    // MAC правила (rule_type = 2)
     if (!empty($mac)) {
         $mac_simplified = mac_simplify($mac);
-        $mac_rules = get_records_sql($db, 
-            "SELECT * FROM auth_rules WHERE rule_type = 2 AND LENGTH(rule) > 0 AND ou_id IS NOT NULL"
+        $mac_rules = get_records_sql($db,
+            "SELECT rule, ou_id FROM auth_rules WHERE rule_type = 2 AND LENGTH(rule) > 0 AND ou_id IS NOT NULL"
         );
         foreach ($mac_rules as $row) {
             if (!empty($row['rule'])) {
-                $pattern = '/^' . preg_quote(mac_simplify($row['rule']), '/') . '/';
+                // Добавлен модификатор 'i' в конце для регистронезависимости
+                $pattern = '/^' . preg_quote(mac_simplify($row['rule']), '/') . '/i';
                 if (preg_match($pattern, $mac_simplified)) {
                     $result['ou_id'] = (int)$row['ou_id'];
                     return $result;
@@ -4743,22 +4761,38 @@ function get_new_user_id($db, $ip, $mac, $hostname)
             }
         }
     }
-    
+
     // Hostname правила для OU (rule_type = 3)
     if (!empty($hostname)) {
-        $hostname_rules = get_records_sql($db, 
-            "SELECT * FROM auth_rules WHERE rule_type = 3 AND LENGTH(rule) > 0 AND ou_id IS NOT NULL"
+        $hostname_rules = get_records_sql($db,
+            "SELECT rule, ou_id FROM auth_rules WHERE rule_type = 3 AND LENGTH(rule) > 0 AND ou_id IS NOT NULL"
         );
         foreach ($hostname_rules as $row) {
-            if (!empty($row['rule'])) {
-                $pattern = $row['rule'];
-                if (@preg_match($pattern, '') === false) {
-                    continue;
+            $rule = trim($row['rule']);
+            if (empty($rule)) continue;
+
+            // Проверяем, является ли правило уже оформленным регулярным выражением
+            $first_char = $rule[0];
+            $last_char = substr($rule, -1);
+            $delimiters = ['/', '#', '~', '|'];
+            
+            $is_regex = in_array($first_char, $delimiters) && ($first_char === $last_char);
+
+            if ($is_regex) {
+                // Это уже регулярка. Добавляем модификатор 'i' (регистронезависимость)
+                $final_pattern = $rule;
+                if (strpos($final_pattern, 'i') === false) {
+                    $final_pattern = substr($final_pattern, 0, -1) . 'i' . substr($final_pattern, -1);
                 }
-                if (preg_match($pattern, $hostname)) {
-                    $result['ou_id'] = (int)$row['ou_id'];
-                    return $result;
-                }
+            } else {
+                // Это простая строка. 
+                $final_pattern = '/^' . preg_quote($rule, '/') . '/i';
+            }
+
+            // @ подавляет предупреждения, если регулярка в БД всё же синтаксически некорректна
+            if (@preg_match($final_pattern, $hostname)) {
+                $result['ou_id'] = (int)$row['ou_id'];
+                return $result;
             }
         }
     }

@@ -107,12 +107,11 @@ function blockForm(formId) {
 </form>
 
 <br>
-<a class="mainButton" href="#modal"><?php print WEB_btn_apply_selected; ?></a>
-<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modal" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
- <div class="remodalBorder">
-  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
-      <form id="formUserApply" onsubmit="blockForm('formUserApply');">
-        <h2 id="modal1Title"><?php print WEB_selection_title; ?></h2>
+<a class="mainButton" href="#eye-mass"><?php print WEB_btn_apply_selected; ?></a>
+<dialog id="eye-mass" class="eye-dlg">
+  <button type="button" class="x" data-close aria-label="<?php echo WEB_btn_close; ?>">&#10005;</button>
+  <form id="formUserApply" onsubmit="blockForm('formUserApply');">
+        <h2><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
         <tr><td><input type=checkbox class="putField" name="e_enabled" value='1'></td><td align=left><?php print WEB_cell_enabled."</td><td align=right>";print_qa_select('a_enabled', 0); ?></td></tr>
@@ -128,21 +127,18 @@ function blockForm(formId) {
         </table>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
-</div>
-</div>
+</dialog>
 
-<a class="delButton" href="#modalDel"><?php print WEB_btn_delete; ?></a>
-<div class="remodal" data-remodal-options="closeOnConfirm: true" data-remodal-id="modalDel" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
- <div class="remodalBorder">
-  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
-    <form id="formUserDel" onsubmit="blockForm('formUserDel');">
-        <h2 id="modal1Title"><?php print WEB_msg_delete_selected; ?></h2>
+<a class="delButton" href="#eye-del"><?php print WEB_btn_delete; ?></a>
+<dialog id="eye-del" class="eye-dlg">
+  <button type="button" class="x" data-close aria-label="<?php echo WEB_btn_close; ?>">&#10005;</button>
+  <form id="formUserDel" onsubmit="blockForm('formUserDel');">
+        <h2><?php print WEB_msg_delete_selected; ?></h2>
         <input type="hidden" name="RemoveUser" value="MassChange">
         <?php print_qa_select('f_deleted', 0);?><br><br>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
-</div>
-</div>
+</dialog>
 
 <?php
 
@@ -275,8 +271,6 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <td class="warn"><?php echo WEB_color_user_permanent; ?></td>
 </table>
 
-<script src="/js/remodal/remodal.min.js"></script>
-<script src="/js/remodal-user.js"></script>
 
 <script>
 document.getElementById('ou').addEventListener('change', function(event) {

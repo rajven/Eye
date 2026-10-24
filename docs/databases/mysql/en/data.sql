@@ -294,7 +294,7 @@ INSERT INTO `filter_list` VALUES (28,'smtp','SMTP mail transfer (TCP 25)','tcp',
 INSERT INTO `filter_list` VALUES (32,'rdp','RDP remote desktop (TCP 3389)','tcp','0/0',NULL,'3389',NULL,0);
 INSERT INTO `filter_list` VALUES (40,'ntp','NTP time synchronization (UDP 123)','udp','0/0',NULL,'123',NULL,0);
 INSERT INTO `filter_list` VALUES (44,'vnc','VNC remote desktop (TCP 5800-5900)','tcp','0/0',NULL,'5800-5900',NULL,0);
-INSERT INTO `filter_list` VALUES (55,'unprivileged tcp','Unprivileged TCP ports (1024-65500)','tcp','0/0',NULL,'1024-65500',NULL,0);
+INSERT INTO `filter_list` VALUES (55,'unprivileged tcp','Unprivileged TCP ports (1024-65500)','tcp','0/0',NULL,'1024-65535',NULL,0);
 INSERT INTO `filter_list` VALUES (76,'ipsec','IPsec IKE key exchange (UDP 500)','udp','0/0',NULL,'500',NULL,0);
 INSERT INTO `filter_list` VALUES (77,'isakmp','IPsec NAT-T / ISAKMP (UDP 4500)','udp','0/0',NULL,'4500',NULL,0);
 INSERT INTO `filter_list` VALUES (79,'pop3s','POP3S secure mail retrieval (TCP 995)','tcp','0/0',NULL,'995',NULL,0);
@@ -353,7 +353,7 @@ INSERT INTO `config` VALUES (145,23,'1');
 INSERT INTO `config` VALUES (148,22,'1');
 
 
-INSERT INTO `version` (`id`, `version`) VALUES(1, '3.0.1');
+INSERT INTO `version` (`id`, `version`) VALUES(1, '3.1.7');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

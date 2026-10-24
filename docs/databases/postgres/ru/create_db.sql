@@ -599,7 +599,7 @@ COMMENT ON TABLE vendors IS 'Производители сетевого обо�
 -- Версия системы
 CREATE TABLE version (
 id INTEGER PRIMARY KEY DEFAULT 1,
-version VARCHAR(10) NOT NULL DEFAULT '2.4.14'
+version VARCHAR(10) NOT NULL DEFAULT '3.1.7'
 );
 COMMENT ON TABLE version IS 'Информация о версии системы';
 

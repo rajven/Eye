@@ -1,6 +1,11 @@
-<br style="clear: both">
+<?php
+/* close the <div id="cont"> that pages open but never close; the footer lines
+   lines below belong to #eye-main and span the full content column. */
+?>
+</div><!--/#cont-->
 
-<div id="copyright">Copyright &copy; 2008-2026 Eye v<?php print $config["version"]; ?> &nbsp<a href="https://github.com/rajven/Eye">rnd@rajven.ru</a></div>
+
+<div id="copyright">Copyright &copy; 2008-2026 Eye v<?php print $config["version"]; ?> &nbsp;<a href="https://github.com/rajven/Eye">rnd@rajven.ru</a></div>
 <hr>
 <div>
 <?php
@@ -15,16 +20,15 @@ ob_end_flush();
 </div>
 
 <div class="performance-info">
-    ⚡ Страница сгенерирована за <strong><?php printf("%.4f сек", $time); ?></strong>
-    &nbsp;|&nbsp;
-    🧠 Память: <?php echo fbytes($peak_memory); ?> (пик)
-    &nbsp;|&nbsp;
-    💾 Использовано: <?php echo fbytes($end_memory - $start_memory); ?>
+    <span><?php echo WEB_perf_page; ?> <strong><?php printf("%.4f %s", $time, WEB_perf_sec); ?></strong></span>
+    <span><?php echo WEB_perf_memory; ?> <?php echo fbytes($peak_memory); ?></span>
+    <span><?php echo WEB_perf_used; ?> <?php echo fbytes($end_memory - $start_memory); ?></span>
 </div>
 
-</div>
+</div><!--/#eye-main-->
+</div><!--/#eye-shell-->
 
-<script src="/js/select-auto.js"></script>
+<script src="/js/eye.js<?php echo !empty($eye_js_mtime) ? '?v=' . $eye_js_mtime : ''; ?>"></script>
 
 </body>
 </html>

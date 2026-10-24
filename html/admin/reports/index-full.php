@@ -113,7 +113,7 @@ foreach ($traf as $row) {
     $cl = $row['tout'] > 2 * $row['tin'] ? "nb" : "data";
     $a_SQL='SELECT ip,U.login FROM user_auth, user_list as U where user_auth.user_id=U.id and user_auth.id=?';
     $auth_record = get_record_sql($db_link,$a_SQL,[$row['id']]);
-    print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+    print "<tr align=center>\n";
     print "<td align=left class=\"$cl\">" . $auth_record['login'] . "</td>\n";
     print "<td align=left class=\"$cl\"><a href=authday.php?id=" . $row['id'] . "&date_start=$date1&date_stop=$date2>" . $auth_record['ip'] . "</a></td>\n";
     print "<td align=left class=\"$cl\">$s_router</td>\n";
@@ -124,7 +124,7 @@ foreach ($traf as $row) {
     print "</tr>\n";
 }
 
-print "<tr align=center class=\"tr1\" onmouseover=\"className='tr2'\" onmouseout=\"className='tr1'\">\n";
+print "<tr align=center>\n";
 print "<td class=\"data\" colspan=2><b>".WEB_title_itog."</b></td>\n";
 print "<td class=\"data\"><b></b></td>\n";
 print "<td class=\"data\"><b>" . fbytes($total_in) . "</b></td>\n";

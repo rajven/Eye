@@ -149,8 +149,8 @@ cfg_set_php() {
         # PHP reads the value out of a double quoted string, so escape the
         # backslash, the double quote and the dollar sign (interpolation).
         $escaped =~ s/([\\\"\x24])/\\$1/g;
-        # Текущее значение может содержать уже экранированные \" и \\, поэтому
-        # читаем его как PHP-строку в двойных кавычках: (?:[^"\\]|\\.)*
+        # a stored value may already contain escaped \" and \\, so the value is read
+        # the way PHP reads a double quoted string: (?:[^"\\]|\\.)*
         my $hit = ($text =~ s{^([ \t]*define[ \t]*\([ \t]*")\Q$name\E("[ \t]*,[ \t]*")((?:[^"\\]|\\.)*)(")}
                              {$1 . $name . $2 . $escaped . $4}gem);
         exit(1) unless $hit;
@@ -234,7 +234,7 @@ stop_eye() {
         safe_stop_service "php${PHP_VERSION}-fpm"
     fi
 
-    # EYE_SERVICES_STOPPED включает аварийное восстановление в on_script_exit.
+    # EYE_SERVICES_STOPPED arms the recovery done by on_script_exit.
     for svc in cron eye-statd dhcp-log stat-sync syslog-stat; do
         safe_stop_service "$svc"
     done
@@ -842,7 +842,7 @@ upgrade_source_code() {
             DST="/etc/systemd/system/$svc.service"
             if [[ ! -f "$DST" ]] || ! cmp -s "$SRC" "$DST"; then
                 print_info "Updating $svc"
-                [[ -f "$DST" ]] && backup_file "$DST"
+#                [[ -f "$DST" ]] && backup_file "$DST"
                 cp -f "$SRC" "$DST"
                 chmod 644 "$DST"
                 SYSTEMD_CHANGED=1
@@ -909,8 +909,8 @@ install_source_code() {
         chmod 770 /opt/Eye/scripts/log
         chown -R eye:eye /opt/Eye/scripts
         if [[ -f "/opt/Eye/docs/systemd/stat-sync.service" ]]; then
-            [[ -f "/etc/systemd/system/stat-sync.service" ]] && backup_file "/etc/systemd/system/stat-sync.service"
-        cp /opt/Eye/docs/systemd/stat-sync.service /etc/systemd/system/
+#            [[ -f "/etc/systemd/system/stat-sync.service" ]] && backup_file "/etc/systemd/system/stat-sync.service"
+            cp /opt/Eye/docs/systemd/stat-sync.service /etc/systemd/system/
             systemctl enable stat-sync.service
         fi
     fi
@@ -927,7 +927,6 @@ download_additional_scripts() {
 
     # Create directories
     mkdir -p /opt/Eye/html/js/jq
-    mkdir -p /opt/Eye/html/js/select2
     mkdir -p /opt/Eye/html/js/jstree
 
     # Download jQuery
@@ -938,18 +937,6 @@ download_additional_scripts() {
         wget -q https://ajax.googleapis.com/ajax/libs/jquery/3.7.0/jquery.min.js \
             -O /opt/Eye/html/js/jq/jquery.min.js || \
             print_error "Failed to download jQuery"
-    fi
-
-    # Download Select2
-    print_info "Downloading Select2..."
-    if wget -q https://github.com/select2/select2/archive/4.0.12.tar.gz -O 4.0.12.tar.gz; then
-        tar -xzf 4.0.12.tar.gz -C /opt/Eye/html/js/select2/ \
-            --strip-components=2 select2-4.0.12/dist 2>/dev/null || \
-            tar -xzf 4.0.12.tar.gz -C /opt/Eye/html/js/select2/ \
-            --strip-components=1 select2-4.0.12/dist 2>/dev/null
-        rm -f 4.0.12.tar.gz
-    else
-        print_warn "Failed to download Select2"
     fi
 
     # Download jsTree
@@ -1138,7 +1125,7 @@ setup_postgresql() {
         # PostgreSQL setup below relies on it.
         make_workdir
         printf '%s\n' "root ALL=(ALL:ALL) NOPASSWD: ALL" > "$WORKDIR/sudoers.root"
-        backup_file /etc/sudoers.d/root 2>/dev/null || true
+#        backup_file /etc/sudoers.d/root 2>/dev/null || true
         install -m 0440 -o root -g root "$WORKDIR/sudoers.root" /etc/sudoers.d/root
 
         PGDATA="/var/lib/pgsql/data"
@@ -1149,7 +1136,7 @@ setup_postgresql() {
             # === ВАЖНО: настраиваем pg_hba.conf для безпарольного доступа ===
             local pg_hba_file="$PGDATA/pg_hba.conf"
             if [[ -f "$pg_hba_file" ]]; then
-                # Резервная копия с меткой времени
+                # timestamped backup of the original file
                 backup_file "$pg_hba_file"
 
                 # Вставляем правило для пользователя 'postgres' в начало файла
@@ -1400,6 +1387,79 @@ cfg_apply_key() {
     return 0
 }
 
+# ---------------------------------------------------------------------------
+# white.css and its libraries are gone from the package: Remodal was replaced by
+# native <dialog>, Select2 by plain <select> with search (js/eye.js).
+#   1) delete on the host whatever the sources no longer ship;
+#   2) switch HTML_STYLE in the WORKING config.php: an upgrade never rewrites it,
+#      so "white" would point at a missing file and the admin would come up
+#      completely without styles.
+# EYE_HTML keeps the path configurable so this can be tested without root.
+# ---------------------------------------------------------------------------
+retire_legacy_theme() {
+    local EYE_HTML="${EYE_HTML:-/opt/Eye/html}"
+    local cfg="$EYE_HTML/cfg/config.php"
+    local removed=0 f cur
+
+    print_step "Removing retired appearance files"
+
+    local legacy=(
+        "$EYE_HTML/css/white.css"
+        "$EYE_HTML/css/remodal-custom.css"
+        "$EYE_HTML/login.css"
+        "$EYE_HTML/js/remodal"
+        "$EYE_HTML/js/remodal.min.js"
+        "$EYE_HTML/js/remodal-auth.js"
+        "$EYE_HTML/js/remodal-user.js"
+        "$EYE_HTML/js/remodal-devices.js"
+        "$EYE_HTML/js/select-auto.js"
+        "$EYE_HTML/js/select2"
+    )
+    for f in "${legacy[@]}"; do
+        if [[ -e "$f" ]]; then
+            if rm -rf "$f"; then
+                print_info "Removed: $f"
+                removed=$((removed + 1))
+            else
+                print_error "Cannot remove $f"
+            fi
+        fi
+    done
+    if [[ $removed -eq 0 ]]; then
+        print_info "Nothing to remove (already clean)"
+    fi
+    # jQuery stays: admin/devices/index-tree.php still needs it for jsTree
+
+    if [[ ! -f "$cfg" ]]; then
+        print_warn "No $cfg - the theme will come from html/cfg/config.sample.php"
+        return 0
+    fi
+    if ! grep -qE 'define[[:space:]]*\([[:space:]]*"HTML_STYLE"' "$cfg"; then
+        print_warn "No HTML_STYLE in $cfg - add: define(\"HTML_STYLE\",\"eye\");"
+        return 0
+    fi
+
+    cur=$(grep -oP 'define\s*\(\s*"HTML_STYLE"\s*,\s*"\K[^"]+' "$cfg" | head -1)
+    case "$cur" in
+        white|"")
+            backup_file "$cfg" || print_warn "Не удалось сделать резервную копию $cfg"
+            if cfg_set_php "$cfg" HTML_STYLE eye; then
+                print_info "HTML_STYLE: \"$cur\" -> \"eye\" (white.css is no longer shipped)"
+            else
+                print_error "Cannot set HTML_STYLE in $cfg - edit it by hand: define(\"HTML_STYLE\",\"eye\");"
+                return 1
+            fi
+            ;;
+        eye|eye-dark)
+            print_info "HTML_STYLE is already \"$cur\""
+            ;;
+        *)
+            print_warn "HTML_STYLE=\"$cur\" - custom theme, left as is (white.css is gone from the package)"
+            ;;
+    esac
+    return 0
+}
+
 setup_configs() {
     print_step "Configuring configuration files"
 
@@ -1407,9 +1467,9 @@ setup_configs() {
     print_info "Setting up encryption keys..."
 
     if [[ "$DB_INSTALL" == "local" ]]; then
-        # Для локальной БД — генерируем автоматически.
-        # Ключ и IV нигде не печатаются: значение попадает в config.php (0660),
-        # в скриптовый config и в /root/eye_*_password.txt.
+        # local database: generate the values automatically.
+        # key and IV are never printed: they go into config.php (0660),
+        # scripts/cfg/config and /root/eye_*_password.txt
         ENC_PASSWORD=$(gen_secret 16)
         ENC_VECTOR=$(gen_digits 16)
         print_info "Encryption keys generated automatically (local database)."
@@ -1443,8 +1503,8 @@ setup_configs() {
     # === Настройка веб-конфигурации (только если нужен веб) ===
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "web" ]]; then
         if [[ -f "/opt/Eye/html/cfg/config.sample.php" ]]; then
-            # Повторный запуск установщика на рабочей машине не должен
-            # незаметно терять уже отредактированный конфиг.
+            # re-running the installer on a live host must not silently throw away
+            # a configuration that somebody has already edited
             if [[ -f /opt/Eye/html/cfg/config.php ]]; then
                 print_warn "Existing web config.php found - saving a copy before regenerating it"
                 backup_file /opt/Eye/html/cfg/config.php
@@ -1455,8 +1515,8 @@ setup_configs() {
             PHP_DB_TYPE="$DB_TYPE"
             [[ "$DB_TYPE" == "postgresql" ]] && PHP_DB_TYPE="pgsql"
 
-            # Подстановка реальных значений (perl + %ENV, без sed:
-            # параметры не должны интерпретироваться ни shell, ни sed)
+            # real values are written with perl + %ENV, never with sed:
+            # neither the shell nor sed may interpret these parameters
             cfg_fail=0
             WEB_CFG=/opt/Eye/html/cfg/config.php
             cfg_apply_php "$WEB_CFG" DB_TYPE       "$PHP_DB_TYPE" || cfg_fail=1
@@ -1489,7 +1549,7 @@ setup_configs() {
             fi
             cp /opt/Eye/scripts/cfg/config.sample /opt/Eye/scripts/cfg/config
 
-            # Подстановка значений (perl + %ENV, см. комментарий выше)
+            # same mechanism as above: perl + %ENV instead of sed
             cfg_fail=0
             BE_CFG=/opt/Eye/scripts/cfg/config
             cfg_apply_key "$BE_CFG" DBTYPE         "$DB_TYPE"      || cfg_fail=1
@@ -1614,7 +1674,7 @@ setup_apache_php() {
         # Use prepared template, substituting correct user
         if sed "s/www-data/eye/g" /opt/Eye/docs/sudoers.d/www-data > "$WORKDIR/sudoers.eye" \
             && visudo -cf "$WORKDIR/sudoers.eye" >/dev/null 2>&1; then
-            backup_file /etc/sudoers.d/eye 2>/dev/null || true
+#            backup_file /etc/sudoers.d/eye 2>/dev/null || true
             install -m 0440 -o root -g root "$WORKDIR/sudoers.eye" /etc/sudoers.d/eye
             print_info "Sudoers file created from template (validated with visudo)"
         else
@@ -1684,7 +1744,7 @@ _install_cron() {
     # 2 = нечего устанавливать (источник отсутствует)
     [[ ! -f "$src" ]] && return 2
 
-    [[ -f "/etc/cron.d/$name" ]] && backup_file "/etc/cron.d/$name"
+#    [[ -f "/etc/cron.d/$name" ]] && backup_file "/etc/cron.d/$name"
     if cp -f "$src" "/etc/cron.d/$name"; then
         chown root:root "/etc/cron.d/$name"
         chmod 644 "/etc/cron.d/$name"
@@ -1703,7 +1763,7 @@ _install_logrotate() {
     # 2 = нечего устанавливать (источник отсутствует)
     [[ ! -f "$src" ]] && return 2
 
-    [[ -f "/etc/logrotate.d/$name" ]] && backup_file "/etc/logrotate.d/$name"
+#    [[ -f "/etc/logrotate.d/$name" ]] && backup_file "/etc/logrotate.d/$name"
     if cp -f "$src" "/etc/logrotate.d/$name"; then
         chown root:root "/etc/logrotate.d/$name"
         chmod 644 "/etc/logrotate.d/$name"
@@ -1792,14 +1852,14 @@ setup_dhcp_server() {
 
     # Copy systemd services
     if [[ -f "/opt/Eye/docs/systemd/dhcp-log.service" ]]; then
-        [[ -f "/etc/systemd/system/dhcp-log.service" ]] && backup_file "/etc/systemd/system/dhcp-log.service"
+#        [[ -f "/etc/systemd/system/dhcp-log.service" ]] && backup_file "/etc/systemd/system/dhcp-log.service"
         cp /opt/Eye/docs/systemd/dhcp-log.service /etc/systemd/system/
         mkdir -p /etc/systemd/system/dnsmasq.service.d
         cp -f /opt/Eye/docs/systemd/dnsmasq.service.d/override.conf /etc/systemd/system/dnsmasq.service.d
     fi
 
     if [[ -f "/opt/Eye/docs/systemd/dhcp-log-truncate.service" ]]; then
-        [[ -f "/etc/systemd/system/dhcp-log-truncate.service" ]] && backup_file "/etc/systemd/system/dhcp-log-truncate.service"
+#        [[ -f "/etc/systemd/system/dhcp-log-truncate.service" ]] && backup_file "/etc/systemd/system/dhcp-log-truncate.service"
         cp /opt/Eye/docs/systemd/dhcp-log-truncate.service /etc/systemd/system/
     fi
 
@@ -1920,7 +1980,7 @@ keep_hostname(no);
 
     # Copy systemd service for Eye log processing
     if [[ -f "/opt/Eye/docs/systemd/syslog-stat.service" ]]; then
-        [[ -f "/etc/systemd/system/syslog-stat.service" ]] && backup_file "/etc/systemd/system/syslog-stat.service"
+#        [[ -f "/etc/systemd/system/syslog-stat.service" ]] && backup_file "/etc/systemd/system/syslog-stat.service"
         cp /opt/Eye/docs/systemd/syslog-stat.service /etc/systemd/system/
         chmod 644 /etc/systemd/system/syslog-stat.service
         print_info "syslog-stat service copied"
@@ -1934,8 +1994,8 @@ keep_hostname(no);
     # Enable and start services
     $SERVICE_MANAGER daemon-reload
 
-    # Проверяем синтаксис ДО перезапуска: с битым конфигом syslog-ng не
-    # поднимется, и сбор логов со всего сетевого оборудования остановится.
+    # validate the syntax BEFORE the restart: with a broken config syslog-ng
+    # will not start and log collection stops for the whole network
     SYSLOGNG_VALID=1
     if command -v syslog-ng >/dev/null 2>&1; then
         if ! syslog-ng --syntax-only >/dev/null 2>&1; then
@@ -2030,7 +2090,7 @@ install_ipset_utils() {
         return 1
     fi
 
-    backup_file "/etc/systemd/system/$unit_dir/override.conf" 2>/dev/null || true
+#    backup_file "/etc/systemd/system/$unit_dir/override.conf" 2>/dev/null || true
     mkdir -p "/etc/systemd/system/$unit_dir"
     if ! install -m 0644 -o root -g root "$dropin_src" "/etc/systemd/system/$unit_dir/override.conf"; then
         print_error "Cannot install systemd override into $unit_dir"
@@ -2054,7 +2114,7 @@ setup_additional_services() {
 
     # stat-sync service
     if [[ -f "/opt/Eye/docs/systemd/stat-sync.service" ]]; then
-        [[ -f "/etc/systemd/system/stat-sync.service" ]] && backup_file "/etc/systemd/system/stat-sync.service"
+#        [[ -f "/etc/systemd/system/stat-sync.service" ]] && backup_file "/etc/systemd/system/stat-sync.service"
         cp /opt/Eye/docs/systemd/stat-sync.service /etc/systemd/system/
         $SERVICE_MANAGER enable stat-sync.service
         print_info "stat-sync service enabled"
@@ -2062,7 +2122,7 @@ setup_additional_services() {
 
     # eye-statd service (NetFlow)
     if [[ -f "/opt/Eye/docs/systemd/eye-statd.service" ]]; then
-        [[ -f "/etc/systemd/system/eye-statd.service" ]] && backup_file "/etc/systemd/system/eye-statd.service"
+#        [[ -f "/etc/systemd/system/eye-statd.service" ]] && backup_file "/etc/systemd/system/eye-statd.service"
         cp /opt/Eye/docs/systemd/eye-statd.service /etc/systemd/system/
         $SERVICE_MANAGER enable eye-statd.service
         print_info "eye-statd service (NetFlow) enabled"
@@ -2190,7 +2250,7 @@ eye_install() {
     # Инициализация глобальных переменных
     DB_PASS=""
     DB_USER=""
-    DB_NAME="eye"   # совпадает с значением по умолчанию в приглашении
+    DB_NAME="eye"   # same default as the one shown in the prompt
     DB_HOST="127.0.0.1"
     DB_TYPE="mysql"
     EYE_LANG="russian"
@@ -2222,6 +2282,9 @@ eye_install() {
     if [[ "$DB_INSTALL" == "local" ]]; then
         setup_database
     fi
+
+    # retired theme: delete obsolete files, switch theme in the existing config
+    retire_legacy_theme
 
     # Настройка конфигов — всегда (но внутри учитывает INSTALL_TYPE)
     if ! setup_configs; then
@@ -2327,6 +2390,11 @@ eye_upgrade() {
 
     update_system
     install_packages
+    upgrade_source_code
+
+    # config.php is not rewritten by an upgrade, so the theme is switched in place
+    retire_legacy_theme
+
     upgrade_source_code
 
     if [ -f /opt/Eye/scripts/updates/upgrade.pl ]; then

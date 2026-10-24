@@ -424,7 +424,6 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             }
             print "</tr>";
         }
-        print "<tr>\n";
         print "</table>\n";
         ?>
 
@@ -440,11 +439,11 @@ print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
 print "<tr><td>" . WEB_port_status . "</td></tr>\n";
 print "<tr><td class=\"down\">" . WEB_port_oper_down . "</td>";
 print "<td class=\"up\">" . WEB_port_oper_up . "</td>";
-print "<td class=\"shutdown\">" . WEB_port_admin_shutdown . "</td><tr>\n";
+print "<td class=\"shutdown\">" . WEB_port_admin_shutdown . "</td></tr>\n";
 print "</table>\n";
 print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
 print "<tr><td>" . WEB_port_speed . "</td></tr>\n";
-print "<tr><td class=\"speed10M\">" . WEB_port_speed_10 . "</td><td class=\"speed100M\">" . WEB_port_speed_100 . "</td><td class=\"speed1G\">" . WEB_port_speed_1G . "</td><td class=\"speed10G\">" . WEB_port_speed_10G . "</td><tr>\n";
+print "<tr><td class=\"speed10M\">" . WEB_port_speed_10 . "</td><td class=\"speed100M\">" . WEB_port_speed_100 . "</td><td class=\"speed1G\">" . WEB_port_speed_1G . "</td><td class=\"speed10G\">" . WEB_port_speed_10G . "</td></tr>\n";
 print "</table>\n";
 print "</form>";
 unset_lock_discovery($db_link, $id);

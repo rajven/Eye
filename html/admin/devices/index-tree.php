@@ -6,9 +6,18 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 print_device_submenu($page_url);
 ?>
 
+<script src="/js/jq/jquery.min.js"></script>
 <script>
+/* the library is loaded asynchronously, so the tree initialisation is deferred:
+   the block printed below only assigns window.eyeTreeInit(). */
+window.eyeTreeReady = false;
+window.eyeTreeInit = null;
 $.getScript("/js/jstree/jstree.min.js")
-.fail(function(jqxhr, settings, exception) {
+ .done(function () {
+        window.eyeTreeReady = true;
+        if (typeof window.eyeTreeInit === 'function') { window.eyeTreeInit(); }
+  })
+ .fail(function (jqxhr, settings, exception) {
         window.location.href = '/admin/devices/index-tree-simple.php';
         });
 </script>
@@ -82,7 +91,9 @@ foreach ($switches as $row) {
 
 print '<div id="frmt" class="tree"></div>';
 print "\n";
+print '<link rel="stylesheet" href="/js/jstree/themes/default/style.min.css">';
 print '<script>';
+print 'window.eyeTreeInit = function () {';
 print "$('#frmt').jstree({";
 print '"themes" : { "theme" : "default", "dots" : false, "icons" : false }, "plugins" : [ "themes", "html_data", "ui", "sort" ],';
 print "'core' : { 'data' : [";
@@ -120,6 +131,8 @@ foreach ($dev_hash as $device) {
     if(href == '#') return '';
     var win = window.open(href, "_blank");
 });
+};
+if (window.eyeTreeReady) { window.eyeTreeInit(); }
 </script>
 
 <?php

@@ -599,7 +599,7 @@ COMMENT ON TABLE vendors IS 'Network equipment vendors';
 -- System version
 CREATE TABLE version (
 id INTEGER PRIMARY KEY DEFAULT 1,
-version VARCHAR(10) NOT NULL DEFAULT '3.0.0'
+version VARCHAR(10) NOT NULL DEFAULT '3.1.7'
 );
 COMMENT ON TABLE version IS 'System version information';
 
