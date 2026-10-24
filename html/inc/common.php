@@ -2286,17 +2286,19 @@ function print_filter_select($db, $filter_name, $group_id)
     
     if (isset($group_id)) {
         $t_filters = get_records_sql($db,
-            "SELECT id, name FROM filter_list 
+            "SELECT id, name, description FROM filter_list 
              WHERE id NOT IN (SELECT filter_id FROM group_filters WHERE group_id = ?) 
              ORDER BY name",
             [(int)$group_id]
         );
     } else {
-        $t_filters = get_records_sql($db, "SELECT id, name FROM filter_list ORDER BY name");
+        $t_filters = get_records_sql($db, "SELECT id, name, description FROM filter_list ORDER BY name");
     }
     
     foreach ($t_filters as $row) {
-        print_select_item(htmlspecialchars($row['name']), $row['id'], 0);
+        $display_row = $row['name'];
+        if (!empty($row['description'])) { $display_row  = $display_row . ' - '. $row['description']; }
+        print_select_item(htmlspecialchars($display_row), $row['id'], 0);
     }
     echo "</select>\n";
 }

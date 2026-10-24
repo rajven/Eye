@@ -439,7 +439,7 @@ VALUES
 (32, 'rdp', 'RDP remote desktop (TCP 3389)', 'tcp', '0/0', '3389', NULL, 0),
 (40, 'ntp', 'NTP time synchronization (UDP 123)', 'udp', '0/0', '123', NULL, 0),
 (44, 'vnc', 'VNC remote desktop (TCP 5800-5900)', 'tcp', '0/0', '5800-5900', NULL, 0),
-(55, 'unprivileged tcp', 'Unprivileged TCP ports (1024-65500)', 'tcp', '0/0', '1024-65500', NULL, 0),
+(55, 'unprivileged tcp', 'Unprivileged TCP ports (1024-65500)', 'tcp', '0/0', '1024-65535', NULL, 0),
 (76, 'ipsec', 'IPsec IKE key exchange (UDP 500)', 'udp', '0/0', '500', NULL, 0),
 (77, 'isakmp', 'IPsec NAT-T / ISAKMP (UDP 4500)', 'udp', '0/0', '4500', NULL, 0),
 (79, 'pop3s', 'POP3S secure mail retrieval (TCP 995)', 'tcp', '0/0', '995', NULL, 0),

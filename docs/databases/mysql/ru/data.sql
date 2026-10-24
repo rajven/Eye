@@ -294,7 +294,7 @@ INSERT INTO `filter_list` VALUES (28,'smtp','SMTP: передача почты (
 INSERT INTO `filter_list` VALUES (32,'rdp','RDP: удалённый рабочий стол (TCP 3389)','tcp','0/0',NULL,'3389',NULL,0);
 INSERT INTO `filter_list` VALUES (40,'ntp','NTP: синхронизация времени (UDP 123)','udp','0/0',NULL,'123',NULL,0);
 INSERT INTO `filter_list` VALUES (44,'vnc','VNC: удалённый рабочий стол (TCP 5800-5900)','tcp','0/0',NULL,'5800-5900',NULL,0);
-INSERT INTO `filter_list` VALUES (55,'unprivileged tcp','Непривилегированные TCP-порты (1024-65500)','tcp','0/0',NULL,'1024-65500',NULL,0);
+INSERT INTO `filter_list` VALUES (55,'unprivileged tcp','Непривилегированные TCP-порты (1024-65500)','tcp','0/0',NULL,'1024-65535',NULL,0);
 INSERT INTO `filter_list` VALUES (76,'ipsec','IPsec: обмен ключами IKE (UDP 500)','udp','0/0',NULL,'500',NULL,0);
 INSERT INTO `filter_list` VALUES (77,'isakmp','IPsec NAT-T / ISAKMP (UDP 4500)','udp','0/0',NULL,'4500',NULL,0);
 INSERT INTO `filter_list` VALUES (79,'pop3s','POP3S: защищённое получение почты (TCP 995)','tcp','0/0',NULL,'995',NULL,0);
