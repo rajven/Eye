@@ -493,15 +493,20 @@ install_deps_altlinux() {
         fi
     fi
 
+    ALT_PHP="8.3"
+    if [ "$OS_VERSION" == "11" ]; then
+       ALT_PHP="8.4"
+       fi
+
     # === Веб-интерфейс (если нужен) ===
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "web" ]]; then
-        apt-get install -y apache2 php8.2 php8.2-fpm-fcgi apache2-mod_fcgid \
-            php8.2-intl php8.2-mbstring php8.2-snmp php8.2-zip pear-Mail
+        apt-get install -y apache2 php${ALT_PHP} php${ALT_PHP}-fpm-fcgi \
+            php${ALT_PHP}-intl php${ALT_PHP}-mbstring php${ALT_PHP}-snmp php${ALT_PHP}-zip pear-Mail
 
         if [[ "$DB_TYPE" == "postgresql" ]]; then
-            apt-get install -y php8.2-pgsql php8.2-pdo_pgsql
+            apt-get install -y php${ALT_PHP}-pgsql php${ALT_PHP}-pdo_pgsql
         else
-            apt-get install -y php8.2-mysqlnd php8.2-pdo_mysql php8.2-mysqlnd-mysqli
+            apt-get install -y php${ALT_PHP}-mysqlnd php${ALT_PHP}-pdo_mysql php${ALT_PHP}-mysqlnd-mysqli
         fi
     fi
 
@@ -1630,7 +1635,7 @@ setup_apache_php() {
     print_step "Configuring Apache and PHP"
 
     # Determine PHP version
-    PHP_VERSION=$(php -v 2>/dev/null | head -n1 | grep -oP '\d+\.\d+' || echo "8.2")
+    PHP_VERSION=$(php -v 2>/dev/null | head -n1 | grep -oP '\d+\.\d+' || echo "8.3")
     echo "Версия PHP: $PHP_VERSION"
 
     # Configure PHP for all distributions
