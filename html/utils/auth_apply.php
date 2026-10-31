@@ -24,9 +24,9 @@ if (getPOST("ApplyForAll", $page_url)) {
     $a_traf = (int)getPOST("a_traf", $page_url, 0);
     $a_bind_mac = (int)getPOST("a_bind_mac", $page_url, 0);
     $a_bind_ip = (int)getPOST("a_bind_ip", $page_url, 0);
-    $n_enabled = (int)getPOST("n_enabled", $page_url, 0);
-    $n_link = (int)getPOST("n_link", $page_url, 0);
-    $n_handler = getPOST("n_handler", $page_url, '');
+    $m_enabled = (int)getPOST("m_enabled", $page_url, 0);
+    $m_link = (int)getPOST("m_link", $page_url, 0);
+    $m_handler = getPOST("m_handler", $page_url, '');
 
 
     foreach ($auth_id as $val) {
@@ -64,14 +64,17 @@ if (getPOST("ApplyForAll", $page_url)) {
         if (getPOST("e_traf", $page_url) !== null) {
             $auth_updates['save_traf'] = $a_traf;
         }
-        if (getPOST("e_nag_enabled", $page_url) !== null) {
-            $auth_updates['nagios'] = $n_enabled;
+        if (getPOST("e_mon_enabled", $page_url) !== null) {
+            set_monitoring($auth_updates, $cur_auth['monitoring'], $m_enabled);
+            if ($auth_updates['monitoring'] == 0) {
+                $auth_updates['monitoring_status'] = 'UP';
+            }
         }
-        if (getPOST("e_nag_link", $page_url) !== null) {
-            $auth_updates['link_check'] = $n_link;
+        if (getPOST("e_mon_link", $page_url) !== null) {
+            $auth_updates['link_check'] = $m_link;
         }
-        if (getPOST("e_nag_handler", $page_url) !== null) {
-            $auth_updates['nagios_handler'] = $n_handler;
+        if (getPOST("e_mon_handler", $page_url) !== null) {
+            $auth_updates['nagios_handler'] = $m_handler;
         }
 
         // Обновляем запись в user_auth

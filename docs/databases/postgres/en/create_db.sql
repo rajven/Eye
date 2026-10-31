@@ -133,9 +133,10 @@ discovery SMALLINT NOT NULL DEFAULT 1,
 netflow_save SMALLINT NOT NULL DEFAULT 0,
 user_acl SMALLINT NOT NULL DEFAULT 0,
 dhcp SMALLINT NOT NULL DEFAULT 0,
-nagios SMALLINT NOT NULL DEFAULT 0,
+monitoring SMALLINT NOT NULL DEFAULT 0,
+monitoring_old SMALLINT NOT NULL DEFAULT 0,
 active SMALLINT NOT NULL DEFAULT 1,
-nagios_status VARCHAR(10) NOT NULL DEFAULT 'UP',
+monitoring_status VARCHAR(10) NOT NULL DEFAULT 'UP',
 queue_enabled SMALLINT NOT NULL DEFAULT 0,
 connected_user_only SMALLINT NOT NULL DEFAULT 1,
 user_id INTEGER,
@@ -195,7 +196,8 @@ target_port_id INTEGER NOT NULL DEFAULT 0,
 auth_id BIGINT,
 last_mac_count INTEGER DEFAULT 0,
 uplink SMALLINT NOT NULL DEFAULT 0,
-nagios SMALLINT NOT NULL DEFAULT 0,
+monitoring SMALLINT NOT NULL DEFAULT 0,
+monitoring_old SMALLINT NOT NULL DEFAULT 0,
 skip SMALLINT NOT NULL DEFAULT 0,
 vlan INTEGER NOT NULL DEFAULT 1,
 tagged_vlan VARCHAR(250),
@@ -358,6 +360,7 @@ nagios_dir VARCHAR(255),
 nagios_host_use VARCHAR(50),
 nagios_ping SMALLINT NOT NULL DEFAULT 1,
 nagios_default_service VARCHAR(100),
+zabbix_group_id INTEGER NOT NULL DEFAULT 0,
 enabled SMALLINT NOT NULL DEFAULT 0,
 filter_group_id INTEGER NOT NULL DEFAULT 0,
 queue_id INTEGER NOT NULL DEFAULT 0,
@@ -491,8 +494,9 @@ device_model_id INTEGER DEFAULT 87,
 firmware VARCHAR(100),
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 client_id VARCHAR(250),
-nagios SMALLINT NOT NULL DEFAULT 0,
-nagios_status VARCHAR(10) NOT NULL DEFAULT '',
+monitoring SMALLINT NOT NULL DEFAULT 0,
+monitoring_old SMALLINT NOT NULL DEFAULT 0,
+monitoring_status VARCHAR(10) NOT NULL DEFAULT '',
 nagios_handler VARCHAR(50) NOT NULL DEFAULT '',
 link_check SMALLINT NOT NULL DEFAULT 0,
 changed SMALLINT NOT NULL DEFAULT 0,
@@ -504,7 +508,7 @@ COMMENT ON TABLE user_auth IS 'User/device network authorization records';
 COMMENT ON COLUMN user_auth.enabled IS 'This authorization is active';
 COMMENT ON COLUMN user_auth.dynamic IS 'This is a dynamically created record';
 COMMENT ON COLUMN user_auth.day_quota IS 'Daily traffic quota in bytes';
-COMMENT ON COLUMN user_auth.nagios IS 'Enable Nagios monitoring for this host';
+COMMENT ON COLUMN user_auth.monitoring IS 'Enable monitoring for this host (monitoring system depends on config option)';
 
 -- User authorization aliases
 CREATE TABLE user_auth_alias (
@@ -599,7 +603,7 @@ COMMENT ON TABLE vendors IS 'Network equipment vendors';
 -- System version
 CREATE TABLE version (
 id INTEGER PRIMARY KEY DEFAULT 1,
-version VARCHAR(10) NOT NULL DEFAULT '3.1.7'
+version VARCHAR(10) NOT NULL DEFAULT '3.2.1'
 );
 COMMENT ON TABLE version IS 'System version information';
 
@@ -647,6 +651,49 @@ CREATE TABLE ipset_members (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (ipset_id, ip)
 );
+
+-- Zabbix templates linked to device models
+CREATE TABLE zabbix_templates (
+    id SERIAL PRIMARY KEY,
+    device_model_id INTEGER NOT NULL DEFAULT 0,
+    template_id BIGINT NOT NULL DEFAULT 0,
+    template_name VARCHAR(250) NOT NULL DEFAULT '',
+    UNIQUE (device_model_id, template_id)
+);
+COMMENT ON TABLE zabbix_templates IS 'Zabbix templates bound to device models';
+COMMENT ON COLUMN zabbix_templates.device_model_id IS 'Device model id (device_models.id)';
+COMMENT ON COLUMN zabbix_templates.template_id IS 'Zabbix template id (host group of the template type)';
+COMMENT ON COLUMN zabbix_templates.template_name IS 'Zabbix template name, checked against zabbix when the form is saved';
+
+-- Zabbix macros bound to device models
+CREATE TABLE zabbix_macros_list (
+    id SERIAL PRIMARY KEY,
+    device_model_id INTEGER NOT NULL DEFAULT 0,
+    macro_name VARCHAR(250) NOT NULL DEFAULT '',
+    macro_type INTEGER NOT NULL DEFAULT 0,
+    default_value VARCHAR(250) NOT NULL DEFAULT '',
+    description VARCHAR(255),
+    UNIQUE (device_model_id, macro_name)
+);
+COMMENT ON TABLE zabbix_macros_list IS 'Zabbix macros bound to device models';
+COMMENT ON COLUMN zabbix_macros_list.macro_name IS 'Zabbix macro name, for example {$SNMP_COMMUNITY}';
+COMMENT ON COLUMN zabbix_macros_list.macro_type IS 'Zabbix macro type: 0 - text, 1 - secret';
+COMMENT ON COLUMN zabbix_macros_list.default_value IS 'Default macro value';
+
+-- Macros used by device models
+CREATE TABLE zabbix_macros (
+    id SERIAL PRIMARY KEY,
+    macros_list_id INTEGER NOT NULL DEFAULT 0,
+    device_model_id INTEGER NOT NULL DEFAULT 0,
+    macro_name VARCHAR(250) NOT NULL DEFAULT '',
+    macro_value VARCHAR(250) NOT NULL DEFAULT '',
+    is_used SMALLINT NOT NULL DEFAULT 1,
+    UNIQUE (device_model_id, macro_name)
+);
+COMMENT ON TABLE zabbix_macros IS 'List of macros actually used by a device model';
+COMMENT ON COLUMN zabbix_macros.macros_list_id IS 'zabbix_macros_list.id, 0 - macro outside of the model list';
+COMMENT ON COLUMN zabbix_macros.macro_value IS 'Macro value used by hosts of this model';
+COMMENT ON COLUMN zabbix_macros.is_used IS 'Macro is assigned to hosts of this model';
 
 -- Indexes
 

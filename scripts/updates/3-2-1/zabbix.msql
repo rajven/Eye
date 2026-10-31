@@ -1,0 +1,31 @@
+CREATE TABLE IF NOT EXISTS `zabbix_templates` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `device_model_id` INT NOT NULL DEFAULT 0 COMMENT 'Device model id',
+  `template_id` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Zabbix template id',
+  `template_name` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Zabbix template name',
+  UNIQUE KEY `uniq_zabbix_template` (`device_model_id`, `template_id`),
+  KEY `idx_zabbix_template_model` (`device_model_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS `zabbix_macros_list` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `device_model_id` INT NOT NULL DEFAULT 0 COMMENT 'Device model id',
+  `macro_name` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Zabbix macro name, for example {$SNMP_COMMUNITY}',
+  `macro_type` INT NOT NULL DEFAULT 0 COMMENT 'Zabbix macro type: 0 - text, 1 - secret',
+  `default_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Default macro value',
+  `description` VARCHAR(255) DEFAULT NULL COMMENT 'Macro description',
+  UNIQUE KEY `uniq_zabbix_macro_list` (`device_model_id`, `macro_name`),
+  KEY `idx_zabbix_macro_list_model` (`device_model_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS `zabbix_macros` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `macros_list_id` INT NOT NULL DEFAULT 0 COMMENT 'Reference to zabbix_macros_list.id, 0 - macro outside of the model list',
+  `device_model_id` INT NOT NULL DEFAULT 0 COMMENT 'Device model id',
+  `macro_name` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Zabbix macro name used by the model',
+  `macro_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Macro value used by the model',
+  `is_used` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Macro is assigned to hosts of this model',
+  UNIQUE KEY `uniq_zabbix_macro` (`device_model_id`, `macro_name`),
+  KEY `idx_zabbix_macro_list` (`macros_list_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT INTO `config_options` (`id`, `option_name`, description_russian, description_english, `draft`, `uniq`, `option_type`, `default_value`, `min_value`, `max_value`) VALUES(74, 'monitoring_system', 'Система мониторинга: none - отключена, nagios, zabbix. Для zabbix необходимо указать адрес и ключ API.', 'Monitoring system: none - disabled, nagios, zabbix. If zabbix is selected, the API url and API key must be set.', 0, 1, 'list;none;nagios;zabbix', 'none', 0, 0) ON DUPLICATE KEY UPDATE `option_name` = VALUES(`option_name`), `option_type` = VALUES(`option_type`), `description_russian` = VALUES(`description_russian`), `description_english` = VALUES(`description_english`);
+INSERT INTO `config_options` (`id`, `option_name`, description_russian, description_english, `draft`, `uniq`, `option_type`, `default_value`, `min_value`, `max_value`) VALUES(75, 'zabbix_api_url', 'Полный адрес JSON-RPC API zabbix (api_jsonrpc.php)', 'Full address of the zabbix JSON-RPC API (api_jsonrpc.php)', 0, 1, 'text', 'http://127.0.0.1/zabbix/api_jsonrpc.php', 0, 0) ON DUPLICATE KEY UPDATE `option_name` = VALUES(`option_name`), `option_type` = VALUES(`option_type`), `description_russian` = VALUES(`description_russian`), `description_english` = VALUES(`description_english`);
+INSERT INTO `config_options` (`id`, `option_name`, description_russian, description_english, `draft`, `uniq`, `option_type`, `default_value`, `min_value`, `max_value`) VALUES(76, 'zabbix_api_key', 'API ключ (token) для доступа к API zabbix. Создаётся в zabbix: Администраторы - Пользователи - API токены.', 'API key (token) used to access the zabbix API. Created in zabbix: Administration - Users - API tokens.', 0, 1, 'text', '', 0, 0) ON DUPLICATE KEY UPDATE `option_name` = VALUES(`option_name`), `option_type` = VALUES(`option_type`), `description_russian` = VALUES(`description_russian`), `description_english` = VALUES(`description_english`);

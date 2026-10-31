@@ -1500,7 +1500,7 @@ function print_ip_submenu($current_page)
 {
     print "<div id='submenu'>\n";
     print_submenu_url(WEB_submenu_ip_list, '/admin/iplist/index.php', $current_page, 0);
-    print_submenu_url(WEB_submenu_nagios, '/admin/iplist/nagios.php', $current_page, 0);
+    print_submenu_url(WEB_submenu_monitoring, '/admin/iplist/monitoring.php', $current_page, 0);
     print_submenu_url(WEB_submenu_doubles, '/admin/iplist/doubles.php', $current_page, 0);
     print_submenu_url(WEB_submenu_deleted, '/admin/iplist/deleted.php', $current_page, 0);
     print_submenu_url(WEB_submenu_auto_rules, '/admin/iplist/auto_rules.php', $current_page, 1);
@@ -1526,6 +1526,85 @@ function get_nagios_name($auth)
         $auth['login'] = 'host';
     }
     return $auth['login'] . "_" . $auth['id'];
+}
+
+// Address of the zabbix site, the api endpoint is stored in the config option 75
+function zabbix_site_url($api_url)
+{
+    $api_url = trim((string)$api_url);
+    if ($api_url === '') {
+        return NULL;
+    }
+    $site_url = preg_replace('#/?api_jsonrpc\.php$#', '', $api_url);
+    $site_url = rtrim($site_url, '/');
+    return $site_url === '' ? NULL : $site_url;
+}
+
+// Zabbix is selected as the monitoring system and the api is configured
+function is_zabbix_enabled()
+{
+    global $config;
+    if (!isset($config["monitoring_system"])) {
+        return false;
+    }
+    if (mb_strtolower(trim((string)$config["monitoring_system"])) !== 'zabbix') {
+        return false;
+    }
+    if (empty($config["zabbix_api_url"]) or empty($config["zabbix_api_key"])) {
+        return false;
+    }
+    return true;
+}
+
+// Link to the zabbix host, the host name is the same as in the sync_zabbix script
+function get_zabbix_host_link($hostname)
+{
+    global $config;
+    if (!is_zabbix_enabled() or $hostname === '' or $hostname === null) {
+        return NULL;
+    }
+    return $config["zabbix_url"] . '/zabbix.php?action=host.view&filter_name=' . rawurlencode($hostname);
+}
+
+// Name of the zabbix/monitoring host for the ip record
+function get_monitoring_name($auth)
+{
+    return get_nagios_name($auth);
+}
+
+// Link to the host page of the monitoring system selected in the config options
+function get_host_monitoring_link($db, $auth)
+{
+    $hostname = get_monitoring_name($auth);
+    if ($hostname === '' or $hostname === null) {
+        return NULL;
+    }
+
+    if (is_zabbix_enabled()) {
+        return get_zabbix_host_link($hostname);
+    }
+
+    $monitoring_system = get_option($db, 74);
+    if ($monitoring_system === NULL or mb_strtolower(trim((string)$monitoring_system)) === 'nagios') {
+        $nagios_url = get_const('nagios_url');
+        if ($nagios_url !== NULL && $nagios_url !== '') {
+            return $nagios_url . 'status.cgi?host=' . rawurlencode($hostname);
+        }
+    }
+
+    return NULL;
+}
+
+// Save the previous value of the monitoring field before changing it.
+// The sync script disables the host in the monitoring system when monitoring_old=1 and monitoring=0
+function set_monitoring(&$new, $current_monitoring, $new_monitoring)
+{
+    $current = (int)$current_monitoring;
+    $value = (int)$new_monitoring;
+    if ($current !== $value) {
+        $new['monitoring_old'] = $current;
+    }
+    $new['monitoring'] = $value;
 }
 
 function get_ou($db, $ou_value)
@@ -5166,6 +5245,11 @@ if (preg_match('/127.0.0.1/', $config["nagios_url"])) {
     $config["nagios_url"] = NULL;
 }
 
+$config["monitoring_system"] = get_option($db_link, 74);
+$config["zabbix_api_url"] = get_option($db_link, 75);
+$config["zabbix_api_key"] = get_option($db_link, 76);
+$config["zabbix_url"] = zabbix_site_url($config["zabbix_api_url"]);
+
 $config["torrus_url"] = rtrim(get_option($db_link, 59), '/') . '?nodeid=if//HOST_IP//IF_NAME////inoutbps';
 if (preg_match('/127.0.0.1/', $config["torrus_url"])) {
     $config["torrus_url"] = NULL;
@@ -5189,6 +5273,8 @@ if (empty($ou)) {
 }
 
 $config["init"] = 1;
+
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/zabbix.php");
 
 clean_dns_cache($db_link);
 //clean_unreferensed_rules($db_link);

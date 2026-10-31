@@ -14,11 +14,11 @@ define("WEB_changed_time","Last changed");
 
 define("WEB_page_speed","Page generated for ");
 define("WEB_rows_at_page","Lines");
-define("WEB_nagios","Nagios");
+define("WEB_monitoring","Monitoring");
 define("WEB_search","Search");
-define("WEB_nagios_host_up","Host is active");
-define("WEB_nagios_host_down","Host is not available");
-define("WEB_nagios_host_unknown","Status unknown");
+define("WEB_monitoring_host_up","Host is active");
+define("WEB_monitoring_host_down","Host is not available");
+define("WEB_monitoring_host_unknown","Status unknown");
 
 /* error messages */
 define("WEB_auth_unknown","Client IP address is not set");
@@ -144,7 +144,7 @@ define("WEB_submenu_ports","Ports");
 define("WEB_submenu_state","State");
 define("WEB_submenu_connections","Connections");
 define("WEB_submenu_ip_list","Address List");
-define("WEB_submenu_nagios","Information for nagios");
+define("WEB_submenu_monitoring","Information for monitoring");
 define("WEB_submenu_doubles","Duplicates");
 define("WEB_submenu_deleted","Remote addresses");
 define("WEB_submenu_auto_rules","Auto-assignment rules");
@@ -207,7 +207,7 @@ define("WEB_cell_ptr_only","Create only PTR");
 define("WEB_cell_dns_name","Dns Name");
 define("WEB_cell_aliases","Aliases");
 define("WEB_cell_host_model","Device Model");
-define("WEB_cell_nagios","Monitoring");
+define("WEB_cell_monitoring","Monitoring");
 define("WEB_cell_nagios_handler","Event response");
 define("WEB_cell_link","Link");
 define("WEB_cell_traf","Traffic recording");
@@ -564,4 +564,36 @@ define("WEB_msg_filter_hint","Filters are applied immediately");
 define("WEB_btn_close","Close");
 define("WEB_lbl_typeahead","Type to search");
 define("WEB_lbl_nomatch","Nothing found");
+
+/* zabbix monitoring */
+define("WEB_cell_monitoring_status","Monitoring status");
+define("WEB_zabbix_host_group","Zabbix host group");
+define("WEB_zabbix_group_none","without group");
+define("WEB_zabbix_group_not_found","group not found in zabbix:");
+define("WEB_zabbix_group_api_unavailable","Zabbix api is not available, enter the host group id manually");
+define("WEB_zabbix_templates","Templates and macros zabbix");
+define("WEB_zabbix_template","Zabbix template");
+define("WEB_zabbix_template_add","Add template");
+define("WEB_zabbix_templates_check","Check templates in zabbix");
+define("WEB_zabbix_template_missing","Templates are not found in zabbix:");
+define("WEB_zabbix_template_renamed","Template names were updated from zabbix:");
+define("WEB_zabbix_macro_list","Macros available for the model");
+define("WEB_zabbix_macros_used","Macros used by the model");
+define("WEB_zabbix_macro","Macro");
+define("WEB_zabbix_value","Value");
+define("WEB_zabbix_default_value","Default value");
+define("WEB_zabbix_used","Used");
+define("WEB_zabbix_macro_type","Type");
+define("WEB_zabbix_macro_type_text","Text");
+define("WEB_zabbix_macro_type_secret","Secret");
+define("WEB_zabbix_macro_load","Load macros from the zabbix templates");
+define("WEB_zabbix_disabled","Zabbix monitoring is disabled or the api is not configured in the config options");
+define("WEB_zabbix_model","Device model:");
+define("WEB_zabbix_add_macro","Add macro");
+define("WEB_zabbix_unlink","Unlink templates");
+define("WEB_zabbix_remove","Remove");
+
+define("WEB_zabbix_macro_hint","An empty macro name removes the macro from the model");
+define("WEB_zabbix","Zabbix");
+define("WEB_zabbix_templates_ok","All templates of the model are present in zabbix");
 ?>

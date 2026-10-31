@@ -526,6 +526,7 @@ install_deps_altlinux() {
             perl-Crypt-Rijndael perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
             perl-File-Path-Tiny perl-Expect perl-Proc-ProcessTable \
             perl-Text-CSV perl-Log-Log4perl \
+            perl-IO-Socket-SSL \
             perl-DBD-Pg perl-DBD-mysql
     fi
 
@@ -585,6 +586,7 @@ install_deps_debian() {
             libcrypt-rijndael-perl libcrypt-cbc-perl libcryptx-perl \
             libcrypt-des-perl libfile-path-tiny-perl libexpect-perl \
             libtext-csv-perl liblog-log4perl-perl \
+            libio-socket-ssl-perl \
             libdbd-pg-perl libdbd-mysql-perl
     fi
 

@@ -127,16 +127,16 @@ if (getPOST("editdevice") !== null && isset($id)) {
     $new['discovery']             = trim(getPOST("f_discovery", null, 0));
 
     // Nagios
-    $f_nagios                     = (int)getPOST("f_nagios", null, -1);
-    if ($f_nagios !== -1) {
-        $new['nagios'] = $f_nagios;
-        if ($new['nagios'] == 0) {
-            $new['nagios_status'] = 'UP';
+    $f_monitoring                 = (int)getPOST("f_monitoring", null, -1);
+    if ($f_monitoring !== -1) {
+        set_monitoring($new, $cur_device['monitoring'], $f_monitoring);
+        if ($new['monitoring'] == 0) {
+            $new['monitoring_status'] = 'UP';
         }
     } else {
         if (!empty($cur_auth)) {
-            $new['nagios'] = 0;
-            $new['nagios_status'] = $cur_auth['nagios_status'];
+            set_monitoring($new, $cur_device['monitoring'], 0);
+            $new['monitoring_status'] = $cur_auth['monitoring_status'];
         }
     }
 
@@ -275,14 +275,14 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 print "</td>\n";
                 print "<td class='data'><input type='text' name='f_control_port' value=" . $device['control_port'] . "></td>\n";
                 print "</tr>";
-                //snmp settings & discovery & nagios
-                print "<tr><td>" . WEB_network_discovery . "</td><td>" . WEB_nagios . "</td><td>" . WEB_device_save_netflow . "</td><td></td></tr>";
+                //snmp settings & discovery & monitoring
+                print "<tr><td>" . WEB_network_discovery . "</td><td>" . WEB_monitoring . "</td><td>" . WEB_device_save_netflow . "</td><td></td></tr>";
                 print "<tr>";
                 print "<td class='data'>";
                 print_qa_select('f_discovery', $device['discovery']);
                 print "</td>\n";
                 print "<td class='data'>";
-                print_qa_select('f_nagios', $device['nagios']);
+                print_qa_select('f_monitoring', $device['monitoring']);
                 print "</td>\n";
                 print "<td class='data'>";
                 print_qa_select('f_save_netflow', $device['netflow_save']);

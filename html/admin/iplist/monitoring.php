@@ -14,7 +14,7 @@ $sort_table = 'user_auth';
 if ($sort_field == 'login') { $sort_table = 'user_list'; }
 if ($sort_field == 'description') { $sort_table = 'user_list'; }
 
-$sort_url = "<a href=nagios.php?ou=" . $rou; 
+$sort_url = "<a href=monitoring.php?ou=" . $rou;
 
 $params=[];
 if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and user_list.ou_id=?"; $params[]=$rou; }
@@ -28,8 +28,8 @@ if ($rsubnet == 0) { $subnet_filter = ''; } else {
 
 $enabled_filter='';
 if ($enabled>0) {
-    if ($enabled===2) { $enabled_filter = ' and user_auth.nagios=1'; }
-    if ($enabled===1) { $enabled_filter = ' and user_auth.nagios=0'; }
+    if ($enabled===2) { $enabled_filter = ' and user_auth.monitoring=1'; }
+    if ($enabled===1) { $enabled_filter = ' and user_auth.monitoring=0'; }
     }
 
 $ip_list_filter = $ou_filter.$subnet_filter.$enabled_filter;
@@ -38,13 +38,13 @@ print_ip_submenu($page_url);
 
 ?>
 <div id="cont">
-<form name="filter" action="nagios.php" method="post">
+<form name="filter" action="monitoring.php" method="post">
 <table class="data">
 	<tr>
         <td>
         <b><?php print WEB_cell_ou; ?> :</b><?php print_ou_select($db_link, 'ou', $rou); ?>
         <b><?php print WEB_network_subnet; ?> - </b><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?>
-        <b><?php print WEB_nagios; ?> :</b><?php print_enabled_select('enabled', $enabled); ?>
+        <b><?php print WEB_monitoring; ?> :</b><?php print_enabled_select('enabled', $enabled); ?>
         <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
         <input id="btn_filter" name="btn_filter" type="submit" value="<?php print WEB_btn_show; ?>">
         </td>
@@ -59,9 +59,9 @@ print_ip_submenu($page_url);
         <h2><?php print WEB_selection_title; ?></h2>
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
-        <tr><td><input type=checkbox class="putField" name="e_nag_enabled" value='1'></td><td>Nagios&nbsp<?php print_qa_select('n_enabled', 1); ?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_nag_link" value='1'></td><td>Link&nbsp<?php print_qa_select('n_link', 0); ?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_nag_handler" value='1'></td><td>Event-handler&nbsp<?php print_nagios_handler_select($db_link,'n_handler', ''); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_mon_enabled" value='1'></td><td><?php print WEB_monitoring; ?>&nbsp<?php print_qa_select('m_enabled', 1); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_mon_link" value='1'></td><td><?php print WEB_cell_link; ?>&nbsp<?php print_qa_select('m_link', 0); ?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_mon_handler" value='1'></td><td><?php print WEB_cell_nagios_handler; ?>&nbsp<?php print_nagios_handler_select($db_link,'m_handler', ''); ?></td></tr>
         </table>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
@@ -88,7 +88,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 		<td align=Center><?php print $sort_url . "&sort=mac&order=$new_order>" . WEB_cell_mac . "</a>"; ?></td>
 		<td align=Center><?php print WEB_cell_description; ?></td>
 		<td align=Center><?php print WEB_cell_wikiname; ?></td>
-		<td align=Center><?php print $sort_url . "&sort=nagios&order=$new_order>" . WEB_cell_nagios; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=monitoring&order=$new_order>" . WEB_cell_monitoring; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=link_check&order=$new_order>" . WEB_cell_link; ?></td>
 		<td align=Center><?php print WEB_cell_nagios_handler; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=last_found&order=$new_order>Last</a>"; ?></td>
@@ -112,9 +112,9 @@ foreach ($users as $user) {
     if (is_empty_datetime($user['last_found'])) { $user['last_found'] = ''; }
     print "<tr align=center>\n";
     $cl = "data";
-    if ($user['nagios_status'] == "UP") { $cl = "up"; }
-    if ($user['nagios_status'] == "DOWN") { $cl = "down"; }
-    if (!$user['nagios']) { $cl = "data"; }
+    if ($user['monitoring_status'] == "UP") { $cl = "up"; }
+    if ($user['monitoring_status'] == "DOWN") { $cl = "down"; }
+    if (!$user['monitoring']) { $cl = "data"; }
 
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$user['id']."></td>\n";
     print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user['login'] . "</a></td>\n";
@@ -137,13 +137,13 @@ foreach ($users as $user) {
         print "<td class=\"$cl\" ></td>\n";
         }
 
-    if (!empty($user['nagios']) and $user['nagios']) {
-        if (preg_match('/127.0.0.1/', get_const('nagios_url'))) { print "<td class=\"$cl\" >". get_qa($user['nagios']) ."</td>\n"; } else {
-            $nagios_link = get_const('nagios_url').'status.cgi?host='.get_nagios_name($user);
-            print "<td class=\"$cl\" >"; print_url(get_qa($user['nagios']),$nagios_link); print "</td>\n";
+    if (!empty($user['monitoring']) and $user['monitoring']) {
+        $monitoring_link = get_host_monitoring_link($db_link, $user);
+        if ($monitoring_link === NULL) { print "<td class=\"$cl\" >". get_qa($user['monitoring']) ."</td>\n"; } else {
+            print "<td class=\"$cl\" >"; print_url(get_qa($user['monitoring']), $monitoring_link); print "</td>\n";
             }
         } else {
-        print_td_qa($user['nagios'],FALSE,$cl);
+        print_td_qa($user['monitoring'],FALSE,$cl);
         }
 
     print_td_qa($user['link_check'],FALSE,$cl);
@@ -159,9 +159,9 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 <table class="data">
 <tr><td><?php echo WEB_color_description; ?></td></tr>
 <tr>
-<td class="up"><?php echo WEB_nagios_host_up; ?></td>
-<td class="down"><?php echo WEB_nagios_host_down; ?></td>
-<td class="data"><?php echo WEB_nagios_host_unknown; ?></td>
+<td class="up"><?php echo WEB_monitoring_host_up; ?></td>
+<td class="down"><?php echo WEB_monitoring_host_down; ?></td>
+<td class="data"><?php echo WEB_monitoring_host_unknown; ?></td>
 </table>
 
 <script>

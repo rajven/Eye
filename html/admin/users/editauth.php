@@ -146,19 +146,19 @@ if (getPOST("editauth") !== null && !$old_auth_info['deleted']) {
                 'nagios_handler'    => '',
                 'enabled'           => 0,
                 'link_check'        => 0,
-                'nagios'            => 0,
                 'blocked'           => 0,
                 'day_quota'         => 0,
                 'month_quota'       => 0,
                 'queue_id'          => 0,
                 'filter_group_id'   => 0
             ];
+            // monitoring is always disabled for the system ou
+            set_monitoring($new, $old_auth_info['monitoring'], 0);
         } else {
             $new += [
                 'nagios_handler'    => trim(getPOST("f_handler", null, '')),
                 'enabled'           => (int)getPOST("f_enabled", null, 0),
                 'link_check'        => (int)getPOST("f_link", null, 0),
-                'nagios'            => (int)getPOST("f_nagios", null, 0),
                 'dhcp'              => $f_dhcp,
                 'blocked'           => (int)getPOST("f_blocked", null, 0),
                 'day_quota'         => (int)getPOST("f_day_q", null, 0),
@@ -166,14 +166,15 @@ if (getPOST("editauth") !== null && !$old_auth_info['deleted']) {
                 'queue_id'          => (int)getPOST("f_queue_id", null, 0),
                 'filter_group_id'   => (int)getPOST("f_group_id", null, 0)
             ];
+            set_monitoring($new, $old_auth_info['monitoring'], (int)getPOST("f_monitoring", null, 0));
         }
 
         if ($new['day_quota']>0) {
             if ($new['month_quota'] <= $new['day_quota']) { $new['month_quota'] = $new['day_quota'] * 31; }
             }
 
-        if ($new['nagios'] == 0) {
-            $new['nagios_status'] = 'UP';
+        if ($new['monitoring'] == 0) {
+            $new['monitoring_status'] = 'UP';
         }
         if (!$user_enabled) {
             $new['enabled'] = 0;
@@ -271,19 +272,19 @@ if (getPOST("recovery") !== null && $old_auth_info['deleted']) {
                 'nagios_handler'    => '',
                 'enabled'           => 0,
                 'link_check'        => 0,
-                'nagios'            => 0,
                 'blocked'           => 0,
                 'day_quota'         => 0,
                 'month_quota'       => 0,
                 'queue_id'          => 0,
                 'filter_group_id'   => 0
             ];
+            // monitoring is always disabled for the system ou
+            set_monitoring($new, $old_auth_info['monitoring'], 0);
         } else {
             $new += [
                 'nagios_handler'    => trim(getPOST("f_handler", null, '')),
                 'enabled'           => (int)getPOST("f_enabled", null, 0),
                 'link_check'        => (int)getPOST("f_link", null, 0),
-                'nagios'            => (int)getPOST("f_nagios", null, 0),
                 'dhcp'              => (int)getPOST("f_dhcp", null, 0),
                 'blocked'           => (int)getPOST("f_blocked", null, 0),
                 'day_quota'         => (int)getPOST("f_day_q", null, 0),
@@ -291,6 +292,11 @@ if (getPOST("recovery") !== null && $old_auth_info['deleted']) {
                 'queue_id'          => (int)getPOST("f_queue_id", null, 0),
                 'filter_group_id'   => (int)getPOST("f_group_id", null, 0)
             ];
+            set_monitoring($new, $old_auth_info['monitoring'], (int)getPOST("f_monitoring", null, 0));
+        }
+
+        if ($new['monitoring'] == 0) {
+            $new['monitoring_status'] = 'UP';
         }
 
         $new = apply_auth_rule($db_link, $new, $new['user_id']);
@@ -452,14 +458,14 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
                     }
                     ?>
                 </td>
-                <td><?php echo WEB_cell_nagios; ?></td>
+                <td><?php echo WEB_cell_monitoring; ?></td>
                 <td><?php echo WEB_cell_link; ?></td>
                 <td><?php echo WEB_cell_nagios_handler; ?></td>
                 <td></td>
             </tr>
             <tr>
                 <td><input type="text" name="f_wiki" value="<?php echo htmlspecialchars($auth_info['wikiname']); ?>" <?php print $disabled_attr; ?> class='full-width'></td>
-                <td><?php print_qa_select('f_nagios', $auth_info['nagios'],$is_system_ou); ?></td>
+                <td><?php print_qa_select('f_monitoring', $auth_info['monitoring'],$is_system_ou); ?></td>
                 <td><?php print_qa_select('f_link', $auth_info['link_check'],$is_system_ou); ?></td>
                 <td colspan=2><input type="text" name="f_handler" value="<?php echo htmlspecialchars($auth_info['nagios_handler']); ?>" <?php print $disabled_attr; ?> class='full-width'></td>
             </tr>

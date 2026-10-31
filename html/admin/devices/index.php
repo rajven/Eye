@@ -48,7 +48,7 @@ print_device_submenu($page_url);
 <td style="width: 1%; white-space: nowrap;"><b><?php echo WEB_cell_sn; ?></b></td>
 <td><b><a href=index.php?sort=building_name&order=<?php print $new_order; ?>><?php echo WEB_location_name; ?></a></b></td>
 <td><b><?php echo WEB_device_port_count; ?></b></td>
-<td><b><?php echo WEB_nagios; ?></b></td>
+<td><b><?php echo WEB_monitoring; ?></b></td>
 <td><b><?php echo WEB_network_discovery; ?></b></td>
 </tr>
 <?php
@@ -82,9 +82,9 @@ $switches = get_records_sql($db_link,$dSQL, $params);
 foreach ($switches as $row) {
     print "<tr align=center>\n";
     $cl = "data";
-    if (isset($row['nagios_status'])) {
+    if (isset($row['monitoring_status'])) {
         $cl = 'shutdown';
-        if ($row['nagios_status'] == 'UP') { $cl = 'up'; }
+        if ($row['monitoring_status'] == 'UP') { $cl = 'up'; }
         }
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
     print "<td class=\"$cl\">".get_devtype_name($db_link,$row['device_type'])."</td>\n";
@@ -100,7 +100,7 @@ foreach ($switches as $row) {
     if (!empty($row['description'])) { print  '<hr style="opacity: 0;">' . $row['description']; }
     print "</td>\n";
     print "<td class=\"$cl\">" . $row['port_count'] . "</td>\n";
-    print "<td class=\"$cl\">" . get_qa($row['nagios']) . "</td>\n";
+    print "<td class=\"$cl\">" . get_qa($row['monitoring']) . "</td>\n";
     print "<td class=\"$cl\">" . get_qa($row['discovery']) . "</td>\n";
 }
 ?>

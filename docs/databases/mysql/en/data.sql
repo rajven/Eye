@@ -65,6 +65,9 @@ INSERT INTO `config_options` (`id`, `option_name`, description_russian, descript
 INSERT INTO `config_options` (`id`, `option_name`, description_russian, description_english, `draft`, `uniq`, `option_type`, `default_value`, `min_value`, `max_value`) VALUES(71, 'enable_dns_updates', 'Включить обновления DNS имен при изменении dns-имени в ip-записи', 'Enable DNS name updates when dns name changes in an ip record', 0, 1, 'bool', '0', 0, 1);
 INSERT INTO `config_options` (`id`, `option_name`, description_russian, description_english, `draft`, `uniq`, `option_type`, `default_value`, `min_value`, `max_value`) VALUES(72, 'netflow_path', 'Каталог для хранения данных, полученных по netflow от маршрутизаторов', 'The directory for storing data received via netflow from routers', 0, 1, 'text', '/opt/Eye/netflow', 0, 0);
 INSERT INTO `config_options` (`id`, `option_name`, description_russian, description_english, `draft`, `uniq`, `option_type`, `default_value`, `min_value`, `max_value`) VALUES(73, 'check_computer_exists', 'Проверять существование компьютера в домене перед обновлением DNS по DHCP запросу', 'Verify the existence of a computer in the domain before updating DNS by DHCP request', 0, 1, 'bool', '1', 0, 0);
+INSERT INTO `config_options` (`id`, `option_name`, description_russian, description_english, `draft`, `uniq`, `option_type`, `default_value`, `min_value`, `max_value`) VALUES(74, 'monitoring_system', 'Система мониторинга: none - отключена, nagios, zabbix. Для zabbix необходимо указать адрес и ключ API.', 'Monitoring system: none - disabled, nagios, zabbix. If zabbix is selected, the API url and API key must be set.', 0, 1, 'list;none;nagios;zabbix', 'none', 0, 0);
+INSERT INTO `config_options` (`id`, `option_name`, description_russian, description_english, `draft`, `uniq`, `option_type`, `default_value`, `min_value`, `max_value`) VALUES(75, 'zabbix_api_url', 'Полный адрес JSON-RPC API zabbix (api_jsonrpc.php)', 'Full address of the zabbix JSON-RPC API (api_jsonrpc.php)', 0, 1, 'text', 'http://127.0.0.1/zabbix/api_jsonrpc.php', 0, 0);
+INSERT INTO `config_options` (`id`, `option_name`, description_russian, description_english, `draft`, `uniq`, `option_type`, `default_value`, `min_value`, `max_value`) VALUES(76, 'zabbix_api_key', 'API ключ (token) для доступа к API zabbix. Создаётся в zabbix: Администраторы - Пользователи - API токены.', 'API key (token) used to access the zabbix API. Created in zabbix: Administration - Users - API tokens.', 0, 1, 'text', '', 0, 0);
 
 INSERT INTO `customers` (`id`, `Login`, `description`, `password`, `api_key`,`rights`) VALUES (1, 'admin', 'Administrator', '$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG', 'c3284d0f94606de1fd2af172aba15bf31','1') ON DUPLICATE KEY UPDATE `Login`="admin", `password`="$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG", `rights`="1";
 
@@ -353,7 +356,7 @@ INSERT INTO `config` VALUES (145,23,'1');
 INSERT INTO `config` VALUES (148,22,'1');
 
 
-INSERT INTO `version` (`id`, `version`) VALUES(1, '3.1.7');
+INSERT INTO `version` (`id`, `version`) VALUES(1, '3.2.1');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

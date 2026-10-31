@@ -72,7 +72,7 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 <td><?php echo WEB_device_connected_endpoint; ?></td>
 <td><?php echo WEB_cell_description; ?></td>
 <td><?php echo WEB_device_port_uplink; ?></td>
-<td><?php echo WEB_nagios; ?></td>
+<td><?php echo WEB_monitoring; ?></td>
 <td><?php echo WEB_cell_skip; ?></td>
 <td><?php echo WEB_cell_vlan; ?></td>
 <td><?php echo WEB_device_snmp_port_oid_name; ?></td>
@@ -98,7 +98,7 @@ foreach ($ports as $row) {
         print "</td>\n";
         print "<td class='".$cl."'>" . get_port_description($db_link, $row['id'],$row['description']) . "</td>\n";
         print_td_yes($row['uplink'],FALSE,$cl);
-        print_td_yes($row['nagios'],FALSE,$cl);
+        print_td_yes($row['monitoring'],FALSE,$cl);
         print_td_yes($row['skip'],FALSE,$cl);
         $display_vlan= $row['vlan'];
         if (!empty($row['untagged_vlan'])) { 

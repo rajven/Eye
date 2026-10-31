@@ -1,3 +1,13 @@
+# Changelog 3-2-1 - release
+- added: support for zabbix as a monitoring system. The eye config options 74 (monitoring system), 75 (zabbix api url), 76 (zabbix api key) are used to configure it.
+- added: zabbix_templates, zabbix_macros_list, zabbix_macros tables - zabbix templates and macros for the device models.
+- added: zabbix_group_id field in the ou table - host group of the organizational unit, the hosts of the unit are created in it.
+- added: new form "Templates and macros zabbix" in the device models. Templates are checked for presence and renaming in zabbix, used macros are stored with their values.
+- changed: nagios => monitoring, nagios_status => monitoring_status in the devices, device_ports, user_auth tables.
+- added: monitoring_old field - the previous value of the monitoring field. It allows the sync script to disable a host in the monitoring system when monitoring is switched off in eye.
+- added: docs/zabbix/sync_zabbix.pl script (analog of docs/nagios/gen_nagios_config.pl) and the eyelib::zabbix api library. link_check parameter is ignored by the script, hosts are never deleted from zabbix - they are disabled instead.
+- bugfix: postgres data.sql used EXCLUDED."order" instead of EXCLUDED.rule_order while importing group_filters, the import of the group filters was interrupted.
+
 # Changelog 3-1-5 - release
 - Due to the uncertain future of the old SystemV initialization system, ipset support has been reconfigured to run as a regular bash script.
 - bugfix: Only administrators are allowed to view project users.

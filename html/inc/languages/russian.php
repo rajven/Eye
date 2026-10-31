@@ -14,11 +14,11 @@ define("WEB_changed_time","Последняя правка");
 
 define("WEB_page_speed","Страница сгенерирована за ");
 define("WEB_rows_at_page","Строк");
-define("WEB_nagios","Nagios");
+define("WEB_monitoring","Мониторинг");
 define("WEB_search","Искать");
-define("WEB_nagios_host_up","Хост активен");
-define("WEB_nagios_host_down","Хост не доступен");
-define("WEB_nagios_host_unknown","Состояние неизвестно");
+define("WEB_monitoring_host_up","Хост активен");
+define("WEB_monitoring_host_down","Хост не доступен");
+define("WEB_monitoring_host_unknown","Состояние неизвестно");
 
 /* error messages */
 define("WEB_auth_unknown","IP-адрес клиента не установлен");
@@ -144,7 +144,7 @@ define("WEB_submenu_ports","Порты");
 define("WEB_submenu_state","Состояние");
 define("WEB_submenu_connections","Соединения");
 define("WEB_submenu_ip_list","Список адресов");
-define("WEB_submenu_nagios","Информация для nagios");
+define("WEB_submenu_monitoring","Информация для мониторинга");
 define("WEB_submenu_doubles","Дубли");
 define("WEB_submenu_deleted","Удалённые адреса");
 define("WEB_submenu_auto_rules","Правила автоназначения");
@@ -207,7 +207,7 @@ define("WEB_cell_ptr_only","Только PTR");
 define("WEB_cell_dns_name","Имя в dns");
 define("WEB_cell_aliases","Альясы");
 define("WEB_cell_host_model","Модель устройства");
-define("WEB_cell_nagios","Мониторинг");
+define("WEB_cell_monitoring","Мониторинг");
 define("WEB_cell_nagios_handler","Реакция на событие");
 define("WEB_cell_link","Линк");
 define("WEB_cell_traf","Запись трафика");
@@ -564,4 +564,36 @@ define("WEB_msg_filter_hint","Фильтры применяются сразу")
 define("WEB_btn_close","Закрыть");
 define("WEB_lbl_typeahead","Начните вводить для поиска");
 define("WEB_lbl_nomatch","Ничего не найдено");
+
+/* мониторинг zabbix */
+define("WEB_cell_monitoring_status","Состояние мониторинга");
+define("WEB_zabbix_host_group","Группа хостов Zabbix");
+define("WEB_zabbix_group_none","без группы");
+define("WEB_zabbix_group_not_found","группа не найдена в zabbix:");
+define("WEB_zabbix_group_api_unavailable","API Zabbix недоступно, id группы хостов можно ввести вручную");
+define("WEB_zabbix_templates","Шаблоны и макросы zabbix");
+define("WEB_zabbix_template","Шаблон Zabbix");
+define("WEB_zabbix_template_add","Добавить шаблон");
+define("WEB_zabbix_templates_check","Проверить шаблоны в zabbix");
+define("WEB_zabbix_template_missing","Шаблоны не найдены в zabbix:");
+define("WEB_zabbix_template_renamed","Имена шаблонов обновлены из zabbix:");
+define("WEB_zabbix_macro_list","Доступные модели макросы");
+define("WEB_zabbix_macros_used","Используемые моделью макросы");
+define("WEB_zabbix_macro","Макрос");
+define("WEB_zabbix_value","Значение");
+define("WEB_zabbix_default_value","Значение по умолчанию");
+define("WEB_zabbix_used","Используется");
+define("WEB_zabbix_macro_type","Тип");
+define("WEB_zabbix_macro_type_text","Текст");
+define("WEB_zabbix_macro_type_secret","Секрет");
+define("WEB_zabbix_macro_load","Загрузить макросы из шаблонов zabbix");
+define("WEB_zabbix_disabled","Мониторинг zabbix выключен или api не настроен в параметрах конфигурации");
+define("WEB_zabbix_model","Модель устройства:");
+define("WEB_zabbix_add_macro","Добавить макрос");
+define("WEB_zabbix_unlink","Отвязать шаблоны");
+define("WEB_zabbix_remove","Удалить");
+
+define("WEB_zabbix_macro_hint","Пустое имя макроса удаляет макрос из модели");
+define("WEB_zabbix","Zabbix");
+define("WEB_zabbix_templates_ok","Все шаблоны модели присутствуют в zabbix");
 ?>

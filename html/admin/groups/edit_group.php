@@ -15,11 +15,17 @@ if (getPOST("save") !== null) {
         'nagios_host_use'        => trim(getPOST("f_nagios_host", null, '')),
         'nagios_ping'            => trim(getPOST("f_nagios_ping", null, 0)),
         'nagios_default_service' => trim(getPOST("f_nagios_service", null, '')),
+        'zabbix_group_id'        => (int)getPOST("f_zabbix_group", null, 0),
         'queue_id'               => (int)getPOST("f_queue_id", null, 0),
         'filter_group_id'        => (int)getPOST("f_filter_group_id", null, 0),
         'enabled'                => (int)getPOST("f_enabled", null, 0),
         'dynamic'                => (int)getPOST("f_dynamic", null, 0)
     ];
+
+    // Zabbix host group of the ou is checked against the monitoring system
+    if ($new['zabbix_group_id'] > 0 && is_zabbix_enabled() && !zabbix_group_exists($db_link, $new['zabbix_group_id'])) {
+        LOG_WARNING($db_link, WEB_zabbix_host_group . " id " . $new['zabbix_group_id'] . " not found in zabbix!");
+    }
 
     // Обработка life_duration
     if ($new['dynamic']) {
@@ -174,6 +180,15 @@ print "<td class=\"data\"><input type=\"text\" name='f_nagios_service' value='{$
 print "<td class=\"data\"></td>\n";
 ?>
 </tr>
+<?php
+// the zabbix host group is used by the sync_zabbix script while the hosts are created
+if (is_zabbix_enabled()) {
+    print "<tr><td colspan=\"2\"><b>" . WEB_zabbix_host_group . "</b></td><td colspan=\"3\"></td></tr>\n";
+    print "<tr><td colspan=\"5\" class=\"data\">";
+    print_zabbix_group_select($db_link, 'f_zabbix_group', $ou_info['zabbix_group_id']);
+    print "</td></tr>\n";
+}
+?>
 <tr><td colspan=4><?php echo WEB_ou_autoclient_rules; ?></td></tr>
 <tr>
 <td class="data"><?php print WEB_cell_enabled."&nbsp"; print_qa_select('f_enabled', $ou_info['enabled']); ?></td>
