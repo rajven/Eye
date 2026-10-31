@@ -1,3 +1,11 @@
+# Changelog 3-2-2 - release
+- changed: zabbix_macros_list is the global list of the zabbix macros now, the macro name is unique and the device_model_id field is removed.
+- changed: zabbix_macros binds a macro of the global list to a device model (macros_list_id + device_model_id), the duplicated macro_name field is removed, an empty macro_value means the default value of the list.
+- added: zabbixmacros.php page in the settings - the global list of the zabbix macros, the macro names can be picked from the templates of zabbix or typed by hand, the macros of the templates can be loaded into the list by a button.
+- added: the device model form shows the macros used by the model, they are taken from the global list by a dropdown with a search, an individual value of the model overrides the default one.
+- changed: the template of the device model zabbix form is added by a dropdown with a search instead of the list box.
+- added: 3-2-2 update patches for mysql and postgres, the duplicated macros of the models are merged into single records of the list.
+
 # Changelog 3-2-1 - release
 - added: support for zabbix as a monitoring system. The eye config options 74 (monitoring system), 75 (zabbix api url), 76 (zabbix api key) are used to configure it.
 - added: zabbix_templates, zabbix_macros_list, zabbix_macros tables - zabbix templates and macros for the device models.

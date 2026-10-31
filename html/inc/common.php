@@ -1430,6 +1430,10 @@ function print_control_submenu($current_page)
     print_submenu_url(WEB_submenu_customers, '/admin/customers/index.php', $current_page, 0);
     print_submenu_url(WEB_submenu_buildings, '/admin/customers/building.php', $current_page, 0);
     print_submenu_url(WEB_submenu_device_models, '/admin/customers/devmodels.php', $current_page, 0);
+    // the zabbix macros of the device models are edited in the settings
+    if (is_zabbix_enabled()) {
+        print_submenu_url(WEB_submenu_zabbix_macros, '/admin/customers/zabbixmacros.php', $current_page, 0);
+    }
     print_submenu_url(WEB_submenu_vendors, '/admin/customers/devvendors.php', $current_page, 1);
     print "</div>\n";
 }

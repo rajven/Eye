@@ -363,6 +363,76 @@ function zabbix_group_exists($group_id)
     return is_array($groups) && !empty($groups);
 }
 
+// Searchable select of the zabbix templates. The templates are passed as a list
+// from zabbix_template_list(), the value of the option is the technical name.
+// A text field is printed instead when the api gives no templates
+function print_zabbix_template_select($name, $templates, $current = '')
+{
+    $safe_name = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+    $safe_current = htmlspecialchars($current, ENT_QUOTES, 'UTF-8');
+
+    if (empty($templates)) {
+        print "<input type=\"text\" id=\"$safe_name\" name=\"$safe_name\" value=\"$safe_current\" size=30>";
+        print "&nbsp;" . WEB_zabbix_api_unavailable;
+        return;
+    }
+
+    print "<select id=\"$safe_name\" name=\"$safe_name\" class=\"js-select-single\">\n";
+    print_select_item(WEB_zabbix_template_select_empty, '', $current);
+    foreach ($templates as $template) {
+        $technical = $template['host'] ?? '';
+        if ($technical === '') {
+            continue;
+        }
+        // the visible name is shown when it differs from the technical one
+        $label = $technical;
+        if (!empty($template['name']) && $template['name'] !== $technical) {
+            $label .= " [" . $template['name'] . "]";
+        }
+        print_select_item($label, $technical, $current);
+    }
+    print "</select>\n";
+}
+
+// User macros of all templates of the zabbix installation, they are used to fill
+// the macro names of the model without typing them by hand
+function zabbix_all_template_macros()
+{
+    $templates = zabbix_api_request('template.get', [
+        'output' => ['templateid'],
+        'selectMacros' => ['macro', 'value', 'type', 'description'],
+    ]);
+    if (!is_array($templates)) {
+        return [];
+    }
+
+    $list = [];
+    foreach ($templates as $template) {
+        foreach ($template['macros'] ?? [] as $macro) {
+            if (empty($macro['macro'])) {
+                continue;
+            }
+            $name = strtoupper($macro['macro']);
+            //low level discovery macros can not be set for a host
+            if (strpos($name, '{#') === 0 || isset($list[$name])) {
+                continue;
+            }
+            $list[$name] = [
+                'macro' => $name,
+                'value' => $macro['value'] ?? '',
+                'type' => (int)($macro['type'] ?? 0),
+                'description' => $macro['description'] ?? '',
+            ];
+        }
+    }
+
+    $list = array_values($list);
+    usort($list, function ($a, $b) {
+        return strcmp($a['macro'], $b['macro']);
+    });
+    return $list;
+}
+
 // Select of the zabbix macro type
 function print_zabbix_macro_type_select($name, $selected = 0)
 {
@@ -399,6 +469,59 @@ function print_zabbix_group_select($db, $name, $current = 0)
     }
     if ($current !== 0 && !$found) {
         print_select_item(WEB_zabbix_group_not_found . " " . $current, $current, $current);
+    }
+    print "</select>\n";
+}
+
+// Searchable select of the zabbix macros taken from the templates. A text field is
+// printed instead when the api gives no macros, the name can always be typed by hand
+function print_zabbix_macro_select($name, $macros, $current = '', $empty_label = NULL)
+{
+    $safe_name = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+    $safe_current = htmlspecialchars($current, ENT_QUOTES, 'UTF-8');
+
+    if ($empty_label === NULL) {
+        $empty_label = WEB_zabbix_macro_select_empty;
+    }
+
+    if (empty($macros)) {
+        print "<input type=\"text\" id=\"$safe_name\" name=\"$safe_name\" value=\"$safe_current\" size=25>";
+        print "&nbsp;" . WEB_zabbix_api_unavailable;
+        return;
+    }
+
+    print "<select id=\"$safe_name\" name=\"$safe_name\" class=\"js-select-single\">\n";
+    print_select_item($empty_label, '', $current);
+    foreach ($macros as $macro) {
+        $macro_name = $macro['macro'] ?? '';
+        if ($macro_name === '') {
+            continue;
+        }
+        $description = $macro_name;
+        if (!empty($macro['description'])) {
+            $description .= " - " . $macro['description'];
+        }
+        print_select_item($description, $macro_name, $current);
+    }
+    print "</select>\n";
+}
+
+// Searchable select of the macros list, the value of the option is the list id
+function print_zabbix_macro_id_select($name, $macros, $placeholder = '')
+{
+    $safe_name = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+    print "<select id=\"$safe_name\" name=\"$safe_name\" class=\"js-select-single\">\n";
+    print_select_item($placeholder, '', '');
+    foreach ($macros as $macro) {
+        $macro_name = $macro['macro'] ?? '';
+        if ($macro_name === '') {
+            continue;
+        }
+        $label = $macro_name;
+        if (!empty($macro['description'])) {
+            $label .= " - " . $macro['description'];
+        }
+        print_select_item($label, $macro['id'], '');
     }
     print "</select>\n";
 }

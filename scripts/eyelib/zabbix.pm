@@ -146,8 +146,9 @@ my $payload = {
     id => $zabbix_request_id,
     };
 
-#the Authorization header is supported since zabbix 6.4, older versions use the auth member
-my $result = zabbix_rpc_request($payload, 'bearer');
+# apiinfo.version strictly forbids the Authorization header in Zabbix 6.4+
+my $auth_mode = ($method eq 'apiinfo.version') ? 'none' : 'bearer';
+my $result = zabbix_rpc_request($payload, $auth_mode);
 
 if (defined $result && ref $result eq 'HASH' && exists $result->{error}) {
     my $message = ($result->{error}->{message} // '') . ' ' . ($result->{error}->{data} // '');

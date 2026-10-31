@@ -63,6 +63,8 @@ my $tag_eye = 'eye';
 my $tag_parent = 'parent';
 #hosts are loaded from zabbix in batches
 use constant ZABBIX_BATCH => 200;
+#"Discovered hosts" ID 5
+use constant ZABBIX_DEFAULT_GROUP_ID => 5;
 
 open(SELF, "<", $0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX | LOCK_NB) or exit 1;
@@ -125,13 +127,13 @@ foreach my $row (get_records_sql($dbh, "SELECT * FROM zabbix_templates ORDER BY 
     push(@{ $model_templates{ $row->{device_model_id} } }, $row);
     }
 
-#macros used by the device models with the defaults of the model macro list
+#macros used by the device models with the names and the defaults of the global macros list
 
 my %model_macros;
 my @macro_rows = get_records_sql($dbh,
-    "SELECT m.*, l.default_value, l.macro_type FROM zabbix_macros m
-     LEFT JOIN zabbix_macros_list l ON m.macros_list_id = l.id
-     WHERE m.is_used = 1 ORDER BY m.macro_name");
+    "SELECT m.id, m.macro_value, m.device_model_id, l.macro_name, l.default_value, l.macro_type
+     FROM zabbix_macros m JOIN zabbix_macros_list l ON m.macros_list_id = l.id
+     WHERE m.is_used = 1 ORDER BY l.macro_name");
 foreach my $row (@macro_rows) {
     push(@{ $model_macros{ $row->{device_model_id} } }, $row);
     }
@@ -220,8 +222,11 @@ my %name_count;
             next;
             }
 
-        my $model_id = $auth->{device_model_id} // 0;
-        $model_id = $auth_device->{device_model_id} if (!$model_id and $auth_device);
+        # Модель берется ТОЛЬКО из связанного устройства (если оно есть)
+        my $model_id = 0;
+        if ($auth_device) {
+            $model_id = $auth_device->{device_model_id} // 0;
+            }
 
         my $name = host_base_name(auth_host_name($auth, $login), 'auth_' . $auth->{id});
 
@@ -635,26 +640,26 @@ return \@list;
 }
 
 #===============================================================
-# Host group of the organizational unit, a record without a group is exported alone
+# Host group of the organizational unit. 
+# Falls back to ZABBIX_DEFAULT_GROUP_ID if the OU has no group assigned.
 
 sub host_groups {
 my $host = shift;
 
 my $ou_id = $host->{ou_id} // 0;
 my $group_id = ($ou_id and $ou{$ou_id}) ? $ou{$ou_id}->{zabbix_group_id} : 0;
+my $ou_name = ($ou_id and $ou{$ou_id}) ? $ou{$ou_id}->{ou_name} : $ou_id;
+
 if (!$group_id) {
-    log_verbose("Zabbix: ou '" . (($ou_id and $ou{$ou_id}) ? $ou{$ou_id}->{ou_name} : $ou_id)
-        . "' has no zabbix host group, the host is created without group");
-    return [];
-    }
+    log_info("Zabbix: ou '$ou_name' has no zabbix host group, using default group ID " . ZABBIX_DEFAULT_GROUP_ID);
+    $group_id = ZABBIX_DEFAULT_GROUP_ID;
+}
 
 my $group = zabbix_get_group_cached($group_id);
 if (!$group) {
-    log_error("Zabbix: the host group $group_id of the ou '"
-        . (($ou{$ou_id} && $ou{$ou_id}->{ou_name}) ? $ou{$ou_id}->{ou_name} : $ou_id)
-        . "' is not found in zabbix, the host is created without group");
+    log_error("Zabbix: the host group $group_id of the ou '$ou_name' is not found in zabbix!");
     return [];
-    }
+}
 
 return [ $group->{groupid} ];
 }

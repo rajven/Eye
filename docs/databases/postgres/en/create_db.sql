@@ -603,7 +603,7 @@ COMMENT ON TABLE vendors IS 'Network equipment vendors';
 -- System version
 CREATE TABLE version (
 id INTEGER PRIMARY KEY DEFAULT 1,
-version VARCHAR(10) NOT NULL DEFAULT '3.2.1'
+version VARCHAR(10) NOT NULL DEFAULT '3.2.2'
 );
 COMMENT ON TABLE version IS 'System version information';
 
@@ -666,34 +666,35 @@ COMMENT ON COLUMN zabbix_templates.template_id IS 'Zabbix template id (host grou
 COMMENT ON COLUMN zabbix_templates.template_name IS 'Zabbix template name, checked against zabbix when the form is saved';
 
 -- Zabbix macros bound to device models
+-- Global list of the zabbix macros, the models refer to it
 CREATE TABLE zabbix_macros_list (
     id SERIAL PRIMARY KEY,
-    device_model_id INTEGER NOT NULL DEFAULT 0,
     macro_name VARCHAR(250) NOT NULL DEFAULT '',
     macro_type INTEGER NOT NULL DEFAULT 0,
     default_value VARCHAR(250) NOT NULL DEFAULT '',
     description VARCHAR(255),
-    UNIQUE (device_model_id, macro_name)
+    UNIQUE (macro_name)
 );
-COMMENT ON TABLE zabbix_macros_list IS 'Zabbix macros bound to device models';
+COMMENT ON TABLE zabbix_macros_list IS 'Global list of the zabbix macros';
 COMMENT ON COLUMN zabbix_macros_list.macro_name IS 'Zabbix macro name, for example {$SNMP_COMMUNITY}';
 COMMENT ON COLUMN zabbix_macros_list.macro_type IS 'Zabbix macro type: 0 - text, 1 - secret';
-COMMENT ON COLUMN zabbix_macros_list.default_value IS 'Default macro value';
+COMMENT ON COLUMN zabbix_macros_list.default_value IS 'Default value of the macro';
+COMMENT ON COLUMN zabbix_macros_list.description IS 'Macro description';
 
--- Macros used by device models
+-- Macros of the device models, they refer to the global macros list
 CREATE TABLE zabbix_macros (
     id SERIAL PRIMARY KEY,
     macros_list_id INTEGER NOT NULL DEFAULT 0,
     device_model_id INTEGER NOT NULL DEFAULT 0,
-    macro_name VARCHAR(250) NOT NULL DEFAULT '',
     macro_value VARCHAR(250) NOT NULL DEFAULT '',
     is_used SMALLINT NOT NULL DEFAULT 1,
-    UNIQUE (device_model_id, macro_name)
+    UNIQUE (macros_list_id, device_model_id)
 );
-COMMENT ON TABLE zabbix_macros IS 'List of macros actually used by a device model';
-COMMENT ON COLUMN zabbix_macros.macros_list_id IS 'zabbix_macros_list.id, 0 - macro outside of the model list';
-COMMENT ON COLUMN zabbix_macros.macro_value IS 'Macro value used by hosts of this model';
-COMMENT ON COLUMN zabbix_macros.is_used IS 'Macro is assigned to hosts of this model';
+COMMENT ON TABLE zabbix_macros IS 'Macros used by a device model';
+COMMENT ON COLUMN zabbix_macros.macros_list_id IS 'zabbix_macros_list.id';
+COMMENT ON COLUMN zabbix_macros.device_model_id IS 'Device model id (device_models.id)';
+COMMENT ON COLUMN zabbix_macros.macro_value IS 'Value of the macro for this model, empty - the default value is used';
+COMMENT ON COLUMN zabbix_macros.is_used IS 'Macro is assigned to the hosts of this model';
 
 -- Indexes
 

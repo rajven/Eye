@@ -465,7 +465,7 @@ CREATE TABLE `vendors` (
 
 CREATE TABLE `version` (
   `id` int(11) NOT NULL DEFAULT 1,
-  `version` varchar(10) NOT NULL DEFAULT '3.2.1'
+  `version` varchar(10) NOT NULL DEFAULT '3.2.2'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `wan_stats` (
@@ -517,24 +517,20 @@ CREATE TABLE `zabbix_templates` (
 
 CREATE TABLE `zabbix_macros_list` (
   `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `device_model_id` INT NOT NULL DEFAULT 0 COMMENT 'Id модели устройства',
   `macro_name` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Имя макроса zabbix, например {$SNMP_COMMUNITY}',
   `macro_type` INT NOT NULL DEFAULT 0 COMMENT 'Тип макроса zabbix: 0 - текст, 1 - секрет',
   `default_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Значение макроса по умолчанию',
   `description` VARCHAR(255) DEFAULT NULL COMMENT 'Описание макроса',
-  UNIQUE KEY `uniq_zabbix_macro_list` (`device_model_id`, `macro_name`),
-  KEY `idx_zabbix_macro_list_model` (`device_model_id`)
+  UNIQUE KEY `uniq_zabbix_macro_name` (`macro_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `zabbix_macros` (
   `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `macros_list_id` INT NOT NULL DEFAULT 0 COMMENT 'Ссылка на zabbix_macros_list.id, 0 - макрос вне списка модели',
+  `macros_list_id` INT NOT NULL DEFAULT 0 COMMENT 'Ссылка на zabbix_macros_list.id',
   `device_model_id` INT NOT NULL DEFAULT 0 COMMENT 'Id модели устройства',
-  `macro_name` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Имя используемого макроса модели',
-  `macro_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Используемое моделью значение макроса',
+  `macro_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Значение макроса для этой модели, пусто - используется значение по умолчанию',
   `is_used` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Макрос назначается хостам этой модели',
-  UNIQUE KEY `uniq_zabbix_macro` (`device_model_id`, `macro_name`),
-  KEY `idx_zabbix_macro_list` (`macros_list_id`)
+  UNIQUE KEY `uniq_zabbix_model_macro` (`macros_list_id`, `device_model_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE `acl`

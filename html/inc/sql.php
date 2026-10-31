@@ -131,11 +131,11 @@ function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $n
         ],
         'zabbix_macros_list' => [
             'summary' => ['macro_name'],
-            'fields' => ['device_model_id', 'macro_name', 'macro_type', 'default_value', 'description']
+            'fields' => ['macro_name', 'macro_type', 'default_value', 'description']
         ],
         'zabbix_macros' => [
-            'summary' => ['macro_name'],
-            'fields' => ['macros_list_id', 'device_model_id', 'macro_name', 'macro_value', 'is_used']
+            'summary' => [],
+            'fields' => ['macros_list_id', 'device_model_id', 'macro_value', 'is_used']
         ]
     ];
 

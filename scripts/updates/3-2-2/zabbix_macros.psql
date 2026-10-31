@@ -1,0 +1,16 @@
+DELETE FROM zabbix_macros m WHERE NOT EXISTS (SELECT 1 FROM zabbix_macros_list l WHERE l.id = m.macros_list_id);
+UPDATE zabbix_macros m SET macros_list_id = k.keep_id FROM zabbix_macros_list l JOIN (SELECT macro_name, MIN(id) AS keep_id FROM zabbix_macros_list GROUP BY macro_name) k ON l.macro_name = k.macro_name WHERE m.macros_list_id = l.id AND m.macros_list_id <> k.keep_id;
+DELETE FROM zabbix_macros a USING zabbix_macros b WHERE a.macros_list_id = b.macros_list_id AND a.device_model_id = b.device_model_id AND a.id > b.id;
+ALTER TABLE zabbix_macros DROP CONSTRAINT IF EXISTS zabbix_macros_device_model_id_macro_name_key;
+ALTER TABLE zabbix_macros DROP COLUMN macro_name;
+ALTER TABLE zabbix_macros ADD UNIQUE (macros_list_id, device_model_id);
+DELETE FROM zabbix_macros_list a USING zabbix_macros_list b WHERE a.macro_name = b.macro_name AND a.id > b.id;
+ALTER TABLE zabbix_macros_list DROP CONSTRAINT IF EXISTS zabbix_macros_list_device_model_id_macro_name_key;
+ALTER TABLE zabbix_macros_list DROP COLUMN device_model_id;
+ALTER TABLE zabbix_macros_list ADD UNIQUE (macro_name);
+COMMENT ON TABLE zabbix_macros_list IS 'Global list of the zabbix macros';
+COMMENT ON COLUMN zabbix_macros_list.default_value IS 'Default value of the macro';
+COMMENT ON TABLE zabbix_macros IS 'Macros used by a device model';
+COMMENT ON COLUMN zabbix_macros.macros_list_id IS 'zabbix_macros_list.id';
+COMMENT ON COLUMN zabbix_macros.device_model_id IS 'Device model id (device_models.id)';
+COMMENT ON COLUMN zabbix_macros.macro_value IS 'Value of the macro for this model, empty - the default value is used';

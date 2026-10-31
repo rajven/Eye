@@ -603,7 +603,7 @@ COMMENT ON TABLE vendors IS 'Производители сетевого обо�
 -- Версия системы
 CREATE TABLE version (
 id INTEGER PRIMARY KEY DEFAULT 1,
-version VARCHAR(10) NOT NULL DEFAULT '3.2.1'
+version VARCHAR(10) NOT NULL DEFAULT '3.2.2'
 );
 COMMENT ON TABLE version IS 'Информация о версии системы';
 
@@ -666,33 +666,34 @@ COMMENT ON COLUMN zabbix_templates.template_id IS 'Id шаблона zabbix (г�
 COMMENT ON COLUMN zabbix_templates.template_name IS 'Имя шаблона zabbix, проверяется по zabbix при сохранении формы';
 
 -- Макросы zabbix, привязанные к моделям устройств
+-- Глобальный список макросов zabbix, модели ссылаются на него
 CREATE TABLE zabbix_macros_list (
     id SERIAL PRIMARY KEY,
-    device_model_id INTEGER NOT NULL DEFAULT 0,
     macro_name VARCHAR(250) NOT NULL DEFAULT '',
     macro_type INTEGER NOT NULL DEFAULT 0,
     default_value VARCHAR(250) NOT NULL DEFAULT '',
     description VARCHAR(255),
-    UNIQUE (device_model_id, macro_name)
+    UNIQUE (macro_name)
 );
-COMMENT ON TABLE zabbix_macros_list IS 'Макросы zabbix, привязанные к моделям устройств';
+COMMENT ON TABLE zabbix_macros_list IS 'Глобальный список макросов zabbix';
 COMMENT ON COLUMN zabbix_macros_list.macro_name IS 'Имя макроса zabbix, например {$SNMP_COMMUNITY}';
 COMMENT ON COLUMN zabbix_macros_list.macro_type IS 'Тип макроса zabbix: 0 - текст, 1 - секрет';
 COMMENT ON COLUMN zabbix_macros_list.default_value IS 'Значение макроса по умолчанию';
+COMMENT ON COLUMN zabbix_macros_list.description IS 'Описание макроса';
 
--- Используемые моделями устройств макросы
+-- Макросы, используемые моделями устройств, ссылки на глобальный список
 CREATE TABLE zabbix_macros (
     id SERIAL PRIMARY KEY,
     macros_list_id INTEGER NOT NULL DEFAULT 0,
     device_model_id INTEGER NOT NULL DEFAULT 0,
-    macro_name VARCHAR(250) NOT NULL DEFAULT '',
     macro_value VARCHAR(250) NOT NULL DEFAULT '',
     is_used SMALLINT NOT NULL DEFAULT 1,
-    UNIQUE (device_model_id, macro_name)
+    UNIQUE (macros_list_id, device_model_id)
 );
-COMMENT ON TABLE zabbix_macros IS 'Список макросов, реально используемых моделью устройства';
-COMMENT ON COLUMN zabbix_macros.macros_list_id IS 'zabbix_macros_list.id, 0 - макрос вне списка модели';
-COMMENT ON COLUMN zabbix_macros.macro_value IS 'Значение макроса, используемое хостами этой модели';
+COMMENT ON TABLE zabbix_macros IS 'Макросы, используемые моделью устройства';
+COMMENT ON COLUMN zabbix_macros.macros_list_id IS 'zabbix_macros_list.id';
+COMMENT ON COLUMN zabbix_macros.device_model_id IS 'Id модели устройства (device_models.id)';
+COMMENT ON COLUMN zabbix_macros.macro_value IS 'Значение макроса для этой модели, пусто - используется значение по умолчанию';
 COMMENT ON COLUMN zabbix_macros.is_used IS 'Макрос назначается хостам этой модели';
 
 -- Indexes
