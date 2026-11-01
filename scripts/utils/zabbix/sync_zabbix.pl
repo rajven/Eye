@@ -25,15 +25,18 @@
 # What the script does:
 #   - a record with monitoring=1 is created in zabbix with the templates of its
 #     device model, with the macros and the tags of its eye network device, in the
-#     host groups bound to the organizational unit of the record, without a group
-#     when the organizational unit has none
+#     host groups bound to the organizational unit of the record, in the default
+#     group when the organizational unit has none
 #   - the tag parent contains the name of the switch the device or the address is
 #     connected to, the tag eye contains the eye record identifier, the tags of the
 #     device are added to these two. a tag or a macro which eye does not assign
 #     anymore is removed from the host, the objects of the other integrations stay
 #   - a record already present in zabbix is checked by name, by the parent tag and
 #     by the list of templates. a changed name or tag is updated, missing templates
-#     are added, templates already linked to the host are ignored and never removed
+#     and the missing host groups of the organizational unit are added, nothing which
+#     the host has got by hand is removed: templates, groups, tags and macros of the
+#     other integrations stay. a group which the web interface unbinds from an
+#     organizational unit is taken away from the hosts there, as an explicit action
 #   - a record with monitoring_old=1 and monitoring=0 is disabled in zabbix.
 #     hosts are never deleted
 #   - renamed templates are detected: the template is searched in zabbix by its

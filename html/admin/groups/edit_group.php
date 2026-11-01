@@ -22,19 +22,8 @@ if (getPOST("save") !== null) {
     ];
 
     // The host groups of zabbix live in their own table, an ou is bound to several
-    // groups. The check boxes of the form are sent only when zabbix is enabled
-    if (getPOST("f_zabbix_groups_posted", null, null) !== null) {
-        $group_ids = getPOST("f_zabbix_groups", null, []);
-        if (!is_array($group_ids)) {
-            $group_ids = [];
-        }
-        // the api does not answer, the identifier is typed by hand
-        $manual_group = (int)getPOST("f_zabbix_group_new", null, 0);
-        if ($manual_group > 0) {
-            $group_ids[] = $manual_group;
-        }
-        save_zabbix_ou_groups($db_link, (int)$id, $group_ids);
-    }
+    // groups. The block of the form is sent only when zabbix is enabled
+    save_zabbix_ou_groups($db_link, (int)$id);
 
     // Обработка life_duration
     if ($new['dynamic']) {
