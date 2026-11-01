@@ -1,0 +1,10 @@
+ALTER TABLE ou DROP COLUMN zabbix_group_id;
+CREATE TABLE ou_zabbix_groups (
+    id SERIAL PRIMARY KEY,
+    ou_id INTEGER NOT NULL DEFAULT 0,
+    group_id BIGINT NOT NULL DEFAULT 0,
+    UNIQUE (ou_id, group_id)
+);
+COMMENT ON TABLE ou_zabbix_groups IS 'zabbix host groups of the organizational unit';
+COMMENT ON COLUMN ou_zabbix_groups.ou_id IS 'Organizational unit id (ou.id)';
+COMMENT ON COLUMN ou_zabbix_groups.group_id IS 'zabbix host group id (hostgroup.groupid)';

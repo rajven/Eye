@@ -49,54 +49,6 @@ if (getPOST("save") !== null && !isset($page_error)) {
         }
     }
 
-    // macros used by the model, the names are taken from the macros list of the settings
-    $u_ids = getPOST("u_id", null, []);
-    $u_values = getPOST("u_value", null, []);
-    $u_used = getPOST("u_used", null, []);
-    $u_del = getPOST("u_del", null, []);
-    if (!empty($u_ids) && is_array($u_ids)) {
-        foreach ($u_ids as $used_id) {
-            $used_id = (int)$used_id;
-            if ($used_id <= 0) {
-                continue;
-            }
-
-            $used_row = get_record_sql($db_link, "SELECT * FROM zabbix_macros WHERE id = ? AND device_model_id = ?",
-                [$used_id, $model_id]);
-            if (empty($used_row)) {
-                continue;
-            }
-
-            if (isset($u_del[$used_id])) {
-                delete_record($db_link, "zabbix_macros", "id = ?", [$used_id]);
-                continue;
-            }
-
-            update_record($db_link, "zabbix_macros", "id = ?", [
-                'macro_value' => substr(trim((string)($u_values[$used_id] ?? '')), 0, 250),
-                'is_used' => (int)($u_used[$used_id] ?? 0),
-            ], [$used_id]);
-        }
-    }
-
-    // a macro of the global list becomes a used macro of the model
-    $add_list_id = (int)getPOST("f_add_macro", null, 0);
-    if ($add_list_id > 0) {
-        $list_row = get_record($db_link, "zabbix_macros_list", "id = ?", [$add_list_id]);
-        $used_exists = get_record_sql($db_link,
-            "SELECT id FROM zabbix_macros WHERE macros_list_id = ? AND device_model_id = ?",
-            [$add_list_id, $model_id]);
-        if (!empty($list_row) && empty($used_exists)) {
-            insert_record($db_link, "zabbix_macros", [
-                'macros_list_id' => $add_list_id,
-                'device_model_id' => $model_id,
-                // an empty value of the model takes the default value of the macros list
-                'macro_value' => '',
-                'is_used' => 1,
-            ]);
-        }
-    }
-
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -208,75 +160,14 @@ foreach ($t_bound as $row) {
 </table>
 <br>
 
-<?php
-// macros used by the model, their names and default values come from the global macros list
-$t_used = get_records_sql($db_link,
-    "SELECT m.*, l.macro_name, l.macro_type, l.default_value, l.description
-     FROM zabbix_macros m LEFT JOIN zabbix_macros_list l ON m.macros_list_id = l.id
-     WHERE m.device_model_id = ? ORDER BY l.macro_name", [$model_id]);
-
-$used_list_ids = [];
-foreach ($t_used as $row) {
-    $used_list_ids[(int)$row['macros_list_id']] = 1;
-}
-
-// the macros of the global list which are not used by the model yet
-$free_macros = [];
-foreach (get_records_sql($db_link, "SELECT * FROM zabbix_macros_list ORDER BY macro_name", []) as $row) {
-    if (isset($used_list_ids[(int)$row['id']])) {
-        continue;
-    }
-    $free_macros[] = ['id' => $row['id'], 'macro' => $row['macro_name'], 'description' => $row['default_value']];
-}
-?>
-<table class="data">
-    <tr align="center">
-        <td colspan="5"><b><?php echo WEB_zabbix_macros_used; ?></b></td>
-    </tr>
-    <tr align="center">
-        <td><b><?php echo WEB_zabbix_macro; ?></b></td>
-        <td><b><?php echo WEB_zabbix_default_value; ?></b></td>
-        <td><b><?php echo WEB_zabbix_value; ?></b></td>
-        <td><b><?php echo WEB_zabbix_used; ?></b></td>
-        <td><b><?php echo WEB_zabbix_remove; ?></b></td>
-    </tr>
-<?php
-if (empty($t_used)) {
-    print "<tr><td class=\"data\" colspan=\"5\">" . WEB_ipset_empty . "</td></tr>\n";
-}
-foreach ($t_used as $row) {
-    print "<tr align=center>\n";
-    print "<td class=\"data\" width=170><input type=\"hidden\" name=\"u_id[]\" value=\"" . $row['id'] . "\">"
-        . htmlspecialchars($row['macro_name'] ?? '') . "</td>\n";
-    print "<td class=\"data\">" . htmlspecialchars($row['default_value'] ?? '') . "</td>\n";
-    print "<td class=\"data\" width=120><input type=\"text\" name=\"u_value[" . $row['id'] . "]\" value=\""
-        . htmlspecialchars($row['macro_value']) . "\" placeholder=\"" . htmlspecialchars($row['default_value'] ?? '') . "\"></td>\n";
-    print "<td class=\"data\">";
-    print_qa_select("u_used[" . $row['id'] . "]", $row['is_used']);
-    print "</td>\n";
-    print "<td class=\"data\" style='padding:0'><input type=checkbox name=u_del[" . $row['id'] . "] value='1'></td>\n";
-    print "</tr>\n";
-}
-?>
-    <tr>
-        <td colspan="5" class="data">
-            <b><?php echo WEB_zabbix_add_macro . ":&nbsp"; ?></b>
-            <?php print_zabbix_macro_id_select('f_add_macro', $free_macros, WEB_zabbix_macro_select_model_empty); ?>
-        </td>
-    </tr>
-    <tr>
-        <td colspan="5" class="data" align="right">
-            <button name="save" value="save"><?php print WEB_btn_save; ?></button>
-        </td>
-    </tr>
-</table>
-<br>
-<?php echo WEB_zabbix_macros_hint; ?>
+<?php echo WEB_zabbix_model_templates_hint; ?>
 <br><br>
 <b><?php echo WEB_zabbix_macros_global . "&nbsp;"; ?></b>
 <a href="/admin/customers/zabbixmacros.php"><?php echo WEB_submenu_zabbix_macros; ?></a>
+<br>
+<b><?php echo WEB_zabbix_tags_global . "&nbsp;"; ?></b>
+<a href="/admin/customers/zabbixtags.php"><?php echo WEB_submenu_zabbix_tags; ?></a>
 <br><br>
-<?php echo WEB_zabbix_macro_hint; ?>
 </form>
 <br>
 <a href="/admin/customers/devmodels.php"><?php echo WEB_submenu_device_models; ?></a>

@@ -1,7 +1,7 @@
 <?php
 // Export of a single eye record (a network device or an ip record) to zabbix.
 // The rules of the host names, tags, groups, templates and macros are the same as
-// in docs/zabbix/sync_zabbix.pl, so both ways give the same result in zabbix.
+// in scripts/utils/zabbix/sync_zabbix.pl, so both ways give the same result in zabbix.
 if (!defined("CONFIG")) {
     die("Not defined");
 }
@@ -50,6 +50,7 @@ function zabbix_device_state($db, $device_id)
         'description' => $device['description'],
         'ip' => $device['ip'],
         'model_id' => (int)($device['device_model_id'] ?? 0),
+        'device_id' => (int)$device['id'],
         'monitoring' => (int)($device['monitoring'] ?? 0),
         'monitoring_old' => (int)($device['monitoring_old'] ?? 0),
         'parent' => '',
@@ -117,17 +118,16 @@ function zabbix_auth_state($db, $auth_id)
         'ip' => $auth['ip'],
         // the model of the addresses is the model of the device bound to them
         'model_id' => $model_id,
+        // macros and tags are bound to the device of the user, when it is registered
+        'device_id' => !empty($device) ? (int)$device['id'] : 0,
         'monitoring' => (int)($auth['monitoring'] ?? 0),
         'monitoring_old' => (int)($auth['monitoring_old'] ?? 0),
         'parent' => '',
         'snmp' => !empty($device) ? zabbix_record_snmp($device) : [],
     ];
 
-    $ou_id = (int)($auth['ou_id'] ?? 0);
-    if ($ou_id <= 0 && !empty($login['ou_id'])) {
-        $ou_id = (int)$login['ou_id'];
-    }
-    $state['ou_id'] = $ou_id;
+    // the address belongs to the ou of the user, as the export script does
+    $state['ou_id'] = (int)($login['ou_id'] ?? 0);
 
     // the switch the address is connected to becomes the parent tag
     $connection = get_record_sql($db, "SELECT * FROM connections WHERE auth_id = ?", [(int)$auth['id']]);
@@ -169,27 +169,49 @@ function zabbix_record_snmp($device)
     ];
 }
 
-// Group of the organizational unit of the record, the default group is used as a fallback
+// Host groups of the organizational unit of the record, an ou is bound to several
+// groups. The default group is used when the ou has no group at all, a group which
+// zabbix does not know is skipped
 function zabbix_record_groups($db, $state)
 {
     $ou = get_record_sql($db, "SELECT * FROM ou WHERE id = ?", [(int)$state['ou_id']]);
-    $group_id = !empty($ou['zabbix_group_id']) ? (int)$ou['zabbix_group_id'] : 0;
+    $ou_name = $ou['ou_name'] ?? $state['ou_id'];
 
-    if ($group_id === 0) {
-        LOG_DEBUG($db, "Zabbix: ou '" . ($ou['ou_name'] ?? $state['ou_id']) . "' has no host group, the default group " . ZABBIX_DEFAULT_GROUP_ID . " is used");
-        $group_id = ZABBIX_DEFAULT_GROUP_ID;
+    $rows = get_records_sql($db, "SELECT * FROM ou_zabbix_groups WHERE ou_id = ? ORDER BY id", [(int)$state['ou_id']]);
+    $group_ids = [];
+    foreach ($rows as $row) {
+        if ((int)$row['group_id'] > 0) {
+            $group_ids[] = (int)$row['group_id'];
+        }
     }
 
-    $group = zabbix_api_request('hostgroup.get', [
+    if (empty($group_ids)) {
+        LOG_DEBUG($db, "Zabbix: ou '$ou_name' has no host group, the default group " . ZABBIX_DEFAULT_GROUP_ID . " is used");
+        $group_ids = [ZABBIX_DEFAULT_GROUP_ID];
+    }
+
+    $found = zabbix_api_request('hostgroup.get', [
         'output' => ['groupid', 'name'],
-        'groupids' => [$group_id],
+        'groupids' => $group_ids,
     ]);
-    if (empty($group[0]['groupid'])) {
-        LOG_WARNING($db, "Zabbix: host group $group_id is not found in zabbix, the host is created without group");
-        return [];
+
+    $known = [];
+    foreach ((array)$found as $group) {
+        if (!empty($group['groupid'])) {
+            $known[(int)$group['groupid']] = 1;
+        }
     }
 
-    return [(int)$group[0]['groupid']];
+    $groups = [];
+    foreach ($group_ids as $group_id) {
+        if (!isset($known[$group_id])) {
+            LOG_WARNING($db, "Zabbix: host group $group_id of ou '$ou_name' is not found in zabbix, the group is skipped");
+            continue;
+        }
+        $groups[] = $group_id;
+    }
+
+    return $groups;
 }
 
 // Templates of the device model, the names are refreshed when zabbix renamed them
@@ -207,36 +229,105 @@ function zabbix_record_templates($db, $model_id)
     return $list;
 }
 
-// Macros used by the device model, the model value overrides the value of the macros list
-function zabbix_record_macros($db, $model_id)
+// Macros assigned to the eye network device of the record
+function zabbix_record_macros($db, $device_id)
 {
-    if ($model_id <= 0) {
-        return [];
-    }
-
-    $rows = get_records_sql($db,
-        "SELECT m.macro_value, l.macro_name, l.macro_type, l.default_value
-         FROM zabbix_macros m JOIN zabbix_macros_list l ON m.macros_list_id = l.id
-         WHERE m.device_model_id = ? AND m.is_used = 1 ORDER BY l.macro_name", [$model_id]);
-
     $list = [];
-    foreach ($rows as $row) {
+    foreach (zabbix_record_device_rows($db, 'macros', $device_id) as $row) {
         $name = normalizer_zabbix_macro_name($row['macro_name']);
         if ($name === '') {
             continue;
         }
-        $value = trim((string)($row['macro_value'] ?? ''));
-        if ($value === '') {
-            $value = trim((string)($row['default_value'] ?? ''));
-        }
         $list[] = [
             'macro' => $name,
-            'value' => $value,
+            'value' => trim((string)($row['macro_value'] ?? '')),
             'type' => (int)($row['macro_type'] ?? 0),
         ];
     }
 
     return $list;
+}
+
+// Bindings of the eye network device: the macros and the tags look the same in the
+// database, so one request serves both of them
+function zabbix_record_device_rows($db, $kind, $device_id)
+{
+    static $cache = [];
+
+    $device_id = (int)$device_id;
+    if ($device_id <= 0) {
+        return [];
+    }
+    if (isset($cache[$kind][$device_id])) {
+        return $cache[$kind][$device_id];
+    }
+
+    if ($kind === 'macros') {
+        $rows = get_records_sql($db,
+            "SELECT m.macro_value, l.macro_name, l.macro_type
+             FROM zabbix_macros m JOIN zabbix_macros_list l ON m.macros_list_id = l.id
+             WHERE m.device_id = ? AND m.is_used = 1 ORDER BY l.macro_name", [$device_id]);
+    } else {
+        $rows = get_records_sql($db,
+            "SELECT t.tag_value, l.tag_name
+             FROM zabbix_tags t JOIN zabbix_tags_list l ON t.tags_list_id = l.id
+             WHERE t.device_id = ? AND t.is_used = 1 ORDER BY l.tag_name", [$device_id]);
+    }
+
+    $cache[$kind][$device_id] = $rows;
+    return $rows;
+}
+
+// Tags which eye maintains on the host: the tag of the record, the parent tag and
+// the tags of the eye network device
+function zabbix_record_tags($db, $state, $eye_tag)
+{
+    $tags = [
+        ZABBIX_TAG_EYE => $eye_tag,
+        ZABBIX_TAG_PARENT => (string)$state['parent'],
+    ];
+
+    foreach (zabbix_record_device_rows($db, 'tags', (int)$state['device_id']) as $row) {
+        $name = trim((string)($row['tag_name'] ?? ''));
+        // the tag of the record and the parent tag are not overridden by the device
+        if ($name === '' || strtolower($name) === ZABBIX_TAG_EYE || strtolower($name) === ZABBIX_TAG_PARENT) {
+            continue;
+        }
+        $tags[$name] = (string)($row['tag_value'] ?? '');
+    }
+
+    return $tags;
+}
+
+// Names of the global tags list, eye removes its own tags which are unassigned.
+// The macro names are collected the same way, the names of both lists are the
+// names which belong to eye
+function zabbix_record_owned_names($db, $kind)
+{
+    static $cache = [];
+
+    if (isset($cache[$kind])) {
+        return $cache[$kind];
+    }
+
+    $names = [];
+    if ($kind === 'macros') {
+        foreach (get_records_sql($db, "SELECT macro_name FROM zabbix_macros_list") as $row) {
+            $name = normalizer_zabbix_macro_name($row['macro_name']);
+            if ($name !== '') {
+                $names[strtoupper($name)] = 1;
+            }
+        }
+    } else {
+        foreach (get_records_sql($db, "SELECT tag_name FROM zabbix_tags_list") as $row) {
+            if (trim((string)$row['tag_name']) !== '') {
+                $names[strtolower(trim((string)$row['tag_name']))] = 1;
+            }
+        }
+    }
+
+    $cache[$kind] = $names;
+    return $names;
 }
 
 // The host of the record: by its name, then by the eye tag of the record
@@ -255,9 +346,9 @@ function zabbix_find_host($db, $state)
 function zabbix_record_apply($db, $state)
 {
     $templates = zabbix_record_templates($db, (int)$state['model_id']);
-    $macros = zabbix_record_macros($db, (int)$state['model_id']);
+    $macros = zabbix_record_macros($db, (int)$state['device_id']);
     $groups = zabbix_record_groups($db, $state);
-    $eye_tag = $state['key'];
+    $tags = zabbix_record_tags($db, $state, $state['key']);
 
     $zbx_host = zabbix_find_host($db, $state);
 
@@ -270,10 +361,7 @@ function zabbix_record_apply($db, $state)
             'groups' => $groups,
             'templates' => $templates,
             'macros' => $macros,
-            'tags' => [
-                ZABBIX_TAG_EYE => $eye_tag,
-                ZABBIX_TAG_PARENT => $state['parent'],
-            ],
+            'tags' => $tags,
         ]);
         if (!$hostid) {
             return ['action' => 'failed', 'host' => $state['host']];
@@ -285,15 +373,21 @@ function zabbix_record_apply($db, $state)
             'host' => $state['host'],
             'templates' => count($templates),
             'macros' => count($macros),
+            'groups' => count($groups),
+            'tags' => count($tags),
         ];
     }
 
-    return zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $eye_tag);
+    return zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $groups, $tags);
 }
 
-// The name, the parent tag, the macros and the missing templates are updated
-function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $eye_tag)
+// The name, the groups, the tags, the macros and the missing templates are updated.
+// eye owns the objects of its own lists, the objects of the other integrations stay
+function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $groups, $tags)
 {
+    $owned_macros = zabbix_record_owned_names($db, 'macros');
+    $owned_tags = zabbix_record_owned_names($db, 'tags');
+
     $update = [];
     $notes = [];
     $note_types = [];
@@ -303,30 +397,39 @@ function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $eye_
         $notes[] = 'renamed to ' . $state['host'];
         $note_types[] = 'renamed';
     }
-    if (($zbx_host['name'] ?? '') !== $state['description']) {
+    // the description of the eye record becomes the description of the host, the
+    // visible name of the host stays the technical name, as the sync script does it
+    if (($zbx_host['description'] ?? '') !== (string)$state['description']) {
         $update['description'] = $state['description'];
-        $notes[] = 'the visible name is updated';
+        $notes[] = 'the description is updated';
         $note_types[] = 'visible';
     }
 
-    $old_parent = zabbix_host_tag_value($zbx_host, ZABBIX_TAG_PARENT);
-    $old_eye = zabbix_host_tag_value($zbx_host, ZABBIX_TAG_EYE);
-    if ($old_parent !== (string)$state['parent'] || $old_eye !== $eye_tag) {
-        // zabbix replaces the whole list of the tags, the foreign tags are kept
-        $tags = [];
-        foreach ($zbx_host['tags'] as $tag) {
-            if (empty($tag['tag'])) {
-                continue;
-            }
-            if (strcasecmp($tag['tag'], ZABBIX_TAG_EYE) === 0 || strcasecmp($tag['tag'], ZABBIX_TAG_PARENT) === 0) {
-                continue;
-            }
-            $tags[$tag['tag']] = $tag['value'];
+    // the missing host groups of the ou are added, the groups of the other
+    // integrations are never removed
+    $current_groups = [];
+    foreach ($zbx_host['groups'] ?? [] as $group) {
+        if (!empty($group['groupid'])) {
+            $current_groups[(int)$group['groupid']] = 1;
         }
-        $tags[ZABBIX_TAG_EYE] = $eye_tag;
-        $tags[ZABBIX_TAG_PARENT] = $state['parent'];
-        $update['tags'] = $tags;
-        $notes[] = 'tag ' . ZABBIX_TAG_PARENT . ' => ' . ($state['parent'] !== '' ? $state['parent'] : '""');
+    }
+
+    $added_groups = [];
+    foreach ($groups as $group_id) {
+        if (!isset($current_groups[(int)$group_id])) {
+            $added_groups[] = (int)$group_id;
+        }
+    }
+
+    if (!empty($added_groups)) {
+        $update['groups'] = array_merge(array_keys($current_groups), $added_groups);
+        $notes[] = 'host group(s) ' . implode(', ', $added_groups);
+        $note_types[] = 'groups';
+    }
+
+    if (zabbix_record_tags_changed($zbx_host, $tags, $owned_tags)) {
+        $update['tags'] = zabbix_record_tags_merge($zbx_host, $tags, $owned_tags);
+        $notes[] = 'tags of the eye record';
         $note_types[] = 'tags';
     }
 
@@ -337,10 +440,9 @@ function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $eye_
         $note_types[] = 'templates';
     }
 
-    $merged_macros = zabbix_host_merge_macros($zbx_host, $macros);
-    if ($merged_macros !== ($zbx_host['macros'] ?? [])) {
-        $update['macros'] = $merged_macros;
-        $notes[] = 'macros updated';
+    if (zabbix_record_macros_changed($zbx_host, $macros, $owned_macros)) {
+        $update['macros'] = zabbix_host_merge_macros($zbx_host, $macros, $owned_macros);
+        $notes[] = 'macros of the device';
         $note_types[] = 'macros';
     }
 
@@ -367,6 +469,107 @@ function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $eye_
         'templates' => count($added),
         'parent' => (string)$state['parent'],
     ];
+}
+
+// Are the tags of the eye record in sync with the host, the tags of the other
+// integrations do not matter
+function zabbix_record_tags_changed($zbx_host, $tags, $owned)
+{
+    $wanted = [];
+    foreach ($tags as $name => $value) {
+        $wanted[strtolower((string)$name)] = (string)$value;
+    }
+
+    $current = [];
+    foreach ($zbx_host['tags'] ?? [] as $tag) {
+        if (empty($tag['tag']) || !zabbix_record_tag_is_owned($tag['tag'], $owned)) {
+            continue;
+        }
+        $current[strtolower((string)$tag['tag'])] = (string)($tag['value'] ?? '');
+    }
+
+    foreach ($wanted as $key => $value) {
+        if (!array_key_exists($key, $current) || $current[$key] !== $value) {
+            return true;
+        }
+    }
+
+    foreach (array_keys($current) as $key) {
+        if (!array_key_exists($key, $wanted)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// zabbix replaces the whole list of tags, so the tags of the other integrations are
+// kept and the eye tags which are not assigned anymore are removed
+function zabbix_record_tags_merge($zbx_host, $tags, $owned)
+{
+    $merged = [];
+    foreach ($zbx_host['tags'] ?? [] as $tag) {
+        if (empty($tag['tag']) || zabbix_record_tag_is_owned($tag['tag'], $owned)) {
+            continue;
+        }
+        $merged[(string)$tag['tag']] = (string)($tag['value'] ?? '');
+    }
+
+    foreach ($tags as $name => $value) {
+        $merged[(string)$name] = (string)$value;
+    }
+
+    return $merged;
+}
+
+// eye owns the tag of the record, the parent tag and the names of its global list
+function zabbix_record_tag_is_owned($name, $owned)
+{
+    $key = strtolower(trim((string)$name));
+    if ($key === ZABBIX_TAG_EYE || $key === ZABBIX_TAG_PARENT) {
+        return true;
+    }
+
+    return isset($owned[$key]);
+}
+
+// Are the macros of the device in sync with the host, the macros of the other
+// integrations do not matter
+function zabbix_record_macros_changed($zbx_host, $macros, $owned)
+{
+    $wanted = [];
+    foreach ($macros as $macro) {
+        if (empty($macro['macro'])) {
+            continue;
+        }
+        $wanted[strtoupper((string)$macro['macro'])] = (string)($macro['value'] ?? '');
+    }
+
+    $current = [];
+    foreach ($zbx_host['macros'] ?? [] as $macro) {
+        if (empty($macro['macro'])) {
+            continue;
+        }
+        $key = strtoupper((string)$macro['macro']);
+        if (!isset($owned[$key])) {
+            continue;
+        }
+        $current[$key] = (string)($macro['value'] ?? '');
+    }
+
+    foreach ($wanted as $key => $value) {
+        if (!array_key_exists($key, $current) || $current[$key] !== $value) {
+            return true;
+        }
+    }
+
+    foreach (array_keys($current) as $key) {
+        if (!array_key_exists($key, $wanted)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // Monitoring of the host is switched off, the host is not removed from zabbix
@@ -426,8 +629,9 @@ function zabbix_record_info($db, $type, $id)
     }
 
     $templates = zabbix_record_templates($db, (int)$state['model_id']);
-    $macros = zabbix_record_macros($db, (int)$state['model_id']);
+    $macros = zabbix_record_macros($db, (int)$state['device_id']);
     $groups = zabbix_record_groups($db, $state);
+    $tags = zabbix_record_tags($db, $state, $state['key']);
 
     return [
         'state' => $state,
@@ -435,6 +639,7 @@ function zabbix_record_info($db, $type, $id)
         'groups' => $groups,
         'templates' => $templates,
         'macros' => $macros,
+        'tags' => $tags,
     ];
 }
 
@@ -482,10 +687,21 @@ function print_zabbix_record_block($db, $record_type, $record_id, $with_buttons 
 
     // the state of the eye record which is exported to zabbix
     print '<tr><td>' . WEB_zabbix_templates . '</td><td colspan="' . $colspan . '">';
+    // the names of the device tags are more useful in the form than their count
+    $tag_names = [];
+    foreach (array_keys($info['tags']) as $tag_name) {
+        if (strtolower((string)$tag_name) !== ZABBIX_TAG_EYE && strtolower((string)$tag_name) !== ZABBIX_TAG_PARENT) {
+            $tag_names[] = $tag_name;
+        }
+    }
+
     echo count($info['templates']) . ' ' . mb_strtolower(WEB_zabbix_template)
         . ', ' . count($info['macros']) . ' ' . mb_strtolower(WEB_zabbix_macro)
+        . ', ' . (count($tag_names) ? count($tag_names) . ' ' . mb_strtolower(WEB_zabbix_tag) : WEB_zabbix_tag_none)
         . ', ' . ZABBIX_TAG_PARENT . ': ' . htmlspecialchars($state['parent'] !== '' ? $state['parent'] : '-', ENT_QUOTES, 'UTF-8')
-        . ', ' . (count($info['groups']) ? 'group ' . (int)$info['groups'][0] : 'no group');
+        . ', ' . (count($info['groups'])
+            ? count($info['groups']) . ' ' . mb_strtolower(WEB_zabbix_host_groups) . ' (' . implode(', ', $info['groups']) . ')'
+            : WEB_zabbix_group_none);
     echo "</td></tr>\n";
 
     return true;
@@ -497,7 +713,9 @@ function zabbix_record_result_text($result)
 {
     switch ($result['action'] ?? 'failed') {
         case 'created':
-            return sprintf(WEB_zabbix_host_created, $result['host'] ?? '', (int)($result['templates'] ?? 0), (int)($result['macros'] ?? 0));
+            return sprintf(WEB_zabbix_host_created, $result['host'] ?? '',
+                (int)($result['templates'] ?? 0), (int)($result['macros'] ?? 0),
+                (int)($result['tags'] ?? 0), (int)($result['groups'] ?? 0));
         case 'updated':
             $notes = [];
             foreach ($result['notes'] ?? [] as $note) {

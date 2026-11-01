@@ -1,0 +1,7 @@
+ALTER TABLE `ou` DROP COLUMN `zabbix_group_id`;
+CREATE TABLE IF NOT EXISTS `ou_zabbix_groups` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `ou_id` INT NOT NULL DEFAULT 0 COMMENT 'Organizational unit id',
+  `group_id` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Zabbix host group id',
+  UNIQUE KEY `uniq_ou_zabbix_group` (`ou_id`, `group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

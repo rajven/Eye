@@ -545,6 +545,11 @@ define("WEB_NOTIFY_CREATE","Создание");
 define("WEB_NOTIFY_UPDATE","Изменение");
 define("WEB_NOTIFY_DELETE","Удаление");
 
+/* Nagios */
+define("WEB_nagios","Nagios");
+define("WEB_nagios_host_up","Хост активен");
+define("WEB_nagios_host_down","Хост не доступен");
+define("WEB_nagios_host_unknown","Состояние неизвестно");
 
 /* --- тема eye: служебные подписи (inc/footer.php, js/eye.js) --- */
 define("WEB_perf_page","Страница сгенерирована за");
@@ -567,20 +572,18 @@ define("WEB_lbl_nomatch","Ничего не найдено");
 
 /* мониторинг zabbix */
 define("WEB_cell_monitoring_status","Состояние мониторинга");
-define("WEB_zabbix_host_group","Группа хостов Zabbix");
-define("WEB_zabbix_group_none","без группы");
+define("WEB_zabbix_host_groups","Группы хостов Zabbix");
 define("WEB_zabbix_group_not_found","группа не найдена в zabbix:");
-define("WEB_zabbix_group_api_unavailable","API Zabbix недоступно, id группы хостов можно ввести вручную");
-define("WEB_zabbix_templates","Шаблоны и макросы zabbix");
+define("WEB_zabbix_group_api_unavailable","API zabbix недоступно, id группы хостов указывается вручную");
+define("WEB_zabbix_templates","Шаблоны zabbix модели устройств");
 define("WEB_zabbix_template","Шаблон Zabbix");
 define("WEB_zabbix_template_add","Добавить шаблон");
 define("WEB_zabbix_templates_check","Проверить шаблоны в zabbix");
 define("WEB_zabbix_template_missing","Шаблоны не найдены в zabbix:");
 define("WEB_zabbix_template_renamed","Имена шаблонов обновлены из zabbix:");
-define("WEB_zabbix_macro_list","Глобальный список макросов");
 define("WEB_zabbix_host_title","Хост Zabbix");
 define("WEB_zabbix_host_none","Хост этой записи в zabbix не найден");
-define("WEB_zabbix_host_created","Zabbix: создан хост %s (%d шаблон(ов), %d макрос(ов))");
+define("WEB_zabbix_host_created","Zabbix: создан хост %s (%d шаблонов, %d макросов, %d тэгов, %d групп хостов)");
 define("WEB_zabbix_host_updated","Zabbix: хост %s обновлён: %s");
 define("WEB_zabbix_host_unchanged","Zabbix: хост %s соответствует записи");
 define("WEB_zabbix_host_disabled","Zabbix: хост %s уже отключён");
@@ -589,8 +592,8 @@ define("WEB_zabbix_host_missing","Zabbix: хоста этой записи ещ�
 define("WEB_zabbix_host_failed","Zabbix: хост %s не обновлён, смотрите ошибки api в журнале");
 define("WEB_zabbix_record_skip","Запись нельзя выгрузить в zabbix: запись или устройство не найдены, либо под мониторингом лежит коммутатор или маршрутизатор");
 define("WEB_zabbix_host_note_renamed","имя");
-define("WEB_zabbix_host_note_visible","видимое имя");
-define("WEB_zabbix_host_note_tags","тег parent");
+define("WEB_zabbix_host_note_visible","описание");
+define("WEB_zabbix_host_note_tags","тэги");
 define("WEB_zabbix_host_note_templates","новые шаблоны");
 define("WEB_zabbix_host_note_macros","макросы");
 define("WEB_zabbix_host_note_status","мониторинг снова включён");
@@ -602,22 +605,21 @@ define("WEB_monitoring_taken_device","мониторинг уже включён
 define("WEB_monitoring_locked","одному устройству соответствует один хост в системе мониторинга, мониторинг остальных адресов этого пользователя выключен");
 define("WEB_zabbix_mass_same_user","выбрано несколько адресов одного пользователя, обработан только первый");
 define("WEB_zabbix_mass_skipped","Пропущены адреса того же пользователя:");
-define("WEB_zabbix_macros_global","Список макросов глобальный:");
+define("WEB_zabbix_macros_global","Макросы и тэги привязываются к устройству, а не к его модели:");
 define("WEB_submenu_zabbix_macros","Макросы Zabbix");
-define("WEB_zabbix_macros_page","Глобальный список макросов Zabbix");
-define("WEB_zabbix_used_by_models","Модели с макросом");
+define("WEB_zabbix_macros_page","Макросы Zabbix: глобальный список имён");
+define("WEB_zabbix_used_by_devices","Устройств использует");
 define("WEB_zabbix_macro_load_all","Загрузить макросы шаблонов zabbix");
 define("WEB_zabbix_template_select_empty","- выберите шаблон -");
 define("WEB_zabbix_macro_select_empty","- введите имя макроса -");
 define("WEB_zabbix_api_unavailable","не получены шаблоны или макросы из zabbix");
-define("WEB_zabbix_macros_used","Используемые моделью макросы");
+define("WEB_zabbix_macros_device","Макросы устройства");
 define("WEB_zabbix_macro_select_keep_empty","- выберите макрос из шаблонов zabbix -");
 define("WEB_zabbix_macro_manual","или введите имя макроса");
-define("WEB_zabbix_macro_select_model_empty","- выберите макрос из списка модели -");
-define("WEB_zabbix_macros_hint","Имена макросов и их значения по умолчанию задаются в глобальном списке в настройках, пустое значение модели берёт значение по умолчанию");
+define("WEB_zabbix_macro_select_model_empty","- выберите макрос из глобального списка -");
+define("WEB_zabbix_macros_hint","Имена макросов редактируются в глобальном списке настроек, значение каждого макроса и тэга относится к конкретному устройству");
 define("WEB_zabbix_macro","Макрос");
 define("WEB_zabbix_value","Значение");
-define("WEB_zabbix_default_value","Значение по умолчанию");
 define("WEB_zabbix_used","Используется");
 define("WEB_zabbix_macro_type","Тип");
 define("WEB_zabbix_macro_type_text","Текст");
@@ -632,4 +634,19 @@ define("WEB_zabbix_remove","Удалить");
 define("WEB_zabbix_macro_hint","Пустое значение используемого макроса берёт значение по умолчанию из списка макросов при создании хоста");
 define("WEB_zabbix","Zabbix");
 define("WEB_zabbix_templates_ok","Все шаблоны модели присутствуют в zabbix");
+define("WEB_zabbix_tags_device","Тэги устройства");
+define("WEB_zabbix_host_note_groups","группы хостов");
+define("WEB_zabbix_groups_hint","Хост организационной единицы создаётся в каждой отмеченной группе. Если группы не отмечены, используется группа zabbix по умолчанию");
+define("WEB_zabbix_model_templates_hint","Шаблоны мониторинга привязаны к модели, макросы и тэги относятся к конкретному устройству");
+define("WEB_submenu_zabbix_tags","Тэги Zabbix");
+define("WEB_zabbix_tags_page","Тэги Zabbix: глобальный список имён");
+define("WEB_zabbix_tags_global","Список тэгов глобальный:");
+define("WEB_zabbix_tags_hint","Имя тэга редактируется в глобальном списке настроек, значение тэга относится к конкретному устройству");
+define("WEB_zabbix_tag","Тэг");
+define("WEB_zabbix_tag_manual","Имя тэга");
+define("WEB_zabbix_add_tag","Добавить тэг");
+define("WEB_zabbix_tag_select_model_empty","- выберите тэг из глобального списка -");
+define("WEB_zabbix_list_is_empty","в глобальном списке нет свободных имён");
+define("WEB_zabbix_group_none","без группы");
+define("WEB_zabbix_tag_none","без тэгов");
 ?>

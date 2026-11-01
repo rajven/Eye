@@ -1,0 +1,15 @@
+ALTER TABLE zabbix_macros_list DROP COLUMN default_value;
+DROP TABLE zabbix_macros;
+CREATE TABLE zabbix_macros (
+    id SERIAL PRIMARY KEY,
+    macros_list_id INTEGER NOT NULL DEFAULT 0,
+    device_id INTEGER NOT NULL DEFAULT 0,
+    macro_value VARCHAR(250) NOT NULL DEFAULT '',
+    is_used SMALLINT NOT NULL DEFAULT 1,
+    UNIQUE (macros_list_id, device_id)
+);
+COMMENT ON TABLE zabbix_macros IS 'Macros assigned to the host of an eye network device';
+COMMENT ON COLUMN zabbix_macros.macros_list_id IS 'zabbix_macros_list.id';
+COMMENT ON COLUMN zabbix_macros.device_id IS 'Device id (devices.id)';
+COMMENT ON COLUMN zabbix_macros.macro_value IS 'Value of the macro of this device';
+COMMENT ON COLUMN zabbix_macros.is_used IS 'Macro is assigned to the host of the device';

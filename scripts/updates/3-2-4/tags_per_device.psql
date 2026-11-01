@@ -1,0 +1,22 @@
+CREATE TABLE zabbix_tags_list (
+    id SERIAL PRIMARY KEY,
+    tag_name VARCHAR(250) NOT NULL DEFAULT '',
+    description VARCHAR(255),
+    UNIQUE (tag_name)
+);
+COMMENT ON TABLE zabbix_tags_list IS 'Global list of the zabbix host tags';
+COMMENT ON COLUMN zabbix_tags_list.tag_name IS 'zabbix host tag name';
+COMMENT ON COLUMN zabbix_tags_list.description IS 'Tag description';
+CREATE TABLE zabbix_tags (
+    id SERIAL PRIMARY KEY,
+    tags_list_id INTEGER NOT NULL DEFAULT 0,
+    device_id INTEGER NOT NULL DEFAULT 0,
+    tag_value VARCHAR(250) NOT NULL DEFAULT '',
+    is_used SMALLINT NOT NULL DEFAULT 1,
+    UNIQUE (tags_list_id, device_id)
+);
+COMMENT ON TABLE zabbix_tags IS 'Tags assigned to the host of an eye network device';
+COMMENT ON COLUMN zabbix_tags.tags_list_id IS 'zabbix_tags_list.id';
+COMMENT ON COLUMN zabbix_tags.device_id IS 'Device id (devices.id)';
+COMMENT ON COLUMN zabbix_tags.tag_value IS 'Value of the tag of this device';
+COMMENT ON COLUMN zabbix_tags.is_used IS 'Tag is assigned to the host of the device';

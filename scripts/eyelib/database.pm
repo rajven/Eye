@@ -407,7 +407,6 @@ sub prepare_audit_message {
             fields  => [
                 'ou_name', 'description', 'default_users', 'default_hotspot',
                 'nagios_dir', 'nagios_host_use', 'nagios_ping', 'nagios_default_service',
-                'zabbix_group_id',
                 'enabled', 'filter_group_id', 'queue_id', 'dynamic', 'life_duration', 'parent_id'
             ]
         },
@@ -454,11 +453,23 @@ sub prepare_audit_message {
         },
         'zabbix_macros_list' => {
             summary => ['macro_name'],
-            fields  => ['macro_name', 'macro_type', 'default_value', 'description']
+            fields  => ['macro_name', 'macro_type', 'description']
         },
         'zabbix_macros' => {
             summary => [],
-            fields  => ['macros_list_id', 'device_model_id', 'macro_value', 'is_used']
+            fields  => ['macros_list_id', 'device_id', 'macro_value', 'is_used']
+        },
+        'zabbix_tags_list' => {
+            summary => ['tag_name'],
+            fields  => ['tag_name', 'description']
+        },
+        'zabbix_tags' => {
+            summary => [],
+            fields  => ['tags_list_id', 'device_id', 'tag_value', 'is_used']
+        },
+        'ou_zabbix_groups' => {
+            summary => [],
+            fields  => ['ou_id', 'group_id']
         }
     );
 

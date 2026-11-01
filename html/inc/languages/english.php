@@ -545,6 +545,12 @@ define("WEB_NOTIFY_CREATE","Create");
 define("WEB_NOTIFY_UPDATE","Change");
 define("WEB_NOTIFY_DELETE","Delete");
 
+/* Nagios */
+define("WEB_nagios","Nagios");
+define("WEB_nagios_host_up","Host is active");
+define("WEB_nagios_host_down","Host is not available");
+define("WEB_nagios_host_unknown","Status unknown");
+
 
 /* --- eye theme: labels used by inc/footer.php and js/eye.js --- */
 define("WEB_perf_page","Page generated in");
@@ -567,20 +573,18 @@ define("WEB_lbl_nomatch","Nothing found");
 
 /* zabbix monitoring */
 define("WEB_cell_monitoring_status","Monitoring status");
-define("WEB_zabbix_host_group","Zabbix host group");
-define("WEB_zabbix_group_none","without group");
+define("WEB_zabbix_host_groups","Zabbix host groups");
 define("WEB_zabbix_group_not_found","group not found in zabbix:");
-define("WEB_zabbix_group_api_unavailable","Zabbix api is not available, enter the host group id manually");
-define("WEB_zabbix_templates","Templates and macros zabbix");
+define("WEB_zabbix_group_api_unavailable","Zabbix api is not available, the host group id is typed manually");
+define("WEB_zabbix_templates","Templates of the model zabbix");
 define("WEB_zabbix_template","Zabbix template");
 define("WEB_zabbix_template_add","Add template");
 define("WEB_zabbix_templates_check","Check templates in zabbix");
 define("WEB_zabbix_template_missing","Templates are not found in zabbix:");
 define("WEB_zabbix_template_renamed","Template names were updated from zabbix:");
-define("WEB_zabbix_macro_list","Global list of the macros");
 define("WEB_zabbix_host_title","Zabbix host");
 define("WEB_zabbix_host_none","The host of this record is not found in zabbix");
-define("WEB_zabbix_host_created","Zabbix: host %s created (%d template(s), %d macro(s))");
+define("WEB_zabbix_host_created","Zabbix: host %s created (%d template(s), %d macro(s), %d tag(s), %d host group(s))");
 define("WEB_zabbix_host_updated","Zabbix: host %s updated: %s");
 define("WEB_zabbix_host_unchanged","Zabbix: host %s is up to date");
 define("WEB_zabbix_host_disabled","Zabbix: host %s is already disabled");
@@ -589,8 +593,8 @@ define("WEB_zabbix_host_missing","Zabbix: there is no host of this record yet");
 define("WEB_zabbix_host_failed","Zabbix: host %s is not updated, check the api errors in the log");
 define("WEB_zabbix_record_skip","This record can not be exported to zabbix: the record or its device does not exist, or the device with monitoring is a switch or a router");
 define("WEB_zabbix_host_note_renamed","the name");
-define("WEB_zabbix_host_note_visible","the visible name");
-define("WEB_zabbix_host_note_tags","the parent tag");
+define("WEB_zabbix_host_note_visible","the description");
+define("WEB_zabbix_host_note_tags","the tags");
 define("WEB_zabbix_host_note_templates","new templates");
 define("WEB_zabbix_host_note_macros","the macros");
 define("WEB_zabbix_host_note_status","monitoring is switched on again");
@@ -602,22 +606,21 @@ define("WEB_monitoring_taken_device","monitoring is already switched on at the d
 define("WEB_monitoring_locked","one device is one host in the monitoring system, monitoring of the other addresses of this user is switched off");
 define("WEB_zabbix_mass_same_user","several addresses of one user are selected, only the first one is processed");
 define("WEB_zabbix_mass_skipped","Skipped addresses of the same user:");
-define("WEB_zabbix_macros_global","The macros list is global:");
+define("WEB_zabbix_macros_global","The macros and the tags are bound to a device, not to its model:");
 define("WEB_submenu_zabbix_macros","Zabbix macros");
-define("WEB_zabbix_macros_page","Zabbix macros global list");
-define("WEB_zabbix_used_by_models","Models using");
+define("WEB_zabbix_macros_page","Zabbix macros: the global list of the names");
+define("WEB_zabbix_used_by_devices","Devices using");
 define("WEB_zabbix_macro_load_all","Load the macros of the zabbix templates");
 define("WEB_zabbix_template_select_empty","- select a template -");
 define("WEB_zabbix_macro_select_empty","- type the macro name -");
 define("WEB_zabbix_api_unavailable","no macros or templates received from zabbix");
-define("WEB_zabbix_macros_used","Macros used by the model");
+define("WEB_zabbix_macros_device","Macros of the device");
 define("WEB_zabbix_macro_select_keep_empty","- select a macro of the zabbix templates -");
 define("WEB_zabbix_macro_manual","or type the macro name");
-define("WEB_zabbix_macro_select_model_empty","- select a macro of the model list -");
-define("WEB_zabbix_macros_hint","The macro names and their default values are edited in the global list of the settings, an empty value of the model takes the default one");
+define("WEB_zabbix_macro_select_model_empty","- select a macro of the global list -");
+define("WEB_zabbix_macros_hint","The macro names are edited in the global list of the settings, the value of every macro and the tag belong to the concrete device");
 define("WEB_zabbix_macro","Macro");
 define("WEB_zabbix_value","Value");
-define("WEB_zabbix_default_value","Default value");
 define("WEB_zabbix_used","Used");
 define("WEB_zabbix_macro_type","Type");
 define("WEB_zabbix_macro_type_text","Text");
@@ -632,4 +635,19 @@ define("WEB_zabbix_remove","Remove");
 define("WEB_zabbix_macro_hint","An empty value of the used macro takes the default value of the macros list while the host is created");
 define("WEB_zabbix","Zabbix");
 define("WEB_zabbix_templates_ok","All templates of the model are present in zabbix");
+define("WEB_zabbix_tags_device","Tags of the device");
+define("WEB_zabbix_host_note_groups","the host groups");
+define("WEB_zabbix_groups_hint","The host of the organizational unit is created in every checked host group. Without the checked groups the default group of zabbix is used");
+define("WEB_zabbix_model_templates_hint","The templates of the monitoring are bound to the model, the macros and the tags belong to the concrete device");
+define("WEB_submenu_zabbix_tags","Zabbix tags");
+define("WEB_zabbix_tags_page","Zabbix tags: the global list of the names");
+define("WEB_zabbix_tags_global","The tags list is global:");
+define("WEB_zabbix_tags_hint","The tag name is edited in the global list of the settings, the value of the tag belongs to the concrete device");
+define("WEB_zabbix_tag","Tag");
+define("WEB_zabbix_tag_manual","Name of the tag");
+define("WEB_zabbix_add_tag","Add tag");
+define("WEB_zabbix_tag_select_model_empty","- select a tag of the global list -");
+define("WEB_zabbix_list_is_empty","the global list has no free names");
+define("WEB_zabbix_group_none","no group");
+define("WEB_zabbix_tag_none","no tags");
 ?>

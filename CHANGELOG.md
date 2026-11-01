@@ -1,3 +1,14 @@
+# Changelog 3-2-4 - release
+- added: ou_zabbix_groups - an organizational unit is bound to several zabbix host groups, the form of the ou shows the check boxes of the groups of zabbix.
+- removed: ou.zabbix_group_id - the single host group of an organizational unit, 3-2-4 update patches drop it for mysql and postgres.
+- added: zabbix_tags_list - the global list of the zabbix host tag names, and zabbix_tags - the tags with their values assigned to the host of an eye network device.
+- added: zabbixtags.php page in the settings - the global list of the tag names, the value of a tag belongs to the device.
+- changed: zabbix macros are bound to an eye network device (zabbix_macros.device_id) instead of a device model, the existing model bindings are dropped by the update.
+- removed: zabbix_macros_list.default_value - the global macros list contains the names only, the value of a macro is set for every device.
+- changed: the device model form keeps the templates only, the macros and the tags of the host are edited in the form of the device.
+- changed: the export of a host adds the missing host groups of the organizational unit, refreshes the tags and the macros of the device and removes the tags and the macros which eye does not assign anymore. the tags and the macros of the other integrations are kept.
+- changed: web interface and sync_zabbix.pl use the same rules of the groups, the macros and the tags, so both ways give the same host in zabbix.
+
 # Changelog 3-2-3 - release
 - added: the zabbix host of a device or an ip record is created, updated and switched off by the web interface itself, the sync_zabbix.pl script is kept as a fallback for the scheduled reconciliation.
 - added: the forms of the device and of the ip record show the state of the zabbix host and the buttons of the manual export and of switching the host off.

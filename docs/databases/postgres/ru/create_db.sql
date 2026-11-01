@@ -359,7 +359,6 @@ nagios_dir VARCHAR(255),
 nagios_host_use VARCHAR(50),
 nagios_ping SMALLINT NOT NULL DEFAULT 1,
 nagios_default_service VARCHAR(100),
-zabbix_group_id INTEGER NOT NULL DEFAULT 0,
 enabled SMALLINT NOT NULL DEFAULT 0,
 filter_group_id INTEGER NOT NULL DEFAULT 0,
 queue_id INTEGER NOT NULL DEFAULT 0,
@@ -602,7 +601,7 @@ COMMENT ON TABLE vendors IS 'Производители сетевого обо�
 -- Версия системы
 CREATE TABLE version (
 id INTEGER PRIMARY KEY DEFAULT 1,
-version VARCHAR(10) NOT NULL DEFAULT '3.2.3'
+version VARCHAR(10) NOT NULL DEFAULT '3.2.4'
 );
 COMMENT ON TABLE version IS 'Информация о версии системы';
 
@@ -664,36 +663,70 @@ COMMENT ON COLUMN zabbix_templates.device_model_id IS 'Id модели устр�
 COMMENT ON COLUMN zabbix_templates.template_id IS 'Id шаблона zabbix (группа хостов типа шаблон)';
 COMMENT ON COLUMN zabbix_templates.template_name IS 'Имя шаблона zabbix, проверяется по zabbix при сохранении формы';
 
--- Макросы zabbix, привязанные к моделям устройств
--- Глобальный список макросов zabbix, модели ссылаются на него
+-- Глобальный список макросов zabbix, устройства ссылаются на него
 CREATE TABLE zabbix_macros_list (
     id SERIAL PRIMARY KEY,
     macro_name VARCHAR(250) NOT NULL DEFAULT '',
     macro_type INTEGER NOT NULL DEFAULT 0,
-    default_value VARCHAR(250) NOT NULL DEFAULT '',
     description VARCHAR(255),
     UNIQUE (macro_name)
 );
 COMMENT ON TABLE zabbix_macros_list IS 'Глобальный список макросов zabbix';
 COMMENT ON COLUMN zabbix_macros_list.macro_name IS 'Имя макроса zabbix, например {$SNMP_COMMUNITY}';
 COMMENT ON COLUMN zabbix_macros_list.macro_type IS 'Тип макроса zabbix: 0 - текст, 1 - секрет';
-COMMENT ON COLUMN zabbix_macros_list.default_value IS 'Значение макроса по умолчанию';
 COMMENT ON COLUMN zabbix_macros_list.description IS 'Описание макроса';
 
--- Макросы, используемые моделями устройств, ссылки на глобальный список
+-- Макросы сетевого устройства eye, ссылки на глобальный список макросов
 CREATE TABLE zabbix_macros (
     id SERIAL PRIMARY KEY,
     macros_list_id INTEGER NOT NULL DEFAULT 0,
-    device_model_id INTEGER NOT NULL DEFAULT 0,
+    device_id INTEGER NOT NULL DEFAULT 0,
     macro_value VARCHAR(250) NOT NULL DEFAULT '',
     is_used SMALLINT NOT NULL DEFAULT 1,
-    UNIQUE (macros_list_id, device_model_id)
+    UNIQUE (macros_list_id, device_id)
 );
-COMMENT ON TABLE zabbix_macros IS 'Макросы, используемые моделью устройства';
+COMMENT ON TABLE zabbix_macros IS 'Макросы, назначенные хосту сетевого устройства eye';
 COMMENT ON COLUMN zabbix_macros.macros_list_id IS 'zabbix_macros_list.id';
-COMMENT ON COLUMN zabbix_macros.device_model_id IS 'Id модели устройства (device_models.id)';
-COMMENT ON COLUMN zabbix_macros.macro_value IS 'Значение макроса для этой модели, пусто - используется значение по умолчанию';
-COMMENT ON COLUMN zabbix_macros.is_used IS 'Макрос назначается хостам этой модели';
+COMMENT ON COLUMN zabbix_macros.device_id IS 'Id устройства (devices.id)';
+COMMENT ON COLUMN zabbix_macros.macro_value IS 'Значение макроса этого устройства';
+COMMENT ON COLUMN zabbix_macros.is_used IS 'Макрос назначается хосту устройства';
+
+-- Глобальный список тэгов хостов zabbix, устройства ссылаются на него
+CREATE TABLE zabbix_tags_list (
+    id SERIAL PRIMARY KEY,
+    tag_name VARCHAR(250) NOT NULL DEFAULT '',
+    description VARCHAR(255),
+    UNIQUE (tag_name)
+);
+COMMENT ON TABLE zabbix_tags_list IS 'Глобальный список тэгов хостов zabbix';
+COMMENT ON COLUMN zabbix_tags_list.tag_name IS 'zabbix host tag name';
+COMMENT ON COLUMN zabbix_tags_list.description IS 'Описание тэга';
+
+-- Тэги сетевого устройства eye, ссылки на глобальный список тэгов
+CREATE TABLE zabbix_tags (
+    id SERIAL PRIMARY KEY,
+    tags_list_id INTEGER NOT NULL DEFAULT 0,
+    device_id INTEGER NOT NULL DEFAULT 0,
+    tag_value VARCHAR(250) NOT NULL DEFAULT '',
+    is_used SMALLINT NOT NULL DEFAULT 1,
+    UNIQUE (tags_list_id, device_id)
+);
+COMMENT ON TABLE zabbix_tags IS 'Тэги, назначенные хосту сетевого устройства eye';
+COMMENT ON COLUMN zabbix_tags.tags_list_id IS 'zabbix_tags_list.id';
+COMMENT ON COLUMN zabbix_tags.device_id IS 'Id устройства (devices.id)';
+COMMENT ON COLUMN zabbix_tags.tag_value IS 'Значение тэга этого устройства';
+COMMENT ON COLUMN zabbix_tags.is_used IS 'Тэг назначается хосту устройства';
+
+-- Группы хостов zabbix организационной единицы, у ou может быть несколько групп
+CREATE TABLE ou_zabbix_groups (
+    id SERIAL PRIMARY KEY,
+    ou_id INTEGER NOT NULL DEFAULT 0,
+    group_id BIGINT NOT NULL DEFAULT 0,
+    UNIQUE (ou_id, group_id)
+);
+COMMENT ON TABLE ou_zabbix_groups IS 'Группы хостов zabbix организационной единицы';
+COMMENT ON COLUMN ou_zabbix_groups.ou_id IS 'Id организационной единицы (ou.id)';
+COMMENT ON COLUMN ou_zabbix_groups.group_id IS 'Id группы хостов zabbix (hostgroup.groupid)';
 
 -- Indexes
 
