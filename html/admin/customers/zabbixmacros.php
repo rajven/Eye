@@ -20,7 +20,6 @@ $zbx_macros = zabbix_all_template_macros();
 if (getPOST("save") !== null) {
     $f_ids = getPOST("f_id", null, []);
     $m_names = getPOST("m_name", null, []);
-    $m_values = getPOST("m_value", null, []);
     $m_types = getPOST("m_type", null, []);
     $m_descriptions = getPOST("m_description", null, []);
 
@@ -53,7 +52,6 @@ if (getPOST("save") !== null) {
             update_record($db_link, "zabbix_macros_list", "id = ?", [
                 'macro_name' => $name,
                 'macro_type' => (int)($m_types[$macro_list_id] ?? 0),
-                'default_value' => substr(trim((string)($m_values[$macro_list_id] ?? '')), 0, 250),
                 'description' => substr(trim((string)($m_descriptions[$macro_list_id] ?? '')), 0, 250),
             ], [$macro_list_id]);
         }
@@ -88,7 +86,6 @@ if (getPOST("create") !== null) {
     }
     $new_name = normalizer_zabbix_macro_name($new_name);
     $new_type = (int)getPOST("new_type", null, 0);
-    $new_value = substr(trim((string)getPOST("new_value", null, '')), 0, 250);
     $new_description = substr(trim((string)getPOST("new_description", null, '')), 0, 250);
 
     if ($new_name !== '') {
@@ -99,7 +96,6 @@ if (getPOST("create") !== null) {
             insert_record($db_link, "zabbix_macros_list", [
                 'macro_name' => $new_name,
                 'macro_type' => $new_type,
-                'default_value' => $new_value,
                 'description' => $new_description,
             ]);
         }
@@ -125,7 +121,6 @@ if (getPOST("load") !== null) {
         insert_record($db_link, "zabbix_macros_list", [
             'macro_name' => $macro['macro'],
             'macro_type' => (int)$macro['type'],
-            'default_value' => substr($macro['value'], 0, 250),
             'description' => substr($macro['description'], 0, 250),
         ]);
     }
@@ -172,10 +167,10 @@ print_control_submenu($page_url);
         "SELECT * FROM zabbix_macros_list $filter ORDER BY macro_name LIMIT ? OFFSET ?",
         array_merge($params, [$displayed, $start]));
 
-    // number of the device models which apply every macro of the list
-    $models_count = [];
-    foreach (get_records_sql($db_link, "SELECT macros_list_id, COUNT(device_model_id) AS cnt FROM zabbix_macros WHERE is_used = 1 GROUP BY macros_list_id", []) as $row) {
-        $models_count[(int)$row['macros_list_id']] = (int)$row['cnt'];
+    // number of the eye network devices which apply every macro of the list
+    $devices_count = [];
+    foreach (get_records_sql($db_link, "SELECT macros_list_id, COUNT(device_id) AS cnt FROM zabbix_macros WHERE is_used = 1 GROUP BY macros_list_id", []) as $row) {
+        $devices_count[(int)$row['macros_list_id']] = (int)$row['cnt'];
     }
     ?>
 
@@ -186,10 +181,9 @@ print_control_submenu($page_url);
             <td><input type="checkbox" onClick="checkAll(this.checked);"></td>
             <td><b>Id</b></td>
             <td><b><?php echo WEB_zabbix_macro; ?></b></td>
-            <td><b><?php echo WEB_zabbix_default_value; ?></b></td>
             <td><b><?php echo WEB_zabbix_macro_type; ?></b></td>
             <td><b><?php echo WEB_cell_description; ?></b></td>
-            <td><b><?php echo WEB_zabbix_used_by_models; ?></b></td>
+            <td><b><?php echo WEB_zabbix_used_by_devices; ?></b></td>
         </tr>
 <?php
 foreach ($t_macros as $row) {
@@ -197,30 +191,28 @@ foreach ($t_macros as $row) {
     print "<td class=\"data\" style='padding:0'><input type=\"checkbox\" name=\"f_id[]\" value=\"" . $row['id'] . "\"></td>\n";
     print "<td class=\"data\">" . $row['id'] . "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name=\"m_name[" . $row['id'] . "]\" value=\"" . htmlspecialchars($row['macro_name']) . "\"></td>\n";
-    print "<td class=\"data\"><input type=\"text\" name=\"m_value[" . $row['id'] . "]\" value=\"" . htmlspecialchars($row['default_value']) . "\"></td>\n";
     print "<td class=\"data\">"; print_zabbix_macro_type_select("m_type[" . $row['id'] . "]", $row['macro_type']); print "</td>\n";
     print "<td class=\"data\"><input type=\"text\" name=\"m_description[" . $row['id'] . "]\" value=\"" . htmlspecialchars($row['description']) . "\" size=25></td>\n";
-    print "<td class=\"data\">" . ($models_count[(int)$row['id']] ?? 0) . "</td>\n";
+    print "<td class=\"data\">" . ($devices_count[(int)$row['id']] ?? 0) . "</td>\n";
     print "</tr>\n";
 }
 ?>
         <tr>
-            <td colspan="7" class="data"><b><?php echo WEB_zabbix_add_macro; ?></b></td>
+            <td colspan="6" class="data"><b><?php echo WEB_zabbix_add_macro; ?></b></td>
         </tr>
         <tr>
             <td class="data"></td>
             <td class="data"></td>
-            <td class="data">
+            <td class="data" colspan="2">
                 <?php print_zabbix_macro_select('new_name_pick', $zbx_macros, '', WEB_zabbix_macro_select_keep_empty); ?>
                 <br><input type="text" name="new_name" value="" placeholder="<?php echo WEB_zabbix_macro_manual; ?>">
             </td>
-            <td class="data"><input type="text" name="new_value" value=""></td>
             <td class="data"><?php print_zabbix_macro_type_select('new_type', 0); ?></td>
             <td class="data"><input type="text" name="new_description" value="" size=25></td>
             <td class="data"></td>
         </tr>
         <tr>
-            <td colspan="3" class="data" align="right">
+            <td colspan="2" class="data" align="right">
                 <input type="submit" name="save" value="<?php echo WEB_btn_save; ?>" <?php if (empty($t_macros)) echo 'disabled'; ?>>
             </td>
             <td colspan="2" class="data" align="center">
@@ -233,7 +225,7 @@ foreach ($t_macros as $row) {
             </td>
         </tr>
         <tr>
-            <td colspan="7" class="data" align="right">
+            <td colspan="6" class="data" align="right">
                 <input type="submit" name="load" value="<?php echo WEB_zabbix_macro_load_all; ?>">
             </td>
         </tr>

@@ -355,7 +355,7 @@ INSERT INTO `config` VALUES (144,37,'/opt/Eye/scripts/sync_mikrotik.pl');
 INSERT INTO `config` VALUES (145,23,'1');
 INSERT INTO `config` VALUES (148,22,'1');
 
-INSERT INTO `version` (`id`, `version`) VALUES(1, '3.2.3');
+INSERT INTO `version` (`id`, `version`) VALUES(1, '3.2.4');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

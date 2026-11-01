@@ -15,16 +15,25 @@ if (getPOST("save") !== null) {
         'nagios_host_use'        => trim(getPOST("f_nagios_host", null, '')),
         'nagios_ping'            => trim(getPOST("f_nagios_ping", null, 0)),
         'nagios_default_service' => trim(getPOST("f_nagios_service", null, '')),
-        'zabbix_group_id'        => (int)getPOST("f_zabbix_group", null, 0),
         'queue_id'               => (int)getPOST("f_queue_id", null, 0),
         'filter_group_id'        => (int)getPOST("f_filter_group_id", null, 0),
         'enabled'                => (int)getPOST("f_enabled", null, 0),
         'dynamic'                => (int)getPOST("f_dynamic", null, 0)
     ];
 
-    // Zabbix host group of the ou is checked against the monitoring system
-    if ($new['zabbix_group_id'] > 0 && is_zabbix_enabled() && !zabbix_group_exists($db_link, $new['zabbix_group_id'])) {
-        LOG_WARNING($db_link, WEB_zabbix_host_group . " id " . $new['zabbix_group_id'] . " not found in zabbix!");
+    // The host groups of zabbix live in their own table, an ou is bound to several
+    // groups. The check boxes of the form are sent only when zabbix is enabled
+    if (getPOST("f_zabbix_groups_posted", null, null) !== null) {
+        $group_ids = getPOST("f_zabbix_groups", null, []);
+        if (!is_array($group_ids)) {
+            $group_ids = [];
+        }
+        // the api does not answer, the identifier is typed by hand
+        $manual_group = (int)getPOST("f_zabbix_group_new", null, 0);
+        if ($manual_group > 0) {
+            $group_ids[] = $manual_group;
+        }
+        save_zabbix_ou_groups($db_link, (int)$id, $group_ids);
     }
 
     // Обработка life_duration
@@ -181,11 +190,13 @@ print "<td class=\"data\"></td>\n";
 ?>
 </tr>
 <?php
-// the zabbix host group is used by the sync_zabbix script while the hosts are created
+// the host groups of zabbix are used by the web interface and by sync_zabbix.pl
+// when the hosts of the ou are created
 if (is_zabbix_enabled()) {
-    print "<tr><td colspan=\"2\"><b>" . WEB_zabbix_host_group . "</b></td><td colspan=\"3\"></td></tr>\n";
+    print "<tr><td colspan=\"2\"><b>" . WEB_zabbix_host_groups . "</b></td><td colspan=\"3\"></td></tr>\n";
     print "<tr><td colspan=\"5\" class=\"data\">";
-    print_zabbix_group_select($db_link, 'f_zabbix_group', $ou_info['zabbix_group_id']);
+    print_zabbix_groups_select($db_link, zabbix_ou_group_ids($db_link, $id));
+    print "<br>" . WEB_zabbix_groups_hint;
     print "</td></tr>\n";
 }
 ?>

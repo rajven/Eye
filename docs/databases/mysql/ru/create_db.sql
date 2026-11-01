@@ -271,7 +271,6 @@ CREATE TABLE `ou` (
   `nagios_host_use` varchar(50) DEFAULT NULL,
   `nagios_ping` tinyint(1) NOT NULL DEFAULT 1,
   `nagios_default_service` varchar(100) DEFAULT NULL,
-  `zabbix_group_id` int(11) NOT NULL DEFAULT 0,
   `enabled` int(11) NOT NULL DEFAULT 0,
   `filter_group_id` int(11) NOT NULL DEFAULT 0,
   `queue_id` int(11) NOT NULL DEFAULT 0,
@@ -464,7 +463,7 @@ CREATE TABLE `vendors` (
 
 CREATE TABLE `version` (
   `id` int(11) NOT NULL DEFAULT 1,
-  `version` varchar(10) NOT NULL DEFAULT '3.2.3'
+  `version` varchar(10) NOT NULL DEFAULT '3.2.4'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `wan_stats` (
@@ -518,7 +517,6 @@ CREATE TABLE `zabbix_macros_list` (
   `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `macro_name` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Имя макроса zabbix, например {$SNMP_COMMUNITY}',
   `macro_type` INT NOT NULL DEFAULT 0 COMMENT 'Тип макроса zabbix: 0 - текст, 1 - секрет',
-  `default_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Значение макроса по умолчанию',
   `description` VARCHAR(255) DEFAULT NULL COMMENT 'Описание макроса',
   UNIQUE KEY `uniq_zabbix_macro_name` (`macro_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -526,10 +524,35 @@ CREATE TABLE `zabbix_macros_list` (
 CREATE TABLE `zabbix_macros` (
   `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `macros_list_id` INT NOT NULL DEFAULT 0 COMMENT 'Ссылка на zabbix_macros_list.id',
-  `device_model_id` INT NOT NULL DEFAULT 0 COMMENT 'Id модели устройства',
-  `macro_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Значение макроса для этой модели, пусто - используется значение по умолчанию',
-  `is_used` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Макрос назначается хостам этой модели',
-  UNIQUE KEY `uniq_zabbix_model_macro` (`macros_list_id`, `device_model_id`)
+  `device_id` INT NOT NULL DEFAULT 0 COMMENT 'Id сетевого устройства eye',
+  `macro_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Значение макроса этого устройства',
+  `is_used` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Макрос назначается хосту устройства',
+  UNIQUE KEY `uniq_zabbix_device_macro` (`macros_list_id`, `device_id`),
+  KEY `idx_zabbix_macro_device` (`device_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `zabbix_tags_list` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `tag_name` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Имя тэга хоста zabbix',
+  `description` VARCHAR(255) DEFAULT NULL COMMENT 'Описание тэга',
+  UNIQUE KEY `uniq_zabbix_tag_name` (`tag_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `zabbix_tags` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `tags_list_id` INT NOT NULL DEFAULT 0 COMMENT 'Ссылка на zabbix_tags_list.id',
+  `device_id` INT NOT NULL DEFAULT 0 COMMENT 'Id сетевого устройства eye',
+  `tag_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Значение тэга этого устройства',
+  `is_used` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Тэг назначается хосту устройства',
+  UNIQUE KEY `uniq_zabbix_device_tag` (`tags_list_id`, `device_id`),
+  KEY `idx_zabbix_tag_device` (`device_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `ou_zabbix_groups` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `ou_id` INT NOT NULL DEFAULT 0 COMMENT 'Id организационной единицы',
+  `group_id` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Id группы хостов zabbix',
+  UNIQUE KEY `uniq_ou_zabbix_group` (`ou_id`, `group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE `acl`

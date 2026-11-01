@@ -488,7 +488,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- System version
 INSERT INTO version (id, version)
-VALUES (1, '3.2.3')
+VALUES (1, '3.2.4')
 ON CONFLICT (id) DO UPDATE SET
     version = EXCLUDED.version;
 

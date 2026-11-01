@@ -349,20 +349,6 @@ function zabbix_template_by_name($name)
     ];
 }
 
-// Host group validation for the organizational unit (параметр $db удален)
-function zabbix_group_exists($group_id)
-{
-    if (empty($group_id)) {
-        return false;
-    }
-
-    $groups = zabbix_api_request('hostgroup.get', [
-        'output' => ['groupid'],
-        'groupids' => [(int)$group_id],
-    ]);
-    return is_array($groups) && !empty($groups);
-}
-
 // Searchable select of the zabbix templates. The templates are passed as a list
 // from zabbix_template_list(), the value of the option is the technical name.
 // A text field is printed instead when the api gives no templates
@@ -444,35 +430,6 @@ function print_zabbix_macro_type_select($name, $selected = 0)
     print "</select>\n";
 }
 
-// Select of the zabbix host groups. A plain number field is shown when the api is unavailable
-function print_zabbix_group_select($db, $name, $current = 0)
-{
-    $current = (int)$current;
-    $safe_name = htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); // Защита от XSS
-    $groups = zabbix_host_group_list();
-
-    if (empty($groups)) {
-        print "<input type=\"number\" min=\"0\" id=\"$safe_name\" name=\"$safe_name\" value=\"$current\">";
-        print "&nbsp;" . WEB_zabbix_group_api_unavailable;
-        return;
-    }
-
-    print "<select id=\"$safe_name\" name=\"$safe_name\">\n";
-    print_select_item(WEB_zabbix_group_none, 0, $current);
-    $found = false;
-    foreach ($groups as $group) {
-        if ((int)$group['groupid'] === $current) {
-            $found = true;
-        }
-        $group_name = htmlspecialchars($group['name'], ENT_QUOTES, 'UTF-8');
-        print_select_item($group_name, $group['groupid'], $current);
-    }
-    if ($current !== 0 && !$found) {
-        print_select_item(WEB_zabbix_group_not_found . " " . $current, $current, $current);
-    }
-    print "</select>\n";
-}
-
 // Searchable select of the zabbix macros taken from the templates. A text field is
 // printed instead when the api gives no macros, the name can always be typed by hand
 function print_zabbix_macro_select($name, $macros, $current = '', $empty_label = NULL)
@@ -526,6 +483,26 @@ function print_zabbix_macro_id_select($name, $macros, $placeholder = '')
     print "</select>\n";
 }
 
+// Searchable select of the tags list, the value of the option is the list id
+function print_zabbix_tag_id_select($name, $tags, $placeholder = '')
+{
+    $safe_name = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+    print "<select id=\"$safe_name\" name=\"$safe_name\" class=\"js-select-single\">\n";
+    print_select_item($placeholder, '', '');
+    foreach ($tags as $tag) {
+        $tag_name = $tag['macro'] ?? '';
+        if ($tag_name === '') {
+            continue;
+        }
+        $label = $tag_name;
+        if (!empty($tag['description'])) {
+            $label .= " - " . $tag['description'];
+        }
+        print_select_item($label, $tag['id'], '');
+    }
+    print "</select>\n";
+}
+
 // Macro names are stored in the zabbix notation, for example {\$SNMP_COMMUNITY}
 function normalizer_zabbix_macro_name($name)
 {
@@ -547,6 +524,112 @@ function normalizer_zabbix_macro_name($name)
 // Tags written to the zabbix hosts, they are the same as in the sync_zabbix script
 define('ZABBIX_TAG_EYE', 'eye');
 define('ZABBIX_TAG_PARENT', 'parent');
+
+// Tag names are typed by hand, zabbix does not allow the equals sign in a tag name
+function normalizer_zabbix_tag_name($name)
+{
+    $name = trim((string)$name);
+    if ($name === '') {
+        return '';
+    }
+    $name = preg_replace('/\s+/u', ' ', $name);
+    $name = preg_replace('/[^\p{L}\p{N}_.\-]/u', '', $name);
+    return substr($name, 0, 250);
+}
+
+// Host groups of the organizational unit, the identifiers bound to the ou
+function zabbix_ou_group_ids($db, $ou_id)
+{
+    $group_ids = [];
+    foreach (get_records_sql($db, "SELECT * FROM ou_zabbix_groups WHERE ou_id = ? ORDER BY id", [(int)$ou_id]) as $row) {
+        if ((int)$row['group_id'] > 0) {
+            $group_ids[] = (int)$row['group_id'];
+        }
+    }
+
+    return $group_ids;
+}
+
+// The form of the ou chooses several host groups of zabbix. Without the api the
+// identifiers bound before stay in the form and a new identifier is typed by hand
+function print_zabbix_groups_select($db, $group_ids)
+{
+    $checked = [];
+    foreach ($group_ids as $group_id) {
+        $checked[(int)$group_id] = 1;
+    }
+
+    // the marker shows that the block was sent, an ou without groups is legal
+    print "<input type=\"hidden\" name=\"f_zabbix_groups_posted\" value=\"1\">\n";
+
+    $groups = zabbix_host_group_list();
+    if (empty($groups)) {
+        print "<div class=\"zabbix-groups\">\n";
+        foreach (array_keys($checked) as $group_id) {
+            print "<label class=\"zabbix-group\"><input type=\"checkbox\" name=\"f_zabbix_groups[]\" value=\""
+                . (int)$group_id . "\" checked>&nbsp;" . WEB_zabbix_group_not_found . "&nbsp;" . (int)$group_id . "</label>\n";
+        }
+        print "</div>\n";
+        print WEB_zabbix_group_api_unavailable . "&nbsp;<input type=\"number\" min=\"1\" name=\"f_zabbix_group_new\" value=\"\">\n";
+        return;
+    }
+
+    $known = [];
+    print "<div class=\"zabbix-groups\">\n";
+    foreach ($groups as $group) {
+        $group_id = (int)($group['groupid'] ?? 0);
+        if ($group_id <= 0) {
+            continue;
+        }
+        $known[$group_id] = 1;
+        print "<label class=\"zabbix-group\"><input type=\"checkbox\" name=\"f_zabbix_groups[]\" value=\"$group_id\""
+            . (isset($checked[$group_id]) ? " checked" : "") . ">&nbsp;"
+            . htmlspecialchars((string)($group['name'] ?? $group_id), ENT_QUOTES, 'UTF-8') . "</label>\n";
+    }
+
+    // a group which zabbix does not know anymore is still shown, it is removed from
+    // the ou when its check box is unchecked
+    foreach (array_keys($checked) as $group_id) {
+        if (isset($known[$group_id])) {
+            continue;
+        }
+        print "<label class=\"zabbix-group\"><input type=\"checkbox\" name=\"f_zabbix_groups[]\" value=\"$group_id\" checked>&nbsp;"
+            . WEB_zabbix_group_not_found . "&nbsp;" . $group_id . "</label>\n";
+    }
+    print "</div>\n";
+
+    return;
+}
+
+// The bindings of the ou are replaced by the list chosen in the form, the existing
+// rows are kept when the group of the zabbix api disappeared meanwhile
+function save_zabbix_ou_groups($db, $ou_id, $group_ids)
+{
+    $wanted = [];
+    foreach ($group_ids as $group_id) {
+        $group_id = (int)$group_id;
+        if ($group_id > 0) {
+            $wanted[$group_id] = 1;
+        }
+    }
+
+    $current = [];
+    foreach (get_records_sql($db, "SELECT * FROM ou_zabbix_groups WHERE ou_id = ?", [(int)$ou_id]) as $row) {
+        $current[(int)$row['group_id']] = 1;
+    }
+
+    foreach (array_keys($current) as $group_id) {
+        if (!isset($wanted[$group_id])) {
+            delete_records($db, "ou_zabbix_groups", "ou_id = ? AND group_id = ?", [(int)$ou_id, $group_id]);
+        }
+    }
+
+    foreach (array_keys($wanted) as $group_id) {
+        if (!isset($current[$group_id])) {
+            insert_record($db, "ou_zabbix_groups", ['ou_id' => (int)$ou_id, 'group_id' => $group_id]);
+        }
+    }
+}
 
 // Transliteration of the eye names. The table repeats eyelib::main::translit, so the
 // web interface and the sync_zabbix.pl script give the same host names in zabbix
@@ -838,8 +921,15 @@ function zabbix_host_merge_templates($host, $wanted)
 }
 
 // The macros of the model are refreshed, the foreign macros of the host are kept
-function zabbix_host_merge_macros($host, $wanted)
+function zabbix_host_merge_macros($host, $wanted, $owned = [])
 {
+    $wanted_index = [];
+    foreach ($wanted as $macro) {
+        if (!empty($macro['macro'])) {
+            $wanted_index[strtoupper((string)$macro['macro'])] = 1;
+        }
+    }
+
     $current = [];
     $merged = [];
     foreach ($host['macros'] ?? [] as $macro) {
@@ -848,6 +938,11 @@ function zabbix_host_merge_macros($host, $wanted)
         }
         $key = strtoupper($macro['macro']);
         if (isset($current[$key])) {
+            continue;
+        }
+        // a macro of the global list which is not assigned anymore leaves the host,
+        // the macros of the other integrations stay
+        if (isset($owned[$key]) && !isset($wanted_index[$key])) {
             continue;
         }
         $current[$key] = 1;
@@ -973,6 +1068,7 @@ function zabbix_api_create_host($spec)
     $params = [
         'host' => $spec['host'],
         'name' => $spec['display'] ?? $spec['host'],
+        'description' => (string)($spec['description'] ?? ''),
         'status' => 0,
     ];
 

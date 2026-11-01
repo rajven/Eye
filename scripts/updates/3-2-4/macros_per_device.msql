@@ -1,0 +1,11 @@
+ALTER TABLE `zabbix_macros_list` DROP COLUMN `default_value`;
+DROP TABLE `zabbix_macros`;
+CREATE TABLE IF NOT EXISTS `zabbix_macros` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `macros_list_id` INT NOT NULL DEFAULT 0 COMMENT 'Reference to zabbix_macros_list.id',
+  `device_id` INT NOT NULL DEFAULT 0 COMMENT 'Device id of the eye network device',
+  `macro_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Value of the macro of this device',
+  `is_used` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Macro is assigned to the host of the device',
+  UNIQUE KEY `uniq_zabbix_device_macro` (`macros_list_id`, `device_id`),
+  KEY `idx_zabbix_macro_device` (`device_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

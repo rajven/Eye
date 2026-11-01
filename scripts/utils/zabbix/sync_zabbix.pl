@@ -23,11 +23,14 @@
 # into /opt/Eye/scripts/eyelib.
 #
 # What the script does:
-#   - a record with monitoring=1 is created in zabbix with the templates and the
-#     macros of its device model, in the host group bound to the organizational
-#     unit of the record. without a group when the organizational unit has none
+#   - a record with monitoring=1 is created in zabbix with the templates of its
+#     device model, with the macros and the tags of its eye network device, in the
+#     host groups bound to the organizational unit of the record, without a group
+#     when the organizational unit has none
 #   - the tag parent contains the name of the switch the device or the address is
-#     connected to, the tag eye contains the eye record identifier
+#     connected to, the tag eye contains the eye record identifier, the tags of the
+#     device are added to these two. a tag or a macro which eye does not assign
+#     anymore is removed from the host, the objects of the other integrations stay
 #   - a record already present in zabbix is checked by name, by the parent tag and
 #     by the list of templates. a changed name or tag is updated, missing templates
 #     are added, templates already linked to the host are ignored and never removed
@@ -132,15 +135,49 @@ foreach my $row (get_records_sql($dbh, "SELECT * FROM zabbix_templates ORDER BY 
     push(@{ $model_templates{ $row->{device_model_id} } }, $row);
     }
 
-#macros used by the device models with the names and the defaults of the global macros list
+#macros assigned to the eye network devices, with the names and the types of the
+#global macros list
 
-my %model_macros;
-my @macro_rows = get_records_sql($dbh,
-    "SELECT m.id, m.macro_value, m.device_model_id, l.macro_name, l.default_value, l.macro_type
+my %device_macros;
+foreach my $row (get_records_sql($dbh,
+    "SELECT m.id, m.macro_value, m.device_id, l.macro_name, l.macro_type
      FROM zabbix_macros m JOIN zabbix_macros_list l ON m.macros_list_id = l.id
-     WHERE m.is_used = 1 ORDER BY l.macro_name");
-foreach my $row (@macro_rows) {
-    push(@{ $model_macros{ $row->{device_model_id} } }, $row);
+     WHERE m.is_used = 1 ORDER BY l.macro_name")) {
+    push(@{ $device_macros{ $row->{device_id} } }, $row);
+    }
+
+#the names of the global macros list, eye removes its own macros which are unassigned
+
+my %macro_names;
+foreach my $row (get_records_sql($dbh, "SELECT macro_name FROM zabbix_macros_list")) {
+    my $name = zabbix_macro_name($row->{macro_name});
+    $macro_names{ uc($name) } = 1 if ($name ne '');
+    }
+
+#tags assigned to the eye network devices, with the names of the global tags list
+
+my %device_tags;
+foreach my $row (get_records_sql($dbh,
+    "SELECT t.tag_value, t.device_id, l.tag_name
+     FROM zabbix_tags t JOIN zabbix_tags_list l ON t.tags_list_id = l.id
+     WHERE t.is_used = 1 ORDER BY l.tag_name")) {
+    push(@{ $device_tags{ $row->{device_id} } }, $row);
+    }
+
+#the names of the global tags list, eye removes its own tags which are unassigned
+
+my %tag_names;
+foreach my $row (get_records_sql($dbh, "SELECT tag_name FROM zabbix_tags_list")) {
+    next if (!$row->{tag_name});
+    $tag_names{ lc($row->{tag_name}) } = 1;
+    }
+
+#host groups of the organizational units, an ou is bound to several groups
+
+my %ou_groups;
+foreach my $row (get_records_sql($dbh, "SELECT * FROM ou_zabbix_groups ORDER BY id")) {
+    push(@{ $ou_groups{ $row->{ou_id} } }, $row->{group_id})
+        if ($row->{group_id});
     }
 
 #===============================================================
@@ -174,6 +211,7 @@ my %name_count;
             description => $device->{description},
             ip => $device->{ip},
             model_id => $device->{device_model_id} // 0,
+            device_id => $device->{id},
             parent => '',
             };
 
@@ -246,6 +284,8 @@ my %name_count;
             description => $auth->{description} // '',
             ip => $auth->{ip},
             model_id => $model_id,
+            #the equipment of the user: the macros and the tags belong to its device
+            device_id => ($auth_device ? $auth_device->{id} : 0),
             parent => '',
             };
 
@@ -403,10 +443,12 @@ return update_host($host, $zbx_host, $templates, $macros, $groups, $eye_tag);
 sub create_host {
 my ($host, $templates, $macros, $groups, $eye_tag) = @_;
 
+my $tags = host_tags($host, $eye_tag);
+
 log_info("Zabbix: host $host->{host} - " . (scalar(@$templates) ? scalar(@$templates) . ' template(s)' : 'no templates')
     . ', ' . (scalar(@$macros) ? scalar(@$macros) . ' macro(s)' : 'no macros')
-    . ', ' . (scalar(@$groups) ? 'group ' . $groups->[0] : 'without group')
-    . ', parent tag: ' . ($host->{parent} ? $host->{parent} : 'none'));
+    . ', ' . (scalar(@$groups) ? 'group(s) ' . join(', ', @$groups) : 'without group')
+    . ', ' . (scalar(keys %$tags)) . ' tag(s)');
 
 if ($opt_dry) {
     log_info("Zabbix dry run: host $host->{host} must be created");
@@ -421,10 +463,7 @@ my $hostid = zabbix_create_host({
     groups => $groups,
     templates => $templates,
     macros => $macros,
-    tags => {
-        $tag_eye => $eye_tag,
-        $tag_parent => $host->{parent} // '',
-        },
+    tags => $tags,
     });
 
 if (!$hostid) {
@@ -436,18 +475,19 @@ if (!$hostid) {
     }
 
 # the newly created host is remembered, the next records do not ask zabbix about it
+my @tag_list = map { { tag => $_, value => $tags->{$_} } } sort keys %$tags;
+my @group_list = map { { groupid => $_ } } @$groups;
+
 $tagged_hosts{$eye_tag} = {
     hostid => $hostid,
     host => $host->{host},
     name => $host->{host},
     description => $host->{description},
     status => 0,
+    groups => [@group_list],
     templates => [],
     macros => $macros,
-    tags => [
-        { tag => $tag_eye, value => $eye_tag },
-        { tag => $tag_parent, value => $host->{parent} // '' },
-        ],
+    tags => [@tag_list],
     };
 
 $known_hosts{ zabbix_host_key($host->{host}) } = {
@@ -455,12 +495,10 @@ $known_hosts{ zabbix_host_key($host->{host}) } = {
     host => $host->{host},
     description => $host->{description},
     status => 0,
+    groups => [@group_list],
     templates => [ map { { templateid => $_ } } @$templates ],
     macros => $macros,
-    tags => [
-        { tag => $tag_eye, value => $eye_tag },
-        { tag => $tag_parent, value => $host->{parent} // '' },
-        ],
+    tags => [@tag_list],
     };
 
 return 'created';
@@ -518,20 +556,10 @@ if ($groups && scalar(@$groups)) {
     }
 }
 
-my $old_parent = zabbix_host_tag_value($zbx_host, $tag_parent);
-my $new_parent = $host->{parent} // '';
-if ($old_parent ne $new_parent) {
-    log_info("Zabbix: host $host->{host} parent tag changed from '$old_parent' to '$new_parent'");
-    # zabbix replaces the whole list of tags, the foreign tags of the host are kept
-    my %tags;
-    foreach my $tag (@{ $zbx_host->{tags} || [] }) {
-        next if (!$tag->{tag});
-        next if (lc($tag->{tag}) eq $tag_eye or lc($tag->{tag}) eq $tag_parent);
-        $tags{ $tag->{tag} } = $tag->{value} // '';
-        }
-    $tags{$tag_eye} = $eye_tag;
-    $tags{$tag_parent} = $new_parent;
-    $update{tags} = \%tags;
+my $wanted_tags = host_tags($host, $eye_tag);
+if (host_tags_changed($zbx_host, $wanted_tags)) {
+    log_info("Zabbix: host $host->{host} gets the tags of the eye record");
+    $update{tags} = merge_host_tags($zbx_host, $wanted_tags);
     $change = 1;
     }
 
@@ -543,10 +571,10 @@ if (scalar(@$added)) {
     $change = 1;
     }
 
-# macros of the device model are applied to the host
-if (macros_changed($zbx_host, $macros)) {
-    log_info("Zabbix: host $host->{host} gets the macros of the device model");
-    $update{macros} = zabbix_host_merge_macros($zbx_host, $macros);
+# macros of the eye network device are applied to the host
+if (macros_changed($zbx_host, $macros, \%macro_names)) {
+    log_info("Zabbix: host $host->{host} gets the macros of the device");
+    $update{macros} = zabbix_host_merge_macros($zbx_host, $macros, \%macro_names);
     $change = 1;
     }
 
@@ -577,21 +605,31 @@ return $result;
 }
 
 #===============================================================
-# Only the macros of the device model are compared with the macros of the host
+# Only the macros of the global macros list are compared with the macros of the
+# host, the macros of the other integrations do not matter. A macro which eye does
+# not assign anymore has to disappear from the host
 
 sub macros_changed {
-my ($zbx_host, $wanted) = @_;
+my ($zbx_host, $wanted, $owned) = @_;
 
 my %current;
 foreach my $macro (@{ $zbx_host->{macros} || [] }) {
     next if (!$macro->{macro});
+    next if ($owned && !exists $owned->{ uc($macro->{macro}) });
     $current{ uc($macro->{macro}) } = $macro->{value} // '';
     }
 
+my %wanted_index;
 foreach my $macro (@$wanted) {
     my $key = uc($macro->{macro});
+    my $value = $macro->{value} // '';
+    $wanted_index{$key} = $value;
     return 1 if (!exists $current{$key});
-    return 1 if ($current{$key} ne ($macro->{value} // ''));
+    return 1 if ($current{$key} ne $value);
+    }
+
+foreach my $key (sort keys %current) {
+    return 1 if (!exists $wanted_index{$key});
     }
 
 return 0;
@@ -646,22 +684,20 @@ return $template;
 }
 
 #===============================================================
-# Macros used by the device model
+# Macros assigned to the eye network device of the record
 
 sub host_macros {
 my $host = shift;
-my $model_id = $host->{model_id} // 0;
-return [] if (!$model_id or !$model_macros{$model_id});
+my $device_id = $host->{device_id} // 0;
+return [] if (!$device_id or !$device_macros{$device_id});
 
 my @list;
-foreach my $row (@{ $model_macros{$model_id} }) {
+foreach my $row (@{ $device_macros{$device_id} }) {
     my $name = zabbix_macro_name($row->{macro_name});
     next if ($name eq '');
-    my $value = $row->{macro_value};
-    $value = $row->{default_value} if (!defined $value or $value eq '');
     push(@list, {
         macro => $name,
-        value => $value // '',
+        value => $row->{macro_value} // '',
         type => $row->{macro_type} // 0,
         });
     }
@@ -670,28 +706,124 @@ return \@list;
 }
 
 #===============================================================
-# Host group of the organizational unit. 
+# Tags which eye maintains on the host: the tag of the record, the parent tag
+# and the tags assigned to the eye network device of the record
+
+sub host_tags {
+my ($host, $eye_tag) = @_;
+
+my %tags = (
+    $tag_eye => $eye_tag,
+    $tag_parent => $host->{parent} // '',
+    );
+
+foreach my $row (@{ $device_tags{ $host->{device_id} // 0 } || [] }) {
+    my $name = $row->{tag_name};
+    next if (!$name);
+    next if (lc($name) eq $tag_eye or lc($name) eq $tag_parent);
+    $tags{$name} = $row->{tag_value} // '';
+    }
+
+return \%tags;
+}
+
+#===============================================================
+# Does the tag of the host belong to eye: the tag of the record, the parent tag
+# or a name of the global list of the zabbix tags
+
+sub is_eye_tag {
+my $name = shift // '';
+return 1 if (lc($name) eq $tag_eye or lc($name) eq $tag_parent);
+return 1 if ($tag_names{ lc($name) });
+return 0;
+}
+
+#===============================================================
+# The wanted tags are compared with the eye tags of the host, the tags of the
+# other integrations do not matter
+
+sub host_tags_changed {
+my ($zbx_host, $wanted) = @_;
+
+my %wanted_index;
+foreach my $name (keys %$wanted) {
+    $wanted_index{ lc($name) } = $wanted->{$name};
+    }
+
+my %current_index;
+foreach my $tag (@{ $zbx_host->{tags} || [] }) {
+    next if (!$tag->{tag});
+    next if (!is_eye_tag($tag->{tag}));
+    $current_index{ lc($tag->{tag}) } = $tag->{value} // '';
+    }
+
+foreach my $key (sort keys %wanted_index) {
+    return 1 if (!exists $current_index{$key});
+    return 1 if ($current_index{$key} ne $wanted_index{$key});
+    }
+
+foreach my $key (sort keys %current_index) {
+    return 1 if (!exists $wanted_index{$key});
+    }
+
+return 0;
+}
+
+#===============================================================
+# zabbix replaces the whole list of tags, so the tags of the other integrations
+# are kept and the eye tags which are not assigned anymore are removed
+
+sub merge_host_tags {
+my ($zbx_host, $wanted) = @_;
+
+my %keep_index;
+foreach my $name (keys %$wanted) {
+    $keep_index{ lc($name) } = 1;
+    }
+
+my %tags;
+foreach my $tag (@{ $zbx_host->{tags} || [] }) {
+    next if (!$tag->{tag});
+    next if (is_eye_tag($tag->{tag}));
+    $tags{ $tag->{tag} } = $tag->{value} // '';
+    }
+
+foreach my $name (keys %$wanted) {
+    $tags{$name} = $wanted->{$name};
+    }
+
+return \%tags;
+}
+
+#===============================================================
+# Host groups of the organizational unit.
 # Falls back to ZABBIX_DEFAULT_GROUP_ID if the OU has no group assigned.
+# A group which is absent in zabbix is skipped, the host stays in its groups.
 
 sub host_groups {
 my $host = shift;
 
 my $ou_id = $host->{ou_id} // 0;
-my $group_id = ($ou_id and $ou{$ou_id}) ? $ou{$ou_id}->{zabbix_group_id} : 0;
 my $ou_name = ($ou_id and $ou{$ou_id}) ? $ou{$ou_id}->{ou_name} : $ou_id;
 
-if (!$group_id) {
+my @group_ids = grep { $_ } @{ $ou_groups{$ou_id} || [] };
+
+if (!scalar(@group_ids)) {
     log_info("Zabbix: ou '$ou_name' has no zabbix host group, using default group ID " . ZABBIX_DEFAULT_GROUP_ID);
-    $group_id = ZABBIX_DEFAULT_GROUP_ID;
-}
+    @group_ids = (ZABBIX_DEFAULT_GROUP_ID);
+    }
 
-my $group = zabbix_get_group_cached($group_id);
-if (!$group) {
-    log_error("Zabbix: the host group $group_id of the ou '$ou_name' is not found in zabbix!");
-    return [];
-}
+my @groups;
+foreach my $group_id (@group_ids) {
+    my $group = zabbix_get_group_cached($group_id);
+    if (!$group) {
+        log_error("Zabbix: the host group $group_id of the ou '$ou_name' is not found in zabbix!");
+        next;
+        }
+    push(@groups, $group->{groupid});
+    }
 
-return [ $group->{groupid} ];
+return \@groups;
 }
 
 #===============================================================

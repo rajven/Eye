@@ -177,6 +177,10 @@ if (getPOST("editdevice") !== null && isset($id)) {
     // === СОХРАНЕНИЕ =============================================================
     update_record($db_link, "devices", "id = ?", $new, [$id]);
 
+    // bindings of the device send their POST names together with the device form
+    save_zabbix_device_block($db_link, (int)$id, 'macros');
+    save_zabbix_device_block($db_link, (int)$id, 'tags');
+
     // the zabbix host of the device is created, updated or switched off at once
     $_SESSION[$page_url]['msg'] = zabbix_record_report_message($db_link, 'netdev', (int)$id,
         $_SESSION[$page_url]['msg'] ?? '');
@@ -397,8 +401,15 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             } else {
                 print "<tr><td colspan=3>" . $device['ip'] . "::" . get_device_model_name($db_link, $device['device_model_id']) . "</td>";
             }
-            print "<td align=right><input type='submit' id='editdevice' name='editdevice' value='" . WEB_btn_save . "'></td></tr>";
             print "</table>\n";
+
+            // the macros and the tags of the zabbix host belong to this device, they
+            // are stored by the save button of the device form
+            print_zabbix_device_block($db_link, (int)$id, 'macros');
+            print_zabbix_device_block($db_link, (int)$id, 'tags');
+
+            print "<div align=\"right\"><input type='submit' id='editdevice' name='editdevice' value='"
+                . WEB_btn_save . "'></div>\n";
             ?>
     </form>
 

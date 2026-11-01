@@ -637,13 +637,22 @@ return (\@merged, \@added);
 sub zabbix_host_merge_macros {
 my $zbx_host = shift // {};
 my $wanted = shift || [];
+my $owned = shift || {};
 
 my %current;
+my %wanted_index;
+foreach my $macro (@$wanted) {
+    $wanted_index{ uc($macro->{macro} // '') } = 1;
+    }
+
 my @merged;
 foreach my $macro (@{ $zbx_host->{macros} || [] }) {
     next if (!$macro->{macro});
     my $key = uc($macro->{macro});
     next if ($current{$key});
+    #a macro of the global list which is not assigned anymore leaves the host,
+    #the macros of the other integrations stay
+    next if (exists $owned->{$key} && !exists $wanted_index{$key});
     $current{$key} = 1;
     push(@merged, { macro => $macro->{macro}, value => $macro->{value} // '', type => $macro->{type} // 0 });
     }
