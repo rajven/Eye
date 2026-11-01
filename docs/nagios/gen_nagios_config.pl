@@ -61,7 +61,7 @@ $models{$row->{id}}=$row;
 }
 
 #switches & routers only
-my @netdev_list=get_records_sql($dbh,'SELECT * FROM devices WHERE deleted=0 and nagios=1 and device_type<=2');
+my @netdev_list=get_records_sql($dbh,'SELECT * FROM devices WHERE deleted=0 and monitoring=1 and device_type<=2');
 
 ##################################### Netdevices analyze ################################################
 if (scalar(@netdev_list)>0) {
@@ -107,7 +107,7 @@ if (scalar(@netdev_list)>0) {
         if ($uplink_port and $uplink_port->{target_port_id}) {
             my $parent_uplink = get_record_sql($dbh,"SELECT * FROM device_ports WHERE id= ? ORDER BY id DESC",$uplink_port->{target_port_id});
             if ($parent_uplink and $parent_uplink->{device_id}) {
-        	my $uplink_device = get_record_sql($dbh,"SELECT * FROM devices WHERE id= ? AND nagios=1 AND deleted=0",$parent_uplink->{device_id});
+        	my $uplink_device = get_record_sql($dbh,"SELECT * FROM devices WHERE id= ? AND monitoring=1 AND deleted=0",$parent_uplink->{device_id});
         	if ($uplink_device) {
         	    $devices{$device_id}{parent}='netdev_'.$uplink_device->{'id'}; 
         	    $devices{$device_id}{parent_name}=$uplink_device->{'device_name'};
@@ -129,7 +129,7 @@ if (scalar(@netdev_list)>0) {
             push(@{$devices{$device_id}{downlinks}},$downlink_port);
     	    }
 	#custom ports
-        my @custom_ports = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id= ? and target_port_id=0 and uplink=0 and nagios=1", $devices{$device_id}{device_id});
+        my @custom_ports = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id= ? and target_port_id=0 and uplink=0 and monitoring=1", $devices{$device_id}{device_id});
         foreach my $downlink_port (@custom_ports) {
             #id,port,snmp_index,description
 	    push(@{$devices{$device_id}{downlinks}},$downlink_port);
@@ -137,7 +137,7 @@ if (scalar(@netdev_list)>0) {
         }
     }
 
-my @auth_list=get_records_sql($dbh,'SELECT * FROM user_auth WHERE deleted=0 and nagios=1');
+my @auth_list=get_records_sql($dbh,'SELECT * FROM user_auth WHERE deleted=0 and monitoring=1');
 
 ##################################### User auth analyze ################################################
 

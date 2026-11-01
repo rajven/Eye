@@ -132,9 +132,10 @@ discovery SMALLINT NOT NULL DEFAULT 1,
 netflow_save SMALLINT NOT NULL DEFAULT 0,
 user_acl SMALLINT NOT NULL DEFAULT 0,
 dhcp SMALLINT NOT NULL DEFAULT 0,
-nagios SMALLINT NOT NULL DEFAULT 0,
+monitoring SMALLINT NOT NULL DEFAULT 0,
+monitoring_old SMALLINT NOT NULL DEFAULT 0,
 active SMALLINT NOT NULL DEFAULT 1,
-nagios_status VARCHAR(10) NOT NULL DEFAULT 'UP',
+monitoring_status VARCHAR(10) NOT NULL DEFAULT 'UP',
 queue_enabled SMALLINT NOT NULL DEFAULT 0,
 connected_user_only SMALLINT NOT NULL DEFAULT 1,
 user_id INTEGER,
@@ -194,7 +195,8 @@ target_port_id INTEGER NOT NULL DEFAULT 0,
 auth_id BIGINT,
 last_mac_count INTEGER DEFAULT 0,
 uplink SMALLINT NOT NULL DEFAULT 0,
-nagios SMALLINT NOT NULL DEFAULT 0,
+monitoring SMALLINT NOT NULL DEFAULT 0,
+monitoring_old SMALLINT NOT NULL DEFAULT 0,
 skip SMALLINT NOT NULL DEFAULT 0,
 vlan INTEGER NOT NULL DEFAULT 1,
 tagged_vlan VARCHAR(250),
@@ -357,6 +359,7 @@ nagios_dir VARCHAR(255),
 nagios_host_use VARCHAR(50),
 nagios_ping SMALLINT NOT NULL DEFAULT 1,
 nagios_default_service VARCHAR(100),
+zabbix_group_id INTEGER NOT NULL DEFAULT 0,
 enabled SMALLINT NOT NULL DEFAULT 0,
 filter_group_id INTEGER NOT NULL DEFAULT 0,
 queue_id INTEGER NOT NULL DEFAULT 0,
@@ -487,12 +490,12 @@ mac_found TIMESTAMP,
 blocked SMALLINT NOT NULL DEFAULT 0,
 day_quota INTEGER NOT NULL DEFAULT 0,
 month_quota INTEGER NOT NULL DEFAULT 0,
-device_model_id INTEGER DEFAULT 87,
 firmware VARCHAR(100),
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 client_id VARCHAR(250),
-nagios SMALLINT NOT NULL DEFAULT 0,
-nagios_status VARCHAR(10) NOT NULL DEFAULT '',
+monitoring SMALLINT NOT NULL DEFAULT 0,
+monitoring_old SMALLINT NOT NULL DEFAULT 0,
+monitoring_status VARCHAR(10) NOT NULL DEFAULT '',
 nagios_handler VARCHAR(50) NOT NULL DEFAULT '',
 link_check SMALLINT NOT NULL DEFAULT 0,
 changed SMALLINT NOT NULL DEFAULT 0,
@@ -504,7 +507,7 @@ COMMENT ON TABLE user_auth IS 'Записи авторизации пользо�
 COMMENT ON COLUMN user_auth.enabled IS 'Эта авторизация активна';
 COMMENT ON COLUMN user_auth.dynamic IS 'Это динамически созданная запись';
 COMMENT ON COLUMN user_auth.day_quota IS 'Дневная квота трафика в байтах';
-COMMENT ON COLUMN user_auth.nagios IS 'Включить мониторинг Nagios для этого хоста';
+COMMENT ON COLUMN user_auth.monitoring IS 'Включить мониторинг Nagios для этого хоста';
 
 -- Алиасы авторизации пользователей
 CREATE TABLE user_auth_alias (
@@ -599,7 +602,7 @@ COMMENT ON TABLE vendors IS 'Производители сетевого обо�
 -- Версия системы
 CREATE TABLE version (
 id INTEGER PRIMARY KEY DEFAULT 1,
-version VARCHAR(10) NOT NULL DEFAULT '3.1.7'
+version VARCHAR(10) NOT NULL DEFAULT '3.2.3'
 );
 COMMENT ON TABLE version IS 'Информация о версии системы';
 
@@ -647,6 +650,50 @@ CREATE TABLE ipset_members (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (ipset_id, ip)
 );
+
+-- Шаблоны zabbix, привязанные к моделям устройств
+CREATE TABLE zabbix_templates (
+    id SERIAL PRIMARY KEY,
+    device_model_id INTEGER NOT NULL DEFAULT 0,
+    template_id BIGINT NOT NULL DEFAULT 0,
+    template_name VARCHAR(250) NOT NULL DEFAULT '',
+    UNIQUE (device_model_id, template_id)
+);
+COMMENT ON TABLE zabbix_templates IS 'Шаблоны zabbix, привязанные к моделям устройств';
+COMMENT ON COLUMN zabbix_templates.device_model_id IS 'Id модели устройства (device_models.id)';
+COMMENT ON COLUMN zabbix_templates.template_id IS 'Id шаблона zabbix (группа хостов типа шаблон)';
+COMMENT ON COLUMN zabbix_templates.template_name IS 'Имя шаблона zabbix, проверяется по zabbix при сохранении формы';
+
+-- Макросы zabbix, привязанные к моделям устройств
+-- Глобальный список макросов zabbix, модели ссылаются на него
+CREATE TABLE zabbix_macros_list (
+    id SERIAL PRIMARY KEY,
+    macro_name VARCHAR(250) NOT NULL DEFAULT '',
+    macro_type INTEGER NOT NULL DEFAULT 0,
+    default_value VARCHAR(250) NOT NULL DEFAULT '',
+    description VARCHAR(255),
+    UNIQUE (macro_name)
+);
+COMMENT ON TABLE zabbix_macros_list IS 'Глобальный список макросов zabbix';
+COMMENT ON COLUMN zabbix_macros_list.macro_name IS 'Имя макроса zabbix, например {$SNMP_COMMUNITY}';
+COMMENT ON COLUMN zabbix_macros_list.macro_type IS 'Тип макроса zabbix: 0 - текст, 1 - секрет';
+COMMENT ON COLUMN zabbix_macros_list.default_value IS 'Значение макроса по умолчанию';
+COMMENT ON COLUMN zabbix_macros_list.description IS 'Описание макроса';
+
+-- Макросы, используемые моделями устройств, ссылки на глобальный список
+CREATE TABLE zabbix_macros (
+    id SERIAL PRIMARY KEY,
+    macros_list_id INTEGER NOT NULL DEFAULT 0,
+    device_model_id INTEGER NOT NULL DEFAULT 0,
+    macro_value VARCHAR(250) NOT NULL DEFAULT '',
+    is_used SMALLINT NOT NULL DEFAULT 1,
+    UNIQUE (macros_list_id, device_model_id)
+);
+COMMENT ON TABLE zabbix_macros IS 'Макросы, используемые моделью устройства';
+COMMENT ON COLUMN zabbix_macros.macros_list_id IS 'zabbix_macros_list.id';
+COMMENT ON COLUMN zabbix_macros.device_model_id IS 'Id модели устройства (device_models.id)';
+COMMENT ON COLUMN zabbix_macros.macro_value IS 'Значение макроса для этой модели, пусто - используется значение по умолчанию';
+COMMENT ON COLUMN zabbix_macros.is_used IS 'Макрос назначается хостам этой модели';
 
 -- Indexes
 

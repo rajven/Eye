@@ -43,8 +43,8 @@ if (isset($_POST["refresh_nagios"]) and is_option($db_link, 40)) {
 }
 
 if (isset($_POST["up_nagios"])) {
-    run_sql($db_link,"UPDATE user_auth SET nagios_status='UP'");
-    run_sql($db_link,"UPDATE devices SET nagios_status='UP'");
+    run_sql($db_link,"UPDATE user_auth SET monitoring_status='UP'");
+    run_sql($db_link,"UPDATE devices SET monitoring_status='UP'");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }

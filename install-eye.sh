@@ -501,7 +501,7 @@ install_deps_altlinux() {
     # === Веб-интерфейс (если нужен) ===
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "web" ]]; then
         apt-get install -y apache2 php${ALT_PHP} php${ALT_PHP}-fpm-fcgi \
-            php${ALT_PHP}-intl php${ALT_PHP}-mbstring php${ALT_PHP}-snmp php${ALT_PHP}-zip pear-Mail
+            php${ALT_PHP}-intl php${ALT_PHP}-mbstring php${ALT_PHP}-snmp php${ALT_PHP}-zip php${ALT_PHP}-curl pear-Mail
 
         if [[ "$DB_TYPE" == "postgresql" ]]; then
             apt-get install -y php${ALT_PHP}-pgsql php${ALT_PHP}-pdo_pgsql
@@ -526,6 +526,7 @@ install_deps_altlinux() {
             perl-Crypt-Rijndael perl-Crypt-CBC perl-CryptX perl-Crypt-DES \
             perl-File-Path-Tiny perl-Expect perl-Proc-ProcessTable \
             perl-Text-CSV perl-Log-Log4perl \
+            perl-IO-Socket-SSL \
             perl-DBD-Pg perl-DBD-mysql
     fi
 
@@ -559,7 +560,7 @@ install_deps_debian() {
     if [[ "$INSTALL_TYPE" == "full" || "$INSTALL_TYPE" == "web" ]]; then
         apt-get install -y apache2 libapache2-mod-fcgid \
             php php-fpm \
-            php-bcmath php-intl php-mbstring php-snmp php-zip php-mail \
+            php-bcmath php-intl php-mbstring php-snmp php-zip php-curl php-mail \
             php-date php-db
 
 
@@ -585,6 +586,7 @@ install_deps_debian() {
             libcrypt-rijndael-perl libcrypt-cbc-perl libcryptx-perl \
             libcrypt-des-perl libfile-path-tiny-perl libexpect-perl \
             libtext-csv-perl liblog-log4perl-perl \
+            libio-socket-ssl-perl \
             libdbd-pg-perl libdbd-mysql-perl
     fi
 

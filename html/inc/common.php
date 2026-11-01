@@ -1430,6 +1430,10 @@ function print_control_submenu($current_page)
     print_submenu_url(WEB_submenu_customers, '/admin/customers/index.php', $current_page, 0);
     print_submenu_url(WEB_submenu_buildings, '/admin/customers/building.php', $current_page, 0);
     print_submenu_url(WEB_submenu_device_models, '/admin/customers/devmodels.php', $current_page, 0);
+    // the zabbix macros of the device models are edited in the settings
+    if (is_zabbix_enabled()) {
+        print_submenu_url(WEB_submenu_zabbix_macros, '/admin/customers/zabbixmacros.php', $current_page, 0);
+    }
     print_submenu_url(WEB_submenu_vendors, '/admin/customers/devvendors.php', $current_page, 1);
     print "</div>\n";
 }
@@ -1500,7 +1504,7 @@ function print_ip_submenu($current_page)
 {
     print "<div id='submenu'>\n";
     print_submenu_url(WEB_submenu_ip_list, '/admin/iplist/index.php', $current_page, 0);
-    print_submenu_url(WEB_submenu_nagios, '/admin/iplist/nagios.php', $current_page, 0);
+    print_submenu_url(WEB_submenu_monitoring, '/admin/iplist/monitoring.php', $current_page, 0);
     print_submenu_url(WEB_submenu_doubles, '/admin/iplist/doubles.php', $current_page, 0);
     print_submenu_url(WEB_submenu_deleted, '/admin/iplist/deleted.php', $current_page, 0);
     print_submenu_url(WEB_submenu_auto_rules, '/admin/iplist/auto_rules.php', $current_page, 1);
@@ -1526,6 +1530,163 @@ function get_nagios_name($auth)
         $auth['login'] = 'host';
     }
     return $auth['login'] . "_" . $auth['id'];
+}
+
+// Address of the zabbix site, the api endpoint is stored in the config option 75
+function zabbix_site_url($api_url)
+{
+    $api_url = trim((string)$api_url);
+    if ($api_url === '') {
+        return NULL;
+    }
+    $site_url = preg_replace('#/?api_jsonrpc\.php$#', '', $api_url);
+    $site_url = rtrim($site_url, '/');
+    return $site_url === '' ? NULL : $site_url;
+}
+
+// Zabbix is selected as the monitoring system and the api is configured
+function is_zabbix_enabled()
+{
+    global $config;
+    if (!isset($config["monitoring_system"])) {
+        return false;
+    }
+    if (mb_strtolower(trim((string)$config["monitoring_system"])) !== 'zabbix') {
+        return false;
+    }
+    if (empty($config["zabbix_api_url"]) or empty($config["zabbix_api_key"])) {
+        return false;
+    }
+    return true;
+}
+
+// Link to the zabbix host, the host name is the same as in the sync_zabbix script
+function get_zabbix_host_link($hostname)
+{
+    global $config;
+    if (!is_zabbix_enabled() or $hostname === '' or $hostname === null) {
+        return NULL;
+    }
+    return $config["zabbix_url"] . '/zabbix.php?action=host.view&filter_name=' . rawurlencode($hostname);
+}
+
+// Name of the zabbix/monitoring host for the ip record
+function get_monitoring_name($auth)
+{
+    return get_nagios_name($auth);
+}
+
+// Link to the host page of the monitoring system selected in the config options
+function get_host_monitoring_link($db, $auth)
+{
+    if (is_zabbix_enabled()) {
+        // the name of the host is built by the rule of the zabbix export
+        $hostname = zabbix_auth_host_name($auth, $auth);
+        if ($hostname === '' or $hostname === null) {
+            return NULL;
+        }
+
+        return get_zabbix_host_link($hostname);
+    }
+
+    $hostname = get_monitoring_name($auth);
+    if ($hostname === '' or $hostname === null) {
+        return NULL;
+    }
+
+    $monitoring_system = get_option($db, 74);
+    if ($monitoring_system === NULL or mb_strtolower(trim((string)$monitoring_system)) === 'nagios') {
+        $nagios_url = get_const('nagios_url');
+        if ($nagios_url !== NULL && $nagios_url !== '') {
+            return $nagios_url . 'status.cgi?host=' . rawurlencode($hostname);
+        }
+    }
+
+    return NULL;
+}
+
+// Save the previous value of the monitoring field before changing it.
+// The sync script disables the host in the monitoring system when monitoring_old=1 and monitoring=0
+function set_monitoring(&$new, $current_monitoring, $new_monitoring)
+{
+    $current = (int)$current_monitoring;
+    $value = (int)$new_monitoring;
+    if ($current !== $value) {
+        $new['monitoring_old'] = $current;
+    }
+    $new['monitoring'] = $value;
+}
+
+// Address record of the user which already carries monitoring. The addresses of a user
+// describe one device, so a device is one host in the monitoring system
+function get_monitoring_owner($db, $user_id, $exclude_auth_id = 0)
+{
+    $user_id = (int)$user_id;
+    if ($user_id <= 0) {
+        return null;
+    }
+
+    $sibling = get_record_sql($db,
+        "SELECT id, ip FROM user_auth WHERE user_id = ? AND deleted = 0 AND monitoring = 1 AND id <> ? ORDER BY id LIMIT 1",
+        [$user_id, (int)$exclude_auth_id]);
+
+    return empty($sibling) ? null : $sibling;
+}
+
+// Record which already carries the monitoring of the device of this address: another
+// address of the user, or the bound switch or router that is exported instead of them
+function get_auth_monitoring_conflict($db, $auth)
+{
+    $user_id = (int)($auth['user_id'] ?? 0);
+    if ($user_id <= 0) {
+        return null;
+    }
+
+    $sibling = get_monitoring_owner($db, $user_id, (int)($auth['id'] ?? 0));
+    if ($sibling !== null) {
+        return ['type' => 'auth', 'name' => $sibling['ip']];
+    }
+
+    // the device of the user is exported as a host itself, one more host
+    // out of the address records of the same user would be a duplicate
+    $device = get_record_sql($db,
+        "SELECT device_name, device_type FROM devices WHERE user_id = ? AND deleted = 0 AND monitoring = 1 ORDER BY id LIMIT 1",
+        [$user_id]);
+    if (!empty($device)) {
+        return ['type' => 'netdev', 'name' => $device['device_name']];
+    }
+
+    return null;
+}
+
+// Text of the conflict of monitoring, it explains the blocked field to the operator
+function auth_monitoring_conflict_text($conflict)
+{
+    if ($conflict === null) {
+        return '';
+    }
+    if ($conflict['type'] === 'netdev') {
+        return WEB_monitoring_taken_device . ' ' . $conflict['name'] . '. ' . WEB_monitoring_locked;
+    }
+
+    return WEB_monitoring_taken . ' ' . $conflict['name'] . '. ' . WEB_monitoring_locked;
+}
+
+// Switching monitoring on for an address record, monitoring of the other addresses of
+// the same user is blocked. Returns the conflicting record or null
+function set_auth_monitoring(&$new, $db, $auth, $requested)
+{
+    $current = (int)($auth['monitoring'] ?? 0);
+    if ($current === 0 && (int)$requested === 1) {
+        $conflict = get_auth_monitoring_conflict($db, $auth);
+        if ($conflict !== null) {
+            set_monitoring($new, $current, 0);
+            return $conflict;
+        }
+    }
+
+    set_monitoring($new, $current, $requested);
+    return null;
 }
 
 function get_ou($db, $ou_value)
@@ -1647,8 +1808,8 @@ function print_building_select($db, $building_name, $building_value)
 
 function print_devmodels_select($db, $devmodel_name, $devmodel_value, $dev_filter = 'device_type<=2', $vendor_id = NULL)
 {
-
-    echo "<select id=\"" . htmlspecialchars($devmodel_name) . "\" name=\"" . htmlspecialchars($devmodel_name) . "\">\n";
+    // the list of models is long, it is searchable and takes the whole cell
+    echo "<select id=\"" . htmlspecialchars($devmodel_name) . "\" name=\"" . htmlspecialchars($devmodel_name) . "\" class=\"js-select-single\">\n";
     print_select_item(WEB_select_item_all, -1, $devmodel_value);
 
     $vendor_filter = "";
@@ -5166,6 +5327,11 @@ if (preg_match('/127.0.0.1/', $config["nagios_url"])) {
     $config["nagios_url"] = NULL;
 }
 
+$config["monitoring_system"] = get_option($db_link, 74);
+$config["zabbix_api_url"] = get_option($db_link, 75);
+$config["zabbix_api_key"] = get_option($db_link, 76);
+$config["zabbix_url"] = zabbix_site_url($config["zabbix_api_url"]);
+
 $config["torrus_url"] = rtrim(get_option($db_link, 59), '/') . '?nodeid=if//HOST_IP//IF_NAME////inoutbps';
 if (preg_match('/127.0.0.1/', $config["torrus_url"])) {
     $config["torrus_url"] = NULL;
@@ -5189,6 +5355,9 @@ if (empty($ou)) {
 }
 
 $config["init"] = 1;
+
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/zabbix.php");
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/zabbix_host.php");
 
 clean_dns_cache($db_link);
 //clean_unreferensed_rules($db_link);

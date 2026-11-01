@@ -102,9 +102,10 @@ CREATE TABLE `devices` (
   `netflow_save` tinyint(1) NOT NULL DEFAULT 0,
   `user_acl` tinyint(1) NOT NULL DEFAULT 0,
   `dhcp` tinyint(1) NOT NULL DEFAULT 0,
-  `nagios` tinyint(1) NOT NULL DEFAULT 0,
+  `monitoring` tinyint(1) NOT NULL DEFAULT 0,
+  `monitoring_old` tinyint(1) NOT NULL DEFAULT 0,
   `active` tinyint(1) NOT NULL DEFAULT 1,
-  `nagios_status` varchar(10) NOT NULL DEFAULT 'UP',
+  `monitoring_status` varchar(10) NOT NULL DEFAULT 'UP',
   `queue_enabled` tinyint(1) NOT NULL DEFAULT 0,
   `connected_user_only` tinyint(1) NOT NULL DEFAULT 1,
   `user_id` int(11) DEFAULT NULL,
@@ -149,7 +150,8 @@ CREATE TABLE `device_ports` (
   `auth_id` bigint(20) UNSIGNED DEFAULT NULL,
   `last_mac_count` int(11) DEFAULT 0,
   `uplink` tinyint(1) NOT NULL DEFAULT 0,
-  `nagios` tinyint(1) NOT NULL DEFAULT 0,
+  `monitoring` tinyint(1) NOT NULL DEFAULT 0,
+  `monitoring_old` tinyint(1) NOT NULL DEFAULT 0,
   `skip` tinyint(1) NOT NULL DEFAULT 0,
   `vlan` int(11) NOT NULL DEFAULT 1,
   `tagged_vlan` varchar(250) DEFAULT NULL,
@@ -269,6 +271,7 @@ CREATE TABLE `ou` (
   `nagios_host_use` varchar(50) DEFAULT NULL,
   `nagios_ping` tinyint(1) NOT NULL DEFAULT 1,
   `nagios_default_service` varchar(100) DEFAULT NULL,
+  `zabbix_group_id` int(11) NOT NULL DEFAULT 0,
   `enabled` int(11) NOT NULL DEFAULT 0,
   `filter_group_id` int(11) NOT NULL DEFAULT 0,
   `queue_id` int(11) NOT NULL DEFAULT 0,
@@ -372,12 +375,12 @@ CREATE TABLE `user_auth` (
   `blocked` tinyint(1) NOT NULL DEFAULT 0,
   `day_quota` int(11) NOT NULL DEFAULT 0,
   `month_quota` int(11) NOT NULL DEFAULT 0,
-  `device_model_id` int(11) DEFAULT 87,
   `firmware` varchar(100) DEFAULT NULL,
   `ts` DATETIME NOT NULL DEFAULT current_timestamp(),
   `client_id` varchar(250) DEFAULT NULL,
-  `nagios` tinyint(1) NOT NULL DEFAULT 0,
-  `nagios_status` varchar(10) NOT NULL DEFAULT '',
+  `monitoring` tinyint(1) NOT NULL DEFAULT 0,
+  `monitoring_old` tinyint(1) NOT NULL DEFAULT 0,
+  `monitoring_status` varchar(10) NOT NULL DEFAULT '',
   `nagios_handler` varchar(50) NOT NULL DEFAULT '',
   `link_check` tinyint(1) NOT NULL DEFAULT 0,
   `changed` tinyint(1) NOT NULL DEFAULT 0,
@@ -461,7 +464,7 @@ CREATE TABLE `vendors` (
 
 CREATE TABLE `version` (
   `id` int(11) NOT NULL DEFAULT 1,
-  `version` varchar(10) NOT NULL DEFAULT '3.1.7'
+  `version` varchar(10) NOT NULL DEFAULT '3.2.3'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `wan_stats` (
@@ -500,6 +503,33 @@ CREATE TABLE `ipset_members` (
   `description` VARCHAR(255) DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY `uniq_ipset_ip` (`ipset_id`, `ip`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `zabbix_templates` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `device_model_id` INT NOT NULL DEFAULT 0 COMMENT 'Id модели устройства',
+  `template_id` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Id шаблона zabbix',
+  `template_name` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Имя шаблона zabbix',
+  UNIQUE KEY `uniq_zabbix_template` (`device_model_id`, `template_id`),
+  KEY `idx_zabbix_template_model` (`device_model_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `zabbix_macros_list` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `macro_name` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Имя макроса zabbix, например {$SNMP_COMMUNITY}',
+  `macro_type` INT NOT NULL DEFAULT 0 COMMENT 'Тип макроса zabbix: 0 - текст, 1 - секрет',
+  `default_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Значение макроса по умолчанию',
+  `description` VARCHAR(255) DEFAULT NULL COMMENT 'Описание макроса',
+  UNIQUE KEY `uniq_zabbix_macro_name` (`macro_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `zabbix_macros` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `macros_list_id` INT NOT NULL DEFAULT 0 COMMENT 'Ссылка на zabbix_macros_list.id',
+  `device_model_id` INT NOT NULL DEFAULT 0 COMMENT 'Id модели устройства',
+  `macro_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Значение макроса для этой модели, пусто - используется значение по умолчанию',
+  `is_used` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Макрос назначается хостам этой модели',
+  UNIQUE KEY `uniq_zabbix_model_macro` (`macros_list_id`, `device_model_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE `acl`

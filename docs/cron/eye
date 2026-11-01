@@ -11,3 +11,6 @@
 
 #active scan network (with fping subnets before analyze)
 20 10,13,16,19 * * * eye /opt/Eye/scripts/fetch_new_arp.pl 1
+
+#reconfigure zabbix (monitoring system must be set to zabbix in the eye config options)
+#*/30 * * * * root /opt/Eye/scripts/sync_zabbix.pl >/dev/null

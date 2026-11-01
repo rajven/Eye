@@ -38,6 +38,9 @@ if (getPOST("save")) {
 
             if (!$option) continue;
 
+            // an empty access key means that the stored value is kept
+            if ($option_id == 76 && $value === '') continue;
+
             $new = [];
             if ($option_id == 29) {
                 // Пароль — шифруем
@@ -116,6 +119,7 @@ print_control_submenu($page_url);
                 if ($row['option_id'] == 29) {
                     $option_value = '********';
                 }
+                $masked_option = ($row['option_id'] == 76);
                 if (!isset($option_value)) {
                     $option_value = get_option($db_link, $row['option_id']);
                     set_option($db_link, $row['option_id'], $option_value);
@@ -132,7 +136,12 @@ print_control_submenu($page_url);
                     print "<input type=\"number\" name='f_config_value[" . $row['id'] . "]' value='$option_value' $min $max>";
                 }
                 if ($type == 'text') {
-                    print "<input type=\"text\" name='f_config_value[" . $row['id'] . "]' value='$option_value' size=30>";
+                    if ($masked_option) {
+                        // the zabbix access key is never displayed
+                        print "<input type=\"password\" autocomplete=\"new-password\" name='f_config_value[" . $row['id'] . "]' value='' size=30>";
+                    } else {
+                        print "<input type=\"text\" name='f_config_value[" . $row['id'] . "]' value='$option_value' size=30>";
+                    }
                 }
                 if ($type == 'bool') {
                     print_qa_select("f_config_value[" . $row['id'] . "]", $option_value);

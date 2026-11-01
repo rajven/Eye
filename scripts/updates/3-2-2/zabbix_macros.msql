@@ -1,0 +1,15 @@
+DELETE m FROM `zabbix_macros` m LEFT JOIN `zabbix_macros_list` l ON m.macros_list_id = l.id WHERE l.id IS NULL;
+UPDATE `zabbix_macros` m JOIN `zabbix_macros_list` l ON m.macros_list_id = l.id JOIN (SELECT `macro_name`, MIN(`id`) AS keep_id FROM `zabbix_macros_list` GROUP BY `macro_name`) k ON l.`macro_name` = k.`macro_name` SET m.macros_list_id = k.keep_id WHERE m.macros_list_id <> k.keep_id;
+DELETE m1 FROM `zabbix_macros` m1 JOIN `zabbix_macros` m2 ON m1.macros_list_id = m2.macros_list_id AND m1.device_model_id = m2.device_model_id AND m1.id > m2.id;
+ALTER TABLE `zabbix_macros` DROP INDEX `uniq_zabbix_macro`;
+ALTER TABLE `zabbix_macros` DROP INDEX `idx_zabbix_macro_list`;
+ALTER TABLE `zabbix_macros` DROP COLUMN `macro_name`;
+ALTER TABLE `zabbix_macros` ADD UNIQUE KEY `uniq_zabbix_model_macro` (`macros_list_id`, `device_model_id`);
+DELETE l1 FROM `zabbix_macros_list` l1 JOIN `zabbix_macros_list` l2 ON l1.`macro_name` = l2.`macro_name` AND l1.id > l2.id;
+ALTER TABLE `zabbix_macros_list` DROP INDEX `uniq_zabbix_macro_list`;
+ALTER TABLE `zabbix_macros_list` DROP INDEX `idx_zabbix_macro_list_model`;
+ALTER TABLE `zabbix_macros_list` DROP COLUMN `device_model_id`;
+ALTER TABLE `zabbix_macros_list` ADD UNIQUE KEY `uniq_zabbix_macro_name` (`macro_name`);
+ALTER TABLE `zabbix_macros` MODIFY COLUMN `macros_list_id` INT NOT NULL DEFAULT 0 COMMENT 'Reference to zabbix_macros_list.id';
+ALTER TABLE `zabbix_macros` MODIFY COLUMN `macro_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Value of the macro for this model, empty - the default value is used';
+ALTER TABLE `zabbix_macros_list` MODIFY COLUMN `default_value` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Default value of the macro';

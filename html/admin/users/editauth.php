@@ -17,6 +17,19 @@ $parent_ou_id = $user_info['ou_id'];
 $user_enabled = $user_info['enabled'];
 
 // === РЕДАКТИРОВАНИЕ ЗАПИСИ АВТОРИЗАЦИИ ==========================================
+// manual export of the zabbix host, the ip record itself is not changed
+if ((getPOST("zbx_sync") !== null || getPOST("zbx_off") !== null) && !$old_auth_info['deleted']) {
+    if (getPOST("zbx_off") !== null) {
+        $zbx_state = zabbix_record_state($db_link, 'auth', (int)$id);
+        $zbx_result = ($zbx_state === null) ? ['action' => 'skipped'] : zabbix_record_switch_off($db_link, $zbx_state);
+    } else {
+        $zbx_result = zabbix_record_sync($db_link, 'auth', (int)$id);
+    }
+    $_SESSION[$page_url]['msg'] = zabbix_record_sync_message($db_link, $zbx_result);
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
 if (getPOST("editauth") !== null && !$old_auth_info['deleted']) {
     $ip = normalizeIpAddress(substr(trim(getPOST("f_ip", null, '')), 0, 18));
     
@@ -146,19 +159,19 @@ if (getPOST("editauth") !== null && !$old_auth_info['deleted']) {
                 'nagios_handler'    => '',
                 'enabled'           => 0,
                 'link_check'        => 0,
-                'nagios'            => 0,
                 'blocked'           => 0,
                 'day_quota'         => 0,
                 'month_quota'       => 0,
                 'queue_id'          => 0,
                 'filter_group_id'   => 0
             ];
+            // monitoring is always disabled for the system ou
+            set_monitoring($new, $old_auth_info['monitoring'], 0);
         } else {
             $new += [
                 'nagios_handler'    => trim(getPOST("f_handler", null, '')),
                 'enabled'           => (int)getPOST("f_enabled", null, 0),
                 'link_check'        => (int)getPOST("f_link", null, 0),
-                'nagios'            => (int)getPOST("f_nagios", null, 0),
                 'dhcp'              => $f_dhcp,
                 'blocked'           => (int)getPOST("f_blocked", null, 0),
                 'day_quota'         => (int)getPOST("f_day_q", null, 0),
@@ -166,14 +179,20 @@ if (getPOST("editauth") !== null && !$old_auth_info['deleted']) {
                 'queue_id'          => (int)getPOST("f_queue_id", null, 0),
                 'filter_group_id'   => (int)getPOST("f_group_id", null, 0)
             ];
+            $monitor_conflict = set_auth_monitoring($new, $db_link, $old_auth_info, (int)getPOST("f_monitoring", null, 0));
+            if ($monitor_conflict !== null) {
+                $msg_error = auth_monitoring_conflict_text($monitor_conflict);
+                $_SESSION[$page_url]['msg'] = $msg_error;
+                LOG_WARNING($db_link, $msg_error);
+            }
         }
 
         if ($new['day_quota']>0) {
             if ($new['month_quota'] <= $new['day_quota']) { $new['month_quota'] = $new['day_quota'] * 31; }
             }
 
-        if ($new['nagios'] == 0) {
-            $new['nagios_status'] = 'UP';
+        if ($new['monitoring'] == 0) {
+            $new['monitoring_status'] = 'UP';
         }
         if (!$user_enabled) {
             $new['enabled'] = 0;
@@ -190,6 +209,10 @@ if (getPOST("editauth") !== null && !$old_auth_info['deleted']) {
         } else {
             update_record($db_link, "user_auth", "id = ?", $new, [$id]);
         }
+
+        // the zabbix host of the record is created, updated or switched off at once
+        $_SESSION[$page_url]['msg'] = zabbix_record_report_message($db_link, 'auth', (int)$id,
+            $_SESSION[$page_url]['msg'] ?? '');
     } else {
         $msg_error = "$msg_ip_error xxx.xxx.xxx.xxx";
         $_SESSION[$page_url]['msg'] = $msg_error;
@@ -271,19 +294,19 @@ if (getPOST("recovery") !== null && $old_auth_info['deleted']) {
                 'nagios_handler'    => '',
                 'enabled'           => 0,
                 'link_check'        => 0,
-                'nagios'            => 0,
                 'blocked'           => 0,
                 'day_quota'         => 0,
                 'month_quota'       => 0,
                 'queue_id'          => 0,
                 'filter_group_id'   => 0
             ];
+            // monitoring is always disabled for the system ou
+            set_monitoring($new, $old_auth_info['monitoring'], 0);
         } else {
             $new += [
                 'nagios_handler'    => trim(getPOST("f_handler", null, '')),
                 'enabled'           => (int)getPOST("f_enabled", null, 0),
                 'link_check'        => (int)getPOST("f_link", null, 0),
-                'nagios'            => (int)getPOST("f_nagios", null, 0),
                 'dhcp'              => (int)getPOST("f_dhcp", null, 0),
                 'blocked'           => (int)getPOST("f_blocked", null, 0),
                 'day_quota'         => (int)getPOST("f_day_q", null, 0),
@@ -291,10 +314,24 @@ if (getPOST("recovery") !== null && $old_auth_info['deleted']) {
                 'queue_id'          => (int)getPOST("f_queue_id", null, 0),
                 'filter_group_id'   => (int)getPOST("f_group_id", null, 0)
             ];
+            $monitor_conflict = set_auth_monitoring($new, $db_link, $old_auth_info, (int)getPOST("f_monitoring", null, 0));
+            if ($monitor_conflict !== null) {
+                $msg_error = auth_monitoring_conflict_text($monitor_conflict);
+                $_SESSION[$page_url]['msg'] = $msg_error;
+                LOG_WARNING($db_link, $msg_error);
+            }
+        }
+
+        if ($new['monitoring'] == 0) {
+            $new['monitoring_status'] = 'UP';
         }
 
         $new = apply_auth_rule($db_link, $new, $new['user_id']);
         update_record($db_link, "user_auth", "id = ?", $new, [$id]);
+
+        // the zabbix host of the record is created, updated or switched off at once
+        $_SESSION[$page_url]['msg'] = zabbix_record_report_message($db_link, 'auth', (int)$id,
+            $_SESSION[$page_url]['msg'] ?? '');
     } else {
         $msg_error = "$msg_ip_error xxx.xxx.xxx.xxx/xx";
         $_SESSION[$page_url]['msg'] = $msg_error;
@@ -332,6 +369,17 @@ if (empty($auth_info['end_life']) || is_empty_datetime($auth_info['end_life'])) 
     }
 
 $is_system_ou = is_system_ou($db_link, $parent_ou_id);
+
+// one device is one host in the monitoring system: monitoring of the other
+// addresses of the user is blocked while one of them is monitored
+// one device is one host in the monitoring system: monitoring of the other addresses
+// of the user is blocked while one of them or the bound switch is monitored
+$monitoring_conflict = get_auth_monitoring_conflict($db_link, $auth_info);
+$monitoring_locked = $is_system_ou;
+if ($monitoring_conflict !== null && (int)$auth_info['monitoring'] === 0) {
+    $monitoring_locked = true;
+}
+
 $disabled_attr = $is_system_ou ? 'disabled' : '';
 
 ?>
@@ -452,17 +500,24 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
                     }
                     ?>
                 </td>
-                <td><?php echo WEB_cell_nagios; ?></td>
+                <td><?php echo WEB_cell_monitoring; ?></td>
                 <td><?php echo WEB_cell_link; ?></td>
                 <td><?php echo WEB_cell_nagios_handler; ?></td>
                 <td></td>
             </tr>
             <tr>
                 <td><input type="text" name="f_wiki" value="<?php echo htmlspecialchars($auth_info['wikiname']); ?>" <?php print $disabled_attr; ?> class='full-width'></td>
-                <td><?php print_qa_select('f_nagios', $auth_info['nagios'],$is_system_ou); ?></td>
+                <td><?php
+                    // the field of the sibling address which holds monitoring is shown for clarity
+                    print_qa_select('f_monitoring', $auth_info['monitoring'], $monitoring_locked ? 1 : 0);
+                    if ($monitoring_locked && $monitoring_conflict !== null) {
+                        print '<br>' . htmlspecialchars(auth_monitoring_conflict_text($monitoring_conflict));
+                    }
+                ?></td>
                 <td><?php print_qa_select('f_link', $auth_info['link_check'],$is_system_ou); ?></td>
                 <td colspan=2><input type="text" name="f_handler" value="<?php echo htmlspecialchars($auth_info['nagios_handler']); ?>" <?php print $disabled_attr; ?> class='full-width'></td>
             </tr>
+            <?php print_zabbix_record_block($db_link, 'auth', (int)$id, true, 4); ?>
 
             <!-- 5. ТИП ЗАПИСИ -->
             <tr class="sep"><td colspan="5"></td></tr>
@@ -485,8 +540,10 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             <!-- КНОПКИ -->
             <tr class="sep"><td colspan="5"></td></tr>
             <tr>
-                <td colspan="3">
+                <td >
                     <input type="submit" name="moveauth" value="<?php echo WEB_btn_move; ?>">
+                </td>
+                <td colspan="2">
                     <?php print_login_select($db_link, 'f_new_parent', $auth_info['user_id']); ?>
                 </td>
                 <?php if ($auth_info['deleted']): ?>

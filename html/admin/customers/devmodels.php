@@ -69,6 +69,10 @@ if (getPOST("create")) {
 }
 
 unset($_POST);
+
+// the zabbix templates and macros form is available when zabbix is configured
+$zabbix_enabled = is_zabbix_enabled();
+
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 print_control_submenu($page_url);
 
@@ -121,6 +125,9 @@ print_control_submenu($page_url);
                 <td><b><?php echo WEB_cell_poe_in; ?></b></td>
                 <td><b><?php echo WEB_cell_poe_out; ?></b></td>
                 <td><b><?php echo WEB_nagios_template; ?></b></td>
+<?php if ($zabbix_enabled) { ?>
+                <td><b><?php echo WEB_zabbix_templates; ?></b></td>
+<?php } ?>
                 <td></td>
             </tr>
             <?php
@@ -148,6 +155,11 @@ print_control_submenu($page_url);
                 echo "<td class=\"data\">";
                 echo "<input type=\"text\" name=\"f_nagios[{$row['id']}]\" value=\"" . htmlspecialchars($row['nagios_template']) . "\">";
                 echo "</td>\n";
+                if ($zabbix_enabled) {
+                    echo "<td class=\"data\">";
+                    print_url(WEB_zabbix, "devmodels-zabbix.php?id=" . $row['id'], 'linkButton');
+                    echo "</td>\n";
+                }
                 echo "<td class=\"data\"></td>\n";
                 echo "</tr>\n";
             }

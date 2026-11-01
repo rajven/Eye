@@ -36,8 +36,8 @@ function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $n
                 'ip', 'login', 'protocol', 'control_port', 'port_count', 'sn',
                 'description', 'snmp_version', 'snmp3_auth_proto', 'snmp3_priv_proto',
                 'snmp3_user_rw', 'snmp3_user_ro', 'community', 'rw_community',
-                'discovery', 'netflow_save', 'user_acl', 'dhcp', 'nagios',
-                'active', 'queue_enabled', 'connected_user_only', 'user_id'
+                'discovery', 'netflow_save', 'user_acl', 'dhcp', 'monitoring', 'monitoring_old',
+                'monitoring_status', 'active', 'queue_enabled', 'connected_user_only', 'user_id'
             ]
         ],
         'device_filter_instances' => [
@@ -56,7 +56,7 @@ function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $n
             'summary' => ['port', 'ifname'],
             'fields' => [
                 'device_id', 'snmp_index', 'port', 'ifname', 'port_name', 'description',
-                'target_port_id', 'auth_id', 'last_mac_count', 'uplink', 'nagios',
+                'target_port_id', 'auth_id', 'last_mac_count', 'uplink', 'monitoring', 'monitoring_old',
                 'skip', 'vlan', 'tagged_vlan', 'untagged_vlan', 'forbidden_vlan'
             ]
         ],
@@ -84,7 +84,7 @@ function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $n
             'summary' => ['ou_name'],
             'fields' => [
                 'ou_name', 'description', 'default_users', 'default_hotspot',
-                'nagios_dir', 'nagios_host_use', 'nagios_ping', 'nagios_default_service',
+                'nagios_dir', 'nagios_host_use', 'nagios_ping', 'nagios_default_service', 'zabbix_group_id',
                 'enabled', 'filter_group_id', 'queue_id', 'dynamic', 'life_duration', 'parent_id'
             ]
         ],
@@ -106,8 +106,8 @@ function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $n
                 'user_id', 'ou_id', 'ip', 'save_traf', 'enabled', 'dhcp', 'filter_group_id',
                 'dynamic', 'end_life', 'description', 'dns_name', 'dns_ptr_only', 'wikiname',
                 'dhcp_acl', 'queue_id', 'mac', 'dhcp_option_set', 'blocked', 'day_quota',
-                'month_quota', 'device_model_id', 'firmware', 'client_id', 'nagios',
-                'nagios_handler', 'link_check', 'deleted'
+                'month_quota', 'firmware', 'client_id', 'monitoring', 'monitoring_old',
+                'monitoring_status', 'nagios_handler', 'link_check', 'deleted'
             ]
         ],
         'user_auth_alias' => [
@@ -124,6 +124,18 @@ function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $n
         'vendors' => [
             'summary' => ['name'],
             'fields' => ['name']
+        ],
+        'zabbix_templates' => [
+            'summary' => ['template_name'],
+            'fields' => ['device_model_id', 'template_id', 'template_name']
+        ],
+        'zabbix_macros_list' => [
+            'summary' => ['macro_name'],
+            'fields' => ['macro_name', 'macro_type', 'default_value', 'description']
+        ],
+        'zabbix_macros' => [
+            'summary' => [],
+            'fields' => ['macros_list_id', 'device_model_id', 'macro_value', 'is_used']
         ]
     ];
 
@@ -905,7 +917,7 @@ function allow_update($db, $table, $action = 'update', $field = '')
                 'dns_ptr_only' => true,
                 'firmware' => true,
                 'link_check' => true,
-                'nagios' => true,
+                'monitoring' => true,
                 'nagios_handler' => true,
                 'wikiname' => true
             ],

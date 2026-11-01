@@ -1,0 +1,12 @@
+ALTER TABLE `devices` CHANGE `nagios` `monitoring` tinyint(1) NOT NULL DEFAULT 0;
+ALTER TABLE `devices` CHANGE `nagios_status` `monitoring_status` varchar(10) NOT NULL DEFAULT 'UP';
+ALTER TABLE `devices` ADD COLUMN `monitoring_old` tinyint(1) NOT NULL DEFAULT 0 AFTER `monitoring`;
+UPDATE `devices` SET `monitoring_old` = `monitoring`;
+ALTER TABLE `device_ports` CHANGE `nagios` `monitoring` tinyint(1) NOT NULL DEFAULT 0;
+ALTER TABLE `device_ports` ADD COLUMN `monitoring_old` tinyint(1) NOT NULL DEFAULT 0 AFTER `monitoring`;
+UPDATE `device_ports` SET `monitoring_old` = `monitoring`;
+ALTER TABLE `user_auth` CHANGE `nagios` `monitoring` tinyint(1) NOT NULL DEFAULT 0;
+ALTER TABLE `user_auth` CHANGE `nagios_status` `monitoring_status` varchar(10) NOT NULL DEFAULT '';
+ALTER TABLE `user_auth` ADD COLUMN `monitoring_old` tinyint(1) NOT NULL DEFAULT 0 AFTER `monitoring`;
+UPDATE `user_auth` SET `monitoring_old` = `monitoring`;
+ALTER TABLE `ou` ADD COLUMN `zabbix_group_id` int(11) NOT NULL DEFAULT 0 AFTER `nagios_default_service`;

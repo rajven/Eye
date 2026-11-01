@@ -4,13 +4,15 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php")
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 
 if (getPOST("editport") !== null) {
+    $cur_port = get_record($db_link, 'device_ports', "id = ?", [$id]);
     $new = [
         'snmp_index'  => (int)getPOST("f_snmp", null, 0),
         'uplink'      => (int)getPOST("f_uplink", null, 0),
-        'nagios'      => (int)getPOST("f_nagios", null, 0),
         'skip'        => (int)getPOST("f_skip", null, 0),
         'description' => trim(getPOST("f_description", null, ''))
     ];
+
+    set_monitoring($new, $cur_port['monitoring'] ?? 0, (int)getPOST("f_monitoring", null, 0));
 
     update_record($db_link, "device_ports", "id = ?", $new, [$id]);
 
@@ -53,8 +55,8 @@ print_editdevice_submenu($page_url, $device_id, $device['device_type'], $user_in
                 print_qa_select('f_uplink', $port['uplink']); ?>
             </div>
             <div class="field">
-                <?php print "<label for='f_nagios'>" . WEB_nagios . "</label>";
-                print_qa_select('f_nagios', $port['nagios']); ?>
+                <?php print "<label for='f_monitoring'>" . WEB_monitoring . "</label>";
+                print_qa_select('f_monitoring', $port['monitoring']); ?>
             </div>
             <div class="field">
                 <?php print "<label for='f_skip'>" . WEB_device_port_allien . "</label>";

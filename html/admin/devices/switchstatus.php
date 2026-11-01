@@ -126,7 +126,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             $snmp_ok = check_snmp_access($device['ip'], $snmp);
             $modules_oids = NULL;
             if ($snmp_ok) {
-                update_record($db_link, 'devices', 'id=?', [ 'nagios_status'=> 'UP' ], [ $id ]);
+                update_record($db_link, 'devices', 'id=?', [ 'monitoring_status'=> 'UP' ], [ $id ]);
                 $modules_oids = walk_snmp($device["ip"], $snmp, CISCO_MODULES);
                 $vlan_list = get_switch_vlans($device['vendor_id'], $device['ip'], $snmp);
                 //if port number 1 not exists - try detect by snmp interface index
@@ -147,7 +147,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
         print "<td>" . WEB_device_connected_endpoint . "</td>\n";
         print "<td>" . WEB_cell_description . "</td>\n";
         print "<td>" . WEB_device_port_uplink . "</td>\n";
-        print "<td>" . WEB_nagios . "</td>\n";
+        print "<td>" . WEB_monitoring . "</td>\n";
         print "<td>" . WEB_cell_skip . "</td>\n";
         print "<td>" . WEB_cell_vlan . "</td>\n";
         print "<td>" . WEB_device_snmp_port_oid_name . "</td>\n";
@@ -218,7 +218,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             print "</td>\n";
             print "<td class='" . $cl . "' >" . get_port_description($db_link, $row['id'], $row['description']) . "</td>\n";
             print_td_yes($row['uplink'],FALSE,$cl);
-            print_td_yes($row['nagios'],FALSE,$cl);
+            print_td_yes($row['monitoring'],FALSE,$cl);
             print_td_yes($row['skip'],FALSE,$cl);
             $poe_info = "";
 

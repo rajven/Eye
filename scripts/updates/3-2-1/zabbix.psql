@@ -1,0 +1,52 @@
+CREATE TABLE IF NOT EXISTS zabbix_templates (
+    id SERIAL PRIMARY KEY,
+    device_model_id INTEGER NOT NULL DEFAULT 0,
+    template_id BIGINT NOT NULL DEFAULT 0,
+    template_name VARCHAR(250) NOT NULL DEFAULT '',
+    UNIQUE (device_model_id, template_id)
+);
+COMMENT ON TABLE zabbix_templates IS 'Zabbix templates bound to device models';
+COMMENT ON COLUMN zabbix_templates.device_model_id IS 'Device model id (device_models.id)';
+COMMENT ON COLUMN zabbix_templates.template_id IS 'Zabbix template id';
+COMMENT ON COLUMN zabbix_templates.template_name IS 'Zabbix template name, it is checked against zabbix';
+CREATE TABLE IF NOT EXISTS zabbix_macros_list (
+    id SERIAL PRIMARY KEY,
+    device_model_id INTEGER NOT NULL DEFAULT 0,
+    macro_name VARCHAR(250) NOT NULL DEFAULT '',
+    macro_type INTEGER NOT NULL DEFAULT 0,
+    default_value VARCHAR(250) NOT NULL DEFAULT '',
+    description VARCHAR(255),
+    UNIQUE (device_model_id, macro_name)
+);
+COMMENT ON TABLE zabbix_macros_list IS 'Zabbix macros bound to device models';
+COMMENT ON COLUMN zabbix_macros_list.macro_name IS 'Zabbix macro name, for example {$SNMP_COMMUNITY}';
+COMMENT ON COLUMN zabbix_macros_list.macro_type IS 'Zabbix macro type: 0 - text, 1 - secret';
+COMMENT ON COLUMN zabbix_macros_list.default_value IS 'Default macro value';
+CREATE TABLE IF NOT EXISTS zabbix_macros (
+    id SERIAL PRIMARY KEY,
+    macros_list_id INTEGER NOT NULL DEFAULT 0,
+    device_model_id INTEGER NOT NULL DEFAULT 0,
+    macro_name VARCHAR(250) NOT NULL DEFAULT '',
+    macro_value VARCHAR(250) NOT NULL DEFAULT '',
+    is_used SMALLINT NOT NULL DEFAULT 1,
+    UNIQUE (device_model_id, macro_name)
+);
+COMMENT ON TABLE zabbix_macros IS 'List of the macros actually used by a device model';
+COMMENT ON COLUMN zabbix_macros.macros_list_id IS 'zabbix_macros_list.id, 0 - macro outside of the model list';
+COMMENT ON COLUMN zabbix_macros.macro_value IS 'Macro value used by the hosts of this model';
+COMMENT ON COLUMN zabbix_macros.is_used IS 'Macro is assigned to the hosts of this model';
+INSERT INTO config_options (id, option_name, description_russian, description_english, draft, uniq, option_type, default_value, min_value, max_value)
+VALUES
+(74, 'monitoring_system', 'Система мониторинга: none - отключена, nagios, zabbix. Для zabbix необходимо указать адрес и ключ API.', 'Monitoring system: none - disabled, nagios, zabbix. If zabbix is selected, the API url and API key must be set.', 0, 1, 'list;none;nagios;zabbix', 'none', 0, 0),
+(75, 'zabbix_api_url', 'Полный адрес JSON-RPC API zabbix (api_jsonrpc.php)', 'Full address of the zabbix JSON-RPC API (api_jsonrpc.php)', 0, 1, 'text', 'http://127.0.0.1/zabbix/api_jsonrpc.php', 0, 0),
+(76, 'zabbix_api_key', 'API ключ (token) для доступа к API zabbix. Создаётся в zabbix: Администраторы - Пользователи - API токены.', 'API key (token) used to access the zabbix API. Created in zabbix: Administration - Users - API tokens.', 0, 1, 'text', '', 0, 0)
+ON CONFLICT (id) DO UPDATE SET
+    option_name = EXCLUDED.option_name,
+    description_russian = EXCLUDED.description_russian,
+    description_english = EXCLUDED.description_english,
+    draft = EXCLUDED.draft,
+    uniq = EXCLUDED.uniq,
+    option_type = EXCLUDED.option_type,
+    min_value = EXCLUDED.min_value,
+    max_value = EXCLUDED.max_value;
+SELECT setval(pg_get_serial_sequence('config_options', 'id'), COALESCE((SELECT MAX(id) FROM config_options), 0) + 1);

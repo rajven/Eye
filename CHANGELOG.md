@@ -1,3 +1,31 @@
+# Changelog 3-2-3 - release
+- added: the zabbix host of a device or an ip record is created, updated and switched off by the web interface itself, the sync_zabbix.pl script is kept as a fallback for the scheduled reconciliation.
+- added: the forms of the device and of the ip record show the state of the zabbix host and the buttons of the manual export and of switching the host off.
+- changed: user_auth.device_model_id is dropped, the model of the addresses is taken from the device bound to them only.
+- changed: monitoring of the addresses of one user is exclusive, while one of the addresses is monitored the field is blocked on the others.
+- changed: the mass operations of the addresses skip the records of a user which is processed already, the skipped addresses are written to the journal.
+- changed: searchable dropdowns take the whole table cell, a long option (a device model) is cut with an ellipsis instead of wrapping to several lines.
+- changed: the transliteration table of the web interface repeats eyelib::main::translit, so the web and sync_zabbix.pl give the same host names.
+- changed: sync_zabbix.pl is documented as the reserve way, the web interface exports a record to zabbix while the record is saved.
+
+# Changelog 3-2-2 - release
+- changed: zabbix_macros_list is the global list of the zabbix macros now, the macro name is unique and the device_model_id field is removed.
+- changed: zabbix_macros binds a macro of the global list to a device model (macros_list_id + device_model_id), the duplicated macro_name field is removed, an empty macro_value means the default value of the list.
+- added: zabbixmacros.php page in the settings - the global list of the zabbix macros, the macro names can be picked from the templates of zabbix or typed by hand, the macros of the templates can be loaded into the list by a button.
+- added: the device model form shows the macros used by the model, they are taken from the global list by a dropdown with a search, an individual value of the model overrides the default one.
+- changed: the template of the device model zabbix form is added by a dropdown with a search instead of the list box.
+- added: 3-2-2 update patches for mysql and postgres, the duplicated macros of the models are merged into single records of the list.
+
+# Changelog 3-2-1 - release
+- added: support for zabbix as a monitoring system. The eye config options 74 (monitoring system), 75 (zabbix api url), 76 (zabbix api key) are used to configure it.
+- added: zabbix_templates, zabbix_macros_list, zabbix_macros tables - zabbix templates and macros for the device models.
+- added: zabbix_group_id field in the ou table - host group of the organizational unit, the hosts of the unit are created in it.
+- added: new form "Templates and macros zabbix" in the device models. Templates are checked for presence and renaming in zabbix, used macros are stored with their values.
+- changed: nagios => monitoring, nagios_status => monitoring_status in the devices, device_ports, user_auth tables.
+- added: monitoring_old field - the previous value of the monitoring field. It allows the sync script to disable a host in the monitoring system when monitoring is switched off in eye.
+- added: docs/zabbix/sync_zabbix.pl script (analog of docs/nagios/gen_nagios_config.pl) and the eyelib::zabbix api library. link_check parameter is ignored by the script, hosts are never deleted from zabbix - they are disabled instead.
+- bugfix: postgres data.sql used EXCLUDED."order" instead of EXCLUDED.rule_order while importing group_filters, the import of the group filters was interrupted.
+
 # Changelog 3-1-5 - release
 - Due to the uncertain future of the old SystemV initialization system, ipset support has been reconfigured to run as a regular bash script.
 - bugfix: Only administrators are allowed to view project users.

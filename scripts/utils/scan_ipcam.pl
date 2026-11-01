@@ -75,7 +75,7 @@ $result->{text} = trim($result->{text});
 return $result;
 }
 
-my @auth_list=get_records_sql($dbh,'SELECT * FROM user_auth WHERE deleted=0 and nagios=1');
+my @auth_list=get_records_sql($dbh,'SELECT * FROM user_auth WHERE deleted=0 and monitoring=1');
 
 ##################################### User auth analyze ################################################
 
