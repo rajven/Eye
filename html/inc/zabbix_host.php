@@ -405,8 +405,10 @@ function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $grou
         $note_types[] = 'visible';
     }
 
-    // the missing host groups of the ou are added, the groups of the other
-    // integrations are never removed
+    // the groups of the ou which the host has not got yet are added. a group is never
+    // removed by the reconciliation: it can be bound by hand in zabbix or belong to
+    // another integration. the group which the form of the ou unbinds is taken away
+    // there, as an explicit action of the administrator
     $current_groups = [];
     foreach ($zbx_host['groups'] ?? [] as $group) {
         if (!empty($group['groupid'])) {
@@ -469,6 +471,83 @@ function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $grou
         'templates' => count($added),
         'parent' => (string)$state['parent'],
     ];
+}
+
+// Hosts of the organizational unit which zabbix shows in the given host group and
+// which eye created itself: the eye tag of the host points to an eye record, and the
+// organizational unit of that record is the ou of the form
+function zabbix_ou_group_hosts($db, $ou_id, $group_id)
+{
+    $params = [
+        'output' => ['hostid', 'host', 'name', 'description', 'status'],
+        'groupids' => [(int)$group_id],
+        // operator 4 - the host carries the tag of eye, its value is not checked
+        'tags' => [['tag' => ZABBIX_TAG_EYE, 'value' => '', 'operator' => 4]],
+        'selectTags' => ['tag', 'value'],
+        'selectHostGroups' => ['groupid', 'name'],
+    ];
+
+    $found = [];
+    foreach ((array)zabbix_api_request('host.get', $params) as $zbx_host) {
+        if (empty($zbx_host['hostid'])) {
+            continue;
+        }
+
+        $key = zabbix_host_tag_value(zabbix_host_normalize($zbx_host), ZABBIX_TAG_EYE);
+        $type = null;
+        $id = 0;
+        if (preg_match('/^netdev_(\d+)$/i', $key, $match)) {
+            $type = 'netdev';
+            $id = (int)$match[1];
+        } elseif (preg_match('/^auth_(\d+)$/i', $key, $match)) {
+            $type = 'auth';
+            $id = (int)$match[1];
+        }
+        if ($type === null) {
+            continue;
+        }
+
+        $state = zabbix_record_state($db, $type, $id);
+        if ($state !== null && (int)$state['ou_id'] === (int)$ou_id) {
+            $found[] = $zbx_host;
+        }
+    }
+
+    return $found;
+}
+
+// A host group unbound in the form of the organizational unit is taken away from the
+// hosts of this ou. The reconciliation of a host never removes a group: it can be
+// bound by hand in zabbix or belong to another integration, so the unbind is the only
+// place where eye touches the groups which the host has got
+function zabbix_ou_group_detach($db, $ou_id, $group_id)
+{
+    $removed = 0;
+
+    foreach (zabbix_ou_group_hosts($db, $ou_id, $group_id) as $zbx_host) {
+        $groups = [];
+        foreach ($zbx_host['groups'] ?? [] as $group) {
+            $current_id = (int)($group['groupid'] ?? 0);
+            if ($current_id > 0 && $current_id !== (int)$group_id) {
+                $groups[] = $current_id;
+            }
+        }
+
+        // zabbix does not keep a host without a host group
+        if (empty($groups)) {
+            $groups = [ZABBIX_DEFAULT_GROUP_ID];
+        }
+
+        if (!zabbix_api_update_host($zbx_host['hostid'], ['groups' => $groups])) {
+            LOG_WARNING($db, "Zabbix: cannot take the host group " . (int)$group_id . " away from the host " . $zbx_host['host']);
+            continue;
+        }
+
+        LOG_INFO($db, "Zabbix: host " . $zbx_host['host'] . " leaves the host group " . (int)$group_id);
+        $removed++;
+    }
+
+    return $removed;
 }
 
 // Are the tags of the eye record in sync with the host, the tags of the other

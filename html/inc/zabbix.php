@@ -550,84 +550,132 @@ function zabbix_ou_group_ids($db, $ou_id)
     return $group_ids;
 }
 
-// The form of the ou chooses several host groups of zabbix. Without the api the
-// identifiers bound before stay in the form and a new identifier is typed by hand
+// The groups of zabbix which the ou does not use yet are offered in a searchable
+// list, the value of the option is the identifier of the group
+function print_zabbix_group_pick_select($name, $groups, $placeholder = '')
+{
+    $safe_name = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+    print "<select id=\"$safe_name\" name=\"$safe_name\" class=\"js-select-single\">\n";
+    print_select_item($placeholder, '', '');
+    foreach ($groups as $group) {
+        $group_id = (int)($group['groupid'] ?? 0);
+        if ($group_id <= 0) {
+            continue;
+        }
+        print_select_item((string)($group['name'] ?? $group_id), $group_id, '');
+    }
+    print "</select>\n";
+}
+
+// The host groups of the ou: every bound group is a row of the list with the check box
+// which unbinds it, a new group is chosen in the searchable list of the groups which
+// the ou does not use yet. Without the api only the identifiers bound before stay in
+// the list and a new identifier is typed by hand
 function print_zabbix_groups_select($db, $group_ids)
 {
-    $checked = [];
+    $bound = [];
     foreach ($group_ids as $group_id) {
-        $checked[(int)$group_id] = 1;
+        $group_id = (int)$group_id;
+        if ($group_id > 0) {
+            $bound[$group_id] = 1;
+        }
     }
 
     // the marker shows that the block was sent, an ou without groups is legal
     print "<input type=\"hidden\" name=\"f_zabbix_groups_posted\" value=\"1\">\n";
 
     $groups = zabbix_host_group_list();
-    if (empty($groups)) {
-        print "<div class=\"zabbix-groups\">\n";
-        foreach (array_keys($checked) as $group_id) {
-            print "<label class=\"zabbix-group\"><input type=\"checkbox\" name=\"f_zabbix_groups[]\" value=\""
-                . (int)$group_id . "\" checked>&nbsp;" . WEB_zabbix_group_not_found . "&nbsp;" . (int)$group_id . "</label>\n";
+    $names = [];
+    foreach ($groups as $group) {
+        $group_id = (int)($group['groupid'] ?? 0);
+        if ($group_id > 0) {
+            $names[$group_id] = (string)($group['name'] ?? $group_id);
         }
-        print "</div>\n";
-        print WEB_zabbix_group_api_unavailable . "&nbsp;<input type=\"number\" min=\"1\" name=\"f_zabbix_group_new\" value=\"\">\n";
+    }
+
+    print "<table class=\"data\">\n";
+    print "<tr align=\"center\"><td><b>" . WEB_zabbix_group . "</b></td><td><b>" . WEB_zabbix_remove . "</b></td></tr>\n";
+
+    if (empty($bound)) {
+        print "<tr><td class=\"data\" colspan=\"2\" align=\"center\">" . WEB_ipset_empty . "</td></tr>\n";
+    }
+
+    foreach (array_keys($bound) as $group_id) {
+        // the name of zabbix is shown when it is known, without the api only the
+        // identifier is printed, a group which zabbix really does not know is marked
+        if (isset($names[$group_id])) {
+            $label = htmlspecialchars($names[$group_id], ENT_QUOTES, 'UTF-8');
+        } elseif (empty($groups)) {
+            $label = WEB_zabbix_group_id . "&nbsp;" . $group_id;
+        } else {
+            $label = WEB_zabbix_group_not_found . "&nbsp;" . $group_id;
+        }
+        print "<tr align=center><td class=\"data\">" . $label . "</td>\n";
+        print "<td class=\"data\" style='padding:0'><input type=\"checkbox\" name=\"f_unlink[" . $group_id . "]\" value=\"1\"></td></tr>\n";
+    }
+
+    $free = [];
+    foreach ($groups as $group) {
+        $group_id = (int)($group['groupid'] ?? 0);
+        if ($group_id <= 0 || isset($bound[$group_id])) {
+            continue;
+        }
+        $free[] = ['groupid' => $group_id, 'name' => (string)($group['name'] ?? $group_id)];
+    }
+
+    print "<tr><td colspan=\"2\" class=\"data\">";
+    if (!empty($groups)) {
+        print "<b>" . WEB_zabbix_group_add . ":&nbsp;</b>";
+        if (!empty($free)) {
+            print_zabbix_group_pick_select('f_add_group', $free, WEB_zabbix_group_select_empty);
+        } else {
+            print WEB_zabbix_group_no_free;
+        }
+    } else {
+        print WEB_zabbix_group_api_unavailable
+            . "&nbsp;<input type=\"number\" min=\"1\" name=\"f_zabbix_group_new\" value=\"\">";
+    }
+    print "</td></tr>\n";
+    print "</table>\n";
+}
+
+// The check boxes of the list and the group chosen in the searchable list are stored
+// for the ou, the bindings which are not touched stay as they are
+function save_zabbix_ou_groups($db, $ou_id)
+{
+    $ou_id = (int)$ou_id;
+    if ($ou_id <= 0 || getPOST("f_zabbix_groups_posted", null, null) === null) {
         return;
     }
 
-    $known = [];
-    print "<div class=\"zabbix-groups\">\n";
-    foreach ($groups as $group) {
-        $group_id = (int)($group['groupid'] ?? 0);
-        if ($group_id <= 0) {
+    $unlink = getPOST("f_unlink", null, []);
+    if (is_array($unlink)) {
+        foreach (array_keys($unlink) as $group_id) {
+            $group_id = (int)$group_id;
+            if ($group_id <= 0) {
+                continue;
+            }
+            delete_records($db, "ou_zabbix_groups", "ou_id = ? AND group_id = ?", [$ou_id, $group_id]);
+            // the hosts of this ou lose the group at once, it is the deliberate action
+            // of the administrator and not a part of the reconciliation of a host
+            zabbix_ou_group_detach($db, $ou_id, $group_id);
+        }
+    }
+
+    $bound = zabbix_ou_group_ids($db, $ou_id);
+
+    // the group of the searchable list, and the identifier typed by hand when the api
+    // does not answer
+    $new_ids = [];
+    $new_ids[] = (int)getPOST("f_add_group", null, 0);
+    $new_ids[] = (int)getPOST("f_zabbix_group_new", null, 0);
+
+    foreach ($new_ids as $group_id) {
+        if ($group_id <= 0 || in_array($group_id, $bound, true)) {
             continue;
         }
-        $known[$group_id] = 1;
-        print "<label class=\"zabbix-group\"><input type=\"checkbox\" name=\"f_zabbix_groups[]\" value=\"$group_id\""
-            . (isset($checked[$group_id]) ? " checked" : "") . ">&nbsp;"
-            . htmlspecialchars((string)($group['name'] ?? $group_id), ENT_QUOTES, 'UTF-8') . "</label>\n";
-    }
-
-    // a group which zabbix does not know anymore is still shown, it is removed from
-    // the ou when its check box is unchecked
-    foreach (array_keys($checked) as $group_id) {
-        if (isset($known[$group_id])) {
-            continue;
-        }
-        print "<label class=\"zabbix-group\"><input type=\"checkbox\" name=\"f_zabbix_groups[]\" value=\"$group_id\" checked>&nbsp;"
-            . WEB_zabbix_group_not_found . "&nbsp;" . $group_id . "</label>\n";
-    }
-    print "</div>\n";
-
-    return;
-}
-
-// The bindings of the ou are replaced by the list chosen in the form, the existing
-// rows are kept when the group of the zabbix api disappeared meanwhile
-function save_zabbix_ou_groups($db, $ou_id, $group_ids)
-{
-    $wanted = [];
-    foreach ($group_ids as $group_id) {
-        $group_id = (int)$group_id;
-        if ($group_id > 0) {
-            $wanted[$group_id] = 1;
-        }
-    }
-
-    $current = [];
-    foreach (get_records_sql($db, "SELECT * FROM ou_zabbix_groups WHERE ou_id = ?", [(int)$ou_id]) as $row) {
-        $current[(int)$row['group_id']] = 1;
-    }
-
-    foreach (array_keys($current) as $group_id) {
-        if (!isset($wanted[$group_id])) {
-            delete_records($db, "ou_zabbix_groups", "ou_id = ? AND group_id = ?", [(int)$ou_id, $group_id]);
-        }
-    }
-
-    foreach (array_keys($wanted) as $group_id) {
-        if (!isset($current[$group_id])) {
-            insert_record($db, "ou_zabbix_groups", ['ou_id' => (int)$ou_id, 'group_id' => $group_id]);
-        }
+        insert_record($db, "ou_zabbix_groups", ['ou_id' => $ou_id, 'group_id' => $group_id]);
+        $bound[] = $group_id;
     }
 }
 
