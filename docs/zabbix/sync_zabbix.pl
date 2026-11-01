@@ -218,6 +218,8 @@ my %name_count;
         next if (!$auth->{ip});
 
         my $login = get_record_sql($dbh, "SELECT * FROM user_list WHERE id= ?", $auth->{user_id});
+        my $ou_id = $login->{ou_id} if ($login and $login->{ou_id});
+
         my $auth_device = get_record_sql($dbh, "SELECT * FROM devices WHERE user_id= ?", $auth->{user_id});
 
         #a user owning a monitored switch or router is exported as a network device
@@ -239,6 +241,7 @@ my %name_count;
             type => 'auth',
             id => $auth->{id},
             host => $name,
+            ou_id => $ou_id,
             #the description of the record becomes the visible name of the host
             description => $auth->{description} // '',
             ip => $auth->{ip},
@@ -251,8 +254,6 @@ my %name_count;
             setCommunity($auth_device);
             $host->{snmp} = $auth_device->{snmp};
             }
-
-        $host->{ou_id} = ($auth->{ou_id} && $auth->{ou_id} > 0) ? $auth->{ou_id} : ($login->{ou_id} // 0);
 
         # the switch the address is connected to becomes the parent tag
         my $connection = get_record_sql($dbh, "SELECT * FROM connections WHERE auth_id= ?", $auth->{id});
@@ -393,7 +394,7 @@ if (!$zbx_host) {
     return create_host($host, $templates, $macros, $groups, $eye_tag);
     }
 
-return update_host($host, $zbx_host, $templates, $macros, $eye_tag);
+return update_host($host, $zbx_host, $templates, $macros, $groups, $eye_tag);
 }
 
 #===============================================================
@@ -469,7 +470,7 @@ return 'created';
 # name, parent tag and templates of the existing host are checked
 
 sub update_host {
-my ($host, $zbx_host, $templates, $macros, $eye_tag) = @_;
+my ($host, $zbx_host, $templates, $macros, $groups, $eye_tag) = @_;
 
 my %update;
 my $change = 0;
@@ -493,6 +494,29 @@ if ($zbx_host->{description} ne $host->{description}) {
     $update{description} = $host->{description};
     $change = 1;
     }
+
+if ($groups && scalar(@$groups)) {
+    my %current_groups;
+    foreach my $g (@{ $zbx_host->{groups} || [] }) {
+        $current_groups{ $g->{groupid} } = 1;
+    }
+
+    my @merged_groups = @{ $zbx_host->{groups} || [] };
+    my @added_groups;
+
+    foreach my $wanted_id (@$groups) {
+        if (!$current_groups{$wanted_id}) {
+            push @merged_groups, { groupid => $wanted_id };
+            push @added_groups, $wanted_id;
+        }
+    }
+
+    if (scalar(@added_groups)) {
+        log_info("Zabbix: host $host->{host} is missing group(s), adding group ID(s): " . join(', ', @added_groups));
+        $update{groups} = \@merged_groups;
+        $change = 1;
+    }
+}
 
 my $old_parent = zabbix_host_tag_value($zbx_host, $tag_parent);
 my $new_parent = $host->{parent} // '';

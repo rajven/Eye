@@ -554,9 +554,23 @@ $params{macros} = zabbix_macro_list($host->{macros}) if ($host->{macros});
 $params{tags} = zabbix_tag_list($host->{tags}) if ($host->{tags});
 $params{status} = $host->{status} if (defined $host->{status});
 
+if ($host->{groups} && scalar(@{ $host->{groups} })) {
+    $params{groups} = [ map { { groupid => $_->{groupid} } } @{ $host->{groups} } ];
+}
+
 my $title = $host->{host} // $host->{logname} // $hostid;
 
 my $updated = zabbix_api_call('host.update', \%params);
+
+#if zabbix does not accept the host groups parameter under this name, the other name is tried
+if (!defined $updated && $host->{groups} && scalar(@{ $host->{groups} })
+    && $zabbix_error =~ /groups|unexpected/i) {
+    log_verbose("Zabbix: retrying host.update with the host_groups parameter");
+    delete $params{groups};
+    $params{host_groups} = [ map { { groupid => $_->{groupid} } } @{ $host->{groups} } ];
+    $updated = zabbix_api_call('host.update', \%params);
+}
+
 if (!defined $updated) {
     log_error("Zabbix: cannot update host $title (hostid $hostid)");
     return;
