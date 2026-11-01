@@ -33,11 +33,11 @@ print_device_submenu($page_url);
 <form name="def" action="index.php" method="post">
 <table class="data">
 <tr class="info" align="right">
-<td class="info" colspan=3> <?php  print WEB_device_type_show; print_devtypes_select($db_link, "devtypes", $f_devtype_id, "id<3"); ?>
-<td class="info" colspan=3 align=left> <?php  print WEB_models; print_devmodels_select($db_link, "devmodels", $f_devmodel_id); ?>
-<?php print WEB_device_show_location; print_building_select($db_link, "building_id", $f_building_id); ?></td>
+<td class="info" colspan=2> <?php  print WEB_device_type_show."&nbsp"; print_devtypes_select($db_link, "devtypes", $f_devtype_id, "id<3"); ?></td>
+<td class="info" colspan=2> <?php  print WEB_models."&nbsp"; print_devmodels_select($db_link, "devmodels", $f_devmodel_id); ?></td>
+<td class="info" colspan=2> <?php  print WEB_device_show_location."&nbsp"; print_building_select($db_link, "building_id", $f_building_id); ?></td>
 <td class="info"><input type="submit" id="apply" name="apply" value="<?php echo WEB_btn_show; ?>"></td>
-<td class="info" colspan=3><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove_device" value="<?php echo WEB_btn_delete; ?>"></td>
+<td class="info" colspan=3 align=right><input type="submit" onclick="return confirm('<?php echo WEB_msg_delete; ?>?')" name="remove_device" value="<?php echo WEB_btn_delete; ?>"></td>
 </tr>
 <tr align="center">
 <td align=Center><input type="checkbox" onClick="checkAll(this.checked);"></td>

@@ -814,6 +814,16 @@ body.eye-login .login p { margin: 0 0 12px; }
 .es-opt.dis { opacity: .45; cursor: not-allowed; }
 .es-none { color: var(--ink-3); cursor: default; }
 
+/* the label of the widget is a separate node, a long name is cut with an ellipsis */
+.es-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* a widget in a table cell takes the whole cell as the text inputs do, the selects
+   with an explicit width keep their own size */
+td .es:not(:has(> .es-native[style*="width"])), .field .es:not(:has(> .es-native[style*="width"])) {
+  display: block; width: 100%; }
+td .es:not(:has(> .es-native[style*="width"])) .es-btn,
+.field .es:not(:has(> .es-native[style*="width"])) .es-btn { width: 100%; min-width: 0; }
+
 /* keeps the popup from being clipped inside the dialog */
 dialog table.data, dialog table.data td, dialog table.data tr { overflow: visible; }
 

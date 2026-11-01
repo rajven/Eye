@@ -490,7 +490,6 @@ mac_found TIMESTAMP,
 blocked SMALLINT NOT NULL DEFAULT 0,
 day_quota INTEGER NOT NULL DEFAULT 0,
 month_quota INTEGER NOT NULL DEFAULT 0,
-device_model_id INTEGER DEFAULT 87,
 firmware VARCHAR(100),
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 client_id VARCHAR(250),
@@ -603,7 +602,7 @@ COMMENT ON TABLE vendors IS 'Network equipment vendors';
 -- System version
 CREATE TABLE version (
 id INTEGER PRIMARY KEY DEFAULT 1,
-version VARCHAR(10) NOT NULL DEFAULT '3.2.2'
+version VARCHAR(10) NOT NULL DEFAULT '3.2.3'
 );
 COMMENT ON TABLE version IS 'System version information';
 

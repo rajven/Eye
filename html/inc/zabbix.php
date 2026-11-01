@@ -543,3 +543,522 @@ function normalizer_zabbix_macro_name($name)
     }
     return $name;
 }
+
+// Tags written to the zabbix hosts, they are the same as in the sync_zabbix script
+define('ZABBIX_TAG_EYE', 'eye');
+define('ZABBIX_TAG_PARENT', 'parent');
+
+// Transliteration of the eye names. The table repeats eyelib::main::translit, so the
+// web interface and the sync_zabbix.pl script give the same host names in zabbix
+function zabbix_translit($text)
+{
+    $text = trim((string)$text);
+    if ($text === '') {
+        return '';
+    }
+
+    $replace = Array(
+        'А' => 'A',
+        'а' => 'a',
+        'Б' => 'B',
+        'б' => 'b',
+        'В' => 'V',
+        'в' => 'v',
+        'Г' => 'G',
+        'г' => 'g',
+        'Д' => 'D',
+        'д' => 'd',
+        'Е' => 'E',
+        'е' => 'e',
+        'Ё' => 'E',
+        'ё' => 'e',
+        'Ж' => 'Zh',
+        'ж' => 'zh',
+        'З' => 'Z',
+        'з' => 'z',
+        'И' => 'I',
+        'и' => 'i',
+        'Й' => 'I',
+        'й' => 'i',
+        'К' => 'K',
+        'к' => 'k',
+        'Л' => 'L',
+        'л' => 'l',
+        'М' => 'M',
+        'м' => 'm',
+        'Н' => 'N',
+        'н' => 'n',
+        'О' => 'O',
+        'о' => 'o',
+        'П' => 'P',
+        'п' => 'p',
+        'Р' => 'R',
+        'р' => 'r',
+        'ТС' => 'T-S',
+        'Тс' => 'T-s',
+        'тс' => 't-s',
+        'С' => 'S',
+        'с' => 's',
+        'Т' => 'T',
+        'т' => 't',
+        'У' => 'U',
+        'у' => 'u',
+        'Ф' => 'F',
+        'ф' => 'f',
+        'Х' => 'Kh',
+        'х' => 'kh',
+        'Ц' => 'Ts',
+        'ц' => 'ts',
+        'Ч' => 'Ch',
+        'ч' => 'ch',
+        'Ш' => 'Sh',
+        'ш' => 'sh',
+        'Щ' => 'Shch',
+        'щ' => 'shch',
+        'Ь' => '',
+        'ь' => '',
+        'Ъ' => '',
+        'ъ' => '',
+        'Ь' => '',
+        'ь' => '',
+        'Ъ' => '',
+        'ъ' => '',
+        'Ы' => 'Y',
+        'ы' => 'y',
+        'Э' => 'E',
+        'э' => 'e',
+        'Ю' => 'Yu',
+        'ю' => 'yu',
+        'Я' => 'Ya',
+        'я' => 'ya'
+    );
+
+    return strtr($text, $replace);
+}
+
+// The name of the ip record host, the same rule as in the sync_zabbix script
+function zabbix_auth_host_name($auth, $login = NULL)
+{
+    if (!empty($auth['dns_name'])) {
+        return $auth['dns_name'];
+    }
+    if (empty(trim($login['login']))) {
+        return 'user_' . $auth['user_id'];
+    }
+    return trim($login['login']);
+}
+
+// The name of the network device host, the same rule as in the sync_zabbix script
+function zabbix_device_host_name($device)
+{
+    $name = trim((string)zabbix_translit($device['device_name'] ?? ''));
+    if ($name !== '') {
+        return $name;
+    }
+    return 'netdev_' . $device['id'];
+}
+
+// The visible name of the host, the description of the eye record is used for it
+function zabbix_host_visible_name($description, $fallback)
+{
+    $visible = trim((string)zabbix_translit($description ?? ''));
+    if ($visible !== '') {
+        return $visible;
+    }
+    return $fallback;
+}
+
+// One host by its technical name
+function zabbix_get_host_by_name($name)
+{
+    $found = zabbix_get_hosts_by_names([$name]);
+    return $found[strtolower(trim((string)$name))] ?? null;
+}
+
+// Hosts by their technical names, the result is keyed by the lower case name
+function zabbix_get_hosts_by_names($names)
+{
+    $names = array_values(array_filter((array)$names, function ($name) {
+        return trim((string)$name) !== '';
+    }));
+    if (empty($names)) {
+        return [];
+    }
+
+    $hosts = zabbix_api_request('host.get', [
+        'output' => ['hostid', 'host', 'name', 'status', 'display', 'description'],
+        'filter' => ['host' => $names],
+        'selectParentTemplates' => ['templateid', 'host', 'name'],
+        'selectMacros' => ['macro', 'value', 'type'],
+        'selectTags' => ['tag', 'value'],
+        'selectHostGroups' => ['groupid', 'name'],
+    ]);
+    if (!is_array($hosts)) {
+        return [];
+    }
+
+    $found = [];
+    foreach ($hosts as $host) {
+        $key = strtolower(trim((string)$host['host']));
+        $found[$key] = zabbix_host_normalize($host);
+    }
+    return $found;
+}
+
+// All hosts carrying the eye tag, one call replaces a search per record
+function zabbix_get_tagged_hosts($tag_name = ZABBIX_TAG_EYE)
+{
+    $hosts = zabbix_api_request('host.get', [
+        'output' => ['hostid', 'host', 'name', 'status', 'display', 'description'],
+        // operator 4 - the host has a tag with this name, the value is not checked
+        'tags' => [['tag' => $tag_name, 'value' => '', 'operator' => 4]],
+        'selectParentTemplates' => ['templateid', 'host', 'name'],
+        'selectMacros' => ['macro', 'value', 'type'],
+        'selectTags' => ['tag', 'value'],
+        'selectHostGroups' => ['groupid', 'name'],
+    ]);
+    if (!is_array($hosts)) {
+        return [];
+    }
+
+    $found = [];
+    foreach ($hosts as $host) {
+        $info = zabbix_host_normalize($host);
+        $value = zabbix_host_tag_value($info, $tag_name);
+        if ($value !== '') {
+            $found[$value] = $info;
+        }
+    }
+    return $found;
+}
+
+// A host by the eye tag value, it is found even after it was renamed
+function zabbix_get_host_by_tag($tag_value, $tag_name = ZABBIX_TAG_EYE)
+{
+    if ($tag_value === '' || $tag_value === null) {
+        return null;
+    }
+
+    $hosts = zabbix_api_request('host.get', [
+        'output' => ['hostid', 'host', 'name', 'status', 'display', 'description'],
+        // operator 1 - the tag value is equal to the requested one
+        'tags' => [['tag' => $tag_name, 'value' => $tag_value, 'operator' => 1]],
+        'selectParentTemplates' => ['templateid', 'host', 'name'],
+        'selectMacros' => ['macro', 'value', 'type'],
+        'selectTags' => ['tag', 'value'],
+        'selectHostGroups' => ['groupid', 'name'],
+    ]);
+    if (!is_array($hosts) || empty($hosts)) {
+        return null;
+    }
+
+    return zabbix_host_normalize($hosts[0]);
+}
+
+// Host structure with the templates, the macros, the groups and the tags
+function zabbix_host_normalize($host)
+{
+    $templates = [];
+    foreach ($host['parentTemplates'] ?? [] as $template) {
+        $templates[] = [
+            'templateid' => $template['templateid'],
+            'host' => $template['host'] ?? '',
+            'name' => $template['name'] ?? ($template['host'] ?? ''),
+        ];
+    }
+
+    $macros = [];
+    foreach ($host['macros'] ?? [] as $macro) {
+        $macros[] = [
+            'macro' => $macro['macro'],
+            'value' => $macro['value'] ?? '',
+            'type' => (int)($macro['type'] ?? 0),
+        ];
+    }
+
+    $tags = [];
+    foreach ($host['tags'] ?? [] as $tag) {
+        $tags[] = ['tag' => $tag['tag'], 'value' => $tag['value'] ?? ''];
+    }
+
+    $groups = [];
+    foreach ($host['hostgroups'] ?? $host['groups'] ?? [] as $group) {
+        $groups[] = ['groupid' => $group['groupid'], 'name' => $group['name'] ?? ''];
+    }
+
+    return [
+        'hostid' => $host['hostid'],
+        'host' => $host['host'] ?? '',
+        'name' => $host['name'] ?? '',
+        'description' => $host['description'] ?? '',
+        'display' => $host['display'] ?? '',
+        'status' => isset($host['status']) ? (int)$host['status'] : 0,
+        'templates' => $templates,
+        'macros' => $macros,
+        'tags' => $tags,
+        'groups' => $groups,
+    ];
+}
+
+// Value of the host tag
+function zabbix_host_tag_value($host, $tag_name)
+{
+    foreach ($host['tags'] ?? [] as $tag) {
+        if (strtolower((string)($tag['tag'] ?? '')) === strtolower((string)$tag_name)) {
+            return (string)($tag['value'] ?? '');
+        }
+    }
+    return '';
+}
+
+// Only the missing templates are added, the templates of the host are never removed
+function zabbix_host_merge_templates($host, $wanted)
+{
+    $merged = [];
+    $current = [];
+    foreach ($host['templates'] ?? [] as $template) {
+        $id = $template['templateid'] ?? 0;
+        if ($id && !isset($current[$id])) {
+            $current[$id] = 1;
+            $merged[] = (int)$id;
+        }
+    }
+
+    $added = [];
+    foreach ($wanted as $id) {
+        if (!$id || isset($current[$id])) {
+            continue;
+        }
+        $current[$id] = 1;
+        $merged[] = (int)$id;
+        $added[] = (int)$id;
+    }
+
+    return [$merged, $added];
+}
+
+// The macros of the model are refreshed, the foreign macros of the host are kept
+function zabbix_host_merge_macros($host, $wanted)
+{
+    $current = [];
+    $merged = [];
+    foreach ($host['macros'] ?? [] as $macro) {
+        if (empty($macro['macro'])) {
+            continue;
+        }
+        $key = strtoupper($macro['macro']);
+        if (isset($current[$key])) {
+            continue;
+        }
+        $current[$key] = 1;
+        $merged[] = [
+            'macro' => $macro['macro'],
+            'value' => $macro['value'] ?? '',
+            'type' => (int)($macro['type'] ?? 0),
+        ];
+    }
+
+    foreach ($wanted as $macro) {
+        if (empty($macro['macro'])) {
+            continue;
+        }
+        $key = strtoupper($macro['macro']);
+        $entry = [
+            'macro' => $macro['macro'],
+            'value' => $macro['value'] ?? '',
+            'type' => (int)($macro['type'] ?? 0),
+        ];
+        if (isset($current[$key])) {
+            // the host knows this macro, its value is refreshed
+            foreach ($merged as $index => $item) {
+                if (strtoupper($item['macro']) === $key) {
+                    $merged[$index] = $entry;
+                }
+            }
+        } else {
+            $current[$key] = 1;
+            $merged[] = $entry;
+        }
+    }
+
+    return $merged;
+}
+
+// Interface of the eye record: a snmp interface for the equipment with snmp, an agent
+// interface for the rest of the hosts, zabbix can not poll a host without an interface
+function zabbix_host_interface($spec)
+{
+    $ip = trim((string)($spec['ip'] ?? ''));
+    $ip = preg_replace('#/\d+$#', '', $ip);
+    if ($ip === '') {
+        return null;
+    }
+
+    $interface = [
+        'type' => 1,
+        'ip' => $ip,
+        'dns' => '',
+        'port' => $spec['agent_port'] ?? '10050',
+        'useip' => 1,
+        'main' => 1,
+    ];
+
+    $snmp = $spec['snmp'] ?? [];
+    $version = (int)($snmp['version'] ?? 0);
+    if ($version < 1) {
+        return $interface;
+    }
+
+    $interface['type'] = 2;
+    $interface['port'] = $snmp['port'] ?? '161';
+
+    $details = ['version' => $version, 'bulk' => 1];
+    if ($version == 3) {
+        $password = $snmp['ro-password'] ?? '';
+        $details['securityname'] = $snmp['ro-user'] ?? '';
+        // eye stores a single passphrase, it is used for the authorization and the encryption
+        $details['securitylevel'] = ($password !== '') ? 2 : 0;
+        $details['authprotocol'] = zabbix_snmp_auth_protocol($snmp['auth-proto'] ?? '');
+        $details['privprotocol'] = zabbix_snmp_priv_protocol($snmp['priv-proto'] ?? '');
+        $details['authpassphrase'] = $password;
+        $details['privpassphrase'] = $password;
+        $details['contextname'] = '';
+    } else {
+        $details['community'] = $snmp['ro-community'] ?? '';
+    }
+    $interface['details'] = $details;
+
+    return $interface;
+}
+
+// snmp authorization protocol of eye => number of zabbix
+function zabbix_snmp_auth_protocol($protocol)
+{
+    $protocol = strtolower(trim((string)$protocol));
+    if ($protocol === '') {
+        $protocol = 'sha';
+    }
+    $map = [
+        'md5' => 0,
+        'sha' => 1,
+        'sha1' => 1,
+        'sha224' => 2,
+        'sha256' => 3,
+        'sha384' => 4,
+        'sha512' => 5,
+    ];
+    return $map[$protocol] ?? 1;
+}
+
+// snmp encryption protocol of eye => number of zabbix
+function zabbix_snmp_priv_protocol($protocol)
+{
+    $protocol = strtolower(trim((string)$protocol));
+    if ($protocol === '') {
+        $protocol = 'aes128';
+    }
+    $map = [
+        'des' => 0,
+        'aes' => 1,
+        'aes128' => 1,
+        'aes192' => 2,
+        'aes256' => 3,
+    ];
+    return $map[$protocol] ?? 1;
+}
+
+// Creation of the host, an empty group is not allowed by zabbix
+function zabbix_api_create_host($spec)
+{
+    $params = [
+        'host' => $spec['host'],
+        'name' => $spec['display'] ?? $spec['host'],
+        'status' => 0,
+    ];
+
+    $interface = zabbix_host_interface($spec);
+    if ($interface) {
+        $params['interfaces'] = [$interface];
+    }
+
+    if (!empty($spec['groups'])) {
+        $params['groups'] = array_map(function ($group_id) {
+            return ['groupid' => (int)$group_id];
+        }, array_values($spec['groups']));
+    }
+
+    if (!empty($spec['templates'])) {
+        $params['templates'] = array_map(function ($template_id) {
+            return ['templateid' => (int)$template_id];
+        }, array_values($spec['templates']));
+    }
+
+    if (!empty($spec['macros'])) {
+        $params['macros'] = $spec['macros'];
+    }
+
+    if (!empty($spec['tags'])) {
+        $params['tags'] = zabbix_api_tag_list($spec['tags']);
+    }
+
+    $created = zabbix_api_request('host.create', $params);
+    if (!is_array($created) || empty($created['hostids'])) {
+        return null;
+    }
+    return $created['hostids'][0];
+}
+
+// Update of the host, only the passed keys are touched. zabbix replaces the full
+// lists of templates, macros and tags, so the merged lists must be passed
+function zabbix_api_update_host($hostid, $update)
+{
+    $params = ['hostid' => $hostid];
+
+    if (!empty($update['host'])) {
+        $params['host'] = $update['host'];
+    }
+    if (isset($update['description'])) {
+        $params['description'] = $update['description'];
+    }
+    if (!empty($update['templates'])) {
+        $params['templates'] = array_map(function ($template_id) {
+            return ['templateid' => (int)$template_id];
+        }, array_values($update['templates']));
+    }
+    if (!empty($update['macros'])) {
+        $params['macros'] = $update['macros'];
+    }
+    if (!empty($update['tags'])) {
+        $params['tags'] = zabbix_api_tag_list($update['tags']);
+    }
+    if (!empty($update['groups'])) {
+        $params['groups'] = array_map(function ($group_id) {
+            return ['groupid' => (int)$group_id];
+        }, array_values($update['groups']));
+    }
+    if (isset($update['status'])) {
+        $params['status'] = (int)$update['status'];
+    }
+
+    return zabbix_api_request('host.update', $params) !== null;
+}
+
+// Monitoring of the host is switched off, the host is never removed from zabbix
+function zabbix_api_set_host_status($hostid, $status)
+{
+    return zabbix_api_update_host($hostid, ['status' => (int)$status]);
+}
+
+// hash reference of tags => list of zabbix tags
+function zabbix_api_tag_list($tags)
+{
+    $list = [];
+    foreach ($tags as $tag => $value) {
+        if ($value === null) {
+            continue;
+        }
+        $value = preg_replace('/\s+/', ' ', (string)$value);
+        $list[] = ['tag' => $tag, 'value' => $value];
+    }
+    return $list;
+}

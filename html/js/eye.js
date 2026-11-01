@@ -322,6 +322,10 @@
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'es-btn';
+    // the label is a node of its own, so a long name can be cut with an ellipsis
+    var label = document.createElement('span');
+    label.className = 'es-txt';
+    btn.appendChild(label);
     btn.setAttribute('role', 'combobox');
     btn.setAttribute('aria-haspopup', 'listbox');
     btn.setAttribute('aria-expanded', 'false');
@@ -351,8 +355,8 @@
     var act = -1;            // highlighted row
 
     function paint() {
-      btn.textContent = esSelectedText(sel) || '—';
-      btn.title = btn.textContent;
+      label.textContent = esSelectedText(sel) || '—';
+      btn.title = label.textContent;
       btn.disabled = sel.disabled;
       wrap.classList.toggle('es-dis', sel.disabled);
     }

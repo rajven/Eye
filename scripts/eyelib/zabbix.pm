@@ -321,7 +321,7 @@ my @names = @_;
 return {} if (!scalar(@names));
 
 my $hosts = zabbix_api_call('host.get', {
-    output => ['hostid', 'host', 'name', 'status'],
+    output => ['hostid', 'host', 'name', 'status', 'display', 'description'],
     filter => { host => \@names },
     selectParentTemplates => ['templateid', 'host', 'name'],
     selectMacros => ['macro', 'value', 'type'],
@@ -355,7 +355,7 @@ my $value = shift;
 return if (!defined $value or $value eq '');
 
 my $hosts = zabbix_api_call('host.get', {
-    output => ['hostid', 'host', 'name', 'status'],
+    output => ['hostid', 'host', 'name', 'status', 'display', 'description'],
     tags => [{ tag => ZABBIX_TAG_EYE, value => $value, operator => 1 }],
     selectParentTemplates => ['templateid', 'host', 'name'],
     selectMacros => ['macro', 'value', 'type'],
@@ -376,7 +376,7 @@ return {} if (!$tag_name);
 
 my $names = zabbix_select_groups();
 my $hosts = zabbix_api_call('host.get', {
-    output => ['hostid', 'host', 'name', 'status'],
+    output => ['hostid', 'host', 'name', 'status', 'display', 'description'],
     #operator 4 - the host has a tag with this name, the value is not checked
     tags => [{ tag => $tag_name, value => '', operator => 4 }],
     selectParentTemplates => ['templateid', 'host', 'name'],
@@ -434,6 +434,8 @@ return {
     hostid => $host->{hostid},
     host => $host->{host} // '',
     name => $host->{name} // '',
+    display => $host->{display} // '',
+    description => $host->{description} // '',
     status => defined $host->{status} ? $host->{status} : 0,
     templates => \@templates,
     macros => \@macros,
@@ -495,7 +497,8 @@ return if (!$name);
 
 my %params = (
     host => $name,
-    name => $host->{display} // $name,
+    name => $name,
+    description => $host->{description} // '',
     status => 0,
     );
 
@@ -545,7 +548,7 @@ return if (!$hostid);
 my %params = ( hostid => $hostid );
 
 $params{host} = $host->{host} if ($host->{host});
-$params{name} = $host->{display} if (defined $host->{display});
+$params{description} = $host->{description} if (defined $host->{description});
 $params{templates} = [ map { { templateid => $_ } } @{ $host->{templates} } ] if ($host->{templates});
 $params{macros} = zabbix_macro_list($host->{macros}) if ($host->{macros});
 $params{tags} = zabbix_tag_list($host->{tags}) if ($host->{tags});

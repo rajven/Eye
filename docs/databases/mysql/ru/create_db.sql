@@ -375,7 +375,6 @@ CREATE TABLE `user_auth` (
   `blocked` tinyint(1) NOT NULL DEFAULT 0,
   `day_quota` int(11) NOT NULL DEFAULT 0,
   `month_quota` int(11) NOT NULL DEFAULT 0,
-  `device_model_id` int(11) DEFAULT 87,
   `firmware` varchar(100) DEFAULT NULL,
   `ts` DATETIME NOT NULL DEFAULT current_timestamp(),
   `client_id` varchar(250) DEFAULT NULL,
@@ -465,7 +464,7 @@ CREATE TABLE `vendors` (
 
 CREATE TABLE `version` (
   `id` int(11) NOT NULL DEFAULT 1,
-  `version` varchar(10) NOT NULL DEFAULT '3.2.2'
+  `version` varchar(10) NOT NULL DEFAULT '3.2.3'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `wan_stats` (

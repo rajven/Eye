@@ -6,6 +6,19 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 $device = get_record($db_link, 'devices', "id = ?", [$id]);
 $user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$device['user_id']]);
 
+// manual export of the zabbix host, the device record itself is not changed
+if (isset($id) && (getPOST("zbx_sync") !== null || getPOST("zbx_off") !== null)) {
+    if (getPOST("zbx_off") !== null) {
+        $zbx_state = zabbix_record_state($db_link, 'netdev', (int)$id);
+        $zbx_result = ($zbx_state === null) ? ['action' => 'skipped'] : zabbix_record_switch_off($db_link, $zbx_state);
+    } else {
+        $zbx_result = zabbix_record_sync($db_link, 'netdev', (int)$id);
+    }
+    $_SESSION[$page_url]['msg'] = zabbix_record_sync_message($db_link, $zbx_result);
+    header("Location: " . $_SERVER["REQUEST_URI"]);
+    exit;
+}
+
 if (getPOST("editdevice") !== null && isset($id)) {
     // === УПРАВЛЕНИЕ ПОРТАМИ ====================================================
     $sw_ports = (int)getPOST("f_port_count", null, 0);
@@ -126,10 +139,24 @@ if (getPOST("editdevice") !== null && isset($id)) {
     // Discovery
     $new['discovery']             = trim(getPOST("f_discovery", null, 0));
 
-    // Nagios
+    // monitoring
     $f_monitoring                 = (int)getPOST("f_monitoring", null, -1);
     if ($f_monitoring !== -1) {
-        set_monitoring($new, $cur_device['monitoring'], $f_monitoring);
+        $monitor_conflict = null;
+        if ((int)$f_monitoring === 1 && (int)$cur_device['monitoring'] === 0 && (int)$cur_device['device_type'] > 2) {
+            // a device above the second type shares its host with the addresses of the user,
+            // the address record is the one which is monitored
+            $sibling = get_monitoring_owner($db_link, $cur_device['user_id']);
+            if ($sibling !== null) {
+                $monitor_conflict = auth_monitoring_conflict_text(['type' => 'auth', 'name' => $sibling['ip']]);
+                set_monitoring($new, $cur_device['monitoring'], 0);
+                $_SESSION[$page_url]['msg'] = $monitor_conflict;
+                LOG_WARNING($db_link, $monitor_conflict);
+            }
+        }
+        if ($monitor_conflict === null) {
+            set_monitoring($new, $cur_device['monitoring'], $f_monitoring);
+        }
         if ($new['monitoring'] == 0) {
             $new['monitoring_status'] = 'UP';
         }
@@ -149,6 +176,11 @@ if (getPOST("editdevice") !== null && isset($id)) {
 
     // === СОХРАНЕНИЕ =============================================================
     update_record($db_link, "devices", "id = ?", $new, [$id]);
+
+    // the zabbix host of the device is created, updated or switched off at once
+    $_SESSION[$page_url]['msg'] = zabbix_record_report_message($db_link, 'netdev', (int)$id,
+        $_SESSION[$page_url]['msg'] ?? '');
+
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -168,6 +200,11 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
         if ($_GET['status'] === 'locked') {
             print '<div id="msg">' . WEB_device_locked . '</div>';
         }
+    }
+
+    if (!empty($_SESSION[$page_url]['msg'])) {
+        print '<div id="msg">' . $_SESSION[$page_url]['msg'] . '</div>';
+        unset($_SESSION[$page_url]['msg']);
     }
     ?>
 
@@ -348,6 +385,9 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                     print "</tr>";
                 }
             }
+
+            // one device is one host in the monitoring system
+            print_zabbix_record_block($db_link, 'netdev', (int)$id, true, 3);
 
             //save button
             if ($device['snmp_version'] > 0) {

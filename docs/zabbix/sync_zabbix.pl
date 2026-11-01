@@ -6,8 +6,13 @@
 
 # sync_zabbix.pl - export eye network devices and user ip records into zabbix.
 #
-# The script is the analog of docs/nagios/gen_nagios_config.pl for zabbix.
-# It does not write any config files, it changes zabbix through the json rpc api.
+# The script is the analog of docs/nagios/gen_nagios_config.pl. It does not write any
+# config files, it changes zabbix through the json rpc api.
+#
+# The eye web interface exports a device and an ip record to zabbix by itself while the
+# record is saved, this script is the reserve way: it reconciles the whole installation
+# at once, so it is still needed after the mass changes, the renames of the switches
+# (the parent tag of the children) and the restoring of zabbix.
 #
 # zabbix is used when the eye config options are set:
 #   74 - monitoring system = zabbix
@@ -166,8 +171,7 @@ my %name_count;
             type => 'netdev',
             id => $device->{id},
             host => $name,
-            #the description of the device becomes the visible name of the host
-            display => host_display_name($device->{description}, $name),
+            description => $device->{description},
             ip => $device->{ip},
             model_id => $device->{device_model_id} // 0,
             parent => '',
@@ -236,7 +240,7 @@ my %name_count;
             id => $auth->{id},
             host => $name,
             #the description of the record becomes the visible name of the host
-            display => host_display_name($auth->{description}, $name),
+            description => $auth->{description} // '',
             ip => $auth->{ip},
             model_id => $model_id,
             parent => '',
@@ -410,7 +414,7 @@ if ($opt_dry) {
 
 my $hostid = zabbix_create_host({
     host => $host->{host},
-    display => $host->{display},
+    description => $host->{description} // '',
     ip => $host->{ip},
     snmp => $host->{snmp},
     groups => $groups,
@@ -434,7 +438,8 @@ if (!$hostid) {
 $tagged_hosts{$eye_tag} = {
     hostid => $hostid,
     host => $host->{host},
-    name => $host->{display},
+    name => $host->{host},
+    description => $host->{description},
     status => 0,
     templates => [],
     macros => $macros,
@@ -447,7 +452,7 @@ $tagged_hosts{$eye_tag} = {
 $known_hosts{ zabbix_host_key($host->{host}) } = {
     hostid => $hostid,
     host => $host->{host},
-    name => $host->{display},
+    description => $host->{description},
     status => 0,
     templates => [ map { { templateid => $_ } } @$templates ],
     macros => $macros,
@@ -470,11 +475,11 @@ my %update;
 my $change = 0;
 
 # eye owns only the hosts it created itself
-my $old_eyetag = zabbix_host_tag_value($zbx_host, $tag_eye);
-if ($old_eyetag eq '') {
-    log_warning("Zabbix: host $host->{host} exists in zabbix but was not created by eye, it is left untouched");
-    return 'unchanged';
-    }
+#my $old_eyetag = zabbix_host_tag_value($zbx_host, $tag_eye);
+#if ($old_eyetag eq '') {
+#    log_warning("Zabbix: host $host->{host} exists in zabbix but was not created by eye, it is left untouched");
+#    return 'unchanged';
+#    }
 
 if (zabbix_host_key($zbx_host->{host}) ne zabbix_host_key($host->{host})) {
     log_info("Zabbix: host " . $zbx_host->{host} . " must be renamed to $host->{host}");
@@ -482,9 +487,10 @@ if (zabbix_host_key($zbx_host->{host}) ne zabbix_host_key($host->{host})) {
     $change = 1;
     }
 
-if (defined $zbx_host->{name} && $zbx_host->{name} ne $host->{display}) {
-    log_info("Zabbix: host $host->{host} visible name changed from '" . $zbx_host->{name} . "' to '" . $host->{display} . "'");
-    $update{display} = $host->{display};
+if (!defined $zbx_host->{description}) {  $zbx_host->{description}=''; }
+if ($zbx_host->{description} ne $host->{description}) {
+    log_info("Zabbix: host $host->{host} visible description changed from '" . $zbx_host->{description} . "' to '" . $host->{description} . "'");
+    $update{description} = $host->{description};
     $change = 1;
     }
 
@@ -702,20 +708,8 @@ return $fallback;
 
 sub auth_host_name {
 my ($auth, $login) = @_;
-
 return $auth->{dns_name} if ($auth->{dns_name});
-return $auth->{dhcp_hostname} if ($auth->{dhcp_hostname});
-
-if ($auth->{description}) {
-    my $description = translit($auth->{description});
-    $description =~ s/\(/-/g;
-    $description =~ s/\)/-/g;
-    $description =~ s/--/-/g;
-    return $description if ($description);
-    }
-
-my $user_login = ($login and $login->{login}) ? $login->{login} : 'host';
-return $user_login . '_' . $auth->{id};
+return $login->{login}
 }
 
 #===============================================================

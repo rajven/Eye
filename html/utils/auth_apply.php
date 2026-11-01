@@ -29,6 +29,12 @@ if (getPOST("ApplyForAll", $page_url)) {
     $m_handler = getPOST("m_handler", $page_url, '');
 
 
+    // several addresses of one user describe one device, so only the first address
+    // of the user is processed, the rest of them are ignored and written to the log
+    $done_users = [];
+    $skipped = [];
+    $skipped_monitoring = [];
+
     foreach ($auth_id as $val) {
         $id = (int)$val;
         if ($id <= 0) continue;
@@ -39,6 +45,18 @@ if (getPOST("ApplyForAll", $page_url)) {
 
         $user_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [(int)$cur_auth["user_id"]]);
         if (!$user_info) continue;
+
+        if (isset($done_users[(int)$cur_auth['user_id']])) {
+            $skipped[] = $cur_auth['ip'] . ' (' . $user_info['login'] . ')';
+            continue;
+        }
+        $done_users[(int)$cur_auth['user_id']] = 1;
+
+        // one device is one host in the monitoring system
+        $monitor_conflict = null;
+        if (getPOST("e_mon_enabled", $page_url) !== null && $m_enabled == 1 && (int)$cur_auth['monitoring'] === 0) {
+            $monitor_conflict = get_auth_monitoring_conflict($db_link, $cur_auth);
+        }
 
         // Формируем данные для обновления auth
         $auth_updates = [];
@@ -65,9 +83,18 @@ if (getPOST("ApplyForAll", $page_url)) {
             $auth_updates['save_traf'] = $a_traf;
         }
         if (getPOST("e_mon_enabled", $page_url) !== null) {
-            set_monitoring($auth_updates, $cur_auth['monitoring'], $m_enabled);
-            if ($auth_updates['monitoring'] == 0) {
-                $auth_updates['monitoring_status'] = 'UP';
+            if ($monitor_conflict !== null) {
+                $skipped_monitoring[] = $cur_auth['ip'] . ' (' . $user_info['login'] . ')';
+                LOG_WARNING($db_link, $cur_auth['ip'] . ': ' . auth_monitoring_conflict_text($monitor_conflict));
+                if ((int)$cur_auth['monitoring'] === 0) {
+                    $auth_updates['monitoring'] = 0;
+                    $auth_updates['monitoring_status'] = 'UP';
+                }
+            } else {
+                set_auth_monitoring($auth_updates, $db_link, $cur_auth, $m_enabled);
+                if ($auth_updates['monitoring'] == 0) {
+                    $auth_updates['monitoring_status'] = 'UP';
+                }
             }
         }
         if (getPOST("e_mon_link", $page_url) !== null) {
@@ -81,6 +108,14 @@ if (getPOST("ApplyForAll", $page_url)) {
         if (!empty($auth_updates)) {
             $ret = update_record($db_link, "user_auth", "id = ?", $auth_updates, [$id]);
             if (!$ret) $all_ok = false;
+
+            // the zabbix host of the record follows the changes of the monitoring flag
+            if (isset($auth_updates['monitoring'])) {
+                $zbx_message = zabbix_record_sync_report($db_link, 'auth', $id);
+                if ($zbx_message !== '') {
+                    LOG_INFO($db_link, $cur_auth['ip'] . ': ' . $zbx_message);
+                }
+            }
         }
 
         // Изменение группы пользователя
@@ -147,6 +182,14 @@ if (getPOST("ApplyForAll", $page_url)) {
             }
         }
     }
+}
+
+// the skipped addresses are reported into the worklog and to the operator
+if (!empty($skipped)) {
+    LOG_WARNING($db_link, WEB_zabbix_mass_skipped . ' ' . implode(', ', $skipped) . '. ' . WEB_zabbix_mass_same_user);
+}
+if (!empty($skipped_monitoring)) {
+    LOG_WARNING($db_link, WEB_monitoring_skipped . ' ' . implode(', ', $skipped_monitoring));
 }
 
 $message = $all_ok ? "Success!" : "Fail!";

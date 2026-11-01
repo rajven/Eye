@@ -1,3 +1,13 @@
+# Changelog 3-2-3 - release
+- added: the zabbix host of a device or an ip record is created, updated and switched off by the web interface itself, the sync_zabbix.pl script is kept as a fallback for the scheduled reconciliation.
+- added: the forms of the device and of the ip record show the state of the zabbix host and the buttons of the manual export and of switching the host off.
+- changed: user_auth.device_model_id is dropped, the model of the addresses is taken from the device bound to them only.
+- changed: monitoring of the addresses of one user is exclusive, while one of the addresses is monitored the field is blocked on the others.
+- changed: the mass operations of the addresses skip the records of a user which is processed already, the skipped addresses are written to the journal.
+- changed: searchable dropdowns take the whole table cell, a long option (a device model) is cut with an ellipsis instead of wrapping to several lines.
+- changed: the transliteration table of the web interface repeats eyelib::main::translit, so the web and sync_zabbix.pl give the same host names.
+- changed: sync_zabbix.pl is documented as the reserve way, the web interface exports a record to zabbix while the record is saved.
+
 # Changelog 3-2-2 - release
 - changed: zabbix_macros_list is the global list of the zabbix macros now, the macro name is unique and the device_model_id field is removed.
 - changed: zabbix_macros binds a macro of the global list to a device model (macros_list_id + device_model_id), the duplicated macro_name field is removed, an empty macro_value means the default value of the list.

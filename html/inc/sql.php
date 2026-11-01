@@ -106,7 +106,7 @@ function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $n
                 'user_id', 'ou_id', 'ip', 'save_traf', 'enabled', 'dhcp', 'filter_group_id',
                 'dynamic', 'end_life', 'description', 'dns_name', 'dns_ptr_only', 'wikiname',
                 'dhcp_acl', 'queue_id', 'mac', 'dhcp_option_set', 'blocked', 'day_quota',
-                'month_quota', 'device_model_id', 'firmware', 'client_id', 'monitoring', 'monitoring_old',
+                'month_quota', 'firmware', 'client_id', 'monitoring', 'monitoring_old',
                 'monitoring_status', 'nagios_handler', 'link_check', 'deleted'
             ]
         ],
