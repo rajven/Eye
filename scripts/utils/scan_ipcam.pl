@@ -75,43 +75,31 @@ $result->{text} = trim($result->{text});
 return $result;
 }
 
-my @auth_list=get_records_sql($dbh,'SELECT * FROM user_auth WHERE deleted=0 and monitoring=1');
+#the cameras are the devices of eye, an ip record of a user is not a host anymore
+my @cam_list=get_records_sql($dbh,'SELECT * FROM devices WHERE deleted=0 and monitoring=1');
 
-##################################### User auth analyze ################################################
+##################################### Cameras analyze ################################################
 
-if (scalar(@auth_list)>0) {
-    foreach my $auth (@auth_list) {
-        next if (!$auth);
-        my $ip = $auth->{'ip'};
+if (scalar(@cam_list)>0) {
+    foreach my $cam_dev (@cam_list) {
+        next if (!$cam_dev);
+        my $ip = $cam_dev->{'ip'};
+        next if (!$ip);
         $ip =~s/\/\d+$//g;
-        #get user
-        my $login = get_record_sql($dbh,"SELECT * FROM user_list WHERE id=".$auth->{'user_id'});
-        next if ($login->{ou_id} ne 5);
-
-        my $cam_dev = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=".$auth->{'user_id'});
+        #the cameras of the organizational unit of the video surveillance
+        my $login = get_record_sql($dbh,"SELECT * FROM user_list WHERE id=".$cam_dev->{'user_id'});
+        next if (!$login or $login->{ou_id} ne 5);
 
         my $d_community=undef;
         my $d_version=undef;
 
-        if ($cam_dev) {
-            if ($cam_dev->{snmp_version}) { $d_version=$cam_dev->{snmp_version}; }
-            if ($cam_dev->{community}) { $d_community=$cam_dev->{community}; }
-            }
+        if ($cam_dev->{snmp_version}) { $d_version=$cam_dev->{snmp_version}; }
+        if ($cam_dev->{community}) { $d_community=$cam_dev->{community}; }
         if (!$d_version) { $d_version=$config_ref{snmp_default_version}; }
         if (!$d_community) { $d_community=$config_ref{snmp_default_community}; }
 
-        my $snmp_info = scan_ipcam($auth->{ip},$d_community,$d_version);
+        my $snmp_info = scan_ipcam($ip,$d_community,$d_version);
         if ($snmp_info) {
-            if (!$cam_dev) {
-                $cam_dev->{user_id}=$auth->{'user_id'};
-                $cam_dev->{device_type}=5;
-                $cam_dev->{ip}=$auth->{'ip'};
-                $cam_dev->{device_name}=$login->{login};
-                $cam_dev->{snmp_version}=$config_ref{snmp_default_version};
-                $cam_dev->{community}=$config_ref{snmp_default_community};
-                my $new_dev_id = insert_record($dbh,"devices",$cam_dev);
-                $cam_dev = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=".$auth->{'user_id'});
-                }
             if ($snmp_info->{firmware} and ($cam_dev->{firmware} ne $snmp_info->{firmware})) {
                 do_sql($dbh,"UPDATE devices SET firmware='".$snmp_info->{firmware}."' WHERE id=".$cam_dev->{'id'});
                 }

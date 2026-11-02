@@ -122,6 +122,9 @@ sub read_host_template {
 
 #---------------------------------------------------------------------------------
 
+# Host of the equipment which is not a switch and not a router: a device of eye of the
+# user, of the camera or of any other type. Its own snmp parameters are not used, the
+# port of the access switch is checked over the snmp of that switch
 sub print_single_host {
 my $device = shift;
 my $host_template = 'generic-host';
@@ -143,15 +146,15 @@ print(FH "       use                     $host_template\n");
 print(FH "       host_name               $device->{name}\n");
 print(FH "       alias                   $device->{name}\n");
 print(FH "       address                 $device->{ip}\n");
-print(FH "       _ID			 $device->{auth_id}\n"); 
-print(FH "       _TYPE			 user\n");
+print(FH "       _ID                     $device->{device_id}\n");
+print(FH "       _TYPE                   device\n");
 if ($device->{device_model}) {
 	print(FH "       notes		$device->{device_model}->{model_name}\n"); 
 	}
 if ($device->{parent_name}) {
         print(FH "       parents                    $device->{parent_name}\n");
         }
-print(FH "       notes_url       ".$config_ref{stat_url}."/admin/users/editauth.php?id=".$device->{auth_id}."\n");
+print(FH "       notes_url       ".$config_ref{stat_url}."/admin/devices/editdevice.php?id=$device->{device_id}\n");
 print(FH "       }\n\n");
 
 if ($ping_enable) {
@@ -163,7 +166,8 @@ if ($ping_enable) {
 	print(FH "       }\n");
 	print(FH "\n");
     }
-if ($device->{parent_name} and $device->{link_check} and $device->{parent_snmp}->{version}) {
+# the link of the access switch port of the device is checked when it is asked for
+if ($device->{parent_name} and $device->{link_check} and $device->{parent_snmp}->{version} and $device->{parent_port}) {
 	#port status
         print(FH "define service{\n");
         print(FH "       use                        $default_service\n");
@@ -307,7 +311,7 @@ if (in_array([0,1,2],$device->{type})) {
     close FH;
     }
 
-#auth record
+#a device which is not a switch, a router or a gateway
 if ($device->{type} eq 3) {
     my $cfg_file = print_single_host($device);
     open(FH, ">> $cfg_file");

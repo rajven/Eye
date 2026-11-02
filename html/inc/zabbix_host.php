@@ -23,11 +23,10 @@ function zabbix_record_state($db, $type, $id)
         return null;
     }
 
+    // only a device of eye is a host of the monitoring system, an ip record of a user
+    // is served by the device of its owner
     if ($type === 'netdev') {
         return zabbix_device_state($db, $id);
-    }
-    if ($type === 'auth') {
-        return zabbix_auth_state($db, $id);
     }
 
     return null;
@@ -84,59 +83,19 @@ function zabbix_device_state($db, $device_id)
         }
     }
 
-    return $state;
-}
-
-// State of an ip record, the device model of the record is taken from the bound device
-function zabbix_auth_state($db, $auth_id)
-{
-    $auth = get_record_sql($db, "SELECT * FROM user_auth WHERE id = ? AND deleted = 0", [$auth_id]);
-    if (empty($auth)) {
-        return null;
-    }
-
-    $login = get_record_sql($db, "SELECT * FROM user_list WHERE id = ?", [(int)$auth['user_id']]);
-    $device = get_record_sql($db, "SELECT * FROM devices WHERE user_id = ?", [(int)$auth['user_id']]);
-
-    // a monitored switch or a monitored router is exported as a network device
-    if (!empty($device) && (int)$device['deleted'] === 0
-        && (int)$device['device_type'] <= 2 && (int)$device['monitoring'] === 1) {
-        return null;
-    }
-
-    $model_id = !empty($device) ? (int)($device['device_model_id'] ?? 0) : 0;
-
-    // the name of the host is built by the rule of the export script
-    $name = zabbix_auth_host_name($auth, $login);
-
-    $state = [
-        'type' => 'auth',
-        'id' => (int)$auth['id'],
-        'key' => 'auth_' . $auth['id'],
-        'host' => $name,
-        'description' => $auth['description'],
-        'ip' => $auth['ip'],
-        // the model of the addresses is the model of the device bound to them
-        'model_id' => $model_id,
-        // macros and tags are bound to the device of the user, when it is registered
-        'device_id' => !empty($device) ? (int)$device['id'] : 0,
-        'monitoring' => (int)($auth['monitoring'] ?? 0),
-        'monitoring_old' => (int)($auth['monitoring_old'] ?? 0),
-        'parent' => '',
-        'snmp' => !empty($device) ? zabbix_record_snmp($device) : [],
-    ];
-
-    // the address belongs to the ou of the user, as the export script does
-    $state['ou_id'] = (int)($login['ou_id'] ?? 0);
-
-    // the switch the address is connected to becomes the parent tag
-    $connection = get_record_sql($db, "SELECT * FROM connections WHERE auth_id = ?", [(int)$auth['id']]);
-    if (!empty($connection['port_id'])) {
-        $port = get_record_sql($db, "SELECT * FROM device_ports WHERE id = ?", [(int)$connection['port_id']]);
-        if (!empty($port['device_id'])) {
-            $parent = get_record_sql($db, "SELECT * FROM devices WHERE id = ? AND deleted = 0", [(int)$port['device_id']]);
-            if (!empty($parent)) {
-                $state['parent'] = $parent['device_name'];
+    // the equipment of a user has no ports of its own: the port of an address of the
+    // owner shows the access switch, the same rule as in sync_zabbix.pl
+    if ($state['parent'] === '' && !empty($device['user_id'])) {
+        $connection = get_record_sql($db,
+            "SELECT * FROM connections WHERE auth_id IN (SELECT id FROM user_auth WHERE user_id = ? AND deleted = 0) ORDER BY auth_id, port_id LIMIT 1",
+            [(int)$device['user_id']]);
+        if (!empty($connection['port_id'])) {
+            $access_port = get_record_sql($db, "SELECT * FROM device_ports WHERE id = ?", [(int)$connection['port_id']]);
+            if (!empty($access_port['device_id'])) {
+                $parent = get_record_sql($db, "SELECT * FROM devices WHERE id = ? AND deleted = 0", [(int)$access_port['device_id']]);
+                if (!empty($parent)) {
+                    $state['parent'] = $parent['device_name'];
+                }
             }
         }
     }
@@ -474,8 +433,8 @@ function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $grou
 }
 
 // Hosts of the organizational unit which zabbix shows in the given host group and
-// which eye created itself: the eye tag of the host points to an eye record, and the
-// organizational unit of that record is the ou of the form
+// which eye created itself: the eye tag of the host points to the device of eye, and
+// the organizational unit of that device is the ou of the form
 function zabbix_ou_group_hosts($db, $ou_id, $group_id)
 {
     $params = [
@@ -493,21 +452,13 @@ function zabbix_ou_group_hosts($db, $ou_id, $group_id)
             continue;
         }
 
+        // a host created for an ip record before is not managed by eye anymore
         $key = zabbix_host_tag_value(zabbix_host_normalize($zbx_host), ZABBIX_TAG_EYE);
-        $type = null;
-        $id = 0;
-        if (preg_match('/^netdev_(\d+)$/i', $key, $match)) {
-            $type = 'netdev';
-            $id = (int)$match[1];
-        } elseif (preg_match('/^auth_(\d+)$/i', $key, $match)) {
-            $type = 'auth';
-            $id = (int)$match[1];
-        }
-        if ($type === null) {
+        if (!preg_match('/^netdev_(\d+)$/i', $key, $match)) {
             continue;
         }
 
-        $state = zabbix_record_state($db, $type, $id);
+        $state = zabbix_record_state($db, 'netdev', (int)$match[1]);
         if ($state !== null && (int)$state['ou_id'] === (int)$ou_id) {
             $found[] = $zbx_host;
         }

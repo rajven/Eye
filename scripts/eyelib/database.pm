@@ -359,7 +359,8 @@ sub prepare_audit_message {
                 'description', 'snmp_version', 'snmp3_auth_proto', 'snmp3_priv_proto',
                 'snmp3_user_rw', 'snmp3_user_ro', 'community', 'rw_community',
                 'discovery', 'netflow_save', 'user_acl', 'dhcp', 'monitoring', 'monitoring_old',
-                'monitoring_status', 'active', 'queue_enabled', 'connected_user_only', 'user_id'
+                'link_check', 'nagios_handler', 'wikiname', 'monitoring_status', 'active',
+                'queue_enabled', 'connected_user_only', 'user_id'
             ]
         },
         'device_filter_instances' => {
@@ -426,10 +427,9 @@ sub prepare_audit_message {
             summary => ['ip', 'dns_name'],
             fields  => [
                 'user_id', 'ou_id', 'ip', 'save_traf', 'enabled', 'dhcp', 'filter_group_id',
-                'dynamic', 'end_life', 'description', 'dns_name', 'dns_ptr_only', 'wikiname',
+                'dynamic', 'end_life', 'description', 'dns_name', 'dns_ptr_only',
                 'dhcp_acl', 'queue_id', 'mac', 'dhcp_option_set', 'blocked', 'day_quota',
-                'month_quota', 'firmware', 'client_id', 'monitoring', 'monitoring_old',
-                'monitoring_status', 'nagios_handler', 'link_check', 'deleted'
+                'month_quota', 'firmware', 'client_id', 'deleted'
             ]
         },
         'user_auth_alias' => {

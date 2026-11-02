@@ -1,6 +1,6 @@
 #!/bin/bash
 
-/opt/Eye/scripts/gen_nagios_config.pl
+/opt/Eye/scripts/utils/nagios/gen_nagios_config.pl
 [ $? -ne 0 ] && exit
 
 /opt/Eye/scripts/sync_mikrotik_poe_monitor.pl

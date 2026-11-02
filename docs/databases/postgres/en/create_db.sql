@@ -135,6 +135,9 @@ user_acl SMALLINT NOT NULL DEFAULT 0,
 dhcp SMALLINT NOT NULL DEFAULT 0,
 monitoring SMALLINT NOT NULL DEFAULT 0,
 monitoring_old SMALLINT NOT NULL DEFAULT 0,
+link_check SMALLINT NOT NULL DEFAULT 0,
+nagios_handler VARCHAR(50) NOT NULL DEFAULT '',
+wikiname VARCHAR(250),
 active SMALLINT NOT NULL DEFAULT 1,
 monitoring_status VARCHAR(10) NOT NULL DEFAULT 'UP',
 queue_enabled SMALLINT NOT NULL DEFAULT 0,
@@ -150,6 +153,9 @@ COMMENT ON COLUMN devices.ip IS 'Device management IP address';
 COMMENT ON COLUMN devices.snmp_version IS 'SNMP version: 0=disabled, 1=v1, 2=v2c, 3=v3';
 COMMENT ON COLUMN devices.discovery IS 'Enable automatic discovery';
 COMMENT ON COLUMN devices.active IS 'Device is active and monitored';
+COMMENT ON COLUMN devices.link_check IS 'The link state of the switch port of this device is checked by the monitoring system';
+COMMENT ON COLUMN devices.nagios_handler IS 'Event handler of the monitoring system for this device';
+COMMENT ON COLUMN devices.wikiname IS 'Wiki page name of this device';
 
 -- Device filter instances
 CREATE TABLE device_filter_instances (
@@ -475,7 +481,6 @@ deleted SMALLINT NOT NULL DEFAULT 0,
 description VARCHAR(250),
 dns_name VARCHAR(253),
 dns_ptr_only SMALLINT NOT NULL DEFAULT 0,
-wikiname VARCHAR(250),
 dhcp_acl TEXT,
 queue_id INTEGER NOT NULL DEFAULT 0,
 mac VARCHAR(17),
@@ -492,11 +497,6 @@ month_quota INTEGER NOT NULL DEFAULT 0,
 firmware VARCHAR(100),
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 client_id VARCHAR(250),
-monitoring SMALLINT NOT NULL DEFAULT 0,
-monitoring_old SMALLINT NOT NULL DEFAULT 0,
-monitoring_status VARCHAR(10) NOT NULL DEFAULT '',
-nagios_handler VARCHAR(50) NOT NULL DEFAULT '',
-link_check SMALLINT NOT NULL DEFAULT 0,
 changed SMALLINT NOT NULL DEFAULT 0,
 dhcp_changed SMALLINT NOT NULL DEFAULT 0,
 changed_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -506,7 +506,6 @@ COMMENT ON TABLE user_auth IS 'User/device network authorization records';
 COMMENT ON COLUMN user_auth.enabled IS 'This authorization is active';
 COMMENT ON COLUMN user_auth.dynamic IS 'This is a dynamically created record';
 COMMENT ON COLUMN user_auth.day_quota IS 'Daily traffic quota in bytes';
-COMMENT ON COLUMN user_auth.monitoring IS 'Enable monitoring for this host (monitoring system depends on config option)';
 
 -- User authorization aliases
 CREATE TABLE user_auth_alias (
@@ -601,7 +600,7 @@ COMMENT ON TABLE vendors IS 'Network equipment vendors';
 -- System version
 CREATE TABLE version (
 id INTEGER PRIMARY KEY DEFAULT 1,
-version VARCHAR(10) NOT NULL DEFAULT '3.2.4'
+version VARCHAR(10) NOT NULL DEFAULT '3.2.5'
 );
 COMMENT ON TABLE version IS 'System version information';
 

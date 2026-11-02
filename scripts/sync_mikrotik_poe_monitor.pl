@@ -48,7 +48,9 @@ my $switch_ip=$device->{ip};
 
 my @cmd_list=();
 
-my @auth_list = get_records_sql($dbh,"SELECT DP.port,AU.ip,AU.dns_name FROM device_ports AS DP, user_auth as AU, connections as C WHERE DP.id=C.port_id and C.auth_id=AU.id and AU.deleted=0 and AU.monitoring=1 and C.device_id=?",$device->{id});
+#the host of the monitoring system is a device of eye, so the port of the switch is
+#observed when the equipment of the user of this port is monitored
+my @auth_list = get_records_sql($dbh,"SELECT DP.port,AU.ip,AU.dns_name FROM device_ports AS DP, user_auth as AU, connections as C, devices as D WHERE DP.id=C.port_id and C.auth_id=AU.id and AU.deleted=0 and D.user_id=AU.user_id and D.deleted=0 and D.monitoring=1 and C.device_id=?",$device->{id});
 
 my %work_list;
 foreach my $auth (@auth_list) {

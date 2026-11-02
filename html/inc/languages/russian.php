@@ -572,6 +572,15 @@ define("WEB_lbl_nomatch","Ничего не найдено");
 
 /* мониторинг zabbix */
 define("WEB_cell_monitoring_status","Состояние мониторинга");
+define("WEB_host_monitoring_device","Хост мониторинга устройства:");
+define("WEB_monitoring_disabled_host","это устройство не мониторится");
+define("WEB_monitoring_no_device","Система мониторинга видит устройство пользователя; у этого адреса нет устройства eye, хоста нет");
+define("WEB_zabbix_mass_tag_add","Добавить тэг zabbix");
+define("WEB_zabbix_mass_tag_del","Удалить тэг zabbix");
+define("WEB_zabbix_mass_macro_add","Назначить макрос zabbix");
+define("WEB_zabbix_mass_macro_del","Удалить макрос zabbix");
+define("WEB_zabbix_mass_tags","тэги zabbix назначены устройствам");
+define("WEB_zabbix_mass_macros","макросы zabbix назначены устройствам");
 define("WEB_zabbix_host_groups","Группы хостов Zabbix");
 define("WEB_zabbix_group_not_found","группа не найдена в zabbix:");
 define("WEB_zabbix_group_id","Id группы хостов");
@@ -604,12 +613,6 @@ define("WEB_zabbix_host_note_macros","макросы");
 define("WEB_zabbix_host_note_status","мониторинг снова включён");
 define("WEB_zabbix_sync_now","Выгрузить в zabbix");
 define("WEB_zabbix_sync_off","Отключить хост в zabbix");
-define("WEB_monitoring_taken","мониторинг уже включён на адресе");
-define("WEB_monitoring_skipped","мониторинг не включён на адресах пользователя, чьё устройство уже под мониторингом:");
-define("WEB_monitoring_taken_device","мониторинг уже включён на устройстве");
-define("WEB_monitoring_locked","одному устройству соответствует один хост в системе мониторинга, мониторинг остальных адресов этого пользователя выключен");
-define("WEB_zabbix_mass_same_user","выбрано несколько адресов одного пользователя, обработан только первый");
-define("WEB_zabbix_mass_skipped","Пропущены адреса того же пользователя:");
 define("WEB_zabbix_macros_global","Макросы и тэги привязываются к устройству, а не к его модели:");
 define("WEB_submenu_zabbix_macros","Макросы Zabbix");
 define("WEB_zabbix_macros_page","Макросы Zabbix: глобальный список имён");

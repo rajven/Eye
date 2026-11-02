@@ -118,34 +118,31 @@ if ($hoststate=~/UNREACHABLE/i) { $hoststate='DOWN'; }
 
 my $old_state = 'HARDDOWN';
 
+#the host of the monitoring system is a device of eye, its state and its event handler
+#are kept in the row of the device. a host without the identifier of a device is the
+#host which was created by hand, its state is looked up over the address of the ip
 my $device;
-my $auth;
 my $login;
 my $nagios_handler;
 
 if (!$hostid or $hostid !~ /^[0-9]/) {
-    $auth = get_record_sql($hdb,"SELECT * FROM user_auth WHERE deleted=0 AND ip=?",$hostip);
+    my $auth = get_record_sql($hdb,"SELECT * FROM user_auth WHERE deleted=0 AND ip=?",$hostip);
     next if (!$auth);
     $hostid = $auth->{id};
     $login = get_record_sql($hdb,'SELECT * FROM user_list WHERE id=?',$auth->{user_id});
-    $device = get_record_sql($hdb,'SELECT * FROM devices WHERE user_id=?',$auth->{user_id});
-    if ($auth->{monitoring_status}) { $old_state = $auth->{monitoring_status}; }
+    $device = get_record_sql($hdb,'SELECT * FROM devices WHERE user_id=? AND deleted=0 ORDER BY id LIMIT 1',$auth->{user_id});
+    if ($device and $device->{monitoring_status}) { $old_state = $device->{monitoring_status}; }
     db_log_verbose($hdb,"Manual host: $hostname [$hostip] => $hoststate, old: $old_state");
     } else {
-    if ($hosttype=~/device/i) {
-        $device = get_record_sql($hdb,'SELECT * FROM devices WHERE id=?',$hostid);
+    $device = get_record_sql($hdb,'SELECT * FROM devices WHERE id=?',$hostid);
+    next if (!$device);
+    if ($device->{user_id}) {
         $login = get_record_sql($hdb,'SELECT * FROM user_list WHERE id=?',$device->{user_id});
-        $auth = get_record_sql($hdb,'SELECT * FROM user_auth WHERE user_id=? AND deleted=0 AND ip=?',$device->{user_id},$hostip);
-        if ($device->{monitoring_status}) { $old_state = $device->{monitoring_status}; }
-        } else {
-        $auth = get_record_sql($hdb,'SELECT * FROM user_auth WHERE id=?',$hostid);
-        $login = get_record_sql($hdb,'SELECT * FROM user_list WHERE id=?',$auth->{user_id});
-        $device = get_record_sql($hdb,'SELECT * FROM devices WHERE user_id=?',$auth->{user_id});
-        if ($auth->{monitoring_status}) { $old_state = $auth->{monitoring_status}; }
         }
+    if ($device->{monitoring_status}) { $old_state = $device->{monitoring_status}; }
     }
 
-if ($auth and $auth->{nagios_handler}) { $nagios_handler=$auth->{nagios_handler}; }
+if ($device and $device->{nagios_handler}) { $nagios_handler=$device->{nagios_handler}; }
 
 db_log_debug($hdb,"Get old for $hostname [$hostip] id: $hostid type: $hosttype => state: $old_state");
 if ($hoststate eq "DOWN") { $hoststate=$hoststatetype.$hoststate; }
@@ -158,7 +155,6 @@ if ($hoststate ne $old_state) {
     db_log_verbose($hdb,"Host changed! $hostname [$hostip] => $hoststate, old: $old_state");
     my $ip_aton=StrToIp($hostip);
     if ($device->{id}) { do_sql($hdb,"UPDATE devices SET monitoring_status=? WHERE id=?", $hoststate, $device->{id}); }
-    if ($auth->{id}) { do_sql($hdb,"UPDATE user_auth SET monitoring_status=? WHERE id=?",$hoststate, $auth->{id}); }
     if ($hoststate=~/UP/i) {
         nagios_host_svc_enable($hostname,1);
         db_log_debug($hdb,"Enable notifications for host $hostname [$hostip] id: $hostid services");

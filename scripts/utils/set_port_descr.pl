@@ -38,9 +38,10 @@ foreach my $dev (@all_devices) {
 # Обработка пользователей (user_auth)
 # ==============================================================================
 my @auth_list = get_records_sql($dbh, "
-    SELECT A.id, A.user_id, A.ip, A.dns_name, A.description, A.dhcp_hostname, A.WikiName, K.login
+    SELECT A.id, A.user_id, A.ip, A.dns_name, A.description, A.dhcp_hostname, D.wikiname, K.login
     FROM user_auth AS A
     INNER JOIN user_list AS K ON K.id = A.user_id
+    LEFT JOIN devices AS D ON D.user_id = A.user_id AND D.deleted = 0
     WHERE A.deleted = 0
     ORDER BY A.id
 ");
@@ -55,7 +56,7 @@ foreach my $auth (@auth_list) {
         dns_name      => $auth->{dns_name} // '',
         description   => $auth->{description} // '',
         dhcp_hostname => $auth->{dhcp_hostname} // '',
-        WikiName      => $auth->{WikiName} // '',
+        WikiName      => $auth->{wikiname} // '',
         login         => $auth->{login} // '',
         device        => $devices_by_user_id{$auth->{user_id}},
     };
@@ -63,8 +64,8 @@ foreach my $auth (@auth_list) {
     # Логика формирования описания (fallback)
     if ($auth->{dns_name}) {
         $auth_ref{$id}{description} = $auth->{dns_name};
-    } elsif (!$auth_ref{$id}{description} && $auth->{WikiName}) {
-        $auth_ref{$id}{description} = $auth->{WikiName};
+    } elsif (!$auth_ref{$id}{description} && $auth->{wikiname}) {
+        $auth_ref{$id}{description} = $auth->{wikiname};
     } elsif (!$auth_ref{$id}{description} && $auth->{ip} && $auth->{description}) {
         $auth_ref{$id}{description} = $auth->{ip}. ': '. $auth->{description};
     } elsif (!$auth_ref{$id}{description}) {

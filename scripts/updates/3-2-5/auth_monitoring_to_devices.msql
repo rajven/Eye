@@ -1,0 +1,8 @@
+ALTER TABLE `devices` ADD COLUMN `link_check` tinyint(1) NOT NULL DEFAULT 0 AFTER `monitoring_old`;
+ALTER TABLE `devices` ADD COLUMN `nagios_handler` varchar(50) NOT NULL DEFAULT '' AFTER `link_check`;
+ALTER TABLE `devices` ADD COLUMN `wikiname` varchar(250) DEFAULT NULL AFTER `nagios_handler`;
+UPDATE `devices` d JOIN (SELECT user_id, MAX(monitoring) AS monitoring, MAX(monitoring_old) AS monitoring_old, MAX(link_check) AS link_check FROM `user_auth` WHERE deleted = 0 GROUP BY user_id) a ON a.user_id = d.user_id SET d.monitoring = GREATEST(d.monitoring, a.monitoring), d.monitoring_old = GREATEST(d.monitoring_old, a.monitoring_old), d.link_check = a.link_check WHERE d.deleted = 0;
+UPDATE `devices` d JOIN `user_auth` ua ON ua.id = (SELECT MIN(u.id) FROM `user_auth` u WHERE u.user_id = d.user_id AND u.deleted = 0 AND u.monitoring = 1 AND u.monitoring_status <> '') SET d.monitoring_status = ua.monitoring_status WHERE d.deleted = 0 AND d.monitoring = 1;
+UPDATE `devices` d JOIN `user_auth` ua ON ua.id = (SELECT MIN(u.id) FROM `user_auth` u WHERE u.user_id = d.user_id AND u.deleted = 0 AND u.nagios_handler <> '') SET d.nagios_handler = ua.nagios_handler WHERE d.deleted = 0 AND d.nagios_handler = '';
+UPDATE `devices` d JOIN `user_auth` ua ON ua.id = (SELECT MIN(u.id) FROM `user_auth` u WHERE u.user_id = d.user_id AND u.deleted = 0 AND u.wikiname IS NOT NULL AND u.wikiname <> '') SET d.wikiname = ua.wikiname WHERE d.deleted = 0 AND (d.wikiname IS NULL OR d.wikiname = '');
+ALTER TABLE `user_auth` DROP COLUMN `wikiname`, DROP COLUMN `monitoring`, DROP COLUMN `monitoring_old`, DROP COLUMN `monitoring_status`, DROP COLUMN `nagios_handler`, DROP COLUMN `link_check`;

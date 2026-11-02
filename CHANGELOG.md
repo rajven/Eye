@@ -1,3 +1,13 @@
+# Changelog 3-2-5 - release
+- added: devices.link_check, devices.nagios_handler, devices.wikiname - the parameters of the monitoring system belong to the device, it is the host of the monitoring system.
+- removed: user_auth.monitoring, user_auth.monitoring_old, user_auth.monitoring_status, user_auth.nagios_handler, user_auth.link_check, user_auth.wikiname - an ip record of a user is not a host since the zabbix export appeared, 3-2-5 update patches move the values to the device of the owner of the address.
+- changed: the form of the device carries monitoring, the link check, the event handler and the wiki page of the host; the form of the address only shows the host of the device of its owner.
+- changed: the monitoring page lists the devices of eye with their hosts, states, handlers and wiki pages; its mass operations set monitoring, the link check and the handler of the device, and can add and remove a zabbix tag or a zabbix macro of the global list for every selected device.
+- changed: the exclusivity of monitoring of the addresses of one user is gone, a host is a device now, so several addresses of a user no longer conflict and the mass operations of the addresses process every selected address.
+- changed: sync_zabbix.pl, gen_nagios_config.pl, eyelib::nagios and hmonitor.pl work with the devices only: a monitored device of any type is a host, the parent switch of the equipment is found over the uplink port or over the port of an address of its owner, the state and the event handler are kept in the row of the device.
+- changed: scan_ipcam.pl, sync_mikrotik_poe_monitor.pl, set_port_descr.pl and the wiki exchange scripts read the names and the monitoring state of the device instead of the ip record.
+- changed: api.php no longer changes wikiname of an address, the new method update_device writes the monitoring parameters of the device.
+- note: the hosts created in zabbix for the ip records earlier are left in zabbix untouched, eye does not manage them.
 # Changelog 3-2-4 - release
 - added: ou_zabbix_groups - an organizational unit is bound to several zabbix host groups, the form of the ou shows the bound groups as a list
   with an unlink check box and adds a new group through a searchable dropdown, so a long list of the groups of zabbix stays readable.

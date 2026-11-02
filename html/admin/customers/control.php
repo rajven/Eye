@@ -43,7 +43,7 @@ if (isset($_POST["refresh_nagios"]) and is_option($db_link, 40)) {
 }
 
 if (isset($_POST["up_nagios"])) {
-    run_sql($db_link,"UPDATE user_auth SET monitoring_status='UP'");
+    // an ip record has no host state, only the device of eye is a host
     run_sql($db_link,"UPDATE devices SET monitoring_status='UP'");
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;

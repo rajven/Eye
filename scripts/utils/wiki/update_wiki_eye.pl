@@ -96,88 +96,81 @@ foreach my $fname (sort keys %content) {
 
     print "$ip \n";
 
-    # Получение записи из user_auth по IP через API
-    my $auth_response = api_call($ua, 'GET', $api_request_url. "&get=user_auth&ip=" . uri_escape($ip));
-    if ($auth_response->{error} || !$auth_response->{data} || !$auth_response->{data}->{wikiname}) {
-	print "Record for ip: $ip not found or WikiName is empty! Err: $auth_response->{error}\n";
-	next;
-	}
+    # The wiki page describes a device of eye, so the device row carries the name of
+    # the page and the port of the access switch
+    my $device_filter = encode_json({ ip => $ip, deleted => 0 });
+    my $device_response = api_call($ua, 'GET',
+        $api_request_url . "&get=table_record&table=devices&filter=" . uri_escape($device_filter));
+    if ($device_response->{error} || !$device_response->{data}) {
+        print "Device for ip $ip not found! Err: " . ($device_response->{error} // 'no record') . "\n";
+        next;
+        }
 
-    my $auth = $auth_response->{data};
+    my $device = $device_response->{data};
+    if (!$device->{wikiname}) {
+        print "Device $ip has no wiki page name!\n";
+        next;
+        }
 
-    # Пропускаем шлюзы
-    next if ($auth->{wikiname} =~ /^Gateway/);
+    # the gateways are described in their own pages
+    next if ($device->{wikiname} =~ /^Gateway/);
 
-    print "Found: $auth->{ip} $auth->{mac} ";
-
+    my $mac = '';
     my ($device_name, $device_port);
     my $error_msg;
 
-    # Определение типа устройства и получение родительских данных
+    print "$ip \n";
+
+    # === The port of the parent switch: the uplink port of the device ===
     eval {
-        if ($auth->{wikiname} =~ /^(Switch|Router)/) {
-            # Для коммутаторов/маршрутизаторов: получаем данные через цепочку устройств
-	    my $auth_list_response = api_call($ua, 'GET', $api_request_url. "&get=table_list&table=user_auth&filter=" . uri_escape(encode_json({ user_id => $auth->{user_id} })));
-	    die "empty user ip list" unless $auth_list_response->{data} && ref($auth_list_response->{data}) eq 'ARRAY' && @{$auth_list_response->{data}} > 0;
-	    my $IPS=();
-	    my $device;
-	    foreach my $auth_row (@{$auth_list_response->{data}}) {
-		my $dev_ip = $auth_row->{ip};
-                my $device_response = api_call($ua, 'GET', $api_request_url. "&get=table_record&table=devices&filter=" . uri_escape(encode_json({ ip => $dev_ip })));
-	        next if (exists $device_response->{error} || !$device_response->{data});
-    	        $device = $device_response->{data};
-		last;
-	    }
-	    die "this device not found!" unless $device;
+        my $uplink_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=device_ports&filter="
+            . uri_escape(encode_json({ device_id => $device->{id}, uplink => 1 })));
+        my $uplink = $uplink_response->{data};
 
-            # Получаем аплинк-порт
-            my $uplink_ports_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=device_ports&filter=" . uri_escape(encode_json({ device_id => $device->{id}, uplink => 1 })));
-            die "Unknown connection" unless $uplink_ports_response->{data};
-            my $parent_connect = $uplink_ports_response->{data};
-            
-            # Получаем целевой порт
-            my $parent_port_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=device_ports&id=" . $parent_connect->{id});
-            die "Unknown port connection" unless $parent_port_response->{data};
+        if ($uplink and $uplink->{target_port_id}) {
+            my $parent_port_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=device_ports&id=" . $uplink->{target_port_id});
             my $parent_port = $parent_port_response->{data};
-            
-            # Получаем родительское устройство
-            my $device_parent_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=devices&id=" . $parent_port->{device_id});
-            die "Unknown parent device" unless $device_parent_response->{data};
-            my $device_parent = $device_parent_response->{data};
-            
-            # Получаем авторизацию родительского устройства
-            my $auth_parent_response = api_call($ua, 'GET', $api_request_url . "&get=user_auth&ip=" . uri_escape($device_parent->{ip}));
-            die "Unknown auth for device" unless $auth_parent_response->{data} && $auth_parent_response->{data}->{wikiname};
-            my $auth_parent = $auth_parent_response->{data};
-            
-            $device_name  = $auth_parent->{wikiname};
-            $device_port  = $parent_port->{port};
-        }
-        else {
-            # Для других устройств: получаем данные через соединения
-            my $conn_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=connections&filter=" . uri_escape(encode_json({ auth_id => $auth->{id} })));
-            die "Unknown connection" unless $conn_response->{data};
-            my $conn = $conn_response->{data};
-            
-            # Получаем порт устройства
-            my $device_port_rec_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=device_ports&id=" . $conn->{port_id});
-            die "Unknown device port" unless $device_port_rec_response->{data};
-            my $device_port_rec = $device_port_rec_response->{data};
-            
-            # Получаем устройство
-            my $device_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=devices&id=" . $device_port_rec->{device_id});
-            die "Unknown device" unless $device_response->{data} && $device_response->{data}->{user_id};
-            my $device = $device_response->{data};
-            
-            # Получаем авторизацию устройства по user_id и IP
-            my $device_auth_list_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=user_auth&filter=" . uri_escape(encode_json({ user_id => $device->{user_id}, ip => $device->{ip} })));
-            die "Unknown device auth" unless $device_auth_list_response->{data};
-            my $device_auth = $device_auth_list_response->{data};
-            die "Device auth has no wikiname" unless $device_auth->{wikiname};
+            die "Unknown port connection" unless $parent_port;
 
-            $device_name = $device_auth->{wikiname};
-            $device_port = $device_port_rec->{port};
-        }
+            my $parent_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=devices&id=" . $parent_port->{device_id});
+            my $parent_device = $parent_response->{data};
+            die "Unknown parent device" unless $parent_device;
+
+            $device_name = $parent_device->{wikiname} || $parent_device->{device_name};
+            $device_port = $parent_port->{port};
+            }
+
+        # === The equipment of the user has no ports of its own, the address of the
+        # owner shows the port of the switch it hangs on ===
+        if (!$device_name and $device->{user_id}) {
+            my $auth_list_response = api_call($ua, 'GET', $api_request_url . "&get=table_list&table=user_auth&filter="
+                . uri_escape(encode_json({ user_id => $device->{user_id}, deleted => 0 })));
+            die "no addresses of the user" unless ref($auth_list_response->{data}) eq 'ARRAY';
+
+            foreach my $auth_row (@{ $auth_list_response->{data} }) {
+                $mac = $auth_row->{mac} if (!$mac and $auth_row->{mac});
+                my $conn_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=connections&filter="
+                    . uri_escape(encode_json({ auth_id => $auth_row->{id} })));
+                next unless $conn_response->{data};
+
+                my $port_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=device_ports&id=" . $conn_response->{data}->{port_id});
+                my $access_port = $port_response->{data};
+                next unless $access_port;
+
+                my $switch_response = api_call($ua, 'GET', $api_request_url . "&get=table_record&table=devices&id=" . $access_port->{device_id});
+                my $switch = $switch_response->{data};
+                next unless $switch;
+
+                # the address of the device itself carries the mac of the equipment
+                $mac = $auth_row->{mac} if ($auth_row->{ip} and $auth_row->{ip} eq $device->{ip} and $auth_row->{mac});
+
+                $device_name = $switch->{wikiname} || $switch->{device_name};
+                $device_port = $access_port->{port};
+                last;
+                }
+            }
+
+        die "Unknown connection" unless $device_name;
     };
 
     if ($@) {
@@ -208,8 +201,8 @@ foreach my $fname (sort keys %content) {
         }
         elsif ($line =~ /\%META\:FIELD\{name="Mac"/) {
             $empty_fields{mac} = 0;
-            if ($auth->{mac}) {
-                push(@wiki_dev, '%META:FIELD{name="Mac" title="Mac" value="' . $auth->{mac} . '"}%');
+            if ($mac) {
+                push(@wiki_dev, '%META:FIELD{name="Mac" title="Mac" value="' . $mac . '"}%');
                 next;
             }
         }
@@ -223,8 +216,8 @@ foreach my $fname (sort keys %content) {
     if ($empty_fields{parent_port} && $device_port) {
         push(@wiki_dev, '%META:FIELD{name="ParentPort" title="Parent Port" value="' . $device_port . '"}%');
     }
-    if ($empty_fields{mac} && $auth->{mac}) {
-        push(@wiki_dev, '%META:FIELD{name="Mac" title="Mac" value="' . $auth->{mac} . '"}%');
+    if ($empty_fields{mac} && $mac) {
+        push(@wiki_dev, '%META:FIELD{name="Mac" title="Mac" value="' . $mac . '"}%');
     }
 
     $device_name  ||= 'None';

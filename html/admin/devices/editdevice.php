@@ -63,7 +63,6 @@ if (getPOST("editdevice") !== null && isset($id)) {
     if ($f_ip !== '') {
         $new['ip'] = $f_ip;
         $new['ip_int'] = ip2long($f_ip);
-        $cur_auth = get_record_sql($db_link, "SELECT * FROM user_auth WHERE deleted = 0 AND ip = ?", [$f_ip]);
     }
 
     // Модель устройства
@@ -139,32 +138,17 @@ if (getPOST("editdevice") !== null && isset($id)) {
     // Discovery
     $new['discovery']             = trim(getPOST("f_discovery", null, 0));
 
-    // monitoring
-    $f_monitoring                 = (int)getPOST("f_monitoring", null, -1);
-    if ($f_monitoring !== -1) {
-        $monitor_conflict = null;
-        if ((int)$f_monitoring === 1 && (int)$cur_device['monitoring'] === 0 && (int)$cur_device['device_type'] > 2) {
-            // a device above the second type shares its host with the addresses of the user,
-            // the address record is the one which is monitored
-            $sibling = get_monitoring_owner($db_link, $cur_device['user_id']);
-            if ($sibling !== null) {
-                $monitor_conflict = auth_monitoring_conflict_text(['type' => 'auth', 'name' => $sibling['ip']]);
-                set_monitoring($new, $cur_device['monitoring'], 0);
-                $_SESSION[$page_url]['msg'] = $monitor_conflict;
-                LOG_WARNING($db_link, $monitor_conflict);
-            }
-        }
-        if ($monitor_conflict === null) {
-            set_monitoring($new, $cur_device['monitoring'], $f_monitoring);
-        }
-        if ($new['monitoring'] == 0) {
-            $new['monitoring_status'] = 'UP';
-        }
-    } else {
-        if (!empty($cur_auth)) {
-            set_monitoring($new, $cur_device['monitoring'], 0);
-            $new['monitoring_status'] = $cur_auth['monitoring_status'];
-        }
+    // monitoring: the device is a host of the monitoring system itself, so its
+    // parameters live in the row of the device
+    $new['link_check']            = (int)getPOST("f_link", null, 0);
+    $new['nagios_handler']        = substr(trim(getPOST("f_handler", null, '')), 0, 50);
+    $new['wikiname']              = substr(trim(getPOST("f_wiki", null, '')), 0, 250);
+
+    // monitoring_old keeps the value which the monitoring system knows: switching the
+    // monitoring off must disable the host there, a disabled host gets the unknown state
+    set_monitoring($new, $cur_device['monitoring'], (int)getPOST("f_monitoring", null, 0));
+    if ($new['monitoring'] === 0) {
+        $new['monitoring_status'] = 'UP';
     }
 
     // === ЗАВИСИМОСТИ ПО ТИПУ УСТРОЙСТВА ========================================
@@ -194,7 +178,7 @@ unset($_POST);
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
 
 print_device_submenu($page_url);
-print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['login']);
+print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['login'] ?? null);
 
 ?>
 <div id="contsubmenu">
@@ -316,20 +300,54 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 print "</td>\n";
                 print "<td class='data'><input type='text' name='f_control_port' value=" . $device['control_port'] . "></td>\n";
                 print "</tr>";
-                //snmp settings & discovery & monitoring
-                print "<tr><td>" . WEB_network_discovery . "</td><td>" . WEB_monitoring . "</td><td>" . WEB_device_save_netflow . "</td><td></td></tr>";
+                //snmp settings & discovery
+                print "<tr><td>" . WEB_network_discovery . "</td><td>" . WEB_device_save_netflow . "</td><td></td><td></td></tr>";
                 print "<tr>";
                 print "<td class='data'>";
                 print_qa_select('f_discovery', $device['discovery']);
                 print "</td>\n";
                 print "<td class='data'>";
-                print_qa_select('f_monitoring', $device['monitoring']);
-                print "</td>\n";
-                print "<td class='data'>";
                 print_qa_select('f_save_netflow', $device['netflow_save']);
                 print "</td>\n";
-                print "<td class='data'></td></tr>";
+                print "<td class='data'></td><td class='data'></td>";
+                print "</tr>";
             }
+
+            // the parameters of the monitoring system are the parameters of this host
+            print "<tr><td>" . WEB_monitoring . "</td><td>" . WEB_cell_link . "</td><td>" . WEB_cell_nagios_handler . "</td><td>" . WEB_cell_wikiname . "</td></tr>";
+            print "<tr>";
+            print "<td class='data'>";
+            print_qa_select('f_monitoring', $device['monitoring']);
+            print "</td>\n";
+            print "<td class='data'>";
+            print_qa_select('f_link', $device['link_check']);
+            print "</td>\n";
+            print "<td class='data'>";
+            print_nagios_handler_select($db_link, 'f_handler', $device['nagios_handler']);
+            print "</td>\n";
+            print "<td class='data'><input type='text' name='f_wiki' value=\"" .
+                htmlspecialchars((string)$device['wikiname'], ENT_QUOTES, 'UTF-8') . "\" class='full-width'></td>\n";
+            print "</tr>\n";
+
+            // the host of the monitoring system, the wiki page of the device and the
+            // state which the monitoring system reports
+            print "<tr><td colspan=\"4\">";
+            $monitoring_link = get_host_monitoring_link($db_link, $device);
+            if ((int)$device['monitoring'] === 1 && $monitoring_link !== NULL) {
+                print_url(WEB_zabbix_host_title, $monitoring_link, 'linkButton');
+                print "&nbsp;";
+            }
+            $state_name = get_qa(0);
+            if ($device['monitoring_status'] === 'UP') { $state_name = WEB_monitoring_host_up; }
+            if ($device['monitoring_status'] === 'DOWN' or $device['monitoring_status'] === 'HARDDOWN'
+                or $device['monitoring_status'] === 'SOFTDOWN') { $state_name = WEB_monitoring_host_down; }
+            print WEB_cell_monitoring_status . ": " . $state_name;
+            $wiki_url = rtrim((string)get_option($db_link, 60), '/');
+            if (!empty($device['wikiname']) && $wiki_url !== '' && !preg_match('/127.0.0.1/', $wiki_url)) {
+                $wiki_web = ltrim(rtrim((string)get_option($db_link, 63), '/'), '/');
+                print_url($device['wikiname'], $wiki_url . '/' . $wiki_web . '/' . $device['wikiname'], 'linkButton');
+            }
+            print "</td></tr>\n";
 
             if ($device['device_type'] <= 2 && $device['snmp_version'] == 3) {
                 //snmp settings
