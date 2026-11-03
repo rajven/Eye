@@ -140,15 +140,28 @@ if (getPOST("editdevice") !== null && isset($id)) {
 
     // monitoring: the device is a host of the monitoring system itself, so its
     // parameters live in the row of the device
-    $new['link_check']            = (int)getPOST("f_link", null, 0);
-    $new['nagios_handler']        = substr(trim(getPOST("f_handler", null, '')), 0, 50);
-    $new['wikiname']              = substr(trim(getPOST("f_wiki", null, '')), 0, 250);
+    $new['wikiname']              = substr(trim((string)getPOST("f_wiki", null, '')), 0, 250);
 
-    // monitoring_old keeps the value which the monitoring system knows: switching the
-    // monitoring off must disable the host there, a disabled host gets the unknown state
-    set_monitoring($new, $cur_device['monitoring'], (int)getPOST("f_monitoring", null, 0));
-    if ($new['monitoring'] === 0) {
-        $new['monitoring_status'] = 'UP';
+    // the form shows only the parameters of that monitoring system which is selected in
+    // the config options, what the form did not send keeps its value in the database
+    $f_monitoring = getPOST("f_monitoring", null, null);
+    if ($f_monitoring !== null) {
+        // monitoring_old keeps the value which the monitoring system knows: switching the
+        // monitoring off must disable the host there, a disabled host gets the unknown state
+        set_monitoring($new, (int)$cur_device['monitoring'], (int)$f_monitoring);
+        if ($new['monitoring'] === 0) {
+            $new['monitoring_status'] = 'UP';
+        }
+    }
+
+    $f_link = getPOST("f_link", null, null);
+    if ($f_link !== null) {
+        $new['link_check'] = (int)$f_link;
+    }
+
+    $f_handler = getPOST("f_handler", null, null);
+    if ($f_handler !== null) {
+        $new['nagios_handler'] = substr(trim((string)$f_handler), 0, 50);
     }
 
     // === ЗАВИСИМОСТИ ПО ТИПУ УСТРОЙСТВА ========================================
@@ -346,10 +359,11 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                     print WEB_cell_monitoring_status . ": " . $state_name;
                     print "</td></tr>\n";
                 }
-                if (is_zabix_enabled()) {
+                if (is_zabbix_enabled()) {
                     // the host of the monitoring system of the device and the
-                    // state which the monitoring system reports
-                    print "<tr><td>" . WEB_monitoring . "</td><td>" . WEB_cell_link . "</td><td>" . WEB_cell_nagios_handler . "</td><td></td></tr>";
+                    // state which the monitoring system reports: zabbix needs no event
+                    // handler and no link check service, so the row has one column only
+                    print "<tr><td>" . WEB_monitoring . "</td><td colspan=\"3\"></td></tr>";
                     print "<tr><td class='data'>";
                     print_qa_select('f_monitoring', $device['monitoring']);
                     print "</td>\n";
