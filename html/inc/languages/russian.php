@@ -349,6 +349,10 @@ define("WEB_customer_login","Логин");
 define("WEB_customer_password","Пароль");
 define("WEB_customer_mode","Права доступа");
 define("WEB_customer_api_key","Ключ API");
+define("WEB_customer_api_key_once","Ключ показывается только сейчас, сразу после создания записи. Сохраните его: интерфейс больше его не покажет");
+define("WEB_customer_api_key_wrong","Ключ API должен содержать ровно 20 символов");
+define("WEB_customer_api_key_regenerate","Выпустить новый ключ API (текущий ключ не показывается)");
+define("WEB_customer_api_key_renewed","Выпущен новый ключ API, запишите его: интерфейс больше его не покажет");
 
 /* custom index */
 define("WEB_customer_index_title","Администраторы");
