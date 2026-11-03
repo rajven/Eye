@@ -31,6 +31,11 @@ use eyelib::database;
 use eyelib::common;
 use Fcntl qw(:flock);
 
+if (!nagios_monitoring_enabled($dbh)) {
+    log_error("Nagios is not selected as the monitoring system");
+    do_exit(1);
+    }
+
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 

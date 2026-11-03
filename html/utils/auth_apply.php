@@ -25,10 +25,6 @@ if (getPOST("ApplyForAll", $page_url)) {
     $a_bind_mac = (int)getPOST("a_bind_mac", $page_url, 0);
     $a_bind_ip = (int)getPOST("a_bind_ip", $page_url, 0);
 
-    // the parameters of the monitoring system are not the parameters of an address
-    // anymore: the host of the monitoring system is the device of the user, its mass
-    // operations live in the monitoring page of the devices
-
     foreach ($auth_id as $val) {
         $id = (int)$val;
         if ($id <= 0) continue;

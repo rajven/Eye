@@ -1503,9 +1503,12 @@ function print_editdevice_submenu($current_page, $id, $dev_type, $dev_name = NUL
 
 function print_ip_submenu($current_page)
 {
+    global $config;
     print "<div id='submenu'>\n";
     print_submenu_url(WEB_submenu_ip_list, '/admin/iplist/index.php', $current_page, 0);
-    print_submenu_url(WEB_submenu_monitoring, '/admin/iplist/monitoring.php', $current_page, 0);
+    if (is_monitoring_enabled()) {
+        print_submenu_url(WEB_submenu_monitoring, '/admin/iplist/monitoring.php', $current_page, 0);
+        }
     print_submenu_url(WEB_submenu_doubles, '/admin/iplist/doubles.php', $current_page, 0);
     print_submenu_url(WEB_submenu_deleted, '/admin/iplist/deleted.php', $current_page, 0);
     print_submenu_url(WEB_submenu_auto_rules, '/admin/iplist/auto_rules.php', $current_page, 1);
@@ -1526,6 +1529,32 @@ function get_monitoring_name($device)
     }
 
     return null;
+}
+
+// monitoring system is configured
+function is_monitoring_enabled()
+{
+    global $config;
+    if (!isset($config["monitoring_system"])) {
+        return false;
+    }
+    if (mb_strtolower(trim((string)$config["monitoring_system"])) == 'none') {
+        return false;
+    }
+    return true;
+}
+
+// Nagios is selected as the monitoring system and the api is configured
+function is_nagios_enabled()
+{
+    global $config;
+    if (!isset($config["monitoring_system"])) {
+        return false;
+    }
+    if (mb_strtolower(trim((string)$config["monitoring_system"])) !== 'nagios') {
+        return false;
+    }
+    return true;
 }
 
 // Address of the zabbix site, the api endpoint is stored in the config option 75

@@ -24,11 +24,20 @@ nagios_send_command
 nagios_host_svc_disable
 nagios_host_svc_enable
 print_nagios_cfg
+nagios_monitoring_enabled
 @cfg_dirs
 );
 
 BEGIN
 {
+
+sub nagios_monitoring_enabled {
+my $db = shift;
+return 0 if (!$db);
+my $system = lc(get_option($db, 74) // '');
+return 0 if ($system ne 'nagios');
+return 1;
+}
 
 #---------------------------------------------------------------------------------
 

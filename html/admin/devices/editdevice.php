@@ -313,41 +313,59 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 print "</tr>";
             }
 
-            // the parameters of the monitoring system are the parameters of this host
-            print "<tr><td>" . WEB_monitoring . "</td><td>" . WEB_cell_link . "</td><td>" . WEB_cell_nagios_handler . "</td><td>" . WEB_cell_wikiname . "</td></tr>";
-            print "<tr>";
-            print "<td class='data'>";
-            print_qa_select('f_monitoring', $device['monitoring']);
-            print "</td>\n";
-            print "<td class='data'>";
-            print_qa_select('f_link', $device['link_check']);
-            print "</td>\n";
-            print "<td class='data'>";
-            print_nagios_handler_select($db_link, 'f_handler', $device['nagios_handler']);
-            print "</td>\n";
-            print "<td class='data'><input type='text' name='f_wiki' value=\"" .
-                htmlspecialchars((string)$device['wikiname'], ENT_QUOTES, 'UTF-8') . "\" class='full-width'></td>\n";
-            print "</tr>\n";
-
-            // the host of the monitoring system, the wiki page of the device and the
-            // state which the monitoring system reports
-            print "<tr><td colspan=\"4\">";
-            $monitoring_link = get_host_monitoring_link($db_link, $device);
-            if ((int)$device['monitoring'] === 1 && $monitoring_link !== NULL) {
-                print_url(WEB_zabbix_host_title, $monitoring_link, 'linkButton');
-                print "&nbsp;";
-            }
-            $state_name = get_qa(0);
-            if ($device['monitoring_status'] === 'UP') { $state_name = WEB_monitoring_host_up; }
-            if ($device['monitoring_status'] === 'DOWN' or $device['monitoring_status'] === 'HARDDOWN'
-                or $device['monitoring_status'] === 'SOFTDOWN') { $state_name = WEB_monitoring_host_down; }
-            print WEB_cell_monitoring_status . ": " . $state_name;
             $wiki_url = rtrim((string)get_option($db_link, 60), '/');
+            print "<tr>\n";
+            print "<td class='data'>" . WEB_cell_wikiname . "</td>\n";
+            print "<td class='data' colspan=2><input type='text' name='f_wiki' value=\"" .  htmlspecialchars((string)$device['wikiname'], ENT_QUOTES, 'UTF-8') . "\" class='full-width'></td>\n";
+            print "<td class='data'>";
             if (!empty($device['wikiname']) && $wiki_url !== '' && !preg_match('/127.0.0.1/', $wiki_url)) {
                 $wiki_web = ltrim(rtrim((string)get_option($db_link, 63), '/'), '/');
                 print_url($device['wikiname'], $wiki_url . '/' . $wiki_web . '/' . $device['wikiname'], 'linkButton');
-            }
-            print "</td></tr>\n";
+                }
+            print "</td>\n";
+            print "</tr>\n";
+
+            if (is_monitoring_enabled()) {
+                if (is_nagios_enabled()) {
+                    // the parameters of the monitoring system are the parameters of this host
+                    print "<tr><td>" . WEB_monitoring . "</td><td>" . WEB_cell_link . "</td><td>" . WEB_cell_nagios_handler . "</td><td></td></tr>";
+                    print "<tr>";
+                    print "<td class='data'>";
+                    print_qa_select('f_monitoring', $device['monitoring']);
+                    print "</td>\n";
+                    print "<td class='data'>";
+                    print_qa_select('f_link', $device['link_check']);
+                    print "</td>\n";
+                    print "<td class='data'>";
+                    print_nagios_handler_select($db_link, 'f_handler', $device['nagios_handler']);
+                    print "</td>\n";
+                    print "</tr>\n";
+                    print "<tr><td colspan=\"4\">";
+                    if ($device['monitoring_status'] === 'UP') { $state_name = WEB_monitoring_host_up; }
+                    if ($device['monitoring_status'] === 'DOWN' or $device['monitoring_status'] === 'HARDDOWN'  or $device['monitoring_status'] === 'SOFTDOWN') { $state_name = WEB_monitoring_host_down; }
+                    print WEB_cell_monitoring_status . ": " . $state_name;
+                    print "</td></tr>\n";
+                }
+                if (is_zabix_enabled()) {
+                    // the host of the monitoring system of the device and the
+                    // state which the monitoring system reports
+                    print "<tr><td>" . WEB_monitoring . "</td><td>" . WEB_cell_link . "</td><td>" . WEB_cell_nagios_handler . "</td><td></td></tr>";
+                    print "<tr><td class='data'>";
+                    print_qa_select('f_monitoring', $device['monitoring']);
+                    print "</td>\n";
+                    print "<td colspan=\"3\">";
+                    $monitoring_link = get_host_monitoring_link($db_link, $device);
+                    if ((int)$device['monitoring'] === 1 && $monitoring_link !== NULL) {
+                        print_url(WEB_zabbix_host_title, $monitoring_link, 'linkButton');
+                        print "&nbsp;";
+                        }
+                    $state_name = get_qa(0);
+                    if ($device['monitoring_status'] === 'UP') { $state_name = WEB_monitoring_host_up; }
+                    if ($device['monitoring_status'] === 'DOWN' or $device['monitoring_status'] === 'HARDDOWN'  or $device['monitoring_status'] === 'SOFTDOWN') { $state_name = WEB_monitoring_host_down; }
+                    print WEB_cell_monitoring_status . ": " . $state_name;
+                    print "</td></tr>\n";
+                    }
+                }
 
             if ($device['device_type'] <= 2 && $device['snmp_version'] == 3) {
                 //snmp settings
@@ -408,8 +426,6 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 }
             }
 
-            // one device is one host in the monitoring system
-            print_zabbix_record_block($db_link, 'netdev', (int)$id, true, 3);
 
             //save button
             if ($device['snmp_version'] > 0) {
@@ -421,10 +437,15 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             }
             print "</table>\n";
 
-            // the macros and the tags of the zabbix host belong to this device, they
-            // are stored by the save button of the device form
-            print_zabbix_device_block($db_link, (int)$id, 'macros');
-            print_zabbix_device_block($db_link, (int)$id, 'tags');
+
+            if (is_zabbix_enabled()) {
+                // one device is one host in the monitoring system
+                print_zabbix_record_block($db_link, 'netdev', (int)$id, true, 3);
+                // the macros and the tags of the zabbix host belong to this device, they
+                // are stored by the save button of the device form
+                print_zabbix_device_block($db_link, (int)$id, 'macros');
+                print_zabbix_device_block($db_link, (int)$id, 'tags');
+                }
 
             print "<div align=\"right\"><input type='submit' id='editdevice' name='editdevice' value='"
                 . WEB_btn_save . "'></div>\n";
