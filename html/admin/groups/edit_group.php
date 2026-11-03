@@ -11,15 +11,27 @@ if (getPOST("save") !== null) {
         'ou_name'                => trim(getPOST("f_group_name", null, $ou_info['ou_name'])),
         'default_users'          => (int)getPOST("f_default", null, 0),
         'default_hotspot'        => (int)getPOST("f_default_hotspot", null, 0),
-        'nagios_dir'             => trim(getPOST("f_nagios", null, '')),
-        'nagios_host_use'        => trim(getPOST("f_nagios_host", null, '')),
-        'nagios_ping'            => trim(getPOST("f_nagios_ping", null, 0)),
-        'nagios_default_service' => trim(getPOST("f_nagios_service", null, '')),
         'queue_id'               => (int)getPOST("f_queue_id", null, 0),
         'filter_group_id'        => (int)getPOST("f_filter_group_id", null, 0),
         'enabled'                => (int)getPOST("f_enabled", null, 0),
         'dynamic'                => (int)getPOST("f_dynamic", null, 0)
     ];
+
+    // the nagios block is rendered only for a nagios installation, the parameters the
+    // form did not send keep their values, an ou can not lose its nagios settings while
+    // zabbix is the selected monitoring system
+    foreach (['nagios_dir' => 'f_nagios', 'nagios_host_use' => 'f_nagios_host',
+              'nagios_default_service' => 'f_nagios_service'] as $field => $post) {
+        $value = getPOST($post, null, null);
+        if ($value !== null) {
+            $new[$field] = trim((string)$value);
+        }
+    }
+
+    $f_nagios_ping = getPOST("f_nagios_ping", null, null);
+    if ($f_nagios_ping !== null) {
+        $new['nagios_ping'] = trim((string)$f_nagios_ping);
+    }
 
     // The host groups of zabbix live in their own table, an ou is bound to several
     // groups. The block of the form is sent only when zabbix is enabled
