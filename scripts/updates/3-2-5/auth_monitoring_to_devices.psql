@@ -1,0 +1,11 @@
+ALTER TABLE devices ADD COLUMN link_check SMALLINT NOT NULL DEFAULT 0;
+ALTER TABLE devices ADD COLUMN nagios_handler VARCHAR(50) NOT NULL DEFAULT '';
+ALTER TABLE devices ADD COLUMN wikiname VARCHAR(250);
+COMMENT ON COLUMN devices.link_check IS 'The link state of the switch port of this device is checked by the monitoring system';
+COMMENT ON COLUMN devices.nagios_handler IS 'Event handler of the monitoring system for this device';
+COMMENT ON COLUMN devices.wikiname IS 'Wiki page name of this device';
+UPDATE devices d SET monitoring = GREATEST(d.monitoring, a.monitoring), monitoring_old = GREATEST(d.monitoring_old, a.monitoring_old), link_check = a.link_check FROM (SELECT user_id, MAX(monitoring) AS monitoring, MAX(monitoring_old) AS monitoring_old, MAX(link_check) AS link_check FROM user_auth WHERE deleted = 0 GROUP BY user_id) a WHERE a.user_id = d.user_id AND d.deleted = 0;
+UPDATE devices d SET monitoring_status = ua.monitoring_status FROM user_auth ua WHERE ua.id = (SELECT MIN(u.id) FROM user_auth u WHERE u.user_id = d.user_id AND u.deleted = 0 AND u.monitoring = 1 AND u.monitoring_status <> '') AND d.deleted = 0 AND d.monitoring = 1;
+UPDATE devices d SET nagios_handler = ua.nagios_handler FROM user_auth ua WHERE ua.id = (SELECT MIN(u.id) FROM user_auth u WHERE u.user_id = d.user_id AND u.deleted = 0 AND u.nagios_handler <> '') AND d.deleted = 0 AND d.nagios_handler = '';
+UPDATE devices d SET wikiname = ua.wikiname FROM user_auth ua WHERE ua.id = (SELECT MIN(u.id) FROM user_auth u WHERE u.user_id = d.user_id AND u.deleted = 0 AND u.wikiname IS NOT NULL AND u.wikiname <> '') AND d.deleted = 0 AND (d.wikiname IS NULL OR d.wikiname = '');
+ALTER TABLE user_auth DROP COLUMN wikiname, DROP COLUMN monitoring, DROP COLUMN monitoring_old, DROP COLUMN monitoring_status, DROP COLUMN nagios_handler, DROP COLUMN link_check;

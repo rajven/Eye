@@ -163,21 +163,25 @@ if ($ou_info['default_hotspot']) { $cl = "up"; } else { $cl="data"; }
 print "<td class=\"$cl\">";  print_qa_select("f_default_hotspot",$ou_info['default_hotspot']); print "</td>\n";
 print "<td class=\"data\">";  print_qa_select("f_dynamic",$ou_info['dynamic']); print "</td>\n";
 ?>
-<tr>
-<td><b>Nagios directory</b></td>
-<td><b>Host template</b></td>
-<td><b>Ping</b></td>
-<td><b>Host service</b></td>
-<td></td>
-</tr>
-<?php
-print "<td class=\"data\"><input type=\"text\" name='f_nagios' value='{$ou_info['nagios_dir']}'></td>\n";
-print "<td class=\"data\"><input type=\"text\" name='f_nagios_host' value='{$ou_info['nagios_host_use']}'></td>\n";
-print "<td class=\"data\">"; print_qa_select("f_nagios_ping",$ou_info['nagios_ping']); print "</td>\n";
-print "<td class=\"data\"><input type=\"text\" name='f_nagios_service' value='{$ou_info['nagios_default_service']}'></td>\n";
-print "<td class=\"data\"></td>\n";
-?>
-</tr>
+
+<?php if (is_nagios_enabled()): ?>
+    <tr>
+    <td><b>Nagios directory</b></td>
+    <td><b>Host template</b></td>
+    <td><b>Ping</b></td>
+    <td><b>Host service</b></td>
+    <td></td>
+    </tr>
+    <?php
+    print "<td class=\"data\"><input type=\"text\" name='f_nagios' value='{$ou_info['nagios_dir']}'></td>\n";
+    print "<td class=\"data\"><input type=\"text\" name='f_nagios_host' value='{$ou_info['nagios_host_use']}'></td>\n";
+    print "<td class=\"data\">"; print_qa_select("f_nagios_ping",$ou_info['nagios_ping']); print "</td>\n";
+    print "<td class=\"data\"><input type=\"text\" name='f_nagios_service' value='{$ou_info['nagios_default_service']}'></td>\n";
+    print "<td class=\"data\"></td>\n";
+    ?>
+    </tr>
+<?php endif; ?>
+
 <?php
 // the host groups of zabbix are used by the web interface and by sync_zabbix.pl
 // when the hosts of the ou are created

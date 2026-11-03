@@ -767,18 +767,6 @@ function zabbix_translit($text)
     return strtr($text, $replace);
 }
 
-// The name of the ip record host, the same rule as in the sync_zabbix script
-function zabbix_auth_host_name($auth, $login = NULL)
-{
-    if (!empty($auth['dns_name'])) {
-        return $auth['dns_name'];
-    }
-    if (empty(trim($login['login']))) {
-        return 'user_' . $auth['user_id'];
-    }
-    return trim($login['login']);
-}
-
 // The name of the network device host, the same rule as in the sync_zabbix script
 function zabbix_device_host_name($device)
 {
@@ -1169,10 +1157,12 @@ function zabbix_api_update_host($hostid, $update)
             return ['templateid' => (int)$template_id];
         }, array_values($update['templates']));
     }
-    if (!empty($update['macros'])) {
-        $params['macros'] = $update['macros'];
+    // an empty list is a real value too: the macros and the tags which eye does not
+    // assign anymore must disappear from the host, so an empty array is sent as well
+    if (array_key_exists('macros', $update)) {
+        $params['macros'] = array_values((array)$update['macros']);
     }
-    if (!empty($update['tags'])) {
+    if (array_key_exists('tags', $update)) {
         $params['tags'] = zabbix_api_tag_list($update['tags']);
     }
     if (!empty($update['groups'])) {

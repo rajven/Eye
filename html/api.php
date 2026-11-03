@@ -290,6 +290,64 @@ if (!empty($action)) {
         do_exit();
     }
 
+    // === ОБНОВЛЕНИЕ УСТРОЙСТВА ===
+    // the parameters of the monitoring system belong to the device: it is the host of
+    // the monitoring system, an ip record has none of them
+    if ($action === 'send_update_device' && $rec_id > 0 && !empty($update_data)) {
+
+        log_api_call($action, [
+            'rec_id' => $rec_id,
+            'update_data' => $update_data,
+            ]);
+
+        $data = json_decode($update_data, true);
+
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid data format']);
+            do_exit();
+        }
+
+        // Разрешённые поля для обновления
+        $allowed_fields = ['device_name', 'description', 'firmware', 'sn', 'wikiname', 'nagios_handler', 'link_check'];
+
+        $update_fields = [];
+        foreach ($data as $key => $value) {
+            $db_key = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $key));
+            if (in_array($db_key, $allowed_fields)) {
+                $update_fields[$db_key] = $value;
+            }
+        }
+
+        // monitoring is not updatable over the api: switching a host on and off must
+        // keep monitoring_old and must be reported to the monitoring system at once
+        unset($update_fields['monitoring']);
+
+        if (empty($update_fields)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'No valid fields to update']);
+            do_exit();
+        }
+
+        $cur_device = get_record($db_link, 'devices', 'id = ? AND deleted = 0', [$rec_id]);
+        if (empty($cur_device)) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Device not found']);
+            do_exit();
+        }
+
+        if (update_record($db_link, 'devices', 'id = ?', $update_fields, [$rec_id])) {
+            LOG_VERBOSE($db_link, "API: Device $rec_id updated via API", $rec_id);
+            http_response_code(200);
+            echo json_encode(['status' => 'updated', 'id' => $rec_id]);
+        } else {
+            LOG_ERROR($db_link, "API: Failed to update device $rec_id", $rec_id);
+            http_response_code(500);
+            echo json_encode(['error' => 'Update failed']);
+        }
+        do_exit();
+    }
+
     // === ОБНОВЛЕНИЕ USER_AUTH ===
     if ($action === 'send_update_user_auth' && $rec_id > 0 && !empty($update_data)) {
 
@@ -308,7 +366,7 @@ if (!empty($action)) {
         }
 
         // Разрешённые поля для обновления
-        $allowed_fields = ['mac', 'ip', 'ip_int', 'wikiname', 'description', 'dns_name'];
+        $allowed_fields = ['mac', 'ip', 'ip_int', 'description', 'dns_name'];
 
         $update_fields = [];
         foreach ($data as $key => $value) {

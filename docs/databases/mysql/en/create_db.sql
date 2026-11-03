@@ -104,6 +104,9 @@ CREATE TABLE `devices` (
   `dhcp` tinyint(1) NOT NULL DEFAULT 0,
   `monitoring` tinyint(1) NOT NULL DEFAULT 0,
   `monitoring_old` tinyint(1) NOT NULL DEFAULT 0,
+  `link_check` tinyint(1) NOT NULL DEFAULT 0,
+  `nagios_handler` varchar(50) NOT NULL DEFAULT '',
+  `wikiname` varchar(250) DEFAULT NULL,
   `active` tinyint(1) NOT NULL DEFAULT 1,
   `monitoring_status` varchar(10) NOT NULL DEFAULT 'UP',
   `queue_enabled` tinyint(1) NOT NULL DEFAULT 0,
@@ -360,7 +363,6 @@ CREATE TABLE `user_auth` (
   `description` varchar(250) DEFAULT NULL,
   `dns_name` varchar(253) DEFAULT NULL,
   `dns_ptr_only` tinyint(1) NOT NULL DEFAULT 0,
-  `wikiname` varchar(250) DEFAULT NULL,
   `dhcp_acl` text DEFAULT NULL,
   `queue_id` int(11) NOT NULL DEFAULT 0,
   `mac` varchar(17) DEFAULT NULL,
@@ -377,11 +379,6 @@ CREATE TABLE `user_auth` (
   `firmware` varchar(100) DEFAULT NULL,
   `ts` DATETIME NOT NULL DEFAULT current_timestamp(),
   `client_id` varchar(250) DEFAULT NULL,
-  `monitoring` tinyint(1) NOT NULL DEFAULT 0,
-  `monitoring_old` tinyint(1) NOT NULL DEFAULT 0,
-  `monitoring_status` varchar(10) NOT NULL DEFAULT '',
-  `nagios_handler` varchar(50) NOT NULL DEFAULT '',
-  `link_check` tinyint(1) NOT NULL DEFAULT 0,
   `changed` tinyint(1) NOT NULL DEFAULT 0,
   `dhcp_changed` int(11) NOT NULL DEFAULT 0,
   `changed_time` datetime NOT NULL DEFAULT current_timestamp(),
@@ -463,7 +460,7 @@ CREATE TABLE `vendors` (
 
 CREATE TABLE `version` (
   `id` int(11) NOT NULL DEFAULT 1,
-  `version` varchar(10) NOT NULL DEFAULT '3.2.4'
+  `version` varchar(10) NOT NULL DEFAULT '3.2.5'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `wan_stats` (

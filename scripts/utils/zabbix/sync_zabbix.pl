@@ -4,15 +4,15 @@
 # Copyright (C) Roman Dmitriev, rnd@rajven.ru
 #
 
-# sync_zabbix.pl - export eye network devices and user ip records into zabbix.
+# sync_zabbix.pl - export the eye network devices into zabbix.
 #
 # The script is the analog of docs/nagios/gen_nagios_config.pl. It does not write any
 # config files, it changes zabbix through the json rpc api.
 #
-# The eye web interface exports a device and an ip record to zabbix by itself while the
-# record is saved, this script is the reserve way: it reconciles the whole installation
-# at once, so it is still needed after the mass changes, the renames of the switches
-# (the parent tag of the children) and the restoring of zabbix.
+# The eye web interface exports a device to zabbix by itself while the device is saved,
+# this script is the reserve way: it reconciles the whole installation at once, so it
+# is still needed after the mass changes, the renames of the switches (the parent tag
+# of the children) and the restoring of zabbix.
 #
 # zabbix is used when the eye config options are set:
 #   74 - monitoring system = zabbix
@@ -23,10 +23,11 @@
 # into /opt/Eye/scripts/eyelib.
 #
 # What the script does:
-#   - a record with monitoring=1 is created in zabbix with the templates of its
-#     device model, with the macros and the tags of its eye network device, in the
-#     host groups bound to the organizational unit of the record, in the default
-#     group when the organizational unit has none
+#   - a device with monitoring=1 is created in zabbix with the templates of its
+#     device model, with the macros and the tags of the device, in the host groups
+#     bound to the organizational unit of the device owner, in the default group when
+#     the organizational unit has none. an ip record of a user is not a host: the
+#     equipment of the user is exported as the device it is registered as
 #   - the tag parent contains the name of the switch the device or the address is
 #     connected to, the tag eye contains the eye record identifier, the tags of the
 #     device are added to these two. a tag or a macro which eye does not assign
@@ -37,12 +38,12 @@
 #     the host has got by hand is removed: templates, groups, tags and macros of the
 #     other integrations stay. a group which the web interface unbinds from an
 #     organizational unit is taken away from the hosts there, as an explicit action
-#   - a record with monitoring_old=1 and monitoring=0 is disabled in zabbix.
+#   - a device with monitoring_old=1 and monitoring=0 is disabled in zabbix.
 #     hosts are never deleted
 #   - renamed templates are detected: the template is searched in zabbix by its
 #     identifier and by its name, the eye database gets the actual name
 #
-# The link_check parameter of the ip records is ignored, unlike the nagios
+# The link_check parameter of the device is ignored too, unlike the nagios
 # configuration zabbix does not need the port dependency services.
 #
 # usage: sync_zabbix.pl [--dry-run] [--verbose] [--help]
@@ -244,68 +245,19 @@ my %name_count;
                 }
             }
 
-        push(@hosts, $host);
-        $name_count{ lc($host->{host}) }++;
-        }
-    }
-
-##################################### User ip records analyze ######################
-
-{
-    my @auth_list = get_records_sql($dbh,
-        'SELECT * FROM user_auth WHERE deleted=0 and monitoring=1 ORDER BY id');
-
-    foreach my $auth (@auth_list) {
-        next if (!$auth->{ip});
-
-        my $login = get_record_sql($dbh, "SELECT * FROM user_list WHERE id= ?", $auth->{user_id});
-        my $ou_id = $login->{ou_id} if ($login and $login->{ou_id});
-
-        my $auth_device = get_record_sql($dbh, "SELECT * FROM devices WHERE user_id= ?", $auth->{user_id});
-
-        #a user owning a monitored switch or router is exported as a network device
-        if ($auth_device and $auth_device->{deleted} == 0
-            and $auth_device->{device_type} <= 2 and $auth_device->{monitoring} == 1) {
-            next;
-            }
-
-        # Модель берется ТОЛЬКО из связанного устройства (если оно есть)
-        my $model_id = 0;
-        if ($auth_device) {
-            $model_id = $auth_device->{device_model_id} // 0;
-            }
-
-        my $name = host_base_name(auth_host_name($auth, $login), 'auth_' . $auth->{id});
-
-        my $host = {
-            key => 'auth_' . $auth->{id},
-            type => 'auth',
-            id => $auth->{id},
-            host => $name,
-            ou_id => $ou_id,
-            #the description of the record becomes the visible name of the host
-            description => $auth->{description} // '',
-            ip => $auth->{ip},
-            model_id => $model_id,
-            #the equipment of the user: the macros and the tags belong to its device
-            device_id => ($auth_device ? $auth_device->{id} : 0),
-            parent => '',
-            };
-
-        #the customer equipment is polled over snmp when it is registered as a device
-        if ($auth_device and $auth_device->{snmp_version}) {
-            setCommunity($auth_device);
-            $host->{snmp} = $auth_device->{snmp};
-            }
-
-        # the switch the address is connected to becomes the parent tag
-        my $connection = get_record_sql($dbh, "SELECT * FROM connections WHERE auth_id= ?", $auth->{id});
-        if ($connection and $connection->{port_id}) {
-            my $port = get_record_sql($dbh, "SELECT * FROM device_ports WHERE id= ?", $connection->{port_id});
-            if ($port and $port->{device_id}) {
-                my $parent_device = get_record_sql($dbh,
-                    "SELECT * FROM devices WHERE id= ? AND deleted=0", $port->{device_id});
-                $host->{parent} = $parent_device->{device_name} if ($parent_device);
+        # customer equipment usually has no port of its own, the port of an address of
+        # its owner shows the switch the equipment hangs on
+        if (!$host->{parent} and $device->{user_id}) {
+            my $connection = get_record_sql($dbh,
+                "SELECT * FROM connections WHERE auth_id IN (SELECT id FROM user_auth WHERE user_id= ? AND deleted=0) ORDER BY auth_id, port_id",
+                $device->{user_id});
+            if ($connection and $connection->{port_id}) {
+                my $port = get_record_sql($dbh, "SELECT * FROM device_ports WHERE id= ?", $connection->{port_id});
+                if ($port and $port->{device_id}) {
+                    my $parent_device = get_record_sql($dbh,
+                        "SELECT * FROM devices WHERE id= ? AND deleted=0", $port->{device_id});
+                    $host->{parent} = $parent_device->{device_name} if ($parent_device);
+                    }
                 }
             }
 
@@ -326,19 +278,6 @@ my @disable_list;
             type => 'netdev',
             id => $device->{id},
             host => host_base_name($device->{device_name}, 'netdev_' . $device->{id}),
-            });
-        }
-    }
-
-{
-    foreach my $auth (get_records_sql($dbh,
-        'SELECT * FROM user_auth WHERE deleted=0 and monitoring=0 and monitoring_old=1')) {
-        my $login = get_record_sql($dbh, "SELECT * FROM user_list WHERE id= ?", $auth->{user_id});
-        push(@disable_list, {
-            key => 'auth_' . $auth->{id},
-            type => 'auth',
-            id => $auth->{id},
-            host => host_base_name(auth_host_name($auth, $login), 'auth_' . $auth->{id}),
             });
         }
     }
@@ -862,14 +801,6 @@ return $description if ($description);
 return $fallback;
 }
 
-#===============================================================
-# The name of the ip record host, the same rule as in the eye web interface
-
-sub auth_host_name {
-my ($auth, $login) = @_;
-return $auth->{dns_name} if ($auth->{dns_name});
-return $login->{login}
-}
 
 #===============================================================
 # Macro name in the zabbix notation

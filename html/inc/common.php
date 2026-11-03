@@ -1503,34 +1503,58 @@ function print_editdevice_submenu($current_page, $id, $dev_type, $dev_name = NUL
 
 function print_ip_submenu($current_page)
 {
+    global $config;
     print "<div id='submenu'>\n";
     print_submenu_url(WEB_submenu_ip_list, '/admin/iplist/index.php', $current_page, 0);
-    print_submenu_url(WEB_submenu_monitoring, '/admin/iplist/monitoring.php', $current_page, 0);
+    if (is_monitoring_enabled()) {
+        print_submenu_url(WEB_submenu_monitoring, '/admin/iplist/monitoring.php', $current_page, 0);
+        }
     print_submenu_url(WEB_submenu_doubles, '/admin/iplist/doubles.php', $current_page, 0);
     print_submenu_url(WEB_submenu_deleted, '/admin/iplist/deleted.php', $current_page, 0);
     print_submenu_url(WEB_submenu_auto_rules, '/admin/iplist/auto_rules.php', $current_page, 1);
     print "</div>\n";
 }
 
-function get_nagios_name($auth)
+// Name of the host of the monitoring system: a monitored record is a device of eye,
+// its name in the monitoring system is the name of the device, the same rule is used
+// by gen_nagios_config.pl and by sync_zabbix.pl
+function get_monitoring_name($device)
 {
-    if (!empty($auth['dns_name'])) {
-        return $auth['dns_name'];
+    if (!empty($device['device_name'])) {
+        return $device['device_name'];
     }
-    if (!empty($auth['dhcp_hostname'])) {
-        return $auth['dhcp_hostname'];
+
+    if (!empty($device['id'])) {
+        return 'device_' . (int)$device['id'];
     }
-    if (!empty($auth['description'])) {
-        $result = transliterate($auth['description']);
-        $result = preg_replace('/\(/', '-', $result);
-        $result = preg_replace('/\)/', '-', $result);
-        $result = preg_replace('/--/', '-', $result);
-        return $result;
+
+    return null;
+}
+
+// monitoring system is configured
+function is_monitoring_enabled()
+{
+    global $config;
+    if (!isset($config["monitoring_system"])) {
+        return false;
     }
-    if (empty($auth['login'])) {
-        $auth['login'] = 'host';
+    if (mb_strtolower(trim((string)$config["monitoring_system"])) == 'none') {
+        return false;
     }
-    return $auth['login'] . "_" . $auth['id'];
+    return true;
+}
+
+// Nagios is selected as the monitoring system and the api is configured
+function is_nagios_enabled()
+{
+    global $config;
+    if (!isset($config["monitoring_system"])) {
+        return false;
+    }
+    if (mb_strtolower(trim((string)$config["monitoring_system"])) !== 'nagios') {
+        return false;
+    }
+    return true;
 }
 
 // Address of the zabbix site, the api endpoint is stored in the config option 75
@@ -1571,18 +1595,12 @@ function get_zabbix_host_link($hostname)
     return $config["zabbix_url"] . '/zabbix.php?action=host.view&filter_name=' . rawurlencode($hostname);
 }
 
-// Name of the zabbix/monitoring host for the ip record
-function get_monitoring_name($auth)
-{
-    return get_nagios_name($auth);
-}
-
 // Link to the host page of the monitoring system selected in the config options
-function get_host_monitoring_link($db, $auth)
+function get_host_monitoring_link($db, $device)
 {
     if (is_zabbix_enabled()) {
         // the name of the host is built by the rule of the zabbix export
-        $hostname = zabbix_auth_host_name($auth, $auth);
+        $hostname = zabbix_device_host_name($device);
         if ($hostname === '' or $hostname === null) {
             return NULL;
         }
@@ -1590,7 +1608,7 @@ function get_host_monitoring_link($db, $auth)
         return get_zabbix_host_link($hostname);
     }
 
-    $hostname = get_monitoring_name($auth);
+    $hostname = get_monitoring_name($device);
     if ($hostname === '' or $hostname === null) {
         return NULL;
     }
@@ -1618,76 +1636,20 @@ function set_monitoring(&$new, $current_monitoring, $new_monitoring)
     $new['monitoring'] = $value;
 }
 
-// Address record of the user which already carries monitoring. The addresses of a user
-// describe one device, so a device is one host in the monitoring system
-function get_monitoring_owner($db, $user_id, $exclude_auth_id = 0)
+// Equipment of the user: the device of eye which carries the parameters of the
+// monitoring system for the addresses of this user
+function get_user_device($db, $user_id, $exclude_device_id = 0)
 {
     $user_id = (int)$user_id;
     if ($user_id <= 0) {
         return null;
     }
 
-    $sibling = get_record_sql($db,
-        "SELECT id, ip FROM user_auth WHERE user_id = ? AND deleted = 0 AND monitoring = 1 AND id <> ? ORDER BY id LIMIT 1",
-        [$user_id, (int)$exclude_auth_id]);
-
-    return empty($sibling) ? null : $sibling;
-}
-
-// Record which already carries the monitoring of the device of this address: another
-// address of the user, or the bound switch or router that is exported instead of them
-function get_auth_monitoring_conflict($db, $auth)
-{
-    $user_id = (int)($auth['user_id'] ?? 0);
-    if ($user_id <= 0) {
-        return null;
-    }
-
-    $sibling = get_monitoring_owner($db, $user_id, (int)($auth['id'] ?? 0));
-    if ($sibling !== null) {
-        return ['type' => 'auth', 'name' => $sibling['ip']];
-    }
-
-    // the device of the user is exported as a host itself, one more host
-    // out of the address records of the same user would be a duplicate
     $device = get_record_sql($db,
-        "SELECT device_name, device_type FROM devices WHERE user_id = ? AND deleted = 0 AND monitoring = 1 ORDER BY id LIMIT 1",
-        [$user_id]);
-    if (!empty($device)) {
-        return ['type' => 'netdev', 'name' => $device['device_name']];
-    }
+        "SELECT * FROM devices WHERE user_id = ? AND deleted = 0 AND id <> ? ORDER BY id LIMIT 1",
+        [$user_id, (int)$exclude_device_id]);
 
-    return null;
-}
-
-// Text of the conflict of monitoring, it explains the blocked field to the operator
-function auth_monitoring_conflict_text($conflict)
-{
-    if ($conflict === null) {
-        return '';
-    }
-    if ($conflict['type'] === 'netdev') {
-        return WEB_monitoring_taken_device . ' ' . $conflict['name'] . '. ' . WEB_monitoring_locked;
-    }
-
-    return WEB_monitoring_taken . ' ' . $conflict['name'] . '. ' . WEB_monitoring_locked;
-}
-
-// Switching monitoring on for an address record, monitoring of the other addresses of
-// the same user is blocked. Returns the conflicting record or null
-function set_auth_monitoring(&$new, $db, $auth, $requested)
-{
-    $current = (int)($auth['monitoring'] ?? 0);
-    if ($current === 0 && (int)$requested === 1) {
-        $conflict = get_auth_monitoring_conflict($db, $auth);
-        if ($conflict !== null) {
-            set_monitoring($new, $current, 0);
-            return $conflict;
-        }
-    }
-
-    set_monitoring($new, $current, $requested);
-    return null;
+    return empty($device) ? null : $device;
 }
 
 function get_ou($db, $ou_value)
@@ -2158,24 +2120,36 @@ function print_dhcp_select($qa_name, $qa_value = 0)
     print "</select>\n";
 }
 
-function print_nagios_handler_select($db, $qa_name)
+function print_nagios_handler_select($db, $qa_name, $current = '')
 {   
+    // the event handler belongs to the device, it is a host of the monitoring system
     $nagios_handler = get_records_sql($db, 
-        "SELECT DISTINCT nagios_handler FROM user_auth 
+        "SELECT DISTINCT nagios_handler FROM devices 
          WHERE nagios_handler IS NOT NULL AND nagios_handler != '' AND deleted = 0"
     );
     
-    if (!empty($nagios_handler)) {
+    $known = [];
+    foreach ($nagios_handler as $handler) {
+        $known[$handler['nagios_handler']] = 1;
+    }
+
+    // the handler of the device itself must stay in the list, it can be the only one
+    $current = trim((string)$current);
+    if ($current !== '') {
+        $known[$current] = 1;
+    }
+    
+    if (!empty($known)) {
         echo "<select name=\"" . htmlspecialchars($qa_name) . "\">\n";
-        print_select_simple(WEB_select_item_no, '');
+        print_select_item(WEB_select_item_no, '', $current);
         
-        foreach ($nagios_handler as $handler) {
-            $value = htmlspecialchars($handler['nagios_handler']);
-            print_select_simple($value, $value);
+        foreach (array_keys($known) as $value) {
+            print_select_item(htmlspecialchars((string)$value), $value, $current);
         }
         echo "</select>\n";
     } else {
-        echo "<input type=\"text\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"\" size=\"10\" />\n";
+        echo "<input type=\"text\" name=\"" . htmlspecialchars($qa_name) . "\" value=\""
+            . htmlspecialchars($current, ENT_QUOTES, 'UTF-8') . "\" size=\"10\" />\n";
     }
 }
 
@@ -4153,7 +4127,7 @@ function set_port_for_group($db, $group_id, $place_id, $state)
     
     // Получаем список авторизаций для группы
     $auth_list = get_records_sql($db,
-        'SELECT user_auth.id, user_auth.dns_name, user_auth.ip 
+        'SELECT user_auth.id, user_auth.user_id, user_auth.dns_name, user_auth.ip 
          FROM user_auth, user_list 
          WHERE user_auth.user_id = user_list.id 
            AND user_auth.deleted = 0 
@@ -4196,20 +4170,27 @@ function set_port_for_group($db, $group_id, $place_id, $state)
         $device = get_record($db, 'devices', "id = ?", [(int)$dev_info['id']]);
         $snmp = getSnmpAccess($device);
         
-        // Определение режима и обновление nagios_handler
+        // The event handler belongs to the device of the user, it is the host which
+        // the monitoring system sees, the address only points to the port of the switch
+        $user_device = get_user_device($db, (int)$row['user_id']);
+        if ($user_device === null) {
+            LOG_VERBOSE($db, 'No device of user ' . (int)$row['user_id'] . ', the handler of the port is not changed');
+            continue;
+        }
+
         if ($state == 1) {
             $mode = 'enable';
-            update_record($db, 'user_auth', 
-                'id = ? AND nagios_handler = ?', 
-                ['nagios_handler' => 'restart-port'], 
-                [$auth_id, 'manual-mode']
+            update_record($db, 'devices',
+                'id = ? AND nagios_handler = ?',
+                ['nagios_handler' => 'restart-port'],
+                [(int)$user_device['id'], 'manual-mode']
             );
         } else {
             $mode = 'disable';
-            update_record($db, 'user_auth', 
-                'id = ? AND nagios_handler = ?', 
-                ['nagios_handler' => 'manual-mode'], 
-                [$auth_id, 'restart-port']
+            update_record($db, 'devices',
+                'id = ? AND nagios_handler = ?',
+                ['nagios_handler' => 'manual-mode'],
+                [(int)$user_device['id'], 'restart-port']
             );
         }
         

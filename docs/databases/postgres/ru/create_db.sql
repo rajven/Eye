@@ -134,6 +134,9 @@ user_acl SMALLINT NOT NULL DEFAULT 0,
 dhcp SMALLINT NOT NULL DEFAULT 0,
 monitoring SMALLINT NOT NULL DEFAULT 0,
 monitoring_old SMALLINT NOT NULL DEFAULT 0,
+link_check SMALLINT NOT NULL DEFAULT 0,
+nagios_handler VARCHAR(50) NOT NULL DEFAULT '',
+wikiname VARCHAR(250),
 active SMALLINT NOT NULL DEFAULT 1,
 monitoring_status VARCHAR(10) NOT NULL DEFAULT 'UP',
 queue_enabled SMALLINT NOT NULL DEFAULT 0,
@@ -149,6 +152,9 @@ COMMENT ON COLUMN devices.ip IS 'IP-адрес управления устрой
 COMMENT ON COLUMN devices.snmp_version IS 'Версия SNMP: 0=отключено, 1=v1, 2=v2c, 3=v3';
 COMMENT ON COLUMN devices.discovery IS 'Включить автоматическое обнаружение';
 COMMENT ON COLUMN devices.active IS 'Устройство активно и мониторится';
+COMMENT ON COLUMN devices.link_check IS 'Состояние линка порта коммутатора этого устройства проверяется системой мониторинга';
+COMMENT ON COLUMN devices.nagios_handler IS 'Обработчик событий системы мониторинга для этого устройства';
+COMMENT ON COLUMN devices.wikiname IS 'Имя страницы wiki этого устройства';
 
 -- Экземпляры фильтров устройств
 CREATE TABLE device_filter_instances (
@@ -475,7 +481,6 @@ deleted SMALLINT NOT NULL DEFAULT 0,
 description VARCHAR(250),
 dns_name VARCHAR(253),
 dns_ptr_only SMALLINT NOT NULL DEFAULT 0,
-wikiname VARCHAR(250),
 dhcp_acl TEXT,
 queue_id INTEGER NOT NULL DEFAULT 0,
 mac VARCHAR(17),
@@ -492,11 +497,6 @@ month_quota INTEGER NOT NULL DEFAULT 0,
 firmware VARCHAR(100),
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 client_id VARCHAR(250),
-monitoring SMALLINT NOT NULL DEFAULT 0,
-monitoring_old SMALLINT NOT NULL DEFAULT 0,
-monitoring_status VARCHAR(10) NOT NULL DEFAULT '',
-nagios_handler VARCHAR(50) NOT NULL DEFAULT '',
-link_check SMALLINT NOT NULL DEFAULT 0,
 changed SMALLINT NOT NULL DEFAULT 0,
 dhcp_changed SMALLINT NOT NULL DEFAULT 0,
 changed_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -506,7 +506,6 @@ COMMENT ON TABLE user_auth IS 'Записи авторизации пользо�
 COMMENT ON COLUMN user_auth.enabled IS 'Эта авторизация активна';
 COMMENT ON COLUMN user_auth.dynamic IS 'Это динамически созданная запись';
 COMMENT ON COLUMN user_auth.day_quota IS 'Дневная квота трафика в байтах';
-COMMENT ON COLUMN user_auth.monitoring IS 'Включить мониторинг Nagios для этого хоста';
 
 -- Алиасы авторизации пользователей
 CREATE TABLE user_auth_alias (
@@ -601,7 +600,7 @@ COMMENT ON TABLE vendors IS 'Производители сетевого обо�
 -- Версия системы
 CREATE TABLE version (
 id INTEGER PRIMARY KEY DEFAULT 1,
-version VARCHAR(10) NOT NULL DEFAULT '3.2.4'
+version VARCHAR(10) NOT NULL DEFAULT '3.2.5'
 );
 COMMENT ON TABLE version IS 'Информация о версии системы';
 

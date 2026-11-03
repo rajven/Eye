@@ -95,22 +95,24 @@ foreach my $fname (sort keys %content) {
 
     next unless $ip && is_valid_ipv4($ip);
 
-    # Получение записи из БД через API
-    my $auth_response = api_call($ua, 'GET', $api_request_url. "&get=user_auth&ip=" . uri_escape($ip));
-    if ($auth_response->{error}) {
-        print "Запись не найдена для IP $ip (файл: $fname): " . $auth_response->{error} . "\n";
+    # The wiki page describes a device of the monitoring system, so the name of the
+    # page is written to the row of the device of eye, not to an ip address
+    my $device_filter = encode_json({ ip => $ip, deleted => 0 });
+    my $device_response = api_call($ua, 'GET',
+        $api_request_url . "&get=table_record&table=devices&filter=" . uri_escape($device_filter));
+    if ($device_response->{error} || !$device_response->{data}) {
+        print "Устройство не найдено для IP $ip (файл: $fname): " . ($device_response->{error} // 'нет записи') . "\n";
         next;
     }
 
-    my $auth = $auth_response->{data};
+    my $device = $device_response->{data};
 
-    # Обновление поля WikiName через метод обновления user_auth
     my $update_data = {
         wikiname => $fname
     };
 
     my $json_data = encode_json($update_data);
-    my $update_url = $api_request_url. "&send=update_user_auth&id=$auth->{id}";
+    my $update_url = $api_request_url. "&send=update_device&id=$device->{id}";
     my $update_req = HTTP::Request->new(POST => $update_url);
     $update_req->header('Content-Type' => 'application/json');
     $update_req->content($json_data);
@@ -118,10 +120,10 @@ foreach my $fname (sort keys %content) {
     my $update_response = api_call($ua, 'POST', $update_url, $json_data);
     
     if ($update_response->{error}) {
-        warn "Ошибка обновления id=$auth->{id}: " . $update_response->{error} . "\n";
+        warn "Ошибка обновления id=$device->{id}: " . $update_response->{error} . "\n";
         $errors++;
     } else {
-        print "Обновлено: id=$auth->{id} IP=$ip => WikiName=$fname\n";
+        print "Обновлено: id=$device->{id} IP=$ip => WikiName=$fname\n";
         $updated++;
     }
 }

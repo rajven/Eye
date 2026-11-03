@@ -31,6 +31,11 @@ use eyelib::database;
 use eyelib::common;
 use Fcntl qw(:flock);
 
+if (!nagios_monitoring_enabled($dbh)) {
+    log_error("Nagios is not selected as the monitoring system");
+    do_exit(1);
+    }
+
 open(SELF,"<",$0) or die "Cannot open $0 - $!";
 flock(SELF, LOCK_EX|LOCK_NB) or exit 1;
 
@@ -60,8 +65,8 @@ foreach my $row (@Model_list) {
 $models{$row->{id}}=$row;
 }
 
-#switches & routers only
-my @netdev_list=get_records_sql($dbh,'SELECT * FROM devices WHERE deleted=0 and monitoring=1 and device_type<=2');
+#every monitored device of eye is a host of the monitoring system, an ip record is not
+my @netdev_list=get_records_sql($dbh,'SELECT * FROM devices WHERE deleted=0 and monitoring=1');
 
 ##################################### Netdevices analyze ################################################
 if (scalar(@netdev_list)>0) {
@@ -82,10 +87,19 @@ if (scalar(@netdev_list)>0) {
         $devices{$device_id}{device_id} = $router->{'id'};
         $devices{$device_id}{vendor_id} = $router->{'vendor_id'};
         $devices{$device_id}{ou_id} = 0;
-        #1 - switch; 2 - router; 3 - auth
+        #1 - switch; 2 - router; 3 - any other device of eye
         #NOT DEVICE TYPE IN DB!!!
         $devices{$device_id}{type}='1';
         $devices{$device_id}{ou_id}='7';
+        #the parameters of the monitoring system are the parameters of this host
+        $devices{$device_id}{link_check}=$router->{'link_check'};
+        $devices{$device_id}{nagios_handler}=$router->{'nagios_handler'};
+        $devices{$device_id}{login}=$router->{'login'} // '';
+        $devices{$device_id}{password}=$router->{'password'} // '';
+        if ($router->{'device_type'} > 2) {
+            #the device of the user, a camera, a server and so on
+            $devices{$device_id}{type}='3';
+            }
         if ($router->{'device_type'} eq 2) {
             $devices{$device_id}{type}='2'; 
             $devices{$device_id}{ou_id}='10';
@@ -100,6 +114,7 @@ if (scalar(@netdev_list)>0) {
         if (!$devices{$device_id}{ou}->{nagios_dir}) {
     	    if ($devices{$device_id}{type} eq '1') { $devices{$device_id}{ou}->{nagios_dir}='switches'; }
     	    if ($devices{$device_id}{type} eq '2') { $devices{$device_id}{ou}->{nagios_dir}='routers'; }
+    	    if ($devices{$device_id}{type} eq '3') { $devices{$device_id}{ou}->{nagios_dir}='devices'; }
     	    }
         $devices{$device_id}{user_id}=$router->{'user_id'};
         #get uplinks
@@ -117,6 +132,39 @@ if (scalar(@netdev_list)>0) {
     	    $devices{$device_id}{parent_downlink}=$parent_uplink;
     	    $devices{$device_id}{uplink}=$uplink;
             }
+        #the port of the access switch, its state and its errors are checked over the
+        #snmp of the switch itself
+        if ($devices{$device_id}{parent} and $uplink_port and $uplink_port->{target_port_id}) {
+            my $parent_port = get_record_sql($dbh,"SELECT * FROM device_ports WHERE id= ?",$uplink_port->{target_port_id});
+            if ($parent_port) {
+                $devices{$device_id}{parent_port}=$parent_port->{port};
+                $devices{$device_id}{parent_port_snmp_index}=$parent_port->{snmp_index};
+                $devices{$device_id}{parent_device_id}=$parent_port->{device_id};
+                }
+            }
+
+        #equipment of the user has no ports of its own, the port of an address of the
+        #owner shows the switch the equipment hangs on
+        if (!$devices{$device_id}{parent_name} and $router->{'user_id'}) {
+            my $auth_connection = get_record_sql($dbh,
+                "SELECT C.port_id FROM connections AS C, user_auth AS A WHERE C.auth_id = A.id AND A.user_id = ? AND A.deleted = 0 ORDER BY A.id, C.port_id",
+                $router->{'user_id'});
+            if ($auth_connection and $auth_connection->{port_id}) {
+                my $access_port = get_record_sql($dbh,"SELECT * FROM device_ports WHERE id= ?",$auth_connection->{port_id});
+                if ($access_port and $access_port->{device_id}) {
+                    my $access_device = get_record_sql($dbh,
+                        "SELECT * FROM devices WHERE id= ? AND monitoring=1 AND deleted=0",$access_port->{device_id});
+                    if ($access_device) {
+                        $devices{$device_id}{parent}='netdev_'.$access_device->{'id'};
+                        $devices{$device_id}{parent_name}=$devices{$devices{$device_id}{parent}}->{'name'} // $access_device->{'device_name'};
+                        $devices{$device_id}{parent_port}=$access_port->{port};
+                        $devices{$device_id}{parent_port_snmp_index}=$access_port->{snmp_index};
+                        $devices{$device_id}{parent_device_id}=$access_port->{device_id};
+                        }
+                    }
+                }
+            }
+
         #downlinks
         my @downlinks = get_records_sql($dbh,"SELECT * FROM device_ports WHERE device_id= ? and target_port_id>0 and uplink=0", $devices{$device_id}{device_id});
         foreach my $downlink_port (@downlinks) {
@@ -137,80 +185,16 @@ if (scalar(@netdev_list)>0) {
         }
     }
 
-my @auth_list=get_records_sql($dbh,'SELECT * FROM user_auth WHERE deleted=0 and monitoring=1');
-
-##################################### User auth analyze ################################################
-
-if (scalar(@auth_list)>0) {
-    foreach my $auth (@auth_list) {
-        next if (!$auth);
-        my $ip = $auth->{'ip'};
-        $ip =~s/\/\d+$//g;
-
-        #skip doubles
-        my $device_id = 'auth_'.$auth->{'id'};
-        next if ($devices{$device_id});
-
-	#skip user device with few ip
-        my $auth_count = get_count_records($dbh,"user_auth","user_id= ? AND deleted=0",$auth->{'user_id'});
-        next if ($auth_count>1);
-
-	#skip switches and routers
-        my $auth_device = get_record_sql($dbh,"SELECT * FROM devices WHERE user_id=?",$auth->{'user_id'});
-	next if ($auth_device and $auth_device->{device_type}<=2);
-
-        $auth_device->{password}=decrypt_string($auth_device->{password}) if ($auth_device->{password});
-
-	#snmp parameters
-	setCommunity($auth_device);
-        $devices{$device_id}{snmp}=$auth_device->{snmp} if ($auth_device->{snmp});
-
-        $devices{$device_id}{ip}=$ip;
-
-        #get user
-        my $login = get_record_sql($dbh,"SELECT * FROM user_list WHERE id=?",$auth->{'user_id'});
-
-        $devices{$device_id}{user_login} = $login->{login};
-        $devices{$device_id}{login}=$auth_device->{login} // '';
-        $devices{$device_id}{password}=$auth_device->{password} // '';
-        $devices{$device_id}{user_description} = $login->{description};
-        $devices{$device_id}{ou_id} = 0;
-	if ($login and $login->{ou_id} and $ou{$login->{ou_id}}->{nagios_dir}) { $devices{$device_id}{ou_id} = $login->{ou_id}; }
-        $devices{$device_id}{ou}=$ou{$devices{$device_id}{ou_id}};
-        
-        $devices{$device_id}{device_model_id} = $auth_device->{'device_model_id'};
-        if ($auth_device->{'device_model_id'}) { $devices{$device_id}{device_model} = $models{$auth_device->{'device_model_id'}}; }
-        
-	#name
-        if (!$devices{$device_id}{name} and $auth->{dns_name}) { $devices{$device_id}{name} = $auth->{dns_name}; }
-        if (!$devices{$device_id}{name}) {
-    	    if ($login->{login}) {
-    		$devices{$device_id}{name} = translit($login->{login});
-    		$devices{$device_id}{name}=~s/\(/-/g;
-    		$devices{$device_id}{name}=~s/\)/-/g;
-    		$devices{$device_id}{name}=~s/--/-/g;
-    		} else {
-    		$devices{$device_id}{name} = "auth_id_".$auth->{id};
-    		}
-    	    }
-        $devices{$device_id}{description}=translit($auth->{'description'}) || $devices{$device_id}{name};
-        $devices{$device_id}{auth_id} = $auth->{'id'};
-        $devices{$device_id}{nagios_handler} = $auth->{'nagios_handler'};
-        $devices{$device_id}{link_check} = $auth->{'link_check'};
-        $devices{$device_id}{type}='3';
-        $devices{$device_id}{user_id}=$auth->{'user_id'};
-        #get uplinks
-        my $uplink_port = get_record_sql($dbh,"SELECT * FROM connections WHERE auth_id=?",$auth->{'id'});
-        if ($uplink_port and $uplink_port->{port_id}) {
-            my $uplink = get_record_sql($dbh,"SELECT * FROM device_ports WHERE id=?",$uplink_port->{port_id});
-            if ($uplink and $uplink->{device_id} and $devices{'netdev_'.$uplink->{'device_id'}}) {
-        	$devices{$device_id}{parent}='netdev_'.$uplink->{'device_id'};
-                $devices{$device_id}{parent_port} = $uplink->{port};
-	        $devices{$device_id}{parent_port_snmp_index} = $uplink->{snmp_index};
-        	$devices{$device_id}{parent_name}=$devices{$devices{$device_id}{parent}}->{'name'};
-        	$devices{$device_id}{parent_snmp}=$devices{$devices{$device_id}{parent}}->{'snmp'};
-        	}
-            }
+#the access switch of the device is not necessarily analysed before the device itself,
+#so the snmp parameters of the parent are taken when the list of the hosts is complete
+foreach my $device_id (keys %devices) {
+    my $parent_device_id = $devices{$device_id}{parent_device_id};
+    next if (!$parent_device_id);
+    my $parent = get_record_sql($dbh,"SELECT * FROM devices WHERE id= ? AND deleted=0",$parent_device_id);
+    next if (!$parent);
+    if (!$devices{$device_id}{parent_snmp}) {
+        setCommunity($parent);
+        $devices{$device_id}{parent_snmp}=$parent->{snmp};
         }
     }
 

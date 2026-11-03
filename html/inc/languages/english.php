@@ -573,6 +573,15 @@ define("WEB_lbl_nomatch","Nothing found");
 
 /* zabbix monitoring */
 define("WEB_cell_monitoring_status","Monitoring status");
+define("WEB_host_monitoring_device","Monitoring host of the device:");
+define("WEB_monitoring_disabled_host","this device is not monitored");
+define("WEB_monitoring_no_device","The monitoring system sees the device of the user, this address has no device of eye, so there is no host");
+define("WEB_zabbix_mass_tag_add","Add the tag of zabbix");
+define("WEB_zabbix_mass_tag_del","Remove the tag of zabbix");
+define("WEB_zabbix_mass_macro_add","Assign the macro of zabbix");
+define("WEB_zabbix_mass_macro_del","Remove the macro of zabbix");
+define("WEB_zabbix_mass_tags","tags of zabbix are assigned to the devices");
+define("WEB_zabbix_mass_macros","macros of zabbix are assigned to the devices");
 define("WEB_zabbix_host_groups","Zabbix host groups");
 define("WEB_zabbix_group_not_found","group not found in zabbix:");
 define("WEB_zabbix_group_id","Host group id");
@@ -605,12 +614,6 @@ define("WEB_zabbix_host_note_macros","the macros");
 define("WEB_zabbix_host_note_status","monitoring is switched on again");
 define("WEB_zabbix_sync_now","Export to zabbix");
 define("WEB_zabbix_sync_off","Switch the host off in zabbix");
-define("WEB_monitoring_taken","monitoring is already switched on at the address");
-define("WEB_monitoring_skipped","monitoring is not switched on for the addresses of a user whose device is monitored:");
-define("WEB_monitoring_taken_device","monitoring is already switched on at the device");
-define("WEB_monitoring_locked","one device is one host in the monitoring system, monitoring of the other addresses of this user is switched off");
-define("WEB_zabbix_mass_same_user","several addresses of one user are selected, only the first one is processed");
-define("WEB_zabbix_mass_skipped","Skipped addresses of the same user:");
 define("WEB_zabbix_macros_global","The macros and the tags are bound to a device, not to its model:");
 define("WEB_submenu_zabbix_macros","Zabbix macros");
 define("WEB_zabbix_macros_page","Zabbix macros: the global list of the names");
