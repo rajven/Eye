@@ -67,7 +67,7 @@ function prepareAuditMessage(PDO $db, string $table, ?array $old_data, ?array $n
         ],
         'filter_list' => [
             'summary' => ['name'],
-            'fields' => ['name', 'description', 'proto', 'dst', 'dstport', 'srcport', 'filter_type']
+            'fields' => ['name', 'description', 'proto', 'dst', 'dstport', 'srcport', 'ipset_id', 'filter_type']
         ],
         'gateway_subnets' => [
             'summary' => [],
@@ -1614,7 +1614,9 @@ if (empty($id)) { return; }
 if ($id<1) { return; }
 $hotspot_ou = get_const('default_hotspot_ou_id');
 $dhcp_ou = get_const('default_user_ou_id');
-if ($id = $dhcp_ou or $id = $hotspot_ou) { return; }
+// the comparison, not an assignment: an assignment here made the removal of a group
+    // silently do nothing, neither the group nor its relations were touched
+    if ($id == $dhcp_ou or $id == $hotspot_ou) { return; }
 // Обнуляем привязки в user_list
 update_records($db, "user_list", "ou_id = ?", ['ou_id' => $dhcp_ou ], [$id]);
 // Обнуляем привязки в user_auth

@@ -359,6 +359,42 @@ set enabled=yes interfaces=WAN
 add dst-address=<NETFLOW_SERVER_IP> port=2055
 ```
 
+## HTTP API
+
+All methods are called on `/api.php` with the credentials of a customer of the interface:
+`api_login=<login>&api_key=<key>`. The key is shown once, at the creation of the customer.
+
+Read-only records of any table: `get=table_record`, `get=table_list` with `table=<name>`,
+`filter={"column":"value"}`, `limit`, `offset`. The passwords and the api keys never
+leave the answer.
+
+The entities of eye carry the full set of methods, where `<e>` is one of `group`
+(an organizational unit), `user`, `address` (an ip record of a subscriber), `filter`,
+`filtergroup`, `filtergrouprule`, `queue` (a shaper), `device`:
+
+| method | meaning |
+|---|---|
+| `get=<e>s` | the search: `search=<substring>`, the exact columns of the entity, `limit`, `offset` |
+| `get=<e>s&id=<id>` | one record, `&with=addresses,devices` adds the records which hang on it |
+| `send=add_<e>` | creation, the fields of the record come in a json body or in the query |
+| `send=update_<e>&id=<id>` | editing of the allowed columns |
+| `send=del_<e>&id=<id>` | removal; a record which is in use answers 400 with the list of its holders, `force=1` releases the references first: the shapers and the groups of filters are taken away from the subscribers, the units and the rules, the subscribers of a removed organizational unit move to the default one |
+
+The rights are the same as in the interface: a customer with the view only rights reads
+but changes nothing (403). An unknown field, or a field which belongs to another record,
+is answered by 400 with the explanation, nothing is skipped in silence.
+
+```bash
+# a subscriber into a new organizational unit, with his address and his device
+curl -s "http://eye.local/api.php?api_login=admin&api_key=SECRET&send=add_group" \
+     -H 'Content-Type: application/json' -d '{"ou_name":"offices","enabled":1}'
+curl -s "http://eye.local/api.php?api_login=admin&api_key=SECRET&send=add_user" \
+     -H 'Content-Type: application/json' -d '{"login":"petrov","ou_id":14}'
+curl -s "http://eye.local/api.php?api_login=admin&api_key=SECRET&send=add_address" \
+     -H 'Content-Type: application/json' -d '{"user_id":1,"ip":"10.10.20.20","mac":"aa:bb:cc:dd:ee:ff"}'
+curl -s "http://eye.local/api.php?api_login=admin&api_key=SECRET&get=users&ip=10.10.20.20&with=devices"
+```
+
 ## Important!
 
 Do not modify system scripts! If you need to change something, create a copy of the script and work with that. Otherwise, your changes will be overwritten during use automatic updates.

@@ -349,6 +349,10 @@ define("WEB_customer_login","Login");
 define("WEB_customer_password","Password");
 define("WEB_customer_mode","Access rights");
 define("WEB_customer_api_key","API Key");
+define("WEB_customer_api_key_once","The api key is shown only now, right after the record is created. Keep it: the interface will not show it again");
+define("WEB_customer_api_key_wrong","The api key must contain exactly 20 characters");
+define("WEB_customer_api_key_regenerate","Issue a new api key (the current key is not shown)");
+define("WEB_customer_api_key_renewed","A new api key has been issued, write it down: the interface will not show it again");
 
 /* custom index */
 define("WEB_customer_index_title","Administrators");

@@ -13,6 +13,12 @@ if (get_user_acl() <> 1) {
 
 $customer=get_record($db_link,'customers',"id=?", [$id]);
 
+// the api key of a customer is a secret: the form of a record which has just been
+// created shows it once, every next visit shows nothing, and an ordinary save does not
+// touch the key at all
+$show_key = !empty($_SESSION['api_key_once'][(int)$id]);
+unset($_SESSION['api_key_once'][(int)$id]);
+
 if (getPOST("edituser") !== null) {
     global $salt;
 
@@ -30,15 +36,28 @@ if (getPOST("edituser") !== null) {
         $new['password'] = password_hash($pass, PASSWORD_BCRYPT);
     }
 
-    // API-ключ (если длина > 20)
-    $api_key = getPOST("api_key", null, randomPassword(20));
-    if (strlen(trim($api_key)) > 20) {
-        $new['api_key'] = substr(trim($api_key),0,20);
+    // the key is written only by the form of the creation, which marks itself with the
+    // hidden field, so no ordinary save can change or blank the key of the api
+    $key_form = getPOST("api_key_set", null, null) !== null;
+    $api_key = trim((string)getPOST("api_key", null, ''));
+    if ($key_form) {
+        if (strlen($api_key) <> 20) {
+            // the value can not be saved, the form asks for it once again
+            $_SESSION['api_key_once'][(int)$id] = 1;
+            $_SESSION[$page_url]['msg'] = WEB_customer_api_key_wrong;
+            header("Location: " . $_SERVER["REQUEST_URI"]);
+            exit;
+        }
+        $new['api_key'] = $api_key;
     }
-    if (strlen(trim($api_key)) <20) {
-        $new['api_key'] = $customer['api_key'];
+
+    // a lost key can not be read back, but it can be replaced: the new value is a
+    // secret which the form shows once, right after the issue
+    if (getPOST("api_key_regenerate", null, null) !== null) {
+        $new['api_key'] = randomPassword(20);
+        $_SESSION['api_key_once'][(int)$id] = 1;
+        $_SESSION[$page_url]['msg'] = WEB_customer_api_key_renewed;
     }
-    $new['api_key'] = trim($api_key);
 
     // Права доступа
     $new['rights'] = (int)getPOST("f_acl", null, 0);
@@ -59,6 +78,13 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 ?>
 
 <div id="cont">
+<?php
+if (!empty($_SESSION[$page_url]['msg'])) {
+    print "<div id='msg'>" . $_SESSION[$page_url]['msg'] . "</div>
+";
+    unset($_SESSION[$page_url]['msg']);
+}
+?>
 <br><b><?php echo WEB_customer_titles; ?></b><br>
 <form name="def" action="editcustom.php?id=<?php echo $id; ?>" method="post">
     <input type="hidden" name="id" value="<?php echo $id; ?>">
@@ -75,14 +101,25 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
             <td><?php echo WEB_customer_password; ?></td>
             <td><input type="password" name="pass" value="" size=20></td>
         </tr>
+        <?php if (!$show_key): ?>
+        <tr>
+            <td><?php echo WEB_customer_api_key; ?></td>
+            <td colspan="3">
+                <label><input type="checkbox" name="api_key_regenerate" value="1">&nbsp;<?php echo WEB_customer_api_key_regenerate; ?></label>
+            </td>
+        </tr>
+        <?php endif; ?>
+        <?php if ($show_key): ?>
         <tr>
             <td><?php echo WEB_customer_api_key; ?></td>
             <td>
-                <input type="text" name="api_key" id="api_key" value="<?php print htmlspecialchars($customer['api_key']); ?>" size=50>
-                <!-- Кнопка перегенерации -->
-                <button type="button" onclick="generateApiKey()">🔄</button>
+                <input type="hidden" name="api_key_set" value="1">
+                <input type="text" name="api_key" id="api_key" value="<?php print htmlspecialchars($customer['api_key']); ?>" size=50 maxlength=20>
+                <button type="button" onclick="generateApiKey()">&#128260;</button>
+                <br><?php echo WEB_customer_api_key_once; ?>
             </td>
         </tr>
+        <?php endif; ?>
         <tr>
             <td><?php echo WEB_customer_mode; ?></td>
             <td><?php print_acl_select($db_link,'f_acl',$customer['rights']); ?></td>

@@ -1,6 +1,7 @@
 <?php
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/api_crud.php");
 
 login($db_link);
 
@@ -81,8 +82,31 @@ $allowed_tables = [
     'config',
     'user_auth',
     'user_list',
-    'vendors'
+    'vendors',
+    'filter_list',
+    'group_filters',
+    'filter_instances',
+    'ipset_list'
 ];
+
+// the records which must never leave the api: their secrets are not for a json answer
+function api_hide_columns($table, $row)
+{
+    $hidden = [
+        'customers' => ['password', 'api_key'],
+        'devices'   => ['password', 'snmp3_user_ro_password', 'snmp3_user_rw_password'],
+    ];
+
+    if (empty($row) || !is_array($row) || empty($hidden[$table])) {
+        return $row;
+    }
+
+    foreach ($hidden[$table] as $column) {
+        unset($row[$column]);
+    }
+
+    return $row;
+}
 
 function send_json_response($data, $http_code = 200) {
     http_response_code($http_code);
@@ -177,6 +201,12 @@ function safe_get_record($db, $table, $id) {
 if (!empty($action)) {
 
 
+    // === МЕТОДЫ СУЩНОСТЕЙ: поиск, создание, правка, удаление ===
+    // get=<entity>, send=add_<entity>, send=update_<entity>, send=del_<entity>
+    if (api_crud($db_link, $action, api_request_data())) {
+        do_exit();
+    }
+
     // === УНИВЕРСАЛЬНЫЙ МЕТОД: get_table_record ===
     if ($action === 'get_table_record' && !empty($table)) {
 
@@ -203,7 +233,7 @@ if (!empty($action)) {
         }
         if ($result) {
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            echo json_encode(api_hide_columns($table, $result), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         } else {
             http_response_code(404);
             echo json_encode(['error' => 'Record not found']);
@@ -230,167 +260,11 @@ if (!empty($action)) {
         }
         
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($result ?: [], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-        do_exit();
-    }
-
-    // === ОБНОВЛЕНИЕ USER_LIST ===
-    if ($action === 'send_update_user' && $rec_id > 0 && !empty($update_data)) {
-
-        log_api_call($action, [
-            'rec_id' => $rec_id,
-            'update_data' => $update_data,
-            ]);
-
-        $data = json_decode($update_data, true);
-        
-        if (!is_array($data)) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Invalid data format']);
-            do_exit();
-        }
-        
-        // Разрешённые поля для обновления
-        $allowed_fields = [
-            'login', 'description', 'enabled', 'blocked', 'ou_id', 
-            'filter_group_id', 'queue_id', 'day_quota', 'month_quota', 'permanent'
-        ];
-        
-        $update_fields = [];
-        foreach ($data as $key => $value) {
-            if (in_array($key, $allowed_fields)) {
-                $update_fields[$key] = $value;
-            }
-        }
-        
-        if (empty($update_fields)) {
-            http_response_code(400);
-            echo json_encode(['error' => 'No valid fields to update']);
-            do_exit();
-        }
-        
-        // Проверяем существование пользователя
-        $existing = get_record_sql($db_link, "SELECT id FROM user_list WHERE id = ?", [$rec_id]);
-        if (!$existing) {
-            http_response_code(404);
-            echo json_encode(['error' => 'User not found']);
-            do_exit();
-        }
-        
-        // Выполняем обновление
-        if (update_record($db_link, 'user_list', 'id = ?', $update_fields, [$rec_id])) {
-            LOG_VERBOSE($db_link, "API: User $rec_id updated successfully");
-            http_response_code(200);
-            echo json_encode(['status' => 'updated', 'id' => $rec_id]);
-        } else {
-            LOG_ERROR($db_link, "API: Failed to update user $rec_id");
-            http_response_code(500);
-            echo json_encode(['error' => 'Update failed']);
-        }
-        do_exit();
-    }
-
-    // === ОБНОВЛЕНИЕ УСТРОЙСТВА ===
-    // the parameters of the monitoring system belong to the device: it is the host of
-    // the monitoring system, an ip record has none of them
-    if ($action === 'send_update_device' && $rec_id > 0 && !empty($update_data)) {
-
-        log_api_call($action, [
-            'rec_id' => $rec_id,
-            'update_data' => $update_data,
-            ]);
-
-        $data = json_decode($update_data, true);
-
-        if (!is_array($data)) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Invalid data format']);
-            do_exit();
-        }
-
-        // Разрешённые поля для обновления
-        $allowed_fields = ['device_name', 'description', 'firmware', 'sn', 'wikiname', 'nagios_handler', 'link_check'];
-
-        $update_fields = [];
-        foreach ($data as $key => $value) {
-            $db_key = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $key));
-            if (in_array($db_key, $allowed_fields)) {
-                $update_fields[$db_key] = $value;
-            }
-        }
-
-        // monitoring is not updatable over the api: switching a host on and off must
-        // keep monitoring_old and must be reported to the monitoring system at once
-        unset($update_fields['monitoring']);
-
-        if (empty($update_fields)) {
-            http_response_code(400);
-            echo json_encode(['error' => 'No valid fields to update']);
-            do_exit();
-        }
-
-        $cur_device = get_record($db_link, 'devices', 'id = ? AND deleted = 0', [$rec_id]);
-        if (empty($cur_device)) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Device not found']);
-            do_exit();
-        }
-
-        if (update_record($db_link, 'devices', 'id = ?', $update_fields, [$rec_id])) {
-            LOG_VERBOSE($db_link, "API: Device $rec_id updated via API", $rec_id);
-            http_response_code(200);
-            echo json_encode(['status' => 'updated', 'id' => $rec_id]);
-        } else {
-            LOG_ERROR($db_link, "API: Failed to update device $rec_id", $rec_id);
-            http_response_code(500);
-            echo json_encode(['error' => 'Update failed']);
-        }
-        do_exit();
-    }
-
-    // === ОБНОВЛЕНИЕ USER_AUTH ===
-    if ($action === 'send_update_user_auth' && $rec_id > 0 && !empty($update_data)) {
-
-        log_api_call($action, [
-            'rec_id' => $rec_id,
-            'update_data' => $update_data,
-            ]);
-
-
-        $data = json_decode($update_data, true);
-
-        if (!is_array($data)) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Invalid data format']);
-            do_exit();
-        }
-
-        // Разрешённые поля для обновления
-        $allowed_fields = ['mac', 'ip', 'ip_int', 'description', 'dns_name'];
-
-        $update_fields = [];
-        foreach ($data as $key => $value) {
-            $db_key = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $key)); // WikiName -> wiki_name
-            if (in_array($db_key, $allowed_fields)) {
-                $update_fields[$db_key] = $value;
-            }
-        }
-        
-        if (empty($update_fields)) {
-            http_response_code(400);
-            echo json_encode(['error' => 'No valid fields to update']);
-            do_exit();
-        }
-        
-        if (update_record($db_link, 'user_auth', 'id = ?', $update_fields, [$rec_id])) {
-            LOG_VERBOSE($db_link, "API: User_auth $rec_id updated via API", $rec_id);
-            http_response_code(200);
-            echo json_encode(['status' => 'updated', 'id' => $rec_id]);
-        } else {
-            LOG_ERROR($db_link, "API: Failed to update user_auth $rec_id", $rec_id);
-            http_response_code(500);
-            echo json_encode(['error' => 'Update failed']);
-        }
+        // the list of any table leaves its secrets out, the customers and the devices
+        // carry passwords and keys which no api answer must show
+        echo json_encode(array_map(function ($row) use ($table) {
+            return api_hide_columns($table, $row);
+        }, ($result ?: [])), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         do_exit();
     }
 

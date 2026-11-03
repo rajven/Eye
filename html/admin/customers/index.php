@@ -21,6 +21,8 @@ if (getPOST("create") !== null) {
             ];
             $id = insert_record($db_link, "customers", $new);
             if (!empty($id)) {
+                // the api key is shown only once, right after the record is created
+                $_SESSION['api_key_once'][(int)$id] = 1;
                 header("Location: editcustom.php?id=$id");
                 exit;
             }
