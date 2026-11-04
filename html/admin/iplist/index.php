@@ -232,8 +232,8 @@ foreach ($users as $user) {
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$user['id']."></td>\n";
     print "<td class=\"$cl\" >".$user['ou_name']."</td>\n";
     if (empty($user['login'])) { $user_name = $user['user_id']; } else { $user_name = $user['login']; }
-    print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user_name . "</a></td>\n";
-    print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
+    print "<td class=\"$cl\" >" . get_login_link($db_link, $user['user_id']) . "</td>\n";
+    print "<td class=\"$cl\" >" . get_auth_link($db_link, $user['id']) . "</td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
     if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
         print "<td class=\"$cl\" width=200 >".$user['description']." [" . $user['dhcp_hostname'] . "]</td>\n";
@@ -253,7 +253,7 @@ foreach ($users as $user) {
         $dns_display .= implode('<br>', $alias_list);
     }
     print "<td class=\"$cl\" >".$dns_display."</td>\n";
-    print "<td class=\"$cl\" >" . get_group($db_link, $user['filter_group_id']) . "</td>\n";
+    print "<td class=\"$cl\" >" . get_group_link($db_link, $user['filter_group_id']) . "</td>\n";
     print "<td class=\"$cl\" >" . get_queue($db_link, $user['queue_id']) . "</td>\n";
     print_td_qa($user['save_traf'],FALSE,$cl);
     print_td_qa($user['dhcp'],FALSE,$cl);

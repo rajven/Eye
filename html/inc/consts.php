@@ -224,4 +224,11 @@ define('NOTIFY_DELETE', 1 << 2); // 0100 - deletion
 
 // Predefined combinations
 define('NOTIFY_ALL', NOTIFY_CREATE | NOTIFY_UPDATE | NOTIFY_DELETE); // 0111
+
+// Display modes for get_auth()
+define('AUTH_DISPLAY_IP', 0);
+define('AUTH_DISPLAY_DESCR_ONLY', 1);
+define('AUTH_DISPLAY_IP_AND_NAME', 2);
+define('AUTH_DISPLAY_LOGIN_AND_IP', 3);
+
 ?>

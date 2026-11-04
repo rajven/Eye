@@ -1403,8 +1403,19 @@ function print_submenu_nw($display_name, $page, $current_page, $last)
 
 function print_url($display_name, $page, $class = '')
 {
-    if (!empty($class)) { $class = "class='{$class}'"; }
-    print "<a $class href='" . reencodeurl($page) . "'> $display_name </a>";
+    print create_url($display_name, $page, $class);
+}
+
+function create_url(string $display_name, string $page, string $class = ''): string
+{
+    $href = reencodeurl($page);
+
+    $attrs = 'href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '"';
+    if ($class !== '') {
+        $attrs .= ' class="' . htmlspecialchars($class, ENT_QUOTES, 'UTF-8') . '"';
+    }
+
+    return '<a ' . $attrs . '>' . htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8') . '</a>';
 }
 
 function print_log_submenu($current_page)
@@ -1652,6 +1663,12 @@ function get_user_device($db, $user_id, $exclude_device_id = 0)
     return empty($device) ? null : $device;
 }
 
+function get_ou_link($db, $ou_id, $class = '')
+{
+    $page = "/admin/groups/edit_group.php?id=".$ou_id;
+    return create_url(get_ou($db , $ou_id), $page, $class);
+}
+
 function get_ou($db, $ou_value)
 {
     if (!isset($ou_value)) {
@@ -1823,6 +1840,15 @@ function print_devtype_select($db, $devtype_name, $devtype_value)
         print_select_item(htmlspecialchars($row[$lang_column]), $row['id'], $devtype_value);
     }
     echo "</select>\n";
+}
+
+function get_group_link($db, $group_id, $class = '')
+{
+    if ($group_id >0) {
+        $page = "/admin/filters/editgroup.php?id=".$group_id;
+        return create_url(get_group($db , $group_id), $page, $class);
+        }
+    return get_group($db , $group_id);
 }
 
 function get_group($db, $group_value)
@@ -2451,7 +2477,13 @@ function get_filter($db, $filter_value)
     }
     return '';
 }
-    
+
+function get_login_link($db, $user_id, $class = '')
+{
+    $page = "/admin/users/edituser.php?id=".$user_id;
+    return create_url(get_login($db , $user_id), $page, $class);
+}
+
 function get_login($db, $user_id)
 {   
     if (!isset($user_id)) {
@@ -2658,7 +2690,7 @@ function print_device_select_ip($db, $field_name, $device_ip)
     
     foreach ($t_device as $row) {
         $display = htmlspecialchars($row['device_name']);
-        $value = htmlspecialchars($row['ip']); // IP безопасен, но для единообразия
+        $value = htmlspecialchars($row['ip']);
         print_select_item($display, $value, $device_ip);
     }
     echo "</select>\n";
@@ -2674,7 +2706,6 @@ function print_syslog_device_select($db, $field_name, $syslog_filter, $device_ip
         'message LIKE "%error%"',
         'message LIKE "%warning%"',
         '1=1' // для случая "все записи"
-        // Добавьте другие допустимые значения по необходимости
     ];
     
     if (!in_array($syslog_filter, $allowed_filters)) {
@@ -2791,6 +2822,12 @@ function get_device_id($db, $device_name)
     return $dev["id"];
 }
 
+function get_device_link($db, $device_id, $class = '')
+{
+    $page = "/admin/devices/editdevice.php?id=".$device_id;
+    return create_url(get_device_name($db , $device_id), $page, $class);
+}
+
 function get_device_name($db, $device_id)
 {
     if (!isset($device_id)) {
@@ -2806,6 +2843,87 @@ function get_device_name($db, $device_id)
         return null;
     }
     return $dev["device_name"];
+}
+
+function get_auth_link($db, $auth_value, $with_descr = 0, $class = '')
+{
+    $page = "/admin/users/editauth.php?id=".$auth_value;
+    return create_url(get_auth($db , $auth_value, $with_descr), $page, $class);
+}
+
+/**
+ * Returns the display name for a user_auth record.
+ *
+ * The result is a plain text string intended for human output.
+ * It is NOT HTML-escaped and NOT URL-safe.
+ * Escape it with htmlspecialchars() at the output layer,
+ * or pass through urlencode() when building a URL.
+ *
+ * @param  mixed     $db         Database connection
+ * @param  int       $auth_id    user_auth record ID
+ * @param  int       $with_descr One of AUTH_DISPLAY_* constants
+ * @return string|null           Plain display name, or null if not found
+ */
+
+function get_auth($db, int $auth_id, int $with_descr = AUTH_DISPLAY_IP): ?string
+{
+    if ($auth_id <= 0) {
+        return '';
+    }
+
+    $auth = get_record_sql($db,
+        "SELECT U.login, A.ip, A.dns_name, A.description
+         FROM user_list AS U, user_auth AS A
+         WHERE A.user_id = U.id AND A.id = ?",
+        [(int)$auth_id]
+    );
+
+    if (empty($auth)) {
+        return '';
+    }
+
+    $ip    = $auth['ip']          ?? '';
+    $login = $auth['login']       ?? '';
+    $dns   = $auth['dns_name']    ?? '';
+    $desc  = $auth['description'] ?? '';
+
+    // Fallback to auth_id when IP is missing.
+    $display_name = $ip !== '' ? $ip : 'auth_id: ' . $auth['id'];
+
+    // Mode 0: IP only.
+    if ($with_descr === AUTH_DISPLAY_IP) {
+        return $display_name;
+    }
+
+
+    // Pick the secondary part: dns_name has priority over description.
+    $suffix = '';
+    if ($dns !== '') {
+        $suffix = $dns;
+    } elseif ($desc !== '') {
+        $suffix = $desc;
+    }
+
+    if ($with_descr === AUTH_DISPLAY_LOGIN_AND_IP and !empty($login)) {
+        return $login . ' [' .  $ip . ']';
+    }
+
+    // Nothing to add.
+    if ($suffix === '') {
+        return $display_name;
+    }
+
+    // Mode 1: secondary part only.
+    if ($with_descr === AUTH_DISPLAY_DESCR_ONLY) {
+        return $suffix;
+    }
+
+    // Mode 2: IP combined with dns_name or description.
+    if ($dns !== '') {
+        return $ip . ' [' . $dns . ']';
+    }
+
+    return $ip . ' (' . $desc . ')';
 }
 
 function get_auth_by_ip($db, $ip)
@@ -2928,49 +3046,13 @@ function get_port_description($db, $port_id, $port_description = '')
 
 function print_auth_simple($db, $auth_id)
 {
-    $auth = get_record($db, "user_auth", "id = ?", [(int)$auth_id]);
-    
-    if (empty($auth)) {
-        return;
-    }
-    
-    // Определяем отображаемое имя
-    $name = !empty($auth['dns_name']) ? $auth['dns_name'] : 
-            (!empty($auth['description']) ? $auth['description'] : $auth['ip']);
-    
-    $display_name = $name;
-    $safe_auth_id = (int)$auth_id;
-    
-    echo "<a href=\"/admin/users/editauth.php?id={$safe_auth_id}\">{$display_name}</a><br>\n";
+    print get_auth_link($db, $auth_id, AUTH_DISPLAY_DESCR_ONLY);
 }
 
 
 function print_auth($db, $auth_id)
 {
-    $auth = get_record($db, "user_auth", "id = ?", [(int)$auth_id]);
-    
-    if (empty($auth)) {
-        return;
-    }
-    
-    // Формируем отображаемое имя
-    if (!empty($auth['dns_name'])) {
-        $name = $auth['dns_name'];
-        if (!empty($auth['description'])) {
-            $name .= " (" . $auth['description'] . ")";
-        }
-    } else {
-        $name = !empty($auth['description']) ? $auth['description'] : $auth['ip'];
-    }
-    
-    if (!empty($name) && !empty($auth['ip'])) {
-        $name .= " [" . $auth['ip'] . "]";
-    }
-    
-    $display_name = htmlspecialchars($name);
-    $safe_auth_id = (int)$auth_id;
-    
-    echo "<a href=\"/admin/users/editauth.php?id={$safe_auth_id}\">{$display_name}</a><br>\n";
+    print get_auth_link($db, $auth_id, AUTH_DISPLAY_DESCR_ONLY);
 }
 
 function print_auth_detail($db, $auth_id)
@@ -3669,25 +3751,6 @@ function resurrection_auth($db, $ip_record)
     }
     
     return $resurrection_id;
-}
-
-function get_auth($db, $current_auth)
-{
-    if (!isset($current_auth) || $current_auth == 0) {
-        return null;
-    }
-    
-    $t_login = get_record_sql($db,
-        "SELECT U.login, A.ip 
-         FROM user_list AS U, user_auth AS A 
-         WHERE A.user_id = U.id AND A.id = ?",
-        [(int)$current_auth]
-    );
-    
-    if (!empty($t_login) && isset($t_login['login'])) {
-        return $t_login['login'] . "[" . $t_login['ip'] . "]";
-    }
-    return '';
 }
 
 function get_auth_by_mac($db, $mac)
