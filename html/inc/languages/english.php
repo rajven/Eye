@@ -372,6 +372,10 @@ define("WEB_public_month_traffic","per month, (In/Out)");
 
 /* device models */
 define("WEB_model_vendor","Vendor");
+define("WEB_devices","Devices");
+define("WEB_model_parameters","Parameters of the device model");
+define("WEB_model_system","A model of the installation: its vendor and name can not be changed");
+define("WEB_model_name_empty","The name of the model can not be empty");
 define("WEB_models","Models");
 define("WEB_nagios_template","Nagios Template");
 

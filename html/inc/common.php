@@ -1663,12 +1663,6 @@ function get_user_device($db, $user_id, $exclude_device_id = 0)
     return empty($device) ? null : $device;
 }
 
-function get_ou_link($db, $ou_id, $class = '')
-{
-    $page = "/admin/groups/edit_group.php?id=".$ou_id;
-    return create_url(get_ou($db , $ou_id), $page, $class);
-}
-
 function get_ou($db, $ou_value)
 {
     if (!isset($ou_value)) {
@@ -1681,6 +1675,35 @@ function get_ou($db, $ou_value)
     }
     
     return $ou_name['ou_name'];
+}
+
+// the organizational unit as a link to its form
+function get_ou_link($db, $ou_id, $class = '')
+{
+    $page = '/admin/groups/edit_group.php?id=' . (int)$ou_id;
+    return create_url(get_ou($db, $ou_id), $page, $class);
+}
+
+// the page where the parameters of a device model are edited, the templates of zabbix
+// live in the same form
+function get_device_model_page($model_id)
+{
+    return '/admin/customers/editmodel.php?id=' . (int)$model_id;
+}
+
+// the name of a device model as a link to its form
+function get_device_model_link($db, $model_value, $class = '')
+{
+    if (empty($model_value)) {
+        return '';
+    }
+
+    $name = get_device_model_name($db, $model_value);
+    if ($name === '') {
+        return '';
+    }
+
+    return create_url($name, get_device_model_page($model_value), $class);
 }
 
 function get_device_model($db, $model_value)

@@ -372,6 +372,10 @@ define("WEB_public_month_traffic","за месяц, (Вх/Исх)");
 
 /* device models */
 define("WEB_model_vendor","Производитель");
+define("WEB_devices","Устройств");
+define("WEB_model_parameters","Параметры модели устройств");
+define("WEB_model_system","Модель установки: её производитель и имя не изменяются");
+define("WEB_model_name_empty","Имя модели не может быть пустым");
 define("WEB_nagios_template","Шаблон Нагиос");
 
 /* edit_l3int */

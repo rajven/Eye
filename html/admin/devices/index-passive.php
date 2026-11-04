@@ -129,9 +129,11 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
     </tr>
 <?php
 
-$sSQL = "SELECT A.id, D.id as dev_id, D.device_type, A.ip, A.mac, A.user_id, L.login, D.description, A.last_found, M.model_name
-FROM user_auth A, user_list L, devices D, device_models M
-WHERE D.user_id=L.id AND A.ip = D.ip AND D.device_model_id=M.id AND A.deleted =0
+// the vendor of the model comes from its table, the name of the model is a link
+$sSQL = "SELECT A.id, D.id as dev_id, D.device_type, D.device_model_id, A.ip, A.mac, A.user_id, L.login,
+        D.description, A.last_found, V.name, M.model_name
+FROM user_auth A, user_list L, devices D, device_models M, vendors V
+WHERE D.user_id=L.id AND A.ip = D.ip AND D.device_model_id=M.id AND M.vendor_id=V.id AND A.deleted =0
 $filter
 ORDER BY $sort_table.$sort_field $order LIMIT ? OFFSET ?";
 $params[]=$displayed;
@@ -145,7 +147,8 @@ foreach ($users as $user) {
     print "<td class='".$cl."' ><a href=/admin/devices/editdevice.php?id=".$user['dev_id'].">" . $user['login'] . "</a></td>\n";
     print "<td class='".$cl."' ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user['ip'] . "</a></td>\n";
     print "<td class='".$cl."' >" . expand_mac($db_link,$user['mac']) . "</td>\n";
-    print "<td class='".$cl."' >".$user['name'].' '.$user['model_name']."</td>\n";
+    print "<td class='".$cl."' >" . create_url($user['name'] . ' ' . $user['model_name'],
+        get_device_model_page($user['device_model_id'])) . "</td>\n";
     print "<td class='".$cl."' >".$user['description']."</td>\n";
     print "<td class='data'>" . get_connection($db_link, $user['id']) . "</td>\n";
     print "<td class='".$cl."' >".$user['last_found']."</td>\n";
