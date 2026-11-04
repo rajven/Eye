@@ -1,4 +1,21 @@
 # Changelog 3-2-5 - release
+- changed: the form of a device model shows only what the site monitors with: the nagios template field appears when nagios is the
+  monitoring system, the block of the zabbix templates when zabbix is it with its api configured, and a chosen zabbix without the
+  credentials keeps its single note about the api. saving the parameters of a model never touches the nagios template when the
+  field is hidden, an empty form does not erase the template of a model which nagios does not monitor.
+- bugfix: create_url() demanded a string, so print_url() of a record with an empty field raised a type error instead of printing
+  an empty link, the values of the link are made strings inside the function as they were before.
+- changed: a device model has its own form admin/customers/editmodel.php which keeps the parameters of the model and the
+  templates of zabbix bound to it together; the list of the models only lists the models, creates a new one and removes them.
+- removed: admin/customers/devmodels-zabbix.php - the block of the templates of the model lives in the form of the model now.
+- changed: the name of a device model is a link to the form of that model wherever the interface prints it: the list of the
+  models, the lists of the active and the passive devices, the footer of the form of a device.
+- added: create_url() beside print_url(), it returns the markup of a link instead of printing it, and get_device_model_page()
+  with get_device_model_link() build the link of a model by its identifier or its value.
+- note: the tree view of the devices keeps the name of the model inside the link of the node, a second link there would nest
+  inside the first one, so the model stays plain text in the tree.
+- note: a model of the installation (an identifier below 10000) keeps its vendor and its name fixed in the form, its poe
+  parameters, its nagios template and its zabbix templates stay editable.
 - added: the crud methods of the api for the entities of eye: get=<entity> (search and a single record with its related ones), send=add_<entity>, send=update_<entity>, send=del_<entity> for the organizational units (groups), the subscribers, their ip records, the net filters, the groups of filters with their rules, the shapers and the devices.
 - added: the fields of a request are checked by the rules of the entity: the ip addresses and the macs are normalized, the subnets of a filter are validated, the references to the groups, the shapers, the models and the buildings are verified, the unique keys are respected, a view only customer gets 403.
 - changed: an api answer never carries the secrets: the passwords and the api keys of the customers, the cli and snmp passwords of a device.

@@ -94,7 +94,9 @@ foreach ($switches as $row) {
         } else {
         print "<td class=\"$cl\">".$row['ip']."</td>\n";
         }
-    print "<td class=\"$cl\">" . get_vendor_name($db_link, $row['vendor_id']) . " " . $row['model_name'] . "</td>\n";
+    // the name of the model is a link to the form where it is edited
+    print "<td class=\"$cl\">" . create_url(get_vendor_name($db_link, $row['vendor_id']) . " " . $row['model_name'],
+        get_device_model_page($row['device_model_id'])) . "</td>\n";
     print '<td class="'.$cl.'" style="width: 1%; white-space: nowrap;">' . $row['sn'] ."</td>\n";
     print "<td class=\"$cl\">" . get_building($db_link, $row['building_id']);
     if (!empty($row['description'])) { print  '<hr style="opacity: 0;">' . $row['description']; }

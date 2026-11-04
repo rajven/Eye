@@ -443,11 +443,14 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
 
             //save button
             if ($device['snmp_version'] > 0) {
-                print "<tr><td colspan=2>" . $device['ip'] . "::" . get_device_model_name($db_link, $device['device_model_id']) . "</td>";
+                // the name of the model is a link to the form where it is edited
+                print "<tr><td colspan=2>" . $device['ip'] . "::"
+                    . get_device_model_link($db_link, $device['device_model_id']) . "</td>";
                 print "<td><button name='mac_walk' onclick=\"window.open('mactable.php?id=" . $id . "')\">" . WEB_device_mac_table . "</button>";
                 print "<button name='port_walk' onclick=\"window.open('snmpwalk.php?id=" . $id . "')\">" . WEB_device_walk_port_list . "</button></td>";
             } else {
-                print "<tr><td colspan=3>" . $device['ip'] . "::" . get_device_model_name($db_link, $device['device_model_id']) . "</td>";
+                print "<tr><td colspan=3>" . $device['ip'] . "::"
+                    . get_device_model_link($db_link, $device['device_model_id']) . "</td>";
             }
             print "</table>\n";
 
