@@ -1,4 +1,10 @@
 # Changelog 3-2-5 - release
+- changed: the form of a device model shows only what the site monitors with: the nagios template field appears when nagios is the
+  monitoring system, the block of the zabbix templates when zabbix is it with its api configured, and a chosen zabbix without the
+  credentials keeps its single note about the api. saving the parameters of a model never touches the nagios template when the
+  field is hidden, an empty form does not erase the template of a model which nagios does not monitor.
+- bugfix: create_url() demanded a string, so print_url() of a record with an empty field raised a type error instead of printing
+  an empty link, the values of the link are made strings inside the function as they were before.
 - changed: a device model has its own form admin/customers/editmodel.php which keeps the parameters of the model and the
   templates of zabbix bound to it together; the list of the models only lists the models, creates a new one and removes them.
 - removed: admin/customers/devmodels-zabbix.php - the block of the templates of the model lives in the form of the model now.

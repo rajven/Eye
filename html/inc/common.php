@@ -1406,16 +1406,18 @@ function print_url($display_name, $page, $class = '')
     print create_url($display_name, $page, $class);
 }
 
-function create_url(string $display_name, string $page, string $class = ''): string
+function create_url($display_name, $page, $class = ''): string
 {
-    $href = reencodeurl($page);
+    // the names and the addresses come from the records as they are, an empty field of an
+    // old row is null, so the values are made strings here instead of raising a type error
+    $href = reencodeurl((string)$page);
 
     $attrs = 'href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '"';
-    if ($class !== '') {
-        $attrs .= ' class="' . htmlspecialchars($class, ENT_QUOTES, 'UTF-8') . '"';
+    if ((string)$class !== '') {
+        $attrs .= ' class="' . htmlspecialchars((string)$class, ENT_QUOTES, 'UTF-8') . '"';
     }
 
-    return '<a ' . $attrs . '>' . htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8') . '</a>';
+    return '<a ' . $attrs . '>' . htmlspecialchars((string)$display_name, ENT_QUOTES, 'UTF-8') . '</a>';
 }
 
 function print_log_submenu($current_page)

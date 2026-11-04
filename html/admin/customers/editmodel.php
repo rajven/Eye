@@ -17,6 +17,7 @@ $model_id = (int)$model['id'];
 // the models below 10000 belong to the installation, their vendor and name are fixed
 $is_system = $model_id < 10000;
 $disabled_attr = $is_system ? 'disabled' : '';
+$nagios_enabled = is_nagios_enabled();
 $zabbix_enabled = is_zabbix_enabled();
 
 // Saving of the model and of the templates bound to it
@@ -24,8 +25,11 @@ if (getPOST("editmodel") !== null) {
     $new = [
         'poe_in'          => (int)getPOST("f_poe_in", null, 0),
         'poe_out'         => (int)getPOST("f_poe_out", null, 0),
-        'nagios_template' => substr(trim((string)getPOST("f_nagios", null, '')), 0, 200),
     ];
+
+    if ($nagios_enabled) {
+        $new['nagios_template'] = substr(trim((string)getPOST("f_nagios", null, $model['nagios_template'])), 0, 200);
+    }
 
     if (!$is_system) {
         $new['vendor_id']  = (int)getPOST("f_vendor", null, $model['vendor_id']);
@@ -170,13 +174,18 @@ if ($is_system) {
         <td class="data"><?php print_qa_select('f_poe_in', $model['poe_in']); ?></td>
         <td class="data"><?php print_qa_select('f_poe_out', $model['poe_out']); ?></td>
     </tr>
+<?php if ($nagios_enabled): ?>
     <tr align="center">
         <td><b><?php echo WEB_nagios_template; ?></b></td>
         <td colspan="3"></td>
     </tr>
     <tr align="center">
         <td class="data"><input type="text" name="f_nagios" value="<?php echo htmlspecialchars($model['nagios_template'], ENT_QUOTES, 'UTF-8'); ?>" class="full-width"></td>
-        <td class="data" colspan="3" align="right">
+        <td class="data" colspan="3"></td>
+    </tr>
+<?php endif; ?>
+    <tr align="center">
+        <td class="data" colspan="4" align="right">
             <input type="submit" name="editmodel" value="<?php echo WEB_btn_save; ?>">
         </td>
     </tr>
@@ -185,8 +194,11 @@ if ($is_system) {
 
 <?php
 if (!$zabbix_enabled) {
-    // without zabbix the form of the parameters is the whole page
-    print "<br>" . WEB_zabbix_disabled . "<br>\n";
+    // without zabbix the form of the parameters is the whole page, the note about the
+    // api is meant for a site which chose zabbix but did not fill in its credentials
+    if (mb_strtolower(trim((string)($config['monitoring_system'] ?? ''))) === 'zabbix') {
+        print "<br>" . WEB_zabbix_disabled . "<br>\n";
+    }
     require_once ($_SERVER['DOCUMENT_ROOT']."/inc/footer.php");
     exit;
 }
