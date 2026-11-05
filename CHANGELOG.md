@@ -1,4 +1,7 @@
 # Changelog 3-2-6 - release
+- changed: the column of the reaction to an event gives its place on the page of the monitoring to the last arp of the address of
+  the device: the line shows when the arp of that address was seen for the last time, a dash if the address is unknown or
+  silent. the reaction itself is set in the form of the device and stays in the mass operation of the page
 - bugfix: the tree of the devices was glued together out of a script text, while print_url() puts the address of a link in quotes now - a name of a
   device with a quote broke the string of the script, and the structure stopped being drawn at all. the nodes are gathered in an array and written by
   the json encoder: a text of a record is escaped by it, the anchor of a node is made by jstree itself out of its attribute, and a circle of uplinks,
