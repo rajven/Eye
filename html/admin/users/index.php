@@ -241,11 +241,13 @@ foreach ($users as $row) {
     if (!empty($row['permanent']) and $row['permanent'] == 1) { $cl_id = 'warn'; }
     print "<td class=\"$cl_id\">".$row['id']."</td>\n";
     if (empty($row['login'])) { $row['login']=$row['id']; }
-    print "<td class=\"$cl\" align=left><a href=edituser.php?id=".$row['id'].">" . $row['login'] . "</a></td>\n";
-    print "<td class=\"$cl\">".$row['description']."</td>\n";
+    print "<td class=\"$cl\" align=left>";
+    print_url((string)$row['login'], 'edituser.php?id=' . (int)$row['id']);
+    print "</td>\n";
+    print "<td class=\"$cl\">".esc($row['description'])."</td>\n";
     $rules_count = get_count_records($db_link,"auth_rules","user_id=?", [$row['id']]);
     print "<td class=\"$cl\">".$rules_count."</td>\n";
-    print "<td class=\"$cl\">".get_ou($db_link,$row['ou_id'])."</td>\n";
+    print "<td class=\"$cl\">".esc(get_ou($db_link,$row['ou_id']))."</td>\n";
     print "<td class=\"$cl\">".get_qa($row['enabled']) . "</td>\n";
     print "<td class=\"$cl\">".$row['day_quota']."</td>\n";
     print "<td class=\"$cl\">".$row['month_quota']."</td>\n";

@@ -223,7 +223,9 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 }
                 print "</tr>";
                 print "<tr>\n";
-                print "<td class='data'><a href=/admin/users/edituser.php?id=" . $device['user_id'] . ">" . $user_info['login'] . "</a></td>\n";
+                print "<td class='data'>";
+                print_url((string)$user_info['login'], '/admin/users/edituser.php?id=' . (int)$device['user_id']);
+                print "</td>\n";
                 print "<td class='data'>";
                 print_device_ip_select($db_link, 'f_ip', $device['ip'], $device['user_id']);
                 print "</td>\n";

@@ -83,9 +83,11 @@ print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed);
 <?php
 foreach ($maclog as $row) {
     print "<tr align=center>\n";
-    print "<td class=\"data\">" . $row['device_name'] . "</td>\n";
-    print "<td class=\"data\">" . $row['port'] . "</td>\n";
-    print "<td class=\"data\"><a href=/admin/logs/mac.php?mac=" . mac_dotted($row['mac']) . ">" . mac_dotted($row['mac']) . "</a></td>\n";
+    print "<td class=\"data\">" . esc($row['device_name']) . "</td>\n";
+    print "<td class=\"data\">" . esc($row['port']) . "</td>\n";
+    print "<td class=\"data\">";
+    print_url((string)mac_dotted($row['mac']), '/admin/logs/mac.php?mac=' . urlencode((string)mac_dotted($row['mac'])));
+    print "</td>\n";
     print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
     print "</tr>\n";
 }

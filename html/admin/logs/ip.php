@@ -78,9 +78,11 @@ foreach ($iplog as $row) {
     print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
     print "<td class=\"data\">" . get_datetime_display($row['last_found']) . "</td>\n";
     if (isset($row['id']) and $row['id'] > 0) {
-        print "<td class=\"data\"><a href=/admin/users/editauth.php?id=".$row['id'].">" . $row['ip'] . "</a></td>\n";
+        print "<td class=\"data\">";
+        print_url((string)$row['ip'], '/admin/users/editauth.php?id=' . (int)$row['id']);
+        print "</td>\n";
     } else {
-        print "<td class=\"data\">" . $row['ip'] . "</td>\n";
+        print "<td class=\"data\">" . esc($row['ip']) . "</td>\n";
     }
     print "<td class=\"data\">" . expand_mac($db_link,mac_dotted($row['mac'])) . "</td>\n";
     print "<td class=\"data\">" . $row['dhcp_hostname'] . "</td>\n";

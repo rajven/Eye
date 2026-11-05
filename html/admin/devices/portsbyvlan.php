@@ -35,8 +35,12 @@ $sSQL = "SELECT DP.id, DP.port, DP.device_id, D.device_name FROM device_ports AS
 $ports_info = get_records_sql($db_link, $sSQL, [ $id ]);
 foreach ($ports_info as $row) {
     print "<tr>";
-    print "<td class=\"data\"><a href=\"/admin/devices/editdevice.php?id=".$row['device_id']."\">" . $row['device_name']. "</a></td>\n";
-    print "<td class=\"data\"><a href=\"/admin/devices/editport.php?id=".$row['id']."\">" . $row['port'] . "</a></td>\n";
+    print "<td class=\"data\">";
+    print_url((string)$row['device_name'], '/admin/devices/editdevice.php?id=' . (int)$row['device_id']);
+    print "</td>\n";
+    print "<td class=\"data\">";
+    print_url((string)$row['port'], '/admin/devices/editport.php?id=' . (int)$row['id']);
+    print "</td>\n";
     print "</tr>";
 }
 ?>

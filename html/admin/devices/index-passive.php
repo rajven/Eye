@@ -144,8 +144,12 @@ foreach ($users as $user) {
     print "<tr align=center>\n";
     $cl = "data";
     print "<td class='".$cl."' style='padding:0'><input type=checkbox name=fid[] value=".$user['dev_id']."></td>\n";
-    print "<td class='".$cl."' ><a href=/admin/devices/editdevice.php?id=".$user['dev_id'].">" . $user['login'] . "</a></td>\n";
-    print "<td class='".$cl."' ><a href=/admin/users/edituser.php?id=".$user['user_id'].">" . $user['ip'] . "</a></td>\n";
+    print "<td class='".$cl."'>";
+    print_url((string)$user['login'], '/admin/devices/editdevice.php?id=' . (int)$user['dev_id']);
+    print "</td>\n";
+    print "<td class='".$cl."'>";
+    print_url((string)$user['ip'], '/admin/users/edituser.php?id=' . (int)$user['user_id']);
+    print "</td>\n";
     print "<td class='".$cl."' >" . expand_mac($db_link,$user['mac']) . "</td>\n";
     print "<td class='".$cl."' >" . create_url($user['name'] . ' ' . $user['model_name'],
         get_device_model_page($user['device_model_id'])) . "</td>\n";

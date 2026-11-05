@@ -88,11 +88,15 @@ foreach ($switches as $row) {
         }
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
     print "<td class=\"$cl\">".get_devtype_name($db_link,$row['device_type'])."</td>\n";
-    print "<td class=\"$cl\" align=left><a href=editdevice.php?id=".$row['id'].">" . $row['device_name'] . "</a></td>\n";
+    print "<td class=\"$cl\" align=left>";
+    print_url((string)$row['device_name'], 'editdevice.php?id=' . (int)$row['id']);
+    print "</td>\n";
     if (isset($row['user_id']) and $row['user_id']>0) {
-        print "<td class=\"$cl\"><a href=/admin/users/edituser.php?id=".$row['user_id'].">".$row['ip']."</a></td>\n";
+        print "<td class=\"$cl\">";
+        print_url((string)$row['ip'], '/admin/users/edituser.php?id=' . (int)$row['user_id']);
+        print "</td>\n";
         } else {
-        print "<td class=\"$cl\">".$row['ip']."</td>\n";
+        print "<td class=\"$cl\">".esc($row['ip'])."</td>\n";
         }
     // the name of the model is a link to the form where it is edited
     print "<td class=\"$cl\">" . create_url(get_vendor_name($db_link, $row['vendor_id']) . " " . $row['model_name'],

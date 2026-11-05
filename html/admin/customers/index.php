@@ -75,7 +75,9 @@ foreach ($users as $row) {
     $acl = get_record_sql($db_link,'SELECT * FROM acl WHERE id=?', [ $row['rights'] ]);
     print "<tr align=center>\n";
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$row['id']."></td>\n";
-    print "<td class=\"$cl\" align=left width=200><a href=editcustom.php?id=".$row['id'].">" . $row['login'] . "</a></td>\n";
+    print "<td class=\"$cl\" align=left width=200>";
+    print_url((string)$row['login'], 'editcustom.php?id=' . (int)$row['id']);
+    print "</td>\n";
     print "<td class=\"$cl\" >". $row['description']. "</a></td>\n";
     print "<td class=\"$cl\" >". $acl['name']. "</a></td>\n";
 }

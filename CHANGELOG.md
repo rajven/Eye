@@ -1,4 +1,16 @@
 # Changelog 3-2-6 - release
+- bugfix: the page of the poe ports of a building used a class of a row which the page never set, php wrote
+  Undefined variable $cl into the log of the web server on every open of the page
+- changed: a name of a record, an address, a port name read by snmp, a vendor of a mac, a description and a wiki name are escaped
+  where they enter a page: the rows of the lists of the devices, of the subscribers and their addresses, of the ports of a switch,
+  of the journals of mac, ip, dhcp and unknown mac, of the filters with their groups and ipsets, of the subnets, of the buildings and
+  of the page of the poe ports go through create_url(), print_url() and the new esc() now, and the addresses of the links are put in
+  quotes; the markup of eye itself, the yes and no marks of a field, stays a markup, print_url_html() is for it
+- bugfix: the mark of the monitoring host of the monitoring page was printed through the name of a link, so since create_url() escapes a name
+  of a record the cell showed the tags of the mark as a text: <span class="qa yes">&#10003;</span>. a link of eye takes a text by create_url(), and a
+  link of a markup of eye itself takes a new create_url_html(), the page of the monitoring uses the second one;
+- changed: the cells of the rows of the monitoring page are made by the same helpers as the rest of the interface: a name of a device and a login of its
+  owner can not carry a markup of a third party any more, the cells of the type and of the address are escaped too.
 - changed: a request of the api is let in by its key alone: the login which the caller types is not looked at, the customer whose
   api key matches the database is the caller, and the rights of the request are the rights of that customer. /api.php answers 401
   to a request without a key, with a key shorter than twenty characters or with a key which no customer owns.

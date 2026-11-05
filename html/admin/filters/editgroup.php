@@ -103,7 +103,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
         <table class="data">
             <tr>
                 <td><?php echo WEB_cell_name; ?></td>
-                <td class='data'><input type="text" name="f_group_name" value="<?php echo $group['group_name']; ?>"></td>
+                <td class='data'><input type="text" name="f_group_name" value="<?php echo esc($group['group_name']); ?>"></td>
                 <td class='data' align=right><input type="submit" name="editgroup" value="<?php echo WEB_btn_save; ?>"></td>
             </tr>
             <tr>
@@ -135,7 +135,9 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/header.php");
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_group_filter[] value=" . $row['id'] . "></td>\n";
                 print "<td class=\"data\" align=left><input type=text name=f_ord[" . $row['id'] . "] value=" . $row['rule_order'] . " size=4 ></td>\n";
-                print "<td class=\"data\" align=left><a href=editfilter.php?id=" . $row['filter_id'] . ">" . $row['name'] . "</a></td>\n";
+                print "<td class=\"data\" align=left>";
+                print_url((string)$row['name'], 'editfilter.php?id=' . (int)$row['filter_id']);
+                print "</td>\n";
                 $cl = "data";
                 if ($row['action']) {
                     $cl = "up";

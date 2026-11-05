@@ -67,11 +67,13 @@ print_filters_submenu($page_url);
             foreach ($groups as $row) {
 		$filter_instance = get_record_sql($db_link,'SELECT * FROM filter_instances WHERE id=?', [ $row["instance_id"] ]);
                 print "<tr align=center>\n";
-                print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=" . $row["id"] . "></td>\n";
-                print "<td class=\"data\" ><input type=\"hidden\" name=\"" . $row["id"] . "\" value=" . $row["id"] . ">" . $row["id"] . "</td>\n";
-                print "<td class=\"data\"><a href=editgroup.php?id=" . $row["id"] . ">" . $row["group_name"] . "</a></td>\n";
-                print "<td class=\"data\">". $filter_instance["name"]."</td>\n";
-                print "<td class=\"data\">" . $row["description"] . "</td>\n";
+                print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=" . (int)$row["id"] . "></td>\n";
+                print "<td class=\"data\" ><input type=\"hidden\" name=\"" . (int)$row["id"] . "\" value=" . (int)$row["id"] . ">" . (int)$row["id"] . "</td>\n";
+                print "<td class=\"data\">";
+                print_url((string)$row["group_name"], 'editgroup.php?id=' . (int)$row["id"]);
+                print "</td>\n";
+                print "<td class=\"data\">". esc($filter_instance["name"])."</td>\n";
+                print "<td class=\"data\">" . esc($row["description"]) . "</td>\n";
                 print "<td></td></tr>";
             }
             ?>

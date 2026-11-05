@@ -1406,10 +1406,31 @@ function print_url($display_name, $page, $class = '')
     print create_url($display_name, $page, $class);
 }
 
+// the same difference between a text and a markup as between create_url() and create_url_html()
+function print_url_html($display_html, $page, $class = '')
+{
+    print create_url_html($display_html, $page, $class);
+}
+
+// A text of a record, of a network answer or of a log as it must be seen in a table cell or
+// in an attribute of html: tags and quotes of such a text are not a markup of eye
+function esc($value)
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
 function create_url($display_name, $page, $class = ''): string
 {
-    // the names and the addresses come from the records as they are, an empty field of an
-    // old row is null, so the values are made strings here instead of raising a type error
+    // the name of a link is a text of a record: an empty field of an old row is null, so the
+    // values are made strings here instead of raising a type error, and a text of a record is
+    // escaped, it may carry anything a subscriber was named with
+    return create_url_html(htmlspecialchars((string)$display_name, ENT_QUOTES, 'UTF-8'), $page, $class);
+}
+
+// A link whose name is already a markup of eye itself, a check mark of a yes or no field for
+// example: create_url() of such a name would print its tags as a text of the link
+function create_url_html($display_html, $page, $class = ''): string
+{
     $href = reencodeurl((string)$page);
 
     $attrs = 'href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '"';
@@ -1417,7 +1438,7 @@ function create_url($display_name, $page, $class = ''): string
         $attrs .= ' class="' . htmlspecialchars((string)$class, ENT_QUOTES, 'UTF-8') . '"';
     }
 
-    return '<a ' . $attrs . '>' . htmlspecialchars((string)$display_name, ENT_QUOTES, 'UTF-8') . '</a>';
+    return '<a ' . $attrs . '>' . $display_html . '</a>';
 }
 
 function print_log_submenu($current_page)
@@ -1503,7 +1524,7 @@ function print_editdevice_submenu($current_page, $id, $dev_type, $dev_name = NUL
         $dev_id = '?id=' . $id;
     }
     if (!empty($dev_name)) {
-        print "<b>" . $dev_name . "::</b>";
+        print "<b>" . esc($dev_name) . "::</b>";
     }
     print_submenu_url(WEB_submenu_options, '/admin/devices/editdevice.php' . $dev_id, $current_page, 0);
     if ($dev_type <= 2) {
@@ -3034,9 +3055,9 @@ function print_auth_port($db, $port_id, $new_window = false)
         
         if ($new_window) {
             $url = "/admin/users/editauth.php?id=" . $auth_id;
-            echo "<a href=\"\" title=\"" . $title . "\" onclick=\"" . open_window_url($url) . " return false;\">" . $display_name . " [" . $display_ip . "]</a><br>\n";
+            echo "<a href=\"\" title=\"" . esc($title) . "\" onclick=\"" . esc(open_window_url($url)) . " return false;\">" . $display_name . " [" . $display_ip . "]</a><br>\n";
         } else {
-            echo "<a href=\"/admin/users/editauth.php?id=" . $auth_id . "\" title=\"" . $title . "\">" . $display_name . " [" . $display_ip . "]</a><br>\n";
+            echo "<a href=\"/admin/users/editauth.php?id=" . $auth_id . "\" title=\"" . esc($title) . "\">" . $display_name . " [" . $display_ip . "]</a><br>\n";
         }
     }
 }
@@ -4461,7 +4482,7 @@ function expand_mac($db, $mac)
     $safe_mac = $mac;
     $safe_url_mac = urlencode($mac);
     if (!empty($safe_vendor)) {
-        return '<a href="/admin/logs/mac.php?mac=' . $safe_url_mac . '"><p title="' . $safe_vendor . '">' . $safe_mac . '</p></a>';
+        return '<a href="/admin/logs/mac.php?mac=' . $safe_url_mac . '"><p title="' . esc($safe_vendor) . '">' . $safe_mac . '</p></a>';
     } else {
         return '<a href="/admin/logs/mac.php?mac=' . $safe_url_mac . '">' . $safe_mac . '</a>';
     }
