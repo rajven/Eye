@@ -150,19 +150,19 @@ print_control_submenu($page_url);
         </table>
 
         <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+            <!-- a new model is created empty and its form opens at once -->
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <?php print WEB_model_vendor."&nbsp"; print_vendor_select($db_link, 'new_vendor_id', $f_vendor_select ?: 1); ?>
+                <input type="text" name="new_model" value="Unknown" placeholder="Model name" style="width: 640px;">
+                <input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
+            </div>
+
             <div>
                 <input type="submit"
                        name="remove"
                        value="<?php echo WEB_btn_delete; ?>"
                        onclick="return confirm('<?php echo WEB_msg_delete; ?>?')"
                        <?php if (empty($t_models) || !array_filter($t_models, fn($r) => $r['id'] >= 10000)) echo 'disabled'; ?>>
-            </div>
-
-            <!-- a new model is created empty and its form opens at once -->
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <?php print WEB_model_vendor."&nbsp"; print_vendor_select($db_link, 'new_vendor_id', $f_vendor_select ?: 1); ?>
-                <input type="text" name="new_model" value="Unknown" placeholder="Model name" style="width: 120px;">
-                <input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
             </div>
         </div>
 
