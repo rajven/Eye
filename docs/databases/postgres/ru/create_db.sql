@@ -94,11 +94,15 @@ login VARCHAR(20),
 description VARCHAR(100),
 password VARCHAR(255),
 api_key VARCHAR(255),
+api_key_hash VARCHAR(64),
 rights SMALLINT NOT NULL DEFAULT 3
 );
 COMMENT ON TABLE customers IS 'Пользователи/администраторы системы';
 COMMENT ON COLUMN customers.login IS 'Логин пользователя';
 COMMENT ON COLUMN customers.rights IS 'Уровень прав доступа: 0=просмотр, 1=оператор, 2=админ, 3=суперадмин';
+COMMENT ON COLUMN customers.api_key IS 'Устаревшее: открытый ключ старой установки, очищается при переходе на хеш';
+COMMENT ON COLUMN customers.api_key_hash IS 'Хеш ключа API клиента, сам ключ в базе не хранится';
+CREATE UNIQUE INDEX customers_api_key_hash ON customers (api_key_hash);
 
 -- Сетевые устройства
 CREATE TABLE devices (

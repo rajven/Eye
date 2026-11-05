@@ -3,8 +3,14 @@
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/api_crud.php");
 
-login($db_link);
-
+// A request without a key of a customer is not an api request at all: the key names the caller
+// and gives the request the rights of its owner, the login typed by the caller is ignored
+if (login($db_link) !== true) {
+    http_response_code(401);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['error' => 'Not authorized'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    do_exit();
+}
 
 //error_log("GET: " . json_encode($_GET));
 //error_log("POST: " . json_encode($_POST));
@@ -93,7 +99,9 @@ $allowed_tables = [
 function api_hide_columns($table, $row)
 {
     $hidden = [
-        'customers' => ['password', 'api_key'],
+        // the hash is a proof too: with the pepper of the config it can be cracked offline,
+        // so no answer of the api carries it
+        'customers' => ['password', 'api_key', 'api_key_hash'],
         'devices'   => ['password', 'snmp3_user_ro_password', 'snmp3_user_rw_password'],
     ];
 

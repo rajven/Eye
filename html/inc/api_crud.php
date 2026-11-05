@@ -278,6 +278,23 @@ function api_param($name, $data = [])
     return getParam($name, null, null);
 }
 
+// The names which a request of the api carries but which are never a field of a record: they
+// say what to do, how deep to page and who is asking, so a record has no column of such a name
+function api_service_name($name)
+{
+    static $service = null;
+    if ($service === null) {
+        $service = [];
+        foreach (['get', 'send', 'api_key', 'login', 'data', 'table', 'filter', 'search', 'q',
+                  'limit', 'offset', 'with', 'with_deleted', 'action', 'id', 'ip', 'mac',
+                  'subnet', 'hostname', 'zombi_days', 'sort', 'order', 'force'] as $word) {
+            $service[strtolower($word)] = true;
+        }
+    }
+
+    return isset($service[strtolower(trim((string)$name))]);
+}
+
 // One column of a request: the text of a row, an identifier, an ip, a mac, a port
 function api_check_field($db, $spec, $field, $value)
 {
@@ -401,10 +418,20 @@ function api_collect($db, $spec, $data, $mode, $id = 0)
     $create = ($mode === 'create');
 
     // the request can not carry a column which the entity does not have: the caller
-    // must learn about it instead of seeing a record without the expected value
-    foreach (array_keys(is_array($data) ? $data : []) as $asked) {
-        $asked = strtolower((string)$asked);
-        if ($asked === 'id' || array_key_exists($asked, $spec['fields'])) {
+    // must learn about it instead of seeing a record without the expected value. a name of the
+    // query is asked about the same way as a name of the json body, so that nothing which the
+    // caller sent is dropped in silence
+    $asked_names = array_keys(is_array($data) ? $data : []);
+    foreach (array_merge(array_keys($_GET ?: []), array_keys($_POST ?: [])) as $param) {
+        if (api_service_name($param)) {
+            continue;
+        }
+        $asked_names[] = $param;
+    }
+
+    foreach ($asked_names as $asked) {
+        $asked = strtolower(trim((string)$asked));
+        if ($asked === '' || $asked === 'id' || array_key_exists($asked, $spec['fields'])) {
             continue;
         }
         $moved = $spec['moved'][$asked] ?? null;
@@ -872,6 +899,16 @@ function api_update($db, $spec, $data)
         api_bad_request(['data' => 'nothing to update']);
     }
 
+    // the operator of eye is allowed to change a part of the columns of a record only, so the
+    // rights are weighed over the fields which this request really touches
+    foreach (array_keys($values) as $field) {
+        if (!allow_update($db, $spec['table'], 'update', $field)) {
+            api_answer(['error' => 'Not enough rights to change the field ' . $field
+                . ' of a ' . $spec['entity'] . ' for this customer',
+                'entity' => $spec['entity'], 'field' => $field], 403);
+        }
+    }
+
     if (!empty($spec['before'])) {
         list($values, $errors) = $spec['before']($db, $spec, $values, 'update', $id);
         if ($errors) {
@@ -1113,9 +1150,12 @@ function api_crud($db, $action, $data)
 
     log_api_call($action, ['entity' => $entity['entity'], 'id' => getParam('id', null, null)]);
 
-    // the same rights as the interface and the database layer use: the api request
-    // carries no php session, allow_update() finds the customer by api_login itself
-    if ($verb !== 'get_' && !allow_update($db, $entity['table'], str_replace('_', '', $verb))) {
+    // the same rights as the interface and the database layer use: the request was already
+    // given the session of the owner of the api key by IsSilentAuthenticated()
+    // the name of the action is what the rights of the interface are checked by: a verb of
+    // the api method with its prefixes inside would never match those rules
+    $verb_actions = ['send_add_' => 'add', 'send_update_' => 'update', 'send_del_' => 'del'];
+    if ($verb !== 'get_' && !allow_update($db, $entity['table'], $verb_actions[$verb] ?? $verb)) {
         api_answer(['error' => 'Not enough rights to change a record of ' . $entity['entity']
             . ' for this customer', 'entity' => $entity['entity']], 403);
     }

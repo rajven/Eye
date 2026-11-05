@@ -16,7 +16,9 @@ $customer=get_record($db_link,'customers',"id=?", [$id]);
 // the api key of a customer is a secret: the form of a record which has just been
 // created shows it once, every next visit shows nothing, and an ordinary save does not
 // touch the key at all
-$show_key = !empty($_SESSION['api_key_once'][(int)$id]);
+// the value of a fresh key is kept by the session of the one answer which shows it, the
+// database holds only the hash, so a key can not be read back at all
+$show_key = isset($_SESSION['api_key_once'][(int)$id]) ? (string)$_SESSION['api_key_once'][(int)$id] : '';
 unset($_SESSION['api_key_once'][(int)$id]);
 
 if (getPOST("edituser") !== null) {
@@ -41,21 +43,26 @@ if (getPOST("edituser") !== null) {
     $key_form = getPOST("api_key_set", null, null) !== null;
     $api_key = trim((string)getPOST("api_key", null, ''));
     if ($key_form) {
-        if (strlen($api_key) <> 20) {
+        if (strlen($api_key) < 20 or strlen($api_key) > 64) {
             // the value can not be saved, the form asks for it once again
-            $_SESSION['api_key_once'][(int)$id] = 1;
+            $_SESSION['api_key_once'][(int)$id] = $api_key;
             $_SESSION[$page_url]['msg'] = WEB_customer_api_key_wrong;
             header("Location: " . $_SERVER["REQUEST_URI"]);
             exit;
         }
-        $new['api_key'] = $api_key;
+        $new['api_key_hash'] = api_key_hash($api_key);
+        $new['api_key'] = null;
+        // the key which has just been written is shown by the next answer of the form
+        $_SESSION['api_key_once'][(int)$id] = $api_key;
     }
 
     // a lost key can not be read back, but it can be replaced: the new value is a
     // secret which the form shows once, right after the issue
     if (getPOST("api_key_regenerate", null, null) !== null) {
-        $new['api_key'] = randomPassword(20);
-        $_SESSION['api_key_once'][(int)$id] = 1;
+        $api_key = randomPassword(20);
+        $new['api_key_hash'] = api_key_hash($api_key);
+        $new['api_key'] = null;
+        $_SESSION['api_key_once'][(int)$id] = $api_key;
         $_SESSION[$page_url]['msg'] = WEB_customer_api_key_renewed;
     }
 
@@ -114,7 +121,7 @@ if (!empty($_SESSION[$page_url]['msg'])) {
             <td><?php echo WEB_customer_api_key; ?></td>
             <td>
                 <input type="hidden" name="api_key_set" value="1">
-                <input type="text" name="api_key" id="api_key" value="<?php print htmlspecialchars($customer['api_key']); ?>" size=50 maxlength=20>
+                <input type="text" name="api_key" id="api_key" value="<?php print htmlspecialchars($show_key); ?>" size=50 maxlength=64>
                 <button type="button" onclick="generateApiKey()">&#128260;</button>
                 <br><?php echo WEB_customer_api_key_once; ?>
             </td>

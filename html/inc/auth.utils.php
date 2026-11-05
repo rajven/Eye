@@ -419,30 +419,88 @@ function get_client_ip() {
     return $ip;
 }
 
+// A key of a customer is a secret which nobody needs to read back: the database keeps a hash
+// of it, so a stolen dump of the table gives nothing, and the value which the interface shows
+// once right after the issue is never stored anywhere
+function api_key_hash($api_key)
+{
+    // the hash is keyed, so a dictionary of the known keys can not be prepared in advance, the
+    // hashes of two installations are not comparable, and a hash stolen with the database can
+    // not be played back as a key; the pepper lives in the config file, never in the database,
+    // it is the same secret which ciphers the passwords of the devices
+    $pepper = defined('ENCRYPTION_KEY') ? (string)ENCRYPTION_KEY : '';
+
+    return hash_hmac('sha256', trim((string)$api_key), $pepper);
+}
+
+// The customer in front of the api: the key alone says who is calling, the login named by the
+// caller is not looked at, an api key is unique over the customers and carries its own rights
+function api_customer_by_key($db, $api_key)
+{
+    $hash = api_key_hash($api_key);
+
+    $stmt = $db->prepare("SELECT * FROM customers WHERE rights > 0 AND api_key_hash = ? LIMIT 1");
+    $stmt->execute([$hash]);
+    $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!empty($customer)) {
+        return $customer;
+    }
+
+    // an older eye kept the keys in the clear: such a key is accepted once, and the row of
+    // the hit is moved to the hash by the same request, so the plain value disappears behind
+    $stmt = $db->prepare("SELECT * FROM customers WHERE rights > 0 AND api_key IS NOT NULL "
+        . "AND api_key = ? ORDER BY id LIMIT 1");
+    $stmt->execute([(string)$api_key]);
+    $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (empty($customer)) {
+        return [];
+    }
+
+    $upgrade = $db->prepare("UPDATE customers SET api_key_hash = ?, api_key = NULL WHERE id = ?");
+    $upgrade->execute([$hash, (int)$customer['id']]);
+    if ($upgrade->rowCount() > 0) {
+        // the event is worth a line of its own: an old value of the secret left the database,
+        // and a warning is what the default log level keeps
+        LOG_WARNING($db, 'API: the api key of the customer ' . (int)$customer['id']
+            . ' (' . $customer['login'] . ') is replaced by its hash in the database');
+    }
+    $customer['api_key'] = null;
+    $customer['api_key_hash'] = $hash;
+
+    return $customer;
+}
+
 function IsSilentAuthenticated($db) {
     $auth_ip = get_client_ip();
-    $api_key = getParam('api_key', null, null, FILTER_SANITIZE_STRING);
-    $login = getParam('login', null, null, FILTER_SANITIZE_STRING);
-    if ($login === null || $login === '') {
-        $login = getParam('api_login', null, null, FILTER_SANITIZE_STRING);
-    }
-    LOG_DEBUG($db, "Silent auth parameters login => {$login} from {$auth_ip}");
-    if (empty($login) || empty($api_key) || strlen($api_key) < 20) {
-        LOG_WARNING($db, "API: Silent auth failed from {$auth_ip} - missing parameters");
-        LOG_DEBUG($db, "API: not enough parameters | GET: " . json_encode($_GET, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . " | POST: " . json_encode($_POST, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    // the login of a request is a field of the records of eye, it can not be a proof of
+    // anything, only the key proves the caller
+    $api_key = trim((string)getParam('api_key', null, null));
+
+    if ($api_key === '' || strlen($api_key) < 20) {
+        LOG_WARNING($db, "API: Silent auth failed from {$auth_ip} - no api key or a short one");
         return false;
     }
 
-    $stmt = $db->prepare("SELECT * FROM customers WHERE rights>0 AND login = ? AND api_key = ? LIMIT 1");
-    $stmt->execute([$login, $api_key]);
-    if ($stmt->rowCount() === 0) {
-        LOG_WARNING($db, "API auth failed for $login from $auth_ip: user not found, disabled or invalid API key");
+    $customer = api_customer_by_key($db, $api_key);
+    if (empty($customer)) {
+        LOG_WARNING($db, "API auth failed from {$auth_ip}: no customer with such an api key");
         return false;
     }
 
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!empty($user)) { return false; }
-    LOG_DEBUG($db, "Silent auth successful user_id => {$user['id']} login => {$user['login']} from {$auth_ip}");
+    // the rights of the request are the rights of the owner of the key, the rest of the
+    // interface reads the same shape of the session
+    $_SESSION = [
+        'user_id'    => $customer['id'],
+        'login'      => $customer['login'],
+        'acl'        => $customer['rights'],
+        'ip'         => $auth_ip,
+        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+        'api_auth'   => true,
+        'created'    => time()
+    ];
+
+    LOG_DEBUG($db, "Silent auth successful by the key of the customer id => " . $customer['id']
+        . ' login => ' . $customer['login'] . ' from ' . $auth_ip);
     return true;
 }
 
