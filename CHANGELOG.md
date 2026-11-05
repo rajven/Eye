@@ -1,4 +1,10 @@
 # Changelog 3-2-6 - release
+- bugfix: the tree of the devices was glued together out of a script text, while print_url() puts the address of a link in quotes now - a name of a
+  device with a quote broke the string of the script, and the structure stopped being drawn at all. the nodes are gathered in an array and written by
+  the json encoder: a text of a record is escaped by it, the anchor of a node is made by jstree itself out of its attribute, and a circle of uplinks,
+  where two devices point into ports of each other, is walked once instead of going round for ever;
+- bugfix: the plain page of the structure lost the decoration of its nodes (the model of a device in italics) when print_url() began to escape a name of
+  a link: the name of a node is gathered from the escaped pieces of a text and the markup of eye, and is carried by print_url_html() now
 - bugfix: the page of the poe ports of a building used a class of a row which the page never set, php wrote
   Undefined variable $cl into the log of the web server on every open of the page
 - changed: a name of a record, an address, a port name read by snmp, a vendor of a mac, a description and a wiki name are escaped
