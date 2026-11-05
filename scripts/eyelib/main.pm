@@ -38,6 +38,7 @@ do_exec_ref
 do_exit
 hash_to_kv_csv
 sendEmail
+flush_mail_block
 IsNotRun
 IsMyPID
 Add_PID
@@ -240,14 +241,75 @@ exit $code;
 sub encode_mime_header {
     my ($str) = @_;
     return $str if $str =~ /^[[:ascii:]]*$/;
-    my $b64 = encode_base64($str, '');
+    # the base of mime is bytes, the text of eye comes from the database decoded, so it is
+    # encoded into utf8 here, an already encoded string is taken as it is
+    my $bytes = utf8::is_utf8($str) ? encode('UTF-8', $str) : $str;
+    my $b64 = encode_base64($bytes, '');
     $b64 =~ s/\s+$//;
     return "=?UTF-8?B?$b64?=";
 }
 
 #---------------------------------------------------------------------------------------------------------
 
+# a letter of eye is sent at once, unless the script asked for one_mail_block: then its
+# notices are kept and sent together by flush_mail_block() at the end of the run
 sub sendEmail {
+    my ($subject, $msg, $use_br) = @_;
+    return unless defined $msg && length $msg;
+    return unless $send_email;
+
+    if ($one_mail_block) {
+        push @one_mail_messages, {
+            time    => strftime("%Y-%m-%d %H:%M:%S", localtime(time())),
+            subject => $subject,
+            msg     => $msg,
+        };
+        log_debug("Notice is kept for the closing letter: $subject");
+        return;
+    }
+
+    mail_send($subject, $msg, $use_br);
+}
+
+#---------------------------------------------------------------------------------------------------------
+
+# the collected notices make one letter, its subject is the subject of the first notice,
+# a long list is cut, the whole of it stays in the worklog of eye anyway
+sub flush_mail_block {
+    return unless @one_mail_messages;
+    my @messages = @one_mail_messages;
+    @one_mail_messages = ();
+    return unless $send_email;
+
+    my $total = @messages;
+    my $limit = 100;
+    my $shown = $total < $limit ? $total : $limit;
+    my $subject = $messages[0]{subject};
+    my ($script_name) = ($0 =~ m{([^/]+)$});
+    my $msg = "$total notice(s) of " . ($script_name // 'eye') . " at "
+        . strftime("%Y-%m-%d %H:%M:%S", localtime(time())) . ":\n";
+
+    for (my $i = 0; $i < $shown; $i++) {
+        my $message = $messages[$i];
+        $msg .= "\n[" . $message->{time} . "] " . $message->{subject} . "\n"
+              . $message->{msg} . "\n"
+              . "------------------------------------------------------------";
+    }
+    if ($total > $shown) {
+        $msg .= "\n... " . ($total - $shown) . " notice(s) are not printed here, they are in the worklog of eye.\n";
+    }
+
+    mail_send($subject, $msg, 1);
+}
+
+# a script killed in the middle of its work still sends what it has collected
+END {
+    eval { flush_mail_block(); };
+}
+
+#---------------------------------------------------------------------------------------------------------
+
+sub mail_send {
     my ($subject, $msg, $use_br) = @_;
     return unless defined $msg && length $msg;
     return unless $send_email;
@@ -278,7 +340,7 @@ END_HTML
     }
     $html_message .= "</div>\n</body>\n</html>\n";
     # Кодируем Unicode-строку в байты UTF-8, затем в base64
-    my $html_utf8_bytes = encode('UTF-8', $html_message);
+    my $html_utf8_bytes = utf8::is_utf8($html_message) ? encode('UTF-8', $html_message) : $html_message;
     my $encoded_html = encode_base64($html_utf8_bytes); 
 
     my $boundary = '----=' . time() . int(rand(1000));

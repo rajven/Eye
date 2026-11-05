@@ -33,6 +33,11 @@ flock(SELF, LOCK_EX | LOCK_NB) or exit 1;
 # Number of days to retain debug-level log entries
 my $debug_history = 3;
 
+# The cleanup of garbage touches a lot of records: the create, update and delete notices of
+# every one of them are collected and sent by a single letter at the end of the run, instead
+# of a letter per record
+$one_mail_block = 1;
+
 db_log_info($dbh, 'Garbage collection started.');
 
 # Helper: Check if a given IP (as integer) belongs to any DHCP pool
@@ -179,26 +184,19 @@ if ($connections_history) {
 db_log_info($dbh, 'Clearing duplicate connection records');
 my $conn_sql = "SELECT id, port_id, auth_id FROM connections ORDER BY port_id";
 my @conn_ref = get_records_sql($dbh, $conn_sql);
-my $old_port_id = 0;
-my $old_auth_id = 0;
+my %conn_seen;
 foreach my $row (@conn_ref) {
     my $c_id        = $row->{id};
     my $c_port_id   = $row->{port_id} || 0;
     my $c_auth_id   = $row->{auth_id} || 0;
+    my $c_pair      = $c_port_id . ':' . $c_auth_id;
 
-    if ($old_port_id == 0 || $old_auth_id == 0) {
-        $old_port_id = $c_port_id;
-        $old_auth_id = $c_auth_id;
-        next;
-    }
-
-    # If we're still on the same (port, auth) pair, this is a duplicate
-    if ($old_port_id == $c_port_id && $old_auth_id == $c_auth_id) {
+    # the same port and the same authentication is a duplicate, only the first one is kept
+    if ($conn_seen{$c_pair}) {
         do_sql($dbh, "DELETE FROM connections WHERE id = ?",$c_id);
         db_log_info($dbh, "Removed duplicate connection id=$c_id: port=$c_port_id auth=$c_auth_id");
     } else {
-        $old_port_id = $c_port_id;
-        $old_auth_id = $c_auth_id;
+        $conn_seen{$c_pair} = 1;
     }
 }
 
@@ -254,7 +252,7 @@ if ($history_log_day) {
 
 # Clean debug-level worklog entries older than $debug_history days (hardcoded to 3)
 if ($debug_history) {
-    my $day_dur = DateTime::Duration->new(days => 3);
+    my $day_dur = DateTime::Duration->new(days => $debug_history);
     my $clean_date = $now - $day_dur;
     my $clean_str = $clean_date->ymd("-") . " 00:00:00";
     db_log_info($dbh, "Cleaning debug worklog entries older than $clean_str");
@@ -312,8 +310,8 @@ foreach my $auth (@auth_full_list) {
 
     $auth_table{$auth_mac} = 1;
 
-    # Check if location history already exists
-    my $h_sql = "SELECT * FROM mac_history WHERE mac = ? ORDER BY ts";
+    # Check if location history already exists, the last place of the mac is its newest record
+    my $h_sql = "SELECT * FROM mac_history WHERE mac = ? ORDER BY ts DESC";
     my $history = get_record_sql($dbh, $h_sql, $auth_mac);
 
     my $cur_conn = $connections{$auth->{id}};
@@ -361,6 +359,9 @@ foreach my $auth (@auth_full_list) {
 #    }
 #    db_log_info($dbh, 'Table optimization completed.');
 #}
+
+# the notices of the whole run leave the script by one letter
+flush_mail_block();
 
 db_log_info($dbh, 'Garbage collection finished.');
 $dbh->disconnect;
