@@ -120,6 +120,9 @@ $all_networks
 
 %subnets_ref
 
+$one_mail_block
+@one_mail_messages
+
 NOTIFY_NONE
 NOTIFY_CREATE
 NOTIFY_UPDATE
@@ -202,6 +205,11 @@ our $MAX_SLEEP          =30;
 our $admin_email;
 our $sender_email;
 our $send_email = 0;
+
+# a script which touches many records collects its notices and sends them by one message,
+# flush_mail_block() of eyelib::main sends the collected block at the end of the run
+our $one_mail_block = 0;
+our @one_mail_messages = ();
 
 my $HOSTNAME1=`hostname`;
 chomp($HOSTNAME1);

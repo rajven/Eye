@@ -1,4 +1,16 @@
 # Changelog 3-2-5 - release
+- added: eyelib collects the mail notices of a script run into one letter: a script which cleans or rebuilds many records sets one_mail_block = 1, its
+  create, update and delete notices are kept and flush_mail_block() sends them together at the end, an interrupted run sends what it has collected when it
+  exits, the block is cut at one hundred notices because the whole of them is in the worklog of eye anyway. garbage.pl works that way now, a run of it makes
+  one letter instead of a letter per record.
+- bugfix: a letter with a cyrillic subject died with "Wide character in subroutine entry" inside the mime encoder, the decoded text of eye is now encoded
+  into utf8 bytes before the base64 of the header and of the body, an already encoded string is taken as it is. garbage.pl stopped on the first such record,
+  so a cleanup which reached a user with a russian description neither finished its work nor cleaned the dhcp leases of the dynamic users.
+- bugfix: garbage.pl compared the place of a mac with its first mac_history record instead of the last one, so every mac which moved once got a new history
+  record by every run of the garbage collection.
+- changed: garbage.pl looks for a duplicate connection over a hash of the port and authentication pairs, the pairs with an unset port or an unset
+  authentication were skipped before and stayed in the table forever.
+- changed: the retention of the debug entries of the worklog is taken from the number at the top of garbage.pl, it was hardcoded in the middle of the script.
 - changed: the form of a device model shows only what the site monitors with: the nagios template field appears when nagios is the
   monitoring system, the block of the zabbix templates when zabbix is it with its api configured, and a chosen zabbix without the
   credentials keeps its single note about the api. saving the parameters of a model never touches the nagios template when the
@@ -33,6 +45,7 @@
 - changed: scan_ipcam.pl, sync_mikrotik_poe_monitor.pl, set_port_descr.pl and the wiki exchange scripts read the names and the monitoring state of the device instead of the ip record.
 - changed: api.php no longer changes wikiname of an address, the new method update_device writes the monitoring parameters of the device.
 - note: the hosts created in zabbix for the ip records earlier are left in zabbix untouched, eye does not manage them.
+
 # Changelog 3-2-4 - release
 - added: ou_zabbix_groups - an organizational unit is bound to several zabbix host groups, the form of the ou shows the bound groups as a list
   with an unlink check box and adds a new group through a searchable dropdown, so a long list of the groups of zabbix stays readable.
