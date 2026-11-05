@@ -63,7 +63,7 @@ print_device_submenu($page_url);
 <td class="info"><?php print WEB_rows_at_page."&nbsp:"; print_row_at_pages('rows',$displayed); ?></td>
 <td class="info"><?php print WEB_network_subnet; ?> </td>
 <td class="info"><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?></td>
-<td class="info" colspan=2><?php  print WEB_models; print_devmodels_select($db_link, "devmodels", $f_devmodel_id, 'device_type>2'); ?></td>
+<td class="info" colspan=2><?php  print WEB_models; print_device_model_select($db_link, "devmodels", $f_devmodel_id, 'device_type>2'); ?></td>
 </tr>
 </table>
 </form>
@@ -77,7 +77,7 @@ print_device_submenu($page_url);
         <input type="hidden" name="ApplyForAll" value="MassChange">
         <table class="data" align=center>
         <tr><td><input type=checkbox class="putField" name="e_set_type" value='1'></td><td><?php print WEB_cell_type."</td><td>";print_devtype_select($db_link,'a_dev_type',5);?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_set_model" value='1'></td><td><?php echo WEB_cell_host_model."</td><td>"; print_devmodels_select($db_link,'a_device_model_id',0,'device_type>2');?></td></tr>
+        <tr><td><input type=checkbox class="putField" name="e_set_model" value='1'></td><td><?php echo WEB_cell_host_model."</td><td>"; print_device_model_select($db_link,'a_device_model_id',0,'device_type>2');?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_set_building" value='1'></td><td><?php echo WEB_location_name."</td><td>"; print_building_select($db_link, 'a_building_id', 0);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_set_snmp_version" value='1'></td><td><?php echo WEB_snmp_version."</td><td>";print_snmp_select('a_snmp_version', get_const('snmp_default_version'));?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_set_ro_community" value='1'></td><td><?php echo WEB_snmp_community_ro."</td><td>"; ?><input type='text' name='a_ro_community' value="<?php print get_const('snmp_default_community'); ?>"></td></tr>
