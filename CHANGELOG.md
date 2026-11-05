@@ -1,4 +1,8 @@
 # Changelog 3-2-6 - release
+- changed: the two items of the menu of the infrastructure are named by what they hold: the devices of the routing and the switching are
+  the network equipment now, the servers, the access points and the rest of the end nodes which eye knows by an address of a
+  subscriber are the subscriber equipment. the word passive is gone: it told nothing, and the name of such a type of a device as
+  a network device was fighting with the old name of the first list
 - changed: the column of the reaction to an event gives its place on the page of the monitoring to the last arp of the address of
   the device: the line shows when the arp of that address was seen for the last time, a dash if the address is unknown or
   silent. the reaction itself is set in the form of the device and stays in the mass operation of the page

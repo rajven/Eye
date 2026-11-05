@@ -133,8 +133,8 @@ define("WEB_submenu_traffic_login_report","Отчёт по трафику (login
 define("WEB_submenu_traffic_wan_report","Статистика для роутера");
 define("WEB_submenu_traffic_top10","TOP 10 по трафику");
 define("WEB_submenu_detail_log","Подробный лог");
-define("WEB_submenu_net_devices","Сетевые устройства");
-define("WEB_submenu_passive_net_devices","Пассивные устройства");
+define("WEB_submenu_net_devices","Сетевое оборудование");
+define("WEB_submenu_passive_net_devices","Оборудование абонентов");
 define("WEB_submenu_buildings","Расположение");
 define("WEB_submenu_hierarchy","Структура");
 define("WEB_submenu_device_models","Модели устройств");
