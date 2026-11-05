@@ -1770,23 +1770,6 @@ function get_building($db, $building_value)
     return $building_name['name'];
 }
 
-function print_device_model_select($db, $device_model_name, $device_model_value)
-{
-    echo "<select id=\"" . htmlspecialchars($device_model_name) . "\" name=\"" . htmlspecialchars($device_model_name) . "\" class=\"js-select-single\">\n";
-    $t_device_model = get_records_sql($db, 
-        "SELECT M.id, M.model_name, V.name 
-         FROM device_models M, vendors V 
-         WHERE M.vendor_id = V.id 
-         ORDER BY V.name, M.model_name"
-    );
-    
-    foreach ($t_device_model as $row) {
-        $display = htmlspecialchars($row['name']) . " " . htmlspecialchars($row['model_name']);
-        print_select_item($display, $row['id'], $device_model_value);
-    }
-    echo "</select>\n";
-}
-
 function print_filter_group_select($db, $group_name, $group_value, $disabled = 0)
 {
     $disabled_attr = $disabled ? 'disabled' : '';
@@ -1807,6 +1790,27 @@ function print_building_select($db, $building_name, $building_value)
     
     foreach ($t_building as $row) {
         print_select_item(htmlspecialchars($row['name']), $row['id'], $building_value);
+    }
+    echo "</select>\n";
+}
+
+function print_device_model_select($db, $devmodel_name, $devmodel_value, $dev_filter = '', $vendor_id = NULL)
+{
+    // the list of models is long, it is searchable and takes the whole cell
+    echo "<select id=\"" . htmlspecialchars($devmodel_name) . "\" name=\"" . htmlspecialchars($devmodel_name) . "\" class=\"js-select-single\">\n";
+    print_select_item(WEB_select_item_all, -1, $devmodel_value);
+
+    $vendor_filter = "";
+    if (!empty($vendor_id)) { $vendor_filter = " AND M.vendor_id = $vendor_id";  }
+    $mSQL = "SELECT M.id, V.name, M.model_name FROM device_models M, vendors V WHERE M.vendor_id = V.id $vendor_filter";
+
+    $t_devmodel = get_records_sql($db, $mSQL . " ORDER BY V.name, M.model_name" );
+
+    if (!empty($t_devmodel)) {
+        foreach ($t_devmodel as $row) {
+            $display = htmlspecialchars($row['name']) . " " . htmlspecialchars($row['model_name']);
+            print_select_item($display, $row['id'], $devmodel_value);
+        }
     }
     echo "</select>\n";
 }
