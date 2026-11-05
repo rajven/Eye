@@ -124,7 +124,7 @@ $counts = zabbix_device_binding_counts($db_link, array_column($devices_list, 'id
 
 // the last time the arp of the address of every device of the page was seen; the addresses of the
 // page are asked at once, so a row of the table does not make a query of its own. the device and
-// its address are matched by the ip as they are in the list of the passive devices
+// its address are matched by the ip as they are in the list of the subscriber equipment
 $arp_seen = array();
 $ips = array();
 foreach ($devices_list as $row) {

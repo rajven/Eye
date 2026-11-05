@@ -421,7 +421,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 }
             }
 
-            // passive devices
+            // the equipment of a subscriber
             if ($device['device_type'] > 2) {
                 //cli access settings
                 print "<tr><td>" . WEB_snmp_version . "</td><td>" . WEB_cell_login . "</td><td>" . WEB_cell_password . "</td><td></td></tr>";
