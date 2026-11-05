@@ -68,6 +68,7 @@ CREATE TABLE `customers` (
   `description` varchar(100) DEFAULT NULL,
   `password` varchar(255) DEFAULT NULL,
   `api_key` varchar(255) DEFAULT NULL,
+  `api_key_hash` varchar(64) DEFAULT NULL,
   `rights` tinyint(1) NOT NULL DEFAULT 3
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -580,7 +581,8 @@ ALTER TABLE `connections`
   ADD KEY `device_id` (`device_id`,`port_id`);
 
 ALTER TABLE `customers`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `api_key_hash` (`api_key_hash`);
 
 ALTER TABLE `devices`
   ADD PRIMARY KEY (`id`),

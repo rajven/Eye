@@ -95,11 +95,15 @@ login VARCHAR(20),
 description VARCHAR(100),
 password VARCHAR(255),
 api_key VARCHAR(255),
+api_key_hash VARCHAR(64),
 rights SMALLINT NOT NULL DEFAULT 3
 );
 COMMENT ON TABLE customers IS 'System users/administrators';
 COMMENT ON COLUMN customers.login IS 'User login';
 COMMENT ON COLUMN customers.rights IS 'Access level: 0=view, 1=operator, 2=admin, 3=superadmin';
+COMMENT ON COLUMN customers.api_key IS 'Obsolete: the plain key of an older installation, cleared when the hash takes its place';
+COMMENT ON COLUMN customers.api_key_hash IS 'Hash of the api key of the customer, the key itself is never stored';
+CREATE UNIQUE INDEX customers_api_key_hash ON customers (api_key_hash);
 
 -- Network devices
 CREATE TABLE devices (

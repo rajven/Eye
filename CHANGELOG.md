@@ -1,3 +1,18 @@
+# Changelog 3-2-6 - release
+- changed: a request of the api is let in by its key alone: the login which the caller types is not looked at, the customer whose
+  api key matches the database is the caller, and the rights of the request are the rights of that customer. /api.php answers 401
+  to a request without a key, with a key shorter than twenty characters or with a key which no customer owns.
+- added: customers.api_key_hash - the api keys of the customers are kept as a keyed hash of them (HMAC SHA256 with the pepper of
+  the config), a key is never stored in the clear and can not be read back or played back from a stolen database; the hash is
+  unique and is looked up by an index.
+- removed: customers.api_key as a value which eye writes - the column stays for the installations which still keep a plain key
+  there, the first request with such a key is accepted and the row is moved to the hash by the same request, after that the
+  column is left empty.
+- changed: the interface of a customer writes only the hash, the value of a new or regenerated key lives in the session of the
+  answer which shows it once; a key of a new customer is any value from twenty to sixty four characters now.
+- bugfix: the methods of the entities handed the name of the action to the rights check as "sendupdate", so a customer of the
+  operator level could not change a single record over the api, while the same rights of his allow it in the interface.
+
 # Changelog 3-2-5 - release
 - added: eyelib collects the mail notices of a script run into one letter: a script which cleans or rebuilds many records sets one_mail_block = 1, its
   create, update and delete notices are kept and flush_mail_block() sends them together at the end, an interrupted run sends what it has collected when it

@@ -33,4 +33,8 @@ define("ENCRYPTION_IV","0123456789012345");
 #session timeout, sec
 define("SESSION_LIFETIME","86400");
 
+#the api keys of the customers are kept as a keyed hash of them, and the key of that hash
+#is ENCRYPTION_KEY above. changing ENCRYPTION_KEY invalidates every api key of the
+#installation, each customer then needs a new key
+
 ?>

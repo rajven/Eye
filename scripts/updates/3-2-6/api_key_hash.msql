@@ -1,0 +1,2 @@
+ALTER TABLE `customers` ADD COLUMN `api_key_hash` varchar(64) DEFAULT NULL AFTER `api_key`;
+ALTER TABLE `customers` ADD UNIQUE KEY `api_key_hash` (`api_key_hash`);

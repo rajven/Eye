@@ -351,26 +351,26 @@ add action=drop chain=forward out-interface-list=WAN
 ### DHCP-скрипт (RouterOS 6):
 
 ```routeros
-/tool fetch mode=http keep-result=no url="http://<EYE_IP>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=\$leaseActMAC&ip=\$leaseActIP&action=\$leaseBound&hostname=\$lease-hostname"
+/tool fetch mode=http keep-result=no url="http://<EYE_IP>/api.php?api_key=<API_KEY>&send=dhcp&mac=\$leaseActMAC&ip=\$leaseActIP&action=\$leaseBound&hostname=\$lease-hostname"
 ```
 
 С https:
 ```routeros
-/tool fetch mode=https keep-result=no url="https://<EYE_URL>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=\$leaseActMAC&ip=\$leaseActIP&action=\$leaseBound&hostname=\$lease-hostname"
+/tool fetch mode=https keep-result=no url="https://<EYE_URL>/api.php?api_key=<API_KEY>&send=dhcp&mac=\$leaseActMAC&ip=\$leaseActIP&action=\$leaseBound&hostname=\$lease-hostname"
 ```
 
 ### DHCP-скрипт (RouterOS 7):
 
 ```routeros
 /tool fetch url="http://<EYE_IP>/api.php"  mode=http  http-method=post \
-    http-data="login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" \
+    http-data="api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" \
     keep-result=no
 ```
 
 С https:
 ```routeros
 /tool fetch url="https://<EYE_DNS_NAME>/api.php"  mode=https  http-method=post \
-    http-data="login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" \
+    http-data="api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" \
     keep-result=no
 ```
 
@@ -393,8 +393,10 @@ add dst-address=<NETFLOW_SERVER_IP> port=2055
 
 ## HTTP API
 
-Все методы вызываются на `/api.php` с учётными данными клиента интерфейса:
-`api_login=<логин>&api_key=<ключ>`. Ключ показывается один раз, при создании клиента.
+Все методы вызываются на `/api.php` с ключом клиента интерфейса: `api_key=<ключ>`. Ключ сам
+называет того, кто обращается, и приносит его права; логин не смотрится вовсе, старые интеграции
+могут продолжать слать `api_login`, но от него ничего не зависит. Ключ показывается один раз -
+при создании или перевыпуске клиента, а в базе от него хранится только хеш.
 
 Чтение любой таблицы: `get=table_record`, `get=table_list` с `table=<имя>`,
 `filter={"колонка":"значение"}`, `limit`, `offset`. Пароли и api-ключи в ответ не попадают.
@@ -411,9 +413,14 @@ add dst-address=<NETFLOW_SERVER_IP> port=2055
 | `send=update_<e>&id=<id>` | правка разрешённых колонок |
 | `send=del_<e>&id=<id>` | удаление; используемая запись отвечает 400 со списком того, кто её держит, а `force=1` сначала освобождает ссылки: шэперы и группы фильтров снимаются с абонентов, единиц и правил, абоненты удалённой единицы переходят в единицу по умолчанию |
 
-Права те же, что в интерфейсе: клиент с правами «только чтение» читает, но не меняет (403).
-Неизвестное поле, либо поле которое относится к другой записи, получает 400 с пояснением —
-ничего не отбрасывается молча.
+Права те же, что в интерфейсе: клиент с правами «только чтение» читает, но не меняет (403),
+клиент-оператор меняет то, что разрешают его права. Запрос без ключа, с ключом короче двадцати
+символов или с ключом, которого ни у кого нет, получает 401. Неизвестное поле, либо поле которое
+относится к другой записи, получает 400 с пояснением — ничего не отбрасывается молча.
+
+Ключ — секрет: не держите его в url, которые попадают в логи веб-сервера, и не выставляйте
+`/api.php` в интернет — микротик-скрипты, виджеты и интеграции клиентов называют адрес ключом,
+поэтому настоящая стена вокруг api — сеть.
 
 ## Важно!
 

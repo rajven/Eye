@@ -14,15 +14,17 @@ if (getPOST("create") !== null) {
         if (!empty($customer)) {
             $msg_error = "Login $login already exists!";
         } else {
+            $api_key = randomPassword(20);
             $new = [
-                'login'    => $login,
-                'api_key'  => randomPassword(20),
-                'rights'   => 3
+                'login'        => $login,
+                // the database keeps the hash of the key, its value lives only in the answer
+                'api_key_hash' => api_key_hash($api_key),
+                'rights'       => 3
             ];
             $id = insert_record($db_link, "customers", $new);
             if (!empty($id)) {
                 // the api key is shown only once, right after the record is created
-                $_SESSION['api_key_once'][(int)$id] = 1;
+                $_SESSION['api_key_once'][(int)$id] = $api_key;
                 header("Location: editcustom.php?id=$id");
                 exit;
             }

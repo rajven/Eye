@@ -319,26 +319,26 @@ Using HTTPS & POST is strongly recommended.
 ### DHCP Script (RouterOS 6):
 
 ```routeros
-/tool fetch mode=http keep-result=no url="http://<EYE_IP>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=\$leaseActMAC&ip=\$leaseActIP&action=\$leaseBound&hostname=\$lease-hostname"
+/tool fetch mode=http keep-result=no url="http://<EYE_IP>/api.php?api_key=<API_KEY>&send=dhcp&mac=\$leaseActMAC&ip=\$leaseActIP&action=\$leaseBound&hostname=\$lease-hostname"
 ```
 
 With HTTPS:
 ```routeros
-/tool fetch mode=https keep-result=no url="https://<EYE_URL>/api.php?login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=\$leaseActMAC&ip=\$leaseActIP&action=\$leaseBound&hostname=\$lease-hostname"
+/tool fetch mode=https keep-result=no url="https://<EYE_URL>/api.php?api_key=<API_KEY>&send=dhcp&mac=\$leaseActMAC&ip=\$leaseActIP&action=\$leaseBound&hostname=\$lease-hostname"
 ```
 
 ### DHCP Script (RouterOS 7):
 
 ```routeros
 /tool fetch url="http://<EYE_IP>/api.php"  mode=http  http-method=post \
-    http-data="login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" \
+    http-data="api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" \
     keep-result=no
 ```
 
 With HTTPS:
 ```routeros
 /tool fetch url="https://<EYE_DNS_NAME>/api.php"  mode=https  http-method=post \
-    http-data="login=<LOGIN>&api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" \
+    http-data="api_key=<API_KEY>&send=dhcp&mac=$leaseActMAC&ip=$leaseActIP&action=$leaseBound&hostname=$"lease-hostname"" \
     keep-result=no
 ```
 
@@ -361,8 +361,11 @@ add dst-address=<NETFLOW_SERVER_IP> port=2055
 
 ## HTTP API
 
-All methods are called on `/api.php` with the credentials of a customer of the interface:
-`api_login=<login>&api_key=<key>`. The key is shown once, at the creation of the customer.
+All methods are called on `/api.php` with the key of a customer of the interface:
+`api_key=<key>`. The key alone names the caller and brings the rights of its owner, the login
+is not looked at, an old integration may keep sending `api_login` but nothing depends on it.
+The key is shown once, at the creation or at the reissue of the customer, and the database
+keeps only a hash of it.
 
 Read-only records of any table: `get=table_record`, `get=table_list` with `table=<name>`,
 `filter={"column":"value"}`, `limit`, `offset`. The passwords and the api keys never
@@ -381,18 +384,24 @@ The entities of eye carry the full set of methods, where `<e>` is one of `group`
 | `send=del_<e>&id=<id>` | removal; a record which is in use answers 400 with the list of its holders, `force=1` releases the references first: the shapers and the groups of filters are taken away from the subscribers, the units and the rules, the subscribers of a removed organizational unit move to the default one |
 
 The rights are the same as in the interface: a customer with the view only rights reads
-but changes nothing (403). An unknown field, or a field which belongs to another record,
-is answered by 400 with the explanation, nothing is skipped in silence.
+but changes nothing (403), a customer of the operator level changes the records his rights
+allow. A request without a key, with a key shorter than twenty characters or with a key
+which nobody owns is answered by 401. An unknown field, or a field which belongs to another
+record, is answered by 400 with the explanation, nothing is skipped in silence.
+
+A key is a secret: keep it out of urls which land in the logs of the web server, and do not
+expose `/api.php` to the internet - the interface, the mikrotik scripts and the dashboards of
+the customers all name an address by its key, so the network around the api is the real wall.
 
 ```bash
 # a subscriber into a new organizational unit, with his address and his device
-curl -s "http://eye.local/api.php?api_login=admin&api_key=SECRET&send=add_group" \
+curl -s "http://eye.local/api.php?api_key=SECRET&send=add_group" \
      -H 'Content-Type: application/json' -d '{"ou_name":"offices","enabled":1}'
-curl -s "http://eye.local/api.php?api_login=admin&api_key=SECRET&send=add_user" \
+curl -s "http://eye.local/api.php?api_key=SECRET&send=add_user" \
      -H 'Content-Type: application/json' -d '{"login":"petrov","ou_id":14}'
-curl -s "http://eye.local/api.php?api_login=admin&api_key=SECRET&send=add_address" \
+curl -s "http://eye.local/api.php?api_key=SECRET&send=add_address" \
      -H 'Content-Type: application/json' -d '{"user_id":1,"ip":"10.10.20.20","mac":"aa:bb:cc:dd:ee:ff"}'
-curl -s "http://eye.local/api.php?api_login=admin&api_key=SECRET&get=users&ip=10.10.20.20&with=devices"
+curl -s "http://eye.local/api.php?api_key=SECRET&get=users&ip=10.10.20.20&with=devices"
 ```
 
 ## Important!
