@@ -103,7 +103,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=monitoring&order=$new_order>" . WEB_cell_monitoring; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=link_check&order=$new_order>" . WEB_cell_link; ?></td>
-		<td align=Center><?php print WEB_cell_nagios_handler; ?></td>
+		<td align=Center><?php print WEB_cell_arp_found; ?></td>
 		<td align=Center><?php print WEB_cell_wikiname; ?></td>
 		<td align=Center><?php print WEB_zabbix_macros_device . '&nbsp' . WEB_zabbix_tags_device; ?></td>
 	</tr>
@@ -121,6 +121,29 @@ $devices_list = get_records_sql($db_link,$sSQL, $params);
 
 // number of the macros and of the tags which every device of the page carries
 $counts = zabbix_device_binding_counts($db_link, array_column($devices_list, 'id'));
+
+// the last time the arp of the address of every device of the page was seen; the addresses of the
+// page are asked at once, so a row of the table does not make a query of its own. the device and
+// its address are matched by the ip as they are in the list of the passive devices
+$arp_seen = array();
+$ips = array();
+foreach ($devices_list as $row) {
+    if (!empty($row['ip'])) {
+        $ips[$row['ip']] = true;
+    }
+}
+
+if ($ips) {
+    $keys = array_keys($ips);
+    $sql_arp = 'SELECT ip, arp_found FROM user_auth WHERE deleted = 0 AND ip IN ('
+        . implode(',', array_fill(0, count($keys), '?')) . ') ORDER BY arp_found DESC';
+    foreach (get_records_sql($db_link, $sql_arp, $keys) as $row) {
+        // the address is unique over the live records, the first of them is the freshest one
+        if (!isset($arp_seen[$row['ip']])) {
+            $arp_seen[$row['ip']] = $row['arp_found'];
+        }
+    }
+}
 
 foreach ($devices_list as $device) {
     print "<tr align=center>\n";
@@ -163,7 +186,16 @@ foreach ($devices_list as $device) {
         }
 
     print_td_qa($device['link_check'],FALSE,$cl);
-    print "<td class=\"$cl\" >" . htmlspecialchars((string)$device['nagios_handler'], ENT_QUOTES, 'UTF-8') . "</td>\n";
+
+    // the reaction to an event is edited in the form of the device and by the mass operation
+    // below, the column of the table shows the last arp of the address of this device
+    $seen = $arp_seen[$device['ip']] ?? '';
+    if (is_empty_datetime($seen)) { $seen = ''; }
+    if ($seen === '') {
+        print "<td class=\"$cl\">-</td>\n";
+    } else {
+        print "<td class=\"$cl\">" . htmlspecialchars((string)$seen, ENT_QUOTES, 'UTF-8') . "</td>\n";
+    }
     if (!empty($device['wikiname'])) {
         $wiki_url = rtrim((string)get_option($db_link, 60),'/');
         if ($wiki_url === '' or preg_match('/127.0.0.1/', $wiki_url)) { print "<td class=\"$cl\" ></td>\n"; } else {
