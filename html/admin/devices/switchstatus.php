@@ -116,7 +116,8 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
 
         <?php
         print "<br>\n";
-        print "<b>" . WEB_device_port_state_list . "&nbsp" . $device['device_name'] . " - " . $device['ip'] . "</b><br>\n";
+        print "<b>" . WEB_device_port_state_list . "&nbsp" . esc($device['device_name']) . " - "
+            . esc($device['ip']) . "</b><br>\n";
 
         $snmp_ok = 0;
         $vlan_list = [];
@@ -206,8 +207,8 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
 
             print "<td class='" . $cl . "' style='padding:0'><input type=checkbox name=d_port_index[] value=" . $row['snmp_index'] . " ></td>\n";
 
-            print "<td class='" . $cl . "'><a href=\"#\" onclick=\"" . open_window_url("editport.php?id=" . $row['id']) . " return false;\">" . $row['port'] . "</a></td>\n";
-            print "<td class='" . $cl . "' >" . $row['port_name'] . "</td>\n";
+            print "<td class='" . $cl . "'><a href=\"#\" onclick=\"" . esc(open_window_url("editport.php?id=" . (int)$row['id'])) . " return false;\">" . esc($row['port']) . "</a></td>\n";
+            print "<td class='" . $cl . "' >" . esc($row['port_name']) . "</td>\n";
             print "<td class='" . $cl . "' >" . $row['snmp_index'] . "</td>\n";
             print "<td class='" . $cl . "'>";
             if (isset($row['target_port_id']) and $row['target_port_id'] > 0) {
@@ -328,10 +329,10 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             $ifname = compact_port_name($ifname);
             $f_cacti_url = get_cacti_graph($device['ip'], $row['snmp_index']);
             if (empty(get_const('torrus_url')) and (empty($f_cacti_url))) {
-                $snmp_url = $ifname;
+                $snmp_url = esc($ifname);
             } else {
                 if (isset($f_cacti_url)) {
-                    $snmp_url = "<a href=\"#\" onclick=\"" . open_window_url($f_cacti_url) . "return false;\">" . $ifname . "</a>";
+                    $snmp_url = "<a href=\"#\" onclick=\"" . esc(open_window_url($f_cacti_url)) . "return false;\">" . esc($ifname) . "</a>";
                 }
                 if (!empty(get_const('torrus_url'))) {
                     $normed_ifname = str_replace("/", "_", $ifname);
@@ -339,7 +340,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                     $normed_ifname = trim(str_replace(" ", "_", $normed_ifname));
                     $t_url = str_replace("HOST_IP", $device['ip'], get_const('torrus_url'));
                     $t_url = str_replace("IF_NAME", $normed_ifname, $t_url);
-                    $snmp_url = "<a href=\"#\" onclick=\"" . open_window_url($t_url) . "return false;\">" . $ifname . "</a>";
+                    $snmp_url = "<a href=\"#\" onclick=\"" . esc(open_window_url($t_url)) . "return false;\">" . esc($ifname) . "</a>";
                 }
             }
 
@@ -383,11 +384,11 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             }
 
             print "<td class=\"$cl_error\">" . $perrors . "</td>\n";
-            $snmp_url = "<a href=\"#\" onclick=\"" . open_window_url($f_cacti_url) . " return false;\">" . $ifname . "</a>";
+            $snmp_url = "<a href=\"#\" onclick=\"" . esc(open_window_url($f_cacti_url)) . " return false;\">" . esc($ifname) . "</a>";
 
-            print "<td class='" . $cl . "' ><button onclick=\"" . open_window_url('portmactable.php?id=' . $row['id']) . " return false;\">" . $row['last_mac_count'] . "</button></td>\n";
+            print "<td class='" . $cl . "' ><button onclick=\"" . esc(open_window_url('portmactable.php?id=' . (int)$row['id'])) . " return false;\">" . esc($row['last_mac_count']) . "</button></td>\n";
 
-            print "<td class='" . $cl . "'>" . $sfp_status . " " . $poe_info . "</td>\n";
+            print "<td class='" . $cl . "'>" . esc($sfp_status) . " " . esc($poe_info) . "</td>\n";
             if ($device_model['poe_out']) {
                 if (isset($poe_status) and !$row['skip']) {
                     print "<td class=\"data\">";

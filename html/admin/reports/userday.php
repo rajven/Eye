@@ -12,7 +12,7 @@ $user=get_record_sql($db_link,'SELECT * FROM user_list WHERE id=?', [ $id ]);
 ?>
 
 <div id="cont">
-<b><?php print "Трафик пользователя <a href=../users/edituser.php?id=$id>" . $user['login'] . "</a>"; ?></b>
+<b><?php print 'Трафик пользователя ' . create_url((string)$user['login'], '../users/edituser.php?id=' . (int)$id); ?></b>
 <br>
 <form action="<?php print $_SERVER['PHP_SELF']; ?>" method="post">
 <input type="hidden" name="id" value=<?php echo $id; ?>>

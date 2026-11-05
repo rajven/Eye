@@ -131,12 +131,20 @@ foreach ($devices_list as $device) {
             or $device['monitoring_status'] === 'SOFTDOWN') { $cl = "down"; }
         }
 
-    print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$device['id']."></td>\n";
-    print "<td class=\"$cl\" ><a href=/admin/devices/editdevice.php?id=".$device['id'].">" . $device['device_name'] . "</a></td>\n";
-    print "<td class=\"$cl\" >" . $device['ip'] . "</td>\n";
-    print "<td class=\"$cl\" >" . get_devtype_name($db_link, (int)$device['device_type']) . "</td>\n";
+    print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".(int)$device['id']."></td>\n";
+
+    // a name of a record is a text, it is escaped by create_url(), only the marks of eye
+    // itself are passed as a markup, print_url_html()
+    print "<td class=\"$cl\">";
+    print_url((string)$device['device_name'], '/admin/devices/editdevice.php?id=' . (int)$device['id']);
+    print "</td>\n";
+    print "<td class=\"$cl\">" . htmlspecialchars((string)$device['ip'], ENT_QUOTES, 'UTF-8') . "</td>\n";
+    print "<td class=\"$cl\">" . htmlspecialchars((string)get_devtype_name($db_link, (int)$device['device_type']),
+        ENT_QUOTES, 'UTF-8') . "</td>\n";
     if (!empty($device['login'])) {
-        print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=" . (int)$device['user_id'] . ">" . $device['login'] . "</a></td>\n";
+        print "<td class=\"$cl\">";
+        print_url((string)$device['login'], '/admin/users/edituser.php?id=' . (int)$device['user_id']);
+        print "</td>\n";
     } else {
         print "<td class=\"$cl\" ></td>\n";
         }
@@ -144,8 +152,11 @@ foreach ($devices_list as $device) {
     // the name of the host is a link to the page of the monitoring system
     if ((int)$device['monitoring'] === 1) {
         $monitoring_link = get_host_monitoring_link($db_link, $device);
-        if ($monitoring_link === NULL) { print "<td class=\"$cl\" >" . get_qa($device['monitoring']) . "</td>\n"; } else {
-            print "<td class=\"$cl\" >"; print_url(get_qa($device['monitoring']), $monitoring_link); print "</td>\n";
+        if ($monitoring_link === NULL) { print "<td class=\"$cl\">" . get_qa($device['monitoring']) . "</td>\n"; } else {
+            // the mark stays a markup, the link of the host is built by the monitoring rules
+            print "<td class=\"$cl\">";
+            print_url_html(get_qa($device['monitoring']), $monitoring_link);
+            print "</td>\n";
             }
         } else {
         print_td_qa($device['monitoring'],FALSE,$cl);

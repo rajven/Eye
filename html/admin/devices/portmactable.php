@@ -115,7 +115,9 @@ if (!empty($t_device)) {
         if (!empty($row['dns_name']) and isset($row['dns'])) { $name = $row['dns_name']; }
         print "<tr>";
         print "<td class=\"data\">" . expand_mac($db_link,$row['mac']) . "</td>\n";
-        print "<td class=\"data\"><a href=\"/admin/users/editauth.php?id=".$row['id']."\">" . $name . "</a></td>\n";
+        print "<td class=\"data\">";
+        print_url((string)$name, '/admin/users/editauth.php?id=' . (int)$row['id']);
+        print "</td>\n";
         print "<td class=\"data\">".get_datetime_display($row['last_found'])."</td>\n";
         print "</tr>";
     }

@@ -144,11 +144,15 @@ foreach ($auth_list as $row) {
     }
     print "></td>\n";
 
-    print "<td class=\"$cl\" ><a href=/admin/users/edituser.php?id=".$row['user_id'].">" . get_login($db_link,$row['user_id']) . "</a></td>\n";
-    print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$row['id'].">" . $row['ip'] . "</a></td>\n";
+    print "<td class=\"$cl\">";
+    print_url((string)get_login($db_link, $row['user_id']), '/admin/users/edituser.php?id=' . (int)$row['user_id']);
+    print "</td>\n";
+    print "<td class=\"$cl\">";
+    print_url((string)$row['ip'], '/admin/users/editauth.php?id=' . (int)$row['id']);
+    print "</td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$row['mac']) . "</td>\n";
     if (isset($row['dhcp_hostname']) and strlen($row['dhcp_hostname']) > 0) {
-        print "<td class=\"$cl\" >".$row['description']." [" . $row['dhcp_hostname'] . "]</td>\n";
+        print "<td class=\"$cl\">" . esc($row['description']) . " [" . esc($row['dhcp_hostname']) . "]</td>\n";
     } else {
         print "<td class=\"$cl\" >".$row['description']."</td>\n";
     }

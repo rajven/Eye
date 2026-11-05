@@ -114,9 +114,13 @@ foreach ($traf as $row) {
     $a_SQL='SELECT ip,U.login FROM user_auth, user_list as U where user_auth.user_id=U.id and user_auth.id=?';
     $auth_record = get_record_sql($db_link,$a_SQL,[$row['id']]);
     print "<tr align=center>\n";
-    print "<td align=left class=\"$cl\">" . $auth_record['login'] . "</td>\n";
-    print "<td align=left class=\"$cl\"><a href=authday.php?id=" . $row['id'] . "&date_start=$date1&date_stop=$date2>" . $auth_record['ip'] . "</a></td>\n";
-    print "<td align=left class=\"$cl\">$s_router</td>\n";
+    print "<td align=left class=\"$cl\">" . esc($auth_record['login']) . "</td>\n";
+    print "<td align=left class=\"$cl\">";
+    print_url((string)$auth_record['ip'],
+        'authday.php?id=' . (int)$row['id'] . '&date_start=' . rawurlencode((string)$date1)
+        . '&date_stop=' . rawurlencode((string)$date2));
+    print "</td>\n";
+    print "<td align=left class=\"$cl\">" . esc($s_router) . "</td>\n";
     print "<td class=\"$cl\">" . fbytes($row['tin']) . "</td>\n";
     print "<td class=\"$cl\">" . fbytes($row['tout']) . "</td>\n";
     print "<td class=\"$cl\">" . fpkts($row['pin']) . "</td>\n";

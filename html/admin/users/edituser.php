@@ -450,7 +450,8 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     print "<tr align=center>";
                     print "<td class=\"data\" style='padding:0'><input type=checkbox name=f_auth_id[] value=" . $row["id"] . " ></td>";
 
-                    print "<td class=\"data\" align=left><a href=editauth.php?id=" . $row["id"] . ">" . $row["ip"] . "</a>";
+                    print "<td class=\"data\" align=left>";
+                    print_url((string)$row["ip"], 'editauth.php?id=' . (int)$row["id"]);
                     if (!empty($row["arp_found"])) { print "<p class='ts'>".FormatDateStr('Y.m.d H:i', $row["arp_found"])."</p>"; }
                     print "</td>";
 

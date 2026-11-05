@@ -115,8 +115,12 @@ foreach ($traf as $row) {
     $u_SQL='SELECT * FROM user_list WHERE id=?';
     $user_record = get_record_sql($db_link,$u_SQL,[$row['user_id']]);
     print "<tr align=center>\n";
-    print "<td align=left class=\"$cl\"><a href=userday.php?id=" . $row['user_id'] . "&date_start=$date1&date_stop=$date2>" . $user_record['login'] . "</a></td>\n";
-    print "<td align=left class=\"$cl\">$s_router</td>\n";
+    print "<td align=left class=\"$cl\">";
+    print_url((string)$user_record['login'],
+        'userday.php?id=' . (int)$row['user_id'] . '&date_start=' . rawurlencode((string)$date1)
+        . '&date_stop=' . rawurlencode((string)$date2));
+    print "</td>\n";
+    print "<td align=left class=\"$cl\">" . esc($s_router) . "</td>\n";
     print "<td class=\"$cl\">" . fbytes($row['tin']) . "</td>\n";
     print "<td class=\"$cl\">" . fbytes($row['tout']) . "</td>\n";
     print "<td class=\"$cl\">" . fpkts($row['pin']) . "</td>\n";

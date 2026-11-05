@@ -60,7 +60,7 @@ print_editdevice_submenu($page_url,$id,$device['device_type'],$user_info['login'
 <form name="def" action="switchport.php?id=<?php echo $id; ?>" method="post">
 <br>
 
-<?php print "<b>".WEB_device_port_list."&nbsp".$device['device_name']." - ".$device['ip']."</b><br>\n"; ?>
+<?php print "<b>" . WEB_device_port_list . "&nbsp" . esc($device['device_name']) . " - " . esc($device['ip']) . "</b><br>\n"; ?>
 
 <table class="data" cellspacing="1" cellpadding="4">
 <tr>
@@ -84,11 +84,15 @@ $ports=get_records_sql($db_link,$sSQL, [ $id ]);
 foreach ($ports as $row) {
         print "<tr align=center>\n";
         $cl = "data";
-        print "<td class='".$cl."' style='padding:0'><input type=checkbox name=f_id[] value='{$row['id']}'></td>\n";
-        print "<td class='data'><input type='hidden' name='p_id[]' value='{$row['id']}'><a href='editport.php?id=".$row['id']."'>{$row['id']}</a></td>\n";
-        print "<td class='".$cl."' >".$row['port']."</td>\n";
-        print "<td class='".$cl."' ><input type='text' name='f_name[]' value='{$row['port_name']}' size=5></td>\n";
-        print "<td class='".$cl."' ><input type='text' name='f_snmp_index[]' value='{$row['snmp_index']}' size=10></td>\n";
+        print "<td class='".$cl."' style='padding:0'><input type=checkbox name=f_id[] value='" . esc($row['id']) . "'></td>\n";
+        print "<td class='data'><input type='hidden' name='p_id[]' value='" . esc($row['id']) . "'>";
+        print_url((string)$row['id'], 'editport.php?id=' . (int)$row['id']);
+        print "</td>\n";
+        print "<td class='".$cl."'>" . esc($row['port']) . "</td>\n";
+        print "<td class='".$cl."'><input type='text' name='f_name[]' value='"
+            . esc($row['port_name']) . "' size=5></td>\n";
+        print "<td class='".$cl."'><input type='text' name='f_snmp_index[]' value='"
+            . esc($row['snmp_index']) . "' size=10></td>\n";
         print "<td class='".$cl."'>";
         if (isset($row['target_port_id']) and $row['target_port_id'] > 0) {
             print_device_port($db_link, $row['target_port_id']);
@@ -117,21 +121,21 @@ foreach ($ports as $row) {
             }
         $ifname= compact_port_name($row['ifname']);
         $f_cacti_url = get_cacti_graph($device['ip'], $row['snmp_index']);
-        if (empty(get_const('torrus_url')) and (empty($f_cacti_url))) {  $snmp_url=$ifname; }
+        if (empty(get_const('torrus_url')) and (empty($f_cacti_url))) {  $snmp_url=esc($ifname); }
                 else {
-                if (isset($f_cacti_url)) { $snmp_url = "<a href='".$f_cacti_url."'>" . $ifname . "</a>"; }
+                if (isset($f_cacti_url)) { $snmp_url = create_url($ifname, $f_cacti_url); }
                 if (!empty(get_const('torrus_url'))) {
                     $normed_ifname = str_replace("/", "_", $ifname);
                     $normed_ifname = str_replace(".", "_", $normed_ifname);
                     $normed_ifname = trim(str_replace(" ", "_", $normed_ifname));
                     $t_url = str_replace("HOST_IP", $device['ip'], get_const('torrus_url'));
                     $t_url = str_replace("IF_NAME", $normed_ifname, $t_url);
-                    $snmp_url = "<a href='".$t_url."'>" . $ifname . "</a>";
+                    $snmp_url = create_url($ifname, $t_url);
                     }
                 }
         print "<td class='".$cl."'>" . $display_vlan . "</td>\n";
         print "<td class='".$cl."'>" . $snmp_url . "</td>\n";
-        print "<td class='".$cl."' ><button onclick=\"". open_window_url('portmactable.php?id='.$row['id'])." return false;\">" . $row['last_mac_count'] . "</button></td>\n";
+        print "<td class='".$cl."' ><button onclick=\"". esc(open_window_url('portmactable.php?id=' . (int)$row['id'])) ." return false;\">" . esc($row['last_mac_count']) . "</button></td>\n";
 print "</tr>";
 }
 print "<tr>\n";

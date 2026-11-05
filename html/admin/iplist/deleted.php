@@ -99,14 +99,16 @@ foreach ($users as $user) {
     if (empty($user['changed_time']) || is_empty_datetime($user['changed_time'])) { $user['changed_time'] = ''; }
     print "<tr align=center>\n";
     $cl = "data";
-    print "<td class=\"$cl\" ><a href=/admin/users/editauth.php?id=".$user['id'].">" . $user['ip'] . "</a></td>\n";
+    print "<td class=\"$cl\">";
+    print_url((string)$user['ip'], '/admin/users/editauth.php?id=' . (int)$user['id']);
+    print "</td>\n";
     print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
     if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
-        print "<td class=\"$cl\" >".$user['description']." [" . $user['dhcp_hostname'] . "]</td>\n";
+        print "<td class=\"$cl\">" . esc($user['description']) . " [" . esc($user['dhcp_hostname']) . "]</td>\n";
     } else {
-        print "<td class=\"$cl\" >".$user['description']."</td>\n";
+        print "<td class=\"$cl\">" . esc($user['description']) . "</td>\n";
     }
-    print "<td class=\"$cl\" >".$user['dns_name']."</td>\n";
+    print "<td class=\"$cl\">" . esc($user['dns_name']) . "</td>\n";
     print "<td class=\"$cl\" >".$user['ts']."</td>\n";
     print "<td class=\"$cl\" >".$user['changed_time']."</td>\n";
     print "<td class=\"$cl\" >".$user['last_found']."</td>\n";

@@ -49,10 +49,12 @@ print_filters_submenu($page_url);
             $ipsets = get_records_sql($db_link, 'SELECT * FROM ipset_list ORDER BY id');
             foreach ($ipsets as $row) {
                 print "<tr align=center>\n";
-                print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=" . $row["id"] . "></td>\n";
-                print "<td class=\"data\" ><input type=\"hidden\" name=\"" . $row["id"] . "\" value=" . $row["id"] . ">" . $row["id"] . "</td>\n";
-                print "<td class=\"data\"><a href=editipset.php?id=" . $row["id"] . ">" . $row["name"] . "</a></td>\n";
-                print "<td class=\"data\">" . $row["description"] . "</td>\n";
+                print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=" . (int)$row["id"] . "></td>\n";
+                print "<td class=\"data\" ><input type=\"hidden\" name=\"" . (int)$row["id"] . "\" value=" . (int)$row["id"] . ">" . (int)$row["id"] . "</td>\n";
+                print "<td class=\"data\">";
+                print_url((string)$row["name"], 'editipset.php?id=' . (int)$row["id"]);
+                print "</td>\n";
+                print "<td class=\"data\">" . esc($row["description"]) . "</td>\n";
                 print "<td></td></tr>";
             }
             ?>

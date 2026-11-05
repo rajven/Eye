@@ -63,9 +63,11 @@ foreach ($maclog as $row) {
     print "<td class=\"data\">" . expand_mac($db_link,mac_dotted($row['mac'])) . "</td>\n";
     print "<td class=\"data\">" . get_port($db_link, $row['port_id']) . "</td>\n";
     if (isset($row['auth_id']) and $row['auth_id'] > 0) {
-        print "<td class=\"data\"><a href=/admin/users/editauth.php?id=".$row['auth_id'].">" . $row['ip'] . "</a></td>\n";
+        print "<td class=\"data\">";
+        print_url((string)$row['ip'], '/admin/users/editauth.php?id=' . (int)$row['auth_id']);
+        print "</td>\n";
     } else {
-        print "<td class=\"data\">" . $row['ip'] . "</td>\n";
+        print "<td class=\"data\">" . esc($row['ip']) . "</td>\n";
     }
     print "</tr>\n";
 }

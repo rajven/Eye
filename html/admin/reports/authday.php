@@ -14,8 +14,10 @@ $gateway_list = get_gateways($db_link);
 <div id="cont">
 <b>
 <?php
-print WEB_report_user_traffic."&nbsp<a href=../users/edituser.php?id=".$auth['user_id'].">" . $user['login'] . "</a>&nbsp"; 
-print WEB_report_traffic_for_ip."&nbsp<a href=../users/editauth.php?id=$id>".$auth['ip']."</a>";
+print WEB_report_user_traffic . '&nbsp'
+    . create_url((string)$user['login'], '../users/edituser.php?id=' . (int)$auth['user_id']) . '&nbsp';
+print WEB_report_traffic_for_ip . '&nbsp'
+    . create_url((string)$auth['ip'], '../users/editauth.php?id=' . (int)$id);
 ?>
 </b>
 <br>

@@ -183,8 +183,10 @@ foreach ($users as $row) {
     $cl_id = $cl;
     print "<td class=\"$cl_id\">".$row['id']."</td>\n";
     if (empty($row['login'])) { $row['login']=$row['id']; }
-    print "<td class=\"$cl\" align=left><a href=edituser.php?id=".$row['id'].">" . $row['login'] . "</a></td>\n";
-    print "<td class=\"$cl\">".$row['description']."</td>\n";
+    print "<td class=\"$cl\" align=left>";
+    print_url((string)$row['login'], 'edituser.php?id=' . (int)$row['id']);
+    print "</td>\n";
+    print "<td class=\"$cl\">".esc($row['description'])."</td>\n";
 }
 ?>
 </table>

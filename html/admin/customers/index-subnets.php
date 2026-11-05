@@ -105,7 +105,9 @@ print_control_submenu($page_url);
             foreach ($t_subnets as $row) {
                 print "<tr align=center>\n";
                 print "<td class=\"data\" style='padding:0'><input type=checkbox name=s_id[] value='" . $row['id'] . "'></td>\n";
-                print "<td class=\"data\" align=left><a href=editsubnet.php?id=".$row["id"].">" . $row["subnet"] . "</a></td>\n";
+                print "<td class=\"data\" align=left>";
+                print_url((string)$row["subnet"], 'editsubnet.php?id=' . (int)$row["id"]);
+                print "</td>\n";
                 print "<td class=\"data\">" . $row['vlan_tag'] . " </td>\n";
                 print_td_yes_no($row['dhcp']);
                 print_td_yes_no($row['static']);
