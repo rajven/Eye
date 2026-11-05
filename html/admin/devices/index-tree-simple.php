@@ -13,17 +13,21 @@ print_device_submenu($page_url);
 function print_child($device_id, $hash, $processed_ids = array()) 
 {
     // Защита от циклических ссылок - проверяем, не обрабатывали ли уже это устройство
-    if (in_array($device_id, $processed_ids)) {
+    if (in_array((int)$device_id, array_map('intval', $processed_ids), true)) {
         return '';
     }
     // Добавляем текущее устройство в список обработанных
-    $processed_ids[] = $device_id;
+    $processed_ids[] = (int)$device_id;
     foreach ($hash as $device) {
         if (!isset($device['parent_id'])) { continue; }
-        if ($device['parent_id'] !== $device_id) { continue; }
+        if ((int)$device['parent_id'] !== (int)$device_id) { continue; }
         print '<ul><li>';
-        print_url($device['parent_port'].'->'.$device['uplink'].'&nbsp'.$device['name'].'&nbsp::&nbsp<small><i>['.$device['model_name'].']</i></small>','/admin/devices/editdevice.php?id='.$device['id']);
-        print_child($device['id'],$hash);
+        // порты аплинка, имя устройства и его модель: текст записи экранирован, оформление
+        // самого eye остаётся разметкой, ссылка узла делает её print_url_html()
+        print_url_html(esc($device['parent_port']) . '->' . esc($device['uplink']) . '&nbsp;'
+            . esc($device['name']) . '&nbsp;::&nbsp;<small><i>[' . esc($device['model_name']) . ']</i></small>',
+            '/admin/devices/editdevice.php?id=' . (int)$device['id']);
+        print_child($device['id'], $hash, $processed_ids);
         print '</li></ul>';
     }
 }
@@ -47,8 +51,8 @@ foreach ($switches as $row) {
     $dev_hash[$dev_id]['uplink'] = $uplink['port_name'];
     $parentSQL = 'SELECT * FROM device_ports WHERE device_ports.id=?';
     $parent = get_record_sql($db_link,$parentSQL, [$uplink['target_port_id']]);
-    // Защита от ссылки на самого себя
-    if ($parent['device_id'] == $dev_id) {
+    // Защита от ссылки на самого себя и на несуществующий порт
+    if (empty($parent) || $parent['device_id'] == $dev_id) {
         // Устройство ссылается само на себя - пропускаем эту связь
         $dev_hash[$dev_id]['parent_id'] = null;
         continue;
@@ -65,7 +69,7 @@ foreach ($dev_hash as $device) {
         continue; 
     }
     print '<ul><li>';
-    print_url($device['name'],'/admin/devices/editdevice.php?id='.$device['id']); 
+    print_url((string)$device['name'], '/admin/devices/editdevice.php?id=' . (int)$device['id']);
     print print_child($device['id'], $dev_hash, array()); 
     print '</li>';
     print '</ul>';
