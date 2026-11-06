@@ -85,7 +85,6 @@ $allowed_tables = [
     'queue_list',
     'group_list',
     'subnets',
-    'config',
     'user_auth',
     'user_list',
     'vendors',
@@ -102,7 +101,7 @@ function api_hide_columns($table, $row)
         // the hash is a proof too: with the pepper of the config it can be cracked offline,
         // so no answer of the api carries it
         'customers' => ['password', 'api_key', 'api_key_hash'],
-        'devices'   => ['password', 'snmp3_user_ro_password', 'snmp3_user_rw_password'],
+        'devices'   => ['password', 'snmp3_user_ro_password', 'snmp3_user_rw_password', 'community', 'rw_community'],
     ];
 
     if (empty($row) || !is_array($row) || empty($hidden[$table])) {
@@ -530,7 +529,7 @@ if (!empty($action)) {
 
             if (is_our_network($db_link, $ip)) {
                 $ip_record = [
-                    'action' => $action_str,
+                    'type' => $action_str,
                     'mac' => $mac,
                     'ip' => $ip,
 		    'description' => $description,

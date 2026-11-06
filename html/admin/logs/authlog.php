@@ -65,7 +65,7 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 #speedup paging
 $sSQL = "SELECT ts,customer,message,level FROM worklog as S JOIN (SELECT id FROM worklog WHERE ts>=? AND ts<? $log_filter 
 ORDER BY id DESC 
-LIMIT $displayed OFFSET $start) AS I ON S.id = I.id";
+LIMIT ? OFFSET ?) AS I ON S.id = I.id";
 
 $params[]=$displayed;
 $params[]=$start;

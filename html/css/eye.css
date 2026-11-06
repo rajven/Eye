@@ -139,7 +139,7 @@
 
 /* Density: header.php / eye.js set data-eye-dens on <html>, the choice is remembered. */
 :root[data-eye-dens="roomy"] { --row-h: 40px; --pad: 14px; --fs: 15px; --fs-mono: 14px; }
-:root[data-eye-dens="tight"] { --row-h: 27px; --pad: 7px; --fs: 12.5px; --fs-mono: 12px; }
+:root[data-eye-dens="compact"] { --row-h: 27px; --pad: 7px; --fs: 12.5px; --fs-mono: 12px; }
 
 /* 4. Base styles, replacing the global tahoma 12pt of the old theme. */
 * { box-sizing: border-box; }

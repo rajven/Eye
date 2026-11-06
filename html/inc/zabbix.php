@@ -33,9 +33,9 @@ function zabbix_api_request($method, $params = [])
         'Authorization: Bearer ' . $api_key
     ];
 
-    error_log("Zabbix URL: " . $api_url);
-    error_log("Zabbix Headers: " . print_r($headers, true));
-    error_log("Zabbix Body: " . json_encode($body, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+#    error_log("Zabbix URL: " . $api_url);
+#    error_log("Zabbix Headers: " . print_r($headers, true));
+#    error_log("Zabbix Body: " . json_encode($body, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 
     $raw = zabbix_http_post($api_url, json_encode($body, JSON_UNESCAPED_UNICODE), $headers);
     if ($raw === null) {

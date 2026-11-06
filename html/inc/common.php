@@ -89,47 +89,9 @@ FILTER_FLAG_ENCODE_HIGH      // Кодирует символы с ASCII > 127
 FILTER_FLAG_ENCODE_AMP       // Кодирует амперсанд (&)
 */
 
-function capture_print_r($var) {
-    ob_start();
-    print_r($var);
-    return ob_get_clean();
-}
-
 function needs_decoding($str) {
     // Проверяем, есть ли хотя бы один %-код, и корректен ли он
     return preg_match('/%[0-9A-Fa-f]{2}/', $str);
-}
-
-/**
- * Получает параметр только из GET (скаляр или массив)
- */
-function getGET($name, $page_url = null, $default = null, $filter = FILTER_DEFAULT, $options = []) {
-    // Обработка массивов
-    if (isset($_GET[$name]) && is_array($_GET[$name])) {
-        return $_GET[$name];
-    }
-
-    // Проверяем, был ли параметр вообще передан
-    if (!isset($_GET[$name])) {
-        // Не передан — пробуем сессию
-        if ($page_url !== null && isset($_SESSION[$page_url][$name])) {
-            return $_SESSION[$page_url][$name];
-        }
-        return $default;
-    }
-
-    // Передан как пустая строка — сразу default
-    if ($_GET[$name] === '') {
-        return $default;
-    }
-
-    // Обычная фильтрация
-    $value = filter_input(INPUT_GET, $name, $filter, $options);
-    if ($value === false || $value === null) {
-        return $default;
-    }
-
-    return $value;
 }
 
 /**
@@ -342,10 +304,6 @@ function get_user_acl()
     return $user_level;
 }
 
-function print_datetime($datetime) {
-if (is_empty_datetime($datetime)) { print "-"; } else { print $datetime; }
-}
-
 function get_datetime_display($datetime) {
 if (is_empty_datetime($datetime)) { return "-"; } else { return $datetime; }
 }
@@ -394,12 +352,9 @@ function get_user_ip()
 {
     $auth_ip = getenv("HTTP_CLIENT_IP");
     if (empty($auth_ip)) {
-        $auth_ip = getenv("HTTP_X_FORWARDED_FOR");
+        $auth_ip = getenv("REMOTE_ADDR");
         if (empty($auth_ip)) {
-            $auth_ip = getenv("REMOTE_ADDR");
-            if (empty($auth_ip)) {
                 $auth_ip = $_SERVER['REMOTE_ADDR'];
-            }
         }
     }
     return $auth_ip;
@@ -561,40 +516,6 @@ function checkValidIp($ip) {
         return true;
     }
     return false;
-}
-
-function validateIPv4CIDR($cidr)
-{
-    $parts = explode("/", $cidr);
-    $ip = $parts[0];
-    $netmask = isset($parts[1]) ? (int)$parts[1] : 32;
-
-    // Проверяем октеты
-    $octets = explode(".", $ip);
-    if (count($octets) !== 4) {
-        return false;
-    }
-
-    foreach ($octets as $octet) {
-        $octet = (int)$octet;
-        if ($octet < 0 || $octet > 255) {
-            return false;
-        }
-    }
-
-    return $netmask >= 0 && $netmask <= 32;
-}
-
-// для IPv6
-function validateIPv6CIDR($cidr)
-{
-    // Упрощенная проверка IPv6
-    $parts = explode("/", $cidr);
-    $ip = $parts[0];
-    $netmask = isset($parts[1]) ? (int)$parts[1] : 128;
-
-    return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false 
-           && $netmask >= 0 && $netmask <= 128;
 }
 
 function normalizeIpAddress($value) {
@@ -1226,19 +1147,6 @@ function print_ou_set($db, $ou_name, $ou_value)
     echo "</select>\n";
 }
 
-function print_subnet_select($db, $subnet_name, $subnet_value)
-{
-    echo "<select id=\"" . htmlspecialchars($subnet_name) . "\" name=\"" . htmlspecialchars($subnet_name) . "\">\n";
-    $t_subnet = get_records_sql($db, "SELECT id, subnet FROM subnets ORDER BY ip_int_start");
-    print_select_item(WEB_select_item_all_ips, 0, $subnet_value);
-    if (!empty($t_subnet)) {
-        foreach ($t_subnet as $row) {
-            print_select_item(htmlspecialchars($row['subnet']), $row['id'], $subnet_value);
-        }
-    }
-    echo "</select>\n";
-}
-
 function print_acl_select($db, $acl_name, $acl_value)
 {
     echo "<select id=\"" . htmlspecialchars($acl_name) . "\" name=\"" . htmlspecialchars($acl_name) . "\">\n";
@@ -1380,21 +1288,6 @@ function print_submenu_url($display_name, $page, $current_page, $last)
         print "<b>$display_name</b>";
     } else {
         print "<a href='" . $new_url . "'> $display_name </a>";
-    }
-    if (!isset($last) or $last == 0) {
-        print '<span class="sep">|</span>';   /* hidden by eye.css, visible without styles */
-    }
-}
-
-function print_submenu_nw($display_name, $page, $current_page, $last)
-{
-    $url_arr = explode('?', $page);
-    $fpage = $url_arr[0];
-    $new_url = reencodeurl($page);
-    if ($fpage === $current_page) {
-        print "<b>$display_name</b>";
-    } else {
-        print '<a href="" onclick="window.open(\'' . $new_url . "', '_tab').focus(); return false;\">" . $display_name . "</a>";
     }
     if (!isset($last) or $last == 0) {
         print '<span class="sep">|</span>';   /* hidden by eye.css, visible without styles */
@@ -2091,16 +1984,6 @@ function print_snmp_priv_proto_select($qa_name, $qa_value = 'aes128')
     print "</select>\n";
 }
 
-function get_int($qa_value = 0)
-{
-    if (empty($qa_value)) {
-        $qa_value = 0;
-    } else {
-        $qa_value = (int)$qa_value * 1;
-    }
-    return $qa_value;
-}
-
 function print_qa_select($qa_name, $qa_value = 0, $disabled = 0)
 {
     $disabled_attr = $disabled ? 'disabled' : '';
@@ -2226,49 +2109,6 @@ function print_nagios_handler_select($db, $qa_name, $current = '')
     } else {
         echo "<input type=\"text\" name=\"" . htmlspecialchars($qa_name) . "\" value=\""
             . htmlspecialchars($current, ENT_QUOTES, 'UTF-8') . "\" size=\"10\" />\n";
-    }
-}
-
-function print_dhcp_acl($db, $qa_name)
-{
-    $dhcp_acl = get_records_sql($db,
-        "SELECT DISTINCT dhcp_acl FROM user_auth 
-         WHERE dhcp_acl IS NOT NULL AND dhcp_acl != '' AND deleted = 0"
-    );
-    
-    if (!empty($dhcp_acl)) {
-        echo "<select name=\"" . htmlspecialchars($qa_name) . "\">\n";
-        print_select_simple(WEB_select_item_no, '');
-        
-        foreach ($dhcp_acl as $acl) {
-            $value = htmlspecialchars($acl['dhcp_acl']);
-            print_select_simple($value, $value);
-        }
-        echo "</select>\n";
-    } else {
-        echo "<input type=\"text\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"\" size=\"10\" />\n";
-    }
-}
-    
-function print_dhcp_option_set($db, $qa_name, $disabled = 0)
-{
-    $disabled_attr = $disabled ? 'disabled' : '';
-    $dhcp_option_sets = get_records_sql($db,
-        "SELECT DISTINCT dhcp_option_set FROM user_auth 
-         WHERE dhcp_option_set IS NOT NULL AND dhcp_option_set != '' AND deleted = 0"
-    );
-    
-    if (!empty($dhcp_option_sets)) {
-        echo "<select name=\"" . htmlspecialchars($qa_name) . "\" {$disabled_attr}>\n";
-        print_select_simple(WEB_select_item_no, '');
-        
-        foreach ($dhcp_option_sets as $dhcp_option_set) {
-            $value = htmlspecialchars($dhcp_option_set['dhcp_option_set']);
-            print_select_simple($value, $value);
-        }
-        echo "</select>\n";
-    } else {
-        echo "<input type=\"text\" name=\"" . htmlspecialchars($qa_name) . "\" value=\"\" size=\"10\" />\n";
     }
 }
 
@@ -2484,14 +2324,6 @@ function print_action_select($action_name, $action_value)
     print "</select>\n";
 }
 
-function get_action($action_value)
-{
-    if ($action_value == 1) {
-        return "Разрешить";
-    }
-    return "Запретить";
-}
-
 function print_filter_select($db, $filter_name, $group_id)
 {   
     echo "<select id=\"" . htmlspecialchars($filter_name) . "\" name=\"" . htmlspecialchars($filter_name) . "\" class=\"js-select-single\">\n";
@@ -2568,54 +2400,6 @@ function print_login_select($db, $login_name, $current_login)
     
     foreach ($t_login as $row) {
         print_select_item(htmlspecialchars($row['login']), $row['id'], $current_login);
-    }
-    echo "</select>\n";
-}
-
-function print_auth_select($db, $login_name, $current_auth)
-{
-    echo "<select id=\"" . htmlspecialchars($login_name) . "\" name=\"" . htmlspecialchars($login_name) . "\" class=\"js-select-single\">\n";
-    
-    $params = [];
-    $sql = "SELECT U.login, U.description, A.ip, A.id 
-            FROM user_list AS U, user_auth AS A 
-            WHERE A.user_id = U.id 
-              AND A.deleted = 0 
-              AND (A.id NOT IN (SELECT device_ports.auth_id FROM device_ports) OR A.id = ?) 
-            ORDER BY U.login, U.description, A.ip";
-    
-    $params[] = (int)$current_auth;
-    $t_login = get_records_sql($db, $sql, $params);
-    
-    print_select_item('Empty', 0, $current_auth);
-    
-    foreach ($t_login as $row) {
-        $display = htmlspecialchars($row['login']) . "[" . htmlspecialchars($row['description']) . "] - " . htmlspecialchars($row['ip']);
-        print_select_item($display, $row['id'], $current_auth);
-    }
-    echo "</select>\n";
-}
-
-function print_auth_select_mac($db, $login_name, $current_auth)
-{
-    echo "<select id=\"" . htmlspecialchars($login_name) . "\" name=\"" . htmlspecialchars($login_name) . "\" class=\"js-select-single\">\n";
-    
-    $params = [];
-    $sql = "SELECT U.login, U.description, A.ip, A.mac, A.id 
-            FROM user_list AS U, user_auth AS A 
-            WHERE A.user_id = U.id 
-              AND A.deleted = 0 
-              AND (A.id NOT IN (SELECT device_ports.auth_id FROM device_ports) OR A.id = ?) 
-            ORDER BY U.login, U.description, A.ip";
-    
-    $params[] = (int)$current_auth;
-    $t_login = get_records_sql($db, $sql, $params);
-    
-    print_select_item('Empty', 0, $current_auth);
-    
-    foreach ($t_login as $row) {
-        $display = htmlspecialchars($row['login']) . "[" . htmlspecialchars($row['mac']) . "] - " . htmlspecialchars($row['ip']);
-        print_select_item($display, $row['id'], $current_auth);
     }
     echo "</select>\n";
 }
@@ -2721,63 +2505,6 @@ function print_vlan_select($db, $field_name, $vlan)
         // VLAN-ы обычно числовые, но на всякий случай экранируем
         $vlan_val = htmlspecialchars($row['vlan']);
         print_select_item($vlan_val, $vlan_val, $vlan);
-    }
-    echo "</select>\n";
-}
-
-function print_device_select_ip($db, $field_name, $device_ip)
-{
-    echo "<select id=\"" . htmlspecialchars($field_name) . "\" name=\"" . htmlspecialchars($field_name) . "\" class=\"js-select-single\">\n";
-    
-    $t_device = get_records_sql($db,
-        "SELECT D.device_name, D.ip 
-         FROM devices AS D 
-         WHERE D.deleted = 0 
-         ORDER BY D.device_name ASC"
-    );
-    
-    print_select_item(WEB_select_item_every, '', $device_ip);
-    
-    foreach ($t_device as $row) {
-        $display = htmlspecialchars($row['device_name']);
-        $value = htmlspecialchars($row['ip']);
-        print_select_item($display, $value, $device_ip);
-    }
-    echo "</select>\n";
-}
-
-function print_syslog_device_select($db, $field_name, $syslog_filter, $device_ip)
-{
-    // Валидация фильтра для предотвращения SQL-инъекций
-    $allowed_filters = [
-        'facility = 1',
-        'facility = 2',
-        'priority <= 3',
-        'message LIKE "%error%"',
-        'message LIKE "%warning%"',
-        '1=1' // для случая "все записи"
-    ];
-    
-    if (!in_array($syslog_filter, $allowed_filters)) {
-        $syslog_filter = '1=1';
-    }
-    
-    echo "<select id=\"" . htmlspecialchars($field_name) . "\" name=\"" . htmlspecialchars($field_name) . "\" class=\"js-select-single\">\n";
-    
-    $t_device = get_records_sql($db,
-        "SELECT R.ip, D.device_name 
-         FROM (SELECT DISTINCT ip FROM remote_syslog WHERE $syslog_filter) AS R 
-         LEFT JOIN (SELECT ip, device_name FROM devices WHERE deleted = 0) AS D ON R.ip = D.ip 
-         ORDER BY R.ip ASC"
-    );
-    
-    print_select_item(WEB_select_item_every, '', $device_ip);
-    
-    foreach ($t_device as $row) {
-        $display_name = !empty($row['device_name']) ? $row['device_name'] : $row['ip'];
-        $display = htmlspecialchars($display_name);
-        $value = htmlspecialchars($row['ip']);
-        print_select_item($display, $value, $device_ip);
     }
     echo "</select>\n";
 }
@@ -2993,40 +2720,6 @@ function get_auth_by_ip($db, $ip)
     return $auth["id"];
 }
 
-function get_user_by_ip($db, $ip)
-{
-    if (empty($ip)) {
-        return null;
-    }
-    
-    $auth = get_record_sql($db, 
-        "SELECT user_id FROM user_auth WHERE ip = ? AND deleted = 0", 
-        [$ip]
-    );
-    
-    if (empty($auth)) {
-        return null;
-    }
-    return $auth["user_id"];
-}
-
-function get_device_by_auth($db, $id)
-{
-    if (!isset($id)) {
-        return null;
-    }
-    
-    $f_dev = get_record_sql($db, 
-        "SELECT id FROM devices WHERE user_id = ? AND deleted = 0", 
-        [(int)$id]
-    );
-    
-    if (empty($f_dev)) {
-        return null;
-    }
-    return $f_dev['id'];
-}
-
 function print_auth_port($db, $port_id, $new_window = false)
 {
     $t_auth = get_records_sql($db,
@@ -3099,12 +2792,6 @@ function print_auth_simple($db, $auth_id)
     print get_auth_link($db, $auth_id, AUTH_DISPLAY_DESCR_ONLY);
 }
 
-
-function print_auth($db, $auth_id)
-{
-    print get_auth_link($db, $auth_id, AUTH_DISPLAY_DESCR_ONLY);
-}
-
 function print_auth_detail($db, $auth_id)
 {
     $auth = get_record($db, "user_auth", "id = ?", [(int)$auth_id]);
@@ -3141,21 +2828,6 @@ function print_auth_detail($db, $auth_id)
     $safe_auth_id = (int)$auth_id;
     
     echo "<a href=\"/admin/users/editauth.php?id={$safe_auth_id}\">{$display_name}</a><br>\n";
-}
-
-function get_auth_port_count($db, $port_id)
-{
-    $t_device = get_record_sql($db,
-        "SELECT COUNT(A.id) as cnt 
-         FROM user_auth AS A, connections AS C 
-         WHERE C.port_id = ? AND A.id = C.auth_id AND A.deleted = 0",
-        [(int)$port_id]
-    );
-    
-    if (empty($t_device)) { 
-        return 0; 
-    }
-    return (int)$t_device['cnt'];
 }
 
 function get_connection($db, $auth_id)
@@ -3332,13 +3004,6 @@ function GetNowTimeString()
 {
     $now = new DateTimeImmutable('now');
     $result = $now->format('Y-m-d H:i:s');
-    return $result;
-}
-
-function GetNowDayString()
-{
-    $now = new DateTimeImmutable('now');
-    $result = $now->format('Y-m-d');
     return $result;
 }
 
@@ -3832,26 +3497,6 @@ function get_auth_by_mac($db, $mac)
     return $result;
 }
 
-function get_auth_mac($db, $current_auth)
-{
-    if (!isset($current_auth) || $current_auth == 0) {
-        return null;
-    }
-    
-    $t_login = get_record_sql($db,
-        "SELECT U.login, A.mac 
-         FROM user_list AS U, user_auth AS A 
-         WHERE A.user_id = U.id AND A.id = ?",
-        [(int)$current_auth]
-    );
-    
-    // Исправлена опечатка: было $t_loing, стало $t_login
-    if (!empty($t_login) && isset($t_login['login'])) {
-        return $t_login['login'] . " [" . $t_login['mac'] . "]";
-    }
-    return '';
-}
-
 function add_auth_rule($db, $rule, $type, $user_id)
 {
     $user_id = (int)$user_id;
@@ -4101,58 +3746,6 @@ function print_year_select($year_name, $year)
         print_select_item($i, $i, $year);
     }
     print "</select>\n";
-}
-
-function print_date_select($dd, $mm, $yy)
-{
-    if ($dd >= 1) {
-        print "<b>День</b>\n";
-        print "<select id=\"day\" name=\"day\" >\n";
-        for ($i = 1; $i <= 31; $i++) {
-            print_select_item($i, $i, $dd);
-        }
-        print "</select>\n";
-    }
-
-    if ($mm >= 1) {
-        print "<b>Месяц</b>\n";
-        print "<select id=\"month\"  name=\"month\" >\n";
-        for ($i = 1; $i <= 12; $i++) {
-            $tmp_date = DateTimeImmutable::createFromFormat('U', strtotime("$i/01/$yy"));
-            $month_name = $tmp_date->format('F');
-            print_select_item($month_name, $i, $mm);
-        }
-        print "</select>\n";
-    }
-
-    print "<b>Год</b>\n";
-    print_year_select('year', $yy);
-}
-
-function print_date_select2($dd, $mm, $yy)
-{
-    if ($dd >= 1) {
-        print "<b>День</b>\n";
-        print "<select id=\"day2\" name=\"day2\" >\n";
-        for ($i = 1; $i <= 31; $i++) {
-            print_select_item($i, $i, $dd);
-        }
-        print "</select>\n";
-    }
-
-    if ($mm >= 1) {
-        print "<b>Месяц</b>\n";
-        print "<select id=\"month2\" name=\"month2\" >\n";
-        for ($i = 1; $i <= 12; $i++) {
-            $tmp_date = DateTimeImmutable::createFromFormat('U', strtotime("$i/01/$yy"));
-            $month_name = $tmp_date->format('F');
-            print_select_item($month_name, $i, $mm);
-        }
-        print "</select>\n";
-    }
-
-    print "<b>Год</b>\n";
-    print_year_select('year2', $yy);
 }
 
 function is_up($ip)
@@ -5087,22 +4680,6 @@ function int_between($value, $start, $end)
     return in_array($value, range($start, $end));
 }
 
-function is_gray_network($ip)
-{
-    if (empty($ip)) {
-        return 0;
-    }
-    $ip_aton = ip2long($ip);
-    $gray_nets = array('10.0.0.0/8', '192.168.0.0/16', '172.16.0.0/12', '100.64.0.0/10');
-    foreach ($gray_nets as &$net) {
-        $net_cidr = cidrToRange($net);
-        if (int_between($ip_aton, ip2long($net_cidr[0]), ip2long($net_cidr[1]))) {
-            return $net;
-        }
-    }
-    return 0;
-}
-
 function is_hotspot($db, $ip)
 {   
     if (empty($ip)) {
@@ -5457,5 +5034,3 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/zabbix_device.php");
 
 clean_dns_cache($db_link);
 //clean_unreferensed_rules($db_link);
-
-$config["debug"] = 1;

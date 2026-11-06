@@ -2,7 +2,7 @@
 if (!defined("CONFIG")) die("Not defined");
 
 // Получаем id из GET/POST, если не задан — из сессии, если нет — из $default_id
-$id = getParam('id', $page_url, $default_id ?? null);
+$id = getParam('id', $page_url, $default_id ?? null, FILTER_VALIDATE_INT);
 
 // Если всё ещё пусто — редирект
 if (empty($id)) {

@@ -112,7 +112,7 @@ $t_device = get_records_sql($db_link, $d_sql);
 if (!empty($t_device)) {
     foreach ($t_device as $row) {
         $name = $row['ip'];
-        if (!empty($row['dns_name']) and isset($row['dns'])) { $name = $row['dns_name']; }
+        if (!empty($row['dns_name'])) { $name = $row['dns_name']; }
         print "<tr>";
         print "<td class=\"data\">" . expand_mac($db_link,$row['mac']) . "</td>\n";
         print "<td class=\"data\">";

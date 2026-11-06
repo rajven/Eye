@@ -577,62 +577,6 @@ function is_assoc($array) {
 }
 
 /**
- * Нормализует значение поля: преобразует NULL в 0 для числовых полей или в пустую строку для строковых
- * 
- * @param string $key Имя поля
- * @param mixed $value Значение поля
- * @return mixed Нормализованное значение
- */
-function normalize_field_value($key, $value) {
-    if ($value === null or $value === 'NULL') {
-	if (isset($numericFieldsSet[$key])) {
-            return 0;
-        } else {
-            return '';
-        }
-    }
-    return $value;
-}
-
-/**
- * Нормализует всю запись (ассоциативный массив)
- * 
- * @param array $record Запись из БД
- * @return array Нормализованная запись
- */
-function normalize_record($record) {
-    if (!is_array($record) || empty($record)) {
-        return $record;
-    }
-    
-    $normalized = [];
-    foreach ($record as $key => $value) {
-        $normalized[$key] = normalize_field_value($key, $value);
-    }
-    
-    return $normalized;
-}
-
-/**
- * Нормализует массив записей
- * 
- * @param array $records Массив записей из БД
- * @return array Нормализованные записи
- */
-function normalize_records($records) {
-    if (!is_array($records) || empty($records)) {
-        return $records;
-    }
-    
-    $normalized = [];
-    foreach ($records as $index => $record) {
-        $normalized[$index] = normalize_record($record);
-    }
-    
-    return $normalized;
-}
-
-/**
  * Выполняет SQL-запрос с поддержкой параметров.
  * 
  * @param PDO $db
@@ -803,7 +747,6 @@ function get_records_sql($db, $sql, $params = [])
         $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (!empty($records)) {
-//            return normalize_records($records);
             return $records;
         }
 
@@ -839,12 +782,6 @@ function get_id_record($db, $table, $filter, $params=[]) {
     
     $record = get_record($db, $table, $filter, $params);
     return !empty($record['id']) ? $record['id'] : 0;
-}
-
-function set_changed($db, $id)
-{
-    $auth['changed'] = 1;
-    update_record($db, "user_auth", "id=?", $auth, [$id]);
 }
 
 function allow_update($db, $table, $action = 'update', $field = '')
@@ -1625,11 +1562,6 @@ update_records($db, "user_auth", "ou_id = ?", ['ou_id' => $dhcp_ou ], [$id]);
 delete_records($db, "auth_rules", "ou_id = ?", [$id]);
 // Удаляем сам OU
 delete_record($db, "ou", "id = ?", [$id]);
-}
-
-function record_to_txt($db, $table, $id) {
-    $record = get_record_sql($db, 'SELECT * FROM ' . $table . ' WHERE id =?', [ $id ]);
-    return hash_to_text($record);
 }
 
 if (!defined("DB_TYPE")) { define("DB_TYPE","mysql"); }
