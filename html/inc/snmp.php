@@ -123,6 +123,56 @@ function get_ports_sfp_status($vendor_id, $ip, $snmp, $modules_oids = NULL, $ifn
             return $result;
         }
 
+        // ---------- mikrotik ----------
+        if ($vendor_id == 9) {
+            $pres_map = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".13"); // row => 0/1
+            if (empty($pres_map)) {
+                return [];
+            }
+            $vnd_map  = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".11");
+            $pno_map  = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".14");
+            $sn_map   = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".12");
+            $temp_map = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".6");
+            $volt_map = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".7");
+            $bias_map = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".8");
+            $tx_map   = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".9");
+            $rx_map   = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".10");
+
+            foreach ($pres_map as $row => $present) {
+                if (empty($present)) {
+                    continue;
+                }
+                $status = '';
+                $vnd = $vnd_map[$row] ?? '';
+                $pno = $pno_map[$row] ?? '';
+                $sn  = $sn_map[$row] ?? '';
+                if ($vnd !== '' or $pno !== '' or $sn !== '') {
+                    $status .= 'Vendor: ' . $vnd . ' ' . $pno . ' Serial: ' . $sn . '<br>';
+                }
+                $temp = $temp_map[$row] ?? '';
+                $volt = $volt_map[$row] ?? '';
+                $bias = $bias_map[$row] ?? '';
+                if (is_numeric($temp) && abs(floatval($temp)) > 0.1) {
+                    $status .= 'Temp: ' . $temp . " C";
+                }
+                if (is_numeric($volt) && abs(floatval($volt)) > 1000) {
+                    $status .= ' Volt: ' . round($volt / 1000, 2) . ' V';
+                }
+                if (is_numeric($bias) && abs(floatval($bias)) > 0) {
+                    $status .= ' Circut: ' . $bias . ' mA';
+                }
+                foreach ([ 'tx' => $tx_map[$row] ?? '', 'rx' => $rx_map[$row] ?? '' ] as $dir => $raw) {
+                    if (is_numeric($raw) && abs(floatval($raw) / 1000) > 0.1) {
+                        $status .= ' ' . strtoupper($dir) . ': ' . round($raw / 1000, 2) . ' dBm';
+                    }
+                }
+                if ($status !== '') {
+                    $result[$row] = $status . '<br>';
+                }
+            }
+            return $result;
+        }
+
         // для Huawei и Cisco нужны описания модулей и имена интерфейсов
         if (empty($modules_oids) or empty($ifname_map)) {
             return [];
