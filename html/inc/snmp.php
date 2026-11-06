@@ -27,10 +27,10 @@ function walk_snmp_map($ip, $snmp, $oid, $labels = 1)
     return $result;
 }
 
-// Bulk-версия get_sfp_status(): один прогон walk'ов на все порты сразу.
-// Возвращает [snmp_index => status_html] — те же строки, что и по-портовая версия.
-// $modules_oids  — пред-walked CISCO_MODULES (нужен для Huawei=3 и Cisco=16)
-// $ifname_map    — карта ifIndex=>ifname из get_snmp_interfaces() (нужна для Huawei=3 и Cisco=16)
+// Bulk version of get_sfp_status(): one walk per table instead of one GET per port.
+// Returns [snmp_index => status_html] with the same strings as the per-port version.
+// $modules_oids  - pre-walked CISCO_MODULES (required for Huawei=3 and Cisco=16)
+// $ifname_map    - ifIndex => ifname map from get_snmp_interfaces() (required for Huawei=3 and Cisco=16)
 function get_ports_sfp_status($vendor_id, $ip, $snmp, $modules_oids = NULL, $ifname_map = NULL)
 {
     if (!isset($vendor_id) || !isset($ip)) {
@@ -163,7 +163,7 @@ function get_ports_sfp_status($vendor_id, $ip, $snmp, $modules_oids = NULL, $ifn
                 }
                 foreach ([ 'tx' => $tx_map[$row] ?? '', 'rx' => $rx_map[$row] ?? '' ] as $dir => $raw) {
                     if (is_numeric($raw) && abs(floatval($raw) / 1000) > 0.1) {
-                        $status .= ' ' . strtoupper($dir) . ': ' . round($raw / 1000, 2) . ' dBm';
+                        $status .= ' ' . ucfirst($dir) . ': ' . round($raw / 1000, 2) . ' dBm';
                     }
                 }
                 if ($status !== '') {
@@ -173,7 +173,7 @@ function get_ports_sfp_status($vendor_id, $ip, $snmp, $modules_oids = NULL, $ifn
             return $result;
         }
 
-        // для Huawei и Cisco нужны описания модулей и имена интерфейсов
+        // Huawei and Cisco need module descriptions and interface names
         if (empty($modules_oids) or empty($ifname_map)) {
             return [];
         }
@@ -237,8 +237,10 @@ function get_ports_sfp_status($vendor_id, $ip, $snmp, $modules_oids = NULL, $ifn
             $bias_map   = walk_snmp_map($ip, $snmp, HUAWEI_SFP_BIASCURRENT);
             $opttx_map  = walk_snmp_map($ip, $snmp, HUAWEI_SFP_OPTTX);
             $optrx_map  = walk_snmp_map($ip, $snmp, HUAWEI_SFP_OPTRX);
-            $tx_map     = walk_snmp_map($ip, $snmp, HUAWEI_SFP_TX);          // fallback
-            $rx_map     = walk_snmp_map($ip, $snmp, HUAWEI_SFP_RX);          // fallback
+
+            // HUAWEI_SFP_TX/RX are not read: the fallback behind them in get_sfp_status()
+            // is dead code ("isset()" is always true after parse_snmp_value()), so the
+            // original never used these two OIDs
 
             foreach ($ifname_map as $ifindex => $port_name) {
                 $port_name = preg_quote(trim((string)$port_name), '/');
@@ -255,13 +257,7 @@ function get_ports_sfp_status($vendor_id, $ip, $snmp, $modules_oids = NULL, $ifn
                         $sfp_vendor = $vendor_map[$module_id];
                     }
                     $tx = $opttx_map[$module_id] ?? '';
-                    if (empty($tx)) {
-                        $tx = $tx_map[$module_id] ?? '';   // fallback, в оригинале был мёртв
-                    }
                     $rx = $optrx_map[$module_id] ?? '';
-                    if (empty($rx)) {
-                        $rx = $rx_map[$module_id] ?? '';
-                    }
 
                     $status = '';
                     if (!empty($sfp_vendor)) {
@@ -281,14 +277,14 @@ function get_ports_sfp_status($vendor_id, $ip, $snmp, $modules_oids = NULL, $ifn
                         list($dbm, $pattern) = array_pad(explode('.', $raw), 2, '');
                         $dbm = round(floatval(trim($dbm)) / 100, 2);
                         if (abs($dbm) > 0.1) {
-                            $status .= ' ' . strtoupper($dir) . ': ' . $dbm . ' dBm';
+                            $status .= ' ' . ucfirst($dir) . ': ' . $dbm . ' dBm';
                         }
                     }
                     if (!empty($status)) {
                         $status = preg_replace('/"/', '', $status);
                         $result[$ifindex] = $status . '<br>';
                     }
-                    break; // первый подходящий модуль, как в оригинале
+                    break; // only the first matching module is used, as in the original
                 }
             }
             return $result;
@@ -299,7 +295,7 @@ function get_ports_sfp_status($vendor_id, $ip, $snmp, $modules_oids = NULL, $ifn
     return [];
 }
 
-// то же, что get_cisco_sensors(), но из пред-walked карт вместо 2 GET
+// same as get_cisco_sensors(), but from the pre-walked maps
 function cisco_sensor_value($mkey, $sens_map, $prec_map)
 {
     $index = get_last_digit($mkey);

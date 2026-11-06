@@ -6,6 +6,11 @@
   hundred thousand addresses costs seconds per page, with it a fraction of a second
 - changed: the page of the monitoring no longer asks the arp of its page of devices by a separate query: the column comes with
   the list
+- bugfix: the bulk walk of the sfp over a huawei module returned another line than the port by port query it replaced: the power
+  of a channel was named 'TX:' and 'RX:' instead of 'Tx:' and 'Rx:', and a reading which came back empty fell down to the legacy
+  oid, which the old code never reached at all because its check was dead - the bulk answers with the same text now, the branches
+  of the eltex, the snr and the cisco were compared sign by sign and did not change, the new branch of the mikrotik took the
+  common shape of the line as well
 
 # Changelog 3-2-6 - release
 - bugfix: a searchable dropdown made a row of the list for every option of the select, over and over again on every
