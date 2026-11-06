@@ -1647,7 +1647,7 @@ function get_ports_poe_detail($vendor_id, $ip, $snmp)
                             $p_volt = round($p_volt / 100, 2);
                             break;
                     }
-                    if ($p_volt > 0 and $result[$port]['power'] > 0) {
+                    if ($p_volt > 0 and ($result[$port]['power'] ?? 0) > 0) {
                         $result[$port]['volt'] = $p_volt;
                         $result[$port]['volt_display'] = ' V: ' . $p_volt . " V";
                     }
@@ -1672,7 +1672,7 @@ function get_ports_poe_detail($vendor_id, $ip, $snmp)
                     $result[$port]['class_display'] = '';
                     switch ($vendor_id) {
                         case 69:
-                            if ($p_class > 0 and $result[$port]['power'] > 0) {
+                            if ($p_class > 0 and ($result[$port]['power'] ?? 0) > 0) {
                                 if ($p_class == 7) {
                                     $p_class = 'class-not-defined';
                                 }
@@ -1681,7 +1681,7 @@ function get_ports_poe_detail($vendor_id, $ip, $snmp)
                             }
                             break;
                         default:
-                            if ($p_class > 0 and $result[$port]['power'] > 0) {
+                            if ($p_class > 0 and ($result[$port]['power'] ?? 0) > 0) {
                                 $result[$port]['class_display'] = 'Class: ' . ($p_class - 1);
                                 $result[$port]['class'] = $p_class - 1;
                             }

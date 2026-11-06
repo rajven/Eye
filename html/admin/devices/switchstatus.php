@@ -131,6 +131,13 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 $modules_oids = walk_snmp($device["ip"], $snmp, CISCO_MODULES);
                 $ifname_map = get_snmp_interfaces($device['ip'], $snmp);
                 $sfp_map = get_ports_sfp_status($device['vendor_id'], $device['ip'], $snmp, $modules_oids, $ifname_map);
+                $ports_state = get_ports_state_detail($device['ip'], $snmp);
+                $poe_states = [];
+                $poe_details = [];
+                if ($device_model['poe_out']) {
+                    $poe_states = get_ports_poe_state($device['vendor_id'], $device['ip'], $snmp);
+                    $poe_details = get_ports_poe_detail($device['vendor_id'], $device['ip'], $snmp);
+                }
                 $vlan_list = get_switch_vlans($device['vendor_id'], $device['ip'], $snmp);
                 //if port number 1 not exists - try detect by snmp interface index
                 if (isset($vlan_list['1'])) {
@@ -193,19 +200,25 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             }
 
             if ($snmp_ok) {
-                $port_state_detail = get_port_state_detail($row['snmp_index'], $device['ip'], $snmp);
-                list($poper, $padmin, $pspeed, $perrors) = explode(';', $port_state_detail);
+                $ps = $ports_state[$row['snmp_index']] ?? NULL;
+                $poper = $ps['status'] ?? 0;
+                $padmin = $ps['admin_status'] ?? 0;
+                $pspeed = $ps['speed'] ?? 0;
+                $perrors = $ps['errors'] ?? 0;
+                if ($poper != 1) {
+                    $pspeed = 0;
+                    }
                 if ($poper == 1) {
                     $cl = "up";
-                }
+                    }
                 if ($poper >= 2) {
                     if ($padmin >= 2) {
                         $cl = "shutdown";
-                    } else {
+                        } else {
                         $cl = "down";
+                        }
                     }
                 }
-            }
 
             print "<td class='" . $cl . "' style='padding:0'><input type=checkbox name=d_port_index[] value=" . $row['snmp_index'] . " ></td>\n";
 
@@ -223,26 +236,31 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             print_td_yes($row['uplink'],FALSE,$cl);
             print_td_yes($row['monitoring'],FALSE,$cl);
             print_td_yes($row['skip'],FALSE,$cl);
-            $poe_info = "";
 
-            $ifname = $row['ifname'];
+            $poe_info = "";
+            $ifname = !empty($ifname_map[$row['snmp_index']]) ? $ifname_map[$row['snmp_index']] : $row['ifname'];
 
             if ($snmp_ok) {
                 //poe information
+                $poe_status = NULL;
                 if ($device_model['poe_out']) {
-                    $poe_status = get_port_poe_state($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $snmp);
-                    if (isset($poe_status)) {
-                        if ($poe_status == 1) {
-                            $port_poe_detail = get_port_poe_detail($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $snmp);
-                            if (empty($port_poe_detail)) {
-                                $poe_info = 'POE:on';
-                            } else {
-                                $poe_info = $port_poe_detail;
-                            }
+                    // TP-Link индексирует PoE по номеру порта, остальные - по snmp_index
+                    $poe_key = ($device['vendor_id'] == 69) ? $row['port'] : $row['snmp_index'];
+                    $poe_status = $poe_states[$poe_key] ?? NULL;
+                    if ($poe_status == 1) {
+                        $pd = $poe_details[$poe_key] ?? [];
+                        $port_poe_detail = trim(($pd['power_display'] ?? '')
+                            . ($pd['current_display'] ?? '')
+                            . ($pd['volt_display'] ?? '')
+                            . ($pd['class_display'] ?? ''));
+                        if (empty($port_poe_detail)) {
+                            $poe_info = 'POE:on';
+                        } else {
+                            $poe_info = $port_poe_detail;
                         }
-                        if ($poe_status == 2) {
-                            $poe_info = "POE:Off";
-                        }
+                    }
+                    if ($poe_status == 2) {
+                        $poe_info = "POE:Off";
                     }
                 }
 
@@ -309,13 +327,11 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                     }
                 }
                 //interface name
-                if (!isset($row['ifname']) or $row['ifname'] !== $ifname) {
-                    $new_info['ifname'] = $ifname;
-                }
+                $new_info['ifname'] = $ifname;
             }
 
             //fix port information
-            if ($snmp_ok) {
+            if ($snmp_ok && !empty($new_info)) {
                 update_record($db_link, "device_ports", "id=?", $new_info, [  $row['id'] ]);
             }
 
@@ -381,7 +397,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
 
             print "<td class='" . $cl . "' ><button onclick=\"" . esc(open_window_url('portmactable.php?id=' . (int)$row['id'])) . " return false;\">" . esc($row['last_mac_count']) . "</button></td>\n";
 
-            $sfp_status = $sfp_map[$row['snmp_index']];
+            $sfp_status = $sfp_map[$row['snmp_index']] ?? '';
             print "<td class='" . $cl . "'>" . $sfp_status . " " . $poe_info . "</td>\n";
             if ($device_model['poe_out']) {
                 if (isset($poe_status) and !$row['skip']) {
