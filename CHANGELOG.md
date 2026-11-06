@@ -1,3 +1,12 @@
+# Changelog 3-2-7 - release
+- added: the column of the last arp on the page of the monitoring can be the key of the sort now: the list binds a device to
+  its address by ip in the query itself, so the order goes over the whole base and not over one page of it, records without an
+  arp stay at the end in both directions, and the name of the device keeps the pages steady
+- added: an index over the ip of an address record (ip, deleted, arp_found), the update patch 3-2-7 - without it the sort of a
+  hundred thousand addresses costs seconds per page, with it a fraction of a second
+- changed: the page of the monitoring no longer asks the arp of its page of devices by a separate query: the column comes with
+  the list
+
 # Changelog 3-2-6 - release
 - bugfix: a searchable dropdown made a row of the list for every option of the select, over and over again on every
   sign of the search: on a site with a hundred thousand subscribers the tab of a chromium browser stopped answering for

@@ -24,6 +24,20 @@ if ($f_devtype_id <0) { $type_filter = ''; } else { $type_filter = " and devices
 
 if ($f_building_id > 0) { $building_filter = " and devices.building_id=?"; $params[]=$f_building_id; } else { $building_filter=''; }
 
+// the last time the arp of the address of a device was seen: the address lives in user_auth,
+// the device in devices, and they are bound by their ip as they are in the list of the passive
+// equipment. the values of the addresses are folded by ip first, so a device can not appear in
+// the list twice, and the freshest arp of the address wins
+$devices_arp_join = ' LEFT JOIN (SELECT ip, MAX(arp_found) AS arp_found FROM user_auth '
+    . 'WHERE deleted = 0 GROUP BY ip) arp ON arp.ip = devices.ip';
+
+// the sort by this column goes over the join, empty arp stays at the end in both directions and
+// the name of the device keeps the pages of the sort steady
+$devices_order = "$sort_table.$sort_field $order";
+if ($sort_field == 'arp_found') {
+    $devices_order = 'arp.arp_found IS NULL, arp.arp_found ' . $order . ', devices.device_name';
+}
+
 // the monitoring state of the device is the state of its host in the monitoring system
 $enabled_filter='';
 if ($enabled>0) {
@@ -103,17 +117,18 @@ print_navigation($page_url,$page,$displayed,$count_records,$total);
 		<td align=Center><?php print $sort_url . "&sort=login&order=$new_order>" . WEB_cell_login . "</a>"; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=monitoring&order=$new_order>" . WEB_cell_monitoring; ?></td>
 		<td align=Center><?php print $sort_url . "&sort=link_check&order=$new_order>" . WEB_cell_link; ?></td>
-		<td align=Center><?php print WEB_cell_arp_found; ?></td>
+		<td align=Center><?php print $sort_url . "&sort=arp_found&order=$new_order>" . WEB_cell_arp_found . "</a>"; ?></td>
 		<td align=Center><?php print WEB_cell_wikiname; ?></td>
 		<td align=Center><?php print WEB_zabbix_macros_device . '&nbsp' . WEB_zabbix_tags_device; ?></td>
 	</tr>
 <?php
 
-$sSQL = "SELECT devices.*, user_list.login, device_models.model_name FROM devices
+$sSQL = "SELECT devices.*, user_list.login, device_models.model_name, arp.arp_found FROM devices
   LEFT JOIN user_list ON user_list.id = devices.user_id
   LEFT JOIN device_models ON device_models.id = devices.device_model_id
+  $devices_arp_join
   WHERE devices.deleted = 0 $device_list_filter
-ORDER BY $sort_table.$sort_field $order LIMIT ? OFFSET ?";
+ORDER BY $devices_order LIMIT ? OFFSET ?";
 $params[]=$displayed;
 $params[]=$start;
 
@@ -121,29 +136,6 @@ $devices_list = get_records_sql($db_link,$sSQL, $params);
 
 // number of the macros and of the tags which every device of the page carries
 $counts = zabbix_device_binding_counts($db_link, array_column($devices_list, 'id'));
-
-// the last time the arp of the address of every device of the page was seen; the addresses of the
-// page are asked at once, so a row of the table does not make a query of its own. the device and
-// its address are matched by the ip as they are in the list of the subscriber equipment
-$arp_seen = array();
-$ips = array();
-foreach ($devices_list as $row) {
-    if (!empty($row['ip'])) {
-        $ips[$row['ip']] = true;
-    }
-}
-
-if ($ips) {
-    $keys = array_keys($ips);
-    $sql_arp = 'SELECT ip, arp_found FROM user_auth WHERE deleted = 0 AND ip IN ('
-        . implode(',', array_fill(0, count($keys), '?')) . ') ORDER BY arp_found DESC';
-    foreach (get_records_sql($db_link, $sql_arp, $keys) as $row) {
-        // the address is unique over the live records, the first of them is the freshest one
-        if (!isset($arp_seen[$row['ip']])) {
-            $arp_seen[$row['ip']] = $row['arp_found'];
-        }
-    }
-}
 
 foreach ($devices_list as $device) {
     print "<tr align=center>\n";
@@ -189,7 +181,7 @@ foreach ($devices_list as $device) {
 
     // the reaction to an event is edited in the form of the device and by the mass operation
     // below, the column of the table shows the last arp of the address of this device
-    $seen = $arp_seen[$device['ip']] ?? '';
+    $seen = $device['arp_found'] ?? '';
     if (is_empty_datetime($seen)) { $seen = ''; }
     if ($seen === '') {
         print "<td class=\"$cl\">-</td>\n";

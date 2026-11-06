@@ -1,0 +1,1 @@
+ALTER TABLE `user_auth` ADD KEY `ip` (`ip`, `deleted`, `arp_found`);

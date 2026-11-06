@@ -1,0 +1,1 @@
+CREATE INDEX idx_user_auth_ip ON user_auth USING BTREE (ip, deleted, arp_found);
