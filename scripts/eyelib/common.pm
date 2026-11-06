@@ -1301,7 +1301,7 @@ sub resurrection_auth {
     my $ip      = $ip_record->{ip}      // '';
     my $mac     = $ip_record->{mac}     // '';
     my $action  = $ip_record->{type}    // '';
-    my $hostname= $ip_record->{hostname_utf8} // '';
+    my $hostname= $ip_record->{hostname_utf8} // $ip_record->{hostname} // '';
     my $client_id = $ip_record->{client_id} // '';
 
     return 0 if !$ip || !$mac;

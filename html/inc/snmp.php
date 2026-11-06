@@ -24,7 +24,7 @@ function get_ifmib_index_table($ip, $snmp)
         //fdb_index => snmp_index
         $index_map_table = walk_snmp($ip, $snmp, IFMIB_IFINDEX_MAP);
         //get map snmp interfaces to fdb table
-        if (isset($index_map_table) and count($index_map_table) > 0) {
+        if (!empty($index_map_table)) {
             foreach ($index_map_table as $key => $value) {
                 $key = trim($key);
                 $value = intval(trim(str_replace('INTEGER:', '', $value)));
@@ -41,7 +41,7 @@ function get_ifmib_index_table($ip, $snmp)
     if (empty($ifmib_map)) {
         //ifindex
         $index_table = walk_snmp($ip, $snmp, IFMIB_IFINDEX);
-        if (isset($index_table) and count($index_table) > 0) {
+        if (!empty($index_table)) {
             foreach ($index_table as $key => $value) {
                 $key = trim($key);
                 $value = intval(trim(str_replace('INTEGER:', '', $value)));

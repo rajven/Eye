@@ -7,7 +7,7 @@ $port_id = $id;
 $sSQL = "SELECT DP.device_id, DP.port, DP.snmp_index, D.device_name, D.ip, D.vendor_id FROM device_ports AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=?";
 $port_info = get_record_sql($db_link, $sSQL, [ $port_id ]);
 if (empty($port_info)) {
-    header("Location: /admin/devices/editdevice.php?id=".$device_id);
+    header("Location: /admin/devices/index.php");
     exit;
 }
 

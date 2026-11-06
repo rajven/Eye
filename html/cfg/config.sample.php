@@ -37,4 +37,9 @@ define("SESSION_LIFETIME","86400");
 #is ENCRYPTION_KEY above. changing ENCRYPTION_KEY invalidates every api key of the
 #installation, each customer then needs a new key
 
+#verify the ssl certificate of the zabbix server. the default false lets a self-signed
+#certificate work; set true when the certificate is signed or its CA is imported into
+#the system bundle of the server
+define("ZABBIX_SSL_VERIFY", false);
+
 ?>

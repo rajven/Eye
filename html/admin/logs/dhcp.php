@@ -100,7 +100,7 @@ foreach ($userlog as $row) {
 	} else {
 	print "<td class=\"data\">" . esc($row['ip']) . "</td>\n"; 
 	}
-	print "<td class=\"data\">" . $row['dhcp_hostname'] . "</td>\n"; 
+	print "<td class=\"data\">" . esc($row['dhcp_hostname']) . "</td>\n"; 
     print "</tr>\n";
     }
 print "</table>\n";

@@ -407,16 +407,7 @@ function validate_session($db) {
 }
 
 function get_client_ip() {
-    $ip = '127.0.0.1';
-    foreach (['HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $key) {
-        if (!empty($_SERVER[$key])) {
-            $ip = trim(current(explode(',', $_SERVER[$key])));
-            if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                break;
-            }
-        }
-    }
-    return $ip;
+    return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
 }
 
 // A key of a customer is a secret which nobody needs to read back: the database keeps a hash

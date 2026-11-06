@@ -810,14 +810,9 @@ function allow_update($db, $table, $action = 'update', $field = '')
     $currentIp = $currentIp ?: '127.0.0.1';
 
     // Получаем текущий логин
-    $currentLogin = null;
-    if (!empty($_SESSION['login'])) {
-        $currentLogin = $_SESSION['login'];
-    }
-    if (!$currentLogin) {
-        $currentLogin = getParam('login', null, null) ?: getParam('api_login', null, null);
-    }
-    $currentLogin = htmlspecialchars($currentLogin ?: 'http', ENT_QUOTES, 'UTF-8');
+    $currentLogin = !empty($_SESSION['login']) ? $_SESSION['login'] : null;
+    //$currentLogin = htmlspecialchars($currentLogin ?: 'http', ENT_QUOTES, 'UTF-8');
+    $currentLogin = htmlspecialchars($currentLogin ?: null, ENT_QUOTES, 'UTF-8');
 
     // Получаем user_id
     $user_id = $_SESSION['user_id'] ?? null;

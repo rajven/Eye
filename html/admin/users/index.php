@@ -94,7 +94,7 @@ function blockForm(formId) {
     <span><?php echo WEB_rows_at_page; ?></span>
     <?php print_row_at_pages('rows', $displayed); ?>
     <label for="search_str" style="margin: 0;"><?php echo WEB_ips_search; ?>:</label>
-    <input type="text" id="search_str" name="search_str" value="<?php echo $f_search_str; ?>" style="margin: 0;">
+    <input type="text" id="search_str" name="search_str" value="<?php echo esc($f_search_str); ?>" style="margin: 0;">
     <input id="btn_filter" name="btn_filter" type="submit" value="<?php echo WEB_btn_show; ?>" style="margin: 0;">
   </fieldset>
   <fieldset>

@@ -357,14 +357,7 @@ function is_empty_datetime($datetime) {
 
 function get_user_ip()
 {
-    $auth_ip = getenv("HTTP_CLIENT_IP");
-    if (empty($auth_ip)) {
-        $auth_ip = getenv("REMOTE_ADDR");
-        if (empty($auth_ip)) {
-                $auth_ip = $_SERVER['REMOTE_ADDR'];
-        }
-    }
-    return $auth_ip;
+    return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
 }
 
 /**
@@ -4095,8 +4088,8 @@ function expand_log_str($db, $msg)
         return '';
     }
     
-    $result = $msg;
-
+    $result = htmlspecialchars($msg, ENT_QUOTES, 'UTF-8');
+    
     // === Замена auth_id ===
     $auth_pattern = '/(auth_id:|auth|auth id:|auth id)\s+(\d+)/i';
     $result = preg_replace_callback($auth_pattern, function($matches) {

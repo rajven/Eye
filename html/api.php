@@ -101,7 +101,7 @@ function api_hide_columns($table, $row)
         // the hash is a proof too: with the pepper of the config it can be cracked offline,
         // so no answer of the api carries it
         'customers' => ['password', 'api_key', 'api_key_hash'],
-        'devices'   => ['password', 'snmp3_user_ro_password', 'snmp3_user_rw_password', 'community', 'rw_community'],
+        'devices'   => ['password', 'login', 'snmp3_user_ro_password', 'snmp3_user_rw_password', 'community', 'rw_community'],
     ];
 
     if (empty($row) || !is_array($row) || empty($hidden[$table])) {

@@ -105,16 +105,16 @@ $userlog = get_records_sql($db_link, $sSQL, $dataParams);
 foreach ($userlog as $row) {
     print "<tr align=center>\n";
     print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
-    print "<td class=\"data\">" . $row['customer'] . "</td>\n";
+    print "<td class=\"data\">" . esc($row['customer']) . "</td>\n";
     $msg_level = 'INFO';
     if ($row['level'] == L_ERROR) { $msg_level='ERROR'; }
     if ($row['level'] == L_WARNING) { $msg_level='WARNING'; }
     if ($row['level'] == L_DEBUG) { $msg_level='DEBUG'; }
     if ($row['level'] == L_VERBOSE) { $msg_level='VERBOSE'; }
-    print "<td class=\"data\">" . $row['ip'] . "</td>\n";
+    print "<td class=\"data\">" . esc($row['ip']) . "</td>\n";
     print "<td class=\"data\">" . $msg_level . "</td>\n";
     $print_msg = expand_log_str($db_link, $row['message']);
-    print "<td class=\"data\" align=left>" . $print_msg . "</td>\n";
+    print "<td class=\"data\" align=left>" . esc($print_msg) . "</td>\n";
     print "</tr>\n";
 }
 print "</table>\n";
