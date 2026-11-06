@@ -114,7 +114,7 @@ foreach ($userlog as $row) {
     print "<td class=\"data\">" . esc($row['ip']) . "</td>\n";
     print "<td class=\"data\">" . $msg_level . "</td>\n";
     $print_msg = expand_log_str($db_link, $row['message']);
-    print "<td class=\"data\" align=left>" . esc($print_msg) . "</td>\n";
+    print "<td class=\"data\" align=left>" . $print_msg . "</td>\n";
     print "</tr>\n";
 }
 print "</table>\n";
