@@ -81,6 +81,12 @@ define("SNR_SFP_BIAS",".1.3.6.1.4.1.57206.7.100.30.1.1.12");
 define("SNR_SFP_RX",".1.3.6.1.4.1.57206.7.100.30.1.1.17");
 define("SNR_SFP_TX",".1.3.6.1.4.1.57206.7.100.30.1.1.22");
 
+//MIKROTIK SFP (mtxrOptical, mtXRouterOs 19)
+// MIKROTIK_SFP.{col}.{row}: 2=name, 3=rx_loss, 4=tx_fault, 5=wavelength(nm/100),
+// 6=temp(C), 7=volt(V/1000), 8=bias(mA), 9=tx(dBm/1000), 10=rx(dBm/1000),
+// 11=vendor, 12=serial, 13=module_present, 14=part_number
+define("MIKROTIK_SFP", ".1.3.6.1.4.1.14988.1.1.19.1.1");
+
 //POE Default mib
 //POE class
 define("PETH_PSE_PORT_POE_CLASS",".1.3.6.1.2.1.105.1.1.1.10.1");

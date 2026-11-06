@@ -71,7 +71,7 @@ if (!empty($action_get))  { $action = 'get_' . $action_get; }
 if (!empty($action_send)) { $action = 'send_' . $action_send; }
 
 // Дополнительные параметры для send_dhcp
-$dhcp_hostname = getParam('hostname', null, '');
+$dhcp_hostname = getParam('hostname', null, null) ?? getParam('dhcp_hostname', null, '');
 $dhcp_action   = getParam('action', null, 1, FILTER_VALIDATE_INT);
 
 // === Список разрешённых таблиц ===
@@ -85,7 +85,6 @@ $allowed_tables = [
     'queue_list',
     'group_list',
     'subnets',
-    'config',
     'user_auth',
     'user_list',
     'vendors',
@@ -102,7 +101,7 @@ function api_hide_columns($table, $row)
         // the hash is a proof too: with the pepper of the config it can be cracked offline,
         // so no answer of the api carries it
         'customers' => ['password', 'api_key', 'api_key_hash'],
-        'devices'   => ['password', 'snmp3_user_ro_password', 'snmp3_user_rw_password'],
+        'devices'   => ['password', 'login', 'snmp3_user_ro_password', 'snmp3_user_rw_password', 'community', 'rw_community'],
     ];
 
     if (empty($row) || !is_array($row) || empty($hidden[$table])) {
@@ -530,7 +529,7 @@ if (!empty($action)) {
 
             if (is_our_network($db_link, $ip)) {
                 $ip_record = [
-                    'action' => $action_str,
+                    'type' => $action_str,
                     'mac' => $mac,
                     'ip' => $ip,
 		    'description' => $description,

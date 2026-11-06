@@ -82,8 +82,8 @@ if (!empty($syslog)) {
     foreach ($syslog as $row) {
         print "<tr align=center>\n";
         print "<td class=\"data\">" . get_datetime_display($row['ts']) . "</td>\n";
-        print "<td class=\"data\">" . $row['ip'] . "</td>\n";
-        print "<td class=\"data\">" . $row['message'] . "</td>\n";
+        print "<td class=\"data\">" . esc($row['ip']) . "</td>\n";
+        print "<td class=\"data\">" . esc($row['message']) . "</td>\n";
         print "</tr>\n";
         }
     }

@@ -7,7 +7,7 @@ $port_id = $id;
 $sSQL = "SELECT DP.device_id, DP.port, DP.snmp_index, D.device_name, D.ip, D.vendor_id FROM device_ports AS DP, devices AS D WHERE D.id = DP.device_id AND DP.id=?";
 $port_info = get_record_sql($db_link, $sSQL, [ $port_id ]);
 if (empty($port_info)) {
-    header("Location: /admin/devices/editdevice.php?id=".$device_id);
+    header("Location: /admin/devices/index.php");
     exit;
 }
 
@@ -112,7 +112,7 @@ $t_device = get_records_sql($db_link, $d_sql);
 if (!empty($t_device)) {
     foreach ($t_device as $row) {
         $name = $row['ip'];
-        if (!empty($row['dns_name']) and isset($row['dns'])) { $name = $row['dns_name']; }
+        if (!empty($row['dns_name'])) { $name = $row['dns_name']; }
         print "<tr>";
         print "<td class=\"data\">" . expand_mac($db_link,$row['mac']) . "</td>\n";
         print "<td class=\"data\">";

@@ -3,11 +3,17 @@
 $start_memory = memory_get_usage();
 $start_time = microtime();
 
-ob_start();
-
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/csrf.php");
+
+ob_start('csrf_inject');
 
 login($db_link);
+
+header('Cache-Control: no-store');
+
+csrf_token($db_link);
+csrf_verify_post($db_link);
 
 $start_array = explode(" ", $start_time);
 $start_time = $start_array[1] + $start_array[0];
@@ -20,7 +26,7 @@ $page_url = !empty($page_url_array[0]) ? $page_url_array[0] : $_SERVER["REQUEST_
 $page_url_args = !empty($page_url_array[1]) ? $page_url_array[1] : '';
 
 // Получаем параметры через безопасные функции
-$id = getParam('id', $page_url);
+$id = getParam('id', $page_url, null, FILTER_VALIDATE_INT);
 
 if (!empty($id) && !empty($page_url)) {
     $page_url = $page_url . '?id=' . urlencode($id);

@@ -4,6 +4,316 @@ if (!defined("CONFIG")) die("Not defined");
 
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/consts.php");
 
+// walk_oid -> map: last label => value (labels=2 -> {port}.{sub} => value)
+function walk_snmp_map($ip, $snmp, $oid, $labels = 1)
+{
+    $result = [];
+    $list = walk_snmp($ip, $snmp, $oid);
+    if (empty($list)) {
+        return $result;
+    }
+    $pattern = ($labels == 2) ? '/\.(\d{1,10})\.(\d{1,10})$/' : '/\.(\d{1,10})$/';
+    foreach ($list as $key => $value) {
+        $key = trim($key);
+        $value = parse_snmp_value($value);
+        if (preg_match($pattern, $key, $m)) {
+            if ($labels == 2) {
+                $result[$m[1]][$m[2]] = $value;
+            } else {
+                $result[$m[1]] = $value;
+            }
+        }
+    }
+    return $result;
+}
+
+// Bulk-версия get_sfp_status(): один прогон walk'ов на все порты сразу.
+// Возвращает [snmp_index => status_html] — те же строки, что и по-портовая версия.
+// $modules_oids  — пред-walked CISCO_MODULES (нужен для Huawei=3 и Cisco=16)
+// $ifname_map    — карта ifIndex=>ifname из get_snmp_interfaces() (нужна для Huawei=3 и Cisco=16)
+function get_ports_sfp_status($vendor_id, $ip, $snmp, $modules_oids = NULL, $ifname_map = NULL)
+{
+    if (!isset($vendor_id) || !isset($ip)) {
+        return [];
+    }
+
+    try {
+        $result = [];
+
+        // ---------- eltex ----------
+        if ($vendor_id == 2) {
+            $vendor_map = walk_snmp_map($ip, $snmp, ELTEX_SFP_VENDOR);          // port => vendor
+            $st_map     = walk_snmp_map($ip, $snmp, ELTEX_SFP_STATUS, 2);       // port => {5..9} => value
+            $sn_map     = walk_snmp_map($ip, $snmp, ELTEX_SFP_SN);              // port => sn
+            $freq_map   = walk_snmp_map($ip, $snmp, ELTEX_SFP_FREQ);            // port => freq
+            $len_map    = walk_snmp_map($ip, $snmp, ELTEX_SFP_LENGTH);          // port => length
+
+            foreach ($vendor_map as $port => $sfp_vendor) {
+                if (empty($sfp_vendor)) {
+                    continue;
+                }
+                $temp   = $st_map[$port]['5'] ?? '';
+                $volt   = $st_map[$port]['6'] ?? '';
+                $circut = $st_map[$port]['7'] ?? '';
+                $tx     = $st_map[$port]['8'] ?? '';
+                $rx     = $st_map[$port]['9'] ?? '';
+                $sfp_sn     = $sn_map[$port] ?? '';
+                $sfp_freq   = $freq_map[$port] ?? '';
+                $sfp_length = $len_map[$port] ?? '';
+                if (!isset($sfp_freq) or $sfp_freq == 65535) {
+                    $sfp_freq = 'unspecified';
+                }
+
+                $status = 'Vendor: ' . $sfp_vendor . ' Serial: ' . $sfp_sn . ' Laser: ' . $sfp_freq
+                        . ' Distance: ' . $sfp_length . '<br>';
+                if (is_numeric($temp) && abs(floatval($temp)) > 0.1) {
+                    $status .= 'Temp: ' . $temp . " C";
+                }
+                if (is_numeric($volt) && abs(floatval($volt)) > 100000) {
+                    $status .= ' Volt: ' . round($volt / 1000000, 2) . ' V';
+                }
+                if (is_numeric($circut) && abs(floatval($circut)) > 100) {
+                    $status .= ' Circut: ' . round($circut / 1000, 2) . ' mA';
+                }
+                if (is_numeric($tx) && abs(floatval($tx)) > 100) {
+                    $status .= ' Tx: ' . round($tx / 1000, 2) . ' dBm';
+                }
+                if (is_numeric($rx) && abs(floatval($rx)) > 100) {
+                    $status .= ' Rx: ' . round($rx / 1000, 2) . ' dBm';
+                }
+                $result[$port] = $status . '<br>';
+            }
+            return $result;
+        }
+
+        // ---------- snr ----------
+        if ($vendor_id == 6) {
+            $vendor_map = walk_snmp_map($ip, $snmp, SNR_SFP_VendorName);
+            $model_map  = walk_snmp_map($ip, $snmp, SNR_SFP_ModelName);
+            $type_map   = walk_snmp_map($ip, $snmp, SNR_SFP_TypeName);
+            $rate_map   = walk_snmp_map($ip, $snmp, SNR_SFP_BitRate);
+            $wave_map   = walk_snmp_map($ip, $snmp, SNR_SFP_WaveLength);
+            $volt_map   = walk_snmp_map($ip, $snmp, SNR_SFP_VOLT);
+            $bias_map   = walk_snmp_map($ip, $snmp, SNR_SFP_BIAS);
+            $tx_map     = walk_snmp_map($ip, $snmp, SNR_SFP_TX);
+            $rx_map     = walk_snmp_map($ip, $snmp, SNR_SFP_RX);
+
+            foreach ($vendor_map as $port => $sfp_vendor) {
+                if (empty($sfp_vendor) or $sfp_vendor == 'NULL') {
+                    continue;
+                }
+                $status = 'Vendor: ' . $sfp_vendor . ' ' . ($model_map[$port] ?? '')
+                        . ' ' . ($type_map[$port] ?? '')
+                        . ' Speed: ' . ($rate_map[$port] ?? '')
+                        . ' Freq: ' . ($wave_map[$port] ?? '') . '<br>';
+                if (!empty($volt_map[$port])) {
+                    $status .= ' Volt: ' . $volt_map[$port] . ' V';
+                }
+                if (!empty($bias_map[$port])) {
+                    $status .= ' Circut: ' . $bias_map[$port] . ' mA';
+                }
+                if (!empty($tx_map[$port])) {
+                    $status .= ' Tx: ' . $tx_map[$port] . ' dBm';
+                }
+                if (!empty($rx_map[$port])) {
+                    $status .= ' Rx: ' . $rx_map[$port] . ' dBm';
+                }
+                $result[$port] = $status . '<br>';
+            }
+            return $result;
+        }
+
+        // ---------- mikrotik ----------
+        if ($vendor_id == 9) {
+            $pres_map = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".13"); // row => 0/1
+            if (empty($pres_map)) {
+                return [];
+            }
+            $vnd_map  = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".11");
+            $pno_map  = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".14");
+            $sn_map   = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".12");
+            $temp_map = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".6");
+            $volt_map = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".7");
+            $bias_map = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".8");
+            $tx_map   = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".9");
+            $rx_map   = walk_snmp_map($ip, $snmp, MIKROTIK_SFP . ".10");
+
+            foreach ($pres_map as $row => $present) {
+                if (empty($present)) {
+                    continue;
+                }
+                $status = '';
+                $vnd = $vnd_map[$row] ?? '';
+                $pno = $pno_map[$row] ?? '';
+                $sn  = $sn_map[$row] ?? '';
+                if ($vnd !== '' or $pno !== '' or $sn !== '') {
+                    $status .= 'Vendor: ' . $vnd . ' ' . $pno . ' Serial: ' . $sn . '<br>';
+                }
+                $temp = $temp_map[$row] ?? '';
+                $volt = $volt_map[$row] ?? '';
+                $bias = $bias_map[$row] ?? '';
+                if (is_numeric($temp) && abs(floatval($temp)) > 0.1) {
+                    $status .= 'Temp: ' . $temp . " C";
+                }
+                if (is_numeric($volt) && abs(floatval($volt)) > 1000) {
+                    $status .= ' Volt: ' . round($volt / 1000, 2) . ' V';
+                }
+                if (is_numeric($bias) && abs(floatval($bias)) > 0) {
+                    $status .= ' Circut: ' . $bias . ' mA';
+                }
+                foreach ([ 'tx' => $tx_map[$row] ?? '', 'rx' => $rx_map[$row] ?? '' ] as $dir => $raw) {
+                    if (is_numeric($raw) && abs(floatval($raw) / 1000) > 0.1) {
+                        $status .= ' ' . strtoupper($dir) . ': ' . round($raw / 1000, 2) . ' dBm';
+                    }
+                }
+                if ($status !== '') {
+                    $result[$row] = $status . '<br>';
+                }
+            }
+            return $result;
+        }
+
+        // для Huawei и Cisco нужны описания модулей и имена интерфейсов
+        if (empty($modules_oids) or empty($ifname_map)) {
+            return [];
+        }
+
+        // ---------- cisco ----------
+        if ($vendor_id == 16) {
+            $sens_map = walk_snmp_map($ip, $snmp, CISCO_SFP_SENSORS);   // entPhysIndex => raw
+            $prec_map = walk_snmp_map($ip, $snmp, CISCO_SFP_PRECISION); // entPhysIndex => prec
+
+            foreach ($ifname_map as $ifindex => $port_name) {
+                $port_name = preg_quote(trim((string)$port_name), '/');
+                if ($port_name === '') {
+                    continue;
+                }
+                $temp = $volt = $circut = $tx = $rx = NULL;
+                foreach ($modules_oids as $mkey => $value) {
+                    if (preg_match('/(' . $port_name . ' Module Temperature Sensor)/i', $value, $m)) {
+                        $temp = cisco_sensor_value($mkey, $sens_map, $prec_map); continue;
+                    }
+                    if (preg_match('/(' . $port_name . ' Supply Voltage Sensor)/i', $value, $m)) {
+                        $volt = cisco_sensor_value($mkey, $sens_map, $prec_map); continue;
+                    }
+                    if (preg_match('/(' . $port_name . ' Bias Current Sensor)/i', $value, $m)) {
+                        $circut = cisco_sensor_value($mkey, $sens_map, $prec_map); continue;
+                    }
+                    if (preg_match('/(' . $port_name . ' Transmit Power Sensor)/i', $value, $m)) {
+                        $tx = cisco_sensor_value($mkey, $sens_map, $prec_map); continue;
+                    }
+                    if (preg_match('/(' . $port_name . ' Receive Power Sensor)/i', $value, $m)) {
+                        $rx = cisco_sensor_value($mkey, $sens_map, $prec_map); continue;
+                    }
+                }
+                $status = '';
+                if (!empty($temp) && is_numeric($temp) && abs(floatval($temp)) > 0) {
+                    $status .= 'Temp: ' . $temp . " C";
+                }
+                if (!empty($volt) && is_numeric($volt) && abs(floatval($volt)) > 0) {
+                    $status .= ' Volt: ' . $volt . ' V';
+                }
+                if (!empty($circut) && is_numeric($circut) && abs(floatval($circut)) > 0) {
+                    $status .= ' Circut: ' . $circut . ' mA';
+                }
+                if (!empty($tx) && is_numeric($tx) && abs(floatval($tx)) > 0.1) {
+                    $status .= ' Tx: ' . $tx . ' dBm';
+                }
+                if (!empty($rx) && is_numeric($rx) && abs(floatval($rx)) > 0.1) {
+                    $status .= ' Rx: ' . $rx . ' dBm';
+                }
+                if (!empty($status)) {
+                    $status = preg_replace('/"/', '', $status);
+                    $result[$ifindex] = $status . '<br>';
+                }
+            }
+            return $result;
+        }
+
+        // ---------- huawei ----------
+        if ($vendor_id == 3) {
+            $vendor_map = walk_snmp_map($ip, $snmp, HUAWEI_SFP_VENDOR);      // module_id => vendor
+            $volt_map   = walk_snmp_map($ip, $snmp, HUAWEI_SFP_VOLT);
+            $bias_map   = walk_snmp_map($ip, $snmp, HUAWEI_SFP_BIASCURRENT);
+            $opttx_map  = walk_snmp_map($ip, $snmp, HUAWEI_SFP_OPTTX);
+            $optrx_map  = walk_snmp_map($ip, $snmp, HUAWEI_SFP_OPTRX);
+            $tx_map     = walk_snmp_map($ip, $snmp, HUAWEI_SFP_TX);          // fallback
+            $rx_map     = walk_snmp_map($ip, $snmp, HUAWEI_SFP_RX);          // fallback
+
+            foreach ($ifname_map as $ifindex => $port_name) {
+                $port_name = preg_quote(trim((string)$port_name), '/');
+                if ($port_name === '') {
+                    continue;
+                }
+                foreach ($modules_oids as $mkey => $value) {
+                    if (!preg_match('/' . $port_name . '/i', $value, $m)) {
+                        continue;
+                    }
+                    $module_id = get_last_digit($mkey);
+                    $sfp_vendor = '';
+                    if (!empty($vendor_map[$module_id])) {
+                        $sfp_vendor = $vendor_map[$module_id];
+                    }
+                    $tx = $opttx_map[$module_id] ?? '';
+                    if (empty($tx)) {
+                        $tx = $tx_map[$module_id] ?? '';   // fallback, в оригинале был мёртв
+                    }
+                    $rx = $optrx_map[$module_id] ?? '';
+                    if (empty($rx)) {
+                        $rx = $rx_map[$module_id] ?? '';
+                    }
+
+                    $status = '';
+                    if (!empty($sfp_vendor)) {
+                        $status .= ' Name:' . $sfp_vendor . '<br>';
+                    }
+                    if (!empty($volt_map[$module_id]) && is_numeric($volt_map[$module_id]) && abs(floatval($volt_map[$module_id])) > 1000) {
+                        $status .= ' Volt: ' . round($volt_map[$module_id] / 1000, 2) . ' V';
+                    }
+                    if (!empty($bias_map[$module_id]) && is_numeric($bias_map[$module_id]) && abs(floatval($bias_map[$module_id])) > 0) {
+                        $status .= ' Circut: ' . $bias_map[$module_id] . ' mA <br>';
+                    }
+                    foreach ([ 'tx' => $tx, 'rx' => $rx ] as $dir => $raw) {
+                        if (empty($raw)) {
+                            continue;
+                        }
+                        $raw = preg_replace('/"/', '', $raw);
+                        list($dbm, $pattern) = array_pad(explode('.', $raw), 2, '');
+                        $dbm = round(floatval(trim($dbm)) / 100, 2);
+                        if (abs($dbm) > 0.1) {
+                            $status .= ' ' . strtoupper($dir) . ': ' . $dbm . ' dBm';
+                        }
+                    }
+                    if (!empty($status)) {
+                        $status = preg_replace('/"/', '', $status);
+                        $result[$ifindex] = $status . '<br>';
+                    }
+                    break; // первый подходящий модуль, как в оригинале
+                }
+            }
+            return $result;
+        }
+    } catch (Exception $e) {
+        return [];
+    }
+    return [];
+}
+
+// то же, что get_cisco_sensors(), но из пред-walked карт вместо 2 GET
+function cisco_sensor_value($mkey, $sens_map, $prec_map)
+{
+    $index = get_last_digit($mkey);
+    $raw = $sens_map[$index] ?? '';
+    if ($raw === '' or !is_numeric(trim($raw))) {
+        return NULL;
+    }
+    $prec = $prec_map[$index] ?? 1;
+    if (empty($prec)) {
+        $prec = 1;
+    }
+    return round(trim($raw) / (10 * $prec), 2);
+}
+
 function get_ifmib_index_table($ip, $snmp)
 {
     $ifmib_map = [];
@@ -24,7 +334,7 @@ function get_ifmib_index_table($ip, $snmp)
         //fdb_index => snmp_index
         $index_map_table = walk_snmp($ip, $snmp, IFMIB_IFINDEX_MAP);
         //get map snmp interfaces to fdb table
-        if (isset($index_map_table) and count($index_map_table) > 0) {
+        if (!empty($index_map_table)) {
             foreach ($index_map_table as $key => $value) {
                 $key = trim($key);
                 $value = intval(trim(str_replace('INTEGER:', '', $value)));
@@ -41,7 +351,7 @@ function get_ifmib_index_table($ip, $snmp)
     if (empty($ifmib_map)) {
         //ifindex
         $index_table = walk_snmp($ip, $snmp, IFMIB_IFINDEX);
-        if (isset($index_table) and count($index_table) > 0) {
+        if (!empty($index_table)) {
             foreach ($index_table as $key => $value) {
                 $key = trim($key);
                 $value = intval(trim(str_replace('INTEGER:', '', $value)));
@@ -300,7 +610,7 @@ function get_cisco_sensors($ip, $snmp, $mkey)
     $index = get_last_digit($mkey);
     $result = parse_snmp_value(get_snmp($ip, $snmp, CISCO_SFP_SENSORS . "." . $index));
     $prec = parse_snmp_value(get_snmp($ip, $snmp, CISCO_SFP_PRECISION . "." . $index));
-    if (!isset($prec)) {
+    if (empty($prec)) {
         $prec = 1;
     }
     $result = round(trim($result) / (10 * $prec), 2);
@@ -348,14 +658,15 @@ function walk_snmp($ip, $snmp, $oid)
     snmp_set_oid_output_format(SNMP_OID_OUTPUT_NUMERIC);
     $result = NULL;
     $version = $snmp["version"];
+    $timeout = $snmp["timeout"] ?? SNMP_timeout;
     if ($version == 3) {
-        $result = snmp3_real_walk($ip, $snmp["ro-user"], 'authPriv', $snmp['auth-proto'], $snmp['ro-password'], $snmp["priv-proto"], $snmp["ro-password"], $oid, SNMP_timeout, SNMP_retry);
+        $result = snmp3_real_walk($ip, $snmp["ro-user"], 'authPriv', $snmp['auth-proto'], $snmp['ro-password'], $snmp["priv-proto"], $snmp["ro-password"], $oid, $timeout, SNMP_retry);
     }
     if ($version == 2) {
-        $result = snmp2_real_walk($ip,  $snmp["ro-community"], $oid, SNMP_timeout, SNMP_retry);
+        $result = snmp2_real_walk($ip,  $snmp["ro-community"], $oid, $timeout, SNMP_retry);
     }
     if ($version == 1) {
-        $result = snmprealwalk($ip,  $snmp["ro-community"], $oid, SNMP_timeout, SNMP_retry);
+        $result = snmprealwalk($ip,  $snmp["ro-community"], $oid, $timeout, SNMP_retry);
     }
     return $result;
 }
@@ -1337,7 +1648,7 @@ function get_ports_poe_detail($vendor_id, $ip, $snmp)
                             $p_volt = round($p_volt / 100, 2);
                             break;
                     }
-                    if ($p_volt > 0 and $result[$port]['power'] > 0) {
+                    if ($p_volt > 0 and ($result[$port]['power'] ?? 0) > 0) {
                         $result[$port]['volt'] = $p_volt;
                         $result[$port]['volt_display'] = ' V: ' . $p_volt . " V";
                     }
@@ -1362,7 +1673,7 @@ function get_ports_poe_detail($vendor_id, $ip, $snmp)
                     $result[$port]['class_display'] = '';
                     switch ($vendor_id) {
                         case 69:
-                            if ($p_class > 0 and $result[$port]['power'] > 0) {
+                            if ($p_class > 0 and ($result[$port]['power'] ?? 0) > 0) {
                                 if ($p_class == 7) {
                                     $p_class = 'class-not-defined';
                                 }
@@ -1371,7 +1682,7 @@ function get_ports_poe_detail($vendor_id, $ip, $snmp)
                             }
                             break;
                         default:
-                            if ($p_class > 0 and $result[$port]['power'] > 0) {
+                            if ($p_class > 0 and ($result[$port]['power'] ?? 0) > 0) {
                                 $result[$port]['class_display'] = 'Class: ' . ($p_class - 1);
                                 $result[$port]['class'] = $p_class - 1;
                             }
@@ -1419,7 +1730,7 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $snmp)
 
     $result = '';
 
-    $poe_class = PETH_PSE_PORT_POE_CLASS . $port_snmp_index;
+    $poe_class = PETH_PSE_PORT_POE_CLASS . '.' . $port_snmp_index;
 
     // eltex
     if ($vendor_id == 2) {

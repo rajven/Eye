@@ -2,6 +2,10 @@
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/csrf.php");
+
+if (session_status() !== PHP_SESSION_ACTIVE) { init_db_sessions($db_link); session_start(); }
+csrf_token($db_link);
 
 $error = '';
 
@@ -9,6 +13,7 @@ $error = '';
 $redirect_url = getSafeRedirectUrl(DEFAULT_PAGE);
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
+    csrf_verify_post($db_link);
 
     $login = trim($_POST['login']);
     $password = trim($_POST['password']);
@@ -25,6 +30,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
 
     if (empty($error)) {
 	if (login($db_link)) { 
+	    csrf_reset();
             $redirect_url = urldecode($redirect_url);
             header("Location: $redirect_url");
             }
@@ -45,7 +51,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
 	<div class="login">
 	    <h1><?php echo WEB_msg_login; ?></h1>
 	    <?php /* $error was built at the top of the file but never rendered before */ echo $error; ?>
-	    <form action="" method="post">
+	     <form action="login.php" method="post">
+		<input type="hidden" name="csrf_token" value="<?php print csrf_token($db_link); ?>">
 		<label for="username">
 		    <span aria-hidden="true">&#128100;</span><span class="vh">Логин</span>
 		</label>

@@ -40,7 +40,7 @@ print_log_submenu($page_url);
 DNS:&nbsp <input type=checkbox name=dns value="1" <?php print $dns_checked; ?>>
 <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
 <div><br>
-<?php echo WEB_cell_ip; ?>:&nbsp<input type="text" name="ip" value="<?php echo $f_ip; ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$">
+<?php echo WEB_cell_ip; ?>:&nbsp<input type="text" name="ip" value="<?php echo esc($f_ip); ?>" pattern="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$">
 <input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>
 
@@ -49,7 +49,7 @@ DNS:&nbsp <input type=checkbox name=dns value="1" <?php print $dns_checked; ?>>
 
 <?php
 $sort_url = "<a href='detaillog.php?date_start=\"".$date1.'"&date_stop="'.$date2.'"';
-if (!empty($f_ip)) { $sort_url .='&f_ip="'.$f_ip.'"'; }
+if (!empty($f_ip)) { $sort_url .='&f_ip="'.esc($f_ip).'"'; }
 
 $gateway_filter='';
 if (!empty($rgateway) and $rgateway>0) { 

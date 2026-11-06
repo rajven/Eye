@@ -4,6 +4,8 @@ if (!defined("CONFIG")) {
     die("Not defined");
 }
 
+if (!defined("ZABBIX_SSL_VERIFY")) { define("ZABBIX_SSL_VERIFY",false); }
+
 // Send a single request to the zabbix api. Returns the decoded result or null
 function zabbix_api_request($method, $params = [])
 {
@@ -33,9 +35,9 @@ function zabbix_api_request($method, $params = [])
         'Authorization: Bearer ' . $api_key
     ];
 
-    error_log("Zabbix URL: " . $api_url);
-    error_log("Zabbix Headers: " . print_r($headers, true));
-    error_log("Zabbix Body: " . json_encode($body, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+#    error_log("Zabbix URL: " . $api_url);
+#    error_log("Zabbix Headers: " . print_r($headers, true));
+#    error_log("Zabbix Body: " . json_encode($body, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 
     $raw = zabbix_http_post($api_url, json_encode($body, JSON_UNESCAPED_UNICODE), $headers);
     if ($raw === null) {
@@ -63,7 +65,13 @@ function zabbix_api_request($method, $params = [])
 function zabbix_http_post($url, $body, $headers)
 {
     global $db_link;
-    
+
+    // ZABBIX_SSL_VERIFY is defined in cfg/config.php. the default is false: a self-signed
+    // certificate of the zabbix server must keep working. when the certificate is signed
+    // or its CA is imported into the system bundle, set ZABBIX_SSL_VERIFY to true in the
+    // config - the bearer token and the snmp passwords of the body deserve the protection
+    $ssl_verify = defined('ZABBIX_SSL_VERIFY') ? (bool)constant('ZABBIX_SSL_VERIFY') : false;
+
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_POST, true);
@@ -72,10 +80,10 @@ function zabbix_http_post($url, $body, $headers)
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-        
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        
+
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $ssl_verify);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $ssl_verify ? 2 : 0);
+
         $result = curl_exec($ch);
         if ($result === false) {
             LOG_ERROR($db_link, 'Zabbix: cURL request failed: ' . curl_error($ch));
@@ -103,8 +111,8 @@ function zabbix_http_post($url, $body, $headers)
             'ignore_errors' => true, // Позволяет прочитать тело ответа даже при 4xx/5xx
         ],
         'ssl' => [
-            'verify_peer' => false,
-            'verify_peer_name' => false,
+            'verify_peer' => $ssl_verify,
+            'verify_peer_name' => $ssl_verify,
         ],
     ]);
 

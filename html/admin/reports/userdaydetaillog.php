@@ -38,7 +38,7 @@ print_trafdetail_submenu($page_url,"id=$id&date_start='$date1'&date_stop='$date2
 <?php print_date_fields($date1,$date2,$date_shift); ?>
 <?php echo WEB_cell_gateway; ?>:&nbsp <?php print_gateway_select($db_link, 'gateway', $rgateway); ?>
 DNS:&nbsp <input type=checkbox name=dns value="1" <?php print $dns_checked; ?>>
-<?php echo WEB_search; ?>:&nbsp<input type="text" minlength="7" maxlength="15" size="15" pattern="^(?>(\d|[1-9]\d{2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(?1)$"  name="search" value="<?php echo $search; ?>" />
+<?php echo WEB_search; ?>:&nbsp<input type="text" minlength="7" maxlength="15" size="15" pattern="^(?>(\d|[1-9]\d{2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(?1)$"  name="search" value="<?php echo esc($search); ?>" />
 <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
 <input type="submit" value="<?php echo WEB_btn_show; ?>">
 </form>

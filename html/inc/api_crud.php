@@ -1004,7 +1004,7 @@ function api_delete($db, $spec, $data = [])
         api_answer(['error' => 'Not found', 'entity' => $spec['entity'], 'id' => $id], 404);
     }
 
-    $force = api_param('force', $data) !== null || getParam('force', null, null) !== null;
+    $force        = filter_var(api_param('force', $data) ?? getParam('force', null, null), FILTER_VALIDATE_BOOLEAN);
 
     switch ($spec['entity']) {
         case 'group':

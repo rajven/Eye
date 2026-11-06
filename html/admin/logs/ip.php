@@ -85,8 +85,8 @@ foreach ($iplog as $row) {
         print "<td class=\"data\">" . esc($row['ip']) . "</td>\n";
     }
     print "<td class=\"data\">" . expand_mac($db_link,mac_dotted($row['mac'])) . "</td>\n";
-    print "<td class=\"data\">" . $row['dhcp_hostname'] . "</td>\n";
-    print "<td class=\"data\">" . $row['dns_name'] . "</td>\n";
+    print "<td class=\"data\">" . esc($row['dhcp_hostname']) . "</td>\n";
+    print "<td class=\"data\">" . esc($row['dns_name']) . "</td>\n";
     print "</tr>\n";
 }
 print "</table>\n";
