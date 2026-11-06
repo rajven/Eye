@@ -381,7 +381,8 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
 
             print "<td class='" . $cl . "' ><button onclick=\"" . esc(open_window_url('portmactable.php?id=' . (int)$row['id'])) . " return false;\">" . esc($row['last_mac_count']) . "</button></td>\n";
 
-            print "<td class='" . $cl . "'>" . esc($sfp_status) . " " . esc($poe_info) . "</td>\n";
+            $sfp_status = $sfp_map[$row['snmp_index']];
+            print "<td class='" . $cl . "'>" . $sfp_status . " " . $poe_info . "</td>\n";
             if ($device_model['poe_out']) {
                 if (isset($poe_status) and !$row['skip']) {
                     print "<td class=\"data\">";
