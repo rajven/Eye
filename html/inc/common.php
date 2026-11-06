@@ -256,16 +256,23 @@ function getSafeRedirectUrl(string $default = '/'): string {
     return safeUrlEncode($url);
 }
 
-function randomPassword($length = 8)
+function randomPassword(int $length = 8): string
 {
     $alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
-    $pass = array(); //remember to declare $pass as an array
-    $alphaLength = strlen($alphabet) - 1; //put the length -1 in cache
-    for ($i = 0; $i < $length; $i++) {
-        $n = rand(0, $alphaLength);
-        $pass[] = $alphabet[$n];
+    $alphaLength = strlen($alphabet);      // 62
+    $max = 256 - (256 % $alphaLength);     // 248
+
+    $pass = '';
+    while (strlen($pass) < $length) {
+        $bytes = random_bytes($length * 2); // с запасом на отбраковку
+        for ($i = 0, $n = strlen($bytes); $i < $n && strlen($pass) < $length; $i++) {
+            $v = ord($bytes[$i]);
+            if ($v < $max) {
+                $pass .= $alphabet[$v % $alphaLength];
+            }
+        }
     }
-    return implode($pass); //turn the array into a string
+    return $pass;
 }
 
 if (!function_exists('mb_ucfirst')) {
@@ -305,7 +312,7 @@ function get_user_acl()
 }
 
 function get_datetime_display($datetime) {
-if (is_empty_datetime($datetime)) { return "-"; } else { return $datetime; }
+    if (is_empty_datetime($datetime)) { return "-"; } else { return $datetime; }
 }
 
 function is_empty_datetime($datetime) {

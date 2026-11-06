@@ -20,7 +20,7 @@ $page_url = !empty($page_url_array[0]) ? $page_url_array[0] : $_SERVER["REQUEST_
 $page_url_args = !empty($page_url_array[1]) ? $page_url_array[1] : '';
 
 // Получаем параметры через безопасные функции
-$id = getParam('id', $page_url);
+$id = getParam('id', $page_url, null, FILTER_VALIDATE_INT);
 
 if (!empty($id) && !empty($page_url)) {
     $page_url = $page_url . '?id=' . urlencode($id);

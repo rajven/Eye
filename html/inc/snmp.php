@@ -300,7 +300,7 @@ function get_cisco_sensors($ip, $snmp, $mkey)
     $index = get_last_digit($mkey);
     $result = parse_snmp_value(get_snmp($ip, $snmp, CISCO_SFP_SENSORS . "." . $index));
     $prec = parse_snmp_value(get_snmp($ip, $snmp, CISCO_SFP_PRECISION . "." . $index));
-    if (!isset($prec)) {
+    if (empty($prec)) {
         $prec = 1;
     }
     $result = round(trim($result) / (10 * $prec), 2);
@@ -1419,7 +1419,7 @@ function get_port_poe_detail($vendor_id, $port, $port_snmp_index, $ip, $snmp)
 
     $result = '';
 
-    $poe_class = PETH_PSE_PORT_POE_CLASS . $port_snmp_index;
+    $poe_class = PETH_PSE_PORT_POE_CLASS . '.' . $port_snmp_index;
 
     // eltex
     if ($vendor_id == 2) {

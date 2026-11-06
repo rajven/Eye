@@ -71,7 +71,7 @@ if (!empty($action_get))  { $action = 'get_' . $action_get; }
 if (!empty($action_send)) { $action = 'send_' . $action_send; }
 
 // Дополнительные параметры для send_dhcp
-$dhcp_hostname = getParam('hostname', null, '');
+$dhcp_hostname = getParam('hostname', null, null) ?? getParam('dhcp_hostname', null, '');
 $dhcp_action   = getParam('action', null, 1, FILTER_VALIDATE_INT);
 
 // === Список разрешённых таблиц ===
