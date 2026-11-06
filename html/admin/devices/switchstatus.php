@@ -135,10 +135,11 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 $poe_states = [];
                 $poe_details = [];
                 if ($device_model['poe_out']) {
-                    $snmp["timeout"] = 10 * SNMP_timeout;
-                    $poe_states = get_ports_poe_state($device['vendor_id'], $device['ip'], $snmp);
+                    $snmp_poe = $snmp;
+                    $snmp_poe["timeout"] = 10 * SNMP_timeout;
+                    $poe_states = get_ports_poe_state($device['vendor_id'], $device['ip'], $snmp_poe);
                     if (!empty($poe_states)) {
-                        $poe_details = get_ports_poe_detail($device['vendor_id'], $device['ip'], $snmp);
+                        $poe_details = get_ports_poe_detail($device['vendor_id'], $device['ip'], $snmp_poe);
                     }
                 }
                 $vlan_list = get_switch_vlans($device['vendor_id'], $device['ip'], $snmp);
