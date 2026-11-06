@@ -3,12 +3,14 @@
 $start_memory = memory_get_usage();
 $start_time = microtime();
 
-ob_start('csrf_inject');
-
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/csrf.php");
 
+ob_start('csrf_inject');
+
 login($db_link);
+
+header('Cache-Control: no-store');
 
 csrf_token($db_link);
 csrf_verify_post($db_link);
