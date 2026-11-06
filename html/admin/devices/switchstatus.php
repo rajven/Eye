@@ -129,6 +129,8 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             if ($snmp_ok) {
                 update_record($db_link, 'devices', 'id=?', [ 'monitoring_status'=> 'UP' ], [ $id ]);
                 $modules_oids = walk_snmp($device["ip"], $snmp, CISCO_MODULES);
+                $ifname_map = get_snmp_interfaces($device['ip'], $snmp);
+                $sfp_map = get_ports_sfp_status($device['vendor_id'], $device['ip'], $snmp, $modules_oids, $ifname_map);
                 $vlan_list = get_switch_vlans($device['vendor_id'], $device['ip'], $snmp);
                 //if port number 1 not exists - try detect by snmp interface index
                 if (isset($vlan_list['1'])) {
@@ -226,12 +228,6 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             $ifname = $row['ifname'];
 
             if ($snmp_ok) {
-                //sfp information
-                $sfp_status = get_sfp_status($device['vendor_id'], $row['snmp_index'], $device['ip'], $snmp, $modules_oids);
-
-                //interface name
-                $ifname = get_snmp_ifname($device['ip'], $snmp, $row['snmp_index']);
-
                 //poe information
                 if ($device_model['poe_out']) {
                     $poe_status = get_port_poe_state($device['vendor_id'], $row['port'], $row['snmp_index'], $device['ip'], $snmp);
@@ -313,9 +309,6 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                     }
                 }
                 //interface name
-                if (!empty($ifmib_list[$row['snmp_index']])) {
-                    $ifname = $ifmib_list[$row['snmp_index']];
-                }
                 if (!isset($row['ifname']) or $row['ifname'] !== $ifname) {
                     $new_info['ifname'] = $ifname;
                 }
