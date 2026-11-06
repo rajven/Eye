@@ -658,14 +658,15 @@ function walk_snmp($ip, $snmp, $oid)
     snmp_set_oid_output_format(SNMP_OID_OUTPUT_NUMERIC);
     $result = NULL;
     $version = $snmp["version"];
+    $timeout = $snmp["timeout"] ?? SNMP_timeout;
     if ($version == 3) {
-        $result = snmp3_real_walk($ip, $snmp["ro-user"], 'authPriv', $snmp['auth-proto'], $snmp['ro-password'], $snmp["priv-proto"], $snmp["ro-password"], $oid, SNMP_timeout, SNMP_retry);
+        $result = snmp3_real_walk($ip, $snmp["ro-user"], 'authPriv', $snmp['auth-proto'], $snmp['ro-password'], $snmp["priv-proto"], $snmp["ro-password"], $oid, $timeout, SNMP_retry);
     }
     if ($version == 2) {
-        $result = snmp2_real_walk($ip,  $snmp["ro-community"], $oid, SNMP_timeout, SNMP_retry);
+        $result = snmp2_real_walk($ip,  $snmp["ro-community"], $oid, $timeout, SNMP_retry);
     }
     if ($version == 1) {
-        $result = snmprealwalk($ip,  $snmp["ro-community"], $oid, SNMP_timeout, SNMP_retry);
+        $result = snmprealwalk($ip,  $snmp["ro-community"], $oid, $timeout, SNMP_retry);
     }
     return $result;
 }

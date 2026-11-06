@@ -135,8 +135,11 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 $poe_states = [];
                 $poe_details = [];
                 if ($device_model['poe_out']) {
+                    $snmp["timeout"] = 10 * SNMP_timeout;
                     $poe_states = get_ports_poe_state($device['vendor_id'], $device['ip'], $snmp);
-                    $poe_details = get_ports_poe_detail($device['vendor_id'], $device['ip'], $snmp);
+                    if (!empty($poe_states)) {
+                        $poe_details = get_ports_poe_detail($device['vendor_id'], $device['ip'], $snmp);
+                    }
                 }
                 $vlan_list = get_switch_vlans($device['vendor_id'], $device['ip'], $snmp);
                 //if port number 1 not exists - try detect by snmp interface index
@@ -250,9 +253,9 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                     if ($poe_status == 1) {
                         $pd = $poe_details[$poe_key] ?? [];
                         $port_poe_detail = trim(($pd['power_display'] ?? '')
-                            . ($pd['current_display'] ?? '')
-                            . ($pd['volt_display'] ?? '')
-                            . ($pd['class_display'] ?? ''));
+                            . '&nbsp'. ($pd['current_display'] ?? '')
+                            . '&nbsp'.($pd['volt_display'] ?? '')
+                            . '&nbsp'.($pd['class_display'] ?? ''));
                         if (empty($port_poe_detail)) {
                             $poe_info = 'POE:on';
                         } else {
