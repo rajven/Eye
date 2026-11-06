@@ -123,6 +123,9 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
         $vlan_list = [];
         $vlan_at_port_by_snmp = 1;
 
+        $snmp_long = $snmp;
+        $snmp_long["timeout"] = 10 * SNMP_timeout;
+
         if (!empty($device['ip']) and $device['snmp_version'] > 0) {
             $snmp_ok = check_snmp_access($device['ip'], $snmp);
             $modules_oids = NULL;
@@ -130,16 +133,14 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 update_record($db_link, 'devices', 'id=?', [ 'monitoring_status'=> 'UP' ], [ $id ]);
                 $modules_oids = walk_snmp($device["ip"], $snmp, CISCO_MODULES);
                 $ifname_map = get_snmp_interfaces($device['ip'], $snmp);
-                $sfp_map = get_ports_sfp_status($device['vendor_id'], $device['ip'], $snmp, $modules_oids, $ifname_map);
+                $sfp_map = get_ports_sfp_status($device['vendor_id'], $device['ip'], $snmp_long, $modules_oids, $ifname_map);
                 $ports_state = get_ports_state_detail($device['ip'], $snmp);
                 $poe_states = [];
                 $poe_details = [];
                 if ($device_model['poe_out']) {
-                    $snmp_poe = $snmp;
-                    $snmp_poe["timeout"] = 10 * SNMP_timeout;
-                    $poe_states = get_ports_poe_state($device['vendor_id'], $device['ip'], $snmp_poe);
+                    $poe_states = get_ports_poe_state($device['vendor_id'], $device['ip'], $snmp_long);
                     if (!empty($poe_states)) {
-                        $poe_details = get_ports_poe_detail($device['vendor_id'], $device['ip'], $snmp_poe);
+                        $poe_details = get_ports_poe_detail($device['vendor_id'], $device['ip'], $snmp_long);
                     }
                 }
                 $vlan_list = get_switch_vlans($device['vendor_id'], $device['ip'], $snmp);
