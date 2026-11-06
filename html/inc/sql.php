@@ -811,8 +811,7 @@ function allow_update($db, $table, $action = 'update', $field = '')
 
     // Получаем текущий логин
     $currentLogin = !empty($_SESSION['login']) ? $_SESSION['login'] : null;
-    //$currentLogin = htmlspecialchars($currentLogin ?: 'http', ENT_QUOTES, 'UTF-8');
-    $currentLogin = htmlspecialchars($currentLogin ?: null, ENT_QUOTES, 'UTF-8');
+    $currentLogin = $currentLogin ?: '';
 
     // Получаем user_id
     $user_id = $_SESSION['user_id'] ?? null;

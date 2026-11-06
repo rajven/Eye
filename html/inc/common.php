@@ -4088,8 +4088,8 @@ function expand_log_str($db, $msg)
         return '';
     }
     
-    $result = $msg;
-#    $result = htmlspecialchars($msg, ENT_QUOTES, 'UTF-8');
+#    $result = $msg;
+    $result = htmlspecialchars($msg, ENT_QUOTES, 'UTF-8');
     
     // === Замена auth_id ===
     $auth_pattern = '/(auth_id:|auth|auth id:|auth id)\s+(\d+)/i';

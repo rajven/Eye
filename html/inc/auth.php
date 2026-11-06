@@ -3,11 +3,15 @@
 $start_memory = memory_get_usage();
 $start_time = microtime();
 
-ob_start();
+ob_start('csrf_inject');
 
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.utils.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/csrf.php");
 
 login($db_link);
+
+csrf_token($db_link);
+csrf_verify_post($db_link);
 
 $start_array = explode(" ", $start_time);
 $start_time = $start_array[1] + $start_array[0];
