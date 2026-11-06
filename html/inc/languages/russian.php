@@ -577,6 +577,7 @@ define("WEB_msg_filter_hint","Фильтры применяются сразу")
 define("WEB_btn_close","Закрыть");
 define("WEB_lbl_typeahead","Начните вводить для поиска");
 define("WEB_lbl_nomatch","Ничего не найдено");
+define("WEB_lbl_typeahead_more","показаны первые %d из %d - уточните поиск");
 
 /* мониторинг zabbix */
 define("WEB_cell_monitoring_status","Состояние мониторинга");

@@ -95,6 +95,7 @@ $eye_nav = [
     'busy'    => WEB_msg_processing,
     'typeahead' => WEB_lbl_typeahead,
     'nomatch' => WEB_lbl_nomatch,
+    'more'    => WEB_lbl_typeahead_more,
 ]), ENT_QUOTES); ?>">
 <div id="eye-shell">
 
