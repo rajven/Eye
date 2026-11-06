@@ -578,6 +578,7 @@ define("WEB_msg_filter_hint","Filters are applied immediately");
 define("WEB_btn_close","Close");
 define("WEB_lbl_typeahead","Type to search");
 define("WEB_lbl_nomatch","Nothing found");
+define("WEB_lbl_typeahead_more","first %d of %d - narrow the search");
 
 /* zabbix monitoring */
 define("WEB_cell_monitoring_status","Monitoring status");

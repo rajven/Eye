@@ -17,7 +17,8 @@
   var L = { dense: 'Compact', normal: 'Normal', roomy: 'Roomy', theme: 'Theme: auto',
             themeL: 'Theme: light', themeD: 'Theme: dark', sel: 'selected', clear: 'Clear',
             failed: 'Failed:', busy: 'Working...',
-            typeahead: 'Type to filter', nomatch: 'Nothing found' };
+            typeahead: 'Type to filter', nomatch: 'Nothing found',
+            more: 'first %d of %d: narrow the search' };
   try { Object.assign(L, JSON.parse(body.getAttribute('data-eye-i18n') || '{}')); } catch (e) {}
 
   var $  = function (sel, root) { return (root || body).querySelector(sel); };
@@ -297,14 +298,27 @@
   /* 8. Searchable select, replaces Select2 Wraps the ordinary <select class="js-select-single"> that the print_* helpers emit. The select stays in the form: name, value and submission are unchanged. Without JS it is a plain dropdown. */
 
   var esSeq = 0;
+  // A list of a hundred thousand subscribers is not a list: only the head of the filtered
+  // result reaches the dom. An unbounded render froze the whole tab for seconds on every
+  // opening and on every keystroke of the search.
+  var ES_MAX = 200;      // rows that reach the dom at once
+  var ES_CHUNK = 2000;   // option nodes read before the loop looks at what it has
+  var ES_LIMIT = 5000;   // options a pass goes through: a pass is tens of ms, not seconds
 
-  function esIndex(sel, text) {
-    var t = (text || '').toLowerCase();
-    return Array.prototype.map.call(sel.options, function (o) {
-      return { v: o.value, t: o.textContent.trim(), d: o.disabled };
-    }).filter(function (o) {
-      return !t || o.t.toLowerCase().indexOf(t) > -1 || o.v.toLowerCase().indexOf(t) > -1;
-    });
+  // A part of the option list, read from the dom. The text of a hundred thousand options is
+  // nothing to touch at once: every read also lower cases the caption. The pass stops when it
+  // has met ES_LIMIT matching options or has reached the end of the list, and what it has read
+  // stays cached for the next keystroke.
+  function esReadOptions(sel, from, out) {
+    var opts = sel.options;
+    var n = Math.min(opts.length, from + ES_CHUNK);
+    for (var i = from; i < n; i++) {
+      var o = opts[i];
+      var t = o.textContent.trim();
+      var v = String(o.value);
+      out.push({ v: v, t: t, l: t.toLowerCase(), lv: v.toLowerCase(), d: !!o.disabled });
+    }
+    return n >= opts.length;
   }
 
   function esSelectedText(sel) {
@@ -351,8 +365,13 @@
     host.insertBefore(wrap, sel);
     wrap.appendChild(btn); wrap.appendChild(sel); wrap.appendChild(pop);
 
-    var shown = [];          // options that pass the filter
-    var act = -1;            // highlighted row
+    var all = [];              // the options read from the dom so far, in lower case
+    var done = false;          // the whole list was read
+    var whole = false;         // the filter ran over everything that was read
+    var shown = [];            // the head of the rows that pass the filter
+    var total = 0;             // how many pass, it stops at ES_LIMIT
+    var act = -1;              // highlighted row
+    var actEl = null;          // its node, to unmark it without a walk over the list
 
     function paint() {
       label.textContent = esSelectedText(sel) || '—';
@@ -362,32 +381,73 @@
     }
 
     function rows() {
-      shown = esIndex(sel, q.value);
-      list.innerHTML = '';
-      shown.forEach(function (o, i) {
+      var needle = q.value.trim().toLowerCase();
+      shown = [];
+      total = 0;
+      whole = false;
+
+      // the cached part is walked from the beginning at every keystroke: those are plain
+      // objects, and an option which was read before must not disappear from the result.
+      // new options are read from the dom only while the walk has not had enough of them
+      var stop = false;
+      while (!stop) {
+        if (!done) { done = esReadOptions(sel, all.length, all); }
+        for (var i = 0; i < all.length; i++) {
+          var o = all[i];
+          if (!needle || o.l.indexOf(needle) > -1 || o.lv.indexOf(needle) > -1) {
+            total++;
+            if (shown.length < ES_MAX) { shown.push(o); }
+            if (total >= ES_LIMIT) { break; }
+          }
+        }
+        stop = (total >= ES_LIMIT) || (done && i >= all.length);
+        if (stop) { whole = done && i >= all.length; }
+      }
+
+      var frag = document.createDocumentFragment();
+      shown.forEach(function (item, n) {
         var li = document.createElement('li');
-        li.className = 'es-opt' + (o.v === sel.value ? ' on' : '');
+        li.className = 'es-opt' + (item.v === sel.value ? ' on' : '');
         li.setAttribute('role', 'option');
-        li.id = id + '-o' + i;
-        li.textContent = o.t || o.v;
-        if (o.d) li.classList.add('dis');
-        li.addEventListener('mousedown', function (ev) { ev.preventDefault(); pick(i); });
-        list.appendChild(li);
+        li.setAttribute('aria-selected', item.v === sel.value ? 'true' : 'false');
+        li.id = id + '-o' + n;
+        li.dataset.i = n;
+        li.textContent = item.t || item.v;
+        if (item.d) { li.classList.add('dis'); li.setAttribute('aria-disabled', 'true'); }
+        frag.appendChild(li);
       });
-      if (!shown.length) {
+      if (!total) {
         var empty = document.createElement('li');
         empty.className = 'es-opt es-none';
         empty.textContent = L.nomatch;
-        list.appendChild(empty);
+        frag.appendChild(empty);
+      } else if (total > shown.length || !whole) {
+        var more = document.createElement('li');
+        more.className = 'es-opt es-more';
+        // both placeholders are filled one by one: the captions of eye carry two %d
+        more.textContent = L.more.replace('%d', shown.length).replace('%d', total);
+        frag.appendChild(more);
       }
+
+      list.textContent = '';
+      list.appendChild(frag);
+      actEl = null;
       mark(shown.length ? 0 : -1);
     }
 
     function mark(i) {
-      $$('.es-opt', list).forEach(function (el, n) { el.classList.toggle('act', n === i); });
+      if (actEl) { actEl.classList.remove('act'); actEl = null; }
       act = i;
-      if (i > -1 && shown[i]) btn.setAttribute('aria-activedescendant', id + '-o' + i);
-      else btn.removeAttribute('aria-activedescendant');
+      if (i > -1 && i < shown.length) {
+        actEl = list.querySelector('li[data-i="' + i + '"]');
+        if (actEl) {
+          actEl.classList.add('act');
+          if (actEl.scrollIntoView) { actEl.scrollIntoView({ block: 'nearest' }); }
+          btn.setAttribute('aria-activedescendant', actEl.id);
+        }
+      } else {
+        btn.removeAttribute('aria-activedescendant');
+      }
     }
 
     function pick(i) {
@@ -417,9 +477,24 @@
 
     function outside(ev) { if (!wrap.contains(ev.target)) close(); }
 
+    // one listener for the whole list instead of a listener per row: with a long list the
+    // listeners themselves were a second reason of the freeze and of the memory
+    list.addEventListener('mousedown', function (ev) {
+      var li = ev.target.closest ? ev.target.closest('li') : null;
+      if (!li || !list.contains(li) || li.dataset.i === undefined) return;
+      ev.preventDefault();
+      pick(parseInt(li.dataset.i, 10));
+    });
     btn.addEventListener('click', function () { pop.hidden ? open() : close(); });
     sel.addEventListener('focus', open);              // clicking <label for="..."> lands here too
-    q.addEventListener('input', rows);
+    q.addEventListener('input', function () {
+      var needle = q.value.trim().toLowerCase();
+      // a key that did not change the filter must not rebuild anything (ime and case shifts
+      // fire several events per sign)
+      if (needle === (q.dataset.eyeNeedle || '')) { return; }
+      q.dataset.eyeNeedle = needle;
+      rows();
+    });
     q.addEventListener('keydown', function (ev) {
       var k = ev.key;
       if (k === 'ArrowDown') { ev.preventDefault(); mark(Math.min(act + 1, shown.length - 1)); }
@@ -434,6 +509,13 @@
       if (ev.key === 'ArrowDown' || ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(); }
     });
     new MutationObserver(paint).observe(sel, { attributes: true, attributeFilter: ['disabled'] });
+
+    // a page may refill the options of a select from its own script: the cache is then void
+    var esReset = new MutationObserver(function () {
+      all = []; done = false;
+      if (!pop.hidden) { rows(); }            // an open list is rebuilt from the new options
+    });
+    esReset.observe(sel, { childList: true, subtree: true });
     paint();
   }
 

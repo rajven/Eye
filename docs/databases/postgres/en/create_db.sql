@@ -736,6 +736,7 @@ COMMENT ON COLUMN ou_zabbix_groups.group_id IS 'zabbix host group id (hostgroup.
 CREATE INDEX idx_ipset_members_ip ON ipset_members USING BTREE (ip inet_ops);
 
 CREATE INDEX idx_devices_ip ON devices(ip);
+CREATE INDEX idx_user_auth_ip ON user_auth USING BTREE (ip, deleted, arp_found);
 CREATE INDEX idx_devices_device_type ON devices(device_type);
 CREATE INDEX idx_devices_active ON devices(active) WHERE active = 1;
 

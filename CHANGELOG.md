@@ -1,4 +1,21 @@
+# Changelog 3-2-7 - release
+- added: the column of the last arp on the page of the monitoring can be the key of the sort now: the list binds a device to
+  its address by ip in the query itself, so the order goes over the whole base and not over one page of it, records without an
+  arp stay at the end in both directions, and the name of the device keeps the pages steady
+- added: an index over the ip of an address record (ip, deleted, arp_found), the update patch 3-2-7 - without it the sort of a
+  hundred thousand addresses costs seconds per page, with it a fraction of a second
+- changed: the page of the monitoring no longer asks the arp of its page of devices by a separate query: the column comes with
+  the list
+
 # Changelog 3-2-6 - release
+- bugfix: a searchable dropdown made a row of the list for every option of the select, over and over again on every
+  sign of the search: on a site with a hundred thousand subscribers the tab of a chromium browser stopped answering for
+  several seconds at once and for a minute in total, which looked like a dead page. The list now reads the options in parts,
+  looks at not more than five thousand of them per pass, keeps what it has read for the next keystroke and puts in the dom not
+  more than two hundred rows, closing them with the line 'the first 200 of N, narrow the search'; the rows are listened to by
+  one handler of the list instead of a handler per row, the highlighted row is marked without a walk over the whole list and
+  scrolls into view, a keystroke which did not change the filter (a case shift, an ime) rebuilds nothing, and the cache falls
+  away when a page refills the options of the select itself
 - changed: the two items of the menu of the infrastructure are named by what they hold: the devices of the routing and the switching are
   the network equipment now, the servers, the access points and the rest of the end nodes which eye knows by an address of a
   subscriber are the subscriber equipment. the word passive is gone: it told nothing, and the name of such a type of a device as

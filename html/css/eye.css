@@ -813,6 +813,8 @@ body.eye-login .login p { margin: 0 0 12px; }
 .es-opt.act { background: var(--sel); box-shadow: inset 0 0 0 1px var(--focus); }
 .es-opt.dis { opacity: .45; cursor: not-allowed; }
 .es-none { color: var(--ink-3); cursor: default; }
+.es-more { color: var(--ink-3); font: 600 11px/1.3 var(--disp); letter-spacing: .04em;
+  cursor: default; text-align: center; border-top: 1px solid var(--rule); border-radius: 0; }
 
 /* the label of the widget is a separate node, a long name is cut with an ellipsis */
 .es-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

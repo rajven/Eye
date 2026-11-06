@@ -686,6 +686,7 @@ ALTER TABLE `unknown_mac`
 ALTER TABLE `user_auth`
   ADD PRIMARY KEY (`id`),
   ADD KEY `auth_index` (`id`,`user_id`,`ip_int`,`mac`,`ip`,`deleted`) USING BTREE,
+  ADD KEY `ip` (`ip`,`deleted`,`arp_found`),
   ADD KEY `deleted` (`deleted`),
   ADD KEY `ou_id` (`ou_id`);
 
