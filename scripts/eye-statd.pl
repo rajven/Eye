@@ -43,6 +43,7 @@ my %proto_map = (
 );
 
 my %mute;
+my $last_mute_prune = 0;
 
 my %routers_svi;
 my %routers_by_ip;
