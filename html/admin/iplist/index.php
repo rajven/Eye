@@ -215,6 +215,14 @@ $params[]=$displayed;
 $params[]=$start;
 
 $users = get_records_sql($db_link,$sSQL, $params);
+
+$auth_ids = array_column($users, 'id');
+$aliases_map = get_auth_aliases_map($db_link, $auth_ids);
+$vendor_names_map = get_mac_vendor_names_map($db_link, array_column($users, 'mac'));
+$group_names_map = get_group_names_map($db_link, array_column($users, 'filter_group_id'));
+$queue_names_map = get_queue_names_map($db_link, array_column($users, 'queue_id'));
+$connections_map = get_connections_map($db_link, $auth_ids);
+
 foreach ($users as $user) {
     if (is_empty_datetime($user['dhcp_time'])) {
         $dhcp_str = '';
@@ -230,19 +238,21 @@ foreach ($users as $user) {
     if ($user['blocked']) { $cl = "error"; }
     if ($user['uenabled'] !== 1 || $user['ublocked'] == 1) { $cl = "off"; }
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$user['id']."></td>\n";
-    print "<td class=\"$cl\" >".$user['ou_name']."</td>\n";
-    if (empty($user['login'])) { $user_name = $user['user_id']; } else { $user_name = $user['login']; }
-    print "<td class=\"$cl\" >" . get_login_link($db_link, $user['user_id']) . "</td>\n";
-    print "<td class=\"$cl\" >" . get_auth_link($db_link, $user['id']) . "</td>\n";
-    print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
+    print "<td class=\"$cl\" >" .  create_url(esc($user['ou_name']), '/admin/groups/edit_group.php?id=' . (int)$user['ou_id']) . "</td>\n";
+    $auth_display = empty($user['ip']) ? 'auth_id: ' . (int)$user['id'] : $user['ip'];
+    print "<td class=\"$cl\" >" . create_url($user['login'], '/admin/users/edituser.php?id=' . (int)$user['user_id']) . "</td>\n";
+    print "<td class=\"$cl\" >" . create_url($auth_display, '/admin/users/editauth.php?id=' . (int)$user['id']) . "</td>\n";
+    print "<td class=\"$cl\" >" . expand_mac($db_link, $user['mac'], $vendor_names_map) . "</td>\n";
+
     if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
         print "<td class=\"$cl\" width=200 >".$user['description']." [" . $user['dhcp_hostname'] . "]</td>\n";
     } else {
         print "<td class=\"$cl\" width=200 >".$user['description']."</td>\n";
     }
 
-    $aliases = get_records_sql($db_link, 'SELECT * FROM user_auth_alias WHERE auth_id=?', [$user['id']]);
-    $dns_display = $user['dns_name'];
+    $alias_rows = $aliases_map[(int)$user['id']] ?? [];
+    $dns_display = esc($user['dns_name']);
+
     if ($user["dns_ptr_only"]) { $dns_display.='&nbsp(ptr)'; }
     if (!empty($aliases)) {
         $dns_display .= '<hr>';
@@ -253,8 +263,15 @@ foreach ($users as $user) {
         $dns_display .= implode('<br>', $alias_list);
     }
     print "<td class=\"$cl\" >".$dns_display."</td>\n";
-    print "<td class=\"$cl\" >" . get_group_link($db_link, $user['filter_group_id']) . "</td>\n";
-    print "<td class=\"$cl\" >" . get_queue($db_link, $user['queue_id']) . "</td>\n";
+
+    $group_id = (int)$user['filter_group_id'];
+    if ($group_id > 0) {
+        print "<td class=\"$cl\" >" . create_url($group_names_map[$group_id] ?? '', '/admin/filters/editgroup.php?id=' . $group_id) . "</td>\n";
+        } else {
+        print "<td class=\"$cl\" ></td>\n";
+    }
+    print "<td class=\"$cl\" >" . esc($queue_names_map[(int)$user['queue_id']] ?? '') . "</td>\n";
+
     print_td_qa($user['save_traf'],FALSE,$cl);
     print_td_qa($user['dhcp'],FALSE,$cl);
     print "<td class=\"$cl\" >".$user['dhcp_acl']."</td>\n";
@@ -267,7 +284,15 @@ foreach ($users as $user) {
         print $user['mac_found'];
         } else { print "-"; }
     print "</td>\n";
-    print "<td class=\"$cl\" >" . get_connection($db_link, $user['id']) . "</td>\n";
+
+    $connection = $connections_map[(int)$user['id']] ?? null;
+    if (!empty($connection)) {
+        // the device of the connection is the link, the name is escaped by create_url()
+        print "<td class=\"$cl\" >" . create_url($connection['device_name'], '/admin/devices/editdevice.php?id=' . (int)$connection['id']) . "[" . esc($connection['port']) . "]</td>\n";
+        } else {
+        print "<td class=\"$cl\" ></td>\n";
+    }
+
     print "</tr>\n";
 }
 print "</table>\n";

@@ -93,16 +93,19 @@ $params[]=$displayed;
 $params[]=$start;
 
 $users = get_records_sql($db_link,$sSQL, $params);
+
+$auth_ids = array_column($users, 'id');
+$vendor_names_map = get_mac_vendor_names_map($db_link, array_column($users, 'mac'));
+
 foreach ($users as $user) {
     if (empty($user['last_found']) || is_empty_datetime($user['last_found'])) { $user['last_found'] = ''; }
     if (empty($user['ts']) || is_empty_datetime($user['ts'])) { $user['ts'] = ''; }
     if (empty($user['changed_time']) || is_empty_datetime($user['changed_time'])) { $user['changed_time'] = ''; }
     print "<tr align=center>\n";
     $cl = "data";
-    print "<td class=\"$cl\">";
-    print_url((string)$user['ip'], '/admin/users/editauth.php?id=' . (int)$user['id']);
-    print "</td>\n";
-    print "<td class=\"$cl\" >" . expand_mac($db_link,$user['mac']) . "</td>\n";
+    $auth_display = empty($user['ip']) ? 'auth_id: ' . (int)$user['id'] : $user['ip'];
+    print "<td class=\"$cl\" >" . create_url($auth_display, '/admin/users/editauth.php?id=' . (int)$user['id']) . "</td>\n";
+    print "<td class=\"$cl\" >" . expand_mac($db_link, $user['mac'], $vendor_names_map) . "</td>\n";
     if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
         print "<td class=\"$cl\">" . esc($user['description']) . " [" . esc($user['dhcp_hostname']) . "]</td>\n";
     } else {

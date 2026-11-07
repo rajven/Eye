@@ -4064,13 +4064,20 @@ function expand_device_name($db, $name)
     return $name;
 }
 
-function expand_mac($db, $mac)
+function expand_mac($db, $mac, $vendor_names_map = null)
 {
     if (empty($mac)) {
         return '';
     }
-    
+
     $mac = mac_dotted($mac);
+
+    if (is_array($vendor_names_map)) {
+        $safe_vendor = mac_vendor_from_map($vendor_names_map, $mac);
+    } else {
+        $safe_vendor = get_mac_vendor($db, $mac);
+    }
+
     $safe_vendor = get_mac_vendor($db, $mac);
     $safe_mac = $mac;
     $safe_url_mac = urlencode($mac);
@@ -4962,6 +4969,132 @@ function is_system_ou($db, $ou_id = null) {
     }
     $sql = "SELECT 1 FROM ou WHERE id = ? AND (default_users = 1 OR default_hotspot = 1)";
     return !empty(get_record_sql($db, $sql, [$ou_id]));
+}
+
+// === The batch maps of the list pages ===
+
+// The list pages of eye show up to 500 rows at once, and the single-record helpers above
+// make a query of the reference table for every row of the page: up to a few thousands of
+// queries per page view. The helpers of the block fetch the reference data of the whole
+// page with one query per table and return the maps by the key of the row, so the loop of
+// the page makes no queries at all.
+
+// The values are bound into the {IN} mark of the query in chunks of 500, the callback of
+// every chunk fills the map: the internal tool of the block, the query of the caller must
+// carry the {IN} mark
+function batch_by_values($db, $values, $sql, $callback)
+{
+    $map = [];
+    $values = array_values(array_unique((array)$values));
+    $values = array_filter($values, function ($value) { return $value !== null && (string)$value !== ''; });
+    if (empty($values)) {
+        return $map;
+    }
+
+    foreach (array_chunk($values, 500) as $chunk) {
+        $marks = implode(',', array_fill(0, count($chunk), '?'));
+        $rows = get_records_sql($db, str_replace('{IN}', $marks, $sql), array_values($chunk));
+        if (!empty($rows)) {
+            $callback($rows, $map);
+        }
+    }
+    return $map;
+}
+
+// The name of the record of a reference table by the list of the ids: the query of the
+// caller must select the id as the first column and the name as the second one
+function get_id_name_map($db, $sql, $ids)
+{
+    return batch_by_values($db, $ids, $sql, function ($rows, &$map) {
+        foreach ($rows as $row) {
+            $values = array_values($row);
+            $map[(int)$values[0]] = (string)$values[1];
+        }
+    });
+}
+
+function get_group_names_map($db, $group_ids)
+{
+    return get_id_name_map($db, "SELECT id, group_name FROM group_list WHERE id IN ({IN})", $group_ids);
+}
+
+function get_queue_names_map($db, $queue_ids)
+{
+    return get_id_name_map($db, "SELECT id, queue_name FROM queue_list WHERE id IN ({IN})", $queue_ids);
+}
+
+// The aliases of the auth records of the page: the rows of the map keep the alias as the
+// single-record helpers do, the page escapes the alias itself
+function get_auth_aliases_map($db, $auth_ids)
+{
+    return batch_by_values($db, $auth_ids,
+        "SELECT auth_id, alias FROM user_auth_alias WHERE auth_id IN ({IN})",
+        function ($rows, &$map) {
+            foreach ($rows as $row) {
+                $map[(int)$row['auth_id']][] = ['alias' => $row['alias']];
+            }
+        });
+}
+
+// The vendors of the macs of the page: a mac gives up to four prefixes of the oui and the
+// query takes all of them at once, the display string is built by the same rule as in
+// get_mac_vendor(): the address when it is set, the name otherwise
+function get_mac_vendor_names_map($db, $macs)
+{
+    $prefixes = [];
+    foreach ((array)$macs as $mac) {
+        $dotted = mac_dotted($mac);
+        if (empty($dotted)) { continue; }
+        foreach ([$dotted, substr($dotted, 0, 14), substr($dotted, 0, 11), substr($dotted, 0, 8)] as $prefix) {
+            if (!empty($prefix)) { $prefixes[] = $prefix; }
+        }
+    }
+
+    return batch_by_values($db, $prefixes,
+        "SELECT oui, companyname, companyaddress FROM mac_vendors WHERE oui IN ({IN})",
+        function ($rows, &$map) {
+            foreach ($rows as $row) {
+                $address = $row['companyaddress'] ?? null;
+                $name = $row['companyname'] ?? null;
+                $map[$row['oui']] = !empty($address) ? $address : ($name ?? '');
+            }
+        });
+}
+
+// The vendor of one mac from the map of get_mac_vendor_names_map(): the same priority of
+// the prefixes as in get_mac_vendor(), the empty string when the map has no vendor
+function mac_vendor_from_map($vendor_names_map, $mac)
+{
+    $dotted = mac_dotted($mac);
+    if (empty($dotted)) {
+        return '';
+    }
+
+    $prefixes = [$dotted, substr($dotted, 0, 14), substr($dotted, 0, 11), substr($dotted, 0, 8)];
+    foreach ($prefixes as $prefix) {
+        if (!empty($prefix) && isset($vendor_names_map[$prefix])) {
+            return $vendor_names_map[$prefix];
+        }
+    }
+    return '';
+}
+
+// The connection of every auth of the page: the first connection wins as in
+// get_connection(), the order of the print fixes the choice which was random there
+function get_connections_map($db, $auth_ids)
+{
+    return batch_by_values($db, $auth_ids,
+        "SELECT C.auth_id, D.id AS device_id, D.device_name, DP.port " .
+        "FROM connections AS C, device_ports AS DP, devices AS D " .
+        "WHERE D.deleted = 0 AND D.id = DP.device_id AND DP.id = C.port_id AND C.auth_id IN ({IN}) " .
+        "ORDER BY C.auth_id, D.id, DP.port",
+        function ($rows, &$map) {
+            foreach ($rows as $row) {
+                $auth_id = (int)$row['auth_id'];
+                if (isset($map[$auth_id])) { continue; }
+                $map[$auth_id] = ['id' => (int)$row['device_id'], 'device_name' => $row['device_name'], 'port' => $row['port']];
+            }
+        });
 }
 
 $config["org_name"] = get_option($db_link, 32);
