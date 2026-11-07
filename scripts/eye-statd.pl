@@ -250,6 +250,12 @@ while (1) {
             };
         }
     }
+
+    if (time() - ($last_mute_prune ||= time()) >= 3600) {
+        $last_mute_prune = time();
+        foreach my $ip (keys %mute) { delete $mute{$ip} if (time() - $mute{$ip} > 86400); }
+        }
+
     # Проверяем, не пора ли сбросить статистику
     my $elapsed = time() - $traf_lastflush;
     if (@traffic && $elapsed >= $timeshift) {
@@ -360,9 +366,9 @@ sub parse_netflow_v9_template_flowset {
 		my $template_id = $template_ints[$i];
 		my $fldcount = $template_ints[$i+1];
 
+                last if (!defined($template_id) || !defined($fldcount)); 
                 last if ($fldcount == 0);
                 last if (($i + 2 + $fldcount*2) > scalar(@template_ints)); 
-                last if (!defined($template_id) || !defined($fldcount));
 
 #		print "Updated template ID $template_id (source ID $source_id, from " . inet_ntoa($ipaddr) . ")\n" if ($debug);
 		my $template = [@template_ints[($i+2) .. ($i+2+$fldcount*2-1)]];
@@ -402,7 +408,7 @@ sub parse_netflow_v9_data_flowset {
             snmp_in  => 0,
             snmp_out => 0,
             octets   => 0,
-            pkts     => 0
+            pkts     => 0,
             proto    => 0,
             src_port => 0,
             dst_port => 0,
@@ -528,8 +534,6 @@ sub save_flow {
 		} else {
                 if (!exists $mute{$router_ip}) { 
                         $mute{$router_ip} = time();
-                    } else {
-                        delete $mute{$router_ip} if (time()-$mute{$router_ip} > 86400);
                     }
                 if (abs(time() - $mute{$router_ip}) >=3600) {
                     $mute{$router_ip} = time();
