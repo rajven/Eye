@@ -236,13 +236,18 @@ while (1) {
 
         if (defined($lsn_nflow) && $server == $lsn_nflow) {
             my ($version) = unpack("n", $datagram);
-            if ($version == 5) {
-                parse_netflow_v5($datagram, $ipaddr);
-            } elsif ($version == 9) {
-                parse_netflow_v9($datagram, $ipaddr);
-            } else {
-                print "unknown NetFlow version: $version\n";
-            }
+            eval {
+                if ($version == 5) {
+                    parse_netflow_v5($datagram, $ipaddr);
+                    } elsif ($version == 9) {
+                        parse_netflow_v9($datagram, $ipaddr);
+                        } else {
+                            print "unknown NetFlow version: $version\n";
+                        }
+                 1;
+            } or do {
+                log_warning("NetFlow packet dropped: $@");
+            };
         }
     }
     # Проверяем, не пора ли сбросить статистику
@@ -251,8 +256,8 @@ while (1) {
         unless ($flush_scheduled) {
             $flush_scheduled = 1;
             log_verbose("Check flush time. Now: ".time()." Last: $traf_lastflush Diff: $elapsed");
-            flush_traffic(0);
         }
+        flush_traffic(0);
     }
 
     if ($reload_config) {
@@ -355,7 +360,9 @@ sub parse_netflow_v9_template_flowset {
 		my $template_id = $template_ints[$i];
 		my $fldcount = $template_ints[$i+1];
 
-		last if (!defined($template_id) || !defined($fldcount));
+                last if ($fldcount == 0);
+                last if (($i + 2 + $fldcount*2) > scalar(@template_ints)); 
+                last if (!defined($template_id) || !defined($fldcount));
 
 #		print "Updated template ID $template_id (source ID $source_id, from " . inet_ntoa($ipaddr) . ")\n" if ($debug);
 		my $template = [@template_ints[($i+2) .. ($i+2+$fldcount*2-1)]];
@@ -382,6 +389,8 @@ sub parse_netflow_v9_data_flowset {
     }
 
     my $len = $netflow9_templates->{$ipaddr}->{$source_id}->{$flowsetid}->{'len'};
+    return if (!$len);
+
     my $offset = 0;
     my $datalen = length($flowsetdata);
 
@@ -394,6 +403,9 @@ sub parse_netflow_v9_data_flowset {
             snmp_out => 0,
             octets   => 0,
             pkts     => 0
+            proto    => 0,
+            src_port => 0,
+            dst_port => 0,
         );
 
         for (my $i = 0; $i < scalar @$template; $i += 2) {
@@ -440,6 +452,7 @@ sub parse_netflow_v9_data_flowset {
             }
             # ICMP_TYPE (32)
             elsif ($field_type == 32) {
+                $flow{icmp_type} = unpack("C", $value);
             }
             # ICMP_CODE (33)
             elsif ($field_type == 33) {
@@ -501,6 +514,8 @@ sub save_flow {
 	my $flow = shift;
 
 	$router_ip = inet_ntoa($router_ip);
+
+
 	#direction for user, 0 - in, 1 - out
 	$flow->{direction} = '0';
 	my $router_id;
@@ -511,8 +526,12 @@ sub save_flow {
 		$flow->{device_id} = $router_id;
 		$flow->{save} = $routers_by_ip{$router_ip}{save};
 		} else {
-                if (!exists $mute{$router_ip}) { $mute{$router_ip} = time(); }
-                if (time() - $mute{$router_ip} >=3600) {
+                if (!exists $mute{$router_ip}) { 
+                        $mute{$router_ip} = time();
+                    } else {
+                        delete $mute{$router_ip} if (time()-$mute{$router_ip} > 86400);
+                    }
+                if (abs(time() - $mute{$router_ip}) >=3600) {
                     $mute{$router_ip} = time();
                     log_warning("Found unknown router ip [".$router_ip."] in netflow!");
                     }
@@ -539,8 +558,6 @@ if (!$force && ($child_count > 0 or $flush_scheduled==0)) {
 
 my $pid = fork();
 
-refresh_config();
-
 if (!defined $pid) {
         log_error("Fork failed: $!");
         $flush_scheduled = 0;
@@ -564,6 +581,8 @@ push(@flush_table,@traffic);
 
 $SIG{HUP}  = 'IGNORE';
 $SIG{TERM} = 'DEFAULT';
+
+refresh_config();
 
 log_verbose("Start flush traffic to DB");
 log_debug("ROUTERS-SVI:".Dumper(\%routers_svi));
