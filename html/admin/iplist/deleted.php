@@ -93,8 +93,6 @@ $params[]=$displayed;
 $params[]=$start;
 
 $users = get_records_sql($db_link,$sSQL, $params);
-
-$auth_ids = array_column($users, 'id');
 $vendor_names_map = get_mac_vendor_names_map($db_link, array_column($users, 'mac'));
 
 foreach ($users as $user) {

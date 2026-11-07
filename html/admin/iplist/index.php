@@ -240,7 +240,7 @@ foreach ($users as $user) {
     if ($user['blocked']) { $cl = "error"; }
     if ($user['uenabled'] !== 1 || $user['ublocked'] == 1) { $cl = "off"; }
     print "<td class=\"$cl\" style='padding:0'><input type=checkbox name=fid[] value=".$user['id']."></td>\n";
-    print "<td class=\"$cl\" >" .  create_url(esc($user['ou_name']), '/admin/groups/edit_group.php?id=' . (int)$user['ou_id']) . "</td>\n";
+    print "<td class=\"$cl\" >" .  create_url($user['ou_name'], '/admin/groups/edit_group.php?id=' . (int)$user['ou_id']) . "</td>\n";
     $auth_display = empty($user['ip']) ? 'auth_id: ' . (int)$user['id'] : $user['ip'];
     print "<td class=\"$cl\" >" . create_url($user['login'], '/admin/users/edituser.php?id=' . (int)$user['user_id']) . "</td>\n";
     print "<td class=\"$cl\" >" . create_url($auth_display, '/admin/users/editauth.php?id=' . (int)$user['id']) . "</td>\n";
@@ -256,10 +256,10 @@ foreach ($users as $user) {
     $dns_display = esc($user['dns_name']);
 
     if ($user["dns_ptr_only"]) { $dns_display.='&nbsp(ptr)'; }
-    if (!empty($aliases)) {
+    if (!empty($alias_rows)) {
         $dns_display .= '<hr>';
         $alias_list = [];
-        foreach ($aliases as $alias) {
+        foreach ($alias_rows as $alias) {
             $alias_list[] = htmlspecialchars($alias['alias'], ENT_QUOTES, 'UTF-8');
         }
         $dns_display .= implode('<br>', $alias_list);

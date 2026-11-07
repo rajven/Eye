@@ -4078,7 +4078,6 @@ function expand_mac($db, $mac, $vendor_names_map = null)
         $safe_vendor = get_mac_vendor($db, $mac);
     }
 
-    $safe_vendor = get_mac_vendor($db, $mac);
     $safe_mac = $mac;
     $safe_url_mac = urlencode($mac);
     if (!empty($safe_vendor)) {
