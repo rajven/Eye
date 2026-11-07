@@ -27,9 +27,11 @@ if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and user_list.ou_id=?"
 
 if (empty($rcidr)) { $cidr_filter = ''; } else {
     $cidr_range = cidrToRange($rcidr);
-    if (!empty($cidr_range)) { $cidr_filter = " and user_auth.ip_int>=? and user_auth.ip_int<=?"; }
-    $params[]=ip2long($cidr_range[0]);
-    $params[]=ip2long($cidr_range[1]);
+    if (!empty($cidr_range)) {
+        $cidr_filter = " and user_auth.ip_int>=? and user_auth.ip_int<=?";
+        $params[]=ip2long($cidr_range[0]);
+        $params[]=ip2long($cidr_range[1]);
+        }
     }
 
 $enabled_filter='';
@@ -245,9 +247,9 @@ foreach ($users as $user) {
     print "<td class=\"$cl\" >" . expand_mac($db_link, $user['mac'], $vendor_names_map) . "</td>\n";
 
     if (isset($user['dhcp_hostname']) and strlen($user['dhcp_hostname']) > 0) {
-        print "<td class=\"$cl\" width=200 >".$user['description']." [" . $user['dhcp_hostname'] . "]</td>\n";
+        print "<td class=\"$cl\" width=200 >".esc($user['description'])." [" . esc($user['dhcp_hostname']) . "]</td>\n";
     } else {
-        print "<td class=\"$cl\" width=200 >".$user['description']."</td>\n";
+        print "<td class=\"$cl\" width=200 >".esc($user['description'])."</td>\n";
     }
 
     $alias_rows = $aliases_map[(int)$user['id']] ?? [];
