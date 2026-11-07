@@ -238,9 +238,18 @@ function get_ports_sfp_status($vendor_id, $ip, $snmp, $modules_oids = NULL, $ifn
             $opttx_map  = walk_snmp_map($ip, $snmp, HUAWEI_SFP_OPTTX);
             $optrx_map  = walk_snmp_map($ip, $snmp, HUAWEI_SFP_OPTRX);
 
-            // HUAWEI_SFP_TX/RX are not read: the fallback behind them in get_sfp_status()
-            // is dead code ("isset()" is always true after parse_snmp_value()), so the
-            // original never used these two OIDs
+            // some Huawei routers answer point GETs on the optical table but
+            // return nothing for a walk on it ("No Such Instance"), so when
+            // every optical walk came back empty, fall back to point GETs
+            // for each known module id
+            if (empty($volt_map) and empty($bias_map) and empty($opttx_map) and empty($optrx_map)) {
+                foreach (array_keys($vendor_map) as $module_id) {
+                    $volt_map[$module_id]  = parse_snmp_value(get_snmp($ip, $snmp, HUAWEI_SFP_VOLT . "." . $module_id));
+                    $bias_map[$module_id]  = parse_snmp_value(get_snmp($ip, $snmp, HUAWEI_SFP_BIASCURRENT . "." . $module_id));
+                    $opttx_map[$module_id] = parse_snmp_value(get_snmp($ip, $snmp, HUAWEI_SFP_OPTTX . "." . $module_id));
+                    $optrx_map[$module_id] = parse_snmp_value(get_snmp($ip, $snmp, HUAWEI_SFP_OPTRX . "." . $module_id));
+                }
+            }
 
             foreach ($ifname_map as $ifindex => $port_name) {
                 $port_name = preg_quote(trim((string)$port_name), '/');
