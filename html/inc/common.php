@@ -3642,7 +3642,7 @@ function email($level = L_WARNING, $msg = '') {
 
     // Обработка сообщения
     $subjectPrefix = ($level === L_WARNING) ? "WARN: " : "ERROR: ";
-    $subject = $subjectPrefix . get_first_line($msg) . "...";
+    $subject = mb_encode_mimeheader($subjectPrefix . get_first_line($msg) . "...", 'UTF-8', 'B', "\r\n");
     $messageType = ($level === L_WARNING) ? 'WARNING' : 'ERROR';
     // Формирование HTML-сообщения с экранированием
     $safeMsg = nl2br(htmlspecialchars($msg, ENT_QUOTES, 'UTF-8'));
@@ -3667,7 +3667,7 @@ function email($level = L_WARNING, $msg = '') {
         'X-Mailer' => 'PHP',
         'MIME-Version' => '1.0',
         'Content-Type' => 'multipart/mixed; boundary=' . $boundary,
-        'Content-Transfer-Encoding' => 'base64'
+//        'Content-Transfer-Encoding' => 'base64'
     ];
     // Формирование тела письма
     $message = "--$boundary\r\n" .

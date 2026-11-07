@@ -57,19 +57,8 @@ sub is_dhcp_pool {
 # Get current date components
 my ($sec, $min, $hour, $day, $month, $year, $zone) = localtime(time());
 
-my $history_sql;
-my $history_rf;
-
 # Build Patricia tries for office networks (used for IP matching)
-my %nets;
 my %dhcp_conf;
-
-foreach my $net (@office_network_list) {
-    my $scope_name = $net;
-    $scope_name =~ s/\/\d+$//g;  # Strip CIDR suffix (e.g., /24)
-    $nets{$scope_name} = Net::Patricia->new;
-    $nets{$scope_name}->add_string($net);
-}
 
 # Define the current month’s start and end (for monthly stats)
 my $now = DateTime->now(time_zone => 'local');
@@ -132,6 +121,7 @@ my @users_auth = get_records_sql($dbh, $users_sql, $default_user_ou_id, $default
 foreach my $row (@users_auth) {
     # Skip if IP is not in any DHCP pool
     next if (!is_dhcp_pool(\%dhcp_conf, $row->{ip_int}));
+    next if (!$row->{dhcp_time});
 
     # Only process IPs that belong to a DHCP-managed subnet
     my $ip_subnet = $dhcp_networks->match_string($row->{ip});
@@ -225,12 +215,15 @@ do_sql($dbh, "DELETE FROM auth_rules WHERE user_id NOT IN (SELECT id FROM user_l
 
 # Clean unknown MAC entries that now belong to known users
 db_log_info($dbh, 'Removing unknown MAC records that are now associated with active users');
-$users_sql = "SELECT mac FROM user_auth WHERE deleted = 0";
-@users_auth = get_records_sql($dbh, $users_sql);
-foreach my $row (@users_auth) {
-    next if (!$row->{mac});
-    do_sql($dbh, "DELETE FROM unknown_mac WHERE mac = ?", mac_splitted($row->{mac}));
+my $users_sql = "SELECT mac FROM user_auth WHERE deleted = 0 AND mac IS NOT NULL AND mac <> ''";
+my $users_auth = get_records_sql($dbh, $users_sql);
+my @macs = map { mac_splitted($_->{mac}) } @$users_auth;
+my $CHUNK = 50;
+while (my @batch = splice(@macs, 0, $CHUNK)) {
+    my $ph = join(',', ('?') x @batch);
+    do_sql($dbh, "DELETE FROM unknown_mac WHERE mac IN ($ph)", @batch);
 }
+
 
 # Clean old detailed traffic records (based on global $history setting)
 if ($history) {

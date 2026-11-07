@@ -318,8 +318,9 @@ sub mail_send {
         return;
     }
 
-    # Санитизация (оставляет Unicode буквы/цифры)
-    $subject =~ s/[^\p{L}\p{N}\s\-\.\,\!\?]//g;
+    local $SIG{PIPE} = 'IGNORE';
+
+    $subject =~ s/[\r\n]+/ /g;
     $msg =~ s/\r//g;
 
     my $html_message = <<"END_HTML";
@@ -369,7 +370,7 @@ END_MIME
         log_error("Sendmail not found or not executable at $sendmail");
         return;
     }
-    unless (open(MAIL, "|$sendmail -oi -t")) {
+    unless (open(MAIL, "|$sendmail -oi -t -f $sender_email")) {
         log_error("Failed to open sendmail: $!");
         return;
     }
