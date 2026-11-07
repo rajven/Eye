@@ -612,6 +612,7 @@ define("WEB_zabbix_host_unchanged","Zabbix: хост %s соответствуе
 define("WEB_zabbix_host_disabled","Zabbix: хост %s уже отключён");
 define("WEB_zabbix_host_switched_off","Zabbix: мониторинг хоста %s отключён");
 define("WEB_zabbix_host_missing","Zabbix: хоста этой записи ещё нет");
+define("WEB_zabbix_host_occupied","Zabbix: адрес записи уже опрашивается хостом записи %s, запись %s осталась как есть");
 define("WEB_zabbix_host_failed","Zabbix: хост %s не обновлён, смотрите ошибки api в журнале");
 define("WEB_zabbix_record_skip","Запись нельзя выгрузить в zabbix: запись или устройство не найдены, либо под мониторингом лежит коммутатор или маршрутизатор");
 define("WEB_zabbix_host_note_renamed","имя");

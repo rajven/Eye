@@ -6,6 +6,15 @@
   hundred thousand addresses costs seconds per page, with it a fraction of a second
 - changed: the page of the monitoring no longer asks the arp of its page of devices by a separate query: the column comes with
   the list
+- added: the export to zabbix looks for the host of a record by the address of its interface when neither the eye tag of the
+  record nor its name found the host: a device put into zabbix by hand, or created under the name of another record, is bound
+  to the record and updated, while the creation of the second host above the address which is polled allready is refused by
+  zabbix. the search costs one light call over the farm for a run, the address of the host of another record is not taken, and
+  the interface of the bound host is moved to the address of the device - host.update does not touch the interfaces, so they
+  are corrected by the requests of their own group, and a host without such an interface gets it created
+- changed: the signs of the host of a record are looked over in the order eye tag, name of the record, address of the
+  interface: the tag of the host survives a renaming in zabbix, the name of the host is corrected by the export itself, and
+  the address is the last sign of the device which eye does not know yet
 - bugfix: the bulk walk of the sfp over a huawei module returned another line than the port by port query it replaced: the power
   of a channel was named 'TX:' and 'RX:' instead of 'Tx:' and 'Rx:', and a reading which came back empty fell down to the legacy
   oid, which the old code never reached at all because its check was dead - the bulk answers with the same text now, the branches

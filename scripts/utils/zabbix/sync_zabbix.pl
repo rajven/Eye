@@ -277,6 +277,7 @@ my @disable_list;
             key => 'netdev_' . $device->{id},
             type => 'netdev',
             id => $device->{id},
+            ip => $device->{ip},
             host => host_base_name($device->{device_name}, 'netdev_' . $device->{id}),
             });
         }
@@ -318,9 +319,47 @@ my $tagged_count = scalar(keys %tagged_hosts);
 log_info("Zabbix: " . scalar(keys %known_hosts) . " hosts found by name, $tagged_count hosts created by eye");
 
 #===============================================================
+# zabbix does not search a host by the address of its interface, so all the interfaces
+# of the farm are passed once by a light call, and the addresses of the records which
+# neither the name nor the eye tag found are read by the detailed call. It is the way
+# to see a device which was put into zabbix by hand or under the name of another record:
+# such a host is updated, while creating it again zabbix would only refuse the address
+# which is occupied allready
+
+my %hosts_by_ip;
+
+{
+my @wanted;
+my %seen;
+
+foreach my $item (@hosts, @disable_list) {
+    my $ip = zabbix_host_ip($item->{ip});
+    next if ($ip eq '');
+    next if ($known_hosts{ zabbix_host_key($item->{host}) }
+        || $tagged_hosts{ zabbix_host_tag_name($item->{type}, $item->{id}) });
+    next if ($seen{$ip});
+    $seen{$ip} = 1;
+    push(@wanted, $ip);
+    }
+
+my $found = zabbix_get_hosts_by_addresses(\@wanted);
+foreach my $ip (keys %$found) {
+    $hosts_by_ip{$ip} = $found->{$ip};
+    }
+
+log_info("Zabbix: " . scalar(@wanted) . " eye records are looked for by their address, "
+    . scalar(keys %hosts_by_ip) . " hosts are found");
+}
+
+#===============================================================
 # export
 
 my %stat = (created => 0, updated => 0, unchanged => 0, disabled => 0, failed => 0);
+
+# the zabbix hosts which the run has already bound to an eye record, the address of one
+# record must not become the address of the host of another record
+
+my %host_claimed;
 
 foreach my $host (@hosts) {
     $stat{ sync_host($host) }++;
@@ -336,6 +375,20 @@ foreach my $item (@disable_list) {
         $zbx_host = $known_hosts{ zabbix_host_key($item->{host}) };
         next if ($zbx_host && zabbix_host_tag_value($zbx_host, $tag_eye) ne '');
         }
+
+    if (!$zbx_host) {
+        # the address is the last sign of the host of a record which is not monitored
+        # anymore: a host with the eye tag of another record, and a host which this run
+        # has just updated, keep their monitoring - the address of a silent record
+        # belongs to a live device more often than to the host which must be disabled
+        my $ip = zabbix_host_ip($item->{ip});
+        $zbx_host = $hosts_by_ip{$ip};
+        if ($zbx_host && ($host_claimed{ $zbx_host->{hostid} }
+            || zabbix_host_tag_value($zbx_host, $tag_eye) ne '')) {
+            $zbx_host = undef;
+            }
+        }
+
     next if (!$zbx_host);
 
     if ($zbx_host->{status} eq 1) {
@@ -366,16 +419,42 @@ my $macros = host_macros($host);
 my $groups = host_groups($host);
 my $eye_tag = zabbix_host_tag_name($host->{type}, $host->{id});
 
-my $zbx_host = $known_hosts{ zabbix_host_key($host->{host}) };
+# the host of the record: the eye tag first, because the tag survives a renaming in
+# zabbix, then the technical name of the record, then the address of the interface
+
+my $zbx_host = $tagged_hosts{$eye_tag};
+
 if (!$zbx_host) {
-    # the host keeps the eye tag, so it is found even after it was renamed in zabbix
-    $zbx_host = $tagged_hosts{$eye_tag};
+    $zbx_host = $known_hosts{ zabbix_host_key($host->{host}) };
+    }
+
+if (!$zbx_host) {
+    # a host which zabbix polls at the address of the record allready: it was put into
+    # zabbix by hand, or it was created under the name of another record. Such a host
+    # gets the tag of the record and is updated, while the creation of the second host
+    # with the same address is refused by zabbix
+    my $ip = zabbix_host_ip($host->{ip});
+    $zbx_host = $hosts_by_ip{$ip};
+
+    if ($zbx_host) {
+        # the host of the address can belong to another eye record: it is known by the
+        # tag of the host itself, and the run remembers the hosts it has bound allready.
+        # two records of one address must not pull one host between themselves
+        my $owner = $host_claimed{ $zbx_host->{hostid} } || zabbix_host_tag_value($zbx_host, $tag_eye);
+        if ($owner && $owner ne $host->{key}) {
+            log_warning("Zabbix: address $ip belongs to host " . $zbx_host->{host}
+                . " of the eye record $owner, the record $host->{key} is left alone");
+            return 'unchanged';
+            }
+        log_info("Zabbix: host " . $zbx_host->{host} . " is found by its address $ip for the eye record $host->{key}");
+        }
     }
 
 if (!$zbx_host) {
     return create_host($host, $templates, $macros, $groups, $eye_tag);
     }
 
+$host_claimed{ $zbx_host->{hostid} } = $host->{key};
 return update_host($host, $zbx_host, $templates, $macros, $groups, $eye_tag);
 }
 
@@ -419,6 +498,7 @@ if (!$hostid) {
 # the newly created host is remembered, the next records do not ask zabbix about it
 my @tag_list = map { { tag => $_, value => $tags->{$_} } } sort keys %$tags;
 my @group_list = map { { groupid => $_ } } @$groups;
+my $new_interface = zabbix_host_interface($host);
 
 $tagged_hosts{$eye_tag} = {
     hostid => $hostid,
@@ -430,6 +510,7 @@ $tagged_hosts{$eye_tag} = {
     templates => [],
     macros => $macros,
     tags => [@tag_list],
+    interfaces => ($new_interface ? [$new_interface] : []),
     };
 
 $known_hosts{ zabbix_host_key($host->{host}) } = {
@@ -441,7 +522,18 @@ $known_hosts{ zabbix_host_key($host->{host}) } = {
     templates => [ map { { templateid => $_ } } @$templates ],
     macros => $macros,
     tags => [@tag_list],
+    interfaces => ($new_interface ? [$new_interface] : []),
     };
+
+# the address of the new host is kept too: the record of another device with the same
+# address must not ask zabbix for the second host at this address
+
+my $new_ip = zabbix_host_ip($host->{ip});
+if ($new_ip ne '' && !$hosts_by_ip{$new_ip}) {
+    $hosts_by_ip{$new_ip} = $known_hosts{ zabbix_host_key($host->{host}) };
+    }
+
+$host_claimed{$hostid} = $host->{key};
 
 return 'created';
 }
@@ -526,18 +618,55 @@ if ($zbx_host->{status} eq 1) {
     $change = 1;
     }
 
-if (!$change) {
+# the host must be polled at the address of the record: the device moved to another
+# address, or the host was found by its address and carries the parameters of another
+# poll. host.update does not touch the interfaces, so they are corrected apart
+
+my $wanted_interface = zabbix_host_interface($host);
+my $move_interface = zabbix_host_interface_changed($zbx_host, $wanted_interface);
+if ($move_interface) {
+    # the reason of the change is written, the address of the device is not the only
+    # sign of it: the snmp parameters of the interface follow the device too
+    my $current = zabbix_host_interface_of_type($zbx_host, $wanted_interface->{type});
+    my $reason;
+    if (!$current) {
+        $reason = 'has no ' . ($wanted_interface->{type} == 2 ? 'snmp' : 'agent') . ' interface';
+        }
+    elsif (zabbix_host_ip($current->{ip}) ne $wanted_interface->{ip}) {
+        $reason = 'is polled at ' . (($current->{ip} // '') ne '' ? $current->{ip} : 'no address');
+        }
+    else {
+        $reason = 'is polled by the parameters of the other snmp';
+        }
+    log_info("Zabbix: host $host->{host} $reason, the interface $wanted_interface->{ip} port "
+        . ($wanted_interface->{port} // '') . ' is needed');
+    }
+
+if (!$change && !$move_interface) {
     log_verbose("Zabbix: host $host->{host} is up to date");
     return 'unchanged';
     }
 
 if ($opt_dry) {
-    log_info("Zabbix dry run: host $host->{host} must be updated");
+    log_info("Zabbix dry run: host $host->{host} must be updated"
+        . ($move_interface ? ", the interface must move to $wanted_interface->{ip}" : ''));
     return 'unchanged';
     }
 
-$update{logname} = $zbx_host->{host};
-my $result = zabbix_update_host($zbx_host->{hostid}, \%update) ? 'updated' : 'failed';
+my $result = 'updated';
+
+if ($change) {
+    $update{logname} = $zbx_host->{host};
+    $result = zabbix_update_host($zbx_host->{hostid}, \%update) ? 'updated' : 'failed';
+    }
+
+# the interfaces live outside of host.update, they are corrected by the requests of
+# their own group: the address of the record wins, the interfaces of the other poll
+# types of this host are not touched
+
+if ($result eq 'updated' && $move_interface) {
+    $result = zabbix_sync_host_interface($zbx_host, $wanted_interface) ? 'updated' : 'failed';
+    }
 
 if ($result eq 'updated') {
     $known_hosts{ zabbix_host_key($host->{host}) } = $zbx_host;

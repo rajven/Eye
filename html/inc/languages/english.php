@@ -613,6 +613,7 @@ define("WEB_zabbix_host_unchanged","Zabbix: host %s is up to date");
 define("WEB_zabbix_host_disabled","Zabbix: host %s is already disabled");
 define("WEB_zabbix_host_switched_off","Zabbix: monitoring of host %s is switched off");
 define("WEB_zabbix_host_missing","Zabbix: there is no host of this record yet");
+define("WEB_zabbix_host_occupied","Zabbix: the address of the record is polled by the host of the record %s allready, the record %s is left alone");
 define("WEB_zabbix_host_failed","Zabbix: host %s is not updated, check the api errors in the log");
 define("WEB_zabbix_record_skip","This record can not be exported to zabbix: the record or its device does not exist, or the device with monitoring is a switch or a router");
 define("WEB_zabbix_host_note_renamed","the name");

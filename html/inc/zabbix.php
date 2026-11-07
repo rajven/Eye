@@ -818,6 +818,7 @@ function zabbix_get_hosts_by_names($names)
         'selectParentTemplates' => ['templateid', 'host', 'name'],
         'selectMacros' => ['macro', 'value', 'type'],
         'selectTags' => ['tag', 'value'],
+        'selectInterfaces' => zabbix_host_interface_fields(),
         'selectHostGroups' => ['groupid', 'name'],
     ]);
     if (!is_array($hosts)) {
@@ -832,6 +833,160 @@ function zabbix_get_hosts_by_names($names)
     return $found;
 }
 
+// The properties of an interface which eye reads from zabbix and writes back
+function zabbix_host_interface_fields()
+{
+    return ['interfaceid', 'type', 'ip', 'dns', 'port', 'useip', 'main', 'details'];
+}
+
+// Hosts by their identifiers, the result is keyed by the hostid
+function zabbix_get_hosts_by_ids($ids)
+{
+    $ids = array_values(array_filter((array)$ids, function ($id) {
+        return (string)$id !== '';
+    }));
+    if (empty($ids)) {
+        return [];
+    }
+
+    $hosts = zabbix_api_request('host.get', [
+        'output' => ['hostid', 'host', 'name', 'status', 'display', 'description'],
+        'hostids' => $ids,
+        'selectParentTemplates' => ['templateid', 'host', 'name'],
+        'selectMacros' => ['macro', 'value', 'type'],
+        'selectTags' => ['tag', 'value'],
+        'selectInterfaces' => zabbix_host_interface_fields(),
+        'selectHostGroups' => ['groupid', 'name'],
+    ]);
+    if (!is_array($hosts)) {
+        return [];
+    }
+
+    $found = [];
+    foreach ($hosts as $host) {
+        $found[(string)$host['hostid']] = zabbix_host_normalize($host);
+    }
+    return $found;
+}
+
+// Index of the addresses of the interfaces of the whole farm: address => hostid of the
+// host which polls it. The api of zabbix does not search a host by the address of its
+// interface, so one light request passes over the farm and the index lives for the rest
+// of the page. An interface which is polled by its name only is not indexed, and an
+// address which several hosts use becomes a conflict: eye does not bind such an address
+function zabbix_host_interface_index()
+{
+    if (!empty($GLOBALS['zabbix_ip_index_done'])) {
+        return $GLOBALS['zabbix_ip_index'];
+    }
+
+    $hosts = zabbix_api_request('host.get', [
+        'output' => ['hostid'],
+        'selectInterfaces' => ['ip'],
+    ]);
+    $index = [];
+    $conflicts = [];
+
+    if (is_array($hosts)) {
+        foreach ($hosts as $host) {
+            foreach ($host['interfaces'] ?? [] as $interface) {
+                $ip = zabbix_host_ip($interface['ip'] ?? '');
+                if ($ip === '' || isset($conflicts[$ip])) {
+                    continue;
+                }
+                $other = $index[$ip] ?? null;
+                if ($other !== null && $other !== (string)$host['hostid']) {
+                    unset($index[$ip]);
+                    $conflicts[$ip] = 1;
+                    continue;
+                }
+                $index[$ip] = (string)$host['hostid'];
+            }
+        }
+    }
+
+    $GLOBALS['zabbix_ip_index'] = $index;
+    $GLOBALS['zabbix_ip_conflicts'] = $conflicts;
+    $GLOBALS['zabbix_ip_index_done'] = 1;
+    return $index;
+}
+
+// The address which the page has just created or moved keeps its host: the mass
+// operation of a page binds several records, so the second record of one address must
+// see the host of the first one instead of asking zabbix for the second host there
+function zabbix_host_interface_remember($ip, $hostid)
+{
+    $ip = zabbix_host_ip($ip);
+    if ($ip === '' || $hostid === null || $hostid === '') {
+        return;
+    }
+
+    $index = zabbix_host_interface_index();
+    $old = array_search((string)$hostid, $index, true);
+    if ($old !== false && $old !== $ip) {
+        unset($GLOBALS['zabbix_ip_index'][$old]);
+    }
+    $GLOBALS['zabbix_ip_index'][$ip] = (string)$hostid;
+    unset($GLOBALS['zabbix_ip_conflicts'][$ip]);
+}
+
+// Address of the eye record in the representation of zabbix: the mask of a subnet
+// written by hand is not a part of the address of an interface
+function zabbix_host_ip($ip)
+{
+    $ip = preg_replace('/\s+/', '', (string)($ip ?? ''));
+    return preg_replace('#/\d+$#', '', $ip);
+}
+
+// Hosts by the address of their interface, the address is the key of the result. A
+// host is bound to an eye record by its address when the eye tag of the record does
+// not find it: the device was put into zabbix by hand, or it was created under another
+// name, and host.create would only answer that such an address exists allready
+function zabbix_get_hosts_by_addresses($ips)
+{
+    $wanted = [];
+    foreach ((array)$ips as $ip) {
+        $clean = zabbix_host_ip($ip);
+        if ($clean !== '') {
+            $wanted[$clean] = 1;
+        }
+    }
+    if (empty($wanted)) {
+        return [];
+    }
+
+    $index = zabbix_host_interface_index();
+    $conflicts = $GLOBALS['zabbix_ip_conflicts'] ?? [];
+    $ids = [];
+    $by_id = [];
+    foreach (array_keys($wanted) as $ip) {
+        $hostid = $index[$ip] ?? null;
+        if ($hostid === null || isset($conflicts[$ip]) || isset($by_id[$hostid])) {
+            continue;
+        }
+        $ids[] = $hostid;
+        $by_id[$hostid] = $ip;
+    }
+    if (empty($ids)) {
+        return [];
+    }
+
+    $found = [];
+    foreach (zabbix_get_hosts_by_ids($ids) as $hostid => $info) {
+        if (isset($by_id[$hostid])) {
+            $found[$by_id[$hostid]] = $info;
+        }
+    }
+    return $found;
+}
+
+// Host by the address of its interface
+function zabbix_get_host_by_address($ip)
+{
+    $found = zabbix_get_hosts_by_addresses([$ip]);
+    return $found[zabbix_host_ip($ip)] ?? null;
+}
+
 // All hosts carrying the eye tag, one call replaces a search per record
 function zabbix_get_tagged_hosts($tag_name = ZABBIX_TAG_EYE)
 {
@@ -842,6 +997,7 @@ function zabbix_get_tagged_hosts($tag_name = ZABBIX_TAG_EYE)
         'selectParentTemplates' => ['templateid', 'host', 'name'],
         'selectMacros' => ['macro', 'value', 'type'],
         'selectTags' => ['tag', 'value'],
+        'selectInterfaces' => zabbix_host_interface_fields(),
         'selectHostGroups' => ['groupid', 'name'],
     ]);
     if (!is_array($hosts)) {
@@ -873,6 +1029,7 @@ function zabbix_get_host_by_tag($tag_value, $tag_name = ZABBIX_TAG_EYE)
         'selectParentTemplates' => ['templateid', 'host', 'name'],
         'selectMacros' => ['macro', 'value', 'type'],
         'selectTags' => ['tag', 'value'],
+        'selectInterfaces' => zabbix_host_interface_fields(),
         'selectHostGroups' => ['groupid', 'name'],
     ]);
     if (!is_array($hosts) || empty($hosts)) {
@@ -913,6 +1070,22 @@ function zabbix_host_normalize($host)
         $groups[] = ['groupid' => $group['groupid'], 'name' => $group['name'] ?? ''];
     }
 
+    // interfaces of the host: the address and the parameters of the poll are compared
+    // with the eye record, so they come back with the host itself
+    $interfaces = [];
+    foreach ($host['interfaces'] ?? [] as $interface) {
+        $interfaces[] = [
+            'interfaceid' => $interface['interfaceid'] ?? '',
+            'type' => (string)($interface['type'] ?? ''),
+            'ip' => zabbix_host_ip($interface['ip'] ?? ''),
+            'dns' => $interface['dns'] ?? '',
+            'port' => (string)($interface['port'] ?? ''),
+            'useip' => (string)($interface['useip'] ?? ''),
+            'main' => (string)($interface['main'] ?? ''),
+            'details' => $interface['details'] ?? [],
+        ];
+    }
+
     return [
         'hostid' => $host['hostid'],
         'host' => $host['host'] ?? '',
@@ -924,6 +1097,7 @@ function zabbix_host_normalize($host)
         'macros' => $macros,
         'tags' => $tags,
         'groups' => $groups,
+        'interfaces' => $interfaces,
     ];
 }
 
@@ -1027,8 +1201,7 @@ function zabbix_host_merge_macros($host, $wanted, $owned = [])
 // interface for the rest of the hosts, zabbix can not poll a host without an interface
 function zabbix_host_interface($spec)
 {
-    $ip = trim((string)($spec['ip'] ?? ''));
-    $ip = preg_replace('#/\d+$#', '', $ip);
+    $ip = zabbix_host_ip($spec['ip'] ?? '');
     if ($ip === '') {
         return null;
     }
@@ -1068,6 +1241,109 @@ function zabbix_host_interface($spec)
     $interface['details'] = $details;
 
     return $interface;
+}
+
+// The interface of the host which has the type eye polls. The agent and the snmp poll
+// are two different objects of one host, the interfaces of the other type belong to the
+// other integration and are not touched
+function zabbix_host_interface_of_type($host, $type)
+{
+    foreach ($host['interfaces'] ?? [] as $interface) {
+        if ((string)$interface['type'] === (string)$type) {
+            return $interface;
+        }
+    }
+    return null;
+}
+
+// 1 when the host is polled not at the address of the eye record, or not by the snmp
+// parameters of it. The visible name of an interface is not compared: eye does not set
+// it, and an address is unique, so the name of the row does not change the poll
+function zabbix_host_interface_changed($host, $wanted)
+{
+    if ($wanted === null) {
+        return 1;
+    }
+
+    $current = zabbix_host_interface_of_type($host, $wanted['type']);
+    if ($current === null) {
+        return 1;
+    }
+
+    foreach (['ip', 'dns', 'port', 'useip'] as $field) {
+        if (!isset($wanted[$field])) {
+            continue;
+        }
+        if ((string)($current[$field] ?? '') !== (string)$wanted[$field]) {
+            return 1;
+        }
+    }
+
+    foreach ($wanted['details'] ?? [] as $field => $value) {
+        if ((string)($current['details'][$field] ?? '') !== (string)$value) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+// The host is polled at the address of the eye record. host.update does not touch the
+// interfaces, so the interface of the host is corrected by the requests of its own
+// group, and a host without such an interface gets it created
+function zabbix_api_sync_host_interface(&$host, $wanted)
+{
+    global $db_link;
+
+    $hostid = $host['hostid'] ?? null;
+    if (!$hostid || $wanted === null || !zabbix_host_interface_changed($host, $wanted)) {
+        return true;
+    }
+
+    $title = ($host['host'] !== '') ? $host['host'] : $hostid;
+    $current = zabbix_host_interface_of_type($host, $wanted['type']);
+    $port = ($wanted['port'] ?? '') === '' ? '' : ' port ' . $wanted['port'];
+
+    if ($current !== null) {
+        $done = zabbix_api_request('hostinterface.update',
+            array_merge($wanted, ['interfaceid' => $current['interfaceid']])) !== null;
+        $note = 'the interface of host ' . $title . ' is moved to ' . $wanted['ip'] . $port;
+    } else {
+        $created = zabbix_api_request('hostinterface.create', array_merge($wanted, ['hostid' => $hostid]));
+        $done = is_array($created) && !empty($created['interfaceids']);
+        $note = 'host ' . $title . ' gets the interface ' . $wanted['ip'] . $port;
+    }
+
+    if (!$done) {
+        LOG_ERROR($db_link, "Zabbix: cannot set the interface of host $title to " . $wanted['ip']);
+        return false;
+    }
+    LOG_INFO($db_link, "Zabbix: $note");
+
+    // the index of the page and the interfaces of the host follow the new address, the
+    // next records of the same page do not ask zabbix about it again
+    zabbix_host_interface_remember($wanted['ip'], $hostid);
+
+    foreach ($host['interfaces'] ?? [] as $key => $interface) {
+        if ((string)$interface['type'] !== (string)$wanted['type']) {
+            continue;
+        }
+        foreach (['ip', 'port', 'useip', 'dns'] as $field) {
+            $host['interfaces'][$key][$field] = (string)$wanted[$field];
+        }
+        if (isset($wanted['details'])) {
+            $host['interfaces'][$key]['details'] = $wanted['details'];
+        }
+        break;
+    }
+
+    // a host which had no such interface allready keeps the new one in its own list,
+    // the same host must not be asked for the second interface of the same type
+    if ($current === null) {
+        $host['interfaces'][] = $wanted;
+    }
+
+    return true;
 }
 
 // snmp authorization protocol of eye => number of zabbix
