@@ -240,7 +240,7 @@ function api_entities()
             ],
             'required' => ['device_name'],
             // the secrets of the remote access never leave the answer of the api
-            'hidden'   => ['password', 'snmp3_user_ro_password', 'snmp3_user_rw_password'],
+            'hidden'   => ['password', 'snmp3_user_ro_password', 'snmp3_user_rw_password', 'community', 'rw_community', 'login'],
             // the vendor of the device comes from its model, the ports follow the count
             'before'   => 'api_before_device',
             'after'    => 'api_after_device',
