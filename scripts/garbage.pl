@@ -215,9 +215,9 @@ do_sql($dbh, "DELETE FROM auth_rules WHERE user_id NOT IN (SELECT id FROM user_l
 
 # Clean unknown MAC entries that now belong to known users
 db_log_info($dbh, 'Removing unknown MAC records that are now associated with active users');
-my $users_sql = "SELECT mac FROM user_auth WHERE deleted = 0 AND mac IS NOT NULL AND mac <> ''";
-my $users_auth = get_records_sql($dbh, $users_sql);
-my @macs = map { mac_splitted($_->{mac}) } @$users_auth;
+$users_sql = "SELECT mac FROM user_auth WHERE deleted = 0 AND mac IS NOT NULL AND mac <> ''";
+my @users_mac_auth = get_records_sql($dbh, $users_sql);
+my @macs = map { mac_splitted($_->{mac}) } @users_mac_auth;
 my $CHUNK = 50;
 while (my @batch = splice(@macs, 0, $CHUNK)) {
     my $ph = join(',', ('?') x @batch);
