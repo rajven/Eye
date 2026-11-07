@@ -8,24 +8,35 @@ $page_url = null;
 
 $remove_action = getPOST('RemoveAuth', $page_url, null);
 $f_deleted     = getPOST('f_deleted', $page_url, null);
+$auth_id       = (array) getPOST('fid', $page_url, []);
 
-$all_ok = true;
-
-if ($remove_action !== null && $f_deleted !== '') {
-    $auth_id = getPOST('fid', $page_url, []);
-
-    foreach ($auth_id as $val) {
-        $id = (int)$val;
-        if ($id > 0) { // только положительные ID
-            $changes = delete_user_auth($db_link, $id);
-            if (empty($changes)) {
-                $all_ok = false;
-            }
-        }
+$ids = [];
+foreach ($auth_id as $val) {
+    $id = (int)$val;
+    if ($id > 0) {
+        $ids[] = $id;
     }
 }
 
-$message = $all_ok ? "Success!" : "Fail!";
+if ($remove_action === null || $f_deleted === null || $f_deleted === '') {
+    print '<div class="result err">' . WEB_mass_no_action . '</div>';
+    exit;
+}
+
+if (empty($ids)) {
+    print '<div class="result err">' . WEB_mass_nothing_selected . '</div>';
+    exit;
+}
+
+$all_ok = true;
+
+foreach ($ids as $id) {
+    if (empty(delete_user_auth($db_link, $id))) {
+        $all_ok = false;
+    }
+}
+
+$message = $all_ok ? WEB_mass_success : WEB_mass_fail;
 /* a class instead of inline styles: the block used to stay green even on Fail! */
 print '<div class="result ' . ($all_ok ? 'ok' : 'err') . '">' . $message . '</div>';
 

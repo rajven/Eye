@@ -8,6 +8,19 @@ $page_url = null;
 
 $all_ok = true;
 
+// the request of a mass operation must carry both its mark and the selection: a
+// dialog which did not meet the script of the interface brought nothing at all, and the
+// answer came back green with 'Success!' while not a single record was touched
+if (getPOST("ApplyForAll", $page_url) === null) {
+    print '<div class="result err">' . WEB_mass_no_action . '</div>';
+    exit;
+}
+
+if (empty((array) getPOST('fid', $page_url, []))) {
+    print '<div class="result err">' . WEB_mass_nothing_selected . '</div>';
+    exit;
+}
+
 if (getPOST("ApplyForAll", $page_url) !== null) {
 
     $dev_id = getPOST("fid", $page_url, []);
@@ -127,7 +140,7 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
     }
 }
 
-$message = $all_ok ? "Success!" : "Fail!";
+$message = $all_ok ? WEB_mass_success : WEB_mass_fail;
 /* a class instead of inline styles: the block used to stay green even on Fail! */
 print '<div class="result ' . ($all_ok ? 'ok' : 'err') . '">' . $message . '</div>';
 

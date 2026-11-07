@@ -34,24 +34,35 @@
     syncBulk();
   };
 
-  // blockForm('formAuthApply') keeps the button from firing twice
+  // the caption of the buttons of a dialog while its mass operation runs. the state of
+  // the caption belongs to the safety net of inc/header.php, which marks the buttons the
+  // same way: two owners of one caption is how a refused operation left the button
+  // saying 'processing' for ever
   window.blockForm = function (formId) {
+    if (window.EYE_MASS_BLOCK) { window.EYE_MASS_BLOCK(formId); return; }
     var form = document.getElementById(formId);
     if (!form) return;
     $$('input[type=submit], button[type=submit]', form).forEach(function (b) {
+      if (b.dataset.eyeOldLabel !== undefined) return;
+      b.dataset.eyeOldLabel = '1';
+      b.dataset.eyeOld = (b.value !== undefined) ? b.value : b.textContent;
       b.disabled = true;
-      var txt = (b.value !== undefined) ? b.value : b.textContent;
-      b.dataset.old = txt;
       if (b.value !== undefined) { b.value = L.busy; } else { b.textContent = L.busy; }
     });
   };
 
   window.undoBlockForm = function (formId) {
+    if (window.EYE_MASS_RELEASE) { window.EYE_MASS_RELEASE(formId); return; }
     var form = document.getElementById(formId);
     if (!form) return;
     $$('input[type=submit], button[type=submit]', form).forEach(function (b) {
+      if (b.dataset.eyeOldLabel === undefined) return;
+      delete b.dataset.eyeOldLabel;
       b.disabled = false;
-      if (b.dataset.old) { if (b.value !== undefined) { b.value = b.dataset.old; } else { b.textContent = b.dataset.old; } }
+      if (b.dataset.eyeOld) {
+        if (b.value !== undefined) { b.value = b.dataset.eyeOld; } else { b.textContent = b.dataset.eyeOld; }
+      }
+      delete b.dataset.eyeOld;
     });
   };
 
@@ -129,7 +140,10 @@
 
   /* 4. Mass actions: same endpoints, same field names as before */
 
-  var ACTIONS = {
+  // the endpoints of the mass operations are printed into the page by inc/header.php,
+  // where they can not grow old beside the base; the map below is only the last resort
+  // for a page which came without the block of the safety net
+  var ACTIONS = window.EYE_MASS || {
     formAuthApply:    { url: '/utils/auth_apply.php' },
     formAuthDel:      { url: '/utils/auth_remove.php' },
     formAuthExport:   { url: '/utils/auth_export.php', download: 'all-ips.csv', type: 'text/csv' },
@@ -155,8 +169,11 @@
   function wireActions() {
     Object.keys(ACTIONS).forEach(function (formId) {
       var form = document.getElementById(formId);
-      if (!form || !form.dataset.eyeWired) { /* noop, wired below */ }
       if (!form) return;
+      // the safety net of header.php steps aside when the form is marked, so the same
+      // request is never sent twice: the mark says that the dialog is owned by this
+      // script, not that it worked without an error
+      form.dataset.eyeMassWired = '1';
       form.addEventListener('submit', function (ev) {
         ev.preventDefault();
         var cfg = ACTIONS[formId];

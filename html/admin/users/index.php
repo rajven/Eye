@@ -74,10 +74,13 @@ if ($msg_error) {
 ?>
 
 <script>
+/* the caption of the button while the mass operation runs: the block of the safety net
+   in inc/header.php knows how to put the old caption back, so a page which lost the
+   script of the interface never keeps a button saying 'processing' for ever */
 function blockForm(formId) {
+    if (window.EYE_MASS_BLOCK) { window.EYE_MASS_BLOCK(formId); return; }
     const form = document.getElementById(formId);
     if (!form) return;
-    // Меняем текст кнопки отправки
     const submitBtn = form.querySelector('input[type="submit"], button[type="submit"]');
     if (submitBtn) {
         submitBtn.disabled = true;

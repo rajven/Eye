@@ -8,25 +8,35 @@ $page_url = null;
 
 $remove_action = getPOST('RemoveDevice', null, null);
 $f_deleted     = getPOST('f_deleted', null, null);
+$dev_ids       = (array) getPOST('fid', null, []);
+
+$ids = [];
+foreach ($dev_ids as $val) {
+    $id = (int)$val;
+    if ($id > 0) {
+        $ids[] = $id;
+    }
+}
+
+if ($remove_action === null || $f_deleted === null || $f_deleted === '') {
+    print '<div class="result err">' . WEB_mass_no_action . '</div>';
+    exit;
+}
+
+if (empty($ids)) {
+    print '<div class="result err">' . WEB_mass_nothing_selected . '</div>';
+    exit;
+}
 
 $all_ok = true;
 
-if ($remove_action !== null && $f_deleted !== '') {
-    $dev_ids = getPOST('fid', null, []);
-
-    foreach ($dev_ids as $val) {
-        $id = (int)$val;
-        if ($id > 0) {
-            $changes = delete_device($db_link, $id);
-            if (empty($changes)) {
-                $all_ok = false;
-            }
-        }
+foreach ($ids as $id) {
+    if (empty(delete_device($db_link, $id))) {
+        $all_ok = false;
     }
-
 }
 
-$message = $all_ok ? "Success!" : "Fail!";
+$message = $all_ok ? WEB_mass_success : WEB_mass_fail;
 /* a class instead of inline styles: the block used to stay green even on Fail! */
 print '<div class="result ' . ($all_ok ? 'ok' : 'err') . '">' . $message . '</div>';
 

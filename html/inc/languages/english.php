@@ -51,6 +51,10 @@ define("WEB_msg_password_hint","Please enter your password");
 define("WEB_msg_delete_selected","Delete selected?");
 define("WEB_msg_export_selected","Export only selected?");
 define("WEB_msg_processing","Processing...");
+define("WEB_mass_success","Done");
+define("WEB_mass_fail","Some records were not changed, see the work log");
+define("WEB_mass_nothing_selected","Nothing was selected, nothing was changed");
+define("WEB_mass_no_action","The mark of the mass action is missing: open the page again and repeat the action");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");

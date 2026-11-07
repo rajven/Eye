@@ -51,6 +51,10 @@ define("WEB_msg_password_hint","Введите пароль");
 define("WEB_msg_delete_selected","Удалить выделенное?");
 define("WEB_msg_export_selected","Экспортировать только выделенное?");
 define("WEB_msg_processing","Идёт обработка...");
+define("WEB_mass_success","Готово");
+define("WEB_mass_fail","Часть записей не изменена, подробности в журнале");
+define("WEB_mass_nothing_selected","Ни одна запись не выбрана, ничего не изменено");
+define("WEB_mass_no_action","Признак массового действия потерян: откройте страницу заново и повторите действие");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");

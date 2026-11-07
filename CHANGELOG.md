@@ -15,6 +15,14 @@
 - changed: the signs of the host of a record are looked over in the order eye tag, name of the record, address of the
   interface: the tag of the host survives a renaming in zabbix, the name of the host is corrected by the export itself, and
   the address is the last sign of the device which eye does not know yet
+- bugfix: a mass operation of a list could answer nothing at all: the dialogs of the lists carry no action and no method and
+  are served by /js/eye.js, while the address of that script was built on the modification time of the file. a deploy which
+  copies the times over leaves the address of a changed file the same, the browser keeps the copy it took before the update,
+  and the dialog was sent as a plain request to the list page: the page reloaded, the selection was lost, the button said
+  'processing', and no line appeared on the screen. the version of the script is the hash of its content now, the dialog of a
+  list is carried out by the safety net of inc/header.php when the script of the interface is missing or has stopped, and the
+  endpoints of the mass operations answer honestly: a request without its mark or without a selection is an error, not a green
+  'Success!'
 - bugfix: the bulk walk of the sfp over a huawei module returned another line than the port by port query it replaced: the power
   of a channel was named 'TX:' and 'RX:' instead of 'Tx:' and 'Rx:', and a reading which came back empty fell down to the legacy
   oid, which the old code never reached at all because its check was dead - the bulk answers with the same text now, the branches

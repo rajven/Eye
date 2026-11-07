@@ -18,12 +18,28 @@
 $eye_style = defined('HTML_STYLE') ? HTML_STYLE : 'eye';
 /* ?v= stops the browser from serving a cached eye.css/eye.js after a theme
    update: Cache-Control is not configured anywhere for this admin app.
-   the file mtime is used, so replacing a file invalidates its cache. */
+   the version is the hash of the content, not the modification time: a deploy which
+   copies the times over (rsync -a, an archive, an image layer) leaves the mtime of a
+   changed file old, the address of the script does not change, and the browser keeps
+   working with the copy it took before the update. */
 $eye_ver = '';
 $eye_css_path = (isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : '') . '/css/' . $eye_style . '.css';
 $eye_js_path  = (isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : '') . '/js/eye.js';
-$eye_css_mtime = ($eye_css_path && is_file($eye_css_path)) ? (string) filemtime($eye_css_path) : '';
-$eye_js_mtime  = ($eye_js_path  && is_file($eye_js_path))  ? (string) filemtime($eye_js_path)  : '';
+
+function eye_asset_version($path)
+{
+    if (!$path or !is_file($path)) {
+        return '';
+    }
+    $hash = md5_file($path);
+    if ($hash !== false and $hash !== '') {
+        return substr($hash, 0, 12);
+    }
+    return (string) filemtime($path);
+}
+
+$eye_css_mtime = eye_asset_version($eye_css_path);
+$eye_js_mtime  = eye_asset_version($eye_js_path);
 if ($eye_css_mtime === '' && isset($config['version'])) {
     $eye_css_mtime = preg_replace('/[^\w.\-]/', '', (string) $config['version']);
 }
@@ -78,6 +94,138 @@ $eye_nav = [
         if (t === 'light' || t === 'dark') { d.setAttribute('data-eye', t); }
         if (n === 'normal' || n === 'roomy') { d.setAttribute('data-eye-dens', n); }
     } catch (e) {}
+})();
+</script>
+<script>
+/* Safety net of the mass operations. A dialog of a list carries no action and no
+   method: the work is done by /js/eye.js, which posts the fields of the dialog together
+   with the selection of the list. While that script is missing - a browser keeps an
+   older copy of it, a proxy refuses it, an extension blocks it, or its own
+   initialization stops on the way - the dialog is sent as a plain request to the list
+   page: the page reloads, the selection is lost, the button says 'processing' over and
+   over, and nothing reaches the screen. So the endpoints are listed here, in the text
+   of the page, where they can not grow old beside the base, and this handler steps
+   aside as soon as the script of the interface marks a form as its own. */
+window.EYE_MASS = {
+    formAuthApply:   { url: '/utils/auth_apply.php' },
+    formAuthDel:     { url: '/utils/auth_remove.php' },
+    formAuthExport:  { url: '/utils/auth_export.php', download: 'all-ips.csv' },
+    formUserApply:   { url: '/utils/user_apply.php' },
+    formUserDel:     { url: '/utils/user_remove.php' },
+    formNetDevApply: { url: '/utils/devices_apply.php' },
+    formNetDevDel:   { url: '/utils/devices_remove.php' }
+};
+
+(function () {
+    // marks the buttons of the dialog as busy; the pages call it from their own onsubmit
+    function block(formId) {
+        var f = document.getElementById(formId);
+        if (!f) { return; }
+        marks(f, true, words().busy || '');
+    }
+
+    function release(formId) {
+        var f = document.getElementById(formId);
+        if (!f) { return; }
+        marks(f, false);
+    }
+
+    window.EYE_MASS_BLOCK = block;
+    window.EYE_MASS_RELEASE = release;
+
+    function words() {
+        var out = {};
+        try { out = JSON.parse(document.body.getAttribute('data-eye-i18n') || '{}'); } catch (e) {}
+        return out;
+    }
+
+    function note(host, html, isErr) {
+        var box = host.querySelector('.dlg-error');
+        if (!box) {
+            box = document.createElement('p');
+            box.className = 'note dlg-error' + (isErr ? ' err' : '');
+            host.appendChild(box);
+        }
+        box.textContent = (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+
+    function marks(form, on, busy) {
+        var buttons = form.querySelectorAll('input[type=submit], button[type=submit]');
+        for (var i = 0; i < buttons.length; i++) {
+            var b = buttons[i];
+            var isInput = (b.tagName === 'INPUT');
+            if (on) {
+                if (b.dataset.eyeOldLabel !== undefined) { continue; }   // busy allready
+                b.dataset.eyeOldLabel = '1';
+                b.dataset.eyeOld = isInput ? b.value : b.textContent;
+                b.disabled = true;
+                if (isInput) { b.value = busy; } else { b.textContent = busy; }
+            } else {
+                if (b.dataset.eyeOldLabel === undefined) { continue; }
+                delete b.dataset.eyeOldLabel;
+                b.disabled = false;
+                if (b.dataset.eyeOld) {
+                    if (isInput) { b.value = b.dataset.eyeOld; } else { b.textContent = b.dataset.eyeOld; }
+                }
+                delete b.dataset.eyeOld;
+            }
+        }
+    }
+
+    document.addEventListener('submit', function (ev) {
+        var form = ev.target;
+        var cfg = window.EYE_MASS[form.id];
+        if (!cfg || form.dataset.eyeMassWired) {
+            return;                       // the script of the interface has taken the form
+        }
+
+        ev.preventDefault();
+
+        // the dialog holds the parameters of the operation, the selection lives in the
+        // form of the list: both of them go to the endpoint, as the interface script does
+        var data = new FormData();
+        var list = document.getElementById('def');
+        if (list) {
+            new FormData(list).forEach(function (v, k) { data.append(k, v); });
+        }
+        new FormData(form).forEach(function (v, k) { data.append(k, v); });
+
+        var host = form.closest('dialog') || form;
+        var l = words();
+        marks(form, true, l.busy || '');
+
+        fetch(cfg.url, { method: 'POST', body: data, credentials: 'same-origin' })
+            .then(function (r) {
+                if (!r.ok) { throw new Error('HTTP ' + r.status); }
+                if (cfg.download) { return r.blob(); }
+                return r.text();
+            })
+            .then(function (res) {
+                if (cfg.download) {
+                    var a = document.createElement('a');
+                    a.href = URL.createObjectURL(res);
+                    a.download = cfg.download;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    marks(form, false);
+                    return;
+                }
+                if (/class="result err"/.test(res || '')) {
+                    note(host, res, true);            // the dialog stays open
+                    marks(form, false);
+                    return;
+                }
+                if (host.close) { host.close(); }
+                var btn = document.getElementById('btn_filter');
+                if (btn) { setTimeout(function () { btn.click(); }, 200); }
+                else { setTimeout(function () { location.reload(); }, 200); }
+            })
+            .catch(function (err) {
+                note(host, (l.failed || 'Failed') + ' ' + err.message, true);
+                marks(form, false);
+            });
+    });
 })();
 </script>
 <link rel="stylesheet" type="text/css" href="/css/<?php echo $eye_style . '.css' . ($eye_css_mtime ? '?v=' . $eye_css_mtime : ''); ?>">
