@@ -362,8 +362,9 @@ my %stat = (created => 0, updated => 0, unchanged => 0, disabled => 0, failed =>
 my %host_claimed;
 
 foreach my $host (@hosts) {
-    $stat{ sync_host($host) }++;
-    }
+    my $k = sync_host($host);
+    $stat{$k}++;
+}
 
 # records that stopped being monitored are switched off in zabbix
 
@@ -560,12 +561,13 @@ if (zabbix_host_key($zbx_host->{host}) ne zabbix_host_key($host->{host})) {
     $change = 1;
     }
 
-if (!defined $zbx_host->{description}) {  $zbx_host->{description}=''; }
-if ($zbx_host->{description} ne $host->{description}) {
-    log_info("Zabbix: host $host->{host} visible description changed from '" . $zbx_host->{description} . "' to '" . $host->{description} . "'");
-    $update{description} = $host->{description};
+my $old = $zbx_host->{description} // '';
+my $new = $host->{description}      // '';
+if ($old ne $new) {
+    log_info("Zabbix: host $host->{host} visible description changed from '$old' to '$new'");
+    $update{description} = $new;
     $change = 1;
-    }
+}
 
 if ($groups && scalar(@$groups)) {
     my %current_groups;
