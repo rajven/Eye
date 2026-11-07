@@ -273,8 +273,10 @@ sub sendEmail {
 
 #---------------------------------------------------------------------------------------------------------
 
-# the collected notices make one letter, its subject is the subject of the first notice,
-# a long list is cut, the whole of it stays in the worklog of eye anyway
+# the collected notices make one letter, its subject names the script, so the letter is
+# easy to filter in the mailbox; every notice is rendered as its subject (the first line
+# of the notice) with the rest of its text unfolded below; a long list is cut, the whole
+# of it stays in the worklog of eye anyway
 sub flush_mail_block {
     return unless @one_mail_messages;
     my @messages = @one_mail_messages;
@@ -284,22 +286,38 @@ sub flush_mail_block {
     my $total = @messages;
     my $limit = 100;
     my $shown = $total < $limit ? $total : $limit;
-    my $subject = $messages[0]{subject};
     my ($script_name) = ($0 =~ m{([^/]+)$});
-    my $msg = "$total notice(s) of " . ($script_name // 'eye') . " at "
-        . strftime("%Y-%m-%d %H:%M:%S", localtime(time())) . ":\n";
+    $script_name ||= 'eye';
+
+    # subject of the batch letter: the name of the script, not the subject of the first notice
+    my $subject = "$script_name: $total notice(s)";
+    # keep the warning marker for mail filters
+    $subject = "WARN! $subject" if (($messages[0]{subject} // '') =~ /^WARN!/);
+
+    my $html = '<p><b>' . htmlspecialchars($subject) . ' at '
+             . strftime("%Y-%m-%d %H:%M:%S", localtime(time())) . ":</b></p>\n";
 
     for (my $i = 0; $i < $shown; $i++) {
         my $message = $messages[$i];
-        $msg .= "\n[" . $message->{time} . "] " . $message->{subject} . "\n"
-              . $message->{msg} . "\n"
-              . "------------------------------------------------------------";
+        my $subj = $message->{subject} // '';
+        my $rest = $message->{msg} // '';
+        $rest =~ s/\r//g;
+        # the notice subject is the first line of the notice text: show it once, in the summary
+        (my $first = $subj) =~ s/^WARN!\s*//;
+        $rest =~ s/^\Q$first\E(?:\n|\z)// if length $first;
+        $html .= "<details open>\n"
+               . '<summary>[' . htmlspecialchars($message->{time} // '') . '] '
+               . htmlspecialchars($subj) . "</summary>\n";
+        $html .= '<pre style="margin:0 0 8px 16px;white-space:pre-wrap">'
+               . htmlspecialchars($rest) . "</pre>\n" if length $rest;
+        $html .= "</details>\n";
     }
     if ($total > $shown) {
-        $msg .= "\n... " . ($total - $shown) . " notice(s) are not printed here, they are in the worklog of eye.\n";
+        $html .= '<p>... ' . ($total - $shown)
+               . " notice(s) are not printed here, they are in the worklog of eye.</p>\n";
     }
 
-    mail_send($subject, $msg, 1);
+    mail_deliver($subject, $html);
 }
 
 # a script killed in the middle of its work still sends what it has collected
@@ -309,40 +327,62 @@ END {
 
 #---------------------------------------------------------------------------------------------------------
 
+# a plain text notice: the body is built from it, the envelope and delivery are made
+# by mail_deliver()
 sub mail_send {
     my ($subject, $msg, $use_br) = @_;
     return unless defined $msg && length $msg;
     return unless $send_email;
-    unless (defined $sender_email && defined $admin_email) {
+
+    $msg =~ s/\r//g;
+    my $body = '';
+    foreach my $line (split(/\n/, $msg)) {
+        $body .= htmlspecialchars($line) . ($use_br ? "<br>\n" : "\n");
+    }
+    mail_deliver($subject, $body);
+}
+
+#---------------------------------------------------------------------------------------------------------
+
+# the envelope and delivery: $subject is a single line (line breaks are removed),
+# $html_body is the ready html of the letter body, already escaped by the caller
+sub mail_deliver {
+    my ($subject, $html_body) = @_;
+    return unless defined $html_body && length $html_body;
+    return unless $send_email;
+    unless (defined $sender_email && defined $admin_email
+            && length $sender_email && length $admin_email) {
         log_error("Email addresses not defined");
         return;
     }
 
+    # a dead sendmail must not kill the caller by SIGPIPE: the print just fails and
+    # close() reports the error
     local $SIG{PIPE} = 'IGNORE';
 
+    # the only dangerous characters of a header are the line breaks, the non-ascii
+    # letters are encoded by encode_mime_header()
+    $subject = '' unless defined $subject;
     $subject =~ s/[\r\n]+/ /g;
-    $msg =~ s/\r//g;
+    my $html_subject = htmlspecialchars($subject);
 
     my $html_message = <<"END_HTML";
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>$subject</title>
+    <title>$html_subject</title>
 </head>
 <body>
 <div>
+$html_body</div>
+</body>
+</html>
 END_HTML
 
-    my @lines = split(/\n/, $msg);
-    foreach my $line (@lines) {
-        $line = htmlspecialchars($line);
-        $html_message .= $use_br ? "$line<br>\n" : "$line\n";
-    }
-    $html_message .= "</div>\n</body>\n</html>\n";
     # Кодируем Unicode-строку в байты UTF-8, затем в base64
     my $html_utf8_bytes = utf8::is_utf8($html_message) ? encode('UTF-8', $html_message) : $html_message;
-    my $encoded_html = encode_base64($html_utf8_bytes); 
+    my $encoded_html = encode_base64($html_utf8_bytes);
 
     my $boundary = '----=' . time() . int(rand(1000));
     my $encoded_subject = encode_mime_header($subject);
@@ -370,15 +410,19 @@ END_MIME
         log_error("Sendmail not found or not executable at $sendmail");
         return;
     }
-    unless (open(MAIL, "|$sendmail -oi -t -f $sender_email")) {
+    # an envelope sender matches From:, without it the bounces go to the cron user and
+    # the letters of eye are rejected by spf/dmarc of the receiver; the address comes
+    # from the eye config, but the shell is not to be trusted with a broken value
+    my $mail_cmd = "|$sendmail -oi -t";
+    $mail_cmd .= " -f $sender_email" if $sender_email =~ /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    unless (open(MAIL, $mail_cmd)) {
         log_error("Failed to open sendmail: $!");
         return;
     }
     print MAIL $headers;
     print MAIL $mime_message;
-    close(MAIL) or log_error("Failed to send email: $!");
+    close(MAIL) or do { log_error("Failed to send email: $!"); return; };
     log_info("Sent email from $sender_email to $admin_email with subject: $subject");
-    log_debug("Email body:\n$msg");
 }
 
 #---------------------------------------------------------------------------------------------------------
