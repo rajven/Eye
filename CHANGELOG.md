@@ -1,4 +1,27 @@
 # Changelog 3-2-7 - release
+- bugfix: a stored cross site script came into the interface through dhcp: the host name which a device in the net brings
+  together with its action, the sign of who created the record and the name of the direct dns were printed as they are on the
+  pages of the subscriber and of the address, while the neighbours of the same cells in the lists were escaped. the text of a
+  record reaches now the reader through esc() on every page where it is shown, and the fields of the forms are escaped as the
+  attributes of html
+- bugfix: the second way of the same trick came from the internet: the name which the reverse dns of another owner answered
+  was kept in the cache of the base and was printed raw by the reports of the traffic, so the owner of a reverse zone could
+  put a script into the report of an administrator without any part of the reader. the resolver now keeps only what a host
+  name can hold (the borders of the dns protocol are cut by the same rule as in a real name), the reports escape the answer,
+  and the rows which an older version of the resolver left in the cache are corrected as the cache is cleaned
+- security: an action of a list was possible without the right for it: switchstatus.php, ipcam.php and control.php required
+  only login() while the csrf token belongs to any reader, so a customer with the view only level switched the ports and the
+  power of the PoE of a live switch and started the scripts of the base by sudo. the level of the rights is asked now at the
+  beginning of every handler of these pages, of the dialogs of the subscribers and of the endpoints of the mass operations,
+  the refusal is written to the work log, and the reader is not even offered the buttons and the dialogs which are closed for
+  him
+- bugfix: the helpers of the base told a success when the rights refused the change: update_record() answered 1 above a
+  refusal, update_records() answered true without looking at its records, and a field which the operator may not touch
+  simply disappeared from the change. a mass operation of an operator answered green 'Done' above a base where nothing had
+  moved; now every refusal is an answer of the error, and the reason is in the work log
+- changed: the list of the subscribers reads the signs of its rows by the batch helpers of the page (the counters of the
+  addresses and of the rules, the sign that an address does not follow its user, the names of the organizational units),
+  instead of four queries for every row of the page, as the list of the addresses does since the same fix
 - added: the column of the last arp on the page of the monitoring can be the key of the sort now: the list binds a device to
   its address by ip in the query itself, so the order goes over the whole base and not over one page of it, records without an
   arp stay at the end in both directions, and the name of the device keeps the pages steady

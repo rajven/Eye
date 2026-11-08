@@ -6,6 +6,13 @@ if (!defined("CONFIG")) die("Not defined");
 
 $page_url = null;
 
+// the parameters of the addresses is a mass action of the list, and the right for it is looked up before the first
+// record is touched: the token of the csrf proves who sent the request, it says nothing
+// about what that reader may do
+if (!acl_can_edit()) {
+    acl_denied($db_link, WEB_title_users_ips);
+}
+
 $all_ok = true;
 
 // the request of a mass operation must carry both its mark and the selection: a

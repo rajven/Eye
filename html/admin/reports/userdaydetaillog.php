@@ -131,12 +131,14 @@ foreach ($userdata as $row) {
     print "<td class=\"data\" align=left>" . long2ip($row['src_ip']) . "</td>\n";
     $ip_name = '-';
     if ($rdns) { $ip_name = ResolveIP($db_link, $row['src_ip']); }
-    print "<td class=\"data\" align=left>" . $ip_name . "</td>\n";
+    // the name which the reverse dns gave is the text of another owner
+    print "<td class=\"data\" align=left>" . esc($ip_name) . "</td>\n";
     print "<td class=\"data\">" . $row['src_port'] . "</td>\n";
     print "<td class=\"data\" align=left>" . long2ip($row['dst_ip']) . "</td>\n";
     $ip_name = '-';
     if ($rdns) { $ip_name = ResolveIP($db_link, $row['dst_ip']); }
-    print "<td class=\"data\" align=left>" . $ip_name . "</td>\n";
+    // the name which the reverse dns gave is the text of another owner
+    print "<td class=\"data\" align=left>" . esc($ip_name) . "</td>\n";
     print "<td class=\"data\">" . $row['dst_port'] . "</td>\n";
     print "<td class=\"data\" align=right>" . fbytes($row['bytes']) . "</td>\n";
     print "<td class=\"data\" align=right>" . $row['pkt'] . "</td>\n";

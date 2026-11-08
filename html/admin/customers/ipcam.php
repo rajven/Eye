@@ -6,6 +6,12 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 
 $f_ou_id = IPCAM_GROUP_ID;
 
+// the page switches the ports of the cameras of a building on and off by snmp: a
+// reader has no right to reach the device
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !acl_can_edit()) {
+    acl_denied($db_link, WEB_device_port_control);
+}
+
 // Включение портов
 if (getPOST("port_on") !== null) {
     $port_on = getPOST("port_on", null, []);
@@ -62,8 +68,15 @@ foreach ($t_config as $row) {
     print "<td class=\"data\" style='padding:0'><input type=checkbox name=fid[] value=".(int)$row['id']."></td>\n";
     print "<td class=\"data\"><input type=\"text\" name='f_name[".(int)$row['id']."]' value='"
         . htmlspecialchars((string)$row['name'], ENT_QUOTES, 'UTF-8') . "' disabled=true readonly=true></td>\n";
-    print "<td class=\"data\"><button name='port_on[".(int)$row['id']."]' value=".(int)$row['id'].">".WEB_control_port_poe_on."</button></td>\n";
-    print "<td class=\"data\"><button name='port_off[".(int)$row['id']."]' value=".(int)$row['id'].">".WEB_control_port_poe_off."</button></td>\n";
+    // the reader of the page sees the buildings of the cameras without the buttons
+    // which reach the device
+    if (acl_can_edit()) {
+        print "<td class=\"data\"><button name='port_on[".(int)$row['id']."]' value=".(int)$row['id'].">".WEB_control_port_poe_on."</button></td>\n";
+        print "<td class=\"data\"><button name='port_off[".(int)$row['id']."]' value=".(int)$row['id'].">".WEB_control_port_poe_off."</button></td>\n";
+    } else {
+        print "<td class=\"data\">&nbsp;</td>\n";
+        print "<td class=\"data\">&nbsp;</td>\n";
+    }
     print "</tr>\n";
 }
 ?>

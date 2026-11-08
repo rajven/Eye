@@ -28,6 +28,13 @@ if (empty($ids)) {
     exit;
 }
 
+// the removal of a device is a mass action of the list, and the right for it is looked up before the first
+// record is touched: the token of the csrf proves who sent the request, it says nothing
+// about what that reader may do
+if (!acl_is_admin()) {
+    acl_denied($db_link, WEB_title_devices);
+}
+
 $all_ok = true;
 
 foreach ($ids as $id) {

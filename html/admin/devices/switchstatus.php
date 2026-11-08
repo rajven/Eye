@@ -7,6 +7,15 @@ $device = get_record($db_link, 'devices', "id = ?", [$id]);
 $snmp = getSnmpAccess($device);
 $device_model = get_record($db_link, 'device_models', "id = ?", [$device['device_model_id']]);
 
+// every action of the page drives a live switch by snmp: the state of a port and the
+// power of the PoE go to the device itself, not into the base of eye. a reader with a
+// valid token of the csrf is not among those who may do it: the right is asked before
+// the first mark of a form is looked at, and the answer is the same block which the
+// dialogs of the lists read back
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !acl_can_edit()) {
+    acl_denied($db_link, WEB_device_port_control);
+}
+
 // Перегенерация SNMP-индексов
 if (getPOST("regensnmp") !== null) {
     $snmp_index = (int)getPOST("f_snmp_start", null, 1);
@@ -408,11 +417,15 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 if (isset($poe_status) and !$row['skip']) {
                     print "<td class=\"data\">";
                     if ($device['vendor_id'] != 9) {
-                        if ($poe_status == 2) {
-                            print "<button name='poe_on[]' value='{$row['snmp_index']}'>" . WEB_device_poe_on . "</button>";
-                        }
-                        if ($poe_status == 1) {
-                            print "<button name='poe_off[]' value='{$row['snmp_index']}'>" . WEB_device_poe_off . "</button>";
+                        // the buttons of the power are shown only to those who may
+                        // press them: the reader sees the state without the action
+                        if (acl_can_edit()) {
+                            if ($poe_status == 2) {
+                                print "<button name='poe_on[]' value='{$row['snmp_index']}'>" . WEB_device_poe_on . "</button>";
+                            }
+                            if ($poe_status == 1) {
+                                print "<button name='poe_off[]' value='{$row['snmp_index']}'>" . WEB_device_poe_off . "</button>";
+                            }
                         }
                     } else {
                         print WEB_msg_unsupported;
@@ -427,11 +440,14 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             if (isset($padmin) and !$row['uplink'] and !$row['skip']) {
                 print "<td class=\"data\">";
                 if ($device['vendor_id'] != 9) {
-                    if ($padmin >= 2) {
-                        print "<button name='port_on[]' value='{$row['snmp_index']}'>" . WEB_device_port_on . "</button>";
-                    }
-                    if ($padmin == 1) {
-                        print "<button name='port_off[]' value='{$row['snmp_index']}'>" . WEB_device_port_off . "</button>";
+                    // the same rule for the state of the port
+                    if (acl_can_edit()) {
+                        if ($padmin >= 2) {
+                            print "<button name='port_on[]' value='{$row['snmp_index']}'>" . WEB_device_port_on . "</button>";
+                        }
+                        if ($padmin == 1) {
+                            print "<button name='port_off[]' value='{$row['snmp_index']}'>" . WEB_device_port_off . "</button>";
+                        }
                     }
                 } else {
                     print WEB_msg_unsupported;

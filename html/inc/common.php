@@ -311,6 +311,34 @@ function get_user_acl()
     return $user_level;
 }
 
+// 1 when the reader of the page has the full access of the administrator
+function acl_is_admin()
+{
+    return get_user_acl() === ACL_ADMIN;
+}
+
+// 1 when the reader may change the parameters of the records of eye: it is the
+// administrator and the operator, and the reader with the view only is not among them
+function acl_can_edit()
+{
+    $acl = get_user_acl();
+    return $acl === ACL_ADMIN || $acl === ACL_OPERATOR;
+}
+
+// the answer of a page or of an endpoint which is asked for an action the reader has no
+// right for: neither the page nor the list is drawn, the refusal is loud, and the reason
+// stays in the work log - a valid token of the csrf belongs to the reader, and it is not
+// the right of the action. the block of the answer is the same which the dialogs of the
+// mass operations read back, so the reason appears in the dialog of the list allso
+function acl_denied($db, $caption)
+{
+    LOG_WARNING($db, "Access: the level " . get_user_acl() . " of the reader asks for an action: $caption");
+    http_response_code(403);
+    header('Content-Type: text/html; charset=UTF-8');
+    print '<div class="result err">' . sprintf(WEB_mass_no_rights, $caption) . '</div>';
+    exit;
+}
+
 function get_datetime_display($datetime) {
     if (is_empty_datetime($datetime)) { return "-"; } else { return $datetime; }
 }
@@ -2911,6 +2939,45 @@ function print_option_select($db, $option_name)
     echo "</select>\n";
 }
 
+// A name which the reverse dns of the net gave away is the text of another owner: the
+// one who keeps the zone answers anything, and the answer is kept in the cache of the
+// base and is read by the reports afterwards. Only the signs of a host name stay, the
+// rest is cut off, so neither the cache nor the page can carry a mark of html further
+function safe_host_name($name)
+{
+    $name = trim((string)$name);
+    if ($name === '') {
+        return '';
+    }
+
+    // the name of a host has no spaces, no quotes and no brackets of html
+    $name = preg_replace('/[^\p{L}\p{N}._\-]/u', '', $name);
+    if (!is_string($name) || $name === '') {
+        return '';
+    }
+
+    // the dots and the dashes which lost their neighbours are cut off allso: the name
+    // keeps the shape of what a resolver may answer at all
+    $name = preg_replace('/\.{2,}/', '.', $name);
+    $name = trim($name, '.-');
+    if ($name === '') {
+        return '';
+    }
+
+    // the whole name is cut to the border of the protocol first, and after that every
+    // label of what is left keeps its own border of 63 signs
+    $name = substr($name, 0, 253);
+    $labels = [];
+    foreach (explode('.', $name) as $label) {
+        $label = substr($label, 0, 63);
+        if ($label !== '') {
+            $labels[] = $label;
+        }
+    }
+
+    return implode('.', $labels);
+}
+
 function ResolveIP($db, $ip_int)
 {
     $ip_name = "-";
@@ -2924,7 +2991,7 @@ function ResolveIP($db, $ip_int)
     
     if (empty($dns_cache) || empty($dns_cache['dns'])) {
         $ip_str = long2ip((int)$ip_int);
-        $ip_name = gethostbyaddr($ip_str);
+        $ip_name = safe_host_name(gethostbyaddr($ip_str));
         
         // Проверяем результат разрешения
         if (empty($ip_name) || $ip_name == $ip_str) {
@@ -2934,7 +3001,12 @@ function ResolveIP($db, $ip_int)
         // Сохраняем в кэш
         run_sql($db, "INSERT INTO dns_cache(dns, ip) VALUES(?, ?)", [$ip_name, (int)$ip_int]);
     } else {
-        $ip_name = $dns_cache['dns'];
+        // the rows which the base kept before the check was here are cleaned as they
+        // are read: the cache lives a day, and a report must not print what it found
+        $ip_name = safe_host_name($dns_cache['dns']);
+        if ($ip_name === '') {
+            $ip_name = "-";
+        }
     }
     
     return $ip_name;
@@ -2945,6 +3017,37 @@ function clean_dns_cache($db)
     $date = time() - 86400; // 24 часа назад
     $clean_date = date('Y-m-d H:i:s', $date);
     run_sql($db, "DELETE FROM dns_cache WHERE ts <= ?", [$clean_date]);
+
+    // the rows which the base kept before the resolver began to check its answer are
+    // cleaned as the cache is cleaned: a name which is not a name of a host can not be
+    // read by the reports, and the cache of a day is long enough for the rows of the
+    // oldest writes to disappear by themselves. the query only guesses the candidates
+    // (any sign beyond the borders of an ascii name), the decision is taken by the same
+    // sanitizer which reads the cache for the pages
+    $rows = get_records_sql($db,
+        "SELECT id, dns FROM dns_cache
+          WHERE dns IS NOT NULL AND dns REGEXP '[^A-Za-z0-9._-]'");
+    if (empty($rows)) {
+        return;
+    }
+
+    $fixed = 0;
+    foreach ($rows as $row) {
+        $clean = safe_host_name($row['dns']);
+        if ($clean === $row['dns']) {
+            continue;   // an international name which the sanitizer keeps as it is
+        }
+        if ($clean === '') {
+            delete_record($db, 'dns_cache', 'id = ?', [(int)$row['id']]);
+        } else {
+            update_record($db, 'dns_cache', 'id = ?', ['dns' => $clean], [(int)$row['id']]);
+        }
+        $fixed++;
+    }
+
+    if ($fixed > 0) {
+        LOG_INFO($db, "DNS: " . $fixed . " row(s) of the cache were cleared of the signs which a host name can not hold");
+    }
 }
 
 function clean_unreferensed_rules($db)
@@ -5033,6 +5136,56 @@ function get_auth_aliases_map($db, $auth_ids)
                 $map[(int)$row['auth_id']][] = ['alias' => $row['alias']];
             }
         });
+}
+
+// The counts of the address records of the users of the page, the same rule as in
+// get_auth_count(): the removed records are not counted
+function get_auth_counts_map($db, $user_ids)
+{
+    return batch_by_values($db, $user_ids,
+        "SELECT user_id, COUNT(id) AS cnt FROM user_auth WHERE deleted = 0 AND user_id IN ({IN}) GROUP BY user_id",
+        function ($rows, &$map) {
+            foreach ($rows as $row) {
+                $map[(int)$row['user_id']] = (int)$row['cnt'];
+            }
+        });
+}
+
+// The address records whose state does not follow the state of their user: the cell of
+// the list is painted by this sign, and a record per user is asked by a single query
+// which compares both tables at once
+function get_auth_mismatch_map($db, $user_ids)
+{
+    return batch_by_values($db, $user_ids,
+        "SELECT UA.user_id, COUNT(UA.id) AS cnt FROM user_auth UA
+         JOIN user_list U ON U.id = UA.user_id
+         WHERE UA.deleted = 0 AND UA.enabled <> U.enabled AND UA.user_id IN ({IN})
+         GROUP BY UA.user_id",
+        function ($rows, &$map) {
+            foreach ($rows as $row) {
+                $map[(int)$row['user_id']] = (int)$row['cnt'];
+            }
+        });
+}
+
+// The counts of the rules of the users of the page, the same rule as in the counters of
+// the single record
+function get_rules_counts_map($db, $user_ids)
+{
+    return batch_by_values($db, $user_ids,
+        "SELECT user_id, COUNT(id) AS cnt FROM auth_rules WHERE user_id IN ({IN}) GROUP BY user_id",
+        function ($rows, &$map) {
+            foreach ($rows as $row) {
+                $map[(int)$row['user_id']] = (int)$row['cnt'];
+            }
+        });
+}
+
+// The names of the organizational units of the page, the same rule as in get_ou(): an
+// unknown identifier gives nothing
+function get_ou_names_map($db, $ou_ids)
+{
+    return get_id_name_map($db, "SELECT id, ou_name FROM ou WHERE id IN ({IN})", $ou_ids);
 }
 
 // The vendors of the macs of the page: a mac gives up to four prefixes of the oui and the

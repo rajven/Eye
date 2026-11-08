@@ -203,6 +203,13 @@ define("MIKROTIK_DHCP_SERVER",".1.3.6.1.2.1.9999.1.1.1.1.0");
 //MikroTik RouterOS version - for patch mac-address-table
 define("MIKROTIK_ROS_VERSION",".1.0.8802.1.1.2.1.3.4.0");
 
+// the levels of the rights of a customer: they are the identifiers of the rows of the
+// table acl, and the number of the right is kept in the session of the reader
+define("ACL_DISABLED", 0);   // the customer is disabled
+define("ACL_ADMIN", 1);      // the full access
+define("ACL_OPERATOR", 2);   // the parameters which are not about the rights
+define("ACL_VIEWER", 3);     // the reader only
+
 // log levels
 define("L_ERROR",0);
 define("L_WARNING",1);

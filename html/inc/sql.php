@@ -899,9 +899,13 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
         return;
     }
 
+    // the change which the rights of the reader refused is not a success: the answer of
+    // the helpers of the base is read by the mass operations and by the pages as the
+    // sign that the record really moved, and while it was 1 the reader got a green
+    // 'Done' above a base where nothing had changed
     if (!allow_update($db, $table, 'update')) {
-        LOG_INFO($db, "Access denied: $table [ $filter ]");
-        return 1;
+        LOG_WARNING($db, "Access denied: $table [ $filter ]");
+        return 0;
     }
 
     $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter",$filter_params);
@@ -944,9 +948,15 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
     ];
 
     $valid_record=[];
+    $dropped = 0;
     foreach ($newvalue as $key => $value) {
 
+        // a field which the rights of the reader did not let through is counted: when
+        // nothing at all is left of the change, the update did not happen, and the
+        // answer of the helper must say so - a change whose values already stand in the
+        // record is the other case, it is a success without a write
         if (!allow_update($db, $table, 'update', $key)) {
+            $dropped++;
             continue;
         }
 
@@ -1094,6 +1104,10 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
     }
 
     if (empty($set_parts)) {
+        if ($dropped > 0) {
+            LOG_WARNING($db, "Access denied: none of the fields of $table was let through by the rights");
+            return 0;
+        }
         return 1;
     }
 
@@ -1174,15 +1188,23 @@ function update_records($db, $table, $filter, $newvalue, $filter_params = [])
         return true; // ничего не найдено — считаем успехом
     }
     // Обновляем каждую запись по отдельности через уже существующую логику
+    // the sign of the refusal is kept: a batch whose records the rights did not take is
+    // not a batch which was updated
+    $done = 0;
     foreach ($records as $record) {
-        update_record($db, $table, "id = ?", $newvalue, [$record['id']]);
+        if (update_record($db, $table, "id = ?", $newvalue, [(int)$record['id']])) {
+            $done++;
+        }
     }
-    return true;
+    return $done > 0;
 }
 
 function delete_record($db, $table, $filter, $filter_params = [])
 {
+    // the same rule as in the update: a removal which the rights refused is written to
+    // the journal, so a mass operation which removed nothing can be explained
     if (!allow_update($db, $table, 'del')) {
+        LOG_WARNING($db, "Access denied: del $table [ $filter ]");
         return;
     }
     if (!isset($table)) {
@@ -1299,7 +1321,7 @@ function insert_record($db, $table, $newvalue)
 {
     // Проверка прав на запись
     if (!allow_update($db, $table, 'add')) {
-        LOG_DEBUG($db, "User does not have write permission for table '$table'");
+        LOG_WARNING($db, "User does not have write permission for table '$table'");
         return false;
     }
     // Проверка имени таблицы

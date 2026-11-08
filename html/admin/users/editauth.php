@@ -482,7 +482,9 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             <caption><?php echo WEB_status; ?></caption>
             <tr>
                 <td width="150"><?php echo WEB_cell_created_by; ?>:</td>
-                <td width="200"><?php echo $auth_info['created_by']; ?></td>
+                <!-- who created the record arrives in the text of a dhcp request, it
+                     is not a text of the interface -->
+                <td width="200"><?php echo esc($auth_info['created_by']); ?></td>
                 <td align="right"><a href="/admin/logs/authlog.php?auth_id=<?php echo $id; ?>"><?php echo WEB_log; ?></a></td>
                 <td align="right"><?php print_url(WEB_report_by_day, "/admin/reports/authday.php?id=$id"); ?></td>
             </tr>
@@ -494,9 +496,11 @@ $disabled_attr = $is_system_ou ? 'disabled' : '';
             </tr>
             <tr>
                 <td><?php echo WEB_cell_dhcp_hostname; ?>:</td>
-                <td><?php echo $auth_info['dhcp_hostname']; ?></td>
+                <!-- the hostname which dhcp brought is the text of a client: a device
+                     in the net puts anything into it, and the reader never appears -->
+                <td><?php echo esc($auth_info['dhcp_hostname']); ?></td>
                 <td>Dhcp event:</td>
-                <td><?php echo $dhcp_str; ?></td>
+                <td><?php echo esc($dhcp_str); ?></td>
             </tr>
             <tr>
                 <td><?php echo WEB_cell_arp_found; ?>:</td>

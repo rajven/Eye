@@ -3,6 +3,13 @@
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/auth.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 
+// the page starts the scripts of the base by sudo, rewrites the options of the settings
+// and clears the caches: the administrator alone, and the check stands before the first
+// mark of a form, so a reader with a valid token of the csrf does not reach the shell
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !acl_is_admin()) {
+    acl_denied($db_link, WEB_title_control);
+}
+
 if (isset($_POST["set_workmode_on"])) {
     run_sql($db_link,"DELETE FROM config WHERE option_id=68");
     $new['option_id'] = 68;
