@@ -51,6 +51,15 @@ define("WEB_msg_password_hint","Please enter your password");
 define("WEB_msg_delete_selected","Delete selected?");
 define("WEB_msg_export_selected","Export only selected?");
 define("WEB_msg_processing","Processing...");
+define("WEB_mass_success","Done");
+define("WEB_mass_fail","Some records were not changed, see the work log");
+define("WEB_mass_nothing_selected","Nothing was selected, nothing was changed");
+define("WEB_mass_no_name","The name of the global list is not chosen: %s");
+define("WEB_mass_not_written","The zabbix names were not written for the devices: %s - see the work log");
+define("WEB_mass_no_rights","The access level is not enough to change: %s");
+define("WEB_mass_zabbix_failed","The monitoring system refused the hosts: %s - see the work log");
+define("WEB_mass_zabbix_occupied","The address of some hosts belongs to another record: %s - those devices were not touched");
+define("WEB_mass_no_action","The mark of the mass action is missing: open the page again and repeat the action");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");
@@ -613,6 +622,7 @@ define("WEB_zabbix_host_unchanged","Zabbix: host %s is up to date");
 define("WEB_zabbix_host_disabled","Zabbix: host %s is already disabled");
 define("WEB_zabbix_host_switched_off","Zabbix: monitoring of host %s is switched off");
 define("WEB_zabbix_host_missing","Zabbix: there is no host of this record yet");
+define("WEB_zabbix_host_occupied","Zabbix: the address of the record is polled by the host of the record %s allready, the record %s is left alone");
 define("WEB_zabbix_host_failed","Zabbix: host %s is not updated, check the api errors in the log");
 define("WEB_zabbix_record_skip","This record can not be exported to zabbix: the record or its device does not exist, or the device with monitoring is a switch or a router");
 define("WEB_zabbix_host_note_renamed","the name");

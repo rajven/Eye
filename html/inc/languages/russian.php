@@ -51,6 +51,15 @@ define("WEB_msg_password_hint","Введите пароль");
 define("WEB_msg_delete_selected","Удалить выделенное?");
 define("WEB_msg_export_selected","Экспортировать только выделенное?");
 define("WEB_msg_processing","Идёт обработка...");
+define("WEB_mass_success","Готово");
+define("WEB_mass_fail","Часть записей не изменена, подробности в журнале");
+define("WEB_mass_nothing_selected","Ни одна запись не выбрана, ничего не изменено");
+define("WEB_mass_no_name","Не выбрано имя из глобального списка: %s");
+define("WEB_mass_not_written","Имена зabbix не записаны для устройств: %s - см. журнал");
+define("WEB_mass_no_rights","Вашего уровня прав недостаточно для изменения: %s");
+define("WEB_mass_zabbix_failed","Система мониторинга не приняла изменения хостов: %s - см. журнал");
+define("WEB_mass_zabbix_occupied","Часть адресов занята хостами других записей: %s - эти устройства не изменены");
+define("WEB_mass_no_action","Признак массового действия потерян: откройте страницу заново и повторите действие");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");
@@ -612,6 +621,7 @@ define("WEB_zabbix_host_unchanged","Zabbix: хост %s соответствуе
 define("WEB_zabbix_host_disabled","Zabbix: хост %s уже отключён");
 define("WEB_zabbix_host_switched_off","Zabbix: мониторинг хоста %s отключён");
 define("WEB_zabbix_host_missing","Zabbix: хоста этой записи ещё нет");
+define("WEB_zabbix_host_occupied","Zabbix: адрес записи уже опрашивается хостом записи %s, запись %s осталась как есть");
 define("WEB_zabbix_host_failed","Zabbix: хост %s не обновлён, смотрите ошибки api в журнале");
 define("WEB_zabbix_record_skip","Запись нельзя выгрузить в zabbix: запись или устройство не найдены, либо под мониторингом лежит коммутатор или маршрутизатор");
 define("WEB_zabbix_host_note_renamed","имя");

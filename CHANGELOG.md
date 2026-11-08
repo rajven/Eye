@@ -1,4 +1,27 @@
 # Changelog 3-2-7 - release
+- bugfix: a stored cross site script came into the interface through dhcp: the host name which a device in the net brings
+  together with its action, the sign of who created the record and the name of the direct dns were printed as they are on the
+  pages of the subscriber and of the address, while the neighbours of the same cells in the lists were escaped. the text of a
+  record reaches now the reader through esc() on every page where it is shown, and the fields of the forms are escaped as the
+  attributes of html
+- bugfix: the second way of the same trick came from the internet: the name which the reverse dns of another owner answered
+  was kept in the cache of the base and was printed raw by the reports of the traffic, so the owner of a reverse zone could
+  put a script into the report of an administrator without any part of the reader. the resolver now keeps only what a host
+  name can hold (the borders of the dns protocol are cut by the same rule as in a real name), the reports escape the answer,
+  and the rows which an older version of the resolver left in the cache are corrected as the cache is cleaned
+- security: an action of a list was possible without the right for it: switchstatus.php, ipcam.php and control.php required
+  only login() while the csrf token belongs to any reader, so a customer with the view only level switched the ports and the
+  power of the PoE of a live switch and started the scripts of the base by sudo. the level of the rights is asked now at the
+  beginning of every handler of these pages, of the dialogs of the subscribers and of the endpoints of the mass operations,
+  the refusal is written to the work log, and the reader is not even offered the buttons and the dialogs which are closed for
+  him
+- bugfix: the helpers of the base told a success when the rights refused the change: update_record() answered 1 above a
+  refusal, update_records() answered true without looking at its records, and a field which the operator may not touch
+  simply disappeared from the change. a mass operation of an operator answered green 'Done' above a base where nothing had
+  moved; now every refusal is an answer of the error, and the reason is in the work log
+- changed: the list of the subscribers reads the signs of its rows by the batch helpers of the page (the counters of the
+  addresses and of the rules, the sign that an address does not follow its user, the names of the organizational units),
+  instead of four queries for every row of the page, as the list of the addresses does since the same fix
 - added: the column of the last arp on the page of the monitoring can be the key of the sort now: the list binds a device to
   its address by ip in the query itself, so the order goes over the whole base and not over one page of it, records without an
   arp stay at the end in both directions, and the name of the device keeps the pages steady
@@ -6,6 +29,34 @@
   hundred thousand addresses costs seconds per page, with it a fraction of a second
 - changed: the page of the monitoring no longer asks the arp of its page of devices by a separate query: the column comes with
   the list
+- added: the export to zabbix looks for the host of a record by the address of its interface when neither the eye tag of the
+  record nor its name found the host: a device put into zabbix by hand, or created under the name of another record, is bound
+  to the record and updated, while the creation of the second host above the address which is polled allready is refused by
+  zabbix. the search costs one light call over the farm for a run, the address of the host of another record is not taken, and
+  the interface of the bound host is moved to the address of the device - host.update does not touch the interfaces, so they
+  are corrected by the requests of their own group, and a host without such an interface gets it created
+- changed: the signs of the host of a record are looked over in the order eye tag, name of the record, address of the
+  interface: the tag of the host survives a renaming in zabbix, the name of the host is corrected by the export itself, and
+  the address is the last sign of the device which eye does not know yet
+- bugfix: a mass operation of a list could answer nothing at all: the dialogs of the lists carry no action and no method and
+  are served by /js/eye.js, while the address of that script was built on the modification time of the file. a deploy which
+  copies the times over leaves the address of a changed file the same, the browser keeps the copy it took before the update,
+  and the dialog was sent as a plain request to the list page: the page reloaded, the selection was lost, the button said
+  'processing', and no line appeared on the screen. the version of the script is the hash of its content now, the dialog of a
+  list is carried out by the safety net of inc/header.php when the script of the interface is missing or has stopped, and the
+  endpoints of the mass operations answer honestly: a request without its mark or without a selection is an error, not a green
+  'Success!'
+- bugfix: the mass operation of the zabbix names answered 'Done' above a base where nothing was written, so the tags and the
+  macros of the hosts looked neither added nor removed, and in silence. three cases were silent: a marked row of a tag or of a
+  macro which kept the placeholder instead of a name of the global list; an operator whose access level does not reach the
+  tables of the bindings, while update_record() and delete_record() answer success even when they refused the change; and a
+  host which the monitoring system refused, because the answer of the export only reached the work log. the dialog now names
+  the missing mark of the name, the missing level of the rights and the devices which zabbix did not take; the counters of the
+  operation count the records which were really written, and the tags and the macros are counted apart
+- added: a marked row of zabbix names which wrote nothing is a failure now: the addition of a tag or of a macro can not
+  return zero records while the name of the global list is chosen and the devices of the selection are before the user, so a
+  missing table of the bindings or a rejected insert is named on the screen with the devices concerned, while the removal of a
+  name which was not bound stays the usual case and is not an error
 - bugfix: the bulk walk of the sfp over a huawei module returned another line than the port by port query it replaced: the power
   of a channel was named 'TX:' and 'RX:' instead of 'Tx:' and 'Rx:', and a reading which came back empty fell down to the legacy
   oid, which the old code never reached at all because its check was dead - the bulk answers with the same text now, the branches

@@ -34,6 +34,14 @@ zabbix_get_template_by_name
 zabbix_get_groups
 zabbix_get_group
 zabbix_get_hosts_by_names
+zabbix_get_hosts_by_addresses
+zabbix_get_hosts_by_ids
+zabbix_interface_index
+zabbix_interface_fields
+zabbix_host_ip
+zabbix_host_interface_of_type
+zabbix_host_interface_changed
+zabbix_sync_host_interface
 zabbix_get_host
 zabbix_get_host_by_tag
 zabbix_get_tagged_hosts
@@ -233,6 +241,24 @@ return $zabbix_new_groups ? 'selectHostGroups' : 'selectGroups';
 }
 
 #---------------------------------------------------------------------------------
+# Properties of an interface which eye reads from zabbix and writes back
+
+sub zabbix_interface_fields {
+return ['interfaceid', 'type', 'ip', 'dns', 'port', 'useip', 'main', 'details'];
+}
+
+#---------------------------------------------------------------------------------
+# Address of the eye record in the representation of zabbix: the mask of a subnet
+# written by hand is not a part of the address of an interface
+
+sub zabbix_host_ip {
+my $ip = shift // '';
+$ip =~ s/\s+//g;
+$ip =~ s{/\d+$}{};
+return $ip;
+}
+
+#---------------------------------------------------------------------------------
 # Templates list: identifiers and names
 
 sub zabbix_get_templates {
@@ -326,6 +352,7 @@ my $hosts = zabbix_api_call('host.get', {
     selectParentTemplates => ['templateid', 'host', 'name'],
     selectMacros => ['macro', 'value', 'type'],
     selectTags => ['tag', 'value'],
+    selectInterfaces => zabbix_interface_fields(),
     zabbix_select_groups() => ['groupid', 'name'],
     });
 return {} if (!defined $hosts);
@@ -338,10 +365,123 @@ return \%found;
 }
 
 #---------------------------------------------------------------------------------
+# Hosts of the whole farm keyed by the hostid. zabbix gives the identifiers in one
+# request, so the address of an interface is looked over all hosts and the hosts which
+# are really needed are read by this method
+
+sub zabbix_get_hosts_by_ids {
+my $ids = shift || [];
+return {} if (!scalar(@$ids));
+
+my $hosts = zabbix_api_call('host.get', {
+    output => ['hostid', 'host', 'name', 'status', 'display', 'description'],
+    hostids => $ids,
+    selectParentTemplates => ['templateid', 'host', 'name'],
+    selectMacros => ['macro', 'value', 'type'],
+    selectTags => ['tag', 'value'],
+    selectInterfaces => zabbix_interface_fields(),
+    zabbix_select_groups() => ['groupid', 'name'],
+    });
+return {} if (!defined $hosts);
+
+my %found;
+foreach my $host (@$hosts) {
+    $found{ $host->{hostid} } = zabbix_host_info($host);
+    }
+return \%found;
+}
+
+#---------------------------------------------------------------------------------
+# Index of the addresses of the interfaces: address => hostid of the host which has it.
+# The api of zabbix does not search a host by the address of its interface, so the light
+# request passes over the farm once per run and the index is kept in memory. An
+# interface which is polled by its name only is not indexed: zabbix does not know its
+# address. An address which several hosts use is remembered as a conflict, eye does not
+# bind such an address to a record
+
+my %zabbix_ip_index;
+my %zabbix_ip_conflicts;
+my $zabbix_ip_index_done = 0;
+
+sub zabbix_interface_index {
+return \%zabbix_ip_index if ($zabbix_ip_index_done);
+
+my $light = zabbix_api_call('host.get', {
+    output => ['hostid'],
+    selectInterfaces => ['ip'],
+    });
+if (!defined $light) {
+    # a failed scan is remembered for the run allso: the scan is expensive, and the
+    # records of the run must not repeat it one by one
+    $zabbix_ip_index_done = 1;
+    return {};
+    }
+
+$zabbix_ip_index_done = 1;
+foreach my $host (@$light) {
+    foreach my $iface (@{ $host->{interfaces} || [] }) {
+    my $ip = zabbix_host_ip($iface->{ip});
+    next if ($ip eq '');
+    my $other = $zabbix_ip_index{$ip};
+    if (defined $other and $other ne $host->{hostid}) {
+        $zabbix_ip_conflicts{$ip} = 1;
+        next;
+        }
+    $zabbix_ip_index{$ip} = $host->{hostid};
+    }
+    }
+
+log_verbose("Zabbix: " . scalar(keys %zabbix_ip_index) . " addresses of the interfaces are indexed"
+    . (scalar(keys %zabbix_ip_conflicts)
+        ? ' , ' . scalar(keys %zabbix_ip_conflicts) . ' addresses are used by several hosts'
+        : ''));
+return \%zabbix_ip_index;
+}
+
+#---------------------------------------------------------------------------------
+# Hosts by the address of their interface, the address is the key of the result. A host
+# is bound to an eye record by its address when the eye tag of the record does not find
+# it: the device was put into zabbix by hand, or it was created under another name, and
+# host.create would only answer that such an address exists allready
+
+sub zabbix_get_hosts_by_addresses {
+my $ips = shift || [];
+my %wanted;
+
+foreach my $ip (@{ $ips }) {
+    my $clean = zabbix_host_ip($ip);
+    $wanted{$clean} = 1 if ($clean ne '');
+    }
+return {} if (!scalar(keys %wanted));
+
+my $index = zabbix_interface_index();
+my @ids;
+my %by_id;
+
+foreach my $ip (keys %wanted) {
+    my $hostid = $index->{$ip};
+    next if (!defined $hostid or $zabbix_ip_conflicts{$ip});
+    next if ($by_id{$hostid});
+    push(@ids, $hostid);
+    $by_id{$hostid} = $ip;
+    }
+return {} if (!scalar(@ids));
+
+my $hosts = zabbix_get_hosts_by_ids(\@ids);
+my %found;
+
+foreach my $hostid (keys %$hosts) {
+    my $ip = $by_id{$hostid};
+    next if (!defined $ip);
+    $found{$ip} = $hosts->{$hostid};
+    }
+return \%found;
+}
+
+#---------------------------------------------------------------------------------
 # One host by its technical name
 
-sub zabbix_get_host {
-my $name = shift;
+sub zabbix_get_host {my $name = shift;
 return if (!defined $name or $name eq '');
 my $found = zabbix_get_hosts_by_names($name);
 return $found->{ zabbix_host_key($name) };
@@ -360,6 +500,7 @@ my $hosts = zabbix_api_call('host.get', {
     selectParentTemplates => ['templateid', 'host', 'name'],
     selectMacros => ['macro', 'value', 'type'],
     selectTags => ['tag', 'value'],
+    selectInterfaces => zabbix_interface_fields(),
     zabbix_select_groups() => ['groupid', 'name'],
     });
 return if (!defined $hosts or !scalar(@$hosts));
@@ -382,6 +523,7 @@ my $hosts = zabbix_api_call('host.get', {
     selectParentTemplates => ['templateid', 'host', 'name'],
     selectMacros => ['macro', 'value', 'type'],
     selectTags => ['tag', 'value'],
+    selectInterfaces => zabbix_interface_fields(),
     $names => ['groupid', 'name'],
     });
 return {} if (!defined $hosts);
@@ -405,6 +547,7 @@ my @templates;
 my @macros;
 my @tags;
 my @groups;
+my @interfaces;
 
 foreach my $tpl (@{ $host->{parentTemplates} || [] }) {
     push(@templates, {
@@ -430,6 +573,19 @@ foreach my $group (@{ $host->{hostgroups} || $host->{groups} || [] }) {
     push(@groups, { groupid => $group->{groupid}, name => $group->{name} // '' });
     }
 
+foreach my $iface (@{ $host->{interfaces} || [] }) {
+    push(@interfaces, {
+        interfaceid => $iface->{interfaceid},
+        type => $iface->{type} // '',
+        ip => $iface->{ip} // '',
+        dns => $iface->{dns} // '',
+        port => $iface->{port} // '',
+        useip => $iface->{useip} // '',
+        main => $iface->{main} // '',
+        details => $iface->{details} || {},
+        });
+    }
+
 return {
     hostid => $host->{hostid},
     host => $host->{host} // '',
@@ -441,6 +597,7 @@ return {
     macros => \@macros,
     tags => \@tags,
     groups => \@groups,
+    interfaces => \@interfaces,
     };
 }
 
@@ -708,6 +865,111 @@ if ($version >= 1) {
     }
 
 return \%interface;
+}
+
+#---------------------------------------------------------------------------------
+# The interface of the host which has the type eye polls. The agent and the snmp poll
+# are two different objects of one host, the interfaces of the other type belong to
+# the other integration and are not touched
+
+sub zabbix_host_interface_of_type {
+my ($host, $type) = @_;
+foreach my $iface (@{ $host->{interfaces} || [] }) {
+    return $iface if ("$iface->{type}" eq "$type");
+    }
+return;
+}
+
+#---------------------------------------------------------------------------------
+# 1 when the host is polled not at the address of the eye record, or not by the snmp
+# parameters of it. The visible name of an interface is not compared: eye does not set
+# it and an address is unique, so the name of the row does not change the poll
+
+sub zabbix_host_interface_changed {
+my ($host, $wanted) = @_;
+return 1 if (!$wanted);
+my $current = zabbix_host_interface_of_type($host, $wanted->{type});
+return 1 if (!$current);
+
+foreach my $field ('ip', 'dns', 'port', 'useip') {
+    next if (!defined $wanted->{$field});
+    return 1 if (($current->{$field} // '') ne $wanted->{$field});
+    }
+
+if ($wanted->{details}) {
+    my $old = $current->{details} || {};
+    foreach my $field (sort keys %{ $wanted->{details} }) {
+    return 1 if (($old->{$field} // '') ne ($wanted->{details}{$field} // ''));
+    }
+    }
+
+return;
+}
+
+#---------------------------------------------------------------------------------
+# The host is polled at the address of the eye record. host.update does not touch the
+# interfaces, so the interface of the host is corrected by the requests of its own
+# group, and a host without such an interface gets it created
+
+sub zabbix_sync_host_interface {
+my ($host, $wanted) = @_;
+my $hostid = $host->{hostid};
+return if (!$hostid or !$wanted);
+return 1 if (!zabbix_host_interface_changed($host, $wanted));
+
+my $title = $host->{host} // $hostid;
+my $current = zabbix_host_interface_of_type($host, $wanted->{type});
+my $done;
+
+if ($current) {
+    my %params = ( interfaceid => $current->{interfaceid}, %$wanted );
+    $done = zabbix_api_call('hostinterface.update', \%params);
+    if (defined $done) {
+    log_info("Zabbix: the interface of host $title is moved to $wanted->{ip} port "
+        . ($wanted->{port} // '') . '');
+    }
+    } else {
+    my %params = ( hostid => $hostid, %$wanted );
+    $done = zabbix_api_call('hostinterface.create', \%params);
+    $done = (ref $done eq 'HASH' && $done->{interfaceids}) ? 1 : undef;
+    if (defined $done) {
+    log_info("Zabbix: host $title gets the interface $wanted->{ip} port "
+        . ($wanted->{port} // '') . '');
+    }
+    }
+
+if (!defined $done) {
+    log_error("Zabbix: cannot set the interface of host $title to $wanted->{ip}. " . $zabbix_error);
+    return;
+    }
+
+# the index of the run and the interfaces of the host follow the new address, the next
+# records of the same run do not ask zabbix about it again
+
+my $index = zabbix_interface_index();
+if ($current) {
+    delete $index->{ $current->{ip} } if (($index->{ $current->{ip} } // '') eq $hostid);
+    }
+$index->{ $wanted->{ip} } = $hostid;
+
+foreach my $iface (@{ $host->{interfaces} || [] }) {
+    next if ("$iface->{type}" ne "$wanted->{type}");
+    $iface->{ip} = $wanted->{ip};
+    $iface->{port} = $wanted->{port};
+    $iface->{useip} = $wanted->{useip};
+    $iface->{dns} = $wanted->{dns};
+    $iface->{details} = $wanted->{details} if ($wanted->{details});
+    last;
+    }
+
+# a host which had no such interface allready keeps the new one in its own list, the
+# same host must not be asked for the second interface of the same type
+
+if (!$current && ref $host->{interfaces} eq 'ARRAY') {
+    push(@{ $host->{interfaces} }, { %$wanted });
+    }
+
+return 1;
 }
 
 #---------------------------------------------------------------------------------

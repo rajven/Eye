@@ -10,6 +10,12 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 $msg_error = "";
 
 if (getPOST("create") !== null) {
+    // a new subscriber is a record of the base: the reader with the view only is not
+    // among those who may add it
+    if (!acl_can_edit()) {
+        acl_denied($db_link, WEB_title_users);
+    }
+
     $login = trim(getPOST("newlogin", null, ''));
     
     if ($login !== '') {
@@ -17,7 +23,7 @@ if (getPOST("create") !== null) {
         $lcount = get_count_records($db_link, "user_list", "LOWER(login) = LOWER(?)", [$login]);
         
         if ($lcount > 0) {
-            $msg_error = WEB_cell_login . " " . $login . " " . $msg_exists . "!";
+            $msg_error = WEB_cell_login . " " . esc($login) . " " . $msg_exists . "!";
         } else {
             $new = ['login' => $login];
             // Определение OU
@@ -74,10 +80,13 @@ if ($msg_error) {
 ?>
 
 <script>
+/* the caption of the button while the mass operation runs: the block of the safety net
+   in inc/header.php knows how to put the old caption back, so a page which lost the
+   script of the interface never keeps a button saying 'processing' for ever */
 function blockForm(formId) {
+    if (window.EYE_MASS_BLOCK) { window.EYE_MASS_BLOCK(formId); return; }
     const form = document.getElementById(formId);
     if (!form) return;
-    // Меняем текст кнопки отправки
     const submitBtn = form.querySelector('input[type="submit"], button[type="submit"]');
     if (submitBtn) {
         submitBtn.disabled = true;
@@ -97,6 +106,8 @@ function blockForm(formId) {
     <input type="text" id="search_str" name="search_str" value="<?php echo esc($f_search_str); ?>" style="margin: 0;">
     <input id="btn_filter" name="btn_filter" type="submit" value="<?php echo WEB_btn_show; ?>" style="margin: 0;">
   </fieldset>
+  <?php // a new subscriber is written into the base, and the reader only watches it
+  if (acl_can_edit()): ?>
   <fieldset>
     <legend><?php echo WEB_new_user; ?></legend>
     <div>
@@ -104,9 +115,11 @@ function blockForm(formId) {
       <input type="submit" name="create" value="<?php echo WEB_btn_add; ?>">
     </div>
   </fieldset>
+  <?php endif; ?>
 </form>
 
 <br>
+<?php if (acl_can_edit()): ?>
 <a class="mainButton" href="#eye-mass"><?php print WEB_btn_apply_selected; ?></a>
 <dialog id="eye-mass" class="eye-dlg">
   <button type="button" class="x" data-close aria-label="<?php echo WEB_btn_close; ?>">&#10005;</button>
@@ -139,6 +152,7 @@ function blockForm(formId) {
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
 </dialog>
+<?php endif; ?>
 
 <?php
 
@@ -200,6 +214,16 @@ $sSQL = "
 
 $users = get_records_sql($db_link, $sSQL, $dataParams);
 
+// the list does not ask the base for every row of the page: the counters of the address
+// records, the sign that an address does not follow the state of its user, the counters
+// of the rules and the names of the organizational units are read by the batch helpers
+// for the whole page at once, as the list of the addresses does
+$user_ids = array_column($users, 'id');
+$auth_counts_map = get_auth_counts_map($db_link, $user_ids);
+$auth_mismatch_map = get_auth_mismatch_map($db_link, $user_ids);
+$rules_counts_map = get_rules_counts_map($db_link, $user_ids);
+$ou_names_map = get_ou_names_map($db_link, array_column($users, 'ou_id'));
+
 ?>
 
 <form id="def" name="def" >
@@ -221,7 +245,7 @@ $users = get_records_sql($db_link, $sSQL, $dataParams);
 
 
 foreach ($users as $row) {
-    $auth_customs = get_count_records($db_link,"user_auth","user_id=? AND deleted=0 AND enabled <>?", [ $row['id'],$row['enabled'] ] );
+    $auth_customs = $auth_mismatch_map[(int)$row['id']] ?? 0;
     $cl = "data";
     if (! $row['enabled']) {
         $cl = "off";
@@ -232,7 +256,7 @@ foreach ($users as $row) {
     if ($auth_customs > 0) {
 	$cl = "custom";
 	}
-    if (! get_auth_count($db_link, $row['id'])) {
+    if (!($auth_counts_map[(int)$row['id']] ?? 0)) {
         $cl = 'nb';
     }
     print "<tr align=center>\n";
@@ -245,13 +269,16 @@ foreach ($users as $row) {
     print_url((string)$row['login'], 'edituser.php?id=' . (int)$row['id']);
     print "</td>\n";
     print "<td class=\"$cl\">".esc($row['description'])."</td>\n";
-    $rules_count = get_count_records($db_link,"auth_rules","user_id=?", [$row['id']]);
-    print "<td class=\"$cl\">".$rules_count."</td>\n";
-    print "<td class=\"$cl\">".esc(get_ou($db_link,$row['ou_id']))."</td>\n";
+    print "<td class=\"$cl\">" . (int)($rules_counts_map[(int)$row['id']] ?? 0) . "</td>\n";
+    print "<td class=\"$cl\">" . esc($ou_names_map[(int)$row['ou_id']] ?? '') . "</td>\n";
     print "<td class=\"$cl\">".get_qa($row['enabled']) . "</td>\n";
     print "<td class=\"$cl\">".$row['day_quota']."</td>\n";
     print "<td class=\"$cl\">".$row['month_quota']."</td>\n";
-    print "<td class=\"$cl\" align=center colspan=2><a href=../reports/userday.php?id=".$row['id'].">Просмотр</a></td>\n";
+    // the link of the report is built by the helper of the links: it escapes the text it
+    // shows, and the caption belongs to the dictionary of the interface
+    print "<td class=\"$cl\" align=center colspan=2>";
+    print_url(WEB_cell_report, '../reports/userday.php?id=' . (int)$row['id']);
+    print "</td>\n";
 }
 ?>
 </table>

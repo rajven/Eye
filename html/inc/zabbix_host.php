@@ -289,13 +289,32 @@ function zabbix_record_owned_names($db, $kind)
     return $names;
 }
 
-// The host of the record: by its name, then by the eye tag of the record
-function zabbix_find_host($db, $state)
+// The host of the record: the eye tag first, because the tag of the host survives the
+// renaming in zabbix, then the technical name, then the address of the interface which
+// zabbix already polls. host.create refuses the address which another host occupies, so
+// a device put into zabbix by hand is bound to the record and updated, and is not
+// created a second time above the address which is taken
+function zabbix_find_host($db, $state, &$occupied_by = NULL)
 {
-    $zbx_host = zabbix_get_host_by_name($state['host']);
+    // the eye tag finds the host even after it was renamed in zabbix
+    $zbx_host = zabbix_get_host_by_tag($state['key']);
+
     if ($zbx_host === null) {
-        // the eye tag finds the host even after it was renamed in zabbix
-        $zbx_host = zabbix_get_host_by_tag($state['key']);
+        $zbx_host = zabbix_get_host_by_name($state['host']);
+    }
+
+    if ($zbx_host === null) {
+        $zbx_host = zabbix_get_host_by_address($state['ip']);
+        // a host of the same address which carries the eye tag of another record keeps
+        // its owner: two records of one address must not fight for one host every run,
+        // and the creation of the second host there is refused by zabbix anyway
+        if ($zbx_host !== null) {
+            $owner = zabbix_host_tag_value($zbx_host, ZABBIX_TAG_EYE);
+            if ($owner !== '' && $owner !== $state['key']) {
+                $occupied_by = $owner;
+                return null;
+            }
+        }
     }
 
     return $zbx_host;
@@ -309,7 +328,16 @@ function zabbix_record_apply($db, $state)
     $groups = zabbix_record_groups($db, $state);
     $tags = zabbix_record_tags($db, $state, $state['key']);
 
-    $zbx_host = zabbix_find_host($db, $state);
+    $occupied_by = null;
+    $zbx_host = zabbix_find_host($db, $state, $occupied_by);
+
+    if ($occupied_by !== null) {
+        LOG_INFO($db, "Zabbix: address " . zabbix_host_ip($state['ip'])
+            . " is polled by the host of the eye record $occupied_by allready, the record "
+            . $state['key'] . " is left alone");
+        return ['action' => 'occupied', 'host' => $state['host'], 'parent' => $occupied_by,
+            'key' => $state['key']];
+    }
 
     if ($zbx_host === null) {
         $hostid = zabbix_api_create_host([
@@ -325,6 +353,9 @@ function zabbix_record_apply($db, $state)
         if (!$hostid) {
             return ['action' => 'failed', 'host' => $state['host']];
         }
+        // the address of the new host is kept: the next record of the page must not ask
+        // zabbix for the second host at the address which is taken now
+        zabbix_host_interface_remember($state['ip'], $hostid);
         LOG_INFO($db, "Zabbix: host " . $state['host'] . " created (hostid $hostid)");
         return [
             'action' => 'created',
@@ -413,12 +444,30 @@ function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $grou
         $note_types[] = 'status';
     }
 
-    if (empty($update)) {
+    // the host must be polled at the address of the record: the device moved to another
+    // address, or the host was found by its address and carries the parameters of the
+    // other poll. host.update does not touch the interfaces, so they are corrected apart
+    $wanted_interface = zabbix_host_interface([
+        'ip' => $state['ip'],
+        'snmp' => $state['snmp'],
+        'agent_port' => $state['agent_port'] ?? null,
+    ]);
+    $move_interface = zabbix_host_interface_changed($zbx_host, $wanted_interface);
+
+    if (empty($update) && !$move_interface) {
         return ['action' => 'unchanged', 'hostid' => $zbx_host['hostid'], 'host' => $zbx_host['host']];
     }
 
-    if (!zabbix_api_update_host($zbx_host['hostid'], $update)) {
+    if (!empty($update) && !zabbix_api_update_host($zbx_host['hostid'], $update)) {
         return ['action' => 'failed', 'host' => $zbx_host['host']];
+    }
+
+    if ($move_interface) {
+        if (!zabbix_api_sync_host_interface($zbx_host, $wanted_interface)) {
+            return ['action' => 'failed', 'host' => $zbx_host['host']];
+        }
+        $notes[] = 'the interface moves to ' . $wanted_interface['ip'];
+        $note_types[] = 'address';
     }
 
     LOG_INFO($db, "Zabbix: host " . $zbx_host['host'] . " updated: " . implode(', ', $notes));
@@ -764,6 +813,8 @@ function zabbix_record_result_text($result)
             return sprintf(WEB_zabbix_host_switched_off, $result['host'] ?? '');
         case 'missing':
             return WEB_zabbix_host_missing;
+        case 'occupied':
+            return sprintf(WEB_zabbix_host_occupied, $result['parent'] ?? '', $result['key'] ?? '');
         case 'skipped':
             return WEB_zabbix_record_skip;
         case 'unsupported':

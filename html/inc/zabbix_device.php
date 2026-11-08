@@ -264,6 +264,17 @@ function mass_zabbix_device_binding($db, $device_ids, $kind, $list_id, $value)
         return 0;
     }
 
+    // update_record() answers success even when the access level refused the change,
+    // so the level is asked here directly: a mass operation which wrote nothing must
+    // not be reported as done - that is how the names of the tags and of the macros
+    // appeared to be added and removed in silence
+    if (!allow_update($db, $conf['bind_table'], 'add')
+        && !allow_update($db, $conf['bind_table'], 'update')) {
+        LOG_WARNING($db, "Zabbix: the access level of the user does not allow changing " . $conf['caption']
+            . " (table " . $conf['bind_table'] . "), the mass operation is skipped");
+        return 0;
+    }
+
     $value = substr(trim((string)$value), 0, 250);
     $changed = 0;
 
@@ -277,16 +288,17 @@ function mass_zabbix_device_binding($db, $device_ids, $kind, $list_id, $value)
             "SELECT * FROM " . $conf['bind_table'] . " WHERE " . $conf['list_id_field'] . " = ? AND device_id = ?",
             [$list_id, $device_id]);
         if (!empty($row)) {
-            update_record($db, $conf['bind_table'], "id = ?", [$conf['value_field'] => $value, 'is_used' => 1], [(int)$row['id']]);
-        } else {
-            insert_record($db, $conf['bind_table'], [
+            update_record($db, $conf['bind_table'], "id = ?",
+                [$conf['value_field'] => $value, 'is_used' => 1], [(int)$row['id']]);
+            $changed++;
+        } elseif (insert_record($db, $conf['bind_table'], [
                 $conf['list_id_field'] => $list_id,
                 'device_id' => $device_id,
                 $conf['value_field'] => $value,
                 'is_used' => 1,
-            ]);
+            ])) {
+            $changed++;
         }
-        $changed++;
     }
 
     return $changed;
@@ -299,6 +311,12 @@ function mass_zabbix_device_unbind($db, $device_ids, $kind, $list_id)
     $conf = zabbix_device_kind_conf($kind);
     $list_id = (int)$list_id;
     if ($list_id <= 0 || empty($device_ids)) {
+        return 0;
+    }
+
+    if (!allow_update($db, $conf['bind_table'], 'del')) {
+        LOG_WARNING($db, "Zabbix: the access level of the user does not allow removing " . $conf['caption']
+            . " (table " . $conf['bind_table'] . "), the mass operation is skipped");
         return 0;
     }
 

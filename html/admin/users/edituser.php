@@ -131,6 +131,7 @@ if (getPOST("showDevice") !== null) {
             'device_type'      => 5,
             'ip'               => $auth['ip'],
             'ip_int'           => $auth['ip_int'],
+            'device_model_id'  => 87,
             'community'        => get_const('snmp_default_community'),
             'snmp_version'     => get_const('snmp_default_version'),
             'login'            => get_option($db_link, 28),
@@ -323,8 +324,8 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                 <td ><?php print WEB_user_permanent; ?></td>
             </tr>
             <tr>
-                <td colspan=2><input type="text" name="f_login" value="<?php print $user_info["login"]; ?>" size=25></td>
-                <td colspan=2><input type="text" name="f_description" value="<?php print $user_info["description"]; ?>" size=25></td>
+                <td colspan=2><input type="text" name="f_login" value="<?php print esc($user_info["login"]); ?>" size=25></td>
+                <td colspan=2><input type="text" name="f_description" value="<?php print esc($user_info["description"]); ?>" size=25></td>
                 <td colspan=2><?php print_ou_set($db_link, 'f_ou', $user_info["ou_id"]); ?></td>
                 <td><?php print_qa_select('f_permanent', $user_info["permanent"]); ?></td>
             </tr>
@@ -436,7 +437,8 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                 foreach ($flist as $row) {
                     $dhcp_str = '';
                     if (!is_empty_datetime($row["dhcp_time"])) {
-                        if (!empty($row["dhcp_action"])) { $dhcp_str = FormatDateStr('Y.m.d H:m', $row["dhcp_time"]) . " (" . $row["dhcp_action"] . ")"; }
+                        // the value comes from a dhcp request, it is escaped allways
+                        if (!empty($row["dhcp_action"])) { $dhcp_str = FormatDateStr('Y.m.d H:m', $row["dhcp_time"]) . " (" . esc($row["dhcp_action"]) . ")"; }
                     }
                     if (is_empty_datetime($row["last_found"])) {
                         $row["last_found"] = '';
@@ -459,15 +461,18 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     if (!empty($row["mac_found"])) { print "<p class='ts'>".FormatDateStr('Y.m.d H:i', $row["mac_found"])."</p>"; }
                     print "</td>";
 
+                    // the hostname which dhcp brought is the text of a client in the
+                    // net: both values of the cell go through esc(), as the same cell of
+                    // the list of the addresses does
                     if (isset($row["dhcp_hostname"]) and strlen($row["dhcp_hostname"]) > 0) {
-                        print "<td class=\"data\" >" . $row["description"] . " [" . $row["dhcp_hostname"] . "]</td>";
+                        print "<td class=\"data\" >" . esc($row["description"]) . " [" . esc($row["dhcp_hostname"]) . "]</td>";
                     } else {
-                        print "<td class=\"data\" >" . $row["description"] . "</td>";
+                        print "<td class=\"data\" >" . esc($row["description"]) . "</td>";
                     }
                     $f_dns_type = 'A';
                     if ($row["dns_ptr_only"]) { $f_dns_type = 'ptr'; }
                     $f_dns_row = '';
-                    if (!empty($row["dns_name"])) { $f_dns_row = $row["dns_name"]."<hr>".$f_dns_type; }
+                    if (!empty($row["dns_name"])) { $f_dns_row = esc($row["dns_name"])."<hr>".$f_dns_type; }
                     print "<td class=\"data\" >" . $f_dns_row . "</td>";
                     $ip_status = 1;
                     if ($row["blocked"] or !$row["enabled"]) {
@@ -481,9 +486,9 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     print "<td class=\"$cl\" >" . get_qa($row["dhcp"]);
                     if (!empty($row["dhcp_acl"]) or !empty($row["dhcp_option_set"])) {
                             print "<p class='ts'>";
-                            if (!empty($row["dhcp_acl"])) { print $row["dhcp_acl"]; }
+                            if (!empty($row["dhcp_acl"])) { print esc($row["dhcp_acl"]); }
                             if (!empty($row["dhcp_acl"]) and !empty($row["dhcp_option_set"])) { print "&nbsp/&nbsp"; }
-                            if (!empty($row["dhcp_option_set"])) { print $row["dhcp_option_set"]; }
+                            if (!empty($row["dhcp_option_set"])) { print esc($row["dhcp_option_set"]); }
                             print "</p>";
                             }
                     if (!empty($dhcp_str)) { print "<p class='ts'>".$dhcp_str. "</p>"; }
@@ -499,7 +504,7 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                     print "</td>";
 
                     print "<td class=\"data\" >";
-                    if (!empty($row["created_by"])) { print $row["created_by"]; }  else { print "&nbsp"; }
+                    if (!empty($row["created_by"])) { print esc($row["created_by"]); }  else { print "&nbsp"; }
                     print "</td>";
                     print "</tr>";
                 }

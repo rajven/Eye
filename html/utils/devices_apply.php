@@ -6,7 +6,27 @@ if (!defined("CONFIG")) die("Not defined");
 
 $page_url = null;
 
+// the parameters of the devices is a mass action of the list, and the right for it is looked up before the first
+// record is touched: the token of the csrf proves who sent the request, it says nothing
+// about what that reader may do
+if (!acl_can_edit()) {
+    acl_denied($db_link, WEB_title_devices);
+}
+
 $all_ok = true;
+
+// the request of a mass operation must carry both its mark and the selection: a
+// dialog which did not meet the script of the interface brought nothing at all, and the
+// answer came back green with 'Success!' while not a single record was touched
+if (getPOST("ApplyForAll", $page_url) === null) {
+    print '<div class="result err">' . WEB_mass_no_action . '</div>';
+    exit;
+}
+
+if (empty((array) getPOST('fid', $page_url, []))) {
+    print '<div class="result err">' . WEB_mass_nothing_selected . '</div>';
+    exit;
+}
 
 if (getPOST("ApplyForAll", $page_url) !== null) {
 
@@ -32,7 +52,53 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
 
     $tag_changed = 0;
     $macro_changed = 0;
+    $zbx_failed = [];
+    $zbx_occupied = [];
+    $zbx_unwritten = [];
 
+    // what every mark of the dialog writes into: the table of it and its caption. the
+    // mass operation of a list touches the record of the device, the bindings of its
+    // zabbix names, and nothing else
+    $asks = [
+        ['devices', WEB_devices, ['e_set_type', 'e_set_model', 'e_set_building', 'e_set_snmp_version',
+                                  'e_set_ro_community', 'e_set_rw_community', 'e_monitoring', 'e_link',
+                                  'e_handler'], []],
+        ['zabbix_tags', WEB_zabbix_tags_device, ['e_tag_add', 'e_tag_del'], [$a_tag_add, $a_tag_del]],
+        ['zabbix_macros', WEB_zabbix_macros_device, ['e_macro_add', 'e_macro_del'], [$a_macro_add, $a_macro_del]],
+    ];
+
+    foreach ($asks as $ask) {
+        list($table, $caption, $marks, $names) = $ask;
+
+        $wanted = [];
+        foreach ($marks as $mark) {
+            if (getPOST($mark, $page_url) !== null) {
+                $wanted[] = $mark;
+            }
+        }
+        if (empty($wanted)) {
+            continue;
+        }
+
+        // a row of the zabbix names which is marked but still shows the placeholder asks
+        // for nothing: the dialog must say so instead of passing in silence
+        foreach ($names as $num => $name) {
+            if ((int)$name <= 0 && getPOST($marks[$num], $page_url) !== null) {
+                print '<div class="result err">' . sprintf(WEB_mass_no_name, $caption) . '</div>';
+                exit;
+            }
+        }
+
+        // update_record() and delete_record() answer success even when the access level
+        // refused the change, so an operator without the right to a table used to get a
+        // green 'Done' above a base where nothing had moved. the level is asked here
+        if (!allow_update($db_link, $table, 'add') && !allow_update($db_link, $table, 'update')
+            && !allow_update($db_link, $table, 'del')) {
+            LOG_WARNING($db_link, "Mass operation: the access level of the user does not allow changing $table");
+            print '<div class="result err">' . sprintf(WEB_mass_no_rights, $caption) . '</div>';
+            exit;
+        }
+    }
 
     foreach ($dev_id as $val) {
         $id = (int)$val;
@@ -93,28 +159,60 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
         // the names of the global zabbix lists are assigned to the device itself, the
         // value of a tag or of a macro is the same for every device of the operation
         $binding_changed = 0;
+        // a mark of an add with the name of the list chosen and with the devices in the
+        // selection can not produce zero records: that is a broken or a missing table of
+        // the bindings, and the answer must not be green. a removal of a name which is
+        // not bound is the usual case, so zero changes there is not a failure
         if (getPOST("e_tag_add", $page_url) !== null) {
-            $binding_changed += mass_zabbix_device_binding($db_link, [$id], 'tags', $a_tag_add, $a_tag_value);
+            $done = mass_zabbix_device_binding($db_link, [$id], 'tags', $a_tag_add, $a_tag_value);
+            $tag_changed += $done;
+            $binding_changed += $done;
+            if ($done == 0) {
+                $all_ok = false;
+                $zbx_unwritten[] = $cur_device['device_name'] . ' (' . WEB_zabbix_tags_device . ')';
+            }
         }
         if (getPOST("e_tag_del", $page_url) !== null) {
             $binding_changed += mass_zabbix_device_unbind($db_link, [$id], 'tags', $a_tag_del);
         }
         if (getPOST("e_macro_add", $page_url) !== null) {
-            $binding_changed += mass_zabbix_device_binding($db_link, [$id], 'macros', $a_macro_add, $a_macro_value);
+            $done = mass_zabbix_device_binding($db_link, [$id], 'macros', $a_macro_add, $a_macro_value);
+            $macro_changed += $done;
+            $binding_changed += $done;
+            if ($done == 0) {
+                $all_ok = false;
+                $zbx_unwritten[] = $cur_device['device_name'] . ' (' . WEB_zabbix_macros_device . ')';
+            }
         }
         if (getPOST("e_macro_del", $page_url) !== null) {
             $binding_changed += mass_zabbix_device_unbind($db_link, [$id], 'macros', $a_macro_del);
         }
-        $tag_changed += $binding_changed;
 
         // the zabbix host of the device follows the changes of its monitoring state and
         // of its macros and tags
         $refresh = isset($device['monitoring']) || isset($device['link_check'])
             || isset($device['nagios_handler']) || $binding_changed > 0;
         if ($refresh) {
-            $zbx_message = zabbix_record_sync_report($db_link, 'netdev', $id);
-            if ($zbx_message !== '') {
-                LOG_INFO($db_link, $cur_device['device_name'] . ': ' . $zbx_message);
+            // the export of the host is a part of the operation: while zabbix refused it
+            // the operation is not finished, and the refusal must be read on the screen
+            // and not only in the work log - the names of the tags and of the macros stay
+            // written in eye and invisible in the monitoring system
+            $zbx_result = zabbix_record_sync($db_link, 'netdev', $id);
+            $zbx_action = $zbx_result['action'] ?? '';
+            if (!in_array($zbx_action, ['unsupported', 'skipped'], true)) {
+                $zbx_message = zabbix_record_sync_message($db_link, $zbx_result);
+                if ($zbx_message !== '') {
+                    LOG_INFO($db_link, $cur_device['device_name'] . ': ' . $zbx_message);
+                }
+            }
+            if ($zbx_action === 'failed') {
+                $all_ok = false;
+                $zbx_failed[] = $cur_device['device_name'];
+            }
+            // a host which belongs to another record of the same address is left alone:
+            // the operation really did nothing to that device, and the screen must say so
+            if ($zbx_action === 'occupied') {
+                $zbx_occupied[] = $cur_device['device_name'];
             }
         }
     }
@@ -127,7 +225,16 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
     }
 }
 
-$message = $all_ok ? "Success!" : "Fail!";
+$message = $all_ok ? WEB_mass_success : WEB_mass_fail;
+if (!empty($zbx_unwritten)) {
+    $message = sprintf(WEB_mass_not_written, implode(', ', array_slice($zbx_unwritten, 0, 3)));
+} elseif (!empty($zbx_failed)) {
+    // the names of the first few devices are enough to understand where to look
+    $message = sprintf(WEB_mass_zabbix_failed, implode(', ', array_slice($zbx_failed, 0, 3)));
+} elseif (!empty($zbx_occupied)) {
+    $message = sprintf(WEB_mass_zabbix_occupied, implode(', ', array_slice($zbx_occupied, 0, 3)));
+    $all_ok = false;
+}
 /* a class instead of inline styles: the block used to stay green even on Fail! */
 print '<div class="result ' . ($all_ok ? 'ok' : 'err') . '">' . $message . '</div>';
 
