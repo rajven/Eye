@@ -324,8 +324,8 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/inc/header.php");
                 <td ><?php print WEB_user_permanent; ?></td>
             </tr>
             <tr>
-                <td colspan=2><input type="text" name="f_login" value="<?php print $user_info["login"]; ?>" size=25></td>
-                <td colspan=2><input type="text" name="f_description" value="<?php print $user_info["description"]; ?>" size=25></td>
+                <td colspan=2><input type="text" name="f_login" value="<?php print esc($user_info["login"]); ?>" size=25></td>
+                <td colspan=2><input type="text" name="f_description" value="<?php print esc($user_info["description"]); ?>" size=25></td>
                 <td colspan=2><?php print_ou_set($db_link, 'f_ou', $user_info["ou_id"]); ?></td>
                 <td><?php print_qa_select('f_permanent', $user_info["permanent"]); ?></td>
             </tr>
