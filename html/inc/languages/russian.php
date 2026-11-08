@@ -54,6 +54,11 @@ define("WEB_msg_processing","Идёт обработка...");
 define("WEB_mass_success","Готово");
 define("WEB_mass_fail","Часть записей не изменена, подробности в журнале");
 define("WEB_mass_nothing_selected","Ни одна запись не выбрана, ничего не изменено");
+define("WEB_mass_no_name","Не выбрано имя из глобального списка: %s");
+define("WEB_mass_not_written","Имена зabbix не записаны для устройств: %s - см. журнал");
+define("WEB_mass_no_rights","Вашего уровня прав недостаточно для изменения: %s");
+define("WEB_mass_zabbix_failed","Система мониторинга не приняла изменения хостов: %s - см. журнал");
+define("WEB_mass_zabbix_occupied","Часть адресов занята хостами других записей: %s - эти устройства не изменены");
 define("WEB_mass_no_action","Признак массового действия потерян: откройте страницу заново и повторите действие");
 
 /* SNMP */

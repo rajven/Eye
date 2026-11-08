@@ -23,6 +23,17 @@
   list is carried out by the safety net of inc/header.php when the script of the interface is missing or has stopped, and the
   endpoints of the mass operations answer honestly: a request without its mark or without a selection is an error, not a green
   'Success!'
+- bugfix: the mass operation of the zabbix names answered 'Done' above a base where nothing was written, so the tags and the
+  macros of the hosts looked neither added nor removed, and in silence. three cases were silent: a marked row of a tag or of a
+  macro which kept the placeholder instead of a name of the global list; an operator whose access level does not reach the
+  tables of the bindings, while update_record() and delete_record() answer success even when they refused the change; and a
+  host which the monitoring system refused, because the answer of the export only reached the work log. the dialog now names
+  the missing mark of the name, the missing level of the rights and the devices which zabbix did not take; the counters of the
+  operation count the records which were really written, and the tags and the macros are counted apart
+- added: a marked row of zabbix names which wrote nothing is a failure now: the addition of a tag or of a macro can not
+  return zero records while the name of the global list is chosen and the devices of the selection are before the user, so a
+  missing table of the bindings or a rejected insert is named on the screen with the devices concerned, while the removal of a
+  name which was not bound stays the usual case and is not an error
 - bugfix: the bulk walk of the sfp over a huawei module returned another line than the port by port query it replaced: the power
   of a channel was named 'TX:' and 'RX:' instead of 'Tx:' and 'Rx:', and a reading which came back empty fell down to the legacy
   oid, which the old code never reached at all because its check was dead - the bulk answers with the same text now, the branches

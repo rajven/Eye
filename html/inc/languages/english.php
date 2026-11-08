@@ -54,6 +54,11 @@ define("WEB_msg_processing","Processing...");
 define("WEB_mass_success","Done");
 define("WEB_mass_fail","Some records were not changed, see the work log");
 define("WEB_mass_nothing_selected","Nothing was selected, nothing was changed");
+define("WEB_mass_no_name","The name of the global list is not chosen: %s");
+define("WEB_mass_not_written","The zabbix names were not written for the devices: %s - see the work log");
+define("WEB_mass_no_rights","The access level is not enough to change: %s");
+define("WEB_mass_zabbix_failed","The monitoring system refused the hosts: %s - see the work log");
+define("WEB_mass_zabbix_occupied","The address of some hosts belongs to another record: %s - those devices were not touched");
 define("WEB_mass_no_action","The mark of the mass action is missing: open the page again and repeat the action");
 
 /* SNMP */
