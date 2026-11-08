@@ -131,6 +131,7 @@ if (getPOST("showDevice") !== null) {
             'device_type'      => 5,
             'ip'               => $auth['ip'],
             'ip_int'           => $auth['ip_int'],
+            'device_model_id'  => 87,
             'community'        => get_const('snmp_default_community'),
             'snmp_version'     => get_const('snmp_default_version'),
             'login'            => get_option($db_link, 28),
