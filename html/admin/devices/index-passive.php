@@ -6,7 +6,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $default_sort='ip_int';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/devmodelsfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/subnetfilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/devtypesfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/buildingfilter.php");
@@ -32,12 +32,13 @@ if ($f_building_id > 0) { $filter .= ' and D.building_id=?'; $params[]=$f_buildi
 if ($f_devtype_id >= 0) { $filter .= ' and D.device_type=?'; $params[]=$f_devtype_id; } else { $filter .= ' and D.device_type> ?'; $params[]=2; }
 if ($f_devmodel_id > 0) { $filter .= ' and D.device_model_id=?'; $params[]= $f_devmodel_id; }
 if ($rou > 0) { $filter .= ' and L.ou_id=? '; $params[]=$rou; }
-if ($rsubnet > 0) {
-    $subnet_range = get_subnet_range($db_link,$rsubnet);
-    if (!empty($subnet_range)) { 
+
+if (empty($rcidr)) { $cidr_filter = ''; } else {
+    $cidr_range = cidrToRange($rcidr);
+    if (!empty($cidr_range)) {
         $filter .= " and A.ip_int>=? and A.ip_int<=?";
-        $params[]=$subnet_range['start'];
-        $params[]=$subnet_range['stop'];
+        $params[]=ip2long($cidr_range[0]);
+        $params[]=ip2long($cidr_range[1]);
         }
     }
 
@@ -62,7 +63,7 @@ print_device_submenu($page_url);
 <td class="info"><?php print_ou_select($db_link, 'ou', $rou); ?></td>
 <td class="info"><?php print WEB_rows_at_page."&nbsp:"; print_row_at_pages('rows',$displayed); ?></td>
 <td class="info"><?php print WEB_network_subnet; ?> </td>
-<td class="info"><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?></td>
+<td class="info"><?php print_subnet_select_office_splitted($db_link, 'cidr', $rcidr); ?></td>
 <td class="info" colspan=2><?php  print WEB_models; print_device_model_select($db_link, "devmodels", $f_devmodel_id, 'device_type>2'); ?></td>
 </tr>
 </table>

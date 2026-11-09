@@ -5,6 +5,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $default_sort='device_name';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/devtypesfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/buildingfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
@@ -19,6 +20,15 @@ $sort_url = "<a href=monitoring.php?ou=" . $rou;
 
 $params=[];
 if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and user_list.ou_id=?"; $params[]=$rou; }
+
+if (empty($rcidr)) { $cidr_filter = ''; } else {
+    $cidr_range = cidrToRange($rcidr);
+    if (!empty($cidr_range)) {
+        $cidr_filter = " and devices.ip_int>=? and devices.ip_int<=?";
+        $params[]=ip2long($cidr_range[0]);
+        $params[]=ip2long($cidr_range[1]);
+        }
+    }
 
 if ($f_devtype_id <0) { $type_filter = ''; } else { $type_filter = " and devices.device_type=?"; $params[]=$f_devtype_id; }
 
@@ -45,7 +55,7 @@ if ($enabled>0) {
     if ($enabled===1) { $enabled_filter = ' and devices.monitoring=0'; }
     }
 
-$device_list_filter = $ou_filter.$type_filter.$building_filter.$enabled_filter;
+$device_list_filter = $ou_filter.$type_filter.$cidr_filter.$building_filter.$enabled_filter;
 
 print_ip_submenu($page_url);
 
@@ -57,6 +67,7 @@ print_ip_submenu($page_url);
         <td>
         <b><?php print WEB_cell_ou; ?> :</b><?php print_ou_select($db_link, 'ou', $rou); ?>
         <b><?php print WEB_device_type_show; ?> :</b><?php print_devtypes_select($db_link, 'devtypes', $f_devtype_id, ""); ?>
+        <b><?php print WEB_network_subnet; ?></b><?php print_subnet_select_office_splitted($db_link, 'cidr', $rcidr); ?>
         <b><?php print WEB_location_name; ?> - </b><?php print_building_select($db_link, 'building_id', $f_building_id); ?>
         <b><?php print WEB_monitoring; ?> :</b><?php print_enabled_select('enabled', $enabled); ?>
         <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
