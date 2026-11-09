@@ -18,9 +18,9 @@ print_log_submenu($page_url);
 <?php echo WEB_log_level_display; ?>:<?php print_loglevel_select('display_log_level',$display_log_level); ?>
 <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
 <input type="submit" value="<?php echo WEB_btn_show; ?>"><br><br>
-<?php echo WEB_log_filter_source; ?>:&nbsp<input name="customer" value="<?php echo $fcustomer; ?>" /> &nbsp
-<?php echo WEB_log_event; ?>:&nbsp<input name="message" value="<?php echo $fmessage; ?>" /> &nbsp
-<?php echo WEB_msg_IP; ?>:&nbsp<input name="user_ip" value="<?php echo $fuser_ip; ?>" /><br>
+<?php echo WEB_log_filter_source; ?>:&nbsp<input name="customer" value="<?php echo esc($fcustomer); ?>" /> &nbsp
+<?php echo WEB_log_event; ?>:&nbsp<input name="message" value="<?php echo esc($fmessage); ?>" /> &nbsp
+<?php echo WEB_msg_IP; ?>:&nbsp<input name="user_ip" value="<?php echo esc($fuser_ip); ?>" /><br>
 </form>
 
 <?php

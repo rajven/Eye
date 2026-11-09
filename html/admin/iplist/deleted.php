@@ -55,7 +55,7 @@ print_ip_submenu($page_url);
 <br>
 <div>
         <b><?php print WEB_network_subnet; ?> - </b><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?>
-        <?php echo WEB_ips_search_full; ?>: &nbsp <input type=text name=searchDescription value="<?php print $f_description; ?>">
+        <?php echo WEB_ips_search_full; ?>: &nbsp <input type=text name=searchDescription value="<?php print esc($f_description); ?>">
         <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
         <input type="submit" value="<?php echo WEB_btn_show; ?>">
 </div>

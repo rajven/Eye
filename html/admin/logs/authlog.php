@@ -16,8 +16,8 @@ if (!isset($auth_id)) { header('Location: /admin/logs/index.php', true, 301); ex
 <?php echo WEB_log_level_display; ?>:<?php print_loglevel_select('display_log_level',$display_log_level); ?>
 <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
 <input type="submit" value="<?php echo WEB_btn_show; ?>"><br><br>
-<?php echo WEB_log_filter_source; ?>:<input name="customer" value="<?php echo $fcustomer; ?>" />
-<?php echo WEB_log_message; ?>:<input name="message" value="<?php echo $fmessage; ?>" />
+<?php echo WEB_log_filter_source; ?>:<input name="customer" value="<?php echo esc($fcustomer); ?>" />
+<?php echo WEB_log_message; ?>:<input name="message" value="<?php echo esc($fmessage); ?>" />
 </form>
 
 <?php

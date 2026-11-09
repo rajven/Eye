@@ -63,7 +63,7 @@ print_log_submenu($page_url);
     print_row_at_pages('rows', $displayed);
     ?>
     <input type="submit" value="<?=WEB_btn_show?>"><br><br>
-    <?php echo WEB_log_filter_event; ?>:<input name="message" value="<?php echo $fmessage; ?>" />
+    <?php echo WEB_log_filter_event; ?>:<input name="message" value="<?php echo esc($fmessage); ?>" />
 </form>
 
 <?php print_navigation($page_url, $page, $displayed, $count_records, $total); ?>

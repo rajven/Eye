@@ -112,8 +112,13 @@ if (getPOST("editdevice") !== null && isset($id)) {
     $new['rw_community']          = substr(trim(getPOST("f_rw_community", null, '')), 0, 50);
     $new['snmp3_user_rw']         = substr(trim(getPOST("f_snmp3_user_rw", null, '')), 0, 20);
     $new['snmp3_user_ro']         = substr(trim(getPOST("f_snmp3_user_ro", null, '')), 0, 20);
-    $new['snmp3_user_rw_password']= substr(trim(getPOST("f_snmp3_user_rw_password", null, '')), 0, 20);
-    $new['snmp3_user_ro_password']= substr(trim(getPOST("f_snmp3_user_ro_password", null, '')), 0, 20);
+    // the passwords of snmp v3 live in the base as they are (no cipher yet), but they
+    // never come back to the browser: the form prints the same mask which the password of
+    // the device does, and a save which brings the mask back changes nothing
+    $f_snmp3_user_rw_password = getPOST("f_snmp3_user_rw_password", null, '');
+    if (!preg_match('/^\*+$/', $f_snmp3_user_rw_password)) { $new['snmp3_user_rw_password'] = substr(trim($f_snmp3_user_rw_password), 0, 20); }
+    $f_snmp3_user_ro_password = getPOST("f_snmp3_user_ro_password", null, '');
+    if (!preg_match('/^\*+$/', $f_snmp3_user_ro_password)) { $new['snmp3_user_ro_password'] = substr(trim($f_snmp3_user_ro_password), 0, 20); }
 
     // ACL и настройки
     $new['queue_enabled']         = (int)getPOST("f_queue_enabled", null, 0);
@@ -315,7 +320,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 //cli access settings
                 print "<tr><td>" . WEB_cell_login . "</td><td>" . WEB_cell_password . "</td><td>" . WEB_cell_control_proto . "</td><td>" . WEB_cell_control_port . "</td></tr>";
                 print "<tr>";
-                print "<td class='data'><input type='text' name='f_login' value=" . $device['login'] . "></td>\n";
+                print "<td class='data'><input type='text' name='f_login' value='" . esc($device['login']) . "'></td>\n";
                 print "<td class='data'><input type='text' name='f_password' value='********'></td>\n";
                 print "<td class='data'>";
                 print_control_proto_select('f_protocol', $device['protocol']);
@@ -406,10 +411,10 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 print "</tr>";
                 print "<tr><td>" . WEB_snmp_v3_user_ro . "</td><td>" . WEB_snmp_v3_ro_password . "</td><td>" . WEB_snmp_v3_user_rw . "</td><td>" . WEB_snmp_v3_rw_password . "</td><td></td>";
                 print "</tr><tr>";
-                print "<td class='data'><input type='text' name='f_snmp3_user_ro' value=" . $device['snmp3_user_ro'] . "></td>\n";
-                print "<td class='data'><input type='text' name='f_snmp3_user_ro_password' minlength='8' value=" . $device['snmp3_user_ro_password'] . "></td>\n";
-                print "<td class='data'><input type='text' name='f_snmp3_user_rw' value=" . $device['snmp3_user_rw'] . "></td>\n";
-                print "<td class='data'><input type='text' name='f_snmp3_user_rw_password' minlength='8' value=" . $device['snmp3_user_rw_password'] . "></td>\n";
+                print "<td class='data'><input type='text' name='f_snmp3_user_ro' value='" . esc($device['snmp3_user_ro']) . "'></td>\n";
+                print "<td class='data'><input type='password' name='f_snmp3_user_ro_password' minlength='8' value='********'></td>\n";
+                print "<td class='data'><input type='text' name='f_snmp3_user_rw' value='" . esc($device['snmp3_user_rw']) . "'></td>\n";
+                print "<td class='data'><input type='password' name='f_snmp3_user_rw_password' minlength='8' value='********'></td>\n";
                 print "</tr>\n";
             }
 
@@ -421,8 +426,8 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 if ($device['snmp_version'] > 0) {
                     print "<tr><td>" . WEB_snmp_community_ro . "</td><td>" . WEB_snmp_community_rw . "</td><td></td><td></td></tr>";
                     print "<tr>\n";
-                    print "<td class='data'><input type='text' name='f_community' value=" . $device['community'] . "></td>\n";
-                    print "<td class='data'><input type='text' name='f_rw_community' value=" . $device['rw_community'] . "></td>\n";
+                    print "<td class='data'><input type='text' name='f_community' value='" . esc($device['community']) . "'></td>\n";
+                    print "<td class='data'><input type='text' name='f_rw_community' value='" . esc($device['rw_community']) . "'></td>\n";
                     print "<td class='data' colspan=2></td>";
                     print "</tr>";
                 }
@@ -435,15 +440,15 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 print "<tr><td class='data'>";
                 print_snmp_select('f_snmp_version', $device['snmp_version']);
                 print "</td>";
-                print "<td class='data'><input type='text' name='f_login' value=" . $device['login'] . "></td>\n";
+                print "<td class='data'><input type='text' name='f_login' value='" . esc($device['login']) . "'></td>\n";
                 print "<td class='data'><input type='text' name='f_password' value='********'></td>\n";
                 print "<td class='data'></td>";
                 print "</tr>";
                 if ($device['snmp_version'] > 0) {
                     print "<tr><td>" . WEB_snmp_community_ro . "</td><td>" . WEB_snmp_community_rw . "</td><td colspan=2></td></tr>";
                     print "<tr>\n";
-                    print "<td class='data'><input type='text' name='f_community' value=" . $device['community'] . "></td>\n";
-                    print "<td class='data'><input type='text' name='f_rw_community' value=" . $device['rw_community'] . "></td>\n";
+                    print "<td class='data'><input type='text' name='f_community' value='" . esc($device['community']) . "'></td>\n";
+                    print "<td class='data'><input type='text' name='f_rw_community' value='" . esc($device['rw_community']) . "'></td>\n";
                     print "<td class='data' colspan=2></td>";
                     print "</tr>";
                 }

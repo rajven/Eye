@@ -141,14 +141,14 @@ CREATE INDEX IF NOT EXISTS idx_unknown_mac_port_ts ON unknown_mac(port_id, ts);
 -- place because the create_db of mysql keeps the same keys for its side, and a
 -- base which was installed fresh must look as the base which was upgraded
 -- ============================================================================
-DROP INDEX IF EXISTS idx_user_auth_deleted;    -- partial prefix of (deleted, ip_int)
-DROP INDEX IF EXISTS idx_wan_stats_time;       -- prefix of UNIQUE (ts, router_id, interface_id)
-DROP INDEX IF EXISTS idx_devices_active;       -- nothing reads devices.active, mysql keeps no such key
+DROP INDEX IF EXISTS idx_user_auth_deleted;
+DROP INDEX IF EXISTS idx_wan_stats_time;
+DROP INDEX IF EXISTS idx_devices_active;
 
 -- ============================================================================
 -- optional: the substring search of the user list goes through pg_trgm which
 -- create_db already enables, the two indexes cost place but give the search
 -- an index instead of a scan of the whole user list
 -- ============================================================================
-CREATE INDEX idx_user_list_login_trgm ON user_list USING GIN(login gin_trgm_ops);
-CREATE INDEX idx_user_list_description_trgm ON user_list USING GIN(description gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_user_list_login_trgm ON user_list USING GIN(login gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_user_list_description_trgm ON user_list USING GIN(description gin_trgm_ops);
