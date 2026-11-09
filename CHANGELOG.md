@@ -1,4 +1,30 @@
 # Changelog 3-2-8 - release
+- added: the templates of the zabbix host follow the model of the device - a changed model
+  unlinks the templates of the model which the device has left behind and links the list of
+  the new one, in the form of the device, in the mass operation and over the api of eye. It
+  is done with the hosts which eye made itself, on which the tag of eye of the record is
+  left: a
+  host found by its name or by its address belongs to another owner, and eye only adds the
+  missing templates there, the templates of the other owner stay
+- added: the mass operation of the templates of zabbix, and the dialog of the mass operations
+  of a device is built by inc/mass.php now: the passive equipment and the page of the
+  monitoring offer the same set of operations from one description of the fields, so a new
+  row appears on both lists at once and the endpoint reads the marks of the same list. the
+  page of the equipment took the operations of the monitoring (monitoring, the reaction to an
+  event, the tags and the macros of the host) which it did not offer before, the reader with
+  the view only level is not offered the dialog at all
+- changed: the mass operation of the devices answers an error when not a single row of the
+  dialog is marked, and names the devices whose hosts eye does not manage when the operator
+  asked to unlink their templates - the operation which touched nothing used to come back
+  green with 'Done'. the same rule of the marked rows is now in the endpoints of the
+  subscribers and of the addresses
+- bugfix: the export of a host could not leave it without templates at all: the request of the
+  update carried the list of the templates only while it was not empty, so a model with
+  unbound templates kept the old list on the host for ever
+- changed: the templates of the host are asked by the whole list of the model, while the
+  scripts of the base keep the usual rule of the reconciliation: the missing templates are
+  added, nothing is taken away, because a template of the host may belong to anybody
+# Changelog 3-2-7 - release
 - security: a macro of the secret type does not show its value any more and does not keep
   it in the plain text: the form of the device prints the mask of zabbix (the same line
   which the monitoring system itself answers for a secret macro), the value goes into the

@@ -66,30 +66,13 @@ print_ip_submenu($page_url);
 </table>
 </form>
 
-<a class="mainButton" href="#eye-mass"><?php print WEB_btn_apply_selected; ?></a>
-<dialog id="eye-mass" class="eye-dlg">
-  <button type="button" class="x" data-close aria-label="<?php echo WEB_btn_close; ?>">&#10005;</button>
-  <form id="formNetDevApply">
-        <h2><?php print WEB_selection_title; ?></h2>
-        <input type="hidden" name="ApplyForAll" value="MassChange">
-        <table class="data" align=center>
-        <?php if (is_monitoring_enabled()): ?>
-            <tr><td><input type=checkbox class="putField" name="e_monitoring" value='1'></td><td><?php print WEB_monitoring; ?>&nbsp<?php print_qa_select('a_monitoring', 1); ?></td></tr>
-        <?php endif; ?>
-        <?php if (is_nagios_enabled()): ?>
-            <tr><td><input type=checkbox class="putField" name="e_link" value='1'></td><td><?php print WEB_cell_link; ?>&nbsp<?php print_qa_select('a_link', 0); ?></td></tr>
-            <tr><td><input type=checkbox class="putField" name="e_handler" value='1'></td><td><?php print WEB_cell_nagios_handler; ?>&nbsp<?php print_nagios_handler_select($db_link,'a_handler'); ?></td></tr>
-        <?php endif; ?>
-        <?php if (is_zabbix_enabled()): ?>
-            <tr><td><input type=checkbox class="putField" name="e_tag_add" value='1'></td><td><?php print WEB_zabbix_mass_tag_add; ?>&nbsp<?php print_zabbix_tag_id_select('a_tag_add', zabbix_global_names($db_link, 'tags'), WEB_zabbix_tag_select_model_empty); ?>&nbsp<?php print WEB_zabbix_value; ?>&nbsp<input type="text" name="a_tag_value" value="" size=12></td></tr>
-            <tr><td><input type=checkbox class="putField" name="e_tag_del" value='1'></td><td><?php print WEB_zabbix_mass_tag_del; ?>&nbsp<?php print_zabbix_tag_id_select('a_tag_del', zabbix_global_names($db_link, 'tags'), WEB_zabbix_tag_select_model_empty); ?></td></tr>
-            <tr><td><input type=checkbox class="putField" name="e_macro_add" value='1'></td><td><?php print WEB_zabbix_mass_macro_add; ?>&nbsp<?php print_zabbix_macro_id_select('a_macro_add', zabbix_global_names($db_link, 'macros'), WEB_zabbix_macro_select_model_empty); ?>&nbsp<?php print WEB_zabbix_value; ?>&nbsp<input type="text" name="a_macro_value" value="" size=12></td></tr>
-            <tr><td><input type=checkbox class="putField" name="e_macro_del" value='1'></td><td><?php print WEB_zabbix_mass_macro_del; ?>&nbsp<?php print_zabbix_macro_id_select('a_macro_del', zabbix_global_names($db_link, 'macros'), WEB_zabbix_macro_select_model_empty); ?></td></tr>
-        <?php endif; ?>
-        </table>
-        <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
-    </form>
-</dialog>
+<?php
+// the same dialog of the mass operations which the list of the passive equipment prints:
+// the devices of both lists are the records of one table, and the hosts of zabbix are the
+// hosts of those records
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/mass.php");
+print_mass_devices_dialog($db_link, null, ['dev_type' => 1]);
+?>
 
 <?php
 // an address of the user has no host itself, the device of the user is the host, so the

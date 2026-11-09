@@ -533,6 +533,16 @@ function normalizer_zabbix_macro_name($name)
 define('ZABBIX_TAG_EYE', 'eye');
 define('ZABBIX_TAG_PARENT', 'parent');
 
+// What the export must do with the templates of the host: link the missing ones above
+// what the host has got (the usual reconciliation, and the only one which is done by the
+// scripts of the base), replace the whole list of an eye host by the templates of its
+// model (a changed model of the device), or take every template away from the host
+// (the explicit will of the operator). A host which eye does not manage of its own is
+// never stripped: the templates there belong to another owner
+define('ZABBIX_TEMPLATES_ADD', 'add');
+define('ZABBIX_TEMPLATES_RELINK', 'relink');
+define('ZABBIX_TEMPLATES_UNLINK', 'unlink');
+
 // Tag names are typed by hand, zabbix does not allow the equals sign in a tag name
 function normalizer_zabbix_tag_name($name)
 {
@@ -1112,30 +1122,69 @@ function zabbix_host_tag_value($host, $tag_name)
     return '';
 }
 
-// Only the missing templates are added, the templates of the host are never removed
-function zabbix_host_merge_templates($host, $wanted)
+// The host belongs to this record of eye: it carries the tag of eye with the key of the
+// record. Only such a host may lose the objects which the reconciliation removes, a host
+// found by its name or by its address was made by somebody else and stays as it is
+function zabbix_host_is_owned($host, $key)
 {
-    $merged = [];
+    $owner = strtolower(trim(zabbix_host_tag_value($host, ZABBIX_TAG_EYE)));
+    return $owner !== '' && $owner === strtolower(trim((string)$key));
+}
+
+// The list of the templates which the host must carry after the run, with the numbers of
+// what it gains and loses by it.
+//
+// add    - the usual reconciliation of the scripts: the missing templates of the model
+//          are linked, nothing is taken away, because a template of the host may belong
+//          to anybody;
+// relink - the model of the device has changed: a host which eye manages itself (the tag
+//          of eye of this record is on it) takes the templates of the new model as the
+//          whole list, so the templates of the old model do not stay on it. A host which
+//          eye did not create is not stripped, the missing templates are only added
+//          there: they belong to another owner;
+// unlink - the operator asks to take the templates away: it is done with an eye host
+//          only, and nothing at all happens to a foreign one
+function zabbix_host_templates_plan($host, $wanted, $mode = ZABBIX_TEMPLATES_ADD,
+                                    $managed = false)
+{
     $current = [];
+    $list = [];
     foreach ($host['templates'] ?? [] as $template) {
-        $id = $template['templateid'] ?? 0;
+        $id = (int)($template['templateid'] ?? 0);
         if ($id && !isset($current[$id])) {
             $current[$id] = 1;
-            $merged[] = (int)$id;
+            $list[] = $id;
         }
     }
 
-    $added = [];
-    foreach ($wanted as $id) {
-        if (!$id || isset($current[$id])) {
-            continue;
+    $wished = [];
+    foreach ((array)$wanted as $id) {
+        $id = (int)$id;
+        if ($id && !isset($wished[$id])) {
+            $wished[$id] = 1;
         }
-        $current[$id] = 1;
-        $merged[] = (int)$id;
-        $added[] = (int)$id;
     }
 
-    return [$merged, $added];
+    // a foreign host is never stripped: the strongest wish of the operation stops at
+    // the addition of the missing templates
+    if (!$managed && $mode !== ZABBIX_TEMPLATES_ADD) {
+        $mode = ZABBIX_TEMPLATES_ADD;
+    }
+
+    if ($mode === ZABBIX_TEMPLATES_UNLINK) {
+        return ['templates' => [], 'added' => [], 'removed' => $list];
+    }
+
+    if ($mode === ZABBIX_TEMPLATES_RELINK) {
+        $wanted_ids = array_keys($wished);
+        $current_ids = array_keys($current);
+        $added = array_values(array_diff($wanted_ids, $current_ids));
+        $removed = array_values(array_diff($current_ids, $wanted_ids));
+        return ['templates' => $wanted_ids, 'added' => $added, 'removed' => $removed];
+    }
+
+    $added = array_values(array_diff(array_keys($wished), array_keys($current)));
+    return ['templates' => array_merge($list, $added), 'added' => $added, 'removed' => []];
 }
 
 // The macros of the model are refreshed, the foreign macros of the host are kept
@@ -1436,10 +1485,13 @@ function zabbix_api_update_host($hostid, $update)
     if (isset($update['description'])) {
         $params['description'] = $update['description'];
     }
-    if (!empty($update['templates'])) {
+    // an empty list of the templates is a real value too: a changed model takes the
+    // templates of the old one away from the host of eye, and the host must be left
+    // without them when its new model has none
+    if (array_key_exists('templates', $update)) {
         $params['templates'] = array_map(function ($template_id) {
             return ['templateid' => (int)$template_id];
-        }, array_values($update['templates']));
+        }, array_values((array)$update['templates']));
     }
     // an empty list is a real value too: the macros and the tags which eye does not
     // assign anymore must disappear from the host, so an empty array is sent as well

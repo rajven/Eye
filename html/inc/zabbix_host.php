@@ -353,8 +353,12 @@ function zabbix_find_host($db, $state, &$occupied_by = NULL)
     return $zbx_host;
 }
 
-// Creation or update of the zabbix host of the eye record
-function zabbix_record_apply($db, $state)
+// Creation or update of the zabbix host of the eye record. An ordinary run only links
+// the templates which the host has not got yet; a changed model of the device, or the
+// will of the operator, is carried here as ZABBIX_TEMPLATES_RELINK or
+// ZABBIX_TEMPLATES_UNLINK - the host of eye then follows its model with the whole list
+// of its templates
+function zabbix_record_apply($db, $state, $tpl_mode = ZABBIX_TEMPLATES_ADD)
 {
     $templates = zabbix_record_templates($db, (int)$state['model_id']);
     $macros = zabbix_record_macros($db, (int)$state['device_id']);
@@ -373,6 +377,12 @@ function zabbix_record_apply($db, $state)
     }
 
     if ($zbx_host === null) {
+        // there is nothing to unlink from a host which does not exist yet: the wish of
+        // the operator is answered honestly, the host is not created for that
+        if ($tpl_mode === ZABBIX_TEMPLATES_UNLINK) {
+            return ['action' => 'missing', 'host' => $state['host']];
+        }
+
         $hostid = zabbix_api_create_host([
             'host' => $state['host'],
             'description' => $state['description'],
@@ -401,12 +411,14 @@ function zabbix_record_apply($db, $state)
         ];
     }
 
-    return zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $groups, $tags);
+    return zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $groups, $tags,
+        $tpl_mode);
 }
 
-// The name, the groups, the tags, the macros and the missing templates are updated.
+// The name, the groups, the tags, the macros and the templates are updated.
 // eye owns the objects of its own lists, the objects of the other integrations stay
-function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $groups, $tags)
+function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $groups, $tags,
+                              $tpl_mode = ZABBIX_TEMPLATES_ADD)
 {
     $owned_macros = zabbix_record_owned_names($db, 'macros');
     $owned_tags = zabbix_record_owned_names($db, 'tags');
@@ -458,11 +470,22 @@ function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $grou
         $note_types[] = 'tags';
     }
 
-    list($merged, $added) = zabbix_host_merge_templates($zbx_host, $templates);
-    if (!empty($added)) {
-        $update['templates'] = $merged;
-        $notes[] = count($added) . ' template(s) added';
+    // The templates follow the model of the device. An ordinary run links only the
+    // templates which the host has not got yet; a changed model, or the hand of the
+    // operator, replaces the whole list of the host which eye manages itself - the tag of
+    // eye says whose host it is. A host of another owner is never stripped, and the
+    // screen is told so: the operation did not touch the templates there
+    $tpl_owned = zabbix_host_is_owned($zbx_host, $state['key']);
+    $plan = zabbix_host_templates_plan($zbx_host, $templates, $tpl_mode, $tpl_owned);
+    if (!empty($plan['added'])) {
+        $update['templates'] = $plan['templates'];
+        $notes[] = count($plan['added']) . ' template(s) linked';
         $note_types[] = 'templates';
+    }
+    if (!empty($plan['removed'])) {
+        $update['templates'] = $plan['templates'];
+        $notes[] = count($plan['removed']) . ' template(s) unlinked';
+        $note_types[] = 'templates_unlinked';
     }
 
     if (zabbix_record_macros_changed($zbx_host, $macros, $owned_macros)) {
@@ -488,7 +511,8 @@ function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $grou
     $move_interface = zabbix_host_interface_changed($zbx_host, $wanted_interface);
 
     if (empty($update) && !$move_interface) {
-        return ['action' => 'unchanged', 'hostid' => $zbx_host['hostid'], 'host' => $zbx_host['host']];
+        return ['action' => 'unchanged', 'hostid' => $zbx_host['hostid'], 'host' => $zbx_host['host'],
+            'templates' => 0, 'unlinked' => 0, 'managed' => $tpl_owned];
     }
 
     if (!empty($update) && !zabbix_api_update_host($zbx_host['hostid'], $update)) {
@@ -509,7 +533,9 @@ function zabbix_record_update($db, $state, $zbx_host, $templates, $macros, $grou
         'hostid' => $zbx_host['hostid'],
         'host' => $zbx_host['host'],
         'notes' => $note_types,
-        'templates' => count($added),
+        'templates' => count($plan['added']),
+        'unlinked' => count($plan['removed']),
+        'managed' => $tpl_owned,
         'parent' => (string)$state['parent'],
     ];
 }
@@ -704,8 +730,11 @@ function zabbix_record_switch_off($db, $state)
     return ['action' => 'disabled', 'hostid' => $zbx_host['hostid'], 'host' => $zbx_host['host']];
 }
 
-// The record is exported to zabbix after the changes made by the web interface
-function zabbix_record_sync($db, $type, $id)
+// The record is exported to zabbix after the changes made by the web interface.
+// The mode of the templates is asked here because the caller is the only one who knows
+// that the model of the device has just changed, or that the operator has asked for the
+// templates of the hosts on purpose
+function zabbix_record_sync($db, $type, $id, $tpl_mode = ZABBIX_TEMPLATES_ADD)
 {
     if (!zabbix_record_supported($db)) {
         return ['action' => 'unsupported'];
@@ -717,7 +746,7 @@ function zabbix_record_sync($db, $type, $id)
     }
 
     if ((int)$state['monitoring'] === 1) {
-        return zabbix_record_apply($db, $state);
+        return zabbix_record_apply($db, $state, $tpl_mode);
     }
 
     // monitoring was switched off, the host is switched off too
@@ -871,9 +900,9 @@ function zabbix_record_sync_message($db, $result)
 }
 
 // Export of the record with the silent skipping of the cases which are not zabbix errors
-function zabbix_record_sync_report($db, $type, $id)
+function zabbix_record_sync_report($db, $type, $id, $tpl_mode = ZABBIX_TEMPLATES_ADD)
 {
-    $result = zabbix_record_sync($db, $type, $id);
+    $result = zabbix_record_sync($db, $type, $id, $tpl_mode);
     if (in_array($result['action'] ?? '', ['unsupported', 'skipped'], true)) {
         return '';
     }
@@ -882,9 +911,10 @@ function zabbix_record_sync_report($db, $type, $id)
 }
 
 // The message of the export appended to the messages of the page
-function zabbix_record_report_message($db, $type, $id, $current_message = '')
+function zabbix_record_report_message($db, $type, $id, $current_message = '',
+                                      $tpl_mode = ZABBIX_TEMPLATES_ADD)
 {
-    $message = zabbix_record_sync_report($db, $type, $id);
+    $message = zabbix_record_sync_report($db, $type, $id, $tpl_mode);
     if ($message === '') {
         return $current_message;
     }

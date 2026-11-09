@@ -934,6 +934,14 @@ function api_after_update_hooks($db, $spec, $id, $values, $old)
             if (array_key_exists('port_count', $values)) {
                 api_after_device($db, $id, (int)$values['port_count']);
             }
+            // the templates of the host of zabbix follow the model of the device, so the
+            // api relinks them as the form of the device does: the answer of the
+            // monitoring system stays in the journal, while the answer of the api names
+            // the record of the base which it changed
+            if (array_key_exists('device_model_id', $values)
+                && (int)($old['device_model_id'] ?? 0) !== (int)$values['device_model_id']) {
+                zabbix_record_report_message($db, 'netdev', $id, '', ZABBIX_TEMPLATES_RELINK);
+            }
             break;
     }
 }

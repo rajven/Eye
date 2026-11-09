@@ -178,9 +178,16 @@ if (getPOST("editdevice") !== null && isset($id)) {
     save_zabbix_device_block($db_link, (int)$id, 'macros');
     save_zabbix_device_block($db_link, (int)$id, 'tags');
 
+    // the templates of zabbix are bound to the model, so a changed model means a changed
+    // list of the templates: the host which eye manages itself forgets the templates of
+    // the old model, a host of another owner only takes the missing ones
+    $model_changed = isset($new['device_model_id'])
+        && (int)$cur_device['device_model_id'] !== (int)$new['device_model_id'];
+
     // the zabbix host of the device is created, updated or switched off at once
     $_SESSION[$page_url]['msg'] = zabbix_record_report_message($db_link, 'netdev', (int)$id,
-        $_SESSION[$page_url]['msg'] ?? '');
+        $_SESSION[$page_url]['msg'] ?? '',
+        $model_changed ? ZABBIX_TEMPLATES_RELINK : ZABBIX_TEMPLATES_ADD);
 
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;

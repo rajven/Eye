@@ -60,6 +60,10 @@ define("WEB_mass_no_rights","Вашего уровня прав недостат
 define("WEB_mass_zabbix_failed","Система мониторинга не приняла изменения хостов: %s - см. журнал");
 define("WEB_mass_zabbix_occupied","Часть адресов занята хостами других записей: %s - эти устройства не изменены");
 define("WEB_mass_no_action","Признак массового действия потерян: откройте страницу заново и повторите действие");
+define("WEB_mass_no_marks","В диалоге не отмечена ни одна операция: ничего не изменено");
+define("WEB_mass_group_device","Параметры устройства");
+define("WEB_mass_group_monitoring","Система мониторинга");
+define("WEB_mass_group_zabbix","Хост zabbix");
 
 /* SNMP */
 define("WEB_snmp_version","SNMP version");
@@ -599,6 +603,12 @@ define("WEB_zabbix_mass_macro_add","Назначить макрос zabbix");
 define("WEB_zabbix_mass_macro_del","Удалить макрос zabbix");
 define("WEB_zabbix_mass_tags","тэги zabbix назначены устройствам");
 define("WEB_zabbix_mass_macros","макросы zabbix назначены устройствам");
+define("WEB_zabbix_mass_templates","Шаблоны хоста zabbix");
+define("WEB_zabbix_mass_templates_relink","Отлинковать шаблоны старой модели, подключить шаблоны новой");
+define("WEB_zabbix_mass_templates_unlink","Отлинковать все шаблоны хоста");
+define("WEB_zabbix_mass_templates_done","шаблоны zabbix перелинкованы на хостах");
+define("WEB_zabbix_mass_templates_hint","Имена тэгов и макросов принадлежат устройству и остаются в eye; шаблоны отлинковываются только от хостов, которые создал eye - хост другого владельца получит недостающие шаблоны, а свои сохранит");
+define("WEB_mass_zabbix_unmanaged","Шаблоны не отлинкованы от хостов, которыми eye не управляет: %s");
 define("WEB_zabbix_host_groups","Группы хостов Zabbix");
 define("WEB_zabbix_group_not_found","группа не найдена в zabbix:");
 define("WEB_zabbix_group_id","Id группы хостов");
@@ -628,6 +638,7 @@ define("WEB_zabbix_host_note_renamed","имя");
 define("WEB_zabbix_host_note_visible","описание");
 define("WEB_zabbix_host_note_tags","тэги");
 define("WEB_zabbix_host_note_templates","новые шаблоны");
+define("WEB_zabbix_host_note_templates_unlinked","шаблоны старой модели отлинкованы");
 define("WEB_zabbix_host_note_macros","макросы");
 define("WEB_zabbix_host_note_status","мониторинг снова включён");
 define("WEB_zabbix_sync_now","Выгрузить в zabbix");
