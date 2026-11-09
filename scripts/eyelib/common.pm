@@ -638,9 +638,15 @@ sub is_ad_computer {
         return 0;
     }
 
-    # Кэшируем
-    do_sql($hdb, "INSERT INTO ad_comp_cache (name) VALUES (?) ON DUPLICATE KEY UPDATE name = ?", 
-           $netbios_name, $netbios_name);
+    # Кэшируем: ON DUPLICATE KEY знает только mysql, PostgreSQL умеет только ON CONFLICT
+    # по уникальному имени компьютера - оно под тем же ключом в обеих базах
+    if (get_db_type($hdb) eq 'pg') {
+        do_sql($hdb, "INSERT INTO ad_comp_cache (name) VALUES (?) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name",
+            $netbios_name);
+    } else {
+        do_sql($hdb, "INSERT INTO ad_comp_cache (name) VALUES (?) ON DUPLICATE KEY UPDATE name = ?",
+            $netbios_name, $netbios_name);
+    }
 
     return 1;
 }

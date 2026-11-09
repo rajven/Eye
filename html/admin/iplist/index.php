@@ -62,7 +62,16 @@ $f_search=replaceSpecialChars($f_search_str);
 $ip_list_type_filter='';
 if ($ip_type>0) {
     //suspicious - dhcp not found 3 last days
-    if ($ip_type===3) { $ip_list_type_filter = " and (user_auth.dhcp_action IN ('add', 'old', 'del') and (ABS(user_auth.dhcp_time - user_auth.arp_found)>259200) and (UNIX_TIMESTAMP()-user_auth.arp_found)<259200)"; }
+    if ($ip_type===3) {
+        // разность двух колонок с датой в секундах: "dhcp_time - arp_found" из mysql
+        // секундами не является (mysql вычитает даты как числа YYYYMMDDHHMMSS), а
+        // UNIX_TIMESTAMP() и ABS(interval) каждому движку нужны свои
+        $ts_diff = db_ts_diff($db_link, 'user_auth.dhcp_time', 'user_auth.arp_found');
+        $ts_passed = db_ts_passed($db_link, 'user_auth.arp_found');
+        $ip_list_type_filter = " and (user_auth.dhcp_action IN ('add', 'old', 'del')"
+            . " and ($ts_diff > 259200)"
+            . " and ($ts_passed < 259200))";
+    }
     //dhcp
     if ($ip_type===2) { $ip_list_type_filter = " and (user_auth.dhcp_action IN ('add', 'old', 'del'))"; }
     //static

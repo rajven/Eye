@@ -588,6 +588,9 @@ if (!empty($action)) {
         $target_subnet = getParam('subnet', null, null);
 
         // Один оптимизированный запрос вместо множества get_count_records в цикле
+        // порог «зомби» считается от текущего момента выражением своего движка:
+        // DATE_SUB не знает PostgreSQL, make_interval не знает mysql - db_ts_days_ago()
+        $zombi_since = db_ts_days_ago($db_link);
         $sql = "
             SELECT 
                 s.id,
@@ -597,8 +600,8 @@ if (!empty($action)) {
                 (COALESCE(s.dhcp_stop, s.ip_int_stop) - COALESCE(s.dhcp_start, s.ip_int_start) + 1) AS dhcp_pool,
                 COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop THEN 1 END) AS used_all,
                 COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN COALESCE(s.dhcp_start, s.ip_int_start) AND COALESCE(s.dhcp_stop, s.ip_int_stop) THEN 1 END) AS used_dhcp,
-                COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop AND ua.last_found <= DATE_SUB(NOW(), INTERVAL ? DAY) THEN 1 END) AS zombi_all,
-                COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN COALESCE(s.dhcp_start, s.ip_int_start) AND COALESCE(s.dhcp_stop, s.ip_int_stop) AND ua.last_found <= DATE_SUB(NOW(), INTERVAL ? DAY) THEN 1 END) AS zombi_dhcp
+                COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop AND ua.last_found <= {$zombi_since} THEN 1 END) AS zombi_all,
+                COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN COALESCE(s.dhcp_start, s.ip_int_start) AND COALESCE(s.dhcp_stop, s.ip_int_stop) AND ua.last_found <= {$zombi_since} THEN 1 END) AS zombi_dhcp
             FROM subnets s
             LEFT JOIN user_auth ua ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
             WHERE s.office = 1

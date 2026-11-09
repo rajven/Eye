@@ -383,6 +383,55 @@ function is_empty_datetime($datetime) {
     return false;
 }
 
+// 1 когда за соединением стоит PostgreSQL: движок спрашивается у самого соединения, а не
+// из конфигурации — установщик разных версий писал имя типа по разному. Ответ помнится
+// на каждое соединение: скрипт сверки схемы держит рабочую и чистую базу одновременно.
+// Ключом служит само соединение, а не его номер: номер освобождённого объекта php отдаёт
+// заново, и новое соединение унаследовало бы ответ старого
+function db_is_pgsql($db)
+{
+    static $answers = null;
+    if ($answers === null) {
+        $answers = new SplObjectStorage();
+    }
+    if (!isset($answers[$db])) {
+        $answers[$db] = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql';
+    }
+    return $answers[$db];
+}
+
+// Разница двух колонок с датой в секундах. Движки её считают разными выражениями, и
+// наивное "колонка минус колонка" из mysql секундам не равно вовсе: тот движок вычитает
+// даты как числа YYYYMMDDHHMMSS, а PostgreSQL не умеет ни ABS(interval), ни
+// UNIX_TIMESTAMP()
+function db_ts_diff($db, $left, $right)
+{
+    if (db_is_pgsql($db)) {
+        return 'ABS(EXTRACT(EPOCH FROM (' . $left . ' - ' . $right . ')))';
+    }
+    return 'ABS(TIMESTAMPDIFF(SECOND, ' . $left . ', ' . $right . '))';
+}
+
+// Сколько секунд прошло от колонки с датой до момента чтения
+function db_ts_passed($db, $column)
+{
+    if (db_is_pgsql($db)) {
+        return 'EXTRACT(EPOCH FROM (LOCALTIMESTAMP - ' . $column . '))';
+    }
+    return 'TIMESTAMPDIFF(SECOND, ' . $column . ', NOW())';
+}
+
+// Момент «N дней назад» от текущего: выражение с одним знаком вопроса, параметр - число
+// дней. DATE_SUB умеет считать его только mysql, make_interval - только PostgreSQL, при
+// этом postgres берёт время без зоны, как и хранит его глаз
+function db_ts_days_ago($db)
+{
+    if (db_is_pgsql($db)) {
+        return 'LOCALTIMESTAMP - make_interval(days => ?)';
+    }
+    return 'DATE_SUB(NOW(), INTERVAL ? DAY)';
+}
+
 function get_user_ip()
 {
     return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';

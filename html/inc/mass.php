@@ -171,14 +171,18 @@ function print_mass_devices_dialog($db, $groups = null, $conf = [])
     }
 
     $rows = '';
+    $notes = [];
     foreach ($groups as $name) {
         if (empty($fields[$name])) {
             continue;
         }
-        $rows .= "<tr class=\"lblrow\"><td colspan=\"3\"><b>" . $fields[$name]['caption'] . "</b></td></tr>\n";
+        // the caption of a group is a line of its own: the class of the page tables would
+        // make it a sticky header of the table and the columns of the dialog would lean on
+        // the single cell which spans them all
+        $rows .= "<tr class=\"dlg-group\"><td colspan=\"3\">" . $fields[$name]['caption'] . "</td></tr>\n";
         foreach ($fields[$name]['fields'] as $field) {
             $rows .= "<tr>\n";
-            $rows .= "<td style='padding:0'><input type=checkbox class=\"putField\" name=\""
+            $rows .= "<td><input type=checkbox class=\"putField\" name=\""
                 . $field['mark'] . "\" value='1'></td>\n";
             $rows .= "<td>" . $field['caption'] . "</td>\n";
             $rows .= "<td>";
@@ -189,7 +193,9 @@ function print_mass_devices_dialog($db, $groups = null, $conf = [])
             $rows .= "</tr>\n";
         }
         if (!empty($fields[$name]['hint'])) {
-            $rows .= "<tr><td colspan=\"3\" class=\"dlg-i\">" . $fields[$name]['hint'] . "</td></tr>\n";
+            // the note is not a row of the table: it stands under it, in the body of the
+            // card, and does not carry the caption look of a page table
+            $notes[] = $fields[$name]['hint'];
         }
     }
 
@@ -201,12 +207,26 @@ function print_mass_devices_dialog($db, $groups = null, $conf = [])
     print "<dialog id=\"eye-mass\" class=\"eye-dlg\">\n";
     print "  <button type=\"button\" class=\"x\" data-close aria-label=\""
         . htmlspecialchars(WEB_btn_close, ENT_QUOTES, 'UTF-8') . "\">&#10005;</button>\n";
-    print "  <form id=\"formNetDevApply\">\n";
-    print "        <h2>" . WEB_selection_title . "</h2>\n";
+    // the card: the head and the action of the dialog keep their places, the body of a long
+    // form scrolls on its own. the shared dialog lists the fields of every device list at
+    // once, and on a short screen the button of the operation would otherwise fall out of
+    // the box behind the last row
+    print "  <form id=\"formNetDevApply\" class=\"dlg-card\">\n";
+    print "        <div class=\"dlg-h\"><h2>" . WEB_selection_title . "</h2></div>\n";
     print "        <input type=\"hidden\" name=\"ApplyForAll\" value=\"MassChange\">\n";
-    print "        <table class=\"data\" align=center>\n" . $rows . "        </table>\n";
-    print "        <input type=\"submit\" name=\"submit\" class=\"btn\" value=\""
-        . WEB_btn_apply . "\">\n";
+    print "        <div class=\"dlg-b\">\n";
+    print "        <table class=\"data\" align=center>\n";
+    // the first line of the table is a caption over three columns, and a fixed layout reads
+    // the widths of the columns from the first line: they are named here instead
+    print "        <colgroup><col><col><col></colgroup>\n";
+    print $rows;
+    print "        </table>\n";
+    foreach ($notes as $note) {
+        print "        <p class=\"dlg-i\">" . $note . "</p>\n";
+    }
+    print "        </div>\n";
+    print "        <div class=\"dlg-f\"><input type=\"submit\" name=\"submit\" class=\"btn\" value=\""
+        . WEB_btn_apply . "\"></div>\n";
     print "    </form>\n";
     print "</dialog>\n";
 
