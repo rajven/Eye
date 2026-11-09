@@ -1,0 +1,19 @@
+-- ============================================================================
+-- 002: the parity of the columns between the two engines, mysql side
+-- applies to: MySQL 5.7+ / 8.0
+-- the postgres notation of the same work: 002_column_parity.psql
+--
+-- the three NOT NULL counters of a flow had no default at all in mysql while the
+-- same columns of the copy in postgres answer 0; the inserts of eye give every
+-- one of them, so the change only lifts the difference of the two schemes
+--
+-- the empty default of the version row named the release which was current when
+-- the template was dumped; the row itself is written by data.sql, the default is
+-- the name which an insert without the value leaves behind
+-- ============================================================================
+
+ALTER TABLE traffic_detail  ALTER COLUMN src_port SET DEFAULT 0;
+
+ALTER TABLE traffic_detail  ALTER COLUMN dst_port SET DEFAULT 0;
+
+ALTER TABLE traffic_detail  ALTER COLUMN bytes SET DEFAULT 0;

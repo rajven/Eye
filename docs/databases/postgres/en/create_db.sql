@@ -337,7 +337,7 @@ COMMENT ON TABLE group_list IS 'Filtering policy groups';
 -- MAC address history
 CREATE TABLE mac_history (
 id BIGSERIAL PRIMARY KEY,
-mac MACADDR NOT NULL,
+mac MACADDR DEFAULT NULL,
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 device_id BIGINT,
 port_id BIGINT,
@@ -461,7 +461,7 @@ COMMENT ON COLUMN traffic_detail.bytes IS 'Bytes transferred in this flow';
 -- Unknown MAC addresses
 CREATE TABLE unknown_mac (
 id BIGSERIAL PRIMARY KEY,
-mac MACADDR NOT NULL,
+mac MACADDR DEFAULT NULL,
 port_id BIGINT,
 device_id INTEGER,
 ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -604,7 +604,7 @@ COMMENT ON TABLE vendors IS 'Network equipment vendors';
 -- System version
 CREATE TABLE version (
 id INTEGER PRIMARY KEY DEFAULT 1,
-version VARCHAR(10) NOT NULL DEFAULT '3.2.5'
+version VARCHAR(10) NOT NULL DEFAULT '3.2.8'
 );
 COMMENT ON TABLE version IS 'System version information';
 
@@ -783,3 +783,47 @@ CREATE INDEX idx_worklog_customer ON worklog(customer, level, ts);
 CREATE INDEX idx_worklog_level_ts ON worklog(level, ts);
 CREATE INDEX idx_worklog_auth_id ON worklog(auth_id, level, ts);
 CREATE INDEX idx_worklog_ts ON worklog (ts);
+
+-- 3-2-8: the indexes of the queries of the web interface
+-- the same list stands in scripts/updates/3-2-8/001_web_indexes.psql for the bases
+-- which were installed before, and a fresh base takes it from below
+CREATE INDEX idx_dns_cache_ip ON dns_cache(ip);
+CREATE INDEX idx_connections_auth_id ON connections(auth_id);
+CREATE INDEX idx_connections_port_id ON connections(port_id);
+CREATE INDEX idx_connections_device_id ON connections(device_id);
+CREATE INDEX idx_user_auth_user_id ON user_auth(user_id, deleted);
+CREATE INDEX idx_user_auth_ip_int ON user_auth(ip_int, deleted);
+CREATE INDEX idx_user_auth_mac ON user_auth(mac, deleted);
+CREATE INDEX idx_user_auth_deleted_ip_int ON user_auth(deleted, ip_int);
+CREATE INDEX idx_user_auth_dns_name ON user_auth(dns_name);
+CREATE INDEX idx_user_auth_ts ON user_auth(ts);
+CREATE INDEX idx_user_stats_auth_ts ON user_stats(auth_id, ts);
+CREATE INDEX idx_user_stats_full_auth_ts ON user_stats_full(auth_id, ts);
+CREATE INDEX idx_user_auth_alias_auth_id ON user_auth_alias(auth_id);
+CREATE INDEX idx_user_auth_alias_alias ON user_auth_alias(alias);
+CREATE INDEX idx_mac_vendors_oui ON mac_vendors(oui);
+CREATE INDEX idx_config_option_id ON config(option_id);
+CREATE INDEX idx_dhcp_log_ip_int_ts ON dhcp_log(ip_int, ts);
+CREATE INDEX idx_dhcp_log_mac_ts ON dhcp_log(mac, ts);
+CREATE INDEX idx_traffic_detail_ts ON traffic_detail(ts);
+CREATE INDEX idx_traffic_detail_src_ts ON traffic_detail(src_ip, ts);
+CREATE INDEX idx_traffic_detail_dst_ts ON traffic_detail(dst_ip, ts);
+CREATE INDEX idx_wan_stats_router_interface_ts ON wan_stats(router_id, interface_id, ts);
+CREATE INDEX idx_remote_syslog_ts ON remote_syslog(ts);
+CREATE INDEX idx_remote_syslog_ip_ts ON remote_syslog(ip, ts);
+CREATE INDEX idx_sessions_last_accessed ON sessions(last_accessed);
+CREATE INDEX idx_variables_clear_time ON variables(clear_time, created);
+CREATE INDEX idx_user_list_ou_id ON user_list(ou_id);
+CREATE INDEX idx_user_list_deleted_login ON user_list(deleted, login);
+CREATE INDEX idx_devices_user_id ON devices(user_id);
+CREATE INDEX idx_devices_ip_int ON devices(ip_int);
+CREATE INDEX idx_zabbix_macros_device ON zabbix_macros(device_id);
+CREATE INDEX idx_zabbix_tags_device ON zabbix_tags(device_id);
+CREATE INDEX idx_device_l3_interfaces_device_id ON device_l3_interfaces(device_id);
+CREATE INDEX idx_gateway_subnets_device_id ON gateway_subnets(device_id);
+CREATE INDEX idx_device_filter_instances_device_id ON device_filter_instances(device_id);
+CREATE INDEX idx_group_filters_group_id ON group_filters(group_id);
+CREATE INDEX idx_auth_rules_user_id ON auth_rules(user_id);
+CREATE INDEX idx_filter_list_name ON filter_list(name);
+CREATE INDEX idx_unknown_mac_device_ts ON unknown_mac(device_id, ts);
+CREATE INDEX idx_unknown_mac_port_ts ON unknown_mac(port_id, ts);

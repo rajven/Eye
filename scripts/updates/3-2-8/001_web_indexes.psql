@@ -1,11 +1,19 @@
 -- ============================================================================
 -- 001: indexes for the queries of the web interface
 -- applies to: PostgreSQL 10+
+--
 -- every statement is idempotent (IF NOT EXISTS), the patch can be re-run
 -- on a big base consider CREATE INDEX CONCURRENTLY instead (run outside a
 -- transaction, one statement at a time), the lists keep answering meanwhile
--- the priority marks: P0 = a sequential scan on every page or on every row
--- of a report, P1 = the log and report pages, P2 = the secondary pages
+--
+-- the same list in the mysql notation: 001_web_indexes.msql. the keys of the
+-- two files are the same on purpose: a partial index of postgres is not used
+-- by a query which does not say deleted = 0, so the live and the archived
+-- addresses are served by the plain (deleted, ip_int) and (ip_int, deleted)
+-- here as they are served by them in mysql
+--
+-- the priority marks: P0 = a sequential scan on every page or on every row of
+-- a report, P1 = the log and report pages, P2 = the secondary pages
 -- ============================================================================
 
 -- ============================================================================
@@ -16,31 +24,23 @@
 -- report; the existing (dns, ip) index keeps dns first and can not serve it
 CREATE INDEX IF NOT EXISTS idx_dns_cache_ip ON dns_cache(ip);
 
--- connections had no index at all on postgres (mysql keeps its own set):
--- the connection cell of the ip list and of the user pages reads by auth_id,
--- the port dialogs of the device pages read by port_id, the device pages
--- read by device_id
+-- connections had no index at all on postgres (mysql keeps auth_id and
+-- (device_id, port_id)): the connection cell of the ip list and of the user
+-- pages reads by auth_id, the port dialogs read by port_id, the device pages
+-- and the removal of a device read by device_id
 CREATE INDEX IF NOT EXISTS idx_connections_auth_id ON connections(auth_id);
 CREATE INDEX IF NOT EXISTS idx_connections_port_id ON connections(port_id);
 CREATE INDEX IF NOT EXISTS idx_connections_device_id ON connections(device_id);
 
--- the owner of an address: the pages of the user, the counters of the ip
--- list, the api, the batch maps of the list pages
+-- the owner of an address, the ip and the mac of an address with the sign of
+-- the archive: the pages of the user, the counters of the ip list, the dup
+-- checks and the api lookups, the ordered scan of the live and of the
+-- archived list, the hostname checks, the log of the new addresses
 CREATE INDEX IF NOT EXISTS idx_user_auth_user_id ON user_auth(user_id, deleted);
-
--- the live ip list: the default page reads deleted = 0 ordered by ip_int,
--- the dup checks of the user pages and the api read by ip_int / mac,
--- one partial index serves the ordered scan and the equality lookups alike
-CREATE INDEX IF NOT EXISTS idx_user_auth_ip_int_active ON user_auth(ip_int) WHERE deleted = 0;
-CREATE INDEX IF NOT EXISTS idx_user_auth_mac_active ON user_auth(mac) WHERE deleted = 0;
-
--- the archive page of the ip list: the deleted records ordered by ip
+CREATE INDEX IF NOT EXISTS idx_user_auth_ip_int ON user_auth(ip_int, deleted);
+CREATE INDEX IF NOT EXISTS idx_user_auth_mac ON user_auth(mac, deleted);
 CREATE INDEX IF NOT EXISTS idx_user_auth_deleted_ip_int ON user_auth(deleted, ip_int);
-
--- the hostname of an address: the dup checks of the user pages
 CREATE INDEX IF NOT EXISTS idx_user_auth_dns_name ON user_auth(dns_name);
-
--- the log of the new addresses reads a day window of user_auth
 CREATE INDEX IF NOT EXISTS idx_user_auth_ts ON user_auth(ts);
 
 -- the traffic of one user: the day and month reports, the blocked page of
@@ -81,8 +81,9 @@ CREATE INDEX IF NOT EXISTS idx_traffic_detail_dst_ts ON traffic_detail(dst_ip, t
 -- existing (ts, router_id, interface_id) keeps ts first
 CREATE INDEX IF NOT EXISTS idx_wan_stats_router_interface_ts ON wan_stats(router_id, interface_id, ts);
 
--- the remote syslog of postgres had no index at all, the page always reads
--- a time window and often the addresses of one device
+-- the remote syslog of postgres had no index at all: the page always reads a
+-- time window, and the filter of a device turns into the list of its
+-- addresses
 CREATE INDEX IF NOT EXISTS idx_remote_syslog_ts ON remote_syslog(ts);
 CREATE INDEX IF NOT EXISTS idx_remote_syslog_ip_ts ON remote_syslog(ip, ts);
 
@@ -90,8 +91,9 @@ CREATE INDEX IF NOT EXISTS idx_remote_syslog_ip_ts ON remote_syslog(ip, ts);
 -- request (mysql keeps this index, postgres did not)
 CREATE INDEX IF NOT EXISTS idx_sessions_last_accessed ON sessions(last_accessed);
 
--- the locks: the expired variables are read and cleaned by clear_time
-CREATE INDEX IF NOT EXISTS idx_variables_clear_time ON variables(clear_time);
+-- the locks: the expired variables are read and cleaned by clear_time, the
+-- two columns of the key are the two halves of that read
+CREATE INDEX IF NOT EXISTS idx_variables_clear_time ON variables(clear_time, created);
 
 -- ============================================================================
 -- P2. the secondary pages
@@ -101,7 +103,7 @@ CREATE INDEX IF NOT EXISTS idx_variables_clear_time ON variables(clear_time);
 CREATE INDEX IF NOT EXISTS idx_user_list_ou_id ON user_list(ou_id);
 
 -- the user select: the dropdown reads the live users ordered by login
-CREATE INDEX IF NOT EXISTS idx_user_list_login_active ON user_list(login) WHERE deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_user_list_deleted_login ON user_list(deleted, login);
 
 -- the devices of a user and the device of an address
 CREATE INDEX IF NOT EXISTS idx_devices_user_id ON devices(user_id);
@@ -118,19 +120,35 @@ CREATE INDEX IF NOT EXISTS idx_device_l3_interfaces_device_id ON device_l3_inter
 CREATE INDEX IF NOT EXISTS idx_gateway_subnets_device_id ON gateway_subnets(device_id);
 CREATE INDEX IF NOT EXISTS idx_device_filter_instances_device_id ON device_filter_instances(device_id);
 
--- the rules of a filter group (mysql keeps GroupId)
+-- the rules of a filter group (mysql keeps (group_id, filter_id))
 CREATE INDEX IF NOT EXISTS idx_group_filters_group_id ON group_filters(group_id);
 
 -- the rules of a user (mysql keeps user_id)
 CREATE INDEX IF NOT EXISTS idx_auth_rules_user_id ON auth_rules(user_id);
 
--- the unknown macs of one device on the log page
+-- the dropdown of the filters is ordered by name (mysql keeps Name)
+CREATE INDEX IF NOT EXISTS idx_filter_list_name ON filter_list(name);
+
+-- the unknown macs of one device on the log page, and the mac table of one
+-- port: the existing (ts, device_id, port_id, mac) keeps ts first and serves
+-- neither of them
 CREATE INDEX IF NOT EXISTS idx_unknown_mac_device_ts ON unknown_mac(device_id, ts);
+CREATE INDEX IF NOT EXISTS idx_unknown_mac_port_ts ON unknown_mac(port_id, ts);
+
+-- ============================================================================
+-- optional cleanups: the indexes which a new index of this patch makes
+-- redundant, each saves the write cost of one extra index. They are left in
+-- place because the create_db of mysql keeps the same keys for its side, and a
+-- base which was installed fresh must look as the base which was upgraded
+-- ============================================================================
+DROP INDEX IF EXISTS idx_user_auth_deleted;    -- partial prefix of (deleted, ip_int)
+DROP INDEX IF EXISTS idx_wan_stats_time;       -- prefix of UNIQUE (ts, router_id, interface_id)
+DROP INDEX IF EXISTS idx_devices_active;       -- nothing reads devices.active, mysql keeps no such key
 
 -- ============================================================================
 -- optional: the substring search of the user list goes through pg_trgm which
 -- create_db already enables, the two indexes cost place but give the search
 -- an index instead of a scan of the whole user list
 -- ============================================================================
--- CREATE INDEX idx_user_list_login_trgm ON user_list USING GIN(login gin_trgm_ops);
--- CREATE INDEX idx_user_list_description_trgm ON user_list USING GIN(description gin_trgm_ops);
+CREATE INDEX idx_user_list_login_trgm ON user_list USING GIN(login gin_trgm_ops);
+CREATE INDEX idx_user_list_description_trgm ON user_list USING GIN(description gin_trgm_ops);

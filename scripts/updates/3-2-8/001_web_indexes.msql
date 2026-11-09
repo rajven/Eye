@@ -1,9 +1,20 @@
 -- ============================================================================
 -- 001: indexes for the queries of the web interface
 -- applies to: MySQL 5.7+ / 8.0, InnoDB, utf8mb4
--- MySQL has no IF NOT EXISTS for indexes: the patch is applied once, a
--- repeated run stops on the first duplicate key name
--- every index fits the 3072 bytes limit of utf8mb4, no prefix length needed
+--
+-- MySQL has no IF NOT EXISTS for the indexes of a table: the patch is applied
+-- once by upgrade.pl, and a hand repeated run reports a duplicate key name for
+-- every key which is present allready. Every index therefore stands in an ALTER
+-- of its own, so one refused name does not take the rest of the table down with
+-- it, and upgrade.pl goes on with the statements which follow
+--
+-- every index fits the 3072 bytes limit of utf8mb4 (the widest key is the
+-- dns_name of an address: 253 * 4 = 1012 bytes), no prefix length is needed
+--
+-- the same list in the postgres notation: 001_web_indexes.psql; the two files
+-- differ only by the keys which one of the engines has allready in its
+-- create_db, the optional cleanups are named in both of them
+--
 -- the priority marks: P0 = a full scan on every page or on every row of a
 -- report, P1 = the log and report pages, P2 = the secondary pages
 -- ============================================================================
@@ -17,31 +28,43 @@
 ALTER TABLE dns_cache
   ADD KEY idx_dns_cache_ip (ip);
 
--- the live ip list and the user pages read the records by owner, by ip and
--- by mac: (deleted, ip_int) serves the ordered scan of the default page and
--- the archive page alike, (ip_int, deleted) and (mac, deleted) serve the
--- dup checks and the api lookups, (ts) serves the log of the new addresses
+-- the owner of an address: the pages of the user, the counters of the ip
+-- list, the api lookups, the batch maps of the list pages
 ALTER TABLE user_auth
-  ADD KEY idx_user_auth_user_id (user_id, deleted),
-  ADD KEY idx_user_auth_ip_int (ip_int, deleted),
-  ADD KEY idx_user_auth_mac (mac, deleted),
-  ADD KEY idx_user_auth_deleted_ip_int (deleted, ip_int),
-  ADD KEY idx_user_auth_dns_name (dns_name),
-  ADD KEY idx_user_auth_ts (ts);
+  ADD KEY idx_user_auth_user_id (user_id, deleted);
 
--- the old single column deleted key is a prefix of the new (deleted, ip_int),
--- the drop is optional and saves the write cost of one extra index
--- ALTER TABLE user_auth DROP KEY deleted;
+-- the dup checks and the api read an address by its ip and by its mac with
+-- the sign of the archive; (deleted, ip_int) serves the ordered scan of both
+-- the live page and the archive page
+ALTER TABLE user_auth
+  ADD KEY idx_user_auth_ip_int (ip_int, deleted);
+
+ALTER TABLE user_auth
+  ADD KEY idx_user_auth_mac (mac, deleted);
+
+ALTER TABLE user_auth
+  ADD KEY idx_user_auth_deleted_ip_int (deleted, ip_int);
+
+-- the hostname of an address: the dup checks of the user pages ask
+-- (dns_name = ? OR dns_name = ?) over the whole base
+ALTER TABLE user_auth
+  ADD KEY idx_user_auth_dns_name (dns_name);
+
+-- the log of the new addresses reads a day window of user_auth
+ALTER TABLE user_auth
+  ADD KEY idx_user_auth_ts (ts);
 
 -- the aliases of an address: the dup checks of the alias dialog read by the
 -- alias itself, the auth_id index already exists
 ALTER TABLE user_auth_alias
   ADD KEY idx_user_auth_alias_alias (alias);
 
--- the ou filter of the lists and the delete protection of the api; the
--- dropdown of the users reads the live users ordered by login
+-- the ou filter of the lists and the delete protection of the api
 ALTER TABLE user_list
-  ADD KEY idx_user_list_ou_id (ou_id),
+  ADD KEY idx_user_list_ou_id (ou_id);
+
+-- the dropdown of the users reads the live users ordered by login
+ALTER TABLE user_list
   ADD KEY idx_user_list_deleted_login (deleted, login);
 
 -- the traffic of one user: the day and month reports, the blocked page of
@@ -65,7 +88,9 @@ ALTER TABLE connections
 
 -- the dhcp log filters by ip / mac inside a day window
 ALTER TABLE dhcp_log
-  ADD KEY idx_dhcp_log_ip_int_ts (ip_int, ts),
+  ADD KEY idx_dhcp_log_ip_int_ts (ip_int, ts);
+
+ALTER TABLE dhcp_log
   ADD KEY idx_dhcp_log_mac_ts (mac, ts);
 
 -- the netflow report: the default page reads a time window, the ip search
@@ -73,8 +98,12 @@ ALTER TABLE dhcp_log
 -- and can not serve these; on the biggest table of the base the three keys
 -- cost the most on insert, apply them when the reports are slow, not before
 ALTER TABLE traffic_detail
-  ADD KEY idx_traffic_detail_ts (ts),
-  ADD KEY idx_traffic_detail_src_ts (src_ip, ts),
+  ADD KEY idx_traffic_detail_ts (ts);
+
+ALTER TABLE traffic_detail
+  ADD KEY idx_traffic_detail_src_ts (src_ip, ts);
+
+ALTER TABLE traffic_detail
   ADD KEY idx_traffic_detail_dst_ts (dst_ip, ts);
 
 -- the wan report reads the history of one interface of one router, the
@@ -82,9 +111,9 @@ ALTER TABLE traffic_detail
 ALTER TABLE wan_stats
   ADD KEY idx_wan_stats_router_interface_ts (router_id, interface_id, ts);
 
--- the remote syslog page often reads the addresses of one device inside a
--- time window, the existing (ts, device_id, ip) keeps device_id behind ts
--- and can not serve the ip filter
+-- the syslog page asks the addresses of one device: the filter turns the
+-- device into a list of its addresses, and the existing (ts, device_id, ip)
+-- keeps device_id behind ts and can not serve the ip IN () at all
 ALTER TABLE remote_syslog
   ADD KEY idx_remote_syslog_ip_ts (ip, ts);
 
@@ -94,7 +123,9 @@ ALTER TABLE remote_syslog
 
 -- the devices of a user and the device of an address
 ALTER TABLE devices
-  ADD KEY idx_devices_user_id (user_id),
+  ADD KEY idx_devices_user_id (user_id);
+
+ALTER TABLE devices
   ADD KEY idx_devices_ip_int (ip_int);
 
 -- the settings pages of a device
@@ -107,15 +138,24 @@ ALTER TABLE gateway_subnets
 ALTER TABLE device_filter_instances
   ADD KEY idx_device_filter_instances_device_id (device_id);
 
--- the unknown macs of one device on the log page
+-- the unknown macs of one device on the log page, and the mac table of one
+-- port on the page of the port: the existing (ts, device_id, port_id, mac)
+-- keeps ts first and serves neither of them
 ALTER TABLE unknown_mac
   ADD KEY idx_unknown_mac_device_ts (device_id, ts);
 
+ALTER TABLE unknown_mac
+  ADD KEY idx_unknown_mac_port_ts (port_id, ts);
+
 -- ============================================================================
 -- optional cleanups: the keys which a new key of this patch makes redundant,
--- each saves the write cost of one extra index, uncomment and apply apart
+-- each saves the write cost of one extra index. They are left in place because
+-- the create_db of postgres keeps the same keys for its side, and a base which
+-- was installed fresh must look as the base which was upgraded
 -- ============================================================================
--- ALTER TABLE user_auth DROP KEY deleted;              -- prefix of (deleted, ip_int)
--- ALTER TABLE mac_history DROP KEY mac_2;              -- prefix of (mac, ts)
--- ALTER TABLE mac_history DROP KEY ip_2;               -- prefix of (ip, ts)
--- ALTER TABLE wan_stats DROP KEY times;                -- prefix of UNIQUE (ts, router_id, interface_id)
+ALTER TABLE user_auth DROP KEY deleted;                -- prefix of (deleted, ip_int)
+ALTER TABLE mac_history DROP KEY mac_2;                -- prefix of (mac, ts)
+ALTER TABLE mac_history DROP KEY ip_2;                 -- prefix of (ip, ts)
+ALTER TABLE wan_stats DROP KEY times;                  -- prefix of UNIQUE (ts, router_id, interface_id)
+ALTER TABLE zabbix_templates DROP KEY idx_zabbix_template_model;
+--     -- prefix of UNIQUE (device_model_id, template_id)

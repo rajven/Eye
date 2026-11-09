@@ -1,4 +1,26 @@
 # Changelog 3-2-8 - release
+- added: the index patch of the web interface took its second file, 002_column_parity -
+  the three NOT NULL counters of a netflow record take the empty default which the copy
+  of the base in postgres has always had, the mac of the history and of the unknown macs
+  becomes free in postgres as it is free in mysql, the default of the version row names
+  the version of the installation
+- changed: the first file of the index patch is read by the parser of upgrade.pl now.
+  the statements stand one per index, so a key which is present allready does not take
+  the rest of the same table down with it; the keys of the unknown macs of a port and of
+  the names of the filters were added, the partial indexes of postgres became the plain
+  keys of mysql, so the same query plans the same list in both engines
+- changed: docs/databases/{mysql,postgres}/{en,ru}/create_db carry the indexes of the
+  patch and the columns of 002 now: a base which was installed fresh looks exactly as
+  the base which was upgraded through the patch, which is what checkDBschema compares
+- bugfix: upgrade.pl glued the comment lines above a statement to the statement itself,
+  and the line which skips a statement that starts with a comment then threw the whole
+  ALTER away - a patch which explains every one of its keys in the comments created 3
+  of its 16 keys in mysql and 13 of its 38 in postgres. the same defect silently
+  skipped 27 of the 103 statements of 3-0-1/migration.msql and all four statements of
+  3-0-5/user_auth.psql, so the mac column of an installed postgres base never left its
+  old shape - the comments are taken out of the statement text now, and a comment of
+  its own is still skipped as a comment
+# Changelog 3-2-7 - release
 - added: the templates of the zabbix host follow the model of the device - a changed model
   unlinks the templates of the model which the device has left behind and links the list of
   the new one, in the form of the device, in the mass operation and over the api of eye. It

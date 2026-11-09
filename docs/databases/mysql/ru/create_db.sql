@@ -334,9 +334,9 @@ CREATE TABLE `traffic_detail` (
   `proto` tinyint(3) UNSIGNED DEFAULT NULL,
   `src_ip` bigint(20) NOT NULL DEFAULT 0,
   `dst_ip` bigint(20) NOT NULL DEFAULT 0,
-  `src_port` smallint(5) UNSIGNED NOT NULL,
-  `dst_port` smallint(5) UNSIGNED NOT NULL,
-  `bytes` bigint(20) NOT NULL,
+  `src_port` smallint(5) UNSIGNED NOT NULL DEFAULT 0,
+  `dst_port` smallint(5) UNSIGNED NOT NULL DEFAULT 0,
+  `bytes` bigint(20) NOT NULL DEFAULT 0,
   `pkt` int(10) UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -461,7 +461,7 @@ CREATE TABLE `vendors` (
 
 CREATE TABLE `version` (
   `id` int(11) NOT NULL DEFAULT 1,
-  `version` varchar(10) NOT NULL DEFAULT '3.2.5'
+  `version` varchar(10) NOT NULL DEFAULT '3.2.8'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `wan_stats` (
@@ -858,6 +858,64 @@ ALTER TABLE `wan_stats`
 
 ALTER TABLE `worklog`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+-- 3-2-8: the indexes of the queries of the web interface
+-- the same list stands in scripts/updates/3-2-8/001_web_indexes.msql for the bases
+-- which were installed before, and a fresh base takes it from below
+ALTER TABLE `dns_cache`
+  ADD KEY `idx_dns_cache_ip` (`ip`);
+ALTER TABLE `user_auth`
+  ADD KEY `idx_user_auth_user_id` (`user_id`,`deleted`);
+ALTER TABLE `user_auth`
+  ADD KEY `idx_user_auth_ip_int` (`ip_int`,`deleted`);
+ALTER TABLE `user_auth`
+  ADD KEY `idx_user_auth_mac` (`mac`,`deleted`);
+ALTER TABLE `user_auth`
+  ADD KEY `idx_user_auth_deleted_ip_int` (`deleted`,`ip_int`);
+ALTER TABLE `user_auth`
+  ADD KEY `idx_user_auth_dns_name` (`dns_name`);
+ALTER TABLE `user_auth`
+  ADD KEY `idx_user_auth_ts` (`ts`);
+ALTER TABLE `user_auth_alias`
+  ADD KEY `idx_user_auth_alias_alias` (`alias`);
+ALTER TABLE `user_list`
+  ADD KEY `idx_user_list_ou_id` (`ou_id`);
+ALTER TABLE `user_list`
+  ADD KEY `idx_user_list_deleted_login` (`deleted`,`login`);
+ALTER TABLE `user_stats`
+  ADD KEY `idx_user_stats_auth_ts` (`auth_id`,`ts`);
+ALTER TABLE `user_stats_full`
+  ADD KEY `idx_user_stats_full_auth_ts` (`auth_id`,`ts`);
+ALTER TABLE `connections`
+  ADD KEY `idx_connections_port_id` (`port_id`);
+ALTER TABLE `dhcp_log`
+  ADD KEY `idx_dhcp_log_ip_int_ts` (`ip_int`,`ts`);
+ALTER TABLE `dhcp_log`
+  ADD KEY `idx_dhcp_log_mac_ts` (`mac`,`ts`);
+ALTER TABLE `traffic_detail`
+  ADD KEY `idx_traffic_detail_ts` (`ts`);
+ALTER TABLE `traffic_detail`
+  ADD KEY `idx_traffic_detail_src_ts` (`src_ip`,`ts`);
+ALTER TABLE `traffic_detail`
+  ADD KEY `idx_traffic_detail_dst_ts` (`dst_ip`,`ts`);
+ALTER TABLE `wan_stats`
+  ADD KEY `idx_wan_stats_router_interface_ts` (`router_id`,`interface_id`,`ts`);
+ALTER TABLE `remote_syslog`
+  ADD KEY `idx_remote_syslog_ip_ts` (`ip`,`ts`);
+ALTER TABLE `devices`
+  ADD KEY `idx_devices_user_id` (`user_id`);
+ALTER TABLE `devices`
+  ADD KEY `idx_devices_ip_int` (`ip_int`);
+ALTER TABLE `device_l3_interfaces`
+  ADD KEY `idx_device_l3_interfaces_device_id` (`device_id`);
+ALTER TABLE `gateway_subnets`
+  ADD KEY `idx_gateway_subnets_device_id` (`device_id`);
+ALTER TABLE `device_filter_instances`
+  ADD KEY `idx_device_filter_instances_device_id` (`device_id`);
+ALTER TABLE `unknown_mac`
+  ADD KEY `idx_unknown_mac_device_ts` (`device_id`,`ts`);
+ALTER TABLE `unknown_mac`
+  ADD KEY `idx_unknown_mac_port_ts` (`port_id`,`ts`);
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
