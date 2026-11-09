@@ -1,3 +1,20 @@
+# Changelog 3-2-8 - release
+- security: a macro of the secret type does not show its value any more and does not keep
+  it in the plain text: the form of the device prints the mask of zabbix (the same line
+  which the monitoring system itself answers for a secret macro), the value goes into the
+  base ciphered by the rule of the passwords of the equipment, and it is opened only on
+  its way out, to the host of zabbix. a save which brings the mask back changes nothing,
+  both in eye and in zabbix, and the mass operation of the page of the monitoring keeps
+  the same rule as the form of the device does
+- added: a name of the global list which moved from the text to the secret type (or back)
+  takes the values of the devices with it at once, while the export of the next run reads
+  them by the new rule
+- added: the update patch of the version 3-2-8 cipheres the values of the secret macros which an
+  installed base kept in the plain text; the patch is idempotent, and --dry-run shows the
+  rows which wait for it
+- note: a base which was not upgraded yet keeps working: a value which does not open as a
+  cipher of this base is given to zabbix as it stands, so the secrets of the old rows are
+  not lost while the patch is not applied
 # Changelog 3-2-7 - release
 - bugfix: a stored cross site script came into the interface through dhcp: the host name which a device in the net brings
   together with its action, the sign of who created the record and the name of the direct dns were printed as they are on the

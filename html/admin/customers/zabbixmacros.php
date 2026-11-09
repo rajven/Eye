@@ -49,11 +49,27 @@ if (getPOST("save") !== null) {
                 continue;
             }
 
+            $old_macro = get_record($db_link, "zabbix_macros_list", "id = ?", [$macro_list_id]);
+            $new_type = (int)($m_types[$macro_list_id] ?? 0);
+
             update_record($db_link, "zabbix_macros_list", "id = ?", [
                 'macro_name' => $name,
-                'macro_type' => (int)($m_types[$macro_list_id] ?? 0),
+                'macro_type' => $new_type,
                 'description' => substr(trim((string)($m_descriptions[$macro_list_id] ?? '')), 0, 250),
             ], [$macro_list_id]);
+
+            // the type of the name is a property of the values too: the devices which
+            // keep a value for this name must follow it at once, or the export of the
+            // next run will read a cipher as a text or a text as a cipher
+            if (!empty($old_macro)) {
+                $moved = zabbix_macro_rettype($db_link, $macro_list_id,
+                    zabbix_macro_is_secret($old_macro['macro_type'] ?? 0),
+                    zabbix_macro_is_secret($new_type));
+                if ($moved > 0) {
+                    LOG_INFO($db_link, "Zabbix: the type of the macro $name changed, "
+                        . $moved . " value(s) of the devices followed it");
+                }
+            }
         }
     }
 

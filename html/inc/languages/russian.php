@@ -651,6 +651,7 @@ define("WEB_zabbix_used","Используется");
 define("WEB_zabbix_macro_type","Тип");
 define("WEB_zabbix_macro_type_text","Текст");
 define("WEB_zabbix_macro_type_secret","Секрет");
+define("WEB_zabbix_macro_secret_hint","Значение секретного макроса хранится зашифрованным и не показывается; введите новое, чтобы заменить");
 define("WEB_zabbix_macro_load","Загрузить макросы из шаблонов zabbix");
 define("WEB_zabbix_disabled","Мониторинг zabbix выключен или api не настроен в параметрах конфигурации");
 define("WEB_zabbix_model","Модель устройства:");

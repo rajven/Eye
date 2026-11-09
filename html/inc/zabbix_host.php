@@ -197,9 +197,13 @@ function zabbix_record_macros($db, $device_id)
         if ($name === '') {
             continue;
         }
+        // the value of a secret macro lies in the base ciphered and is opened only for
+        // the export: zabbix keeps its own copy of the secret, the base of eye keeps
+        // none in the plain text
+        $secret = zabbix_macro_is_secret($row['macro_type'] ?? 0);
         $list[] = [
             'macro' => $name,
-            'value' => trim((string)($row['macro_value'] ?? '')),
+            'value' => zabbix_macro_open($row['macro_value'] ?? '', $secret),
             'type' => (int)($row['macro_type'] ?? 0),
         ];
     }
@@ -211,7 +215,14 @@ function zabbix_record_macros($db, $device_id)
 // database, so one request serves both of them
 function zabbix_record_device_rows($db, $kind, $device_id)
 {
-    static $cache = [];
+    // the rows of the bindings are kept for a request in the globals: the same request
+    // usually writes the block of the device and exports its host after that, and the
+    // value of a secret macro is read from the base, so a stale row would hand the
+    // monitoring system an old text. every write of the bindings drops the cache
+    if (!isset($GLOBALS['zabbix_device_rows']) || !is_array($GLOBALS['zabbix_device_rows'])) {
+        $GLOBALS['zabbix_device_rows'] = [];
+    }
+    $cache = &$GLOBALS['zabbix_device_rows'];
 
     $device_id = (int)$device_id;
     if ($device_id <= 0) {
@@ -235,6 +246,28 @@ function zabbix_record_device_rows($db, $kind, $device_id)
 
     $cache[$kind][$device_id] = $rows;
     return $rows;
+}
+
+// the cache of the bindings falls away when the base of them changed: one device, a
+// kind of the bindings, or everything the request remembers
+function zabbix_record_device_rows_clear($device_id = null, $kind = null)
+{
+    if (!isset($GLOBALS['zabbix_device_rows']) || !is_array($GLOBALS['zabbix_device_rows'])) {
+        return;
+    }
+
+    if ($device_id === null) {
+        $GLOBALS['zabbix_device_rows'] = [];
+        return;
+    }
+
+    $device_id = (int)$device_id;
+    foreach (array_keys($GLOBALS['zabbix_device_rows']) as $one_kind) {
+        if ($kind !== null && $one_kind !== $kind) {
+            continue;
+        }
+        unset($GLOBALS['zabbix_device_rows'][$one_kind][$device_id]);
+    }
 }
 
 // Tags which eye maintains on the host: the tag of the record, the parent tag and

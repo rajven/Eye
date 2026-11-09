@@ -652,6 +652,7 @@ define("WEB_zabbix_used","Used");
 define("WEB_zabbix_macro_type","Type");
 define("WEB_zabbix_macro_type_text","Text");
 define("WEB_zabbix_macro_type_secret","Secret");
+define("WEB_zabbix_macro_secret_hint","The value of a secret macro is kept ciphered and is not shown; type a new one to replace it");
 define("WEB_zabbix_macro_load","Load macros from the zabbix templates");
 define("WEB_zabbix_disabled","Zabbix monitoring is disabled or the api is not configured in the config options");
 define("WEB_zabbix_model","Device model:");

@@ -39,6 +39,10 @@ zabbix_get_hosts_by_ids
 zabbix_interface_index
 zabbix_interface_fields
 zabbix_host_ip
+zabbix_macro_mask
+zabbix_macro_is_secret
+zabbix_macro_store
+zabbix_macro_open
 zabbix_host_interface_of_type
 zabbix_host_interface_changed
 zabbix_sync_host_interface
@@ -865,6 +869,63 @@ if ($version >= 1) {
     }
 
 return \%interface;
+}
+
+# A macro of the secret type is kept in the base of eye ciphered, as the passwords of the
+# equipment are, and it is opened only for the export to zabbix. The mask of the value is
+# the line which zabbix itself answers for a secret macro, so a form which brings the mask
+# back changes nothing. The rules of the storage are the same as in the php client of
+# html/inc/zabbix_device.php: both of them read and write the same rows
+use constant ZABBIX_MACRO_MASK => '********';
+
+sub zabbix_macro_mask {
+return ZABBIX_MACRO_MASK;
+}
+
+#---------------------------------------------------------------------------------
+# 1 when the name of the global list asks for a secret value
+
+sub zabbix_macro_is_secret {
+my $type = shift();
+$type = 0 if (!defined $type);
+# (int) in braces is read as a prototype, the cast is done by a call
+my $number = int($type);
+return $number == 1 ? 1 : '';
+}
+
+#---------------------------------------------------------------------------------
+# the value of a binding on its way into the base
+
+sub zabbix_macro_store {
+my ($value, $secret) = @_;
+return '' if (!defined $value);
+return $value if (!$secret || $value eq '');
+my $cipher = crypt_string($value);
+return '' if (!defined $cipher);
+# the cipher of the php pages has no line feed at the end, and the two clients write the
+# same column, so the sign of the base64 which perl adds is cut off
+$cipher =~ s/\s+$//;
+return $cipher;
+}
+
+#---------------------------------------------------------------------------------
+# the value of a binding on its way out, to the host of zabbix. a base which was not
+# upgraded yet keeps a secret in the plain text: such a row holds no cipher inside, so
+# what can not be opened is given away as it stands, and the update patch of the version
+# 3-2-8 cipheres it later
+
+sub zabbix_macro_open {
+my ($value, $secret) = @_;
+return '' if (!defined $value);
+$value =~ s/^\s+|\s+$//g;
+return $value if (!$secret || $value eq '');
+
+my $plain = eval { decrypt_string($value) };
+return $value if (!$plain);
+# a plain text which is no cipher of anything can not hold the signs which no text of a
+# human being holds
+return $value if ($plain =~ /[\0-\x08\x0b\x0c\x0e-\x1f]/);
+return $plain;
 }
 
 #---------------------------------------------------------------------------------

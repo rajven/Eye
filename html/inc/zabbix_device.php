@@ -5,6 +5,98 @@ if (!defined("CONFIG")) {
     die("Not defined");
 }
 
+// A macro of the secret type lives in the base ciphered, as the passwords of the
+// equipment do, and its value never comes back to the interface: the form shows the
+// mask instead. The mask is the same line which zabbix itself answers for a secret
+// macro, so a form which brings the mask back changes nothing, in eye and in zabbix
+// allthe same
+if (!defined('ZABBIX_MACRO_MASK')) {
+    define('ZABBIX_MACRO_MASK', '********');
+}
+
+// 1 when the name of the global list asks for a secret value
+function zabbix_macro_is_secret($type)
+{
+    return (int)$type === 1;
+}
+
+// 1 when the value which the form brought is the mask of a secret which nobody touched
+function zabbix_macro_is_mask($value)
+{
+    return preg_match('/^\*+$/', trim((string)$value)) === 1;
+}
+
+// the value of the binding before it goes into the base: a secret is ciphered, the rest
+// stays as it is, and an empty value stays empty (the cipher of nothing is nothing)
+function zabbix_macro_store($value, $secret)
+{
+    $value = (string)$value;
+    if ($value === '' || !$secret) {
+        return $value;
+    }
+    return crypt_string($value);
+}
+
+// the value of the binding on its way out, to the host of zabbix. a base which was not
+// upgraded yet keeps a secret in the plain text: such a row has no cipher inside, so
+// what can not be opened is given away as it stands, and the update patch of the
+// version 3-2-8 cipheres it later
+function zabbix_macro_open($value, $secret)
+{
+    $value = trim((string)$value);
+    if ($value === '' || !$secret) {
+        return $value;
+    }
+
+    $plain = decrypt_string($value);
+    if (!is_string($plain) || $plain === '') {
+        return $value;
+    }
+    // a plain text which is not a cipher of anything can not hold the signs no text of
+    // a human being holds
+    if (preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $plain)) {
+        return $value;
+    }
+
+    return $plain;
+}
+
+// the type of a name of the global list is a property of the list, so the values of the
+// devices follow it: the map spares a query for every binding of a block
+function zabbix_macro_types($db)
+{
+    $types = [];
+    foreach (get_records_sql($db, "SELECT id, macro_type FROM zabbix_macros_list", []) as $row) {
+        $types[(int)$row['id']] = (int)$row['macro_type'];
+    }
+    return $types;
+}
+
+// A name of the global list moved from the plain text to the secret type or back: the
+// values which the devices keep for it must follow the type at once, while a later
+// export reads them by the new rule
+function zabbix_macro_rettype($db, $list_id, $from_secret, $to_secret)
+{
+    $list_id = (int)$list_id;
+    if ($list_id <= 0 || $from_secret === $to_secret) {
+        return 0;
+    }
+
+    // the export of any device may read the values right after the move
+    zabbix_record_device_rows_clear(null, 'macros');
+
+    $moved = 0;
+    foreach (get_records_sql($db, "SELECT id, macro_value FROM zabbix_macros WHERE macros_list_id = ?",
+                             [$list_id]) as $row) {
+        $value = zabbix_macro_open($row['macro_value'], $from_secret);
+        update_record($db, 'zabbix_macros', 'id = ?',
+            ['macro_value' => zabbix_macro_store($value, $to_secret)], [(int)$row['id']]);
+        $moved++;
+    }
+
+    return $moved;
+}
+
 // Both kinds of the bindings are stored and edited the same way, only the names of
 // the database and of the form elements differ. The prefixes of the form elements
 // keep the blocks of the device form apart
@@ -112,6 +204,9 @@ function print_zabbix_device_block($db, $device_id, $kind)
 
     // the type of the macro is a property of the global name, the tags have none
     $with_type = $conf['type_field'] !== '';
+    // the types of the names of the global list: one map for the whole block instead of
+    // a question for every row of it
+    $types = $with_type ? zabbix_macro_types($db) : [];
 
     print "<tr align=\"center\">\n";
     print "<td><b>" . $conf['name_label'] . "</b></td>\n";
@@ -132,13 +227,20 @@ function print_zabbix_device_block($db, $device_id, $kind)
         print "<tr align=center>\n";
         print "<td class=\"data\" width=200><input type=\"hidden\" name=\"{$pre}_id[]\" value=\"$bind_id\">"
             . htmlspecialchars((string)($row['bound_name'] ?? ''), ENT_QUOTES, 'UTF-8') . "</td>\n";
+        $secret = $with_type && zabbix_macro_is_secret($types[(int)$row[$conf['list_id_field']]] ?? 0);
         if ($with_type) {
             print "<td class=\"data\">"
-                . ((int)($row[$conf['type_field']] ?? 0) === 1 ? WEB_zabbix_macro_type_secret : WEB_zabbix_macro_type_text)
+                . ($secret ? WEB_zabbix_macro_type_secret : WEB_zabbix_macro_type_text)
                 . "</td>\n";
         }
+        // the value of a secret macro never comes back to the browser: the field holds
+        // the mask, and the save which brings that mask back leaves the stored cipher as
+        // it is - the same rule which zabbix keeps for its own secret macros
+        $shown = $secret ? ZABBIX_MACRO_MASK : (string)($row[$conf['value_field']] ?? '');
         print "<td class=\"data\" width=140><input type=\"text\" name=\"{$pre}_value[" . $bind_id . "]\" value=\""
-            . htmlspecialchars((string)($row[$conf['value_field']] ?? ''), ENT_QUOTES, 'UTF-8') . "\"></td>\n";
+            . htmlspecialchars($shown, ENT_QUOTES, 'UTF-8') . '"'
+            . ($secret ? ' title="' . htmlspecialchars(WEB_zabbix_macro_secret_hint, ENT_QUOTES, 'UTF-8') . '"' : '')
+            . "></td>\n";
         print "<td class=\"data\">";
         print_qa_select("{$pre}_used[" . $bind_id . "]", $row['is_used']);
         print "</td>\n";
@@ -190,6 +292,13 @@ function save_zabbix_device_block($db, $device_id, $kind)
     $u_used = getPOST("{$pre}_used", null, []);
     $u_del = getPOST("{$pre}_del", null, []);
 
+    // the type of a name of the global list decides whether its value is ciphered
+    $types = $conf['type_field'] !== '' ? zabbix_macro_types($db) : [];
+
+    // the rows of the bindings are read by the export of the same request: the cache of
+    // them must not keep what this save is about to change
+    zabbix_record_device_rows_clear($device_id, $kind);
+
     if (!empty($u_ids) && is_array($u_ids)) {
         foreach ($u_ids as $bind_id) {
             $bind_id = (int)$bind_id;
@@ -209,10 +318,18 @@ function save_zabbix_device_block($db, $device_id, $kind)
                 continue;
             }
 
-            update_record($db, $conf['bind_table'], "id = ?", [
-                $conf['value_field'] => substr(trim((string)($u_values[$bind_id] ?? '')), 0, 250),
-                'is_used' => (int)($u_used[$bind_id] ?? 0),
-            ], [$bind_id]);
+            $secret = $conf['type_field'] !== ''
+                && zabbix_macro_is_secret($types[(int)$row[$conf['list_id_field']]] ?? 0);
+            $came = substr(trim((string)($u_values[$bind_id] ?? '')), 0, 250);
+
+            $stored = [];
+            // the mask of a secret which nobody touched keeps the cipher of the base
+            if (!$secret || !zabbix_macro_is_mask($came)) {
+                $stored[$conf['value_field']] = zabbix_macro_store($came, $secret);
+            }
+            $stored['is_used'] = (int)($u_used[$bind_id] ?? 0);
+
+            update_record($db, $conf['bind_table'], "id = ?", $stored, [$bind_id]);
         }
     }
 
@@ -226,10 +343,14 @@ function save_zabbix_device_block($db, $device_id, $kind)
             "SELECT id FROM " . $conf['bind_table'] . " WHERE " . $conf['list_id_field'] . " = ? AND device_id = ?",
             [$add_list_id, $device_id]);
         if (!empty($list_row) && empty($exists)) {
+            // a new binding of a secret name is ciphered at once: its value never lies
+            // in the base in the plain text, not even between two saves
+            $add_secret = $conf['type_field'] !== ''
+                && zabbix_macro_is_secret($list_row[$conf['type_field']] ?? 0);
             insert_record($db, $conf['bind_table'], [
                 $conf['list_id_field'] => $add_list_id,
                 'device_id' => $device_id,
-                $conf['value_field'] => $add_value,
+                $conf['value_field'] => zabbix_macro_store($add_value, $add_secret),
                 'is_used' => 1,
             ]);
         }
@@ -259,7 +380,8 @@ function mass_zabbix_device_binding($db, $device_ids, $kind, $list_id, $value)
         return 0;
     }
 
-    if (empty(get_record($db, $conf['list_table'], "id = ?", [$list_id]))) {
+    $list_row = get_record($db, $conf['list_table'], "id = ?", [$list_id]);
+    if (empty($list_row)) {
         LOG_WARNING($db, "Zabbix: the name $list_id of the " . $kind . " list is not found, the mass operation is skipped");
         return 0;
     }
@@ -278,6 +400,9 @@ function mass_zabbix_device_binding($db, $device_ids, $kind, $list_id, $value)
     $value = substr(trim((string)$value), 0, 250);
     $changed = 0;
 
+    // the export of every device of the operation reads its bindings after this write
+    zabbix_record_device_rows_clear(null, $kind);
+
     foreach ($device_ids as $device_id) {
         $device_id = (int)$device_id;
         if ($device_id <= 0) {
@@ -287,14 +412,20 @@ function mass_zabbix_device_binding($db, $device_ids, $kind, $list_id, $value)
         $row = get_record_sql($db,
             "SELECT * FROM " . $conf['bind_table'] . " WHERE " . $conf['list_id_field'] . " = ? AND device_id = ?",
             [$list_id, $device_id]);
+        // the same rule as in the form of the device: the value of a secret name is
+        // ciphered before it goes into the base
+        $secret = $conf['type_field'] !== ''
+            && zabbix_macro_is_secret($list_row[$conf['type_field']] ?? 0);
+        $stored = zabbix_macro_store($value, $secret);
+
         if (!empty($row)) {
             update_record($db, $conf['bind_table'], "id = ?",
-                [$conf['value_field'] => $value, 'is_used' => 1], [(int)$row['id']]);
+                [$conf['value_field'] => $stored, 'is_used' => 1], [(int)$row['id']]);
             $changed++;
         } elseif (insert_record($db, $conf['bind_table'], [
                 $conf['list_id_field'] => $list_id,
                 'device_id' => $device_id,
-                $conf['value_field'] => $value,
+                $conf['value_field'] => $stored,
                 'is_used' => 1,
             ])) {
             $changed++;
@@ -313,6 +444,9 @@ function mass_zabbix_device_unbind($db, $device_ids, $kind, $list_id)
     if ($list_id <= 0 || empty($device_ids)) {
         return 0;
     }
+
+    // the same rule as in the binding: the export which follows must see the removal
+    zabbix_record_device_rows_clear(null, $kind);
 
     if (!allow_update($db, $conf['bind_table'], 'del')) {
         LOG_WARNING($db, "Zabbix: the access level of the user does not allow removing " . $conf['caption']
