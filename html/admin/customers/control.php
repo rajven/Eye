@@ -10,6 +10,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !acl_is_admin()) {
     acl_denied($db_link, WEB_title_control);
 }
 
+// the options of the control keep a full command line of a script of the base, may be
+// with arguments. escapeshellcmd made the metacharacters of the shell dead but left
+// the words of the line apart, so every word still reached the script as an argument
+// of its own choice. here every word becomes one literal argument of its own instead:
+// the words stay the same words in the same order, so the rules of sudoers keep
+// matching, and no metacharacter joins them into a second command
+function run_option_cmd($db_link, $option_id, $extra_args = []) {
+    $run_cmd = trim((string)get_option($db_link, $option_id));
+    if ($run_cmd === '') { return; }
+    $words = preg_split('/\s+/', $run_cmd, -1, PREG_SPLIT_NO_EMPTY);
+    $line  = '/usr/bin/sudo ' . implode(' ', array_map('escapeshellarg', $words));
+    if (!empty($extra_args)) { $line .= ' ' . implode(' ', array_map('escapeshellarg', $extra_args)); }
+    shell_exec($line . " >/dev/null 2>/dev/null &");
+    LOG_VERBOSE($db_link, "Run command: $run_cmd" . (empty($extra_args) ? '' : ' ' . implode(' ', $extra_args)));
+}
+
 if (isset($_POST["set_workmode_on"])) {
     run_sql($db_link,"DELETE FROM config WHERE option_id=68");
     $new['option_id'] = 68;
@@ -26,25 +42,19 @@ if (isset($_POST["set_workmode_off"])) {
 }
 
 if (isset($_POST["recheck_ip"]) and is_option($db_link, 37)) {
-    $run_cmd = get_option($db_link, 37);
-    $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
-    LOG_VERBOSE($db_link, "Run command: $run_cmd ");
+    run_option_cmd($db_link, 37);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
 if (isset($_POST["refresh_dhcp"]) and is_option($db_link, 38)) {
-    $run_cmd = get_option($db_link, 38);
-    $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
-    LOG_VERBOSE($db_link, "Run command: $run_cmd ");
+    run_option_cmd($db_link, 38);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
 if (isset($_POST["refresh_nagios"]) and is_option($db_link, 40)) {
-    $run_cmd = get_option($db_link, 40);
-    $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
-    LOG_VERBOSE($db_link, "Run command: $run_cmd ");
+    run_option_cmd($db_link, 40);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
@@ -57,25 +67,19 @@ if (isset($_POST["up_nagios"])) {
 }
 
 if (isset($_POST["refresh_dns"]) and is_option($db_link, 39)) {
-    $run_cmd = get_option($db_link, 39);
-    $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
-    LOG_VERBOSE($db_link, "Run command: $run_cmd ");
+    run_option_cmd($db_link, 39);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
 if (isset($_POST["discovery"]) and is_option($db_link, 41)) {
-    $run_cmd = get_option($db_link, 41);
-    $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." >/dev/null 2>/dev/null &");
-    LOG_VERBOSE($db_link, "Run command: $run_cmd ");
+    run_option_cmd($db_link, 41);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }
 
 if (isset($_POST["discovery2"]) and is_option($db_link, 41)) {
-    $run_cmd = get_option($db_link, 41);
-    $result = shell_exec("/usr/bin/sudo ".escapeshellcmd($run_cmd)." force >/dev/null 2>/dev/null &");
-    LOG_VERBOSE($db_link, "Run command: $run_cmd force");
+    run_option_cmd($db_link, 41, ['force']);
     header("Location: " . $_SERVER["REQUEST_URI"]);
     exit;
 }

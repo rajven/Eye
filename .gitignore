@@ -6,3 +6,7 @@
 /html/js/select2/
 /.vscode/
 /html/log/*.log
+*.orig
+*.bak
+*.rej
+*~

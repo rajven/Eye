@@ -33,3 +33,31 @@ postgres ones, while the base answered that the patch was applied. the same defe
 silently skipped 27 of the 103 statements of 3-0-1/migration.msql and all four
 statements of 3-0-5/user_auth.psql, whose migration of the mac column of postgres never
 reached a base which was upgraded through that version
+
+known problem places, left as they are on purpose:
+
+- the passwords of snmp v3 stay in the base as they are: the devices table keeps them
+  in the plain text, no cipher yet. the interface does not show them any more (the
+  mask of the password takes their place, and a save which brings the mask back
+  changes nothing), but anybody who reads the base reads them with it, and the plain
+  text of an old value stays in the dumps of the base until the value is written
+  again. a cipher of the rule of the passwords of the equipment asks a migration of
+  the live devices of every installation, it did not enter this release
+
+- the page of the control starts the commands of the options table by sudo, and the
+  text of an option stays a matter of the administrator. the page makes every word
+  of the option one literal argument now (the helper of control.php escapes each
+  word apart), so no metacharacter of the shell joins the words into a second
+  command, and the words stay the same words in the same order, so the rules of
+  sudoers keep matching; what the scripts of the base do is still what the options
+  of the settings say
+
+- the login password of a device is kept as a one-way crypt of the base, so the
+  interface shows the mask and can not show the value back; the passwords of snmp v3
+  and the communities of snmp v2 are not crypted that way, they go to the devices as
+  they are, and the pages which answer for the device keep the mask over them
+
+- a reader of the interface who reaches no page still carries a valid token of the
+  csrf: the token belongs to the session, not to the page. every handler which
+  touches the base or the shell asks its level of the rights in front of the token,
+  so the token alone does nothing, and a refused action goes into the work log
