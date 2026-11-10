@@ -3062,7 +3062,7 @@ function ResolveIP($db, $ip_int)
 }
 
 function clean_dns_cache($db)
-{
+{   
     $date = time() - 86400; // 24 часа назад
     $clean_date = date('Y-m-d H:i:s', $date);
     run_sql($db, "DELETE FROM dns_cache WHERE ts <= ?", [$clean_date]);
@@ -3070,39 +3070,34 @@ function clean_dns_cache($db)
     // the rows which the base kept before the resolver began to check its answer are
     // cleaned as the cache is cleaned: a name which is not a name of a host can not be
     // read by the reports, and the cache of a day is long enough for the rows of the
-    // oldest writes to disappear by themselves. the query only guesses the candidates
-    // (any sign beyond the borders of an ascii name), the decision is taken by the same
-    // sanitizer which reads the cache for the pages
-    // REGEXP is the word of mysql alone: PostgreSQL matches a regular expression with
-    // the sign '~'. the pattern names the letters of both cases, so the case of the
-    // match means nothing here, and the pattern means the same to both engines
-    if (db_is_pgsql($db)) {
-        $rows = get_records_sql($db,
-            "SELECT id, dns FROM dns_cache
-              WHERE dns IS NOT NULL AND dns ~ '[^A-Za-z0-9._-]'");
-    } else {
-        $rows = get_records_sql($db,
-            "SELECT id, dns FROM dns_cache
-              WHERE dns IS NOT NULL AND dns REGEXP '[^A-Za-z0-9._-]'");
-    }
+    // oldest writes to disappear by themselves. the rows are fetched after the DELETE
+    // above, so only the "live" cache (the last 24 hours) is scanned; the candidates
+    // are filtered here in PHP (any sign beyond the borders of an ascii name), and the
+    // decision is taken by the same sanitizer which reads the cache for the pages
+    $rows = get_records_sql($db,
+        "SELECT id, dns FROM dns_cache WHERE dns IS NOT NULL");
     if (empty($rows)) {
         return;
     }
 
     $fixed = 0;
     foreach ($rows as $row) {
+        if (!preg_match('/[^\p{L}\p{N}._-]/u', $row['dns'])) {
+            continue;
+        }
+
         $clean = safe_host_name($row['dns']);
         if ($clean === $row['dns']) {
-            continue;   // an international name which the sanitizer keeps as it is
+            continue;
         }
         if ($clean === '') {
             delete_record($db, 'dns_cache', 'id = ?', [(int)$row['id']]);
         } else {
             update_record($db, 'dns_cache', 'id = ?', ['dns' => $clean], [(int)$row['id']]);
-        }
+        } 
         $fixed++;
     }
-
+        
     if ($fixed > 0) {
         LOG_INFO($db, "DNS: " . $fixed . " row(s) of the cache were cleared of the signs which a host name can not hold");
     }
