@@ -70,14 +70,46 @@
 
   var root = document.documentElement;
 
-  // density cycle, the choice is kept in localStorage
+  // density cycle, the choice is kept in localStorage. the attribute of the root element
+  // always names the mode: the stylesheet keeps the usual look in its own root values and
+  // lifts the rows by the attribute, inc/header.php writes the same attribute before the
+  // first paint, and eye.js reads it back. the compact look is the default, as the caption
+  // of the button in the rail says
   var DENS = ['compact', 'normal', 'roomy'];
+  var DENS_DEFAULT = 'compact';
   var DENS_LABEL = { compact: L.dense, normal: L.normal, roomy: L.roomy };
+
+  function densKnown(mode) {
+    return (DENS.indexOf(mode) >= 0) ? mode : null;
+  }
+
+  // the mode which is really in effect: the remembered one, then the one the page was
+  // painted with, then the default. the cycle used to read the attribute alone and to take
+  // 'compact' when there was none, while the code wrote the mode 'normal' by removing the
+  // attribute: the second press computed 'compact' again, the next mode was 'normal' again,
+  // and the button could never reach 'roomy' at all from the second press on
+  function densNow() {
+    var saved = null;
+    try { saved = localStorage.getItem('eye.dens'); } catch (e) {}
+    return densKnown(saved) || densKnown(root.getAttribute('data-eye-dens')) || DENS_DEFAULT;
+  }
+
+  function paintDens(mode) {
+    root.setAttribute('data-eye-dens', mode);
+    // the caption is what a wide rail shows; a narrow one turns it into an icon by
+    // font-size: 0, so the name of the mode must live in the attributes as well, or the
+    // button becomes anonymous for a screen reader and gives no hint to a pointing hand
+    $$('[data-eye-dens-btn]').forEach(function (b) {
+      b.textContent = DENS_LABEL[mode];
+      b.title = DENS_LABEL[mode];
+      b.setAttribute('aria-label', DENS_LABEL[mode]);
+    });
+  }
+
   function setDens(mode) {
-    if (mode === 'normal') { root.removeAttribute('data-eye-dens'); }
-    else { root.setAttribute('data-eye-dens', mode); }
+    mode = densKnown(mode) || DENS_DEFAULT;
+    paintDens(mode);
     try { localStorage.setItem('eye.dens', mode); } catch (e) {}
-    $$('[data-eye-dens-btn]').forEach(function (b) { b.textContent = DENS_LABEL[mode]; });
   }
 
   // theme: auto (follows the system) / light / dark - an attribute only
@@ -86,7 +118,11 @@
     if (mode === 'auto') { root.removeAttribute('data-eye'); }
     else { root.setAttribute('data-eye', mode); }
     try { localStorage.setItem('eye.theme', mode); } catch (e) {}
-    $$('[data-eye-theme-btn]').forEach(function (b) { b.textContent = THEME_LABEL[mode]; });
+    $$('[data-eye-theme-btn]').forEach(function (b) {
+      b.textContent = THEME_LABEL[mode];
+      b.title = THEME_LABEL[mode];
+      b.setAttribute('aria-label', THEME_LABEL[mode]);
+    });
   }
 
   function addControls() {
@@ -96,8 +132,7 @@
     if (dens && !dens.dataset.eyeBound) {
       dens.dataset.eyeBound = '1';
       dens.addEventListener('click', function () {
-        var cur = root.getAttribute('data-eye-dens') || 'compact';
-        setDens(DENS[(DENS.indexOf(cur) + 1) % DENS.length]);
+        setDens(DENS[(DENS.indexOf(densNow()) + 1) % DENS.length]);
       });
     }
     var theme = document.createElement('button');
@@ -476,52 +511,118 @@
       sel.dispatchEvent(new Event('change', { bubbles: true }));   // auto-apply filters and inline onchange keep firing
     }
 
-    // The list of the widget hangs inside the cell of the widget, so whatever clips it -
-    // the body of a dialog which scrolls on its own, or the edge of the window - cuts the
-    // tail of the list and the operator sees the first row only. The room is asked of the
-    // nearest box which does not let anything over its edge: when the space under the button
-    // is not enough and above there is more, the list goes over the button instead, and in
-    // any case it takes no more than the room leaves, so its own scrollbar appears instead
-    // of the rows disappearing behind the border.
-    function fit() {
+    // The list of the widget does not hang in the cell any more: it is fixed to the
+    // viewport. Any ancestor which scrolls cuts what steps over its edge, and the body of
+    // a dialog is exactly such an ancestor - a short dialog leaves less room for the list
+    // than the list needs, and the operator again sees some rows only. The frame which must
+    // hold the list is the dialog of the widget while it is open, and the window on a page.
+    // When the space under the button is not enough and above there is more, the list goes
+    // over the button, and it takes no more rows than the frame leaves: the list gets a
+    // scrollbar of its own instead of sending the rest of its rows behind a border.
+    // the box which does not let the widget over its edge: the body of a dialog is such a
+    // box, and it is the only one which matters. the answer is also used straight from the
+    // scroll handler, because a frame of the animation is not a promise: on a hidden or a
+    // throttled tab the list would stay hanging over an empty place
+    function outOfSight() {
       var b = wrap.getBoundingClientRect();
-      var up = b.top, down = window.innerHeight - b.bottom;
+      if (b.bottom < 0 || b.top > window.innerHeight) { return true; }
       var node = wrap.parentElement;
       while (node && node !== document.body && node !== document.documentElement) {
         var cs = getComputedStyle(node);
         if (cs.position === 'fixed') { break; }
         if (cs.overflowY !== 'visible' || cs.overflowX !== 'visible') {
           var r = node.getBoundingClientRect();
-          up = Math.min(up, b.top - r.top);
-          down = Math.min(down, r.bottom - b.bottom);
-          break;
+          return (b.bottom < r.top + 2 || b.top > r.bottom - 2);
         }
         node = node.parentElement;
       }
-      // the search field and the padding of the pop eat from the room before the rows
-      var shell = pop.offsetHeight - list.offsetHeight + 6;
-      var above = pop.offsetHeight + 6 > down && up > down;
+      return false;
+    }
+
+    function place() {
+      var b = wrap.getBoundingClientRect();
+      var host = wrap.closest('dialog');
+      var box = (host && host.open) ? host.getBoundingClientRect() : null;
+      // sideways the list keeps to the panel it belongs to, so it does not hang over the
+      // border of the dialog as the wide tables of it did once; from top to bottom the hard
+      // limit is the window only: the panel of a short dialog is smaller than the list needs,
+      // and the rows of a dropdown may cover the head and the action of the dialog, as any
+      // menu does - the list is a guest which does not stay, and it vanishes on the first
+      // scroll, on a click aside and on Escape
+      var limit = { top: 0, bottom: window.innerHeight,
+                    left: box ? box.left : 0, right: box ? box.right : window.innerWidth };
+      var gap = 6;                       // the space between the button and the list
+
+      // a fixed node measures itself against the viewport, so the width of the pop stops
+      // being a share of the cell and becomes the width of the button it belongs to
+      pop.style.position = 'fixed';
+      pop.style.minWidth = '0';
+      pop.style.width = Math.round(Math.min(b.width, limit.right - limit.left - 8)) + 'px';
+
+      var up = b.top - limit.top, down = limit.bottom - b.bottom;
+      var above = (pop.offsetHeight + gap > down) && (up > down);
       wrap.classList.toggle('es-up', above);
+
+      // the search field and the padding of the pop eat from the room before the rows
+      var shell = pop.offsetHeight - list.offsetHeight + gap;
       var room = (above ? up : down) - shell;
       if (room < ES_MIN) { room = ES_MIN; }
       list.style.maxHeight = (room < list.offsetHeight) ? room + 'px' : '';
+
+      // The widget may be scrolled out of the window, and out of the box which clips it:
+      // the body of a dialog cuts its own rows, so a field which is gone from the panel has
+      // no list to belong to, and the list must go away with it instead of hanging over the
+      // head of the dialog. The clipping box is asked only for this decision - the room for
+      // the rows is measured against the window, or the list of a short dialog could show
+      // two rows out of twenty
+      if (outOfSight()) { close(); return; }
+
+      var h = pop.offsetHeight;
+      var left = b.left;
+      if (left + pop.offsetWidth > limit.right - 4) { left = limit.right - 4 - pop.offsetWidth; }
+      if (left < limit.left + 4) { left = limit.left + 4; }
+      pop.style.left = Math.round(left) + 'px';
+      pop.style.top = Math.round(above ? b.top - gap - h : b.bottom + gap) + 'px';
+    }
+
+    // A fixed list stands outside the flow of the page it belongs to, so every movement
+    // under it - a scroll of the body of the dialog, of the page, a resize of the window -
+    // leaves the list hanging over another row. Closing the list on such a movement was the
+    // first thought and was wrong: the browser scrolls the page itself when the list is
+    // revealed on a short window, and the operator saw a list which vanished the moment it
+    // appeared. The list is put in its place again instead, once per frame.
+    var follow = 0;
+    function reflow() {
+      if (pop.hidden) { return; }
+      if (outOfSight()) { close(); return; }
+      if (follow) { return; }
+      follow = requestAnimationFrame(function () { follow = 0; place(); });
+    }
+
+    function forgetFollow() {
+      if (follow) { cancelAnimationFrame(follow); follow = 0; }
     }
 
     function open() {
       if (sel.disabled || !pop.hidden) return;
-      pop.hidden = false; q.value = ''; rows(); fit();
+      pop.hidden = false; q.value = ''; rows(); place();
       wrap.classList.add('open');
       btn.setAttribute('aria-expanded', 'true');
       document.addEventListener('mousedown', outside, true);
+      document.addEventListener('scroll', reflow, true);
+      window.addEventListener('resize', reflow);
       q.focus();
     }
 
     function close() {
       if (pop.hidden) return;
       pop.hidden = true;
-      wrap.classList.remove('open');
+      wrap.classList.remove('open', 'es-up');
       btn.setAttribute('aria-expanded', 'false');
+      forgetFollow();
       document.removeEventListener('mousedown', outside, true);
+      document.removeEventListener('scroll', reflow, true);
+      window.removeEventListener('resize', reflow);
     }
 
     function outside(ev) { if (!wrap.contains(ev.target)) close(); }
@@ -813,9 +914,11 @@
 
   safe(addControls, 'controls');
   try {
-    var savedDens = localStorage.getItem('eye.dens');
-    setDens(savedDens || 'compact');
-    /* the value was already applied by the inline script in inc/header.php; here the button captions are only synchronised with the actual state */
+    // the mode itself is applied by the inline script of inc/header.php before the first
+    // paint; here the attribute is only made sure of and the caption of the button is
+    // synced with it. nothing is written to the storage of a visitor who never pressed the
+    // button: his choice must stay absent, not become a record of the default mode
+    paintDens(densNow());
     var savedTheme = localStorage.getItem('eye.theme');
     if (savedTheme && savedTheme !== 'auto') setTheme(savedTheme);
     else setTheme(root.getAttribute('data-eye') === 'dark' ? 'dark'

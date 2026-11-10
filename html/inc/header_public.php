@@ -35,6 +35,10 @@ $page_url = $page_url_array[0];
         try { t = localStorage.getItem('eye.theme'); n = localStorage.getItem('eye.dens'); } catch (e) {}
         if (t === 'light' || t === 'dark') { d.setAttribute('data-eye', t); }
         if (n === 'normal' || n === 'roomy') { d.setAttribute('data-eye-dens', n); }
+        else { d.setAttribute('data-eye-dens', 'compact'); }
+        /* the attribute always names the mode, as js/eye.js does it: the compact look is
+           the default of the interface, so a page which remembers nothing paints dense and
+           the rows do not jump when eye.js arrives */
     } catch (e) {}
 })();
 </script>

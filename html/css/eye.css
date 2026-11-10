@@ -751,13 +751,38 @@ div.simple { margin: 12px 0; padding: 12px 14px; background: var(--surface); bor
 @media (max-width: 1180px) {
   :root { --rail-w: 60px; }
   #eye-rail { padding-top: 10px; }
-  #title span, #navi a span, #navi b span, #eye-rail .rail-foot { display: none; }
+  #title span, #navi a span, #navi b span { display: none; }
   #navi a, #navi b { justify-content: center; padding: 9px 0; }
+  /* the foot of the rail is the only place where the switches of the density and of the
+     theme live, and hiding it together with the captions of the navigation left no way to
+     reach them on a laptop, on a scaled window or below this width at all. the switches stay
+     and their captions turn into icons: the name of the mode which is in effect lives in the
+     title and in the aria-label of the button, and eye.js fills both */
+  #eye-rail .rail-foot { display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 10px 0 0; }
+  #eye-rail .rail-foot .btn { width: 30px; height: 30px; padding: 0; font-size: 0;
+    display: flex; align-items: center; justify-content: center; }
+  /* the rows of a table inside a frame: three bare lines alone read as a menu button, and
+     the button switches the height of the rows, so it is drawn as the rows themselves */
+  #eye-rail [data-eye-dens-btn]::before { content: ""; width: 16px; height: 14px;
+    border: 1px solid currentColor; border-radius: 2px;
+    background: linear-gradient(currentColor, currentColor) 1px 2px/14px 1px no-repeat,
+      linear-gradient(currentColor, currentColor) 1px 6px/14px 2px no-repeat,
+      linear-gradient(currentColor, currentColor) 1px 10px/14px 3px no-repeat; }
+  /* a half of a circle: the theme of the moment tells itself - empty for the light one,
+     full for the dark one, half for the auto which follows the system */
+  #eye-rail [data-eye-theme-btn]::before { content: ""; width: 14px; height: 14px;
+    border-radius: 50%; border: 2px solid currentColor;
+    background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
+  html[data-eye="light"] #eye-rail [data-eye-theme-btn]::before { background: none; }
+  html[data-eye="dark"] #eye-rail [data-eye-theme-btn]::before { background: currentColor; }
 }
 @media (max-width: 860px) {
   #eye-shell { grid-template-columns: minmax(0, 1fr); }
   #eye-rail { position: static; height: auto; flex-direction: row; align-items: center;
     overflow-x: auto; padding: 8px; }
+  /* the rail became a horizontal bar: the two switches stand side by side at its end */
+  #eye-rail .rail-foot { flex-direction: row; margin-top: 0; padding: 0 0 0 10px; border-top: 0; }
   #navi { flex-direction: row; }
   #title { border: 0; margin: 0 8px 0 0; padding: 0 8px; }
   #navi a, #navi b { border-left: 0; border-bottom: 2px solid transparent; }
@@ -857,9 +882,10 @@ body.eye-login .login p { margin: 0 0 12px; }
   border-radius: var(--r-md); box-shadow: var(--shadow);
 }
 .es-pop[hidden] { display: none; }
-/* the list which does not fit under the button goes above it: eye.js measures the room
-   which the dialog and the window leave, and marks the widget with this class then */
-.es.es-up .es-pop { top: auto; bottom: calc(100% + 4px); }
+/* the class is a marker of the state only: the list of the widget is fixed to the
+   viewport, and eye.js writes its left, top and height itself, because the body of a
+   dialog clips everything which is put inside it */
+.es.es-up .es-btn { border-color: var(--rule-strong); }
 .es-q { width: 100%; margin: 0 0 6px; }
 .es-list { list-style: none; margin: 0; padding: 0; max-height: min(46vh, 320px); overflow: auto; }
 .es-opt { padding: 5px 8px; border-radius: var(--r-sm); font-size: 13px; cursor: pointer; }
