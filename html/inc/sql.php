@@ -796,12 +796,9 @@ function allow_update($db, $table, $action = 'update', $field = '')
     ];
 
     $service_table = strtolower($table);
-    if (isset($service_fields[$service_table])) {
-        if ($field !== '') {
-            return isset($service_fields[$service_table][$field]) ? 1 : 0;
-        }
-        if ($action === 'update') {
-        return 1;
+    if ($field !== '' && isset($service_fields[$service_table][$field])) {
+        if ($service_fields[$service_table][$field] && $action === 'update') {
+            return 1;
         }
     }
 
