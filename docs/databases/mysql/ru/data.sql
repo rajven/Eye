@@ -68,6 +68,7 @@ INSERT INTO `config_options` (`id`, `option_name`, description_russian, descript
 INSERT INTO `config_options` (`id`, `option_name`, description_russian, description_english, `draft`, `uniq`, `option_type`, `default_value`, `min_value`, `max_value`) VALUES(74, 'monitoring_system', 'Система мониторинга: none - отключена, nagios, zabbix. Для zabbix необходимо указать адрес и ключ API.', 'Monitoring system: none - disabled, nagios, zabbix. If zabbix is selected, the API url and API key must be set.', 0, 1, 'list;none;nagios;zabbix', 'none', 0, 0);
 INSERT INTO `config_options` (`id`, `option_name`, description_russian, description_english, `draft`, `uniq`, `option_type`, `default_value`, `min_value`, `max_value`) VALUES(75, 'zabbix_api_url', 'Полный адрес JSON-RPC API zabbix (api_jsonrpc.php)', 'Full address of the zabbix JSON-RPC API (api_jsonrpc.php)', 0, 1, 'text', 'http://127.0.0.1/zabbix/api_jsonrpc.php', 0, 0);
 INSERT INTO `config_options` (`id`, `option_name`, description_russian, description_english, `draft`, `uniq`, `option_type`, `default_value`, `min_value`, `max_value`) VALUES(76, 'zabbix_api_key', 'API ключ (token) для доступа к API zabbix. Создаётся в zabbix: Администраторы - Пользователи - API токены.', 'API key (token) used to access the zabbix API. Created in zabbix: Administration - Users - API tokens.', 0, 1, 'text', '', 0, 0);
+INSERT INTO `config_options` (`id`, `option_name`, description_russian, description_english, `draft`, `uniq`, `option_type`, `default_value`, `min_value`, `max_value`) VALUES(77, 'netflow_detail_aggregation', 'Режим агрегации детализации трафика (строки объединяются в пределах одного интервала сброса): 0 - без агрегации, одна запись в базе на каждый netflow-поток; 1 - по подписчик/маршрутизатор/протокол/пара адресов/сервисный порт (рекомендуется, эфемерные порты обнуляются); 2 - только по подписчик/маршрутизатор/протокол/пара адресов, оба порта обнуляются (максимальное сжатие, адреса сохраняются)', 'Traffic detail aggregation mode (rows are merged within one flush interval): 0 - no aggregation, one DB row per netflow record (legacy behaviour); 1 - aggregate by subscriber/router/proto/IP pair/service port (recommended, ephemeral ports are zeroed); 2 - aggregate by subscriber/router/proto/IP pair only, both ports are zeroed (max compression, addresses are kept)', 0, 1, 'int', '1', 0, 2);
 
 INSERT INTO `customers` (`id`, `Login`, `description`, `password`, `api_key`,`rights`) VALUES (1, 'admin', 'Administrator', '$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG', 'c3284d0f94606de1fd2af172aba15bf31','1') ON DUPLICATE KEY UPDATE `Login`="admin", `password`="$2y$11$wohV8Tuqu0Yai9Shacei5OKfMxG5bnLxB5ACcZcJJ3pYEbIH0qLGG", `rights`="1";
 
@@ -354,8 +355,9 @@ INSERT INTO `config` VALUES (143,17,'1');
 INSERT INTO `config` VALUES (144,37,'/opt/Eye/scripts/sync_mikrotik.pl');
 INSERT INTO `config` VALUES (145,23,'1');
 INSERT INTO `config` VALUES (148,22,'1');
+INSERT INTO `config` VALUES (149,77,'1');
 
-INSERT INTO `version` (`id`, `version`) VALUES(1, '3.2.8');
+INSERT INTO `version` (`id`, `version`) VALUES(1, '3.2.9');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

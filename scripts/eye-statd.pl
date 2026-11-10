@@ -85,7 +85,9 @@ my $save_path = get_option($dbh, 72);
 # 0 - no aggregation, one DB row per netflow record (legacy behaviour)
 # 1 - aggregate by user/router/proto/IP pair/service port (recommended, ephemeral ports are zeroed)
 # 2 - aggregate by user/router/proto/IP pair only, both ports are zeroed (max compression, addresses are kept)
-my $detail_aggregation = 1;
+# the mode lives in the configuration now: it is the option of the id 77, the record of the
+# value may be absent, and then the default of the table answers instead of it
+my $detail_aggregation = read_detail_aggregation($dbh);
 
 #save traffic to DB
 my $traf_lastflush = time();
@@ -141,6 +143,24 @@ sub TERM {
     exit 0;
 }
 
+# the aggregation mode of the traffic details reads the option of the id 77 and keeps the
+# recommended mode when the base answers nothing sensible: the value is a plain digit of the
+# option table, and a typo there must not send the collector into an unknown branch
+sub read_detail_aggregation {
+    my $db = shift;
+    my $mode = get_option($db, 77);
+    $mode = '' if (!defined $mode);
+    $mode =~ s/^\s+|\s+$//g;
+    if ($mode ne '0' && $mode ne '1' && $mode ne '2') {
+        if ($mode ne '') {
+            log_error("Detail aggregation: unknown mode '$mode' in the option of the id 77, the recommended mode 1 is used");
+        }
+        $mode = 1;
+    }
+    log_verbose("Detail aggregation mode: $mode");
+    return $mode;
+}
+
 sub refresh_config {
     # the snmp walk of the routers is the costly part of the reload: every router is
     # asked for its own interface addresses, and one walk costs seconds. the flush
@@ -163,6 +183,9 @@ sub refresh_config {
 
     # a directory for storing traffic details in text form
     $save_path = get_option($hdb, 72);
+
+    # the mode which merges the rows of the traffic details within one flush interval
+    $detail_aggregation = read_detail_aggregation($hdb);
 
     # the period for resetting statistics from netflow to billing
     my $timeshift_minutes = get_option($hdb, 55);

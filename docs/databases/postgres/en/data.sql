@@ -84,7 +84,8 @@ VALUES
 (73, 'check_computer_exists', 'Проверять существование компьютера в домене перед обновлением DNS по DHCP запросу', 'Verify the existence of a computer in the domain before updating DNS by DHCP request', 0, 1, 'bool', '1', 0, 0),
 (74, 'monitoring_system', 'Система мониторинга: none - отключена, nagios, zabbix. Для zabbix необходимо указать адрес и ключ API.', 'Monitoring system: none - disabled, nagios, zabbix. If zabbix is selected, the API url and API key must be set.', 0, 1, 'list;none;nagios;zabbix', 'none', 0, 0),
 (75, 'zabbix_api_url', 'Полный адрес JSON-RPC API zabbix (api_jsonrpc.php)', 'Full address of the zabbix JSON-RPC API (api_jsonrpc.php)', 0, 1, 'text', 'http://127.0.0.1/zabbix/api_jsonrpc.php', 0, 0),
-(76, 'zabbix_api_key', 'API ключ (token) для доступа к API zabbix. Создаётся в zabbix: Администраторы - Пользователи - API токены.', 'API key (token) used to access the zabbix API. Created in zabbix: Administration - Users - API tokens.', 0, 1, 'text', '', 0, 0)
+(76, 'zabbix_api_key', 'API ключ (token) для доступа к API zabbix. Создаётся в zabbix: Администраторы - Пользователи - API токены.', 'API key (token) used to access the zabbix API. Created in zabbix: Administration - Users - API tokens.', 0, 1, 'text', '', 0, 0),
+(77, 'netflow_detail_aggregation', 'Режим агрегации детализации трафика (строки объединяются в пределах одного интервала сброса): 0 - без агрегации, одна запись в базе на каждый netflow-поток; 1 - по подписчик/маршрутизатор/протокол/пара адресов/сервисный порт (рекомендуется, эфемерные порты обнуляются); 2 - только по подписчик/маршрутизатор/протокол/пара адресов, оба порта обнуляются (максимальное сжатие, адреса сохраняются)', 'Traffic detail aggregation mode (rows are merged within one flush interval): 0 - no aggregation, one DB row per netflow record (legacy behaviour); 1 - aggregate by subscriber/router/proto/IP pair/service port (recommended, ephemeral ports are zeroed); 2 - aggregate by subscriber/router/proto/IP pair only, both ports are zeroed (max compression, addresses are kept)', 0, 1, 'int', '1', 0, 2)
 ON CONFLICT (id) DO UPDATE SET
     option_name = EXCLUDED.option_name,
     description_russian = EXCLUDED.description_russian,
@@ -120,7 +121,8 @@ VALUES
 (143, 17, '1'),
 (144, 37, '/opt/Eye/scripts/sync_mikrotik.pl'),
 (145, 23, '1'),
-(148, 22, '1')
+(148, 22, '1'),
+(149, 77, '1')
 ON CONFLICT (id) DO UPDATE SET
     option_id = EXCLUDED.option_id,
     value = EXCLUDED.value;
@@ -495,7 +497,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- System version
 INSERT INTO version (id, version)
-VALUES (1, '3.2.8')
+VALUES (1, '3.2.9')
 ON CONFLICT (id) DO UPDATE SET
     version = EXCLUDED.version;
 
