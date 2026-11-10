@@ -608,7 +608,11 @@ dialog > form.dlg-card table.data { table-layout: fixed; }
 dialog > form.dlg-card table.data col:nth-child(1) { width: 30px; }
 dialog > form.dlg-card table.data col:nth-child(2) { width: 36%; }
 dialog > form.dlg-card table.data td:nth-child(2) { white-space: normal; }
-dialog > form.dlg-card table.data td:last-child:not([colspan]) { text-align: right; overflow: hidden; }
+/* no overflow: hidden here, whatever the temptation to keep a wide control inside the
+   column: the list of a searchable select hangs inside the cell of the widget, and clipping
+   the cell leaves the first row of the list visible and swallows the rest. the fixed layout
+   of the table and max-width: 100% of the controls hold the width on their own */
+dialog > form.dlg-card table.data td:last-child:not([colspan]) { text-align: right; }
 dialog > form.dlg-card table.data :is(select, input[type=text], input[list], .es) { max-width: 100%; }
 dialog > form.dlg-card > .dlg-f { flex: none; flex-wrap: wrap; }
 /* the note of a refused operation is put before the button, and the button of a card stands
@@ -819,8 +823,14 @@ body.eye-login .login p { margin: 0 0 12px; }
 
 /* 14. Searchable select, replaces Select2. The native select stays in the form, the button is what the user sees. */
 .es { position: relative; display: inline-block; min-width: 0; max-width: 100%; }
+/* the native select behind the widget keeps its options in the dom and in the form, but it
+   may not take part in the layout. a page prints such a select with an inline width, and an
+   inline rule is stronger than a plain one here, while the engine will not squeeze a select
+   below the room its own arrow needs: the invisible node stood at the right edge of the cell
+   and stepped over the edge of the dialog, so the body of a card asked for a horizontal
+   scrollbar nobody could use. the node keeps to the corner of the widget instead */
 .es-native {
-  position: absolute !important; width: 1px; height: 1px; margin: 0; padding: 0;
+  position: absolute !important; width: 1px; height: 1px; top: 0; left: 0; margin: 0; padding: 0;
   border: 0; opacity: 0; overflow: hidden; pointer-events: none;
 }
 
@@ -847,6 +857,9 @@ body.eye-login .login p { margin: 0 0 12px; }
   border-radius: var(--r-md); box-shadow: var(--shadow);
 }
 .es-pop[hidden] { display: none; }
+/* the list which does not fit under the button goes above it: eye.js measures the room
+   which the dialog and the window leave, and marks the widget with this class then */
+.es.es-up .es-pop { top: auto; bottom: calc(100% + 4px); }
 .es-q { width: 100%; margin: 0 0 6px; }
 .es-list { list-style: none; margin: 0; padding: 0; max-height: min(46vh, 320px); overflow: auto; }
 .es-opt { padding: 5px 8px; border-radius: var(--r-sm); font-size: 13px; cursor: pointer; }

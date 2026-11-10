@@ -321,6 +321,7 @@
   var ES_MAX = 200;      // rows that reach the dom at once
   var ES_CHUNK = 2000;   // option nodes read before the loop looks at what it has
   var ES_LIMIT = 5000;   // options a pass goes through: a pass is tens of ms, not seconds
+  var ES_MIN = 60;       // two rows of the list: less than this a dropdown is useless
 
   // A part of the option list, read from the dom. The text of a hundred thousand options is
   // nothing to touch at once: every read also lower cases the caption. The pass stops when it
@@ -475,9 +476,40 @@
       sel.dispatchEvent(new Event('change', { bubbles: true }));   // auto-apply filters and inline onchange keep firing
     }
 
+    // The list of the widget hangs inside the cell of the widget, so whatever clips it -
+    // the body of a dialog which scrolls on its own, or the edge of the window - cuts the
+    // tail of the list and the operator sees the first row only. The room is asked of the
+    // nearest box which does not let anything over its edge: when the space under the button
+    // is not enough and above there is more, the list goes over the button instead, and in
+    // any case it takes no more than the room leaves, so its own scrollbar appears instead
+    // of the rows disappearing behind the border.
+    function fit() {
+      var b = wrap.getBoundingClientRect();
+      var up = b.top, down = window.innerHeight - b.bottom;
+      var node = wrap.parentElement;
+      while (node && node !== document.body && node !== document.documentElement) {
+        var cs = getComputedStyle(node);
+        if (cs.position === 'fixed') { break; }
+        if (cs.overflowY !== 'visible' || cs.overflowX !== 'visible') {
+          var r = node.getBoundingClientRect();
+          up = Math.min(up, b.top - r.top);
+          down = Math.min(down, r.bottom - b.bottom);
+          break;
+        }
+        node = node.parentElement;
+      }
+      // the search field and the padding of the pop eat from the room before the rows
+      var shell = pop.offsetHeight - list.offsetHeight + 6;
+      var above = pop.offsetHeight + 6 > down && up > down;
+      wrap.classList.toggle('es-up', above);
+      var room = (above ? up : down) - shell;
+      if (room < ES_MIN) { room = ES_MIN; }
+      list.style.maxHeight = (room < list.offsetHeight) ? room + 'px' : '';
+    }
+
     function open() {
       if (sel.disabled || !pop.hidden) return;
-      pop.hidden = false; q.value = ''; rows();
+      pop.hidden = false; q.value = ''; rows(); fit();
       wrap.classList.add('open');
       btn.setAttribute('aria-expanded', 'true');
       document.addEventListener('mousedown', outside, true);
