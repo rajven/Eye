@@ -1,4 +1,22 @@
 # Changelog 3-2-8 - release
+- bugfix: in the dialog of the mass operations the lists of the searchable selects showed
+  one row only. the column of values was given overflow: hidden, to keep a wide control
+  inside the frame, and the list of such a select hangs inside the very cell of the control:
+  the cell cut everything under its first line. the width of the columns is held now by the
+  fixed layout of the table and by max-width of the controls alone, and nothing clips the
+  list any more
+- added: the list of a searchable select asks for the room which is really left to it.
+  eye.js measures the nearest box which does not let anything over its edge - the body of a
+  dialog scrolls on its own - together with the window: when the space under the field is
+  not enough and above there is more, the list opens over the field instead, and it takes no
+  more rows than the room leaves, so the list gets a scrollbar of its own instead of sending
+  the rest of its rows behind the border of the dialog
+- bugfix: an invisible native select behind the widget stepped over the right edge of the
+  dialog when a page printed it with an inline width: an inline rule is stronger than the
+  rule which hides the node, and the engine will not squeeze a select below the room its own
+  arrow needs, so the node kept a real width. now the node is pinned to the corner of the
+  widget instead of being sized away, and the body of the dialog stopped asking for a
+  horizontal scrollbar nobody could use
 - bugfix: the dialog of the mass operations lost its look. the line of a group stands in
   one cell which spans the whole table, and the rules of the dialog read such a cell as the
   column of the check box (thirty pixels, centered) and as the column of the value (right
