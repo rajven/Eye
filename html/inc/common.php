@@ -3073,9 +3073,18 @@ function clean_dns_cache($db)
     // oldest writes to disappear by themselves. the query only guesses the candidates
     // (any sign beyond the borders of an ascii name), the decision is taken by the same
     // sanitizer which reads the cache for the pages
-    $rows = get_records_sql($db,
-        "SELECT id, dns FROM dns_cache
-          WHERE dns IS NOT NULL AND dns REGEXP '[^A-Za-z0-9._-]'");
+    // REGEXP is the word of mysql alone: PostgreSQL matches a regular expression with
+    // the sign '~'. the pattern names the letters of both cases, so the case of the
+    // match means nothing here, and the pattern means the same to both engines
+    if (db_is_pgsql($db)) {
+        $rows = get_records_sql($db,
+            "SELECT id, dns FROM dns_cache
+              WHERE dns IS NOT NULL AND dns ~ '[^A-Za-z0-9._-]'");
+    } else {
+        $rows = get_records_sql($db,
+            "SELECT id, dns FROM dns_cache
+              WHERE dns IS NOT NULL AND dns REGEXP '[^A-Za-z0-9._-]'");
+    }
     if (empty($rows)) {
         return;
     }
