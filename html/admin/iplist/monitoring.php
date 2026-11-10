@@ -5,6 +5,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/languages/" . HTML_LANG . ".php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $default_sort='device_name';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/devtypesfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/buildingfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
@@ -19,6 +20,15 @@ $sort_url = "<a href=monitoring.php?ou=" . $rou;
 
 $params=[];
 if ($rou == 0) { $ou_filter = ''; } else { $ou_filter = " and user_list.ou_id=?"; $params[]=$rou; }
+
+if (empty($rcidr)) { $cidr_filter = ''; } else {
+    $cidr_range = cidrToRange($rcidr);
+    if (!empty($cidr_range)) {
+        $cidr_filter = " and devices.ip_int>=? and devices.ip_int<=?";
+        $params[]=ip2long($cidr_range[0]);
+        $params[]=ip2long($cidr_range[1]);
+        }
+    }
 
 if ($f_devtype_id <0) { $type_filter = ''; } else { $type_filter = " and devices.device_type=?"; $params[]=$f_devtype_id; }
 
@@ -45,7 +55,7 @@ if ($enabled>0) {
     if ($enabled===1) { $enabled_filter = ' and devices.monitoring=0'; }
     }
 
-$device_list_filter = $ou_filter.$type_filter.$building_filter.$enabled_filter;
+$device_list_filter = $ou_filter.$type_filter.$cidr_filter.$building_filter.$enabled_filter;
 
 print_ip_submenu($page_url);
 
@@ -57,6 +67,7 @@ print_ip_submenu($page_url);
         <td>
         <b><?php print WEB_cell_ou; ?> :</b><?php print_ou_select($db_link, 'ou', $rou); ?>
         <b><?php print WEB_device_type_show; ?> :</b><?php print_devtypes_select($db_link, 'devtypes', $f_devtype_id, ""); ?>
+        <b><?php print WEB_network_subnet; ?></b><?php print_subnet_select_office_splitted($db_link, 'cidr', $rcidr); ?>
         <b><?php print WEB_location_name; ?> - </b><?php print_building_select($db_link, 'building_id', $f_building_id); ?>
         <b><?php print WEB_monitoring; ?> :</b><?php print_enabled_select('enabled', $enabled); ?>
         <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
@@ -66,30 +77,13 @@ print_ip_submenu($page_url);
 </table>
 </form>
 
-<a class="mainButton" href="#eye-mass"><?php print WEB_btn_apply_selected; ?></a>
-<dialog id="eye-mass" class="eye-dlg">
-  <button type="button" class="x" data-close aria-label="<?php echo WEB_btn_close; ?>">&#10005;</button>
-  <form id="formNetDevApply">
-        <h2><?php print WEB_selection_title; ?></h2>
-        <input type="hidden" name="ApplyForAll" value="MassChange">
-        <table class="data" align=center>
-        <?php if (is_monitoring_enabled()): ?>
-            <tr><td><input type=checkbox class="putField" name="e_monitoring" value='1'></td><td><?php print WEB_monitoring; ?>&nbsp<?php print_qa_select('a_monitoring', 1); ?></td></tr>
-        <?php endif; ?>
-        <?php if (is_nagios_enabled()): ?>
-            <tr><td><input type=checkbox class="putField" name="e_link" value='1'></td><td><?php print WEB_cell_link; ?>&nbsp<?php print_qa_select('a_link', 0); ?></td></tr>
-            <tr><td><input type=checkbox class="putField" name="e_handler" value='1'></td><td><?php print WEB_cell_nagios_handler; ?>&nbsp<?php print_nagios_handler_select($db_link,'a_handler'); ?></td></tr>
-        <?php endif; ?>
-        <?php if (is_zabbix_enabled()): ?>
-            <tr><td><input type=checkbox class="putField" name="e_tag_add" value='1'></td><td><?php print WEB_zabbix_mass_tag_add; ?>&nbsp<?php print_zabbix_tag_id_select('a_tag_add', zabbix_global_names($db_link, 'tags'), WEB_zabbix_tag_select_model_empty); ?>&nbsp<?php print WEB_zabbix_value; ?>&nbsp<input type="text" name="a_tag_value" value="" size=12></td></tr>
-            <tr><td><input type=checkbox class="putField" name="e_tag_del" value='1'></td><td><?php print WEB_zabbix_mass_tag_del; ?>&nbsp<?php print_zabbix_tag_id_select('a_tag_del', zabbix_global_names($db_link, 'tags'), WEB_zabbix_tag_select_model_empty); ?></td></tr>
-            <tr><td><input type=checkbox class="putField" name="e_macro_add" value='1'></td><td><?php print WEB_zabbix_mass_macro_add; ?>&nbsp<?php print_zabbix_macro_id_select('a_macro_add', zabbix_global_names($db_link, 'macros'), WEB_zabbix_macro_select_model_empty); ?>&nbsp<?php print WEB_zabbix_value; ?>&nbsp<input type="text" name="a_macro_value" value="" size=12></td></tr>
-            <tr><td><input type=checkbox class="putField" name="e_macro_del" value='1'></td><td><?php print WEB_zabbix_mass_macro_del; ?>&nbsp<?php print_zabbix_macro_id_select('a_macro_del', zabbix_global_names($db_link, 'macros'), WEB_zabbix_macro_select_model_empty); ?></td></tr>
-        <?php endif; ?>
-        </table>
-        <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
-    </form>
-</dialog>
+<?php
+// the same dialog of the mass operations which the list of the passive equipment prints:
+// the devices of both lists are the records of one table, and the hosts of zabbix are the
+// hosts of those records
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/mass.php");
+print_mass_devices_dialog($db_link, null, ['dev_type' => 1]);
+?>
 
 <?php
 // an address of the user has no host itself, the device of the user is the host, so the

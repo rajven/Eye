@@ -6,7 +6,7 @@ require_once ($_SERVER['DOCUMENT_ROOT']."/inc/header.php");
 $default_sort='ip_int';
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/devmodelsfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/oufilter.php");
-require_once ($_SERVER['DOCUMENT_ROOT']."/inc/subnetfilter.php");
+require_once ($_SERVER['DOCUMENT_ROOT']."/inc/cidrfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/sortfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/devtypesfilter.php");
 require_once ($_SERVER['DOCUMENT_ROOT']."/inc/buildingfilter.php");
@@ -32,12 +32,13 @@ if ($f_building_id > 0) { $filter .= ' and D.building_id=?'; $params[]=$f_buildi
 if ($f_devtype_id >= 0) { $filter .= ' and D.device_type=?'; $params[]=$f_devtype_id; } else { $filter .= ' and D.device_type> ?'; $params[]=2; }
 if ($f_devmodel_id > 0) { $filter .= ' and D.device_model_id=?'; $params[]= $f_devmodel_id; }
 if ($rou > 0) { $filter .= ' and L.ou_id=? '; $params[]=$rou; }
-if ($rsubnet > 0) {
-    $subnet_range = get_subnet_range($db_link,$rsubnet);
-    if (!empty($subnet_range)) { 
+
+if (empty($rcidr)) { $cidr_filter = ''; } else {
+    $cidr_range = cidrToRange($rcidr);
+    if (!empty($cidr_range)) {
         $filter .= " and A.ip_int>=? and A.ip_int<=?";
-        $params[]=$subnet_range['start'];
-        $params[]=$subnet_range['stop'];
+        $params[]=ip2long($cidr_range[0]);
+        $params[]=ip2long($cidr_range[1]);
         }
     }
 
@@ -62,30 +63,21 @@ print_device_submenu($page_url);
 <td class="info"><?php print_ou_select($db_link, 'ou', $rou); ?></td>
 <td class="info"><?php print WEB_rows_at_page."&nbsp:"; print_row_at_pages('rows',$displayed); ?></td>
 <td class="info"><?php print WEB_network_subnet; ?> </td>
-<td class="info"><?php print_subnet_select_office($db_link, 'subnet', $rsubnet); ?></td>
+<td class="info"><?php print_subnet_select_office_splitted($db_link, 'cidr', $rcidr); ?></td>
 <td class="info" colspan=2><?php  print WEB_models; print_device_model_select($db_link, "devmodels", $f_devmodel_id, 'device_type>2'); ?></td>
 </tr>
 </table>
 </form>
 
 <br>
-<a class="mainButton" href="#eye-mass"><?php print WEB_btn_apply_selected; ?></a>
-<dialog id="eye-mass" class="eye-dlg">
-  <button type="button" class="x" data-close aria-label="<?php echo WEB_btn_close; ?>">&#10005;</button>
-  <form id="formNetDevApply">
-        <h2><?php print WEB_selection_title; ?></h2>
-        <input type="hidden" name="ApplyForAll" value="MassChange">
-        <table class="data" align=center>
-        <tr><td><input type=checkbox class="putField" name="e_set_type" value='1'></td><td><?php print WEB_cell_type."</td><td>";print_devtype_select($db_link,'a_dev_type',5);?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_set_model" value='1'></td><td><?php echo WEB_cell_host_model."</td><td>"; print_device_model_select($db_link,'a_device_model_id',0,'device_type>2');?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_set_building" value='1'></td><td><?php echo WEB_location_name."</td><td>"; print_building_select($db_link, 'a_building_id', 0);?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_set_snmp_version" value='1'></td><td><?php echo WEB_snmp_version."</td><td>";print_snmp_select('a_snmp_version', get_const('snmp_default_version'));?></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_set_ro_community" value='1'></td><td><?php echo WEB_snmp_community_ro."</td><td>"; ?><input type='text' name='a_ro_community' value="<?php print get_const('snmp_default_community'); ?>"></td></tr>
-        <tr><td><input type=checkbox class="putField" name="e_set_rw_community" value='1'></td><td><?php echo WEB_snmp_community_rw."</td><td>"; ?><input type='text' name='a_rw_community' value="private"></td></tr>
-        </table>
-        <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
-    </form>
-</dialog>
+<?php
+// one dialog of the mass operations serves every list of the devices: the passive
+// equipment takes the parameters of its devices, the state of the monitoring system and
+// the names and the templates of the host of zabbix. the models are those of the
+// equipment of the subscribers, as the list itself shows nothing else
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/mass.php");
+print_mass_devices_dialog($db_link, null, ['model_filter' => 'device_type>2']);
+?>
 
 <a class="delButton" href="#eye-del"><?php print WEB_btn_delete; ?></a>
 <dialog id="eye-del" class="eye-dlg">

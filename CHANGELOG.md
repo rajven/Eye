@@ -1,3 +1,112 @@
+# Changelog 3-2-8 - release
+- bugfix: the dialog of the mass operations lost its look. the line of a group stands in
+  one cell which spans the whole table, and the rules of the dialog read such a cell as the
+  column of the check box (thirty pixels, centered) and as the column of the value (right
+  edge) at the same time: the captions of the groups and the note under them jumped to the
+  right side of the dialog, and the class of a page caption made the line a sticky band.
+  The shared form prints its own dlg-group and dlg-i now, and eye.css knows them: the text
+  of a group stands over the labels of the fields, the note keeps the quiet style of a note,
+  and neither of them paints a band across the opened dialog
+- bugfix: on a short screen the tail of the dialog - it carries the fields of both device
+  lists at once now - stuck out of the frame, and the button of the operation fell outside
+  the border. The shared form sits in a card now: a head with the title, a body which
+  scrolls on its own, and a footer which keeps the button inside the box, while the cross of
+  the dialog stays above the head. A note of a refused operation takes a line of its own in
+  that footer instead of squeezing the button
+- bugfix: the table of the dialog was wider than the dialog itself and hung over the right
+  edge, because a column of the automatic layout grows to the width of its widest content,
+  and the longest option of a select in the column of values is a whole sentence. The table
+  of the card is laid out by the fixed algorithm: the columns keep the width named in the
+  colgroup, the controls shrink, and nothing steps outside the frame
+- bugfix: the cache of the computers of Active Directory died above a base in PostgreSQL:
+  scripts/eyelib/common.pm put the row in with ON DUPLICATE KEY UPDATE, and that syntax
+  belongs to mysql alone ('syntax error at or near "DUPLICATE"'). The insert asks the engine
+  of its own connection now and gives PostgreSQL the ON CONFLICT over the unique name of the
+  computer, which both bases keep under the same key
+- note: get_db_type() left the private list of eyelib::database and joined its exports, so
+  the modules of the backend ask the engine the same way the web interface does
+- bugfix: the filter "suspicious" of the address list broke the whole page above a base in
+  PostgreSQL, and calculated nothing at all above a base in mysql: the expression asked
+  ABS(dhcp_time - arp_found) which is not a difference in seconds in mysql (that engine
+  subtracts the dates as the numbers of the YYYYMMDDHHMMSS shape, so the threshold of
+  259200 caught anything above some six hours), and UNIX_TIMESTAMP() which PostgreSQL does
+  not know at all. The same fate met the threshold of the "zombi" records in the api
+  action get_subnet_stats: DATE_SUB(NOW(), INTERVAL ? DAY) is the syntax of one engine
+  only. html/inc/common.php took three helpers of the dialect - db_is_pgsql(),
+  db_ts_diff(), db_ts_passed(), db_ts_days_ago() - which ask the engine of the connection
+  itself and give the same measurement in seconds to both bases; the number of the
+  parameters of the queries did not move, so the order of the filter of the list page and
+  of the api answer stayed as it was
+- note: on mysql the address list of "suspicious" becomes narrower to what the filter
+  always meant: the records whose dhcp event and arp are older than three days apart, with
+  the arp seen within the last three days; before it took the records apart by six hours
+  and the second half of the condition never stopped anything
+- note: a base with an empty dhcp_time can not fall into the filter at all: the event and
+  the sign of it are written by the same code of scripts/eyelib/common.pm
+- added: the index patch of the web interface took its second file, 002_column_parity -
+  the three NOT NULL counters of a netflow record take the empty default which the copy
+  of the base in postgres has always had, the mac of the history and of the unknown macs
+  becomes free in postgres as it is free in mysql, the default of the version row names
+  the version of the installation
+- changed: the first file of the index patch is read by the parser of upgrade.pl now.
+  the statements stand one per index, so a key which is present allready does not take
+  the rest of the same table down with it; the keys of the unknown macs of a port and of
+  the names of the filters were added, the partial indexes of postgres became the plain
+  keys of mysql, so the same query plans the same list in both engines
+- changed: docs/databases/{mysql,postgres}/{en,ru}/create_db carry the indexes of the
+  patch and the columns of 002 now: a base which was installed fresh looks exactly as
+  the base which was upgraded through the patch, which is what checkDBschema compares
+- bugfix: upgrade.pl glued the comment lines above a statement to the statement itself,
+  and the line which skips a statement that starts with a comment then threw the whole
+  ALTER away - a patch which explains every one of its keys in the comments created 3
+  of its 16 keys in mysql and 13 of its 38 in postgres. the same defect silently
+  skipped 27 of the 103 statements of 3-0-1/migration.msql and all four statements of
+  3-0-5/user_auth.psql, so the mac column of an installed postgres base never left its
+  old shape - the comments are taken out of the statement text now, and a comment of
+  its own is still skipped as a comment
+# Changelog 3-2-7 - release
+- added: the templates of the zabbix host follow the model of the device - a changed model
+  unlinks the templates of the model which the device has left behind and links the list of
+  the new one, in the form of the device, in the mass operation and over the api of eye. It
+  is done with the hosts which eye made itself, on which the tag of eye of the record is
+  left: a
+  host found by its name or by its address belongs to another owner, and eye only adds the
+  missing templates there, the templates of the other owner stay
+- added: the mass operation of the templates of zabbix, and the dialog of the mass operations
+  of a device is built by inc/mass.php now: the passive equipment and the page of the
+  monitoring offer the same set of operations from one description of the fields, so a new
+  row appears on both lists at once and the endpoint reads the marks of the same list. the
+  page of the equipment took the operations of the monitoring (monitoring, the reaction to an
+  event, the tags and the macros of the host) which it did not offer before, the reader with
+  the view only level is not offered the dialog at all
+- changed: the mass operation of the devices answers an error when not a single row of the
+  dialog is marked, and names the devices whose hosts eye does not manage when the operator
+  asked to unlink their templates - the operation which touched nothing used to come back
+  green with 'Done'. the same rule of the marked rows is now in the endpoints of the
+  subscribers and of the addresses
+- bugfix: the export of a host could not leave it without templates at all: the request of the
+  update carried the list of the templates only while it was not empty, so a model with
+  unbound templates kept the old list on the host for ever
+- changed: the templates of the host are asked by the whole list of the model, while the
+  scripts of the base keep the usual rule of the reconciliation: the missing templates are
+  added, nothing is taken away, because a template of the host may belong to anybody
+# Changelog 3-2-7 - release
+- security: a macro of the secret type does not show its value any more and does not keep
+  it in the plain text: the form of the device prints the mask of zabbix (the same line
+  which the monitoring system itself answers for a secret macro), the value goes into the
+  base ciphered by the rule of the passwords of the equipment, and it is opened only on
+  its way out, to the host of zabbix. a save which brings the mask back changes nothing,
+  both in eye and in zabbix, and the mass operation of the page of the monitoring keeps
+  the same rule as the form of the device does
+- added: a name of the global list which moved from the text to the secret type (or back)
+  takes the values of the devices with it at once, while the export of the next run reads
+  them by the new rule
+- added: the update patch of the version 3-2-8 cipheres the values of the secret macros which an
+  installed base kept in the plain text; the patch is idempotent, and --dry-run shows the
+  rows which wait for it
+- note: a base which was not upgraded yet keeps working: a value which does not open as a
+  cipher of this base is given to zabbix as it stands, so the secrets of the old rows are
+  not lost while the patch is not applied
 # Changelog 3-2-7 - release
 - bugfix: a stored cross site script came into the interface through dhcp: the host name which a device in the net brings
   together with its action, the sign of who created the record and the name of the direct dns were printed as they are on the

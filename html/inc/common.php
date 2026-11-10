@@ -383,6 +383,55 @@ function is_empty_datetime($datetime) {
     return false;
 }
 
+// 1 когда за соединением стоит PostgreSQL: движок спрашивается у самого соединения, а не
+// из конфигурации — установщик разных версий писал имя типа по разному. Ответ помнится
+// на каждое соединение: скрипт сверки схемы держит рабочую и чистую базу одновременно.
+// Ключом служит само соединение, а не его номер: номер освобождённого объекта php отдаёт
+// заново, и новое соединение унаследовало бы ответ старого
+function db_is_pgsql($db)
+{
+    static $answers = null;
+    if ($answers === null) {
+        $answers = new SplObjectStorage();
+    }
+    if (!isset($answers[$db])) {
+        $answers[$db] = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql';
+    }
+    return $answers[$db];
+}
+
+// Разница двух колонок с датой в секундах. Движки её считают разными выражениями, и
+// наивное "колонка минус колонка" из mysql секундам не равно вовсе: тот движок вычитает
+// даты как числа YYYYMMDDHHMMSS, а PostgreSQL не умеет ни ABS(interval), ни
+// UNIX_TIMESTAMP()
+function db_ts_diff($db, $left, $right)
+{
+    if (db_is_pgsql($db)) {
+        return 'ABS(EXTRACT(EPOCH FROM (' . $left . ' - ' . $right . ')))';
+    }
+    return 'ABS(TIMESTAMPDIFF(SECOND, ' . $left . ', ' . $right . '))';
+}
+
+// Сколько секунд прошло от колонки с датой до момента чтения
+function db_ts_passed($db, $column)
+{
+    if (db_is_pgsql($db)) {
+        return 'EXTRACT(EPOCH FROM (LOCALTIMESTAMP - ' . $column . '))';
+    }
+    return 'TIMESTAMPDIFF(SECOND, ' . $column . ', NOW())';
+}
+
+// Момент «N дней назад» от текущего: выражение с одним знаком вопроса, параметр - число
+// дней. DATE_SUB умеет считать его только mysql, make_interval - только PostgreSQL, при
+// этом postgres берёт время без зоны, как и хранит его глаз
+function db_ts_days_ago($db)
+{
+    if (db_is_pgsql($db)) {
+        return 'LOCALTIMESTAMP - make_interval(days => ?)';
+    }
+    return 'DATE_SUB(NOW(), INTERVAL ? DAY)';
+}
+
 function get_user_ip()
 {
     return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
@@ -3013,7 +3062,7 @@ function ResolveIP($db, $ip_int)
 }
 
 function clean_dns_cache($db)
-{
+{   
     $date = time() - 86400; // 24 часа назад
     $clean_date = date('Y-m-d H:i:s', $date);
     run_sql($db, "DELETE FROM dns_cache WHERE ts <= ?", [$clean_date]);
@@ -3021,30 +3070,34 @@ function clean_dns_cache($db)
     // the rows which the base kept before the resolver began to check its answer are
     // cleaned as the cache is cleaned: a name which is not a name of a host can not be
     // read by the reports, and the cache of a day is long enough for the rows of the
-    // oldest writes to disappear by themselves. the query only guesses the candidates
-    // (any sign beyond the borders of an ascii name), the decision is taken by the same
-    // sanitizer which reads the cache for the pages
+    // oldest writes to disappear by themselves. the rows are fetched after the DELETE
+    // above, so only the "live" cache (the last 24 hours) is scanned; the candidates
+    // are filtered here in PHP (any sign beyond the borders of an ascii name), and the
+    // decision is taken by the same sanitizer which reads the cache for the pages
     $rows = get_records_sql($db,
-        "SELECT id, dns FROM dns_cache
-          WHERE dns IS NOT NULL AND dns REGEXP '[^A-Za-z0-9._-]'");
+        "SELECT id, dns FROM dns_cache WHERE dns IS NOT NULL");
     if (empty($rows)) {
         return;
     }
 
     $fixed = 0;
     foreach ($rows as $row) {
+        if (!preg_match('/[^\p{L}\p{N}._-]/u', $row['dns'])) {
+            continue;
+        }
+
         $clean = safe_host_name($row['dns']);
         if ($clean === $row['dns']) {
-            continue;   // an international name which the sanitizer keeps as it is
+            continue;
         }
         if ($clean === '') {
             delete_record($db, 'dns_cache', 'id = ?', [(int)$row['id']]);
         } else {
             update_record($db, 'dns_cache', 'id = ?', ['dns' => $clean], [(int)$row['id']]);
-        }
+        } 
         $fixed++;
     }
-
+        
     if ($fixed > 0) {
         LOG_INFO($db, "DNS: " . $fixed . " row(s) of the cache were cleared of the signs which a host name can not hold");
     }

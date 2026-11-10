@@ -1,0 +1,17 @@
+-- ============================================================================
+-- 002: the parity of the columns between the two engines, postgres side
+-- applies to: PostgreSQL 10+
+-- every statement is idempotent: DROP NOT NULL and SET DEFAULT can be re-run
+-- the mysql notation of the same work: 002_column_parity.msql
+--
+-- mysql keeps the mac of the history and of the unknown macs free, and nothing in
+-- eye puts a mac into those two columns by hand; the stricter copy of the base
+-- refused what the same insert of mysql accepts, so the constraint goes away
+--
+-- the empty default of the version row named the release which was current when
+-- the template was dumped
+-- ============================================================================
+
+ALTER TABLE mac_history ALTER COLUMN mac DROP NOT NULL;
+
+ALTER TABLE unknown_mac ALTER COLUMN mac DROP NOT NULL;

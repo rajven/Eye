@@ -445,9 +445,10 @@ function new_connection ($db_type, $db_host, $db_user, $db_password, $db_name, $
         error_log("DB_CONNECTION_ERROR: Trace: " . $e->getTraceAsString());
 
         // Также выводим в консоль для немедленной обратной связи
+        //   пользователю браузера уходит только общий текст: сообщение PDO и DSN
+        //   называют хост, базу и пользователя и остаются в error_log сервера
         echo "Error connect to $db_type " . PHP_EOL;
-        echo "Error message: " . $e->getMessage() . PHP_EOL;
-        echo "DSN: $dsn" . PHP_EOL;
+        echo "Database is unavailable, the details are in the error log of the web server" . PHP_EOL;
 
         exit();
     } catch (Exception $e) {

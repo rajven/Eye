@@ -768,9 +768,12 @@ my @list;
 foreach my $row (@{ $device_macros{$device_id} }) {
     my $name = zabbix_macro_name($row->{macro_name});
     next if ($name eq '');
+    # the value of a secret macro lies in the base ciphered and is opened only for the
+    # export: zabbix keeps its own copy of the secret, eye keeps none in the plain text
+    my $secret = zabbix_macro_is_secret($row->{macro_type} // 0);
     push(@list, {
         macro => $name,
-        value => $row->{macro_value} // '',
+        value => zabbix_macro_open($row->{macro_value} // '', $secret),
         type => $row->{macro_type} // 0,
         });
     }

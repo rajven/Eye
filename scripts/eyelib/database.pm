@@ -83,6 +83,7 @@ get_count_records
 get_id_record
 get_records_sql
 get_record_sql
+get_db_type
 get_diff_rec
 update_record
 insert_record

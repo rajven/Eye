@@ -68,10 +68,7 @@ sub parse_sql_statements {
         if ($in_block_comment) {
             if ($c eq '*' && $next eq '/') {
                 $in_block_comment = 0;
-                $current_stmt .= $c . $next;
                 $i++; # пропускаем '/'
-            } else {
-                $current_stmt .= $c;
             }
             next;
         }
@@ -96,16 +93,19 @@ sub parse_sql_statements {
         }
 
         # 4. Начало комментариев (только если НЕ внутри строки)
+        #   самого комментария в выражение не берётся: строка ' -- ' над ALTER или над
+        #   CREATE INDEX делала всё выражение комментарием для проверки ниже, и patch
+        #   проходил, не создав ни одного из описанных там индексов
         if ($c eq '-' && $next eq '-') {
             $in_line_comment = 1;
-            $current_stmt .= $c . $next;
+            $current_stmt .= ' ';
             $i++;
             next;
         }
 
         if ($c eq '/' && $next eq '*') {
             $in_block_comment = 1;
-            $current_stmt .= $c . $next;
+            $current_stmt .= ' ';
             $i++;
             next;
         }
@@ -224,7 +224,9 @@ for (my $i = $old_version_index; $i < scalar @old_releases; $i++) {
         }
     }
 
-    # === SQL patches  ===
+    # === SQL patches ===
+    #   comments inside a statement are taken out by the parser, so a patch may describe
+    #   every one of its keys above the key itself
     my @sql_patches;
     if ($db_type) {
         push @sql_patches, glob("$dir_name/*.sql"), glob("$dir_name/*.msql");

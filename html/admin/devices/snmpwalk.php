@@ -31,12 +31,12 @@ if ($snmp_ok) {
     $dev_info = walk_snmp($device['ip'], $snmp,SYSINFO_MIB);
     foreach ($dev_info as $key => $value) {
         $v_data = trim(parse_snmp_value($value));
-        if (!empty($v_data)) { print "$v_data<br>"; }
+        if (!empty($v_data)) { print esc($v_data) . "<br>"; }
         }
     print "<table  class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";
     print "<tr><td><b>".WEB_snmp_interface_index."</div></b></td><td><b>".WEB_snmp_interface_name."</b></td></tr>\n";
     foreach ($interfaces as $key => $int) { 
-        print "<tr><td class=\"data\">$key</td><td class=\"data\"> $int</td></tr>"; 
+        print "<tr><td class=\"data\">$key</td><td class=\"data\"> " . esc($int) . "</td></tr>"; 
         }
     print "</table>\n";
     } else { print "No SNMP access!"; }

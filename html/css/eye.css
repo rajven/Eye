@@ -593,6 +593,32 @@ dialog { position: relative; }
 
 /* existing pages put a bare form with h2, table and submit directly into the dialog */
 dialog > form { display: block; margin: 0; padding: 16px 18px; }
+/* the card form: the head and the action of the dialog keep their places and the body of a
+   long form scrolls on its own, so the button of a mass operation stays inside the box on a
+   short screen instead of falling behind its edge */
+dialog > form.dlg-card { display: flex; flex-direction: column; gap: 0; padding: 0;
+  min-height: 0; max-height: calc(90vh - 2px); }
+dialog > form.dlg-card > .dlg-h { flex: none; padding-right: 44px; }
+dialog > form.dlg-card > .dlg-b { flex: 1 1 auto; min-height: 0; }
+/* the value column of a mass dialog holds selects whose longest option is a whole
+   sentence, and an automatic table grows to that min-content: the table stepped over the
+   border of the dialog and the last column hung outside the box. a fixed layout keeps the
+   three columns inside the body and lets the controls shrink instead */
+dialog > form.dlg-card table.data { table-layout: fixed; }
+dialog > form.dlg-card table.data col:nth-child(1) { width: 30px; }
+dialog > form.dlg-card table.data col:nth-child(2) { width: 36%; }
+dialog > form.dlg-card table.data td:nth-child(2) { white-space: normal; }
+dialog > form.dlg-card table.data td:last-child:not([colspan]) { text-align: right; overflow: hidden; }
+dialog > form.dlg-card table.data :is(select, input[type=text], input[list], .es) { max-width: 100%; }
+dialog > form.dlg-card > .dlg-f { flex: none; flex-wrap: wrap; }
+/* the note of a refused operation is put before the button, and the button of a card stands
+   in the footer: the note takes a line of its own instead of squeezing the button away */
+dialog > form.dlg-card > .dlg-f > .note { flex: 1 1 100%; margin: 0 0 6px; }
+/* the note under the table stands over the labels of the fields, not over the edge of the
+   body: the same left edge the captions of the groups keep */
+dialog > form.dlg-card > .dlg-b > .dlg-i { padding-left: 38px; }
+dialog > form.dlg-card > .dlg-b > table.data:last-child,
+dialog > form.dlg-card > .dlg-b > .dlg-i:last-child { margin-bottom: 0; }
 dialog > form > h2:first-child { padding-right: 34px; margin-top: 0; }
 dialog > form > :is(table.data) { margin-top: 4px; }
 dialog > form > [type=submit], dialog > form > .btn { margin-top: 14px; }
@@ -624,6 +650,21 @@ dialog table.data td:nth-child(2) { width: 36%; white-space: nowrap; color: var(
 dialog table.data td:last-child { text-align: right; }
 dialog table.data tr:hover td { background: transparent; }
 dialog table.data :is(select, input[type=text], input[list]) { max-width: 100%; width: auto; }
+
+/* the shared dialog of the mass operations names its groups. a line of a group stands in
+   one cell which spans the whole table, and the rules of the dialog read such a cell as the
+   column of the check box (thirty pixels, centered) and as the column of the value (right
+   edge) at the same time, while the caption rule of a page table makes it sticky and paints
+   a band across the opened dialog. the rules go through the class of the dialog to be
+   stronger than the caption of a page table, and the left padding of thirty eight pixels
+   puts the text of a group over the text of the field labels: the checkbox column is thirty
+   pixels wide and a cell keeps eight pixels of its own */
+dialog table.data td[colspan] { width: auto; text-align: left; }
+dialog.eye-dlg table.data > tbody > tr.dlg-group > td {
+  position: static; background: transparent; border-bottom: 0; height: 30px;
+  padding: 10px 8px 0 38px; color: var(--ink-2);
+  font: 600 11px/1.2 var(--disp); letter-spacing: .06em; text-transform: uppercase; }
+dialog.eye-dlg table.data > tbody > tr.dlg-group + tr > td { padding-top: 0; }
 
 /* dims the field when the apply checkbox is off */
 dialog table.data td.off, dialog table.data tr.off td { opacity: .45; }

@@ -179,7 +179,7 @@ if (getPOST("addauth") !== null) {
             $mac_exists = find_mac_in_subnet($db_link, $fip, $fmac);
             if (!empty($mac_exists) && ($mac_exists['count'] ?? 0) >= 1 && !in_array($id, $mac_exists['users_id'] ?? [])) {
                 $dup_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$mac_exists['users_id'][0] ?? 0]);
-                $msg_error = "Mac already exists at another user in this subnet! Skip creating $fip [$fmac].<br>Old user id: " . ($dup_info['id'] ?? '') . " login: " . ($dup_info['login'] ?? '');
+                $msg_error = "Mac already exists at another user in this subnet! Skip creating $fip [$fmac].<br>Old user id: " . (int)($dup_info['id'] ?? 0) . " login: " . esc($dup_info['login'] ?? '');
                 $_SESSION[$page_url]['msg'] = $msg_error;
                 LOG_ERROR($db_link, $msg_error);
                 header("Location: " . $_SERVER["REQUEST_URI"]);
@@ -196,7 +196,7 @@ if (getPOST("addauth") !== null) {
         $dup_ip_record = get_record_sql($db_link, "SELECT * FROM user_auth WHERE ip_int = ? AND user_id <> ? AND deleted = 0", [$ip_aton, $id]);
         if (!empty($dup_ip_record)) {
             $dup_info = get_record_sql($db_link, "SELECT * FROM user_list WHERE id = ?", [$dup_ip_record['user_id']]);
-            $msg_error = "$fip already exists. Skip creating $fip [$fmac].<br>Old user id: " . $dup_info['id'] . " login: " . $dup_info['login'];
+            $msg_error = "$fip already exists. Skip creating $fip [$fmac].<br>Old user id: " . (int)$dup_info['id'] . " login: " . esc($dup_info['login']);
             $_SESSION[$page_url]['msg'] = $msg_error;
             LOG_ERROR($db_link, $msg_error);
             header("Location: " . $_SERVER["REQUEST_URI"]);

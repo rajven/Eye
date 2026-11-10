@@ -1,6 +1,7 @@
 <?php
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/mass.php");
 
 if (!defined("CONFIG")) die("Not defined");
 
@@ -28,6 +29,15 @@ if (empty((array) getPOST('fid', $page_url, []))) {
     exit;
 }
 
+// The dialog of the page is the contract of the operation: the marks are read from the
+// same description of the fields which printed the dialog. An operation without a single
+// mark of it changed nothing, and must not be reported as done
+$asked = mass_device_asked($db_link, $page_url);
+if (empty($asked)) {
+    print '<div class="result err">' . WEB_mass_no_marks . '</div>';
+    exit;
+}
+
 if (getPOST("ApplyForAll", $page_url) !== null) {
 
     $dev_id = getPOST("fid", $page_url, []);
@@ -50,11 +60,22 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
     $a_macro_value = trim((string)getPOST("a_macro_value", $page_url, ''));
     $a_macro_del = (int)getPOST("a_macro_del", $page_url, 0);
 
+    // the templates of the host of zabbix follow the model of the device. the dialog
+    // sends the wish of the operator: to unlink the templates of the old model and to
+    // link the templates of the new one, or to take every template away from the host
+    $a_templates = trim((string)getPOST("a_templates", $page_url, ZABBIX_TEMPLATES_RELINK));
+    if (!in_array($a_templates, [ZABBIX_TEMPLATES_RELINK, ZABBIX_TEMPLATES_UNLINK], true)) {
+        $a_templates = ZABBIX_TEMPLATES_RELINK;
+    }
+
     $tag_changed = 0;
     $macro_changed = 0;
+    $tpl_linked = 0;
+    $tpl_unlinked = 0;
     $zbx_failed = [];
     $zbx_occupied = [];
     $zbx_unwritten = [];
+    $zbx_unmanaged = [];
 
     // what every mark of the dialog writes into: the table of it and its caption. the
     // mass operation of a list touches the record of the device, the bindings of its
@@ -62,7 +83,7 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
     $asks = [
         ['devices', WEB_devices, ['e_set_type', 'e_set_model', 'e_set_building', 'e_set_snmp_version',
                                   'e_set_ro_community', 'e_set_rw_community', 'e_monitoring', 'e_link',
-                                  'e_handler'], []],
+                                  'e_handler', 'e_templates'], []],
         ['zabbix_tags', WEB_zabbix_tags_device, ['e_tag_add', 'e_tag_del'], [$a_tag_add, $a_tag_del]],
         ['zabbix_macros', WEB_zabbix_macros_device, ['e_macro_add', 'e_macro_del'], [$a_macro_add, $a_macro_del]],
     ];
@@ -72,7 +93,7 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
 
         $wanted = [];
         foreach ($marks as $mark) {
-            if (getPOST($mark, $page_url) !== null) {
+            if (in_array($mark, $asked, true)) {
                 $wanted[] = $mark;
             }
         }
@@ -83,7 +104,7 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
         // a row of the zabbix names which is marked but still shows the placeholder asks
         // for nothing: the dialog must say so instead of passing in silence
         foreach ($names as $num => $name) {
-            if ((int)$name <= 0 && getPOST($marks[$num], $page_url) !== null) {
+            if ((int)$name <= 0 && in_array($marks[$num], $asked, true)) {
                 print '<div class="result err">' . sprintf(WEB_mass_no_name, $caption) . '</div>';
                 exit;
             }
@@ -115,26 +136,26 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
 
         $device = [];
 
-        if (getPOST("e_set_type", $page_url) !== null) {
+        if (in_array('e_set_type', $asked, true)) {
             $device['device_type'] = $a_dev_type;
         }
-        if (getPOST("e_set_model", $page_url) !== null) {
+        if (in_array('e_set_model', $asked, true)) {
             $device['device_model_id'] = $a_device_model_id;
             $device['vendor_id'] = get_device_model_vendor($db_link, $a_device_model_id);
         }
-        if (getPOST("e_set_snmp_version", $page_url) !== null) {
+        if (in_array('e_set_snmp_version', $asked, true)) {
             $device['snmp_version'] = $a_snmp_version;
         }
-        if (getPOST("e_set_ro_community", $page_url) !== null) {
+        if (in_array('e_set_ro_community', $asked, true)) {
             $device['community'] = $a_ro_community;
         }
-        if (getPOST("e_set_rw_community", $page_url) !== null) {
+        if (in_array('e_set_rw_community', $asked, true)) {
             $device['rw_community'] = $a_rw_community;
         }
-        if (getPOST("e_set_building", $page_url) !== null) {
+        if (in_array('e_set_building', $asked, true)) {
             $device['building_id'] = $a_building_id;
         }
-        if (getPOST("e_monitoring", $page_url) !== null) {
+        if (in_array('e_monitoring', $asked, true)) {
             // monitoring_old keeps the value which the monitoring system knows, the
             // host of a switched off device is disabled there by the export
             set_monitoring($device, (int)$cur_device['monitoring'], $a_monitoring);
@@ -142,10 +163,10 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
                 $device['monitoring_status'] = 'UP';
             }
         }
-        if (getPOST("e_link", $page_url) !== null) {
+        if (in_array('e_link', $asked, true)) {
             $device['link_check'] = $a_link;
         }
-        if (getPOST("e_handler", $page_url) !== null) {
+        if (in_array('e_handler', $asked, true)) {
             $device['nagios_handler'] = $a_handler;
         }
 
@@ -163,7 +184,7 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
         // selection can not produce zero records: that is a broken or a missing table of
         // the bindings, and the answer must not be green. a removal of a name which is
         // not bound is the usual case, so zero changes there is not a failure
-        if (getPOST("e_tag_add", $page_url) !== null) {
+        if (in_array('e_tag_add', $asked, true)) {
             $done = mass_zabbix_device_binding($db_link, [$id], 'tags', $a_tag_add, $a_tag_value);
             $tag_changed += $done;
             $binding_changed += $done;
@@ -172,10 +193,10 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
                 $zbx_unwritten[] = $cur_device['device_name'] . ' (' . WEB_zabbix_tags_device . ')';
             }
         }
-        if (getPOST("e_tag_del", $page_url) !== null) {
+        if (in_array('e_tag_del', $asked, true)) {
             $binding_changed += mass_zabbix_device_unbind($db_link, [$id], 'tags', $a_tag_del);
         }
-        if (getPOST("e_macro_add", $page_url) !== null) {
+        if (in_array('e_macro_add', $asked, true)) {
             $done = mass_zabbix_device_binding($db_link, [$id], 'macros', $a_macro_add, $a_macro_value);
             $macro_changed += $done;
             $binding_changed += $done;
@@ -184,20 +205,33 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
                 $zbx_unwritten[] = $cur_device['device_name'] . ' (' . WEB_zabbix_macros_device . ')';
             }
         }
-        if (getPOST("e_macro_del", $page_url) !== null) {
+        if (in_array('e_macro_del', $asked, true)) {
             $binding_changed += mass_zabbix_device_unbind($db_link, [$id], 'macros', $a_macro_del);
         }
 
         // the zabbix host of the device follows the changes of its monitoring state and
         // of its macros and tags
+        //
+        // a changed model takes its own templates with itself: the host of eye forgets
+        // the templates of the model which the device has left behind, while the plain
+        // wish of the dialog (the mark of the row of the templates) is stronger than the
+        // rule and is able to leave the host without templates at all
+        $tpl_mode = ZABBIX_TEMPLATES_ADD;
+        if (in_array('e_templates', $asked, true)) {
+            $tpl_mode = $a_templates;
+        } elseif (isset($device['device_model_id'])) {
+            $tpl_mode = ZABBIX_TEMPLATES_RELINK;
+        }
+
         $refresh = isset($device['monitoring']) || isset($device['link_check'])
-            || isset($device['nagios_handler']) || $binding_changed > 0;
+            || isset($device['nagios_handler']) || isset($device['device_model_id'])
+            || $binding_changed > 0 || $tpl_mode !== ZABBIX_TEMPLATES_ADD;
         if ($refresh) {
             // the export of the host is a part of the operation: while zabbix refused it
             // the operation is not finished, and the refusal must be read on the screen
             // and not only in the work log - the names of the tags and of the macros stay
             // written in eye and invisible in the monitoring system
-            $zbx_result = zabbix_record_sync($db_link, 'netdev', $id);
+            $zbx_result = zabbix_record_sync($db_link, 'netdev', $id, $tpl_mode);
             $zbx_action = $zbx_result['action'] ?? '';
             if (!in_array($zbx_action, ['unsupported', 'skipped'], true)) {
                 $zbx_message = zabbix_record_sync_message($db_link, $zbx_result);
@@ -214,6 +248,14 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
             if ($zbx_action === 'occupied') {
                 $zbx_occupied[] = $cur_device['device_name'];
             }
+            $tpl_linked += (int)($zbx_result['templates'] ?? 0);
+            $tpl_unlinked += (int)($zbx_result['unlinked'] ?? 0);
+            // the templates were asked to be taken away, but the host of the device was
+            // made by another hand: eye leaves the templates of another owner in peace
+            if ($tpl_mode !== ZABBIX_TEMPLATES_ADD && array_key_exists('managed', $zbx_result)
+                && !$zbx_result['managed']) {
+                $zbx_unmanaged[] = $cur_device['device_name'];
+            }
         }
     }
 
@@ -222,6 +264,10 @@ if (getPOST("ApplyForAll", $page_url) !== null) {
     }
     if ($macro_changed > 0) {
         LOG_INFO($db_link, WEB_zabbix_mass_macros . ': ' . $macro_changed);
+    }
+    if ($tpl_linked > 0 || $tpl_unlinked > 0) {
+        LOG_INFO($db_link, WEB_zabbix_mass_templates_done . ': '
+            . $tpl_linked . ' / ' . $tpl_unlinked);
     }
 }
 
@@ -233,6 +279,11 @@ if (!empty($zbx_unwritten)) {
     $message = sprintf(WEB_mass_zabbix_failed, implode(', ', array_slice($zbx_failed, 0, 3)));
 } elseif (!empty($zbx_occupied)) {
     $message = sprintf(WEB_mass_zabbix_occupied, implode(', ', array_slice($zbx_occupied, 0, 3)));
+    $all_ok = false;
+} elseif (!empty($zbx_unmanaged)) {
+    // the operation is not a failure: the templates of those hosts belong to somebody
+    // else, but the screen must not hide that the templates stayed where they were
+    $message = sprintf(WEB_mass_zabbix_unmanaged, implode(', ', array_slice($zbx_unmanaged, 0, 3)));
     $all_ok = false;
 }
 /* a class instead of inline styles: the block used to stay green even on Fail! */

@@ -356,6 +356,11 @@ if (!empty($action)) {
         do_exit();
     }
 
+    // SUBSTRING_INDEX is a word of mysql alone: PostgreSQL takes the part of a string
+    // with split_part. the base of the subnet is the text before the first '/' in both
+    // engines, so both bases spell the same column for the answer
+    $subnet_base_expr = db_is_pgsql($db_link) ? "split_part(s.subnet, '/', 1)" : "SUBSTRING_INDEX(s.subnet, '/', 1)";
+
     // === get_dhcp_all ===
     if ($action === 'get_dhcp_all') {
         LOG_VERBOSE($db_link, "API: Get all dhcp records");
@@ -363,7 +368,7 @@ if (!empty($action)) {
             SELECT 
                 ua.id, ua.ip, ua.ip_int, ua.mac, ua.description, 
                 ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id,
-                SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
+                $subnet_base_expr AS subnet_base 
             FROM user_auth ua 
             JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
             WHERE ua.dhcp = 1 AND ua.deleted = 0 AND s.dhcp = 1 
@@ -396,11 +401,11 @@ if (!empty($action)) {
             SELECT 
                 ua.id, ua.ip, ua.ip_int, ua.mac, ua.description, 
                 ua.dns_name, ua.dhcp_option_set, ua.dhcp_acl, ua.ou_id,
-                SUBSTRING_INDEX(s.subnet, '/', 1) AS subnet_base 
+                $subnet_base_expr AS subnet_base 
             FROM user_auth ua 
             JOIN subnets s ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
             WHERE ua.dhcp = 1 AND ua.deleted = 0 AND s.dhcp = 1 
-              AND SUBSTRING_INDEX(s.subnet, '/', 1) = ?
+              AND $subnet_base_expr = ?
             ORDER BY ua.ip_int
             LIMIT ? OFFSET ?
         ", [$f_subnet, $limit, $offset]);
@@ -588,6 +593,9 @@ if (!empty($action)) {
         $target_subnet = getParam('subnet', null, null);
 
         // Один оптимизированный запрос вместо множества get_count_records в цикле
+        // порог «зомби» считается от текущего момента выражением своего движка:
+        // DATE_SUB не знает PostgreSQL, make_interval не знает mysql - db_ts_days_ago()
+        $zombi_since = db_ts_days_ago($db_link);
         $sql = "
             SELECT 
                 s.id,
@@ -597,8 +605,8 @@ if (!empty($action)) {
                 (COALESCE(s.dhcp_stop, s.ip_int_stop) - COALESCE(s.dhcp_start, s.ip_int_start) + 1) AS dhcp_pool,
                 COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop THEN 1 END) AS used_all,
                 COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN COALESCE(s.dhcp_start, s.ip_int_start) AND COALESCE(s.dhcp_stop, s.ip_int_stop) THEN 1 END) AS used_dhcp,
-                COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop AND ua.last_found <= DATE_SUB(NOW(), INTERVAL ? DAY) THEN 1 END) AS zombi_all,
-                COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN COALESCE(s.dhcp_start, s.ip_int_start) AND COALESCE(s.dhcp_stop, s.ip_int_stop) AND ua.last_found <= DATE_SUB(NOW(), INTERVAL ? DAY) THEN 1 END) AS zombi_dhcp
+                COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop AND ua.last_found <= {$zombi_since} THEN 1 END) AS zombi_all,
+                COUNT(CASE WHEN ua.deleted = 0 AND ua.ip_int BETWEEN COALESCE(s.dhcp_start, s.ip_int_start) AND COALESCE(s.dhcp_stop, s.ip_int_stop) AND ua.last_found <= {$zombi_since} THEN 1 END) AS zombi_dhcp
             FROM subnets s
             LEFT JOIN user_auth ua ON ua.ip_int BETWEEN s.ip_int_start AND s.ip_int_stop
             WHERE s.office = 1

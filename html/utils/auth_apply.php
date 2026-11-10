@@ -1,6 +1,7 @@
 <?php
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/auth.php");
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php");
+require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/mass.php");
 
 if (!defined("CONFIG")) die("Not defined");
 
@@ -25,6 +26,15 @@ if (getPOST("ApplyForAll", $page_url) === null) {
 
 if (empty((array) getPOST('fid', $page_url, []))) {
     print '<div class="result err">' . WEB_mass_nothing_selected . '</div>';
+    exit;
+}
+
+// the same rule as the endpoint of the devices: an operation of the dialog which marked
+// nothing changed nothing, and the answer must not be green: the screen would say Done
+$marks = ['e_new_ou', 'e_enabled', 'e_group_id', 'e_queue_id', 'e_dhcp', 'e_dhcp_acl',
+          'e_dhcp_option_set', 'e_traf', 'e_bind_mac', 'e_bind_ip'];
+if (empty(mass_marks_asked($marks, $page_url))) {
+    print '<div class="result err">' . WEB_mass_no_marks . '</div>';
     exit;
 }
 
