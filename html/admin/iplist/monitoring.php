@@ -63,17 +63,21 @@ print_ip_submenu($page_url);
 <div id="cont">
 <form name="filter" action="monitoring.php" method="post">
 <table class="data">
-	<tr>
+        <tr align=left>
         <td>
-        <b><?php print WEB_cell_ou; ?> :</b><?php print_ou_select($db_link, 'ou', $rou); ?>
-        <b><?php print WEB_device_type_show; ?> :</b><?php print_devtypes_select($db_link, 'devtypes', $f_devtype_id, ""); ?>
-        <b><?php print WEB_network_subnet; ?></b><?php print_subnet_select_office_splitted($db_link, 'cidr', $rcidr); ?>
-        <b><?php print WEB_location_name; ?> - </b><?php print_building_select($db_link, 'building_id', $f_building_id); ?>
-        <b><?php print WEB_monitoring; ?> :</b><?php print_enabled_select('enabled', $enabled); ?>
+        <b><?php print WEB_cell_ou . "&nbsp"; ?> :</b><?php print_ou_select($db_link, 'ou', $rou); ?>
+        <b><?php print WEB_device_type_show . "&nbsp"; ?> :</b><?php print_devtypes_select($db_link, 'devtypes', $f_devtype_id, ""); ?>
+        <b><?php print WEB_location_name . "&nbsp"; ?> - </b><?php print_building_select($db_link, 'building_id', $f_building_id); ?>
         <?php print WEB_rows_at_page."&nbsp"; print_row_at_pages('rows',$displayed); ?>
         <input id="btn_filter" name="btn_filter" type="submit" value="<?php print WEB_btn_show; ?>">
         </td>
-	</tr>
+        </tr>
+        <tr align=left>
+        <td>
+        <b><?php print WEB_network_subnet . "&nbsp"; ?></b><?php print_subnet_select_office_splitted($db_link, 'cidr', $rcidr); ?>
+        <b><?php print WEB_monitoring . "&nbsp"; ?> :</b><?php print_enabled_select('enabled', $enabled); ?>
+        </td>
+        </tr>
 </table>
 </form>
 
