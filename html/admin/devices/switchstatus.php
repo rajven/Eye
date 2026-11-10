@@ -139,7 +139,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             $snmp_ok = check_snmp_access($device['ip'], $snmp);
             $modules_oids = NULL;
             if ($snmp_ok) {
-                update_record($db_link, 'devices', 'id=?', [ 'monitoring_status'=> 'UP' ], [ $id ]);
+                if (acl_can_edit()) { update_record($db_link, 'devices', 'id=?', [ 'monitoring_status'=> 'UP' ], [ $id ]); }
                 $modules_oids = walk_snmp($device["ip"], $snmp, CISCO_MODULES);
                 $ifname_map = get_snmp_interfaces($device['ip'], $snmp);
                 $sfp_map = get_ports_sfp_status($device['vendor_id'], $device['ip'], $snmp_long, $modules_oids, $ifname_map);
@@ -345,7 +345,7 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             }
 
             //fix port information
-            if ($snmp_ok && !empty($new_info)) {
+            if ($snmp_ok && !empty($new_info) && acl_can_edit()) {
                 update_record($db_link, "device_ports", "id=?", $new_info, [  $row['id'] ]);
             }
 

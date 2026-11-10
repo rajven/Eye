@@ -787,6 +787,24 @@ function get_id_record($db, $table, $filter, $params=[]) {
 
 function allow_update($db, $table, $action = 'update', $field = '')
 {
+    // 0. viewer can change
+    static $service_fields = [
+        'devices' => [
+            'discovery_locked' => true,
+            'locked_timestamp' => true,
+        ],
+    ];
+
+    $service_table = strtolower($table);
+    if (isset($service_fields[$service_table])) {
+        if ($field !== '') {
+            return isset($service_fields[$service_table][$field]) ? 1 : 0;
+        }
+        if ($action === 'update') {
+        return 1;
+        }
+    }
+
     // 1. Таблицы с полным доступом (регистронезависимо, но без regex)
     static $full_access_tables = [
         'variables' => true,
