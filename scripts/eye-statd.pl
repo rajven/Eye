@@ -84,7 +84,7 @@ my $save_path = get_option($dbh, 72);
 #traffic detail aggregation mode (rows are merged within one flush interval):
 # 0 - no aggregation, one DB row per netflow record (legacy behaviour)
 # 1 - aggregate by user/router/proto/IP pair/service port (recommended, ephemeral ports are zeroed)
-# 2 - aggregate by user/router/proto/service port only (max compression, remote IPs are not stored)
+# 2 - aggregate by user/router/proto/IP pair only, both ports are zeroed (max compression, addresses are kept)
 my $detail_aggregation = 1;
 
 #save traffic to DB
@@ -837,13 +837,18 @@ sub flush_traffic {
         my $agg_key;
 
         if ($detail_aggregation == 1 or $detail_aggregation == 2) {
+            # the pair of addresses is kept in both modes: mode 1 zeroes the ephemeral
+            # port and keeps the service one, mode 2 merges the whole conversation of
+            # one pair of addresses into a single row without ports at all
             my ($d_src_ip, $d_dst_ip, $d_src_port, $d_dst_port, $svc_port);
             if ($traf_record->{direction}) {
-                $d_src_ip = $l_src_ip_aton; $d_src_port = 0; $d_dst_port = $d_dport; $svc_port = $d_dport;
-                $d_dst_ip = ($detail_aggregation == 2) ? 0 : $l_dst_ip_aton;
+                $d_src_ip = $l_src_ip_aton; $d_dst_ip = $l_dst_ip_aton; $d_src_port = 0;
+                $svc_port = ($detail_aggregation == 1) ? $d_dport : 0;
+                $d_dst_port = $svc_port;
             } else {
-                $d_dst_ip = $l_dst_ip_aton; $d_dst_port = 0; $d_src_port = $d_sport; $svc_port = $d_sport;
-                $d_src_ip = ($detail_aggregation == 2) ? 0 : $l_src_ip_aton;
+                $d_src_ip = $l_src_ip_aton; $d_dst_ip = $l_dst_ip_aton; $d_dst_port = 0;
+                $svc_port = ($detail_aggregation == 1) ? $d_sport : 0;
+                $d_src_port = $svc_port;
             }
             $agg_key = join('|', $d_auth_id, $router_id, $d_proto, $traf_record->{direction}, $d_src_ip, $d_dst_ip, $svc_port);
             
