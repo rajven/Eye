@@ -1,0 +1,23 @@
+-- the mode which merges the rows of the traffic details was written in the collector by
+-- hand: it becomes an option of the configuration, the id 77, and scripts/eye-statd.pl asks
+-- the base for it at the start and at every reload of the configuration. the recommended
+-- mode of the table comment is the default value, so a base without a record of the value
+-- works as the collector worked before
+INSERT INTO config_options (id, option_name, description_russian, description_english, draft, uniq, option_type, default_value, min_value, max_value)
+VALUES (77, 'netflow_detail_aggregation', 'Режим агрегации детализации трафика (строки объединяются в пределах одного интервала сброса): 0 - без агрегации, одна запись в базе на каждый netflow-поток; 1 - по подписчик/маршрутизатор/протокол/пара адресов/сервисный порт (рекомендуется, эфемерные порты обнуляются); 2 - только по подписчик/маршрутизатор/протокол/пара адресов, оба порта обнуляются (максимальное сжатие, адреса сохраняются)', 'Traffic detail aggregation mode (rows are merged within one flush interval): 0 - no aggregation, one DB row per netflow record (legacy behaviour); 1 - aggregate by subscriber/router/proto/IP pair/service port (recommended, ephemeral ports are zeroed); 2 - aggregate by subscriber/router/proto/IP pair only, both ports are zeroed (max compression, addresses are kept)', 0, 1, 'int', '1', 0, 2)
+ON CONFLICT (id) DO UPDATE SET
+    option_name = EXCLUDED.option_name,
+    description_russian = EXCLUDED.description_russian,
+    description_english = EXCLUDED.description_english,
+    draft = EXCLUDED.draft,
+    uniq = EXCLUDED.uniq,
+    option_type = EXCLUDED.option_type,
+    default_value = EXCLUDED.default_value,
+    min_value = EXCLUDED.min_value,
+    max_value = EXCLUDED.max_value;
+-- the page of the configuration lists the options which have a record of the value, so the
+-- value is created here as well. an operator who has chosen a mode of his own keeps it: the
+-- line appears only when the option is not in the config table yet
+INSERT INTO config (option_id, value)
+SELECT 77, '1' WHERE NOT EXISTS (SELECT 1 FROM config WHERE option_id = 77);
+SELECT setval(pg_get_serial_sequence('config_options', 'id'), COALESCE((SELECT MAX(id) FROM config_options), 0) + 1);

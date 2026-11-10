@@ -84,7 +84,8 @@ VALUES
 (73, 'check_computer_exists', 'Проверять существование компьютера в домене перед обновлением DNS по DHCP запросу', 'Verify the existence of a computer in the domain before updating DNS by DHCP request', 0, 1, 'bool', '1', 0, 0),
 (74, 'monitoring_system', 'Система мониторинга: none - отключена, nagios, zabbix. Для zabbix необходимо указать адрес и ключ API.', 'Monitoring system: none - disabled, nagios, zabbix. If zabbix is selected, the API url and API key must be set.', 0, 1, 'list;none;nagios;zabbix', 'none', 0, 0),
 (75, 'zabbix_api_url', 'Полный адрес JSON-RPC API zabbix (api_jsonrpc.php)', 'Full address of the zabbix JSON-RPC API (api_jsonrpc.php)', 0, 1, 'text', 'http://127.0.0.1/zabbix/api_jsonrpc.php', 0, 0),
-(76, 'zabbix_api_key', 'API ключ (token) для доступа к API zabbix. Создаётся в zabbix: Администраторы - Пользователи - API токены.', 'API key (token) used to access the zabbix API. Created in zabbix: Administration - Users - API tokens.', 0, 1, 'text', '', 0, 0)
+(76, 'zabbix_api_key', 'API ключ (token) для доступа к API zabbix. Создаётся в zabbix: Администраторы - Пользователи - API токены.', 'API key (token) used to access the zabbix API. Created in zabbix: Administration - Users - API tokens.', 0, 1, 'text', '', 0, 0),
+(77, 'netflow_detail_aggregation', 'Режим агрегации детализации трафика (строки объединяются в пределах одного интервала сброса): 0 - без агрегации, одна запись в базе на каждый netflow-поток; 1 - по подписчик/маршрутизатор/протокол/пара адресов/сервисный порт (рекомендуется, эфемерные порты обнуляются); 2 - только по подписчик/маршрутизатор/протокол/пара адресов, оба порта обнуляются (максимальное сжатие, адреса сохраняются)', 'Traffic detail aggregation mode (rows are merged within one flush interval): 0 - no aggregation, one DB row per netflow record (legacy behaviour); 1 - aggregate by subscriber/router/proto/IP pair/service port (recommended, ephemeral ports are zeroed); 2 - aggregate by subscriber/router/proto/IP pair only, both ports are zeroed (max compression, addresses are kept)', 0, 1, 'int', '1', 0, 2)
 ON CONFLICT (id) DO UPDATE SET
     option_name = EXCLUDED.option_name,
     description_russian = EXCLUDED.description_russian,
@@ -120,7 +121,8 @@ VALUES
 (143, 17, '1'),
 (144, 37, '/opt/Eye/scripts/sync_mikrotik.pl'),
 (145, 23, '1'),
-(148, 22, '1')
+(148, 22, '1'),
+(149, 77, '1')
 ON CONFLICT (id) DO UPDATE SET
     option_id = EXCLUDED.option_id,
     value = EXCLUDED.value;
@@ -158,7 +160,7 @@ VALUES
 (20, 'ES-3124-4F', 4, 0, 0, NULL),
 (21, 'GS110TP', 10, 0, 1, NULL),
 (22, 'GS-4024', 4, 0, 0, NULL),
-(23, 'HP 1910', 15, 0, 0, NULL),
+(23, '1910', 15, 0, 0, NULL),
 (24, 'ISCOM2110A-MA', 5, 0, 0, NULL),
 (25, 'ISCOM2110EA-MA', 5, 0, 0, NULL),
 (26, 'ISCOM2126EA-MA', 5, 0, 0, NULL),
@@ -191,25 +193,25 @@ VALUES
 (53, 'x610-48Ts', 8, 0, 0, NULL),
 (54, 'XGS-4728', 4, 0, 0, NULL),
 (55, 'ZyWall 310', 4, 0, 0, NULL),
-(56, 'APC Smart-UPS_3000', 20, 0, 0, 'ups.cfg'),
-(57, 'APC Smart-UPS_5000', 20, 0, 0, 'ups.cfg'),
-(58, 'Schneider Smart-UPS_3000', 21, 0, 0, NULL),
+(56, 'Smart-UPS_3000', 20, 0, 0, 'ups.cfg'),
+(57, 'Smart-UPS_5000', 20, 0, 0, 'ups.cfg'),
+(58, 'Smart-UPS_3000', 21, 0, 0, NULL),
 (59, 'SMG-1016M', 2, 0, 0, NULL),
-(60, 'EATON 9PX 1500i RT 2U', 64, 0, 0, NULL),
-(61, 'EATON 9PX3000i_RT_2U', 64, 0, 0, NULL),
-(62, 'EATON 9PX_6000i', 64, 0, 0, NULL),
-(63, 'EATON PW9130_3000', 64, 0, 0, NULL),
-(64, 'EATON PW9130_3000VA-R', 64, 0, 0, NULL),
-(65, 'Epson WF-5620 Series', 59, 0, 0, NULL),
-(66, 'Epson WF-8590 Series', 59, 0, 0, NULL),
-(67, 'HP Officejet-7000', 15, 0, 0, 'hp.cfg'),
-(68, 'OKI C610', 62, 0, 0, NULL),
-(69, 'OKI MB472', 62, 0, 0, NULL),
-(70, 'OKI MB491', 62, 0, 0, NULL),
-(71, 'OKI MC562', 62, 0, 0, NULL),
-(72, 'OKI MC573', 62, 0, 0, NULL),
-(73, 'OKI MC861', 62, 0, 0, NULL),
-(74, 'Panasonic KX-MB2000RU', 61, 0, 0, NULL),
+(60, '9PX 1500i RT 2U', 64, 0, 0, NULL),
+(61, '9PX3000i_RT_2U', 64, 0, 0, NULL),
+(62, '9PX_6000i', 64, 0, 0, NULL),
+(63, 'PW9130_3000', 64, 0, 0, NULL),
+(64, 'PW9130_3000VA-R', 64, 0, 0, NULL),
+(65, 'WF-5620 Series', 59, 0, 0, NULL),
+(66, 'WF-8590 Series', 59, 0, 0, NULL),
+(67, 'Officejet-7000', 15, 0, 0, 'hp.cfg'),
+(68, 'C610', 62, 0, 0, NULL),
+(69, 'MB472', 62, 0, 0, NULL),
+(70, 'MB491', 62, 0, 0, NULL),
+(71, 'MC562', 62, 0, 0, NULL),
+(72, 'MC573', 62, 0, 0, NULL),
+(73, 'MC861', 62, 0, 0, NULL),
+(74, 'KX-MB2000RU', 61, 0, 0, NULL),
 (75, 'PT-MZ10KE', 61, 0, 0, NULL),
 (76, 'PT-VX41', 61, 0, 0, NULL),
 (77, 'Rave 522AA', 33, 0, 0, NULL),
@@ -225,7 +227,7 @@ VALUES
 (87, 'Computer', 1, 0, 0, ''),
 (88, 'Mobile Phone', 1, 0, 0, NULL),
 (89, 'Switch', 1, 0, 0, NULL),
-(90, 'Projectiondesign F22', 34, 0, 0, NULL),
+(90, 'F22', 34, 0, 0, NULL),
 (91, 'DS-I252', 36, 0, 0, NULL),
 (92, 'LTV-CNE-720-48', 37, 0, 0, NULL),
 (93, 'U-100', 38, 0, 0, NULL),
@@ -495,7 +497,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- System version
 INSERT INTO version (id, version)
-VALUES (1, '3.2.8')
+VALUES (1, '3.2.9')
 ON CONFLICT (id) DO UPDATE SET
     version = EXCLUDED.version;
 

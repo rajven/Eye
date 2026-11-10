@@ -1,0 +1,18 @@
+-- the name of the vendor in front of the name of a model repeats what every page prints
+-- besides it: the list of the models shows the vendor and the model in two columns, and the
+-- name of a device is built from both. the prefix goes away when a space or a tab stands
+-- right behind it, as 'OKI MB472' becomes 'MB472'.
+-- note: only the vendor of the model itself is cut: 'Linux server' belongs to the vendor
+-- Unknown and keeps its name, although a vendor Linux exists in the list of the vendors
+-- note: a name which only looks like the vendor keeps itself: 'SNR-S5210G-24TX-POE' of the
+-- vendor SNR is not touched, because a hyphen is not a space, and a model whose name is the
+-- vendor name alone stays as it is, because nothing is left of it after the cut
+UPDATE `device_models` dm
+  JOIN `vendors` v ON dm.`vendor_id` = v.`id`
+   SET dm.`model_name` = TRIM(BOTH ' ' FROM SUBSTRING(dm.`model_name` FROM CHAR_LENGTH(v.`name`) + 2))
+ -- the comparison of the prefix ignores the case, as the collation of the base does it in
+-- the queries of the interface, while the copy of the base in postgres would not: both
+-- engines must cut the same names
+ WHERE LOWER(LEFT(dm.`model_name`, CHAR_LENGTH(v.`name`))) = LOWER(v.`name`)
+   AND SUBSTRING(dm.`model_name` FROM CHAR_LENGTH(v.`name`) + 1 FOR 1) IN (' ', CHAR(9))
+   AND CHAR_LENGTH(dm.`model_name`) > CHAR_LENGTH(v.`name`) + 1;

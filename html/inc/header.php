@@ -93,6 +93,10 @@ $eye_nav = [
         try { t = localStorage.getItem('eye.theme'); n = localStorage.getItem('eye.dens'); } catch (e) {}
         if (t === 'light' || t === 'dark') { d.setAttribute('data-eye', t); }
         if (n === 'normal' || n === 'roomy') { d.setAttribute('data-eye-dens', n); }
+        else { d.setAttribute('data-eye-dens', 'compact'); }
+        /* the attribute always names the mode, as js/eye.js does it: the compact look is
+           the default of the interface, so a page which remembers nothing paints dense and
+           the rows do not jump when eye.js arrives */
     } catch (e) {}
 })();
 </script>
@@ -261,7 +265,8 @@ window.EYE_MASS = {
     <a href="/logout.php"><?php echo WEB_title_exit; ?></a>
   </nav>
   <div class="rail-foot">
-    <button type="button" class="btn sm" data-eye-dens-btn><?php echo WEB_lbl_dense; ?></button>
+    <button type="button" class="btn sm" data-eye-dens-btn title="<?php echo htmlspecialchars(WEB_lbl_dense, ENT_QUOTES); ?>"
+      aria-label="<?php echo htmlspecialchars(WEB_lbl_dense, ENT_QUOTES); ?>"><?php echo WEB_lbl_dense; ?></button>
   </div>
 </aside>
 

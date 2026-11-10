@@ -461,7 +461,7 @@ CREATE TABLE `vendors` (
 
 CREATE TABLE `version` (
   `id` int(11) NOT NULL DEFAULT 1,
-  `version` varchar(10) NOT NULL DEFAULT '3.2.8'
+  `version` varchar(10) NOT NULL DEFAULT '3.2.9'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `wan_stats` (
