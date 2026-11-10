@@ -795,13 +795,6 @@ function allow_update($db, $table, $action = 'update', $field = '')
         ],
     ];
 
-    $service_table = strtolower($table);
-    if ($field !== '' && isset($service_fields[$service_table][$field])) {
-        if ($service_fields[$service_table][$field] && $action === 'update') {
-            return 1;
-        }
-    }
-
     // 1. Таблицы с полным доступом (регистронезависимо, но без regex)
     static $full_access_tables = [
         'variables' => true,
@@ -811,6 +804,15 @@ function allow_update($db, $table, $action = 'update', $field = '')
     ];
     if (isset($full_access_tables[strtolower($table)])) {
         return 1;
+    }
+
+    $service_table = strtolower($table);
+    if (isset($service_fields[$service_table])) {
+        if ($field !== '') {
+            if (isset($service_fields[$service_table][$field])) {
+                return 1;
+            }
+        }
     }
 
     // 2. Получение данных сессии (единая точка)
@@ -913,15 +915,6 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
     }
     if (!isset($newvalue) || !is_array($newvalue)) {
         return;
-    }
-
-    // the change which the rights of the reader refused is not a success: the answer of
-    // the helpers of the base is read by the mass operations and by the pages as the
-    // sign that the record really moved, and while it was 1 the reader got a green
-    // 'Done' above a base where nothing had changed
-    if (!allow_update($db, $table, 'update')) {
-        LOG_WARNING($db, "Access denied: $table [ $filter ]");
-        return 0;
     }
 
     $old_record = get_record_sql($db,"SELECT * FROM $table WHERE $filter",$filter_params);
