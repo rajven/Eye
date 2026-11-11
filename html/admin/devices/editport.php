@@ -4,20 +4,38 @@ require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/languages/" . HTML_LANG . ".php")
 require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/idfilter.php");
 
 if (getPOST("editport") !== null) {
-    $cur_port = get_record($db_link, 'device_ports', "id = ?", [$id]);
-    $new = [
-        'snmp_index'  => (int)getPOST("f_snmp", null, 0),
-        'uplink'      => (int)getPOST("f_uplink", null, 0),
-        'skip'        => (int)getPOST("f_skip", null, 0),
-        'description' => trim(getPOST("f_description", null, ''))
-    ];
+    // the viewer has no write command on the page at all: the refusal is loud
+    if (!acl_can_edit()) {
+        acl_denied($db_link, WEB_device_port_control);
+    }
 
-    set_monitoring($new, $cur_port['monitoring'] ?? 0, (int)getPOST("f_monitoring", null, 0));
+    $cur_port = get_record($db_link, 'device_ports', "id = ?", [$id]);
+
+    if (acl_is_admin()) {
+        $new = [
+            'snmp_index'  => (int)getPOST("f_snmp", null, 0),
+            'uplink'      => (int)getPOST("f_uplink", null, 0),
+            'skip'        => (int)getPOST("f_skip", null, 0),
+            'description' => trim(getPOST("f_description", null, ''))
+        ];
+
+        set_monitoring($new, $cur_port['monitoring'] ?? 0, (int)getPOST("f_monitoring", null, 0));
+    } else {
+        // the operator edits the description of the port only: the rest of the
+        // fields of the form are not his, they are ignored without a write
+        $new = [
+            'description' => trim(getPOST("f_description", null, ''))
+        ];
+    }
 
     update_record($db_link, "device_ports", "id = ?", $new, [$id]);
 
-    $target_id = (int)getPOST("f_target_port", null, 0);
-    bind_ports($db_link, $id, $target_id);
+    // the binding of the ports writes the target of the port: not a field of the
+    // operator, the change is kept with the administrator
+    if (acl_is_admin()) {
+        $target_id = (int)getPOST("f_target_port", null, 0);
+        bind_ports($db_link, $id, $target_id);
+    }
 
     header("Location: editport.php?id=$id");
     exit;
@@ -38,18 +56,22 @@ print_editdevice_submenu($page_url, $device_id, $device['device_type'], $user_in
 ?>
 <div id="contsubmenu">
 
+    <?php if (acl_can_edit()) { ?>
     <form name="def" action="editport.php?id=<?php echo $id; ?>" method="post">
         <div class="main">
             <div class="field">
                 <?php print "<label for='port'>" . WEB_device_port_number . "</label>"; ?><input type="text" id="port" disabled="disabled" style="text-align:center;" value="<?php print $port['port']; ?>" />
             </div>
+            <?php if (acl_is_admin()) { ?>
             <div class="field">
                 <?php print "<label for='f_snmp'>" . WEB_device_port_snmp_index . "</label>";
                 print "<input type=\"text\" name='f_snmp' style='text-align:center;' value='" . $port['snmp_index'] . "'>"; ?>
             </div>
+            <?php } ?>
             <div class="field">
                 <?php print "<label for='f_ifIndex'>ifIndex</label>"; ?><input type="text" id="f_ifIndex" disabled="disabled" style="text-align:center;" value="<?php print $port['ifname']; ?>" />
             </div>
+            <?php if (acl_is_admin()) { ?>
             <div class="field">
                 <?php print "<label for='f_uplink'>" . WEB_device_port_uplink . "</label>";
                 print_qa_select('f_uplink', $port['uplink']); ?>
@@ -62,19 +84,34 @@ print_editdevice_submenu($page_url, $device_id, $device['device_type'], $user_in
                 <?php print "<label for='f_skip'>" . WEB_device_port_allien . "</label>";
                 print_qa_select('f_skip', $port['skip']); ?>
             </div>
+            <?php } ?>
             <div class="field">
                 <?php print "<label for='f_description'>" . WEB_cell_description . "</label>";
                 print "<input type=\"text\" name='f_description' value='" . $port['description'] . "' size=38>"; ?>
             </div>
+            <?php if (acl_is_admin()) { ?>
             <div class="field">
                 <?php print "<label for='f_target_port'>" . WEB_device_port_uplink_device . "</label>";
                 print_device_port_select($db_link, 'f_target_port', $device_id, $port['target_port_id']); ?>
             </div>
+            <?php } ?>
             <div class="field">
                 <?php print "<input type=\"submit\" name='editport' value='" . WEB_btn_save . "'>"; ?>
             </div>
         </div>
     </form>
+    <?php } else { ?>
+    <table class="data" cellspacing="1" cellpadding="4">
+        <tr><td><?php echo WEB_device_port_number; ?></td><td><?php print $port['port']; ?></td></tr>
+        <tr><td>ifIndex</td><td><?php print $port['ifname']; ?></td></tr>
+        <tr><td><?php echo WEB_device_port_snmp_index; ?></td><td><?php print $port['snmp_index']; ?></td></tr>
+        <tr><td><?php echo WEB_device_port_uplink; ?></td><td><?php print $port['uplink']; ?></td></tr>
+        <tr><td><?php echo WEB_monitoring; ?></td><td><?php print $port['monitoring']; ?></td></tr>
+        <tr><td><?php echo WEB_device_port_allien; ?></td><td><?php print $port['skip']; ?></td></tr>
+        <tr><td><?php echo WEB_cell_description; ?></td><td><?php print esc($port['description']); ?></td></tr>
+        <tr><td><?php echo WEB_device_port_uplink_device; ?></td><td><?php if (isset($port['target_port_id']) and $port['target_port_id'] > 0) { print_device_port($db_link, $port['target_port_id']); } ?></td></tr>
+    </table>
+    <?php } ?>
 
 <?php
     require_once($_SERVER['DOCUMENT_ROOT'] . "/inc/footer.php");

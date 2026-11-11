@@ -18,6 +18,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !acl_can_edit()) {
 
 // Перегенерация SNMP-индексов
 if (getPOST("regensnmp") !== null) {
+    // the recalc writes the snmp index of every port: the field is not the
+    // description of the port, so the press of the operator is ignored and the
+    // work stays with the administrator (the viewer was refused by the gate above)
+    if (!acl_is_admin()) {
+        header("Location: " . $_SERVER["REQUEST_URI"]);
+        exit;
+    }
     $snmp_index = (int)getPOST("f_snmp_start", null, 1);
     $sSQL = "SELECT id, port FROM device_ports WHERE device_ports.device_id = ? ORDER BY id";
     $flist = get_records_sql($db_link, $sSQL, [$id]);
@@ -139,7 +146,9 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
             $snmp_ok = check_snmp_access($device['ip'], $snmp);
             $modules_oids = NULL;
             if ($snmp_ok) {
-                if (acl_can_edit()) { update_record($db_link, 'devices', 'id=?', [ 'monitoring_status'=> 'UP' ], [ $id ]); }
+                // the note of the state is a write into the device: the operator has
+                // no field of the devices, so the note belongs to the administrator
+                if (acl_is_admin()) { update_record($db_link, 'devices', 'id=?', [ 'monitoring_status'=> 'UP' ], [ $id ]); }
                 $modules_oids = walk_snmp($device["ip"], $snmp, CISCO_MODULES);
                 $ifname_map = get_snmp_interfaces($device['ip'], $snmp);
                 $sfp_map = get_ports_sfp_status($device['vendor_id'], $device['ip'], $snmp_long, $modules_oids, $ifname_map);
@@ -344,8 +353,10 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
                 $new_info['ifname'] = $ifname;
             }
 
-            //fix port information
-            if ($snmp_ok && !empty($new_info) && acl_can_edit()) {
+            //fix port information: the fixup writes the vlan and the name of the
+            // interface, no description is among the fields, so only the administrator
+            // writes it and the view of the page by the operator stays silent
+            if ($snmp_ok && !empty($new_info) && acl_is_admin()) {
                 update_record($db_link, "device_ports", "id=?", $new_info, [  $row['id'] ]);
             }
 
@@ -459,12 +470,14 @@ print_editdevice_submenu($page_url, $id, $device['device_type'], $user_info['log
         print "</table>\n";
         ?>
 
+        <?php if (acl_is_admin()) { ?>
         <div>
             <?php echo WEB_device_first_port_snmp_value; ?>
             &nbsp
             <input type='text' name='f_snmp_start' value=1>
             <input type='submit' name='regensnmp' value='<?php echo WEB_device_recalc_snmp_port ?>'>
         </div>
+        <?php } ?>
 
 <?php
 print "<table class=\"data\" cellspacing=\"1\" cellpadding=\"4\">\n";

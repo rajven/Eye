@@ -46,7 +46,16 @@
 # The link_check parameter of the device is ignored too, unlike the nagios
 # configuration zabbix does not need the port dependency services.
 #
-# usage: sync_zabbix.pl [--dry-run] [--verbose] [--help]
+# The value of a secret macro is not answered by the zabbix api at all (and the
+# value of a vault macro never leaves the vault), while host.update replaces the
+# whole macros list of the host. A full re-send would therefore write empty values
+# over the secrets of the host, so the usual run does not touch the secret macros:
+# they are pushed when the host is created, and they are neither compared nor
+# re-sent nor removed afterwards. The key --sync-secrets orders the full run: the
+# secrets of the eye devices are given to zabbix again, the macros which eye does
+# not assign anymore are taken away.
+#
+# usage: sync_zabbix.pl [--dry-run] [--verbose] [--sync-secrets] [--help]
 
 use utf8;
 use warnings;
@@ -84,18 +93,22 @@ flock(SELF, LOCK_EX | LOCK_NB) or exit 1;
 my $opt_help = 0;
 my $opt_dry = 0;
 my $opt_verbose = 0;
+my $opt_secrets = 0;
 
 GetOptions(
     'dry-run' => \$opt_dry,
     'verbose' => \$opt_verbose,
+    'sync-secrets' => \$opt_secrets,
     'help|h' => \$opt_help,
 ) or exit 1;
 
 if ($opt_help) {
     print "usage: $0 [options]\n";
-    print "  --dry-run   show the planned actions without changing zabbix\n";
-    print "  --verbose   write the detailed log\n";
-    print "  --help      this help\n";
+    print "  --dry-run        show the planned actions without changing zabbix\n";
+    print "  --verbose        write the detailed log\n";
+    print "  --sync-secrets   sync the secret macros of the devices too, the usual\n";
+    print "                   run does not touch them\n";
+    print "  --help           this help\n";
     exit 0;
     }
 
@@ -117,7 +130,8 @@ if (!$api_version) {
     do_exit(1);
     }
 
-log_info("Zabbix api $api_version, dry run: " . ($opt_dry ? 'yes' : 'no'));
+log_info("Zabbix api $api_version, dry run: " . ($opt_dry ? 'yes' : 'no')
+    . ", secret macros sync: " . ($opt_secrets ? 'yes' : 'no'));
 
 #===============================================================
 # static data of eye
@@ -607,11 +621,28 @@ if (scalar(@$added)) {
     $change = 1;
     }
 
-# macros of the eye network device are applied to the host
+# macros of the eye network device are applied to the host. the zabbix api does not
+# answer the value of a secret macro, and host.update replaces the whole macros
+# list: a host which holds secret macros would lose them, so while the secrets are
+# not synced the macros of such a host stay as they stand
 if (macros_changed($zbx_host, $macros, \%macro_names)) {
+    if ($opt_secrets) {
+    host_warn_foreign_secrets($zbx_host);
     log_info("Zabbix: host $host->{host} gets the macros of the device");
     $update{macros} = zabbix_host_merge_macros($zbx_host, $macros, \%macro_names);
     $change = 1;
+    }
+    elsif (!host_has_hidden_macros($zbx_host)) {
+    # the values of all the macros of the host are known to eye, the text macros
+    # are refreshed; a secret macro which eye assigns is added by --sync-secrets
+    my @text = grep { !macro_is_hidden($_->{type} // 0) } @$macros;
+    log_info("Zabbix: host $host->{host} gets the macros of the device");
+    $update{macros} = zabbix_host_merge_macros($zbx_host, \@text, \%macro_names);
+    $change = 1;
+    }
+    else {
+    log_info("Zabbix: host $host->{host} keeps its macros this run, use --sync-secrets to refresh them");
+    }
     }
 
 if ($zbx_host->{status} eq 1) {
@@ -678,9 +709,52 @@ return $result;
 }
 
 #===============================================================
+# zabbix does not answer the value of a secret macro (type 1), and the value of
+# a vault macro (type 16) never leaves the vault: such a macro can neither be
+# compared nor re-sent by eye without damage
+
+sub macro_is_hidden {
+my $type = int(shift() // 0);
+return ($type == 1 || $type == 16) ? 1 : '';
+}
+
+#===============================================================
+# 1 when the host holds macros the values of which the zabbix api does not answer
+
+sub host_has_hidden_macros {
+my $zbx_host = shift // {};
+
+foreach my $macro (@{ $zbx_host->{macros} || [] }) {
+    return 1 if ($macro->{macro} && macro_is_hidden($macro->{type} // 0));
+    }
+
+return 0;
+}
+
+#===============================================================
+# The full run replaces the whole macros list of the host, and the value of a
+# secret macro of another integration is not known to eye: zabbix is warned in
+# the log before such a macro is cleared
+
+sub host_warn_foreign_secrets {
+my $zbx_host = shift // {};
+
+foreach my $macro (@{ $zbx_host->{macros} || [] }) {
+    next if (!$macro->{macro});
+    next if (!macro_is_hidden($macro->{type} // 0));
+    next if ($macro_names{ uc($macro->{macro}) });
+    log_warning("Zabbix: host $zbx_host->{host} holds the secret macro $macro->{macro} of another integration,"
+        . " zabbix does not answer its value and this run clears it");
+    last;
+    }
+}
+
+#===============================================================
 # Only the macros of the global macros list are compared with the macros of the
 # host, the macros of the other integrations do not matter. A macro which eye does
-# not assign anymore has to disappear from the host
+# not assign anymore has to disappear from the host. The secret macros are not
+# compared by the usual run: their values are not answered by the zabbix api, so
+# the comparison would order an update every time
 
 sub macros_changed {
 my ($zbx_host, $wanted, $owned) = @_;
@@ -689,11 +763,13 @@ my %current;
 foreach my $macro (@{ $zbx_host->{macros} || [] }) {
     next if (!$macro->{macro});
     next if ($owned && !exists $owned->{ uc($macro->{macro}) });
+    next if (!$opt_secrets && macro_is_hidden($macro->{type} // 0));
     $current{ uc($macro->{macro}) } = $macro->{value} // '';
     }
 
 my %wanted_index;
 foreach my $macro (@$wanted) {
+    next if (!$opt_secrets && macro_is_hidden($macro->{type} // 0));
     my $key = uc($macro->{macro});
     my $value = $macro->{value} // '';
     $wanted_index{$key} = $value;

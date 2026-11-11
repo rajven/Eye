@@ -785,6 +785,15 @@ function get_id_record($db, $table, $filter, $params=[]) {
     return !empty($record['id']) ? $record['id'] : 0;
 }
 
+function currentPath(bool $withQuery = false): string
+{
+    $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+    if ($withQuery && !empty($_SERVER['QUERY_STRING'])) {
+        $path .= '?' . $_SERVER['QUERY_STRING'];
+    }
+    return $path;
+}
+
 function allow_update($db, $table, $action = 'update', $field = '')
 {
     // 0. viewer can change
@@ -881,6 +890,9 @@ function allow_update($db, $table, $action = 'update', $field = '')
             'user_list' => [
                 'description' => true,
                 'login' => true
+            ],
+            'device_ports' => [
+                'description' => true
             ]
         ];
 
@@ -889,8 +901,16 @@ function allow_update($db, $table, $action = 'update', $field = '')
             return 0;
         }
 
-        // Если поле не указано — разрешаем (полный доступ к таблице)
+        // the tables of this list name every field of the change: the operator has no
+        // field beyond the list, so a blind update (the field is not named) and a mass
+        // operation do not pass
+        static $operator_named_fields_only = [
+            'device_ports' => true
+        ];
         if ($field === '') {
+            if (isset($operator_named_fields_only[$table])) {
+                return 0;
+            }
             return 1;
         }
 
@@ -1114,7 +1134,7 @@ function update_record($db, $table, $filter, $newvalue, $filter_params = [])
 
     if (empty($set_parts)) {
         if ($dropped > 0) {
-            LOG_WARNING($db, "Access denied: none of the fields of $table was let through by the rights");
+            LOG_WARNING($db, "Access denied: none of the fields of $table was let through by the rights from " . currentPath(true));
             return 0;
         }
         return 1;
