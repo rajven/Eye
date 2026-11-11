@@ -61,6 +61,8 @@ define("WEB_mass_zabbix_failed","Система мониторинга не пр
 define("WEB_mass_zabbix_occupied","Часть адресов занята хостами других записей: %s - эти устройства не изменены");
 define("WEB_mass_no_action","Признак массового действия потерян: откройте страницу заново и повторите действие");
 define("WEB_mass_no_marks","В диалоге не отмечена ни одна операция: ничего не изменено");
+define("WEB_mass_no_model","Модель устройства не выбрана: откройте диалог снова и выберите модель из списка");
+define("WEB_mass_no_dev_type","Тип устройства не найден в справочнике типов: откройте диалог снова и выберите тип");
 define("WEB_mass_group_device","Параметры устройства");
 define("WEB_mass_group_monitoring","Система мониторинга");
 define("WEB_mass_group_zabbix","Хост zabbix");

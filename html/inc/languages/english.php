@@ -61,6 +61,8 @@ define("WEB_mass_zabbix_failed","The monitoring system refused the hosts: %s - s
 define("WEB_mass_zabbix_occupied","The address of some hosts belongs to another record: %s - those devices were not touched");
 define("WEB_mass_no_action","The mark of the mass action is missing: open the page again and repeat the action");
 define("WEB_mass_no_marks","Not a single operation of the dialog is marked: nothing was changed");
+define("WEB_mass_no_model","The model of the device is not chosen: open the dialog again and pick a model of the list");
+define("WEB_mass_no_dev_type","The type of the device is not in the dictionary of the types: open the dialog again and pick a type");
 define("WEB_mass_group_device","Parameters of the device");
 define("WEB_mass_group_monitoring","The monitoring system");
 define("WEB_mass_group_zabbix","The host of zabbix");

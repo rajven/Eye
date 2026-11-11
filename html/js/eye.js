@@ -508,6 +508,11 @@
       sel.value = shown[i].v;
       paint();
       close();
+      // the search field of the list is hidden together with the list, and a hidden field
+      // leaves the focus of the browser nowhere but the body: after a choice the operator
+      // stood outside the dialog with his keyboard, and the first Tab began from the top of
+      // the page. the button of the field takes the focus back
+      btn.focus();
       sel.dispatchEvent(new Event('change', { bubbles: true }));   // auto-apply filters and inline onchange keep firing
     }
 
@@ -628,11 +633,18 @@
     function outside(ev) { if (!wrap.contains(ev.target)) close(); }
 
     // one listener for the whole list instead of a listener per row: with a long list the
-    // listeners themselves were a second reason of the freeze and of the memory
-    list.addEventListener('mousedown', function (ev) {
+    // listeners themselves were a second reason of the freeze and of the memory.
+    // pressing the row is answered in full only in the click of the mouse: the old code
+    // chose the row at the mousedown and hid the list in the same moment, so the release of
+    // the button fell on the empty place where the row had laid - the browser gives such a
+    // pair of events to the dialog itself, and the handler of the panel which closes it on a
+    // click aside read the choice of a row as a click on the backdrop. the list stays open
+    // through both events now, and the mousedown only keeps the focus of the search field
+    // from running away and forbids the selection of the text
+    list.addEventListener('mousedown', function (ev) { ev.preventDefault(); });
+    list.addEventListener('click', function (ev) {
       var li = ev.target.closest ? ev.target.closest('li') : null;
       if (!li || !list.contains(li) || li.dataset.i === undefined) return;
-      ev.preventDefault();
       pick(parseInt(li.dataset.i, 10));
     });
     btn.addEventListener('click', function () { pop.hidden ? open() : close(); });

@@ -1,4 +1,22 @@
 # Changelog 3-2-9 - release
+- bugfix: choosing a row of the searchable select closed the dialog of the mass operations.
+  the list of the widget is fixed to the window and its rows may stand below the panel of the
+  dialog, while the pick of a row hid the list at the mousedown: the release of the button
+  fell on the empty place where the row had laid, the browser gives such a pair of events to
+  the nearest living node - to the dialog itself - and the handler which closes the panel on a
+  click aside read the choice as a click on the backdrop. the row is chosen in the click now,
+  the mousedown keeps only the focus of the search field and the ban on the selection of the
+  text, and a click of the real backdrop still closes the panel
+- note: the focus of a picked row returns to the button of the field: the search input is
+  hidden together with the list, and a hidden input leaves the browser with the focus of the
+  body, so the operator lost his place in the dialog after every choice
+- added: the dialog of the mass operations of the address list creates a device. the row
+  carries the mark of the operation, the type of the device and its model, because the model
+  owns the ports, the templates of the monitoring system and the way of the polling; the
+  vendor of the new device is read from the model and not asked of the operator - note: an
+  address which already owns a device, an address without an ip and an address of the sixth
+  version are passed by with a line in the work log, and the answers of the dialog are read
+  against the dictionaries of the models and of the types before the first record is touched
 - changed: the aggregation mode of the traffic details is an option of the configuration now
   (the id 77, netflow_detail_aggregation), it is not written in the collector by hand any
   more. scripts/eye-statd.pl asks the option at the start and at every reload of the
