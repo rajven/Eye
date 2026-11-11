@@ -112,7 +112,13 @@ if ($ARGV[0]) {
     foreach my $net (keys %$subnets) {
         next if (!$net);
         next if (!$subnets->{$net}{discovery});
-        my $run_cmd = "$fping -g $subnets->{$net}{subnet} -B1.0 -c 1 >/dev/null 2>&1";
+        my $fping_args = "$fping -g $subnets->{$net}{subnet} -B1.0 -c 1 >/dev/null 2>&1";
+        my $run_cmd;
+        if ($> == 0) {
+            $run_cmd = $fping_args;
+            } else {
+            $run_cmd = "sudo $fping_args";
+            }
         db_log_debug($dbh, "Checked network $subnets->{$net}{subnet}") if ($debug);
         push(@fping_cmd, $run_cmd);
     }

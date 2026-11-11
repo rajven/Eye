@@ -829,6 +829,7 @@ upgrade_source_code() {
         chown -R eye:eye /opt/Eye/scripts
 
         install_ipset_utils
+        ensure_sudoers_fping
 
         declare -a SERVICES=(
             dhcp-log
@@ -2112,6 +2113,53 @@ install_ipset_utils() {
         print_warn "ipset helper installed, but unit $base_unit.service is missing -"
         print_warn "ipset lists will only be restored once it is enabled."
     fi
+    return 0
+}
+
+# The backend polls the addresses with fping through sudo, the rule lives in
+# /etc/sudoers.d/eye. The installations which were made before the rule appeared
+# get it by the update: a missing rule is appended, a present one is left alone.
+ensure_sudoers_fping() {
+    local sudoers="/etc/sudoers.d/eye"
+    local line="eye             ALL=(root)      NOPASSWD: /usr/bin/fping"
+
+    # the rule of the user eye with any target form and with fping in the command
+    # list is a rule of the same kind: it is never written twice
+    local pattern='^[[:space:]]*eye[[:space:]]+ALL=\([^)]*\)[[:space:]]+NOPASSWD:[[:space:]]*/usr/bin/fping([[:space:]]|,|$)'
+
+    if [[ -f "$sudoers" ]] && grep -qE "$pattern" "$sudoers"; then
+        print_info "SKIP sudoers.d/eye: fping rule is already present"
+        return 0
+    fi
+
+    make_workdir
+
+    # the candidate holds the current file plus the fping rule, visudo judges it
+    # before the working file is touched
+    if [[ -f "$sudoers" ]]; then
+        backup_file "$sudoers" || true
+        if ! cp -f "$sudoers" "$WORKDIR/sudoers.eye.fping"; then
+            print_error "Cannot read $sudoers - fping rule NOT added"
+            return 1
+        fi
+    else
+        print_warn "$sudoers is missing - it will be created with the fping rule only"
+        : > "$WORKDIR/sudoers.eye.fping"
+    fi
+
+    printf '%s\n' "$line" >> "$WORKDIR/sudoers.eye.fping"
+
+    if visudo -cf "$WORKDIR/sudoers.eye.fping" >/dev/null 2>&1; then
+        if install -m 0440 -o root -g root "$WORKDIR/sudoers.eye.fping" "$sudoers"; then
+            print_info "Sudoers: fping rule added to $sudoers (validated with visudo)"
+        else
+            print_error "Cannot install $sudoers - add the fping rule manually"
+        fi
+    else
+        print_error "visudo rejected $sudoers with the fping rule - the file was NOT changed"
+        print_warn "Add 'eye ALL=(root) NOPASSWD: /usr/bin/fping' to $sudoers manually"
+    fi
+
     return 0
 }
 

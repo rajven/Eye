@@ -147,6 +147,17 @@ print_ip_submenu($page_url);
         <tr><td><input type=checkbox class="putField" name="e_traf" value='1'></td><td align=left><?php print "Save traffic"."</td><td align=right>"; print_qa_select('a_traf',1);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_bind_mac" value='1'></td><td align=left><?php print WEB_user_bind_mac."</td><td align=right>";print_qa_select('a_bind_mac', 1);?></td></tr>
         <tr><td><input type=checkbox class="putField" name="e_bind_ip" value='1'></td><td align=left><?php print WEB_user_bind_ip."</td><td align=right>";print_qa_select('a_bind_ip', 1);?></td></tr>
+        <?php
+        // the device of eye is the equipment which lives on the chosen addresses: the type
+        // and the model are asked here, because a model of a device owns the list of its
+        // ports, its templates of the monitoring system and the way of its polling. the
+        // address which already owns a device is left alone by the endpoint, and the model
+        // without a choice is refused: see utils/auth_apply.php
+        ?>
+        <tr><td><input type=checkbox class="putField" name="e_create_netdev" value='1'></td><td align=left><?php print WEB_user_create_netdev."</td><td align=right>";
+            print WEB_cell_type . "&nbsp;"; print_devtype_select($db_link, 'a_new_dev_type', 5);
+            print "&nbsp;" . WEB_cell_host_model . "&nbsp;"; print_device_model_select($db_link, 'a_new_dev_model_id', 0);
+            ?></td></tr>
         </table>
         <input type="submit" name="submit" class="btn" value="<?php echo WEB_btn_apply; ?>">
     </form>
