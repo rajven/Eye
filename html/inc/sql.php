@@ -890,6 +890,9 @@ function allow_update($db, $table, $action = 'update', $field = '')
             'user_list' => [
                 'description' => true,
                 'login' => true
+            ],
+            'device_ports' => [
+                'description' => true
             ]
         ];
 
@@ -898,8 +901,16 @@ function allow_update($db, $table, $action = 'update', $field = '')
             return 0;
         }
 
-        // Если поле не указано — разрешаем (полный доступ к таблице)
+        // the tables of this list name every field of the change: the operator has no
+        // field beyond the list, so a blind update (the field is not named) and a mass
+        // operation do not pass
+        static $operator_named_fields_only = [
+            'device_ports' => true
+        ];
         if ($field === '') {
+            if (isset($operator_named_fields_only[$table])) {
+                return 0;
+            }
             return 1;
         }
 
