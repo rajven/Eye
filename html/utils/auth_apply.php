@@ -252,6 +252,12 @@ if (getPOST("ApplyForAll", $page_url)) {
                 continue;
             }
             LOG_INFO($db_link, "Device for the ip $b_ip created, model id $a_new_dev_model_id, type id $a_new_dev_type");
+
+            // the device stands on the address of a deleted one: the eye_deleted mark
+            // of the hosts which poll this address is not actual anymore
+            if (is_zabbix_enabled()) {
+                zabbix_hosts_clear_deleted_mark($db_link, $b_ip);
+            }
         }
     }
 }

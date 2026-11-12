@@ -660,11 +660,12 @@ function zabbix_record_tags_merge($zbx_host, $tags, $owned)
     return $merged;
 }
 
-// eye owns the tag of the record, the parent tag and the names of its global list
+// eye owns the tag of the record, the parent tag, the mark of a deleted device and
+// the names of its global list
 function zabbix_record_tag_is_owned($name, $owned)
 {
     $key = strtolower(trim((string)$name));
-    if ($key === ZABBIX_TAG_EYE || $key === ZABBIX_TAG_PARENT) {
+    if ($key === ZABBIX_TAG_EYE || $key === ZABBIX_TAG_PARENT || $key === ZABBIX_TAG_DELETED) {
         return true;
     }
 
@@ -728,6 +729,115 @@ function zabbix_record_switch_off($db, $state)
 
     LOG_INFO($db, "Zabbix: host " . $zbx_host['host'] . ' monitoring disabled');
     return ['action' => 'disabled', 'hostid' => $zbx_host['hostid'], 'host' => $zbx_host['host']];
+}
+
+// The host of the deleted device: monitoring is switched off and the host is marked
+// with the eye_deleted tag. eye never deletes the hosts of zabbix: the record of the
+// device disappears from the base, and the mark tells why the host stays here turned
+// off. The call must happen before delete_device(), afterwards no script would find
+// the device, the same rule as in sync_zabbix.pl for the host of a switched off device
+function zabbix_record_mark_deleted($db, $state)
+{
+    $occupied_by = null;
+    $zbx_host = zabbix_find_host($db, $state, $occupied_by);
+
+    if ($occupied_by !== null) {
+        LOG_WARNING($db, "Zabbix: the address of the deleted record " . $state['key']
+            . " is polled by the host of the eye record " . $occupied_by . " already, the host is left alone");
+        return ['action' => 'occupied', 'host' => $state['host'], 'parent' => $occupied_by];
+    }
+
+    if ($zbx_host === null) {
+        return ['action' => 'missing', 'host' => $state['host']];
+    }
+
+    $notes = [];
+
+    if ((int)$zbx_host['status'] !== 1) {
+        if (!zabbix_api_set_host_status($zbx_host['hostid'], 1)) {
+            LOG_WARNING($db, "Zabbix: cannot switch the host " . $zbx_host['host'] . " off");
+            return ['action' => 'failed', 'host' => $zbx_host['host']];
+        }
+        LOG_INFO($db, "Zabbix: host " . $zbx_host['host'] . " monitoring disabled");
+        $notes[] = 'disabled';
+    }
+
+    if (!zabbix_host_has_tag($zbx_host, ZABBIX_TAG_DELETED)) {
+        // host.update replaces the whole list of tags: the current tags are sent back
+        // with the mark of the deletion added to them
+        $tags = [];
+        foreach ($zbx_host['tags'] ?? [] as $tag) {
+            if (empty($tag['tag'])) {
+                continue;
+            }
+            $tags[(string)$tag['tag']] = (string)($tag['value'] ?? '');
+        }
+        $tags[ZABBIX_TAG_DELETED] = '';
+
+        if (!zabbix_api_update_host($zbx_host['hostid'], ['tags' => $tags])) {
+            LOG_WARNING($db, "Zabbix: cannot mark the host " . $zbx_host['host'] . " with the " . ZABBIX_TAG_DELETED . " tag");
+            return ['action' => 'failed', 'host' => $zbx_host['host']];
+        }
+        LOG_INFO($db, "Zabbix: host " . $zbx_host['host'] . " is marked with the " . ZABBIX_TAG_DELETED . " tag");
+        $notes[] = 'marked';
+    }
+
+    if (empty($notes)) {
+        return ['action' => 'unchanged', 'hostid' => $zbx_host['hostid'], 'host' => $zbx_host['host'], 'disabled' => 1];
+    }
+
+    return ['action' => 'marked', 'hostid' => $zbx_host['hostid'], 'host' => $zbx_host['host'], 'notes' => $notes];
+}
+
+// The hosts which poll the address and still carry the mark of a deleted device lose
+// the mark: a new device of eye stands on this address now. Only the mark is taken
+// away, the state of the hosts is not touched
+function zabbix_hosts_clear_deleted_mark($db, $ip)
+{
+    $ip = zabbix_host_ip($ip);
+    if ($ip === '') {
+        return 0;
+    }
+
+    $found = zabbix_api_request('host.get', [
+        'output' => ['hostid', 'host', 'status'],
+        // the address of the interface of the host
+        'filter' => ['ip' => [$ip]],
+        // operator 4 - the host carries the mark of a deleted device, the value is not checked
+        'tags' => [['tag' => ZABBIX_TAG_DELETED, 'value' => '', 'operator' => 4]],
+        'selectTags' => ['tag', 'value'],
+    ]);
+    if (!is_array($found) || empty($found)) {
+        return 0;
+    }
+
+    $cleared = 0;
+    foreach ($found as $one) {
+        $zbx_host = zabbix_host_normalize($one);
+        if (empty($zbx_host['hostid'])) {
+            continue;
+        }
+
+        // host.update replaces the whole list of tags: the current tags are sent back
+        // without the mark of the deletion
+        $tags = [];
+        foreach ($zbx_host['tags'] ?? [] as $tag) {
+            if (empty($tag['tag']) || strtolower((string)$tag['tag']) === ZABBIX_TAG_DELETED) {
+                continue;
+            }
+            $tags[(string)$tag['tag']] = (string)($tag['value'] ?? '');
+        }
+
+        if (!zabbix_api_update_host($zbx_host['hostid'], ['tags' => $tags])) {
+            LOG_WARNING($db, "Zabbix: cannot take the " . ZABBIX_TAG_DELETED . " tag away from the host " . $zbx_host['host']);
+            continue;
+        }
+
+        LOG_INFO($db, "Zabbix: host " . $zbx_host['host'] . " is not the host of a deleted device anymore, the " . ZABBIX_TAG_DELETED . " tag is taken away");
+        $cleared++;
+    }
+
+    return $cleared;
 }
 
 // The record is exported to zabbix after the changes made by the web interface.

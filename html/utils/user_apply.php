@@ -217,6 +217,11 @@ if (getPOST("ApplyForAll", $page_url)) {
                     ];
                     
                     $new_id = insert_record($db_link, "devices", $new_device);
+                    if (!empty($new_id) && is_zabbix_enabled() && !empty($new_device['ip'])) {
+                        // the device stands on the address of a deleted one: the eye_deleted
+                        // mark of the hosts which poll this address is not actual anymore
+                        zabbix_hosts_clear_deleted_mark($db_link, $new_device['ip']);
+                    }
                 }
             }
         }

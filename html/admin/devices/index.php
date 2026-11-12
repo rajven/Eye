@@ -15,7 +15,15 @@ if (getPOST("remove_device") !== null) {
         foreach ($dev_ids as $val) {
             $val = trim($val);
             if ($val !== '') {
-                delete_device($db_link, (int)$val);
+                $dev_id = (int)$val;
+                // the host of the device is switched off and marked as the host of a
+                // deleted device before the record disappears: no script would find
+                // the device afterwards
+                $zbx_state = is_zabbix_enabled() ? zabbix_record_state($db_link, 'netdev', $dev_id) : null;
+                if ($zbx_state !== null && ((int)$zbx_state['monitoring'] === 1 || (int)$zbx_state['monitoring_old'] === 1)) {
+                    zabbix_record_mark_deleted($db_link, $zbx_state);
+                }
+                delete_device($db_link, $dev_id);
             }
         }
     }

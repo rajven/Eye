@@ -142,6 +142,11 @@ if (getPOST("showDevice") !== null) {
 
         $new_id = insert_record($db_link, "devices", $new);
         if (!empty($new_id)) {
+            // the device stands on the address of a deleted one: the eye_deleted mark
+            // of the hosts which poll this address is not actual anymore
+            if (is_zabbix_enabled() && !empty($new['ip'])) {
+                zabbix_hosts_clear_deleted_mark($db_link, $new['ip']);
+            }
             header("Location: /admin/devices/editdevice.php?id={$new_id}");
             exit;
         }

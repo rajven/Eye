@@ -532,6 +532,9 @@ function normalizer_zabbix_macro_name($name)
 // Tags written to the zabbix hosts, they are the same as in the sync_zabbix script
 define('ZABBIX_TAG_EYE', 'eye');
 define('ZABBIX_TAG_PARENT', 'parent');
+// The mark of the host of a deleted device: the host is switched off and tagged,
+// the mark is taken away when a new device of eye stands on the same address
+define('ZABBIX_TAG_DELETED', 'eye_deleted');
 
 // What the export must do with the templates of the host: link the missing ones above
 // what the host has got (the usual reconciliation, and the only one which is done by the
@@ -1120,6 +1123,17 @@ function zabbix_host_tag_value($host, $tag_name)
         }
     }
     return '';
+}
+
+// Does the host carry the tag with the name at all, the value is not looked at
+function zabbix_host_has_tag($host, $tag_name)
+{
+    foreach ($host['tags'] ?? [] as $tag) {
+        if (strtolower((string)($tag['tag'] ?? '')) === strtolower((string)$tag_name)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // The host belongs to this record of eye: it carries the tag of eye with the key of the

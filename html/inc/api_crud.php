@@ -1067,15 +1067,15 @@ function api_delete($db, $spec, $data = [])
 
     switch ($spec['entity']) {
         case 'device':
-            // the host of the device is switched off in the monitoring system before the
-            // record disappears: no script would find the device afterwards
+            // the host of the device is switched off and marked as the host of a deleted
+            // device before the record disappears: no script would find the device afterwards
             if (is_zabbix_enabled() && ((int)$old['monitoring'] === 1 || (int)$old['monitoring_old'] === 1)) {
                 // the same rule as in sync_zabbix.pl: a host which the monitoring system
                 // still polls is disabled there, eye does not delete the hosts itself
                 $zbx_state = zabbix_record_state($db, 'netdev', $id);
                 if ($zbx_state !== null) {
-                    zabbix_record_switch_off($db, $zbx_state);
-                    LOG_INFO($db, 'API: the host of the device ' . $id . ' is switched off in zabbix');
+                    zabbix_record_mark_deleted($db, $zbx_state);
+                    LOG_INFO($db, 'API: the host of the device ' . $id . ' is switched off and marked as deleted in zabbix');
                 }
             }
             delete_device($db, $id);
