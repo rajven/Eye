@@ -79,15 +79,22 @@ my $IP_ATON=StrToIp($host_ip);
 
 print(TRAPFILE "$date [".$$."] search host by ip [$host_ip] aton: $IP_ATON\n");
 
-#get device
-my $sSQL="SELECT dns_name FROM user_auth where deleted=0 and ip_int='".$IP_ATON."'";
-my $ret=get_custom_record($dbh,$sSQL);
-my $device_name=$ret->{dns_name};
+#get device: the trap comes from a network device, the devices live in the
+#devices table of eye now, not in user_auth
+my $ret=get_record_sql($dbh,"SELECT device_name FROM devices WHERE deleted=0 AND ip_int=?",$IP_ATON);
+my $device_name=$ret ? $ret->{device_name} : '';
 print(TRAPFILE "$date [".$$."] name: $device_name\n");
 
 exit if (!$device_name);
 
 ############ notify nagios #############
+
+#the eventhandler of nagios exists only while nagios is the monitoring system of eye
+if ($config_ref{monitoring_system} ne 'nagios') {
+    print(TRAPFILE "$date [".$$."] monitoring system is '".($config_ref{monitoring_system} // 'none')."', the nagios notification is skipped\n");
+    close(TRAPFILE);
+    exit;
+    }
 
 my $svc_description = 'Uptime';
 my $stringoutput = 'WARN: Trap - Restart device! '.$svc_description;

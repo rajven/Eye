@@ -20,10 +20,12 @@ use eyelib::common;
 use eyelib::logconfig;
 
 
-##### unknown mac clean ############
+##### print cacti add_device commands for all devices ############
 my $db_sql = "Select device_name,ip,description,snmp_version,community from devices";
-$dbh->do("set character set utf8");
-$dbh->do("set names utf8");
+if ($config_ref{DBTYPE} eq 'mysql') {
+    $dbh->do("set character set utf8");
+    $dbh->do("set names utf8");
+    }
 
 my $db = $dbh->prepare($db_sql);
 $db->execute;

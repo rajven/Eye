@@ -32,10 +32,9 @@ if ($time_shift) {
     my ($sec,$min,$hour,$day,$month,$year,$zone) = localtime(time()-$time_shift*3600);
     $month += 1;
     $year += 1900;
-    my $filter_str="$year-$month-$day $hour-$min-$sec";
+    my $filter_str=sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$month,$day,$hour,$min,$sec;
     my $filter_date=$dbh->quote($filter_str);
-#    $time_filter=' and dhcp_time>='.$filter_date;
-    $time_filter=' and timestamp>='.$filter_date;
+    $time_filter=' and dhcp_time>='.$filter_date;
     }
 
 my %nets;

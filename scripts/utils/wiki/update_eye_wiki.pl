@@ -17,6 +17,7 @@ use English;
 use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
 use eyelib::config;
+use eyelib::database;
 use File::Find;
 use File::Basename;
 use Fcntl qw(:flock);
@@ -46,18 +47,10 @@ my $ua = LWP::UserAgent->new(
 
 my $api_request_url = $api_base."?".$auth_params;
 
-# берём по коду параметра, а не id записи!
-my $option_filter = encode_json({ option_id => '61' });
-
-# === Получение пути к вики из таблицы config (id=61) ===
-my $api_request = $api_request_url."&get=table_record&table=config&filter=".uri_escape($option_filter);
-
-my $config_response = api_call($ua, 'GET', $api_request);
-if ($config_response->{error}) {
-    die "Ошибка: не удалось получить путь к вики из таблицы config (id=61): " . $config_response->{error} . "\n";
-}
-
-my $wiki_path = $config_response->{data}->{value};
+# === Получение пути к вики ===
+# Таблица config не отдается через api (она вне белого списка), путь читается
+# напрямую: скрипт и так работает на самом сервере eye и читает файлы вики локально
+my $wiki_path = get_option($dbh,61);
 if (!$wiki_path || !-d $wiki_path) {
     die "Ошибка: путь к вики не настроен или директория не существует: $wiki_path\n";
 }

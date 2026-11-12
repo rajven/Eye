@@ -13,7 +13,7 @@ use open qw(:std :encoding(UTF-8));
 no warnings 'utf8';
 
 use FindBin '$Bin';
-use lib "$Bin/";
+use lib "/opt/Eye/scripts";
 use Data::Dumper;
 use eyelib::config;
 use eyelib::main;

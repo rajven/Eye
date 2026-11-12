@@ -24,8 +24,6 @@ use eyelib::database;
 use eyelib::common;
 use Text::Iconv;
 
-exit;
-
 my $dhcp_server=$ARGV[0] || '192.168.7.17';
 
 my $test_only=1;
@@ -106,14 +104,16 @@ foreach my $dhcp_ip (keys %dynamic_ip) {
 next if (!$office_networks->match_string($dhcp_ip));
 print "New dynamic ip: ".$dhcp_ip." ".$dynamic_ip{$dhcp_ip}{mac}."\n";
 if (!$test_only) {
-    do_exec("/opt/Eye/scripts/add-to-stat.pl '".$dhcp_ip."' '".$dynamic_ip{$dhcp_ip}{mac}."' '' 'old'");
+    # the old add-to-stat.pl is gone, the found dynamic client is registered
+    # by the current mechanism of eye
+    resurrection_auth($dbh,{ ip => $dhcp_ip, mac => $dynamic_ip{$dhcp_ip}{mac}, type => 'dhcp' });
     }
 }
 
 ######################################### configuration ###############################################
 
 #get userid list
-my $user_auth_list = $dbh->prepare( "SELECT id,ip,ip_int,mac,clientid,dns_name FROM user_auth where deleted=0 ORDER by ip_int" );
+my $user_auth_list = $dbh->prepare( "SELECT id,ip,ip_int,mac,client_id,dns_name FROM user_auth where deleted=0 ORDER by ip_int" );
 if ( !defined $user_auth_list ) { die "Cannot prepare statement: $DBI::errstr\n"; }
 
 $user_auth_list->execute;

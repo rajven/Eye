@@ -266,9 +266,9 @@ db_log_debug($f_dbh,"Stopped child $child_count analyze data") if ($debug);
 
 if (scalar(@detail_traffic)) {
         db_log_debug($f_dbh,"Start write traffic detail to DB. ".scalar @detail_traffic." lines count") if ($debug);
-	batch_db_sql_cached($f_dbh,"INSERT INTO traffic_detail (auth_id,router_id,ts,proto,src_ip,dst_ip,src_port,dst_port,bytes,pkt) VALUES(?,?,?,?,?,?,?,?,?,?)",\@detail_traffic);
+        batch_db_sql_cached("INSERT INTO traffic_detail (auth_id,router_id,ts,proto,src_ip,dst_ip,src_port,dst_port,bytes,pkt) VALUES(?,?,?,?,?,?,?,?,?,?)",\@detail_traffic);
         db_log_debug($f_dbh,"Write traffic detail to DB stopped") if ($debug);
-	}
+        }
 
 $f_dbh->disconnect;
 return $lines_stats;
@@ -329,11 +329,14 @@ if (!$hour_stat->{byte_in}) { $hour_stat->{byte_in}=0; }
 if (!$hour_stat->{byte_out}) { $hour_stat->{byte_out}=0; }
 $hour_stat->{byte_in} += $user_stats{$user_ip}{in};
 $hour_stat->{byte_out} += $user_stats{$user_ip}{out};
-$tSQL="UPDATE user_stats SET byte_in='".$hour_stat->{byte_in}."', byte_out='".$hour_stat->{byte_out}."' WHERE id='".$auth_id."' AND router_id='".$router_id."'";
+$tSQL="UPDATE user_stats SET byte_in='".$hour_stat->{byte_in}."', byte_out='".$hour_stat->{byte_out}."' WHERE id='".$hour_stat->{id}."'";
 push (@batch_sql_traf,$tSQL);
 }
 
-batch_db_sql($m_dbh,\@batch_sql_traf);
+# the batch_db_sql of the old eyelib is gone, the statements are executed one by one
+foreach my $sql (@batch_sql_traf) {
+    do_sql($m_dbh,$sql);
+    }
 
 db_log_debug($m_dbh,"Import traffic from router id: $router_id stop") if ($debug);
 
