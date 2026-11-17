@@ -133,8 +133,16 @@ while (1) {
                     # 1. Try decoded_remote_id as MAC address
                     if ($dhcp_event{'decoded_remote_id'}) {
                         $t_remote_id = $dhcp_event{'decoded_remote_id'};
-                        $t_remote_id .= "0" x (12 - length($t_remote_id)) if length($t_remote_id) < 12;
-                        $t_remote_id = mac_splitted(isc_mac_simplify($t_remote_id));
+                        if (index($t_remote_id, ':') != -1) {
+                            # Colon-separated short hex, e.g. "0:d4:ca:6d:b6:14" (old ISC dhcpd producer):
+                            # restore leading zeros per octet
+                            $t_remote_id .= "0" x (12 - length($t_remote_id)) if length($t_remote_id) < 12;
+                            $t_remote_id = mac_splitted(isc_mac_simplify($t_remote_id));
+                        } else {
+                            # Contiguous hex, e.g. "0018B0D4CA6D" (dnsmasq hook producer):
+                            # whole-string hex() would lose the leading zero byte
+                            $t_remote_id = mac_splitted($t_remote_id);
+                        }
                         my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
                                      "FROM devices AS D, user_auth AS A " .
                                      "WHERE D.user_id = A.User_id AND D.ip = A.ip AND A.deleted = 0 " .
