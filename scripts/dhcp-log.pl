@@ -8,15 +8,10 @@
 
 use utf8;
 use warnings;
-use Encode;
 use open qw(:std :encoding(UTF-8));
 no warnings 'utf8';
 
-use English;
-use base;
-use FindBin '$Bin';
 use lib "/opt/Eye/scripts";
-use Data::Dumper;
 use eyelib::config;
 use eyelib::main;
 use eyelib::database;
@@ -24,9 +19,6 @@ use eyelib::common;
 use eyelib::net_utils;
 use eyelib::logconfig;
 use strict;
-use POSIX;
-use Net::Netmask;
-use Text::Iconv;
 use File::Tail;
 use Fcntl qw(:flock);
 
@@ -45,11 +37,6 @@ my $mute_time = 300;            # Time (in seconds) to suppress duplicate DHCP e
 my $log_file = '/var/log/dhcp.log';
 
 wrlog($W_INFO,"Starting main DHCP log processing loop...");
-
-setpriority(0, 0, 19);  # Ensure priority is set in child process
-
-# Converter for legacy cp866-encoded logs
-my $converter = Text::Iconv->new("cp866", "utf8");
 
 # Main infinite log-processing loop
 while (1) {
@@ -76,7 +63,7 @@ while (1) {
                 next unless $logline;
                 chomp($logline);
 
-                wrlog($W_INFO,"Log line received: $logline");
+                log_debug("Log line received: $logline");
 
                 # Remove non-printable characters (keep letters, digits, punctuation, whitespace)
                 $logline =~ s/[^\p{L}\p{N}\p{P}\p{Z}]//g;
@@ -93,11 +80,11 @@ while (1) {
                 my @values = split(/;/, $logline);
 
                 my %dhcp_event;
-                log_verbose("GET::");
+                log_debug("GET::");
                 @dhcp_event{@field_names} = @values;
                 for my $name (@field_names) {
                     my $val = defined $dhcp_event{$name} ? $dhcp_event{$name} : '';
-                    log_verbose("Param '$name': $val");
+                    log_debug("Param '$name': $val");
                 }
 
                 # Skip lines without valid event type
@@ -124,7 +111,7 @@ while (1) {
                 }
 
                 # Process DHCP request: update/create DB record
-                my $dhcp_record = process_dhcp_request($hdb, $dhcp_event{'type'}, $dhcp_event{'mac'}, $dhcp_event{'ip'}, $dhcp_event{'hostname'}, $dhcp_event{'client_id'}, $dhcp_event{'decoded_circuit_id'}, $dhcp_event{'$decoded_remote_id'});
+                my $dhcp_record = process_dhcp_request($hdb, $dhcp_event{'type'}, $dhcp_event{'mac'}, $dhcp_event{'ip'}, $dhcp_event{'hostname'}, $dhcp_event{'client_id'}, $dhcp_event{'decoded_circuit_id'}, $dhcp_event{'decoded_remote_id'});
                 next unless $dhcp_record;
 
                 # Cache to suppress duplicates
@@ -144,8 +131,8 @@ while (1) {
                     log_debug("Attempting to identify switch using Option 82 data...");
 
                     # 1. Try decoded_remote_id as MAC address
-                    if ($dhcp_event{'$decoded_remote_id'}) {
-                        $t_remote_id = $dhcp_event{'$decoded_remote_id'};
+                    if ($dhcp_event{'decoded_remote_id'}) {
+                        $t_remote_id = $dhcp_event{'decoded_remote_id'};
                         $t_remote_id .= "0" x (12 - length($t_remote_id)) if length($t_remote_id) < 12;
                         $t_remote_id = mac_splitted(isc_mac_simplify($t_remote_id));
                         my $devSQL = "SELECT D.id, D.device_name, D.ip, A.mac " .
@@ -273,7 +260,7 @@ while (1) {
                             wrlog($W_INFO,"Failed to identify port for IP=$dhcp_event{'ip'} on switch=" . $switch->{device_name});
                         }
                     }
-                    log_verbose("Identified Switch: " . ($switch ? $switch->{device_name} : "NONE") . " Port : " . ($switch_port ? $switch_port->{ifname} : "NONE"));
+                    log_debug("Identified Switch: " . ($switch ? $switch->{device_name} : "NONE") . " Port : " . ($switch_port ? $switch_port->{ifname} : "NONE"));
                 }
             } # end while log reading
 
