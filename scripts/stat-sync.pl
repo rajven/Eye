@@ -216,7 +216,7 @@ sub _cleanup_expired_dynamic_users {
     for my $row (@users_auth) {
         eval {
             delete_user_auth($dbh, $row->{id});
-            db_wrlog($W_INFO,$dbh, "Removed dynamic user auth record for auth_id: $row->{id} by end_life time: $row->{end_life}", $row->{id});
+            db_log_info($dbh, "Removed dynamic user auth record for auth_id: $row->{id} by end_life time: $row->{end_life}", $row->{id});
             # Удаляем пользователя, если больше нет активных auth-записей
             my $u_count = get_count_records($dbh, 'user_auth', 'deleted = 0 AND user_id = ?', $row->{user_id});
             if ($u_count == 0) {

@@ -16,16 +16,26 @@ if [ "x${DNSMASQ_RELAY_ADDRESS}" = "x${3}" ]; then
 CIRCUIT_ID=$(printf '%s' "${DNSMASQ_CIRCUIT_ID}" | /usr/bin/hexdump -v -e '/1 "%02X"')
 REMOTE_ID=$(printf '%s' "${DNSMASQ_REMOTE_ID}" | /usr/bin/hexdump -v -e '/1 "%02X"')
 
-# Raw fields are written to the log verbatim. Semicolon is the field delimiter
-# and CR/LF would split the 13-field line, so strip them from the raw data.
+# All client-controlled fields arrive as RAW bytes (dnsmasq passes option 82
+# sub-options verbatim in the environment). Semicolon is the field delimiter
+# and CR/LF would split the 14-field line, so strip them from every
+# client-controlled field before logging.
+RAW_HOSTNAME="${4//[$'\r\n;']/}"
+RAW_TAGS="${DNSMASQ_TAGS//[$'\r\n;']/}"
+RAW_SUPPLIED_HOSTNAME="${DNSMASQ_SUPPLIED_HOSTNAME//[$'\r\n;']/}"
+RAW_OLD_HOSTNAME="${DNSMASQ_OLD_HOSTNAME//[$'\r\n;']/}"
 RAW_CIRCUIT_ID="${DNSMASQ_CIRCUIT_ID//[$'\r\n;']/}"
 RAW_REMOTE_ID="${DNSMASQ_REMOTE_ID//[$'\r\n;']/}"
+RAW_CLIENT_ID="${DNSMASQ_CLIENT_ID//[$'\r\n;']/}"
+
+# subscriber-id is logged as hex only (informational field, no raw bytes in the log)
+SUBSCRIBER_ID=$(printf '%s' "${DNSMASQ_SUBSCRIBER_ID}" | /usr/bin/hexdump -v -e '/1 "%02X"')
 
 # Debug: touch /run/dnsmasq-hook.debug to enable, rm to disable.
 # No dnsmasq restart required, the flag is checked on every event.
 if [ -f /run/dnsmasq-hook.debug ]; then
     {
-        printf '=== %s action=%s mac=%s ip=%s hostname=%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" "$2" "$3" "$4"
+        printf '=== %s action=%s mac=%s ip=%s hostname=%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" "$2" "$3" "${RAW_HOSTNAME}"
         for v in DNSMASQ_RELAY_ADDRESS DNSMASQ_CIRCUIT_ID DNSMASQ_REMOTE_ID DNSMASQ_SUBSCRIBER_ID DNSMASQ_CLIENT_ID DNSMASQ_TAGS DNSMASQ_SUPPLIED_HOSTNAME DNSMASQ_OLD_HOSTNAME DNSMASQ_VENDOR_CLASS; do
             if [ -n "${!v+x}" ]; then
                 printf '%s bytes=' "$v"
@@ -36,10 +46,12 @@ if [ -f /run/dnsmasq-hook.debug ]; then
             fi
         done
         printf 'logline='
-        printf '%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s\n' "$1" "$2" "$3" "$4" "$time" "${DNSMASQ_TAGS}" "${DNSMASQ_SUPPLIED_HOSTNAME}" "${DNSMASQ_OLD_HOSTNAME}" "${RAW_CIRCUIT_ID}" "${RAW_REMOTE_ID}" "${DNSMASQ_CLIENT_ID}" "${CIRCUIT_ID}" "${REMOTE_ID}"
+        printf '%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s\n' "$1" "$2" "$3" "${RAW_HOSTNAME}" "$time" "${RAW_TAGS}" "${RAW_SUPPLIED_HOSTNAME}" "${RAW_OLD_HOSTNAME}" "${RAW_CIRCUIT_ID}" "${RAW_REMOTE_ID}" "${RAW_CLIENT_ID}" "${CIRCUIT_ID}" "${REMOTE_ID}" "${SUBSCRIBER_ID}"
     } >> /var/log/dhcp-hook-debug.log 2>&1
 fi
 
-echo "$1;$2;$3;$4;${time};${DNSMASQ_TAGS};${DNSMASQ_SUPPLIED_HOSTNAME};${DNSMASQ_OLD_HOSTNAME};${RAW_CIRCUIT_ID};${RAW_REMOTE_ID};${DNSMASQ_CLIENT_ID};${CIRCUIT_ID};${REMOTE_ID}" >>/var/log/dhcp.log &
+# Field 14 (subscriber-id hexdump) is appended for debugging/visibility;
+# dhcp-log.pl reads exactly the first 13 fields and ignores the rest.
+echo "$1;$2;$3;${RAW_HOSTNAME};${time};${RAW_TAGS};${RAW_SUPPLIED_HOSTNAME};${RAW_OLD_HOSTNAME};${RAW_CIRCUIT_ID};${RAW_REMOTE_ID};${RAW_CLIENT_ID};${CIRCUIT_ID};${REMOTE_ID};${SUBSCRIBER_ID}" >>/var/log/dhcp.log &
 
 exit
